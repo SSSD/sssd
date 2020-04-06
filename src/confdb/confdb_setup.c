@@ -134,7 +134,7 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
                                      const char **_ldif)
 {
     errno_t ret;
-    char timestr[21];
+    char timestr[21] = "1";
     int version;
 
     ret = sss_ini_read_sssd_conf(init_data,
