@@ -8,4 +8,4 @@ Description: SSS certificate mapping library
 Version: @VERSION@
 Libs: -L${libdir} -lsss_certmap
 Cflags:
-URL: https://pagure.io/SSSD/sssd/
+URL: https://github.com/SSSD/sssd/

@@ -8,4 +8,4 @@ Description: FreeIPA HBAC Evaluator library
 Version: @VERSION@
 Libs: -L${libdir} -lipa_hbac
 Cflags:
-URL: https://pagure.io/SSSD/sssd/
+URL: https://github.com/SSSD/sssd/
