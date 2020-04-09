@@ -349,7 +349,7 @@ def collection_init_list_destroy(testenv):
     assert cc_coll['carol@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
 
     # Let's ensure `kdestroy -A` works with more than 2 principals
-    # https://pagure.io/SSSD/sssd/issue/3413
+    # https://github.com/SSSD/sssd/issues/4440
     out = testenv.k5util.kdestroy(all_ccaches=True)
     assert out == 0
     assert testenv.k5util.num_princs() == 0
@@ -526,7 +526,7 @@ def test_kcm_sec_parallel_klist(setup_for_kcm_sec,
                                 setup_secrets):
     """
     Test that parallel operations from a single UID are handled well.
-    Regression test for https://pagure.io/SSSD/sssd/issue/3372
+    Regression test for https://github.com/SSSD/sssd/issues/4402
     """
     testenv = setup_for_kcm_sec
 

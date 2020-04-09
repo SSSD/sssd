@@ -269,7 +269,7 @@ def add_user_with_many_keys(request, ldap_conn):
 
 def test_ssh_sighup(add_user_with_many_keys, sighup_client):
     """
-    A regression test for https://pagure.io/SSSD/sssd/issue/3747
+    A regression test for https://github.com/SSSD/sssd/issues/4754
 
     OpenSSH can close its end of the pipe towards sss_ssh_authorizedkeys
     before all of the output is read. In that case, older versions

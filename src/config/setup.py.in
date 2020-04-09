@@ -28,6 +28,6 @@ setup(
     name='SSSDConfig',
     version='@VERSION@',
     license='GPLv3+',
-    url='https://pagure.io/SSSD/sssd/',
+    url='https://github.com/SSSD/sssd/',
     packages=['SSSDConfig'],
 )

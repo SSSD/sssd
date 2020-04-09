@@ -8,4 +8,4 @@ Description: NSS Responder ID-SID mapping interface
 Version: @VERSION@
 Libs: -L${libdir} -lsss_nss_idmap
 Cflags:
-URL: https://pagure.io/SSSD/sssd/
+URL: https://github.com/SSSD/sssd/

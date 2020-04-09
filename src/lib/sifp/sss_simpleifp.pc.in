@@ -9,4 +9,4 @@ Version: @VERSION@
 Requires: dbus-1, dhash
 Libs: -L@libdir@ -lsss_simpleifp
 Cflags: -I${includedir}
-URL: https://pagure.io/SSSD/sssd/
+URL: https://github.com/SSSD/sssd/
