@@ -110,7 +110,7 @@ def timeout_handler(signum, frame):
 def test_multithreaded_pac_client(local_domain_only, sssd_pac_test_client):
     """
     Test for ticket
-    https://pagure.io/SSSD/sssd/issue/3518
+    https://github.com/SSSD/sssd/issues/4544
     """
 
     if not sssd_pac_test_client:

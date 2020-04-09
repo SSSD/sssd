@@ -157,7 +157,7 @@ class TestSanityKCM(object):
         """
         @Title: kcm: Test that SSH can forward credentials with KCM
 
-        A regression test for https://pagure.io/SSSD/sssd/issue/3873
+        A regression test for https://github.com/SSSD/sssd/issues/4863
         """
         ssh = SSHClient(multihost.master[0].sys_hostname,
                         username='foo3', password='Secret123')
@@ -185,7 +185,7 @@ class TestSanityKCM(object):
     def test_kvno_display(self, multihost, enable_kcm):
         """
         @Title: kcm: Test kvno correctly displays vesion numbers of principals
-        #https://pagure.io/SSSD/sssd/issue/3757
+        #https://github.com/SSSD/sssd/issues/4763
         """
         ssh = SSHClient(multihost.master[0].sys_hostname,
                         username='foo4', password='Secret123')

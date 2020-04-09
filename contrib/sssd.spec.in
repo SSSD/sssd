@@ -156,7 +156,7 @@ Release: 0@PRERELEASE_VERSION@%{?dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 License: GPLv3+
-URL: https://pagure.io/SSSD/sssd/
+URL: https://github.com/SSSD/sssd
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 

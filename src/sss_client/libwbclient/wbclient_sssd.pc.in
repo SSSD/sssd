@@ -8,4 +8,4 @@ Description: SSSD implementation of Samba wbclient API
 Version: @libwbclient_version@
 Libs: -L${libdir} -lwbclient
 Cflags:
-URL: https://pagure.io/SSSD/sssd/, http://www.samba.org
+URL: https://github.com/SSSD/sssd/, http://www.samba.org

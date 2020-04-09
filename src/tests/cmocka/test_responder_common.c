@@ -309,7 +309,7 @@ int main(int argc, const char *argv[])
                                         parse_inp_test_setup,
                                         parse_inp_test_teardown),
 // TODO fix these tests, see:
-// https://pagure.io/SSSD/sssd/issue/3806
+// https://github.com/SSSD/sssd/issues/4801
 //        cmocka_unit_test_setup_teardown(parse_inp_call_dp,
 //                                        parse_inp_test_setup,
 //                                        parse_inp_test_teardown),

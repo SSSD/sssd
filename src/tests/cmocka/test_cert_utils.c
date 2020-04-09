@@ -250,7 +250,7 @@ void test_sss_cert_pem_to_der(void **state)
 
     talloc_free(der);
 
-    /* https://pagure.io/SSSD/sssd/issue/3354
+    /* https://github.com/SSSD/sssd/issues/4384
        https://tools.ietf.org/html/rfc7468#section-2 */
     ret = sss_cert_pem_to_der(ts, TEST_CERT_PEM_WITH_METADATA, &der, &der_size);
     assert_int_equal(ret, EOK);

@@ -7,31 +7,31 @@ an NSS and PAM interface toward the system and a pluggable backend system
 to connect to multiple different account sources.
 
 More information about SSSD can be found on its project page -
-https://pagure.io/SSSD/sssd/.
+https://github.com/SSSD/sssd.
 
 ## Downloading SSSD
 SSSD is shipped as a binary package by most Linux distributions. If you
 want to obtain the latest source files, please navigate to the
-[Releases folder on pagure](https://releases.pagure.org/SSSD/sssd/).
+[Releases folder on GitHub](https://github.com/SSSD/sssd/releases).
 
 ## Releases
 SSSD maintains two release streams - stable and LTM. Releases designated as
 LTM are long-term maintenance releases and will see bugfixes and security
 patches for a longer time than other releases.
 
-The list of all releases is maintained together with [SSSD documentation](https://docs.pagure.org/SSSD.sssd/users/releases.html).
+The list of all releases is maintained together with [SSSD documentation](https://sssd.github.io/users/releases.html).
 
 ## Building and installation from source
-Please see the [our developer documentation](https://docs.pagure.org/SSSD.sssd/developers/).
+Please see the [our developer documentation](https://sssd.github.io/developers/).
 
 ## Documentation
-The most up-to-date documentation can be found at https://docs.pagure.org/SSSD.sssd/.
+The most up-to-date documentation can be found at https://sssd.github.io.
 
-Its source code is hosted at https://pagure.io/SSSD/docs.
+Its source code is hosted at https://github.com/SSSD/sssd.github.io.
 
 ## Submitting bugs
-Please file an issue in the [SSSD pagure instance](https://pagure.io/SSSD/sssd/issues).
-Make sure to follow the [guide on reporting SSSD bugs](https://docs.pagure.org/SSSD.sssd/users/reporting_bugs.html).
+Please file an issue in the [SSSD github instance](https://github.com/SSSD/sssd/issues).
+Make sure to follow the [guide on reporting SSSD bugs](https://sssd.github.io/users/reporting_bugs.html).
 
 ## Licensing
 Please see the file called [COPYING](COPYING).

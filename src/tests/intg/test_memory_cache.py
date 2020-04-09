@@ -804,7 +804,7 @@ class MemoryCache(object):
 def test_colliding_hashes(ldap_conn, sanity_rfc2307):
     """
     Regression test for ticket:
-    https://pagure.io/SSSD/sssd/issue/3571
+    https://github.com/SSSD/sssd/issues/4595
     """
 
     first_user = 'user1'

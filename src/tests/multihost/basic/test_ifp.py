@@ -12,7 +12,7 @@ class TestInfoPipe(object):
     def test_ifp_extra_attributes_property(self, multihost):
         """
         @Title: ifp: requesting the extraAttributes property works
-        see e.g.  https://pagure.io/SSSD/sssd/issue/3906
+        see e.g.  https://github.com/SSSD/sssd/issues/4891
         """
         dbus_send_cmd = \
             """

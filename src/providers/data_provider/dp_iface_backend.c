@@ -46,7 +46,7 @@ dp_backend_is_online(TALLOC_CTX *mem_ctx,
     }
 
     /**
-     * FIXME: https://pagure.io/SSSD/sssd/issue/3831
+     * FIXME: https://github.com/SSSD/sssd/issues/4825
      * domain->state is set only for subdomains not for the main domain
      */
     if (be_ctx->domain == domain) {
