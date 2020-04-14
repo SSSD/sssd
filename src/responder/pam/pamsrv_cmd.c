@@ -1351,7 +1351,7 @@ static errno_t check_cert(TALLOC_CTX *mctx,
                             &cert_verification_opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to read certificate_verification from confdb: [%d]: %s\n",
+              "Failed to read '"CONFDB_MONITOR_CERT_VERIFICATION"' from confdb: [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }
@@ -1360,7 +1360,7 @@ static errno_t check_cert(TALLOC_CTX *mctx,
                             CONFDB_PAM_P11_URI, NULL, &uri);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to read certificate_verification from confdb: [%d]: %s\n",
+              "Failed to read '"CONFDB_PAM_P11_URI"' from confdb: [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }
