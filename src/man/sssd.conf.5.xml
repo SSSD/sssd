@@ -1446,15 +1446,17 @@ pam_account_locked_message = Account locked, please contact help desk.
                     <term>pam_cert_db_path (string)</term>
                     <listitem>
                         <para>
-                            The path to the certificate database which contain
-                            the PKCS#11 modules to access the Smartcard.
+                            The path to the certificate database.
                         </para>
                         <para>
                             Default:
                             <itemizedlist>
                                 <listitem><para>/etc/pki/nssdb (NSS version,
-                                                path to a NSS
-                                                database)</para></listitem>
+                                                path to a NSS database which
+                                                contains the PKCS#11 modules
+                                                to access the Smartcard and
+                                                the trusted CA certificates)
+                                                </para></listitem>
                                 <listitem><para>/etc/sssd/pki/sssd_auth_ca_db.pem
                                                 (OpenSSL version, path to a file
                                                 with trusted CA certificates in
