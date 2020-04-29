@@ -532,8 +532,8 @@ calc_flat_name(struct sss_domain_info *domain)
 
     s = domain->flat_name;
     if (s == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Flat name requested but domain has no"
-              "flat name set, falling back to domain name\n");
+        DEBUG(SSSDBG_FUNC_DATA, "Domain has no flat name set,"
+              "using domain name instead\n");
         s = domain->name;
     }
 
