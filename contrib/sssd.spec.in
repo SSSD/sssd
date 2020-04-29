@@ -1088,8 +1088,6 @@ done
 %{_libdir}/%{name}/conf/sssd.conf
 
 %{_datadir}/sssd/cfg_rules.ini
-%{_datadir}/sssd/sssd.api.conf
-%{_datadir}/sssd/sssd.api.d
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %{_mandir}/man5/sssd.conf.5*
@@ -1254,6 +1252,9 @@ done
 %defattr(-,root,root,-)
 %dir %{python2_sitelib}/SSSDConfig
 %{python2_sitelib}/SSSDConfig/*.py*
+%dir %{_datadir}/sssd
+%{_datadir}/sssd/sssd.api.conf
+%{_datadir}/sssd/sssd.api.d
 %endif
 
 %if (0%{?with_python3} == 1)
@@ -1263,6 +1264,9 @@ done
 %{python3_sitelib}/SSSDConfig/*.py*
 %dir %{python3_sitelib}/SSSDConfig/__pycache__
 %{python3_sitelib}/SSSDConfig/__pycache__/*.py*
+%dir %{_datadir}/sssd
+%{_datadir}/sssd/sssd.api.conf
+%{_datadir}/sssd/sssd.api.d
 %endif
 
 %if (0%{?with_python2} == 1)
