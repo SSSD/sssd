@@ -819,6 +819,8 @@ autoreconf -ivf
     --disable-static \
 %if (0%{?use_openssl} == 1)
     --with-crypto=libcrypto \
+%else
+    --with-crypto=nss \
 %endif
     --disable-rpath \
 %if %{with sssd_user}
