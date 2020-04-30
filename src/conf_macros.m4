@@ -558,11 +558,11 @@ AC_DEFUN([WITH_LIBNL],
 AC_DEFUN([WITH_CRYPTO],
     [ AC_ARG_WITH([crypto],
                   [AC_HELP_STRING([--with-crypto=CRYPTO_LIB],
-                                  [The cryptographic library to use (nss|libcrypto). The default is nss.]
+                                  [The cryptographic library to use (libcrypto|nss). The default is libcrypto (OpenSSL). NSS is deprecated.]
                                  )
                   ],
                   [],
-                  with_crypto=nss
+                  with_crypto=libcrypto
                  )
 
       cryptolib=""
@@ -570,9 +570,14 @@ AC_DEFUN([WITH_CRYPTO],
           if test x"$with_crypto" = xnss || \
           test x"$with_crypto" = xlibcrypto; then
               cryptolib="$with_crypto";
+              if test x"$with_crypto" = xnss; then
+                  AC_MSG_WARN([NSS is deprecated crypto backend and it support will be dropped in upcoming releases.])
+              fi
           else
               AC_MSG_ERROR([Illegal value -$with_crypto- for option --with-crypto])
           fi
+      else
+          cryptolib=libcrypto
       fi
       AM_CONDITIONAL([HAVE_NSS], [test x"$cryptolib" = xnss])
       AM_CONDITIONAL([HAVE_LIBCRYPTO], [test x"$cryptolib" = xlibcrypto])
