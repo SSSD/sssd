@@ -2312,6 +2312,19 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                             3/4 * entry_cache_timeout.
                         </para>
                         <para>
+                            Cache entry will be refreshed by background task
+                            when 2/3 of cache timeout has already passed.
+                            If there are existing cached entries, the background
+                            task will refer to their original cache timeout
+                            values instead of current configuration value.
+                            This may lead to a situation in which background refresh
+                            task appears to not be working. This is done
+                            by design to improve offline mode operation and
+                            reuse of existing valid cache entries.
+                            To make this change instant the user may want to
+                            manually invalidate existing cache.
+                        </para>
+                        <para>
                             Default: 0 (disabled)
                         </para>
                     </listitem>
