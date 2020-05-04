@@ -5,6 +5,8 @@
 %global rhel6_minor %(%{__grep} -o "6\\.[0-9]*" /etc/redhat-release |%{__sed} -s 's/6.//')
 %global rhel7_minor %(%{__grep} -o "7\\.[0-9]*" /etc/redhat-release |%{__sed} -s 's/7.//')
 
+%global samba_package_version %(rpm -q samba-devel --queryformat %{version}-%{release})
+
 %if 0%{?rhel} && 0%{?rhel} <= 6
 %{!?__python2: %global __python2 /usr/bin/python2}
 %{!?python2_sitelib: %global python2_sitelib %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
@@ -275,7 +277,7 @@ BuildRequires: libnfsidmap-devel
 BuildRequires: nfs-utils-lib-devel
 %endif
 
-BuildRequires: samba4-devel
+BuildRequires: samba-devel
 BuildRequires: libsmbclient-devel
 %if (0%{?detect_idmap_version} == 1)
 BuildRequires: samba-winbind
@@ -529,6 +531,7 @@ Summary: The IPA back end of the SSSD
 Group: Applications/System
 License: GPLv3+
 Conflicts: sssd < %{version}-%{release}
+Requires: samba-client-libs >= %{samba_package_version}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: libipa_hbac = %{version}-%{release}
@@ -545,6 +548,7 @@ Summary: The AD back end of the SSSD
 Group: Applications/System
 License: GPLv3+
 Conflicts: sssd < %{version}-%{release}
+Requires: samba-client-libs >= %{samba_package_version}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: sssd-common-pac = %{version}-%{release}
