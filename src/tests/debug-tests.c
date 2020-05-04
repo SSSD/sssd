@@ -190,29 +190,29 @@ int test_helper_debug_check_message(int level)
     msg[fsize] = '\0';
 
     if (debug_timestamps == 1) {
-        char time_day[4] = {'\0', '\0', '\0', '\0'};
-        char time_month[4] = {'\0', '\0', '\0', '\0'};
-        int time_day_num = 0;
         int time_hour = 0;
         int time_min = 0;
         int time_sec = 0;
         int time_usec = 0;
+        int time_day = 0;
+        int time_month = 0;
         int time_year = 0;
         int scan_return = 0;
 
         if (debug_microseconds == 0) {
-            scan_return = sscanf(msg, "(%s %s %d %d:%d:%d %d)", time_day, time_month,
-                                 &time_day_num, &time_hour, &time_min, &time_sec, &time_year);
+            scan_return = sscanf(msg, "(%d-%d-%d %d:%d:%d)", &time_year,
+                                 &time_month, &time_day, &time_hour,
+                                 &time_min, &time_sec);
 
-            if (scan_return != 7) {
+            if (scan_return != 6) {
                 ret = DEBUG_TEST_NOK_TS;
                 goto done;
             }
             compare_to = talloc_asprintf(ctx,
-                                         "(%s %s %2d %.2d:%.2d:%.2d %.4d) "
+                                         "(%d-%02d-%02d %2d:%02d:%02d): "
                                          "[%s] [%s] (%#.4x): %s\n",
-                                         time_day, time_month, time_day_num,
-                                         time_hour, time_min, time_sec, time_year,
+                                         time_year, time_month, time_day,
+                                         time_hour, time_min, time_sec,
                                          debug_prg_name, function, level, body);
             if (compare_to == NULL) {
                 _errno = ENOMEM;
@@ -220,20 +220,20 @@ int test_helper_debug_check_message(int level)
                 goto done;
             }
         } else {
-            scan_return = sscanf(msg, "(%s %s %d %d:%d:%d:%d %d)", time_day, time_month,
-                                 &time_day_num, &time_hour, &time_min, &time_sec,
-                                 &time_usec, &time_year);
+            scan_return = sscanf(msg, "(%d-%d-%d %d:%d:%d:%d)", &time_year,
+                                 &time_month, &time_day, &time_hour,
+                                 &time_min, &time_sec, &time_usec);
 
-            if (scan_return != 8) {
+            if (scan_return != 7) {
                 ret = DEBUG_TEST_NOK_TS;
                 goto done;
             }
             compare_to = talloc_asprintf(ctx,
-                                         "(%s %s %2d %.2d:%.2d:%.2d:%.6d %.4d) "
+                                         "(%d-%02d-%02d %2d:%02d:%02d:%.6d): "
                                          "[%s] [%s] (%#.4x): %s\n",
-                                         time_day, time_month, time_day_num,
+                                         time_year, time_month, time_day,
                                          time_hour, time_min, time_sec, time_usec,
-                                         time_year, debug_prg_name, function, level, body);
+                                         debug_prg_name, function, level, body);
             if (compare_to == NULL) {
                 _errno = ENOMEM;
                 ret = DEBUG_TEST_ERROR;
