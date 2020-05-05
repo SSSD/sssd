@@ -170,6 +170,9 @@ int debug_convert_old_level(int old_level)
     if (old_level >= 9)
         new_level |= SSSDBG_TRACE_ALL | SSSDBG_BE_FO;
 
+    if (old_level >= 10)
+        new_level |= SSSDBG_TRACE_LDB;
+
     return new_level;
 }
 
@@ -345,7 +348,7 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
         loglevel = SSSDBG_TRACE_FUNC;
         break;
     case LDB_DEBUG_TRACE:
-        loglevel = SSSDBG_TRACE_ALL;
+        loglevel = SSSDBG_TRACE_LDB;
         break;
     }
 
