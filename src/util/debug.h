@@ -82,11 +82,16 @@ int get_fd_from_debug_file(void);
 #define SSSDBG_TRACE_INTERNAL 0x2000   /* level 8 */
 #define SSSDBG_TRACE_ALL      0x4000   /* level 9 */
 #define SSSDBG_BE_FO          0x8000   /* level 9 */
+#define SSSDBG_TRACE_LDB     0x10000   /* level 10 */
 #define SSSDBG_IMPORTANT_INFO SSSDBG_OP_FAILURE
 
 #define SSSDBG_INVALID        -1
 #define SSSDBG_UNRESOLVED     0
-#define SSSDBG_MASK_ALL       0xFFF0   /* enable all debug levels */
+
+/* enables all debug levels;
+   0x0800 isn't used for historical reasons: 0x1FFF0 - 0x0800 = 0x1F7F0
+*/
+#define SSSDBG_MASK_ALL       0x1F7F0
 #define SSSDBG_DEFAULT        SSSDBG_FATAL_FAILURE
 
 #define SSSDBG_TIMESTAMP_UNRESOLVED   -1
