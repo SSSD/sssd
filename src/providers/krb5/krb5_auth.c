@@ -1291,6 +1291,14 @@ static void krb5_pam_handler_auth_done(struct tevent_req *subreq)
         state->pd->pam_status = PAM_SYSTEM_ERR;
     }
 
+    /* PAM_CRED_ERR is used to indicate to the IPA provider that trying
+     * password migration would make sense. From this point on it isn't
+     * necessary to keep this status, so it can be translated to PAM_AUTH_ERR.
+     */
+    if (state->pd->pam_status == PAM_CRED_ERR) {
+        state->pd->pam_status = PAM_AUTH_ERR;
+    }
+
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
 }
