@@ -770,7 +770,7 @@ main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level);
 
-    debug_prg_name = talloc_asprintf(NULL, "[sssd[gpo_child[%d]]]", getpid());
+    debug_prg_name = talloc_asprintf(NULL, "gpo_child[%d]", getpid());
     if (debug_prg_name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         goto fail;

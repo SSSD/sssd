@@ -705,7 +705,7 @@ int main(int argc, const char *argv[])
 
     sss_set_logger(opt_logger);
 
-    srv_name = talloc_asprintf(NULL, "sssd[be[%s]]", be_domain);
+    srv_name = talloc_asprintf(NULL, "be[%s]", be_domain);
     if (!srv_name) return 2;
 
     confdb_path = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, be_domain);

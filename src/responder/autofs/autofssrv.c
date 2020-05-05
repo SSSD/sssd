@@ -216,7 +216,7 @@ int main(int argc, const char *argv[])
 
     sss_set_logger(opt_logger);
 
-    ret = server_setup("sssd[autofs]", 0, uid, gid,
+    ret = server_setup("autofs", 0, uid, gid,
                        CONFDB_AUTOFS_CONF_ENTRY, &main_ctx);
     if (ret != EOK) {
         return 2;
