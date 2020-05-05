@@ -311,7 +311,7 @@ int main(int argc, const char *argv[])
 
     sss_set_logger(opt_logger);
 
-    ret = server_setup("sssd[kcm]", 0, uid, gid, CONFDB_KCM_CONF_ENTRY,
+    ret = server_setup("kcm", 0, uid, gid, CONFDB_KCM_CONF_ENTRY,
                        &main_ctx);
     if (ret != EOK) return 2;
 

@@ -2675,9 +2675,9 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
             goto done;
         case 0:
             /* Child */
-            debug_prg_name = talloc_asprintf(NULL, "[sssd[krb5_child[%d]]]", getpid());
+            debug_prg_name = talloc_asprintf(NULL, "krb5_child[%d]", getpid());
             if (debug_prg_name == NULL) {
-                debug_prg_name = "[sssd[krb5_child]]";
+                debug_prg_name = "krb5_child";
                 DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
                 /* Try to carry on */
             }
@@ -3286,9 +3286,9 @@ int main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level);
 
-    debug_prg_name = talloc_asprintf(NULL, "[sssd[krb5_child[%d]]]", getpid());
+    debug_prg_name = talloc_asprintf(NULL, "krb5_child[%d]", getpid());
     if (!debug_prg_name) {
-        debug_prg_name = "[sssd[krb5_child]]";
+        debug_prg_name = "krb5_child";
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
         goto done;

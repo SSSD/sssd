@@ -666,9 +666,9 @@ int main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level);
 
-    debug_prg_name = talloc_asprintf(NULL, "[sssd[ldap_child[%d]]]", getpid());
+    debug_prg_name = talloc_asprintf(NULL, "ldap_child[%d]", getpid());
     if (!debug_prg_name) {
-        debug_prg_name = "[sssd[ldap_child]]";
+        debug_prg_name = "ldap_child";
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         goto fail;
     }
