@@ -574,7 +574,7 @@ int main(int argc, const char *argv[])
 
     sss_set_logger(opt_logger);
 
-    ret = server_setup("sssd[nss]", 0, uid, gid, CONFDB_NSS_CONF_ENTRY,
+    ret = server_setup("nss", 0, uid, gid, CONFDB_NSS_CONF_ENTRY,
                        &main_ctx);
     if (ret != EOK) return 2;
 

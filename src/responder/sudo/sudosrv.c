@@ -199,7 +199,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    ret = server_setup("sssd[sudo]", 0, uid, gid, CONFDB_SUDO_CONF_ENTRY,
+    ret = server_setup("sudo", 0, uid, gid, CONFDB_SUDO_CONF_ENTRY,
                        &main_ctx);
     if (ret != EOK) {
         return 2;

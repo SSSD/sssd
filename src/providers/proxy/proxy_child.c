@@ -534,7 +534,7 @@ int main(int argc, const char *argv[])
 
     sss_set_logger(opt_logger);
 
-    srv_name = talloc_asprintf(NULL, "sssd[proxy_child[%s]]", domain);
+    srv_name = talloc_asprintf(NULL, "proxy_child[%s]", domain);
     if (!srv_name) return 2;
 
     conf_entry = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, domain);
