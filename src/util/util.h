@@ -103,6 +103,8 @@ extern int dbus_activated;
 #define FLAGS_GEN_CONF 0x0008
 #define FLAGS_NO_WATCHDOG 0x0010
 
+#define SSS_WATCHDOG_EXIT_CODE 70 /* to match EX_SOFTWARE in sysexits.h */
+
 #define PIPE_INIT { -1, -1 }
 
 #define PIPE_FD_CLOSE(fd) do {      \
