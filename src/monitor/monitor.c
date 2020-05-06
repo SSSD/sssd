@@ -405,17 +405,34 @@ static int add_svc_conn_spy(struct mt_svc *svc)
 
 static void svc_child_info(struct mt_svc *svc, int wait_status)
 {
+    int exit_code = 0;
+    int pid = svc->pid;
+    const char *name = (svc->name ? svc->name : "");
+    const char *identity = (svc->identity ? svc->identity : "");
+
     if (WIFEXITED(wait_status)) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Child [%d] exited with code [%d]\n",
-               svc->pid, WEXITSTATUS(wait_status));
+        exit_code = WEXITSTATUS(wait_status);
+        if (exit_code == SSS_WATCHDOG_EXIT_CODE) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Child [%d] ('%s':'%s') was terminated by own WATCHDOG\n",
+                  pid, name, identity);
+            sss_log(SSS_LOG_CRIT,
+                    "Child [%d] ('%s':'%s') was terminated by own WATCHDOG. "
+                    "Consult corresponding logs to figure out the reason.",
+                    pid, name, identity);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Child [%d] ('%s':'%s') exited with code [%d]\n",
+                   pid, name, identity, exit_code);
+        }
     } else if (WIFSIGNALED(wait_status)) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Child [%d] terminated with signal [%d]\n",
-               svc->pid, WTERMSIG(wait_status));
+              "Child [%d] ('%s':'%s') terminated with signal [%d]\n",
+               pid, name, identity, WTERMSIG(wait_status));
     } else {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Child [%d] did not exit cleanly\n", svc->pid);
+              "Child [%d] ('%s':'%s') did not exit cleanly\n",
+              pid, name, identity);
         /* Forcibly kill this child, just in case */
         kill(svc->pid, SIGKILL);
 
