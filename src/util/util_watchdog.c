@@ -75,7 +75,7 @@ static void watchdog_handler(int sig)
         if (getpid() == getpgrp()) {
             kill(-getpgrp(), SIGTERM);
         }
-        _exit(1);
+        _exit(SSS_WATCHDOG_EXIT_CODE);
     }
 }
 
