@@ -618,6 +618,43 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
     return EOK;
 }
 
+
+int basedn_to_domain(TALLOC_CTX *memctx, const char *basedn, char **domain)
+{
+    const char *s;
+    char *dn;
+    char *p;
+    int l;
+
+    if (domain == NULL || basedn == NULL) {
+        return EINVAL;
+    }
+
+    s = basedn;
+    dn = NULL;
+    while ((p = strchr(s, ','))) {
+        l = p - s - 3;
+        dn = talloc_asprintf_append_buffer(dn, "%.*s.", l, s+3);
+        if (!dn) {
+            return ENOMEM;
+        }
+        s = p + 1;
+    }
+
+    dn = talloc_strdup_append_buffer(dn, s+3);
+    if (!dn) {
+        return ENOMEM;
+    }
+
+    for (p=dn; *p; ++p) {
+        *p = tolower(*p);
+    }
+
+    *domain = dn;
+    return EOK;
+}
+
+
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
 {
     const char *s;

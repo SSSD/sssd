@@ -278,6 +278,8 @@ ad_master_domain_next_done(struct tevent_req *subreq)
     static const char *attrs[] = {AD_AT_NETLOGON, NULL};
     char *filter;
     char *ntver;
+    char* dnsdomain = NULL;
+    char* domain_dn = NULL;
 
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
@@ -340,8 +342,25 @@ ad_master_domain_next_done(struct tevent_req *subreq)
         goto done;
     }
 
+    domain_dn = dp_opt_get_string(state->opts->basic, SDAP_SEARCH_BASE);
+    if (domain_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot find baseDN.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = basedn_to_domain(state, domain_dn, &dnsdomain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, 
+              "%s:Cannot convert '%s' baseDN to domain.\n", 
+              ret == EINVAL ? "EINVAL" : ret == ENOMEM ? "ENOMEM" : "EUNKNOWN",
+              domain_dn);
+        ret = EINVAL;
+        goto done;
+    }
+
     filter = talloc_asprintf(state, "(&(%s=%s)(%s=%s))",
-                             AD_AT_DNS_DOMAIN, state->dom_name,
+                             AD_AT_DNS_DOMAIN, dnsdomain,
                              AD_AT_NT_VERSION, ntver);
     if (filter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");

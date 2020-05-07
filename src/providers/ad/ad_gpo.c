@@ -2043,11 +2043,10 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "sam_account_name is %s\n", sam_account_name);
 
     /* Convert the domain name into domain DN */
-    ret = domain_to_basedn(state, state->host_domain->name, &domain_dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot convert domain name [%s] to base DN [%d]: %s\n",
-               state->host_domain->name, ret, sss_strerror(ret));
+    domain_dn = dp_opt_get_string(state->opts->basic, SDAP_SEARCH_BASE);
+    if (domain_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot find base DN\n");
+        ret = EINVAL;
         goto done;
     }
 

@@ -48,6 +48,13 @@ struct test_domain test_domains[] = {
     { NULL, NULL}
 };
 
+struct test_domain test_basedn_to_domain_data[] = {
+    { "abc", "dc=abc"},
+    { "a.b.c", "dc=a,dc=b,dc=c"},
+    { "a.b.c", "dc=A,dc=B,dc=C"},
+    { NULL, NULL}
+};
+
 /* Mock parsing search base without overlinking the test */
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
                                struct dp_option *opts, int class,
@@ -55,6 +62,37 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
 {
     return EOK;
 }
+
+START_TEST(test_basedn_to_domain)
+{
+    int ret;
+    int i;
+    TALLOC_CTX *tmp_ctx;
+    char *domain;
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed");
+
+    ret = basedn_to_domain(tmp_ctx, NULL, &domain);
+    fail_unless(ret == EINVAL,
+                "basedn_to_domain does not fail with EINVAL if basedn is NULL");
+
+    ret = basedn_to_domain(tmp_ctx, "abc", NULL);
+    fail_unless(ret == EINVAL,
+                "basedn_to_domain does not fail with EINVAL if domain is NULL");
+
+    for(i=0; test_basedn_to_domain_data[i].basedn != NULL; i++) {
+        ret = basedn_to_domain(tmp_ctx, test_basedn_to_domain_data[i].basedn, &domain);
+        fail_unless(ret == EOK, "basedn_to_domain failed");
+        fail_unless(strcmp(domain, test_basedn_to_domain_data[i].domain) == 0,
+                    "basedn_to_domain returned wrong basedn, "
+                    "get [%s], expected [%s]", domain, test_basedn_to_domain_data[i].domain);
+        talloc_free(domain);
+    }
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
 
 START_TEST(test_domain_to_basedn)
 {
@@ -516,6 +554,7 @@ Suite *ipa_ldap_opt_suite (void)
 
     TCase *tc_ipa_utils = tcase_create ("ipa_utils");
     tcase_add_test (tc_ipa_utils, test_domain_to_basedn);
+    tcase_add_test (tc_ipa_utils, test_basedn_to_domain);
     suite_add_tcase (s, tc_ipa_utils);
 
     TCase *tc_dp_opts = tcase_create ("dp_opts");
