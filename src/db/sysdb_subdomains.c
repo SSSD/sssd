@@ -421,7 +421,9 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                 }
 
                 /* in theory these may change, but it should never happen */
-                if (strcasecmp(dom->realm, realm) != 0) {
+                if ((dom->realm == NULL && realm != NULL)
+                        || (dom->realm != NULL && realm != NULL
+                            && strcasecmp(dom->realm, realm) != 0)) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
                           "Realm name changed from [%s] to [%s]!\n",
                            dom->realm, realm);
@@ -432,7 +434,9 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                         goto done;
                     }
                 }
-                if (strcasecmp(dom->flat_name, flat) != 0) {
+                if ((dom->flat_name == NULL && flat != NULL)
+                        || (dom->flat_name != NULL && flat != NULL
+                            && strcasecmp(dom->flat_name, flat) != 0)) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
                           "Flat name changed from [%s] to [%s]!\n",
                            dom->flat_name, flat);
@@ -443,7 +447,9 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                         goto done;
                     }
                 }
-                if (strcasecmp(dom->domain_id, id) != 0) {
+                if ((dom->domain_id == NULL && id != NULL)
+                        || (dom->domain_id != NULL && id != NULL
+                            && strcasecmp(dom->domain_id, id) != 0)) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
                           "Domain changed from [%s] to [%s]!\n",
                            dom->domain_id, id);
