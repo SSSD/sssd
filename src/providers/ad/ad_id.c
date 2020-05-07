@@ -663,12 +663,12 @@ ad_enumeration_conn_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = ad_master_domain_send(state, state->ev,
-                                   state->id_ctx->ldap_ctx,
-                                   state->sdap_op,
-                                   state->sdom->dom->name);
+    subreq = ad_domain_info_send(state, state->ev,
+                                  state->id_ctx->ldap_ctx,
+                                  state->sdap_op,
+                                  state->sdom->dom->name);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ad_master_domain_send failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ad_domain_info_send failed.\n");
         tevent_req_error(req, ret);
         return;
     }
@@ -687,8 +687,8 @@ ad_enumeration_master_done(struct tevent_req *subreq)
     char *master_sid;
     char *forest;
 
-    ret = ad_master_domain_recv(subreq, state,
-                                &flat_name, &master_sid, NULL, &forest);
+    ret = ad_domain_info_recv(subreq, state,
+                              &flat_name, &master_sid, NULL, &forest);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve master domain info\n");
