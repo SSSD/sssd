@@ -196,25 +196,6 @@ int sysdb_replace_ulong(struct ldb_message *msg,
 int sysdb_delete_ulong(struct ldb_message *msg,
                        const char *attr, unsigned long value);
 
-/* The utility function to create a subdomain sss_domain_info object is handy
- * for unit tests, so it should be available in a header, but not a public util
- * one, because the only interface for the daemon itself should be adding
- * the sysdb domain object and calling sysdb_update_subdomains()
- */
-struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
-                                      struct sss_domain_info *parent,
-                                      const char *name,
-                                      const char *realm,
-                                      const char *flat_name,
-                                      const char *id,
-                                      enum sss_domain_mpg_mode mpg_mode,
-                                      bool enumerate,
-                                      const char *forest,
-                                      const char **upn_suffixes,
-                                      uint32_t trust_direction,
-                                      struct confdb_ctx *confdb,
-                                      bool enabled);
-
 /* Helper functions to deal with the timestamp cache should not be used
  * outside the sysdb itself. The timestamp cache should be completely
  * opaque to the sysdb consumers
