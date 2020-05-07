@@ -1231,37 +1231,37 @@ static errno_t ad_get_slave_domain_recv(struct tevent_req *req)
 }
 
 static struct ad_id_ctx *
-ads_get_root_id_ctx(struct be_ctx *be_ctx,
-                    struct ad_id_ctx *ad_id_ctx,
-                    struct sss_domain_info *root_domain,
-                    struct sdap_options *opts)
+ads_get_dom_id_ctx(struct be_ctx *be_ctx,
+                   struct ad_id_ctx *ad_id_ctx,
+                   struct sss_domain_info *domain,
+                   struct sdap_options *opts)
 {
     errno_t ret;
     struct sdap_domain *sdom;
-    struct ad_id_ctx *root_id_ctx;
+    struct ad_id_ctx *dom_id_ctx;
 
-    sdom = sdap_domain_get(opts, root_domain);
+    sdom = sdap_domain_get(opts, domain);
     if (sdom == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the sdom for %s!\n", root_domain->name);
+              "Cannot get the sdom for %s!\n", domain->name);
         return NULL;
     }
 
     if (sdom->pvt == NULL) {
-        ret = ad_subdom_ad_ctx_new(be_ctx, ad_id_ctx, root_domain,
-                                   &root_id_ctx);
+        ret = ad_subdom_ad_ctx_new(be_ctx, ad_id_ctx, domain,
+                                   &dom_id_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ad_subdom_ad_ctx_new failed.\n");
             return NULL;
         }
 
-        sdom->pvt = root_id_ctx;
+        sdom->pvt = dom_id_ctx;
     } else {
-        root_id_ctx = sdom->pvt;
+        dom_id_ctx = sdom->pvt;
     }
 
-    root_id_ctx->ldap_ctx->ignore_mark_offline = true;
-    return root_id_ctx;
+    dom_id_ctx->ldap_ctx->ignore_mark_offline = true;
+    return dom_id_ctx;
 }
 
 struct ad_get_root_domain_state {
@@ -1403,9 +1403,9 @@ static void ad_get_root_domain_done(struct tevent_req *subreq)
         goto done;
     }
 
-    state->root_id_ctx = ads_get_root_id_ctx(state->be_ctx,
-                                             state->sd_ctx->ad_id_ctx,
-                                             root_domain, state->opts);
+    state->root_id_ctx = ads_get_dom_id_ctx(state->be_ctx,
+                                            state->sd_ctx->ad_id_ctx,
+                                            root_domain, state->opts);
     if (state->root_id_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot create id ctx for the root domain\n");
         ret = EFAULT;
