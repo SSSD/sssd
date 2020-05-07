@@ -3151,11 +3151,11 @@ ad_gpo_process_som_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    subreq = ad_master_domain_send(state, state->ev, conn,
-                                   state->sdap_op, domain_name);
+    subreq = ad_domain_info_send(state, state->ev, conn,
+                                 state->sdap_op, domain_name);
 
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ad_master_domain_send failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ad_domain_info_send failed.\n");
         ret = ENOMEM;
         goto immediately;
     }
@@ -3188,7 +3188,7 @@ ad_gpo_site_name_retrieval_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct ad_gpo_process_som_state);
 
     /* gpo code only cares about the site name */
-    ret = ad_master_domain_recv(subreq, state, NULL, NULL, &site, NULL);
+    ret = ad_domain_info_recv(subreq, state, NULL, NULL, &site, NULL);
     talloc_zfree(subreq);
 
     if (ret != EOK || site == NULL) {

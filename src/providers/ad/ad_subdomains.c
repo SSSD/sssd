@@ -1756,8 +1756,8 @@ static void ad_subdomains_refresh_connect_done(struct tevent_req *subreq)
     }
 
     /* connect to the DC we are a member of */
-    subreq = ad_master_domain_send(state, state->ev, state->id_ctx->conn,
-                                   state->sdap_op, state->sd_ctx->domain_name);
+    subreq = ad_domain_info_send(state, state->ev, state->id_ctx->conn,
+                                 state->sdap_op, state->sd_ctx->domain_name);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -1779,8 +1779,8 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_subdomains_refresh_state);
 
-    ret = ad_master_domain_recv(subreq, state, &flat_name, &master_sid,
-                                NULL, &state->forest);
+    ret = ad_domain_info_recv(subreq, state, &flat_name, &master_sid,
+                              NULL, &state->forest);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get master domain information "

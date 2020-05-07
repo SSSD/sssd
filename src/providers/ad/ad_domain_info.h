@@ -22,22 +22,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _AD_MASTER_DOMAIN_H_
-#define _AD_MASTER_DOMAIN_H_
+#ifndef _AD_DOMAIN_INFO_H_
+#define _AD_DOMAIN_INFO_H_
 
 struct tevent_req *
-ad_master_domain_send(TALLOC_CTX *mem_ctx,
+ad_domain_info_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct sdap_id_conn_ctx *conn,
                       struct sdap_id_op *op,
                       const char *dom_name);
 
 errno_t
-ad_master_domain_recv(struct tevent_req *req,
+ad_domain_info_recv(struct tevent_req *req,
                       TALLOC_CTX *mem_ctx,
                       char **_flat,
                       char **_id,
                       char **_site,
                       char **_forest);
 
-#endif /* _AD_MASTER_DOMAIN_H_ */
+#endif /* _AD_DOMAIN_INFO_H_ */
