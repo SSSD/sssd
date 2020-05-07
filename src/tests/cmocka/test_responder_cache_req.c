@@ -27,7 +27,6 @@
 #include "tests/cmocka/common_mock_resp.h"
 #include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req.h"
-#include "db/sysdb_private.h"   /* new_subdomain() */
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_responder_cache_req_conf.ldb"
