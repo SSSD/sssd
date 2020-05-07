@@ -38,7 +38,6 @@
 #include "util/util_sss_idmap.h"
 #include "lib/idmap/sss_idmap.h"
 #include "util/util.h"
-#include "db/sysdb_private.h"
 #include "responder/common/responder.h"
 #include "responder/common/negcache.h"
 

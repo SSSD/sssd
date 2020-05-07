@@ -36,7 +36,6 @@
 #include "util/crypto/sss_crypto.h"
 #include "util/crypto/nss/nss_util.h"
 #include "util/sss_endian.h"
-#include "db/sysdb_private.h"   /* new_subdomain() */
 #include "db/sysdb_iphosts.h"
 #include "db/sysdb_ipnetworks.h"
 
