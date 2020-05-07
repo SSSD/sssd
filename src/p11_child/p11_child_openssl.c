@@ -1293,7 +1293,7 @@ static CK_RV get_preferred_rsa_mechanism(TALLOC_CTX *mem_ctx,
         { CKM_SHA256_RSA_PKCS, "CKM_SHA256_RSA_PKCS", EVP_sha256(), "sha256" },
         { CKM_SHA224_RSA_PKCS, "CKM_SHA224_RSA_PKCS", EVP_sha224(), "sha224" },
         { CKM_SHA1_RSA_PKCS,   "CKM_SHA1_RSA_PKCS",   EVP_sha1(),   "sha1" },
-        { 0, NULL }
+        { 0, NULL, NULL, NULL }
     };
 
     *preferred_mechanism = CKM_SHA1_RSA_PKCS;
