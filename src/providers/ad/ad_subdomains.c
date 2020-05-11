@@ -576,20 +576,12 @@ ad_subdom_store(struct confdb_ctx *cdb,
     enum idmap_error_code err;
     struct ldb_message_element *el;
     char *sid_str = NULL;
-    uint32_t trust_type;
     enum sss_domain_mpg_mode mpg_mode;
     enum sss_domain_mpg_mode default_mpg_mode;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sysdb_attrs_get_uint32_t(subdom_attrs, AD_AT_TRUST_TYPE,
-                                   &trust_type);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_uint32_t failed.\n");
         goto done;
     }
 
