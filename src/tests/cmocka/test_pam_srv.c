@@ -120,6 +120,7 @@ struct pam_test_ctx {
 /* Must be global because it is needed in some wrappers */
 struct pam_test_ctx *pam_test_ctx;
 
+#ifdef HAVE_NSS
 static errno_t setup_nss_db(void)
 {
     int ret;
@@ -389,6 +390,7 @@ static void cleanup_nss_db(void)
         DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
     }
 }
+#endif
 
 struct pam_ctx *mock_pctx(TALLOC_CTX *mem_ctx)
 {
@@ -3549,16 +3551,20 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
 
+#ifdef HAVE_NSS
     cleanup_nss_db();
     rv = setup_nss_db();
     if (rv != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "setup_nss_db failed.\n");
         exit(-1);
     }
+#endif
 
     rv = cmocka_run_group_tests(tests, NULL, NULL);
     if (rv == 0 && !no_cleanup) {
+#ifdef HAVE_NSS
         cleanup_nss_db();
+#endif
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }
 
