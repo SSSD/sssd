@@ -175,6 +175,7 @@ done:
     dbus_error_free(&dbus_error);
     if (ret != EOK && dbus_conn != NULL) {
         dbus_connection_unref(dbus_conn);
+        dbus_conn = NULL;
     }
 
     return dbus_conn;
