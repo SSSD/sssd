@@ -35,6 +35,10 @@
 #include <ndr.h>
 #include <ndr/ndr_nbt.h>
 
+/* Avoid that ldb_val is overwritten by data_blob.h */
+#undef ldb_val
+#include <ldb.h>
+
 /* Attributes of AD trusted domains */
 #define AD_AT_FLATNAME      "flatName"
 #define AD_AT_SID           "securityIdentifier"
@@ -1258,15 +1262,37 @@ ads_get_dom_id_ctx(struct be_ctx *be_ctx,
 
 struct ad_get_root_domain_state {
     struct ad_subdomains_ctx *sd_ctx;
+    struct tevent_context *ev;
     struct be_ctx *be_ctx;
     struct sdap_idmap_ctx *idmap_ctx;
     struct sdap_options *opts;
+    const char *domain;
+    const char *forest;
 
+    struct sysdb_attrs **reply;
+    size_t reply_count;
     struct ad_id_ctx *root_id_ctx;
     struct sysdb_attrs *root_domain_attrs;
 };
 
 static void ad_get_root_domain_done(struct tevent_req *subreq);
+static void ad_check_root_domain_done(struct tevent_req *subreq);
+static errno_t
+ad_get_root_domain_refresh(struct ad_get_root_domain_state *state);
+
+struct tevent_req *
+ad_check_domain_send(TALLOC_CTX *mem_ctx,
+                     struct tevent_context *ev,
+                     struct be_ctx *be_ctx,
+                     struct ad_id_ctx *ad_id_ctx,
+                     const char *dom_name,
+                     const char *parent_dom_name);
+errno_t ad_check_domain_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             char **_flat,
+                             char **_id,
+                             char **_site,
+                             char **_forest);
 
 static struct tevent_req *
 ad_get_root_domain_send(TALLOC_CTX *mem_ctx,
@@ -1305,6 +1331,9 @@ ad_get_root_domain_send(TALLOC_CTX *mem_ctx,
     state->opts = opts = sd_ctx->sdap_id_ctx->opts;
     state->be_ctx = sd_ctx->be_ctx;
     state->idmap_ctx = opts->idmap_ctx;
+    state->ev = ev;
+    state->domain = domain;
+    state->forest = forest;
 
     filter = talloc_asprintf(state, FOREST_ROOT_FILTER_FMT, forest);
     if (filter == NULL) {
@@ -1340,17 +1369,14 @@ static void ad_get_root_domain_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct ad_get_root_domain_state *state;
-    struct sysdb_attrs **reply;
-    struct sss_domain_info *root_domain;
-    size_t reply_count;
-    bool has_changes;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_get_root_domain_state);
 
-    ret = sdap_search_bases_return_first_recv(subreq, state, &reply_count,
-                                              &reply);
+    ret = sdap_search_bases_return_first_recv(subreq, state,
+                                              &state->reply_count,
+                                              &state->reply);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to lookup forest root information "
@@ -1358,19 +1384,142 @@ static void ad_get_root_domain_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (reply_count == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "No information provided for root domain\n");
-        ret = ENOENT;
-        goto done;
-    } else if (reply_count > 1) {
+    if (state->reply_count == 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "No information provided for root domain, trying directly.\n");
+        subreq = ad_check_domain_send(state, state->ev, state->be_ctx,
+                                      state->sd_ctx->ad_id_ctx, state->forest,
+                                      state->domain);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ad_check_domain_send() failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        tevent_req_set_callback(subreq, ad_check_root_domain_done, req);
+        return;
+    } else if (state->reply_count > 1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Multiple results for root domain search, "
               "domain list might be incomplete!\n");
         ret = ERR_MALFORMED_ENTRY;
         goto done;
     }
 
+    ret = ad_get_root_domain_refresh(state);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ad_get_root_domain_refresh() failed.\n");
+    }
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static void ad_check_root_domain_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct ad_get_root_domain_state *state;
+    errno_t ret;
+    char *flat = NULL;
+    char *id = NULL;
+    enum idmap_error_code err;
+    struct ldb_val id_val;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_get_root_domain_state);
+
+    ret = ad_check_domain_recv(state, subreq, &flat, &id, NULL, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to check forest root information "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (flat == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "NetBIOS name of forest root not available.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (id == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Domain SID of forest root not available.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    state->reply = talloc_array(state, struct sysdb_attrs *, 1);
+    if (state->reply == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array() failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    state->reply[0] = sysdb_new_attrs(state->reply);
+    if (state->reply[0] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs() failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(state->reply[0], AD_AT_FLATNAME, flat);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string() failed.\n");
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(state->reply[0], AD_AT_TRUST_PARTNER,
+                                 state->forest);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string() failed.\n");
+        goto done;
+    }
+
+    err = sss_idmap_sid_to_bin_sid(state->idmap_ctx->map, id,
+                                   &id_val.data, &id_val.length);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not convert SID: [%s].\n", idmap_error_string(err));
+        ret = EFAULT;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_val(state->reply[0], AD_AT_SID, &id_val);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string() failed.\n");
+        goto done;
+    }
+
+    state->reply_count = 1;
+
+    ret = ad_get_root_domain_refresh(state);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ad_get_root_domain_refresh() failed.\n");
+    }
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t
+ad_get_root_domain_refresh(struct ad_get_root_domain_state *state)
+{
+    struct sss_domain_info *root_domain;
+    bool has_changes;
+    errno_t ret;
+
     ret = ad_subdomains_refresh(state->be_ctx, state->idmap_ctx, state->opts,
-                                reply, reply_count, true,
+                                state->reply, state->reply_count, true,
                                 &state->sd_ctx->last_refreshed,
                                 &has_changes);
     if (ret != EOK) {
@@ -1387,8 +1536,8 @@ static void ad_get_root_domain_done(struct tevent_req *subreq)
         }
     }
 
-    state->root_domain_attrs = reply[0];
-    root_domain = ads_get_root_domain(state->be_ctx, reply[0]);
+    state->root_domain_attrs = state->reply[0];
+    root_domain = ads_get_root_domain(state->be_ctx, state->reply[0]);
     if (root_domain == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not find the root domain\n");
         ret = EFAULT;
@@ -1407,12 +1556,7 @@ static void ad_get_root_domain_done(struct tevent_req *subreq)
     ret = EOK;
 
 done:
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
+    return ret;
 }
 
 static errno_t ad_get_root_domain_recv(TALLOC_CTX *mem_ctx,
