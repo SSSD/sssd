@@ -484,6 +484,7 @@ _nss_sss_endservent(void)
 {
     enum nss_status nret;
     int errnop;
+    int saved_errno = errno;
 
     sss_nss_lock();
 
@@ -494,6 +495,8 @@ _nss_sss_endservent(void)
                                 NULL, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
+    } else {
+        errno = saved_errno;
     }
 
     sss_nss_unlock();
