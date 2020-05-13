@@ -309,6 +309,7 @@ enum nss_status _nss_sss_endnetgrent(struct __netgrent *result)
 {
     enum nss_status nret;
     int errnop;
+    int saved_errno = errno;
 
     sss_nss_lock();
 
@@ -319,6 +320,8 @@ enum nss_status _nss_sss_endnetgrent(struct __netgrent *result)
                                 NULL, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
+    } else {
+        errno = saved_errno;
     }
 
     sss_nss_unlock();

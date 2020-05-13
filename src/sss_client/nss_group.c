@@ -735,6 +735,7 @@ enum nss_status _nss_sss_endgrent(void)
 {
     enum nss_status nret;
     int errnop;
+    int saved_errno = errno;
 
     sss_nss_lock();
 
@@ -745,6 +746,8 @@ enum nss_status _nss_sss_endgrent(void)
                                 NULL, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
+    } else {
+        errno = saved_errno;
     }
 
     sss_nss_unlock();
