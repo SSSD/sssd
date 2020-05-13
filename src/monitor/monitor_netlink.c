@@ -297,7 +297,8 @@ static void nladdr_to_string(struct nl_addr *nl, char *buf, size_t bufsize)
 
     addr_family = nl_addr_get_family(nl);
     if (addr_family != AF_INET && addr_family != AF_INET6) {
-        strncpy(buf, "unknown", bufsize);
+        strncpy(buf, "unknown", bufsize-1);
+        buf[bufsize-1] = '\0';
         return;
     }
 

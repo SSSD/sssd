@@ -465,7 +465,8 @@ ad_try_to_get_fqdn(const char *hostname,
         return ret;
     }
 
-    strncpy(buf, res->ai_canonname, buflen);
+    strncpy(buf, res->ai_canonname, buflen-1);
+    buf[buflen-1] = '\0';
 
     freeaddrinfo(res);
 
@@ -543,7 +544,7 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
                       "The hostname [%s] has been expanded to FQDN [%s]. "
                       "If sssd should really use the short hostname, please "
                       "set ad_hostname explicitly.\n", hostname, fqdn);
-                strncpy(hostname, fqdn, sizeof(hostname));
+                strncpy(hostname, fqdn, HOST_NAME_MAX);
                 hostname[HOST_NAME_MAX] = '\0';
             }
         }
