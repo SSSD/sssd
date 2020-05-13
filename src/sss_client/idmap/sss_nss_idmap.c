@@ -310,7 +310,8 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
             goto done;
         }
 
-        strncpy(str, (char *) repbuf + DATA_START, data_len);
+        strncpy(str, (char *) repbuf + DATA_START, data_len-1);
+        str[data_len-1] = '\0';
 
         out->d.str = str;
 
