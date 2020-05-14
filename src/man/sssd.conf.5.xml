@@ -2468,8 +2468,9 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                             name is requested.
                         </para>
                         <para>
-                            Default: FALSE (TRUE if default_domain_suffix is
-                            used)
+                            Default: FALSE (TRUE for trusted
+                            domain/sub-domains or if default_domain_suffix
+                            is used)
                         </para>
                     </listitem>
                 </varlistentry>
