@@ -958,3 +958,16 @@ AS_IF([test x$enable_local_provider = xyes],
       AC_DEFINE_UNQUOTED([BUILD_LOCAL_PROVIDER], [1],
           [whether to build unconditionally enable local provider]))
 AM_CONDITIONAL([BUILD_LOCAL_PROVIDER], [test x$enable_local_provider = xyes])
+
+AC_ARG_ENABLE([gss-spnego-for-zero-maxssf],
+              [AS_HELP_STRING([--enable-gss-spnego-for-zero-maxssf],
+                              [If this feature is enabled, GSS-SPNEGO will be
+                               used even if maxssf is set to 0. Only recent
+                               version of cyrus-sasl handle this correctly.
+                               Please only enable this if the installed
+                               cyrus-sasl can handle it.  [default=no]])],
+              [enable_gss_spnego_for_zero_maxssf=$enableval],
+              [enable_gss_spnego_for_zero_maxssf=no])
+AS_IF([test x$enable_gss_spnego_for_zero_maxssf = xyes],
+      AC_DEFINE_UNQUOTED([ALLOW_GSS_SPNEGO_FOR_ZERO_MAXSSF], [1],
+                         [whether to use GSS-SPNEGO if maxssf is 0 (zero)]))
