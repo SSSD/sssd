@@ -1087,6 +1087,13 @@ static void krb5_auth_done(struct tevent_req *subreq)
                               kr->srv, PORT_WORKING);
     }
 
+    if (pd->cmd == SSS_PAM_PREAUTH) {
+        state->pam_status = PAM_SUCCESS;
+        state->dp_err = DP_ERR_OK;
+        ret = EOK;
+        goto done;
+    }
+
     /* Now only a successful authentication or password change is left.
      *
      * We expect that one of the messages in the received buffer contains
