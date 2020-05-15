@@ -1117,6 +1117,7 @@ void ad_set_ssf_and_mech_for_ldaps(struct sdap_options *id_opts)
               "Failed to set SASL maxssf for ldaps usage, ignored.\n");
     }
 
+#ifndef ALLOW_GSS_SPNEGO_FOR_ZERO_MAXSSF
     /* There is an issue in cyrus-sasl with respect to GSS-SPNEGO and
      * maxssf==0. Until the fix
      * https://github.com/cyrusimap/cyrus-sasl/pull/603 is widely used we
@@ -1127,6 +1128,7 @@ void ad_set_ssf_and_mech_for_ldaps(struct sdap_options *id_opts)
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to set SASL mech for ldaps usage, ignored.\n");
     }
+#endif
 }
 
 static errno_t
