@@ -512,7 +512,7 @@ def test_require_sc_auth_no_cert(simple_pam_cert_auth_no_cert, env_for_sssctl):
     assert end_time > start_time and \
         (end_time - start_time) >= 20 and \
         (end_time - start_time) < 40
-    assert out.find("Please enter smart card\nPlease enter smart card") != -1
+    assert out.find("Please insert smart card\nPlease insert smart card") != -1
     assert err.find("pam_authenticate for user [user1]: Authentication " +
                     "service cannot retrieve authentication info") != -1
 
