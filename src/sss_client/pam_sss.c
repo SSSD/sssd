@@ -2422,8 +2422,8 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
     return PAM_SUCCESS;
 }
 
-#define SC_ENTER_LABEL_FMT "Please enter smart card labeled\n %s"
-#define SC_ENTER_FMT "Please enter smart card"
+#define SC_ENTER_LABEL_FMT "Please insert smart card labeled\n %s"
+#define SC_ENTER_FMT "Please insert smart card"
 
 static int check_login_token_name(pam_handle_t *pamh, struct pam_items *pi,
                                   int retries, bool quiet_mode)
