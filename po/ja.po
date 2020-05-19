@@ -6,13 +6,15 @@
 # Tomoyuki KATO <tomo@dream.daynight.jp>, 2012-2013
 # Noriko Mizumoto <noriko.mizumoto@gmail.com>, 2016. #zanata
 # Keiko Moriguchi <kemorigu@redhat.com>, 2019. #zanata
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata
+# Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2019-11-30 22:24+0100\n"
-"PO-Revision-Date: 2019-10-07 11:46+0000\n"
-"Last-Translator: Keiko Moriguchi <kemorigu@redhat.com>\n"
+"POT-Creation-Date: 2020-05-19 12:05+0200\n"
+"PO-Revision-Date: 2020-05-19 10:06+0000\n"
+"Last-Translator: Pavel Brezina <pbrezina@redhat.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
 "ja/)\n"
 "Language: ja\n"
@@ -22,1573 +24,55 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Zanata 4.6.2\n"
 
-#: src/config/SSSDConfig/__init__.py.in:43
-#: src/config/SSSDConfig/__init__.py.in:44
-msgid "Set the verbosity of the debug logging"
-msgstr "デバッグのロギングの冗長性を設定する"
-
-#: src/config/SSSDConfig/__init__.py.in:45
-msgid "Include timestamps in debug logs"
-msgstr "デバッグログにタイムスタンプを含める"
-
-#: src/config/SSSDConfig/__init__.py.in:46
-msgid "Include microseconds in timestamps in debug logs"
-msgstr "デバッグログにミリ秒単位のタイムスタンプを含める"
-
-#: src/config/SSSDConfig/__init__.py.in:47
-msgid "Write debug messages to logfiles"
-msgstr "デバッグメッセージをログファイルに書き込む"
-
-#: src/config/SSSDConfig/__init__.py.in:48
-msgid "Watchdog timeout before restarting service"
-msgstr "サービス再起動前の Watchdog タイムアウト"
-
-#: src/config/SSSDConfig/__init__.py.in:49
-msgid "Command to start service"
-msgstr "サービス開始のコマンド"
-
-#: src/config/SSSDConfig/__init__.py.in:50
-msgid "Number of times to attempt connection to Data Providers"
-msgstr "データプロバイダーの接続を試行する回数"
-
-#: src/config/SSSDConfig/__init__.py.in:51
-msgid "The number of file descriptors that may be opened by this responder"
-msgstr "このレスポンダーににより開かれるファイル記述子の数"
-
-#: src/config/SSSDConfig/__init__.py.in:52
-msgid "Idle time before automatic disconnection of a client"
-msgstr "クライアントの自動切断までのアイドル時間"
-
-#: src/config/SSSDConfig/__init__.py.in:53
-msgid "Idle time before automatic shutdown of the responder"
-msgstr "レスポンダーの自動シャットダウンまでのアイドル時間"
-
-#: src/config/SSSDConfig/__init__.py.in:54
-msgid "Always query all the caches before querying the Data Providers"
-msgstr ""
-"データプロバイダーをクエリーする前に、常にすべてのキャッシュをクエリーします"
-
-#: src/config/SSSDConfig/__init__.py.in:57
-msgid "SSSD Services to start"
-msgstr "開始する SSSD サービス"
-
-#: src/config/SSSDConfig/__init__.py.in:58
-msgid "SSSD Domains to start"
-msgstr "開始する SSSD ドメイン"
-
-#: src/config/SSSDConfig/__init__.py.in:59
-msgid "Timeout for messages sent over the SBUS"
-msgstr "SBUS 経由のメッセージ送信のタイムアウト"
-
-#: src/config/SSSDConfig/__init__.py.in:60
-#: src/config/SSSDConfig/__init__.py.in:203
-msgid "Regex to parse username and domain"
-msgstr "ユーザー名とドメインを構文解析する正規表現"
-
-#: src/config/SSSDConfig/__init__.py.in:61
-#: src/config/SSSDConfig/__init__.py.in:202
-msgid "Printf-compatible format for displaying fully-qualified names"
-msgstr "完全修飾名を表示するための printf 互換の形式"
-
-#: src/config/SSSDConfig/__init__.py.in:62
-msgid ""
-"Directory on the filesystem where SSSD should store Kerberos replay cache "
-"files."
-msgstr ""
-"SSSD が Kerberos リプレイキャッシュファイルを保存するファイルシステムのディレ"
-"クトリです。"
-
-#: src/config/SSSDConfig/__init__.py.in:63
-msgid "Domain to add to names without a domain component."
-msgstr "domain 要素なしで追加するドメインの名前。"
-
-#: src/config/SSSDConfig/__init__.py.in:64
-msgid "The user to drop privileges to"
-msgstr "ユーザーが特権を停止します"
-
-#: src/config/SSSDConfig/__init__.py.in:65
-msgid "Tune certificate verification"
-msgstr "証明書検証の調整"
-
-#: src/config/SSSDConfig/__init__.py.in:66
-msgid "All spaces in group or user names will be replaced with this character"
-msgstr ""
-"グループ名またはユーザー名のすべてのスペースは、この文字に置き換えられます"
-
-#: src/config/SSSDConfig/__init__.py.in:67
-msgid "Tune sssd to honor or ignore netlink state changes"
-msgstr "SSSD を調整し、netlink の状態変更を尊重するか、または無視します"
-
-#: src/config/SSSDConfig/__init__.py.in:68
-msgid "Enable or disable the implicit files domain"
-msgstr "暗黙のファイルドメインを有効化または無効化する"
-
-#: src/config/SSSDConfig/__init__.py.in:69
-msgid "A specific order of the domains to be looked up"
-msgstr "検索するドメインの特定の順番"
-
-#: src/config/SSSDConfig/__init__.py.in:72
-msgid "Enumeration cache timeout length (seconds)"
-msgstr "列挙キャッシュのタイムアウト（秒）"
-
-#: src/config/SSSDConfig/__init__.py.in:73
-msgid "Entry cache background update timeout length (seconds)"
-msgstr "エントリーキャッシュのバックグラウンド更新のタイムアウト時間（秒）"
-
-#: src/config/SSSDConfig/__init__.py.in:74
-#: src/config/SSSDConfig/__init__.py.in:116
-msgid "Negative cache timeout length (seconds)"
-msgstr "ネガティブキャッシュのタイムアウト（秒）"
-
-#: src/config/SSSDConfig/__init__.py.in:75
-msgid "Files negative cache timeout length (seconds)"
-msgstr "ファイルネガティブキャッシュのタイムアウト時間（秒）"
-
-#: src/config/SSSDConfig/__init__.py.in:76
-msgid "Users that SSSD should explicitly ignore"
-msgstr "SSSD が明示的に無視するユーザー"
-
-#: src/config/SSSDConfig/__init__.py.in:77
-msgid "Groups that SSSD should explicitly ignore"
-msgstr "SSSD が明示的に無視するグループ"
-
-#: src/config/SSSDConfig/__init__.py.in:78
-msgid "Should filtered users appear in groups"
-msgstr "フィルターされたユーザーをグループに表示する"
-
-#: src/config/SSSDConfig/__init__.py.in:79
-msgid "The value of the password field the NSS provider should return"
-msgstr "NSS プロバイダーが返すパスワード項目の値"
-
-#: src/config/SSSDConfig/__init__.py.in:80
-msgid "Override homedir value from the identity provider with this value"
-msgstr "識別プロバイダーからのホームディレクトリーの値をこの値で上書きする"
-
-#: src/config/SSSDConfig/__init__.py.in:81
-msgid ""
-"Substitute empty homedir value from the identity provider with this value"
-msgstr ""
-"アイデンティティプロバイダーからの空のホームディレクトリーをこの値で置き換え"
-"ます"
-
-#: src/config/SSSDConfig/__init__.py.in:82
-msgid "Override shell value from the identity provider with this value"
-msgstr "アイデンティティプロバイダーからのシェル値をこの値で上書きします"
-
-#: src/config/SSSDConfig/__init__.py.in:83
-msgid "The list of shells users are allowed to log in with"
-msgstr "ユーザーがログインを許可されるシェルの一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:84
-msgid ""
-"The list of shells that will be vetoed, and replaced with the fallback shell"
-msgstr "拒否されてフォールバックシェルで置き換えられるシェルの一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:85
-msgid ""
-"If a shell stored in central directory is allowed but not available, use "
-"this fallback"
-msgstr ""
-"中央ディレクトリーに保存されたシェルが許可されるが、利用できない場合、この"
-"フォールバックを使用する"
-
-#: src/config/SSSDConfig/__init__.py.in:86
-msgid "Shell to use if the provider does not list one"
-msgstr "プロバイダーが一覧に持っていないとき使用するシェル"
-
-#: src/config/SSSDConfig/__init__.py.in:87
-msgid "How long will be in-memory cache records valid"
-msgstr "メモリー内のキャッシュレコードが有効な期間"
-
-#: src/config/SSSDConfig/__init__.py.in:88
-msgid "List of user attributes the NSS responder is allowed to publish"
-msgstr "NSS レスポンダーがパブリッシュを許可されたユーザー属性の一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:91
-msgid "How long to allow cached logins between online logins (days)"
-msgstr "オンラインログイン中にキャッシュによるログインが許容される期間（日数）"
-
-#: src/config/SSSDConfig/__init__.py.in:92
-msgid "How many failed logins attempts are allowed when offline"
-msgstr "オフラインのときに許容されるログイン試行失敗回数"
-
-#: src/config/SSSDConfig/__init__.py.in:93
-msgid ""
-"How long (minutes) to deny login after offline_failed_login_attempts has "
-"been reached"
-msgstr "offline_failed_login_attempts に達した後にログインを拒否する時間（分）"
-
-#: src/config/SSSDConfig/__init__.py.in:94
-msgid "What kind of messages are displayed to the user during authentication"
-msgstr "認証中にユーザーに表示されるメッセージの種類"
-
-#: src/config/SSSDConfig/__init__.py.in:95
-msgid "Filter PAM responses sent to the pam_sss"
-msgstr "pam_sss へ送信された PAM のレスポンスをフィルタリングします"
-
-#: src/config/SSSDConfig/__init__.py.in:96
-msgid "How many seconds to keep identity information cached for PAM requests"
-msgstr "PAM 要求に対してキャッシュされた認証情報を保持する秒数"
-
-#: src/config/SSSDConfig/__init__.py.in:97
-msgid "How many days before password expiration a warning should be displayed"
-msgstr "警告が表示されるパスワード失効前の日数"
-
-#: src/config/SSSDConfig/__init__.py.in:98
-msgid "List of trusted uids or user's name"
-msgstr "信頼できる UID またはユーザー名の一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:99
-msgid "List of domains accessible even for untrusted users."
-msgstr "信頼できないユーザーでさえアクセス可能なドメインの一覧。"
-
-#: src/config/SSSDConfig/__init__.py.in:100
-msgid "Message printed when user account is expired."
-msgstr "ユーザーアカウントの有効期限が切れると、メッセージが印刷されます。"
-
-#: src/config/SSSDConfig/__init__.py.in:101
-msgid "Message printed when user account is locked."
-msgstr "ユーザーアカウントがロックされると、メッセージが印刷されます。"
-
-#: src/config/SSSDConfig/__init__.py.in:102
-msgid "Allow certificate based/Smartcard authentication."
-msgstr "証明書ベースまたはスマートカードによる認証を許可します。"
-
-#: src/config/SSSDConfig/__init__.py.in:103
-msgid "Path to certificate database with PKCS#11 modules."
-msgstr "PKCS#11 モジュールでの証明書データベースへのパス。"
-
-#: src/config/SSSDConfig/__init__.py.in:104
-msgid "How many seconds will pam_sss wait for p11_child to finish"
-msgstr "p11_child が完了するまでに pam_sss が待つ秒数"
-
-#: src/config/SSSDConfig/__init__.py.in:105
-msgid "Which PAM services are permitted to contact application domains"
-msgstr "アプリケーションドメインへの接続を許可される PAM サービスはどれか"
-
-#: src/config/SSSDConfig/__init__.py.in:106
-msgid "Allowed services for using smartcards"
-msgstr "スマートカードの使用が許可されたサービス"
-
-#: src/config/SSSDConfig/__init__.py.in:107
-msgid "Additional timeout to wait for a card if requested"
-msgstr "要求された場合に、カードが待つ追加のタイムアウト"
-
-#: src/config/SSSDConfig/__init__.py.in:108
-msgid ""
-"PKCS#11 URI to restrict the selection of devices for Smartcard authentication"
-msgstr "スマートカード認証向けのデバイスの選択を PKCS#11 URI が制限"
-
-#: src/config/SSSDConfig/__init__.py.in:111
-msgid "Whether to evaluate the time-based attributes in sudo rules"
-msgstr "sudo ルールにおいて時間による属性を評価するかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:112
-msgid "If true, SSSD will switch back to lower-wins ordering logic"
-msgstr "正しい場合、SSSD は小さい番号が優先される順位付けのロジックへ戻ります"
-
-#: src/config/SSSDConfig/__init__.py.in:113
-msgid ""
-"Maximum number of rules that can be refreshed at once. If this is exceeded, "
-"full refresh is performed."
-msgstr ""
-"一度にリフレッシュ可能なルールの最大数。最大数を超えると、フルリフレッシュが"
-"実行されます。"
-
-#: src/config/SSSDConfig/__init__.py.in:119
-msgid "Whether to hash host names and addresses in the known_hosts file"
-msgstr "known_hosts ファイルにおいてホスト名とアドレスをハッシュ化するかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:120
-msgid ""
-"How many seconds to keep a host in the known_hosts file after its host keys "
-"were requested"
-msgstr "ホスト鍵が要求された後 known_hosts ファイルにホストを保持する秒数"
-
-#: src/config/SSSDConfig/__init__.py.in:121
-msgid "Path to storage of trusted CA certificates"
-msgstr "信頼された CA 証明書のストレージへのパス"
-
-#: src/config/SSSDConfig/__init__.py.in:122
-msgid "Allow to generate ssh-keys from certificates"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:123
-msgid ""
-"Use the following matching rules to filter the certificates for ssh-key "
-"generation"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:126
-msgid "List of UIDs or user names allowed to access the PAC responder"
-msgstr "PAC レスポンダーへのアクセスが許可された UID またはユーザー名の一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:127
-msgid "How long the PAC data is considered valid"
-msgstr "PAC データが有効とされる期間"
-
-#: src/config/SSSDConfig/__init__.py.in:130
-msgid "List of UIDs or user names allowed to access the InfoPipe responder"
-msgstr ""
-"InfoPipe レスポンダーへのアクセスが許可された UID またはユーザー名の一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:131
-msgid "List of user attributes the InfoPipe is allowed to publish"
-msgstr "InfoPipe がパブリッシュを許可されたユーザー属性の一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:134
-msgid "The provider where the secrets will be stored in"
-msgstr "シークレットが保存されるプロバイダー"
-
-#: src/config/SSSDConfig/__init__.py.in:135
-msgid "The maximum allowed number of nested containers"
-msgstr "ネストされたコンテナーの最大許可数"
-
-#: src/config/SSSDConfig/__init__.py.in:136
-msgid "The maximum number of secrets that can be stored"
-msgstr "保存可能なシークレットの最大数"
-
-#: src/config/SSSDConfig/__init__.py.in:137
-msgid "The maximum number of secrets that can be stored per UID"
-msgstr "UID ごとに保存可能なシークレットの最大数"
-
-#: src/config/SSSDConfig/__init__.py.in:138
-msgid "The maximum payload size of a secret in kilobytes"
-msgstr "キロバイトでのシークレットの最大ペイロードサイズ"
-
-#: src/config/SSSDConfig/__init__.py.in:140
-msgid "The URL Custodia server is listening on"
-msgstr "URL Custodia サーバーはリッスンしています"
-
-#: src/config/SSSDConfig/__init__.py.in:141
-msgid "The method to use when authenticating to a Custodia server"
-msgstr "Custodia サーバーへの認証時に使用する方法"
-
-#: src/config/SSSDConfig/__init__.py.in:142
-msgid ""
-"The name of the headers that will be added into a HTTP request with the "
-"value defined in auth_header_value"
-msgstr ""
-"auth_header_value で値が定義され、HTTP リクエストに追加されるヘッダーの名前"
-
-#: src/config/SSSDConfig/__init__.py.in:143
-msgid "The value sssd-secrets would use for auth_header_name"
-msgstr "sssd-secrets の値は、auth_header_name で使用します"
-
-#: src/config/SSSDConfig/__init__.py.in:144
-msgid ""
-"The list of the headers to forward to the Custodia server together with the "
-"request"
-msgstr "要求と共に Custodia サーバーへ転送するヘッダーの一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:145
-msgid ""
-"The username to use when authenticating to a Custodia server using basic_auth"
-msgstr "basic_auth を使った Custodia サーバーへの認証時に使用するユーザー名"
-
-#: src/config/SSSDConfig/__init__.py.in:146
-msgid ""
-"The password to use when authenticating to a Custodia server using basic_auth"
-msgstr "basic_auth を使った Custodia サーバーへの認証時に使用するパスワード"
-
-#: src/config/SSSDConfig/__init__.py.in:147
-msgid "If true peer's certificate is verified if proxy_url uses https protocol"
-msgstr ""
-"proxy_url が https protocol を使用する場合に、正しいピアの証明書が検証される"
-"かどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:148
-msgid ""
-"If false peer's certificate may contain different hostname than proxy_url "
-"when https protocol is used"
-msgstr ""
-"https プロトコルが使用される場合に、間違ったピアの証明書が proxy_url 以外の異"
-"なるホスト名を含むかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:149
-msgid "Path to directory where certificate authority certificates are stored"
-msgstr "CA 証明書が保存されているディレクトリーへのパス"
-
-#: src/config/SSSDConfig/__init__.py.in:150
-msgid "Path to file containing server's CA certificate"
-msgstr "サーバーの CA 証明書を含むファイルへのパス"
-
-#: src/config/SSSDConfig/__init__.py.in:151
-msgid "Path to file containing client's certificate"
-msgstr "クライアントの証明書を含むファイルへのパス"
-
-#: src/config/SSSDConfig/__init__.py.in:152
-msgid "Path to file containing client's private key"
-msgstr "クライアントのプライベートキーを含むファイルへのパス"
-
-#: src/config/SSSDConfig/__init__.py.in:155
-msgid "Identity provider"
-msgstr "アイデンティティプロバイダー"
-
-#: src/config/SSSDConfig/__init__.py.in:156
-msgid "Authentication provider"
-msgstr "認証プロバイダー"
-
-#: src/config/SSSDConfig/__init__.py.in:157
-msgid "Access control provider"
-msgstr "アクセス制御プロバイダー"
-
-#: src/config/SSSDConfig/__init__.py.in:158
-msgid "Password change provider"
-msgstr "パスワード変更プロバイダー"
-
-#: src/config/SSSDConfig/__init__.py.in:159
-msgid "SUDO provider"
-msgstr "SUDO プロバイダー"
-
-#: src/config/SSSDConfig/__init__.py.in:160
-msgid "Autofs provider"
-msgstr "Autofs プロバイダー"
-
-#: src/config/SSSDConfig/__init__.py.in:161
-msgid "Host identity provider"
-msgstr "ホスト識別プロバイダー"
-
-#: src/config/SSSDConfig/__init__.py.in:162
-msgid "SELinux provider"
-msgstr "SELinux プロバイダー"
-
-#: src/config/SSSDConfig/__init__.py.in:163
-msgid "Session management provider"
-msgstr "セッションマネージャーのプロバイダー"
-
-#: src/config/SSSDConfig/__init__.py.in:166
-msgid "Whether the domain is usable by the OS or by applications"
-msgstr "OS またはアプリケーションがドメインを使用できるかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:167
-msgid "Minimum user ID"
-msgstr "最小ユーザー ID"
-
-#: src/config/SSSDConfig/__init__.py.in:168
-msgid "Maximum user ID"
-msgstr "最大ユーザー ID"
-
-#: src/config/SSSDConfig/__init__.py.in:169
-msgid "Enable enumerating all users/groups"
-msgstr "すべてのユーザー・グループの列挙を有効にする"
-
-#: src/config/SSSDConfig/__init__.py.in:170
-msgid "Cache credentials for offline login"
-msgstr "オフラインログインのためにクレディンシャルをキャッシュする"
-
-#: src/config/SSSDConfig/__init__.py.in:171
-msgid "Display users/groups in fully-qualified form"
-msgstr "ユーザー・グループを完全修飾形式で表示する"
-
-#: src/config/SSSDConfig/__init__.py.in:172
-msgid "Don't include group members in group lookups"
-msgstr "グループ検索にグループメンバーを含めない"
-
-#: src/config/SSSDConfig/__init__.py.in:173
-#: src/config/SSSDConfig/__init__.py.in:182
-#: src/config/SSSDConfig/__init__.py.in:183
-#: src/config/SSSDConfig/__init__.py.in:184
-#: src/config/SSSDConfig/__init__.py.in:185
-#: src/config/SSSDConfig/__init__.py.in:186
-#: src/config/SSSDConfig/__init__.py.in:187
-msgid "Entry cache timeout length (seconds)"
-msgstr "エントリーキャッシュのタイムアウト長（秒）"
-
-#: src/config/SSSDConfig/__init__.py.in:174
-msgid ""
-"Restrict or prefer a specific address family when performing DNS lookups"
-msgstr "DNS 検索を実行するときに特定のアドレスファミリーを制限または優先します"
-
-#: src/config/SSSDConfig/__init__.py.in:175
-msgid "How long to keep cached entries after last successful login (days)"
-msgstr "最終ログイン成功時からキャッシュエントリーを保持する日数"
-
-#: src/config/SSSDConfig/__init__.py.in:176
-msgid ""
-"How long should SSSD talk to single DNS server before trying next server "
-"(miliseconds)"
-msgstr ""
-"次のサーバーを試行するまでに SSSD が単一の DNS サーバーと通信する時間 (ミリ"
-"秒)"
-
-#: src/config/SSSDConfig/__init__.py.in:177
-msgid "How long should keep trying to resolve single DNS query (seconds)"
-msgstr "単一の DNS クエリーの解決を試行する時間 (秒)"
-
-#: src/config/SSSDConfig/__init__.py.in:178
-msgid "How long to wait for replies from DNS when resolving servers (seconds)"
-msgstr "サーバーを名前解決するときに DNS から応答を待つ時間（秒）"
-
-#: src/config/SSSDConfig/__init__.py.in:179
-msgid "The domain part of service discovery DNS query"
-msgstr "サービス検索 DNS クエリーのドメイン部分"
-
-#: src/config/SSSDConfig/__init__.py.in:180
-msgid "Override GID value from the identity provider with this value"
-msgstr "識別プロバイダーからの GID 値をこの値で上書きする"
-
-#: src/config/SSSDConfig/__init__.py.in:181
-msgid "Treat usernames as case sensitive"
-msgstr "ユーザー名が大文字小文字を区別するよう取り扱う"
-
-#: src/config/SSSDConfig/__init__.py.in:188
-msgid "How often should expired entries be refreshed in background"
-msgstr "期限切れのエントリーがバックグラウンドで更新される頻度"
-
-#: src/config/SSSDConfig/__init__.py.in:189
-msgid "Whether to automatically update the client's DNS entry"
-msgstr "自動的にクライアントの DNS エントリーを更新するかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:190
-#: src/config/SSSDConfig/__init__.py.in:212
-msgid "The TTL to apply to the client's DNS entry after updating it"
-msgstr "クライアントの DNS 項目を更新後、適用する TTL"
-
-#: src/config/SSSDConfig/__init__.py.in:191
-#: src/config/SSSDConfig/__init__.py.in:213
-msgid "The interface whose IP should be used for dynamic DNS updates"
-msgstr "動的 DNS 更新のために使用される IP のインターフェース"
-
-#: src/config/SSSDConfig/__init__.py.in:192
-msgid "How often to periodically update the client's DNS entry"
-msgstr "どのくらい定期的にクライアントの DNS エントリーを更新するか"
-
-#: src/config/SSSDConfig/__init__.py.in:193
-msgid "Whether the provider should explicitly update the PTR record as well"
-msgstr ""
-"プロバイダーが同じように PTR レコードを明示的に更新する必要があるかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:194
-msgid "Whether the nsupdate utility should default to using TCP"
-msgstr "nsupdate ユーティリティが標準で TCP を使用するかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:195
-msgid "What kind of authentication should be used to perform the DNS update"
-msgstr "DNS 更新を実行するために使用すべき認証の種類"
-
-#: src/config/SSSDConfig/__init__.py.in:196
-msgid "Override the DNS server used to perform the DNS update"
-msgstr "DNS の更新を実行する際に使用する DNS サーバーを上書き"
-
-#: src/config/SSSDConfig/__init__.py.in:197
-msgid "Control enumeration of trusted domains"
-msgstr "信頼されたドメインの列挙を制御"
-
-#: src/config/SSSDConfig/__init__.py.in:198
-msgid "How often should subdomains list be refreshed"
-msgstr "サブドメインの一覧のリフレッシュ回数"
-
-#: src/config/SSSDConfig/__init__.py.in:199
-msgid "List of options that should be inherited into a subdomain"
-msgstr "サブドメインに継承すべきオプションの一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:200
-msgid "Default subdomain homedir value"
-msgstr "デフォルトのサブドメインホームディレクトリーの値"
-
-#: src/config/SSSDConfig/__init__.py.in:201
-msgid "How long can cached credentials be used for cached authentication"
-msgstr "証明書キャッシュを認証キャッシュに使用できる期間"
-
-#: src/config/SSSDConfig/__init__.py.in:204
-msgid "Whether to automatically create private groups for users"
-msgstr "ユーザーにプライベートグループを自動的に作成するかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:207
-msgid "IPA domain"
-msgstr "IPA ドメイン"
-
-#: src/config/SSSDConfig/__init__.py.in:208
-msgid "IPA server address"
-msgstr "IPA サーバーのアドレス"
-
-#: src/config/SSSDConfig/__init__.py.in:209
-msgid "Address of backup IPA server"
-msgstr "バックアップ IPA サーバーのアドレス"
-
-#: src/config/SSSDConfig/__init__.py.in:210
-msgid "IPA client hostname"
-msgstr "IPA クライアントのホスト名"
-
-#: src/config/SSSDConfig/__init__.py.in:211
-msgid "Whether to automatically update the client's DNS entry in FreeIPA"
-msgstr "FreeIPA にあるクライアントの DNS エントリーを自動的に更新するかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:214
-msgid "Search base for HBAC related objects"
-msgstr "HBAC 関連オブジェクトの検索ベース"
-
-#: src/config/SSSDConfig/__init__.py.in:215
-msgid ""
-"The amount of time between lookups of the HBAC rules against the IPA server"
-msgstr "IPA サーバーに対する HBAC ルールを検索している間の合計時間"
-
-#: src/config/SSSDConfig/__init__.py.in:216
-msgid ""
-"The amount of time in seconds between lookups of the SELinux maps against "
-"the IPA server"
-msgstr "IPA サーバーに対する SELinux マップの検索の間の秒単位の合計時間"
-
-#: src/config/SSSDConfig/__init__.py.in:217
-msgid "If set to false, host argument given by PAM will be ignored"
-msgstr "もし偽に設定されていると、 PAM により渡されたホスト引数は無視されます"
-
-#: src/config/SSSDConfig/__init__.py.in:218
-msgid "The automounter location this IPA client is using"
-msgstr "この IPA クライアントが使用している automounter の場所"
-
-#: src/config/SSSDConfig/__init__.py.in:219
-msgid "Search base for object containing info about IPA domain"
-msgstr "IPA ドメインに関する情報を含むオブジェクトに対する検索ベース"
-
-#: src/config/SSSDConfig/__init__.py.in:220
-msgid "Search base for objects containing info about ID ranges"
-msgstr "ID 範囲に関する情報を含むオブジェクトに対する検索ベース"
-
-#: src/config/SSSDConfig/__init__.py.in:221
-#: src/config/SSSDConfig/__init__.py.in:239
-msgid "Enable DNS sites - location based service discovery"
-msgstr "DNS サイトの有効化 - 位置にサービス探索"
-
-#: src/config/SSSDConfig/__init__.py.in:222
-msgid "Search base for view containers"
-msgstr "ビューコンテナーの検索ベース"
-
-#: src/config/SSSDConfig/__init__.py.in:223
-msgid "Objectclass for view containers"
-msgstr "ビューコンテナーのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:224
-msgid "Attribute with the name of the view"
-msgstr "ビューの名前の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:225
-msgid "Objectclass for override objects"
-msgstr "上書きされたオブジェクトのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:226
-msgid "Attribute with the reference to the original object"
-msgstr "オリジナルオブジェクトを参照する属性"
-
-#: src/config/SSSDConfig/__init__.py.in:227
-msgid "Objectclass for user override objects"
-msgstr "ユーザーが上書きするオブジェクトのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:228
-msgid "Objectclass for group override objects"
-msgstr "グループが上書きするオブジェクトのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:229
-msgid "Search base for Desktop Profile related objects"
-msgstr "デスクトッププロファイルに関連するオブジェクトの検索ベース"
-
-#: src/config/SSSDConfig/__init__.py.in:230
-msgid ""
-"The amount of time in seconds between lookups of the Desktop Profile rules "
-"against the IPA server"
-msgstr ""
-"IPA サーバーに対するデスクトッププロファイルルールを検索している間の秒単位の"
-"合計時間"
-
-#: src/config/SSSDConfig/__init__.py.in:231
-msgid ""
-"The amount of time in minutes between lookups of Desktop Profiles rules "
-"against the IPA server when the last request did not find any rule"
-msgstr ""
-"最後の要求がルールを何も見つけなかった場合の IPA サーバーに対するデスクトップ"
-"プロファイルル ールを検索している間の分単位の合計時間"
-
-#: src/config/SSSDConfig/__init__.py.in:234
-msgid "Active Directory domain"
-msgstr "Active Directory ドメイン"
-
-#: src/config/SSSDConfig/__init__.py.in:235
-msgid "Enabled Active Directory domains"
-msgstr "有効化された Active Directory ドメイン"
-
-#: src/config/SSSDConfig/__init__.py.in:236
-msgid "Active Directory server address"
-msgstr "Active Directory サーバーアドレス"
-
-#: src/config/SSSDConfig/__init__.py.in:237
-msgid "Active Directory backup server address"
-msgstr "Active Directory バックアップサーバーのアドレス"
-
-#: src/config/SSSDConfig/__init__.py.in:238
-msgid "Active Directory client hostname"
-msgstr "Active Directory クライアントホスト名"
-
-#: src/config/SSSDConfig/__init__.py.in:240
-#: src/config/SSSDConfig/__init__.py.in:425
-msgid "LDAP filter to determine access privileges"
-msgstr "アクセス権限を決めるための LDAP フィルター"
-
-#: src/config/SSSDConfig/__init__.py.in:241
-msgid "Whether to use the Global Catalog for lookups"
-msgstr "検索にグローバルカタログを使用するかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:242
-msgid "Operation mode for GPO-based access control"
-msgstr "グローバルカタログベースのアクセス制御に対するオペレーションモード"
-
-#: src/config/SSSDConfig/__init__.py.in:243
-msgid ""
-"The amount of time between lookups of the GPO policy files against the AD "
-"server"
-msgstr "AD サーバーに対する GPO ポリシーファイルを検索している間の合計時間"
-
-#: src/config/SSSDConfig/__init__.py.in:244
-msgid ""
-"PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
-"settings"
-msgstr ""
-"GPO (Deny)InteractiveLogonRight のポリシー設定にマッピングした PAM サービス名"
-
-#: src/config/SSSDConfig/__init__.py.in:245
-msgid ""
-"PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
-"policy settings"
-msgstr ""
-"GPO (Deny)RemoteInteractiveLogonRight のポリシー設定にマッピングした PAM サー"
-"ビス名"
-
-#: src/config/SSSDConfig/__init__.py.in:246
-msgid ""
-"PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
-msgstr ""
-"GPO (Deny)NetworkLogonRight のポリシー設定にマッピングした PAM サービス名"
-
-#: src/config/SSSDConfig/__init__.py.in:247
-msgid ""
-"PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
-msgstr ""
-"GPO (Deny)BatchLogonRight のポリシー設定にマッピングした PAM サービス名"
-
-#: src/config/SSSDConfig/__init__.py.in:248
-msgid ""
-"PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
-msgstr "(Deny)ServiceLogonRight のポリシー設定にマッピングした PAM サービス名"
-
-#: src/config/SSSDConfig/__init__.py.in:249
-msgid "PAM service names for which GPO-based access is always granted"
-msgstr "GPO ベースのアクセスが常に許可される PAM サービス名"
-
-#: src/config/SSSDConfig/__init__.py.in:250
-msgid "PAM service names for which GPO-based access is always denied"
-msgstr "GPO ベースのアクセスが常に拒否される PAM サービス名"
-
-#: src/config/SSSDConfig/__init__.py.in:251
-msgid ""
-"Default logon right (or permit/deny) to use for unmapped PAM service names"
-msgstr ""
-"マッピングされていない PAM サービス名に使用するデフォルトのログオン権利 (また"
-"は許可/拒否)"
-
-#: src/config/SSSDConfig/__init__.py.in:252
-msgid "a particular site to be used by the client"
-msgstr "クライアントが使用する特定のサイト"
-
-#: src/config/SSSDConfig/__init__.py.in:253
-msgid ""
-"Maximum age in days before the machine account password should be renewed"
-msgstr "マシンアカウントのパスワードの更新が必要となるまでの最大日数"
-
-#: src/config/SSSDConfig/__init__.py.in:254
-msgid "Option for tuning the machine account renewal task"
-msgstr "マシンアカウントの更新タスクをチューニングするオプション"
-
-#: src/config/SSSDConfig/__init__.py.in:257
-#: src/config/SSSDConfig/__init__.py.in:258
-msgid "Kerberos server address"
-msgstr "Kerberos サーバーのアドレス"
-
-#: src/config/SSSDConfig/__init__.py.in:259
-msgid "Kerberos backup server address"
-msgstr "Kerberos バックアップサーバーのアドレス"
-
-#: src/config/SSSDConfig/__init__.py.in:260
-msgid "Kerberos realm"
-msgstr "Kerberos レルム"
-
-#: src/config/SSSDConfig/__init__.py.in:261
-msgid "Authentication timeout"
-msgstr "認証のタイムアウト"
-
-#: src/config/SSSDConfig/__init__.py.in:262
-msgid "Whether to create kdcinfo files"
-msgstr "kdcinfo ファイルを作成するかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:263
-msgid "Where to drop krb5 config snippets"
-msgstr "krb5 設定スニペットを削除する場所"
-
-#: src/config/SSSDConfig/__init__.py.in:266
-msgid "Directory to store credential caches"
-msgstr "クレディンシャルのキャッシュを保存するディレクトリー"
-
-#: src/config/SSSDConfig/__init__.py.in:267
-msgid "Location of the user's credential cache"
-msgstr "ユーザーのクレディンシャルキャッシュの位置"
-
-#: src/config/SSSDConfig/__init__.py.in:268
-msgid "Location of the keytab to validate credentials"
-msgstr "クレディンシャルを検証するキーテーブルの場所"
-
-#: src/config/SSSDConfig/__init__.py.in:269
-msgid "Enable credential validation"
-msgstr "クレディンシャルの検証を有効にする"
-
-#: src/config/SSSDConfig/__init__.py.in:270
-msgid "Store password if offline for later online authentication"
-msgstr "後からオンライン認証するためにオフラインの場合にパスワードを保存します"
-
-#: src/config/SSSDConfig/__init__.py.in:271
-msgid "Renewable lifetime of the TGT"
-msgstr "更新可能な TGT の有効期間"
-
-#: src/config/SSSDConfig/__init__.py.in:272
-msgid "Lifetime of the TGT"
-msgstr "TGT の有効期間"
-
-#: src/config/SSSDConfig/__init__.py.in:273
-msgid "Time between two checks for renewal"
-msgstr "更新を確認する間隔"
-
-#: src/config/SSSDConfig/__init__.py.in:274
-msgid "Enables FAST"
-msgstr "FAST を有効にする"
-
-#: src/config/SSSDConfig/__init__.py.in:275
-msgid "Selects the principal to use for FAST"
-msgstr "FAST に使用するプリンシパルを選択する"
-
-#: src/config/SSSDConfig/__init__.py.in:276
-msgid "Enables principal canonicalization"
-msgstr "プリンシパル正規化を有効にする"
-
-#: src/config/SSSDConfig/__init__.py.in:277
-msgid "Enables enterprise principals"
-msgstr "エンタープライズ・プリンシパルの有効化"
-
-#: src/config/SSSDConfig/__init__.py.in:278
-msgid "A mapping from user names to Kerberos principal names"
-msgstr "ユーザー名から Kerberos プリンシパル名までのマッピング"
-
-#: src/config/SSSDConfig/__init__.py.in:281
-#: src/config/SSSDConfig/__init__.py.in:282
-msgid "Server where the change password service is running if not on the KDC"
-msgstr "KDC になければ、パスワード変更サービスが実行されているサーバー"
-
-#: src/config/SSSDConfig/__init__.py.in:285
-msgid "ldap_uri, The URI of the LDAP server"
-msgstr "ldap_uri, LDAP サーバーの URI"
-
-#: src/config/SSSDConfig/__init__.py.in:286
-msgid "ldap_backup_uri, The URI of the LDAP server"
-msgstr "ldap_backup_uri, LDAP サーバーの URI"
-
-#: src/config/SSSDConfig/__init__.py.in:287
-msgid "The default base DN"
-msgstr "デフォルトのベース DN"
-
-#: src/config/SSSDConfig/__init__.py.in:288
-msgid "The Schema Type in use on the LDAP server, rfc2307"
-msgstr "LDAP サーバーにおいて使用中のスキーマ形式、rfc2307"
-
-#: src/config/SSSDConfig/__init__.py.in:289
-msgid "Mode used to change user password"
-msgstr "ユーザーのパスワードの変更にモードを使用しました"
-
-#: src/config/SSSDConfig/__init__.py.in:290
-msgid "The default bind DN"
-msgstr "デフォルトのバインド DN"
-
-#: src/config/SSSDConfig/__init__.py.in:291
-msgid "The type of the authentication token of the default bind DN"
-msgstr "デフォルトのバインド DN の認証トークンの種類"
-
-#: src/config/SSSDConfig/__init__.py.in:292
-msgid "The authentication token of the default bind DN"
-msgstr "デフォルトのバインド DN の認証トークン"
-
-#: src/config/SSSDConfig/__init__.py.in:293
-msgid "Length of time to attempt connection"
-msgstr "接続を試行する時間"
-
-#: src/config/SSSDConfig/__init__.py.in:294
-msgid "Length of time to attempt synchronous LDAP operations"
-msgstr "LDAP 同期操作を試行する時間"
-
-#: src/config/SSSDConfig/__init__.py.in:295
-msgid "Length of time between attempts to reconnect while offline"
-msgstr "オフラインの間に再接続を試行する時間"
-
-#: src/config/SSSDConfig/__init__.py.in:296
-msgid "Use only the upper case for realm names"
-msgstr "レルム名に対して大文字のみを使用する"
-
-#: src/config/SSSDConfig/__init__.py.in:297
-msgid "File that contains CA certificates"
-msgstr "CA 証明書を含むファイル"
-
-#: src/config/SSSDConfig/__init__.py.in:298
-msgid "Path to CA certificate directory"
-msgstr "CA 証明書のディレクトリーのパス"
-
-#: src/config/SSSDConfig/__init__.py.in:299
-msgid "File that contains the client certificate"
-msgstr "クライアント証明書を含むファイル"
-
-#: src/config/SSSDConfig/__init__.py.in:300
-msgid "File that contains the client key"
-msgstr "クライアントの鍵を含むファイル"
-
-#: src/config/SSSDConfig/__init__.py.in:301
-msgid "List of possible ciphers suites"
-msgstr "利用可能な暗号の一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:302
-msgid "Require TLS certificate verification"
-msgstr "TLS 証明書の検証を要求する"
-
-#: src/config/SSSDConfig/__init__.py.in:303
-msgid "Specify the sasl mechanism to use"
-msgstr "使用する SASL メカニズムを指定する"
-
-#: src/config/SSSDConfig/__init__.py.in:304
-msgid "Specify the sasl authorization id to use"
-msgstr "使用する SASL 認可 ID を指定する"
-
-#: src/config/SSSDConfig/__init__.py.in:305
-msgid "Specify the sasl authorization realm to use"
-msgstr "使用する SASL 認可レルムを指定する"
-
-#: src/config/SSSDConfig/__init__.py.in:306
-msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr "LDAP SASL 認可の最小 SSF を指定する"
-
-#: src/config/SSSDConfig/__init__.py.in:307
-msgid "Kerberos service keytab"
-msgstr "Kerberos サービスのキーテーブル"
-
-#: src/config/SSSDConfig/__init__.py.in:308
-msgid "Use Kerberos auth for LDAP connection"
-msgstr "LDAP 接続に対して Kerberos 認証を使用する"
-
-#: src/config/SSSDConfig/__init__.py.in:309
-msgid "Follow LDAP referrals"
-msgstr "LDAP リフェラルにしたがう"
-
-#: src/config/SSSDConfig/__init__.py.in:310
-msgid "Lifetime of TGT for LDAP connection"
-msgstr "LDAP 接続の TGT の有効期間"
-
-#: src/config/SSSDConfig/__init__.py.in:311
-msgid "How to dereference aliases"
-msgstr "エイリアスを参照解決する方法"
-
-#: src/config/SSSDConfig/__init__.py.in:312
-msgid "Service name for DNS service lookups"
-msgstr "DNS サービス検索のサービス名"
-
-#: src/config/SSSDConfig/__init__.py.in:313
-msgid "The number of records to retrieve in a single LDAP query"
-msgstr "単一の LDAP 問い合わせにおいて取得するレコード数"
-
-#: src/config/SSSDConfig/__init__.py.in:314
-msgid "The number of members that must be missing to trigger a full deref"
-msgstr "完全な参照解決を引き起こすために欠けている必要があるメンバーの数"
-
-#: src/config/SSSDConfig/__init__.py.in:315
-msgid ""
-"Whether the LDAP library should perform a reverse lookup to canonicalize the "
-"host name during a SASL bind"
-msgstr ""
-"LDAP ライブラリーが SASL バインド中にホスト名を正規化するために逆引きを実行す"
-"るかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:317
-msgid "entryUSN attribute"
-msgstr "entryUSN 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:318
-msgid "lastUSN attribute"
-msgstr "lastUSN 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:320
-msgid "How long to retain a connection to the LDAP server before disconnecting"
-msgstr "LDAP サーバーを切断する前に接続を保持する時間"
-
-#: src/config/SSSDConfig/__init__.py.in:322
-msgid "Disable the LDAP paging control"
-msgstr "LDAP ページング制御を無効化する"
-
-#: src/config/SSSDConfig/__init__.py.in:323
-msgid "Disable Active Directory range retrieval"
-msgstr "Active Directory 範囲の取得の無効化"
-
-#: src/config/SSSDConfig/__init__.py.in:326
-msgid "Length of time to wait for a search request"
-msgstr "検索要求を待つ時間"
-
-#: src/config/SSSDConfig/__init__.py.in:327
-msgid "Length of time to wait for a enumeration request"
-msgstr "列挙の要求を待つ時間"
-
-#: src/config/SSSDConfig/__init__.py.in:328
-msgid "Length of time between enumeration updates"
-msgstr "列挙の更新間隔"
-
-#: src/config/SSSDConfig/__init__.py.in:329
-msgid "Length of time between cache cleanups"
-msgstr "キャッシュをクリーンアップする間隔"
-
-#: src/config/SSSDConfig/__init__.py.in:330
-msgid "Require TLS for ID lookups"
-msgstr "ID 検索に TLS を要求する"
-
-#: src/config/SSSDConfig/__init__.py.in:331
-msgid "Use ID-mapping of objectSID instead of pre-set IDs"
-msgstr "事前設定済み ID の代わりに objectSID の ID マッピングを使用します"
-
-#: src/config/SSSDConfig/__init__.py.in:332
-msgid "Base DN for user lookups"
-msgstr "ユーザー検索のベース DN"
-
-#: src/config/SSSDConfig/__init__.py.in:333
-msgid "Scope of user lookups"
-msgstr "ユーザー検索の範囲"
-
-#: src/config/SSSDConfig/__init__.py.in:334
-msgid "Filter for user lookups"
-msgstr "ユーザー検索のフィルター"
-
-#: src/config/SSSDConfig/__init__.py.in:335
-msgid "Objectclass for users"
-msgstr "ユーザーのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:336
-msgid "Username attribute"
-msgstr "ユーザー名の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:338
-msgid "UID attribute"
-msgstr "UID の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:339
-msgid "Primary GID attribute"
-msgstr "プライマリー GID の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:340
-msgid "GECOS attribute"
-msgstr "GECOS の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:341
-msgid "Home directory attribute"
-msgstr "ホームディレクトリの属性"
-
-#: src/config/SSSDConfig/__init__.py.in:342
-msgid "Shell attribute"
-msgstr "シェルの属性"
-
-#: src/config/SSSDConfig/__init__.py.in:343
-msgid "UUID attribute"
-msgstr "UUID 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:344
-#: src/config/SSSDConfig/__init__.py.in:386
-msgid "objectSID attribute"
-msgstr "objectSID 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:345
-msgid "Active Directory primary group attribute for ID-mapping"
-msgstr "ID マッピングの Active Directory プライマリーグループ属性"
-
-#: src/config/SSSDConfig/__init__.py.in:346
-msgid "User principal attribute (for Kerberos)"
-msgstr "ユーザープリンシパルの属性（Kerberos 用）"
-
-#: src/config/SSSDConfig/__init__.py.in:347
-msgid "Full Name"
-msgstr "氏名"
-
-#: src/config/SSSDConfig/__init__.py.in:348
-msgid "memberOf attribute"
-msgstr "memberOf 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:349
-msgid "Modification time attribute"
-msgstr "変更日時の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:351
-msgid "shadowLastChange attribute"
-msgstr "shadowLastChange 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:352
-msgid "shadowMin attribute"
-msgstr "shadowMin 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:353
-msgid "shadowMax attribute"
-msgstr "shadowMax 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:354
-msgid "shadowWarning attribute"
-msgstr "shadowWarning 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:355
-msgid "shadowInactive attribute"
-msgstr "shadowInactive 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:356
-msgid "shadowExpire attribute"
-msgstr "shadowExpire 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:357
-msgid "shadowFlag attribute"
-msgstr "shadowFlag 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:358
-msgid "Attribute listing authorized PAM services"
-msgstr "認可された PAM サービスを一覧化する属性"
-
-#: src/config/SSSDConfig/__init__.py.in:359
-msgid "Attribute listing authorized server hosts"
-msgstr "認可されたサーバーホストを一覧化する属性"
-
-#: src/config/SSSDConfig/__init__.py.in:360
-msgid "Attribute listing authorized server rhosts"
-msgstr "認可されたサーバー rhosts を一覧化する属性"
-
-#: src/config/SSSDConfig/__init__.py.in:361
-msgid "krbLastPwdChange attribute"
-msgstr "krbLastPwdChange 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:362
-msgid "krbPasswordExpiration attribute"
-msgstr "krbPasswordExpiration 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:363
-msgid "Attribute indicating that server side password policies are active"
-msgstr "サーバー側パスワードポリシーが有効であることを意味する属性"
-
-#: src/config/SSSDConfig/__init__.py.in:364
-msgid "accountExpires attribute of AD"
-msgstr "AD の accountExpires 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:365
-msgid "userAccountControl attribute of AD"
-msgstr "AD の userAccountControl 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:366
-msgid "nsAccountLock attribute"
-msgstr "nsAccountLock 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:367
-msgid "loginDisabled attribute of NDS"
-msgstr "NDS の loginDisabled 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:368
-msgid "loginExpirationTime attribute of NDS"
-msgstr "NDS の loginExpirationTime 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:369
-msgid "loginAllowedTimeMap attribute of NDS"
-msgstr "NDS の loginAllowedTimeMap 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:370
-msgid "SSH public key attribute"
-msgstr "SSH 公開鍵の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:371
-msgid "attribute listing allowed authentication types for a user"
-msgstr "ユーザー用に許可された認証タイプを一覧化する属性"
-
-#: src/config/SSSDConfig/__init__.py.in:372
-msgid "attribute containing the X509 certificate of the user"
-msgstr "ユーザーの X509 証明書を含む属性"
-
-#: src/config/SSSDConfig/__init__.py.in:373
-msgid "attribute containing the email address of the user"
-msgstr "ユーザーの電子メールアドレスを含む属性"
-
-#: src/config/SSSDConfig/__init__.py.in:375
-msgid "A list of extra attributes to download along with the user entry"
-msgstr "ユーザーエントリーと共にダウンロードする追加的な属性の一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:377
-msgid "Base DN for group lookups"
-msgstr "グループ検索のベース DN"
-
-#: src/config/SSSDConfig/__init__.py.in:380
-msgid "Objectclass for groups"
-msgstr "グループのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:381
-msgid "Group name"
-msgstr "グループ名"
-
-#: src/config/SSSDConfig/__init__.py.in:382
-msgid "Group password"
-msgstr "グループのパスワード"
-
-#: src/config/SSSDConfig/__init__.py.in:383
-msgid "GID attribute"
-msgstr "GID 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:384
-msgid "Group member attribute"
-msgstr "グループメンバー属性"
-
-#: src/config/SSSDConfig/__init__.py.in:385
-msgid "Group UUID attribute"
-msgstr "グループ UUID 属性"
-
-#: src/config/SSSDConfig/__init__.py.in:387
-msgid "Modification time attribute for groups"
-msgstr "グループの変更日時の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:388
-msgid "Type of the group and other flags"
-msgstr "グループおよび他のフラグのタイプ"
-
-#: src/config/SSSDConfig/__init__.py.in:389
-msgid "The LDAP group external member attribute"
-msgstr "LDAP グループの外部メンバーの属性"
-
-#: src/config/SSSDConfig/__init__.py.in:391
-msgid "Maximum nesting level SSSD will follow"
-msgstr "SSSD が従う最大ネストレベル"
-
-#: src/config/SSSDConfig/__init__.py.in:393
-msgid "Base DN for netgroup lookups"
-msgstr "ネットグループ検索のベース DN"
-
-#: src/config/SSSDConfig/__init__.py.in:394
-msgid "Objectclass for netgroups"
-msgstr "ネットグループのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:395
-msgid "Netgroup name"
-msgstr "ネットグループ名"
-
-#: src/config/SSSDConfig/__init__.py.in:396
-msgid "Netgroups members attribute"
-msgstr "ネットグループメンバーの属性"
-
-#: src/config/SSSDConfig/__init__.py.in:397
-msgid "Netgroup triple attribute"
-msgstr "ネットグループの三つ組の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:398
-msgid "Modification time attribute for netgroups"
-msgstr "ネットグループの変更日時の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:400
-msgid "Base DN for service lookups"
-msgstr "サービス検索のベース DN"
-
-#: src/config/SSSDConfig/__init__.py.in:401
-msgid "Objectclass for services"
-msgstr "サービスのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:402
-msgid "Service name attribute"
-msgstr "サービス名の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:403
-msgid "Service port attribute"
-msgstr "サービスポートの属性"
-
-#: src/config/SSSDConfig/__init__.py.in:404
-msgid "Service protocol attribute"
-msgstr "サービスプロトコルの属性"
-
-#: src/config/SSSDConfig/__init__.py.in:407
-msgid "Lower bound for ID-mapping"
-msgstr "ID マッピングの下限"
-
-#: src/config/SSSDConfig/__init__.py.in:408
-msgid "Upper bound for ID-mapping"
-msgstr "ID マッピングの上限"
-
-#: src/config/SSSDConfig/__init__.py.in:409
-msgid "Number of IDs for each slice when ID-mapping"
-msgstr "ID マッピングするとき、各スライスに対する ID の数"
-
-#: src/config/SSSDConfig/__init__.py.in:410
-msgid "Use autorid-compatible algorithm for ID-mapping"
-msgstr "ID マッピングに対する autorid 互換アルゴリズムを使用します"
-
-#: src/config/SSSDConfig/__init__.py.in:411
-msgid "Name of the default domain for ID-mapping"
-msgstr "ID マッピングに対するデフォルトドメインの名前"
-
-#: src/config/SSSDConfig/__init__.py.in:412
-msgid "SID of the default domain for ID-mapping"
-msgstr "ID マッピングに対するデフォルトドメインの SID"
-
-#: src/config/SSSDConfig/__init__.py.in:413
-msgid "Number of secondary slices"
-msgstr "セカンダリースライスの数"
-
-#: src/config/SSSDConfig/__init__.py.in:415
-msgid "Whether to use Token-Groups"
-msgstr "Token-Group を使うかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:416
-msgid "Set lower boundary for allowed IDs from the LDAP server"
-msgstr "LDAP サーバーから許可される ID の下限の設定"
-
-#: src/config/SSSDConfig/__init__.py.in:417
-msgid "Set upper boundary for allowed IDs from the LDAP server"
-msgstr "LDAP サーバーから許可される ID の上限の設定"
-
-#: src/config/SSSDConfig/__init__.py.in:418
-msgid "DN for ppolicy queries"
-msgstr "ppolicy クエリーの DN"
-
-#: src/config/SSSDConfig/__init__.py.in:419
-msgid "How many maximum entries to fetch during a wildcard request"
-msgstr "ワイルドカードの要求の間に取得する最大エントリーの数"
-
-#: src/config/SSSDConfig/__init__.py.in:422
-msgid "Policy to evaluate the password expiration"
-msgstr "パスワード失効の評価のポリシー"
-
-#: src/config/SSSDConfig/__init__.py.in:426
-msgid "Which attributes shall be used to evaluate if an account is expired"
-msgstr "どの属性がアカウントが失効しているかを評価するために使用されるか"
-
-#: src/config/SSSDConfig/__init__.py.in:427
-msgid "Which rules should be used to evaluate access control"
-msgstr "どのルールがアクセス制御を評価するために使用されるか"
-
-#: src/config/SSSDConfig/__init__.py.in:430
-msgid "URI of an LDAP server where password changes are allowed"
-msgstr "パスワードの変更が許可される LDAP サーバーの URI"
-
-#: src/config/SSSDConfig/__init__.py.in:431
-msgid "URI of a backup LDAP server where password changes are allowed"
-msgstr "パスワードの変更が許可されるバックアップ LDAP サーバーの URI"
-
-#: src/config/SSSDConfig/__init__.py.in:432
-msgid "DNS service name for LDAP password change server"
-msgstr "LDAP パスワードの変更サーバーの DNS サービス名"
-
-#: src/config/SSSDConfig/__init__.py.in:433
-msgid ""
-"Whether to update the ldap_user_shadow_last_change attribute after a "
-"password change"
-msgstr "パスワード変更後 ldap_user_shadow_last_change 属性を更新するかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:436
-msgid "Base DN for sudo rules lookups"
-msgstr "sudo ルール検索のベース DN"
-
-#: src/config/SSSDConfig/__init__.py.in:437
-msgid "Automatic full refresh period"
-msgstr "自動的な完全更新間隔"
-
-#: src/config/SSSDConfig/__init__.py.in:438
-msgid "Automatic smart refresh period"
-msgstr "自動的なスマート更新間隔"
-
-#: src/config/SSSDConfig/__init__.py.in:439
-msgid "Whether to filter rules by hostname, IP addresses and network"
-msgstr ""
-"ホスト名、IP アドレスおよびネットワークによるフィルタールールを使用するかどう"
-"か"
-
-#: src/config/SSSDConfig/__init__.py.in:440
-msgid ""
-"Hostnames and/or fully qualified domain names of this machine to filter sudo "
-"rules"
-msgstr ""
-"sudo ルールをフィルターするこのマシンのホスト名および/または完全修飾ドメイン"
-"名"
-
-#: src/config/SSSDConfig/__init__.py.in:441
-msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
-msgstr ""
-"sudo ルールをフィルターするこのマシンの IPv4 または IPv6 アドレスまたはネット"
-"ワーク"
-
-#: src/config/SSSDConfig/__init__.py.in:442
-msgid "Whether to include rules that contains netgroup in host attribute"
-msgstr "ホスト属性にネットワークグループを含むルールを含めるかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:443
-msgid ""
-"Whether to include rules that contains regular expression in host attribute"
-msgstr "ホスト属性に正規表現を含むルールを含めるかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:444
-msgid "Object class for sudo rules"
-msgstr "sudo ルールのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:445
-msgid "Name of attribute that is used as object class for sudo rules"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:446
-msgid "Sudo rule name"
-msgstr "sudo ルール名"
-
-#: src/config/SSSDConfig/__init__.py.in:447
-msgid "Sudo rule command attribute"
-msgstr "sudo ルールのコマンドの属性"
-
-#: src/config/SSSDConfig/__init__.py.in:448
-msgid "Sudo rule host attribute"
-msgstr "sudo ルールのホストの属性"
-
-#: src/config/SSSDConfig/__init__.py.in:449
-msgid "Sudo rule user attribute"
-msgstr "sudo ルールのユーザーの属性"
-
-#: src/config/SSSDConfig/__init__.py.in:450
-msgid "Sudo rule option attribute"
-msgstr "sudo ルールのオプションの属性"
-
-#: src/config/SSSDConfig/__init__.py.in:451
-msgid "Sudo rule runas attribute"
-msgstr "sudo ルールの runas の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:452
-msgid "Sudo rule runasuser attribute"
-msgstr "sudo ルールの runasuser の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:453
-msgid "Sudo rule runasgroup attribute"
-msgstr "sudo ルールの runasgroup の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:454
-msgid "Sudo rule notbefore attribute"
-msgstr "sudo ルールの notbefore の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:455
-msgid "Sudo rule notafter attribute"
-msgstr "sudo ルールの notafter の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:456
-msgid "Sudo rule order attribute"
-msgstr "sudo ルールの order の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:459
-msgid "Object class for automounter maps"
-msgstr "automounter マップのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:460
-msgid "Automounter map name attribute"
-msgstr "オートマウントのマップ名の属性"
-
-#: src/config/SSSDConfig/__init__.py.in:461
-msgid "Object class for automounter map entries"
-msgstr "automounter マップエントリーのオブジェクトクラス"
-
-#: src/config/SSSDConfig/__init__.py.in:462
-msgid "Automounter map entry key attribute"
-msgstr "automounter マップエントリーのキー属性"
-
-#: src/config/SSSDConfig/__init__.py.in:463
-msgid "Automounter map entry value attribute"
-msgstr "automounter マップエントリーの値属性"
-
-#: src/config/SSSDConfig/__init__.py.in:464
-msgid "Base DN for automounter map lookups"
-msgstr "automonter のマップ検索のベース DN"
-
-#: src/config/SSSDConfig/__init__.py.in:467
-msgid "Comma separated list of allowed users"
-msgstr "許可ユーザーのカンマ区切り一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:468
-msgid "Comma separated list of prohibited users"
-msgstr "禁止ユーザーのカンマ区切り一覧"
-
-#: src/config/SSSDConfig/__init__.py.in:471
-msgid "Default shell, /bin/bash"
-msgstr "デフォルトのシェル, /bin/bash"
-
-#: src/config/SSSDConfig/__init__.py.in:472
-msgid "Base for home directories"
-msgstr "ホームディレクトリーのベース"
-
-#: src/config/SSSDConfig/__init__.py.in:475
-msgid "The number of preforked proxy children."
-msgstr "事前にフォークされた子プロキシの数"
-
-#: src/config/SSSDConfig/__init__.py.in:478
-msgid "The name of the NSS library to use"
-msgstr "使用する NSS ライブラリーの名前"
-
-#: src/config/SSSDConfig/__init__.py.in:479
-msgid "Whether to look up canonical group name from cache if possible"
-msgstr "可能ならばキャッシュから正規化されたグループ名を検索するかどうか"
-
-#: src/config/SSSDConfig/__init__.py.in:482
-msgid "PAM stack to use"
-msgstr "使用する PAM スタック"
-
-#: src/config/SSSDConfig/__init__.py.in:485
-msgid "Path of passwd file sources."
-msgstr "passwd ファイルソースへのパス"
-
-#: src/config/SSSDConfig/__init__.py.in:486
-msgid "Path of group file sources."
-msgstr "グループファイルソースへのパス"
-
-#: src/monitor/monitor.c:2355
+#: src/monitor/monitor.c:2371
 msgid "Become a daemon (default)"
 msgstr "デーモンとして実行（デフォルト）"
 
-#: src/monitor/monitor.c:2357
+#: src/monitor/monitor.c:2373
 msgid "Run interactive (not a daemon)"
 msgstr "対話的に実行（デーモンではない）"
 
-#: src/monitor/monitor.c:2360
+#: src/monitor/monitor.c:2376
 msgid "Disable netlink interface"
 msgstr "netlink インターフェースを無効にする"
 
-#: src/monitor/monitor.c:2362 src/tools/sssctl/sssctl_logs.c:311
+#: src/monitor/monitor.c:2378 src/tools/sssctl/sssctl_logs.c:310
 msgid "Specify a non-default config file"
 msgstr "非標準の設定ファイルの指定"
 
-#: src/monitor/monitor.c:2364
+#: src/monitor/monitor.c:2380
 msgid "Refresh the configuration database, then exit"
 msgstr "設定データベースをリフレッシュし、その後終了します"
 
-#: src/monitor/monitor.c:2367
+#: src/monitor/monitor.c:2383
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "--genconf と似ていますが、任意のセクションのみをリフレッシュします"
 
-#: src/monitor/monitor.c:2370
+#: src/monitor/monitor.c:2386
 msgid "Print version number and exit"
 msgstr "バージョン番号を表示して終了する"
 
-#: src/monitor/monitor.c:2514
+#: src/monitor/monitor.c:2532
 msgid "SSSD is already running\n"
 msgstr "SSSD はすでに実行中です\n"
 
-#: src/providers/krb5/krb5_child.c:3233 src/providers/ldap/ldap_child.c:624
+#: src/providers/krb5/krb5_child.c:3233 src/providers/ldap/ldap_child.c:638
 msgid "Debug level"
 msgstr "デバッグレベル"
 
-#: src/providers/krb5/krb5_child.c:3235 src/providers/ldap/ldap_child.c:626
+#: src/providers/krb5/krb5_child.c:3235 src/providers/ldap/ldap_child.c:640
 msgid "Add debug timestamps"
 msgstr "デバッグのタイムスタンプを追加する"
 
-#: src/providers/krb5/krb5_child.c:3237 src/providers/ldap/ldap_child.c:628
+#: src/providers/krb5/krb5_child.c:3237 src/providers/ldap/ldap_child.c:642
 msgid "Show timestamps with microseconds"
 msgstr "タイムスタンプをミリ秒単位で表示する"
 
-#: src/providers/krb5/krb5_child.c:3239 src/providers/ldap/ldap_child.c:630
+#: src/providers/krb5/krb5_child.c:3239 src/providers/ldap/ldap_child.c:644
 msgid "An open file descriptor for the debug logs"
 msgstr "デバッグログのオープンファイルディスクリプター"
 
-#: src/providers/krb5/krb5_child.c:3242 src/providers/ldap/ldap_child.c:632
+#: src/providers/krb5/krb5_child.c:3242 src/providers/ldap/ldap_child.c:646
 msgid "Send the debug output to stderr directly."
 msgstr "デバッグ出力を stderr に直接送信します。"
 
@@ -1628,7 +112,7 @@ msgstr "プリンシパル名の正規化を要求します"
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "krb5_get_init_creds_password のカスタムバージョンを使用します"
 
-#: src/providers/data_provider_be.c:711
+#: src/providers/data_provider_be.c:674
 msgid "Domain of the information provider (mandatory)"
 msgstr "情報プロバイダーのドメイン (必須)"
 
@@ -1642,7 +126,7 @@ msgstr "公開ソケットの所有者またはパーミッションが誤って
 
 #: src/sss_client/common.c:1085
 msgid "Unexpected format of the server credential message."
-msgstr "サーバーのクレディンシャルメッセージの予期しない形式です。"
+msgstr "サーバーのクレデンシャルメッセージの予期しない形式です。"
 
 #: src/sss_client/common.c:1088
 msgid "SSSD is not run by root."
@@ -1683,7 +167,7 @@ msgstr "root によるパスワードのリセットはサポートされませ�
 
 #: src/sss_client/pam_sss.c:526
 msgid "Authenticated with cached credentials"
-msgstr "キャッシュされているクレディンシャルを用いて認証されました"
+msgstr "キャッシュされているクレデンシャルを用いて認証されました"
 
 #: src/sss_client/pam_sss.c:527
 msgid ", your cached password will expire at: "
@@ -1717,7 +201,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:776 src/sss_client/pam_sss.c:789
 msgid "Password change failed. "
-msgstr "パスワードの変更に失敗しました。 "
+msgstr "パスワードの変更に失敗しました。"
 
 #: src/sss_client/pam_sss.c:2008
 msgid "New Password: "
@@ -1737,7 +221,7 @@ msgstr "2 番目の要素 (オプション): "
 
 #: src/sss_client/pam_sss.c:2175 src/sss_client/pam_sss.c:2346
 msgid "Second Factor: "
-msgstr "2 番目の要素:  "
+msgstr "2 番目の要素: "
 
 #: src/sss_client/pam_sss.c:2190
 msgid "Password: "
@@ -2055,17 +539,17 @@ msgstr "マジックプライベート "
 #: src/tools/sss_groupshow.c:615
 #, c-format
 msgid "%1$s%2$sGroup: %3$s\n"
-msgstr "%1$s%2$s グループ: %3$s\n"
+msgstr "%1$s%2$sGroup: %3$s\n"
 
 #: src/tools/sss_groupshow.c:618
 #, c-format
 msgid "%1$sGID number: %2$d\n"
-msgstr "%1$s GID 番号: %2$d\n"
+msgstr "%1$sGID 番号: %2$d\n"
 
 #: src/tools/sss_groupshow.c:620
 #, c-format
 msgid "%1$sMember users: "
-msgstr "%1$s メンバーユーザー: "
+msgstr "%1$sMember ユーザー: "
 
 #: src/tools/sss_groupshow.c:627
 #, c-format
@@ -2074,7 +558,7 @@ msgid ""
 "%1$sIs a member of: "
 msgstr ""
 "\n"
-"%1$s は次のメンバー: "
+"%1$sIs は次のメンバー: "
 
 #: src/tools/sss_groupshow.c:634
 #, c-format
@@ -2083,7 +567,7 @@ msgid ""
 "%1$sMember groups: "
 msgstr ""
 "\n"
-"%1$s メンバーグループ: "
+"%1$sMember グループ: "
 
 #: src/tools/sss_groupshow.c:670
 msgid "Print indirect group members recursively"
@@ -2138,7 +622,7 @@ msgstr "SELinux ログインコンテキストをリセットできません\n"
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
-"警告: ユーザー (uid %1$lu) が削除されたときにまだログインしていました。\n"
+"警告: ユーザー (uid %1$lu) が削除された時にまだログインしていました。\n"
 
 #: src/tools/sss_userdel.c:278
 msgid "Cannot determine if the user was logged in on this platform"
@@ -2463,14 +947,14 @@ msgid "Search by group ID"
 msgstr "グループ ID で検索"
 
 #: src/tools/sssctl/sssctl_config.c:70
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to open %s\n"
-msgstr "名前 %s を構文解析できません。\n"
+msgstr "%s を開くことに失敗しました\n"
 
 #: src/tools/sssctl/sssctl_config.c:75
-#, fuzzy, c-format
+#, c-format
 msgid "File %1$s does not exist.\n"
-msgstr "SSSD ソケットは存在しません。"
+msgstr "ファイル %1$s は存在しません。\n"
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""
@@ -2480,26 +964,25 @@ msgstr ""
 "よび 0600。\n"
 
 #: src/tools/sssctl/sssctl_config.c:85
-#, c-format
-msgid "Failed to load configuration configuration from %s.\n"
-msgstr ""
+#, fuzzy, c-format
+msgid "Failed to load configuration from %s.\n"
+msgstr "%s からの設定のロードに失敗しました。\n"
 
 #: src/tools/sssctl/sssctl_config.c:91
 msgid "Error while reading configuration directory.\n"
-msgstr ""
+msgstr "設定ディレクトリーの読み込み中にエラーが発生しました。\n"
 
 #: src/tools/sssctl/sssctl_config.c:99
-#, fuzzy
 msgid ""
 "There is no configuration. SSSD will use default configuration with files "
 "provider.\n"
 msgstr ""
-"ファイル %1$s は存在しません。SSSD は、ファイルプロバイダーでデフォルトの設定"
-"を使用します。\n"
+"設定はありません。SSSD は、ファイルプロバイダーでデフォルト設定を使用しま"
+"す。\n"
 
 #: src/tools/sssctl/sssctl_config.c:111
 msgid "Failed to run validators"
-msgstr ""
+msgstr "バリデーターの実行に失敗しました"
 
 #: src/tools/sssctl/sssctl_config.c:115
 #, c-format
@@ -2512,14 +995,14 @@ msgid "Messages generated during configuration merging: %zu\n"
 msgstr "設定のマージ中に生成されたメッセージ: %zu\n"
 
 #: src/tools/sssctl/sssctl_config.c:137
-#, fuzzy, c-format
+#, c-format
 msgid "Used configuration snippet files: %zu\n"
-msgstr "設定スニペットファイルを使用: %u\n"
+msgstr "使用された設定スニペットファイル: %zu\n"
 
 #: src/tools/sssctl/sssctl_data.c:89
 #, c-format
 msgid "Unable to create backup directory [%d]: %s"
-msgstr "バックアップディレクトリー [%d] の作成に失敗: %s"
+msgstr "バックアップディレクトリー [%d] を作成できません: %s"
 
 #: src/tools/sssctl/sssctl_data.c:95
 msgid "SSSD backup of local data already exists, override?"
@@ -2597,7 +1080,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:367
 #: src/tools/sssctl/sssctl_user_checks.c:95
 msgid "Unable to connect to system bus!\n"
-msgstr "システムバスに接続できません!\n"
+msgstr "システムバスに接続できません。\n"
 
 #: src/tools/sssctl/sssctl_domains.c:167
 msgid "Online"
@@ -2613,9 +1096,8 @@ msgid "Online status: %s\n"
 msgstr "オンライン状態: %s\n"
 
 #: src/tools/sssctl/sssctl_domains.c:213
-#, fuzzy
 msgid "This domain has no active servers.\n"
-msgstr "アクティブサーバーに関する情報の表示"
+msgstr "このドメインには、アクティブなサーバーはありません。\n"
 
 #: src/tools/sssctl/sssctl_domains.c:218
 msgid "Active servers:\n"
@@ -2627,12 +1109,12 @@ msgstr "接続していません"
 
 #: src/tools/sssctl/sssctl_domains.c:267
 msgid "No servers discovered.\n"
-msgstr ""
+msgstr "サーバーが見つかりません。\n"
 
 #: src/tools/sssctl/sssctl_domains.c:273
 #, c-format
 msgid "Discovered %s servers:\n"
-msgstr "%s サーバーを発見:\n"
+msgstr "%s サーバーが見つかりました:\n"
 
 #: src/tools/sssctl/sssctl_domains.c:285
 msgid "None so far.\n"
@@ -2648,7 +1130,7 @@ msgstr "アクティブサーバーに関する情報の表示"
 
 #: src/tools/sssctl/sssctl_domains.c:327
 msgid "Show list of discovered servers"
-msgstr "発見されたサーバーに関する一覧を表示"
+msgstr "見つかったサーバーに関する一覧を表示"
 
 #: src/tools/sssctl/sssctl_domains.c:333
 msgid "Specify domain name."
@@ -2656,7 +1138,7 @@ msgstr "ドメイン名を指定します。"
 
 #: src/tools/sssctl/sssctl_domains.c:355
 msgid "Out of memory!\n"
-msgstr "メモリの空き容量がありません。\n"
+msgstr "メモリーの空き容量がありません。\n"
 
 #: src/tools/sssctl/sssctl_domains.c:375 src/tools/sssctl/sssctl_domains.c:385
 msgid "Unable to get online status\n"
@@ -2666,44 +1148,44 @@ msgstr "オンライン状態を取得できません\n"
 msgid "Unable to get server list\n"
 msgstr "サーバー一覧を取得できません\n"
 
-#: src/tools/sssctl/sssctl_logs.c:47
+#: src/tools/sssctl/sssctl_logs.c:46
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sssctl/sssctl_logs.c:237
+#: src/tools/sssctl/sssctl_logs.c:236
 msgid "Delete log files instead of truncating"
 msgstr "切り捨てる代わりにログファイルを削除します"
 
-#: src/tools/sssctl/sssctl_logs.c:248
+#: src/tools/sssctl/sssctl_logs.c:247
 msgid "Deleting log files...\n"
 msgstr "ログファイルを削除中...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:251
+#: src/tools/sssctl/sssctl_logs.c:250
 msgid "Unable to remove log files\n"
 msgstr "ログファイルを削除できません\n"
 
-#: src/tools/sssctl/sssctl_logs.c:257
+#: src/tools/sssctl/sssctl_logs.c:256
 msgid "Truncating log files...\n"
 msgstr "ログファイルを切り捨てます...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:260
+#: src/tools/sssctl/sssctl_logs.c:259
 msgid "Unable to truncate log files\n"
 msgstr "ログファイルの切り捨てができません\n"
 
-#: src/tools/sssctl/sssctl_logs.c:286
+#: src/tools/sssctl/sssctl_logs.c:285
 msgid "Out of memory!"
-msgstr "メモリの空き容量がありません。"
+msgstr "メモリーの空き容量がありません。"
 
-#: src/tools/sssctl/sssctl_logs.c:289
+#: src/tools/sssctl/sssctl_logs.c:288
 #, c-format
 msgid "Archiving log files into %s...\n"
-msgstr "ログファイルを %s へアーカイブ...\n"
+msgstr "ログファイルを %s へアーカイブ中...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:292
+#: src/tools/sssctl/sssctl_logs.c:291
 msgid "Unable to archive log files\n"
 msgstr "ログファイルのアーカイブができません\n"
 
-#: src/tools/sssctl/sssctl_logs.c:317
+#: src/tools/sssctl/sssctl_logs.c:316
 msgid "Specify debug level you want to set"
 msgstr "設定したいデバッグレベルを指定します"
 
@@ -2851,7 +1333,9 @@ msgstr ""
 msgid ""
 "testing pam_acct_mgmt\n"
 "\n"
-msgstr "pam_acct_mgmt のテスト中\n"
+msgstr ""
+"pam_acct_mgmt のテスト中\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:284
 #, c-format
@@ -2883,7 +1367,9 @@ msgstr ""
 msgid ""
 "testing pam_open_session\n"
 "\n"
-msgstr "pam_open_session のテスト中\n"
+msgstr ""
+"pam_open_session のテスト中\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:292
 #, c-format
@@ -2898,7 +1384,9 @@ msgstr ""
 msgid ""
 "testing pam_close_session\n"
 "\n"
-msgstr "pam_close_session のテスト中\n"
+msgstr ""
+"pam_close_session のテスト中\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:296
 #, c-format
@@ -2936,3 +1424,1185 @@ msgstr "レスポンダーがソケットでアクティベートされたと知
 #: src/util/util.h:94
 msgid "Informs that the responder has been dbus-activated"
 msgstr "レスポンダーが dbus でアクティベートされたと知らせます"
+
+#~ msgid "Set the verbosity of the debug logging"
+#~ msgstr "デバッグのロギングの冗長性を設定する"
+
+#~ msgid "Include timestamps in debug logs"
+#~ msgstr "デバッグログにタイムスタンプを含める"
+
+#~ msgid "Include microseconds in timestamps in debug logs"
+#~ msgstr "デバッグログにミリ秒単位のタイムスタンプを含める"
+
+#~ msgid "Write debug messages to logfiles"
+#~ msgstr "デバッグメッセージをログファイルに書き込む"
+
+#~ msgid "Watchdog timeout before restarting service"
+#~ msgstr "サービス再起動前の Watchdog タイムアウト"
+
+#~ msgid "Command to start service"
+#~ msgstr "サービス開始のコマンド"
+
+#~ msgid "Number of times to attempt connection to Data Providers"
+#~ msgstr "データプロバイダーの接続を試行する回数"
+
+#~ msgid "The number of file descriptors that may be opened by this responder"
+#~ msgstr "このレスポンダーににより開かれるファイル記述子の数"
+
+#~ msgid "Idle time before automatic disconnection of a client"
+#~ msgstr "クライアントの自動切断までのアイドル時間"
+
+#~ msgid "Idle time before automatic shutdown of the responder"
+#~ msgstr "レスポンダーの自動シャットダウンまでのアイドル時間"
+
+#~ msgid "Always query all the caches before querying the Data Providers"
+#~ msgstr ""
+#~ "データプロバイダーをクエリーする前に、常にすべてのキャッシュをクエリーしま"
+#~ "す"
+
+#~ msgid "SSSD Services to start"
+#~ msgstr "開始する SSSD サービス"
+
+#~ msgid "SSSD Domains to start"
+#~ msgstr "開始する SSSD ドメイン"
+
+#~ msgid "Timeout for messages sent over the SBUS"
+#~ msgstr "SBUS 経由のメッセージ送信のタイムアウト"
+
+#~ msgid "Regex to parse username and domain"
+#~ msgstr "ユーザー名とドメインを構文解析する正規表現"
+
+#~ msgid "Printf-compatible format for displaying fully-qualified names"
+#~ msgstr "完全修飾名を表示するための printf 互換の形式"
+
+#~ msgid ""
+#~ "Directory on the filesystem where SSSD should store Kerberos replay cache "
+#~ "files."
+#~ msgstr ""
+#~ "SSSD が Kerberos リプレイキャッシュファイルを保存するファイルシステムの"
+#~ "ディレクトリーです。"
+
+#~ msgid "Domain to add to names without a domain component."
+#~ msgstr "domain 要素なしで追加するドメインの名前。"
+
+#~ msgid "The user to drop privileges to"
+#~ msgstr "ユーザーが特権を停止します"
+
+#~ msgid "Tune certificate verification"
+#~ msgstr "証明書検証の調整"
+
+#~ msgid ""
+#~ "All spaces in group or user names will be replaced with this character"
+#~ msgstr ""
+#~ "グループ名またはユーザー名のすべてのスペースは、この文字に置き換えられます"
+
+#~ msgid "Tune sssd to honor or ignore netlink state changes"
+#~ msgstr "SSSD を調整し、netlink の状態変更を尊重するか、または無視します"
+
+#~ msgid "Enable or disable the implicit files domain"
+#~ msgstr "暗黙のファイルドメインを有効化または無効化する"
+
+#~ msgid "A specific order of the domains to be looked up"
+#~ msgstr "検索するドメインの特定の順番"
+
+#~ msgid "Enumeration cache timeout length (seconds)"
+#~ msgstr "列挙キャッシュのタイムアウト（秒）"
+
+#~ msgid "Entry cache background update timeout length (seconds)"
+#~ msgstr "エントリーキャッシュのバックグラウンド更新のタイムアウト時間（秒）"
+
+#~ msgid "Negative cache timeout length (seconds)"
+#~ msgstr "ネガティブキャッシュのタイムアウト（秒）"
+
+#~ msgid "Files negative cache timeout length (seconds)"
+#~ msgstr "ファイルネガティブキャッシュのタイムアウト時間（秒）"
+
+#~ msgid "Users that SSSD should explicitly ignore"
+#~ msgstr "SSSD が明示的に無視するユーザー"
+
+#~ msgid "Groups that SSSD should explicitly ignore"
+#~ msgstr "SSSD が明示的に無視するグループ"
+
+#~ msgid "Should filtered users appear in groups"
+#~ msgstr "フィルターされたユーザーをグループに表示する"
+
+#~ msgid "The value of the password field the NSS provider should return"
+#~ msgstr "NSS プロバイダーが返すパスワード項目の値"
+
+#~ msgid "Override homedir value from the identity provider with this value"
+#~ msgstr "識別プロバイダーからのホームディレクトリーの値をこの値で上書きする"
+
+#~ msgid ""
+#~ "Substitute empty homedir value from the identity provider with this value"
+#~ msgstr ""
+#~ "アイデンティティープロバイダーからの空のホームディレクトリーをこの値で置き"
+#~ "換えます"
+
+#~ msgid "Override shell value from the identity provider with this value"
+#~ msgstr "アイデンティティープロバイダーからのシェル値をこの値で上書きします"
+
+#~ msgid "The list of shells users are allowed to log in with"
+#~ msgstr "ユーザーがログインを許可されるシェルの一覧"
+
+#~ msgid ""
+#~ "The list of shells that will be vetoed, and replaced with the fallback "
+#~ "shell"
+#~ msgstr "拒否されてフォールバックシェルで置き換えられるシェルの一覧"
+
+#~ msgid ""
+#~ "If a shell stored in central directory is allowed but not available, use "
+#~ "this fallback"
+#~ msgstr ""
+#~ "中央ディレクトリーに保存されたシェルが許可されるが、利用できない場合、この"
+#~ "フォールバックを使用する"
+
+#~ msgid "Shell to use if the provider does not list one"
+#~ msgstr "プロバイダーが一覧に持っていないとき使用するシェル"
+
+#~ msgid "How long will be in-memory cache records valid"
+#~ msgstr "メモリー内のキャッシュレコードが有効な期間"
+
+#~ msgid "List of user attributes the NSS responder is allowed to publish"
+#~ msgstr "NSS レスポンダーがパブリッシュを許可されたユーザー属性の一覧"
+
+#~ msgid "How long to allow cached logins between online logins (days)"
+#~ msgstr ""
+#~ "オンラインログイン中にキャッシュによるログインが許容される期間（日数）"
+
+#~ msgid "How many failed logins attempts are allowed when offline"
+#~ msgstr "オフラインの時に許容されるログイン試行失敗回数"
+
+#~ msgid ""
+#~ "How long (minutes) to deny login after offline_failed_login_attempts has "
+#~ "been reached"
+#~ msgstr ""
+#~ "offline_failed_login_attempts に達した後にログインを拒否する時間（分）"
+
+#~ msgid ""
+#~ "What kind of messages are displayed to the user during authentication"
+#~ msgstr "認証中にユーザーに表示されるメッセージの種類"
+
+#~ msgid "Filter PAM responses sent to the pam_sss"
+#~ msgstr "pam_sss へ送信された PAM のレスポンスをフィルタリングします"
+
+#~ msgid ""
+#~ "How many seconds to keep identity information cached for PAM requests"
+#~ msgstr "PAM 要求に対してキャッシュされた認証情報を保持する秒数"
+
+#~ msgid ""
+#~ "How many days before password expiration a warning should be displayed"
+#~ msgstr "警告が表示されるパスワード失効前の日数"
+
+#~ msgid "List of trusted uids or user's name"
+#~ msgstr "信頼できる UID またはユーザー名の一覧"
+
+#~ msgid "List of domains accessible even for untrusted users."
+#~ msgstr "信頼できないユーザーでさえアクセス可能なドメインの一覧。"
+
+#~ msgid "Message printed when user account is expired."
+#~ msgstr "ユーザーアカウントの有効期限が切れると、メッセージが印刷されます。"
+
+#~ msgid "Message printed when user account is locked."
+#~ msgstr "ユーザーアカウントがロックされると、メッセージが印刷されます。"
+
+#~ msgid "Allow certificate based/Smartcard authentication."
+#~ msgstr "証明書ベースまたはスマートカードによる認証を許可します。"
+
+#~ msgid "Path to certificate database with PKCS#11 modules."
+#~ msgstr "PKCS#11 モジュールでの証明書データベースへのパス。"
+
+#~ msgid "How many seconds will pam_sss wait for p11_child to finish"
+#~ msgstr "p11_child が完了するまでに pam_sss が待つ秒数"
+
+#~ msgid "Which PAM services are permitted to contact application domains"
+#~ msgstr "アプリケーションドメインへの接続を許可される PAM サービスはどれか"
+
+#~ msgid "Allowed services for using smartcards"
+#~ msgstr "スマートカードの使用が許可されたサービス"
+
+#~ msgid "Additional timeout to wait for a card if requested"
+#~ msgstr "要求された場合に、カードが待つ追加のタイムアウト"
+
+#~ msgid ""
+#~ "PKCS#11 URI to restrict the selection of devices for Smartcard "
+#~ "authentication"
+#~ msgstr "スマートカード認証向けのデバイスの選択を PKCS#11 URI が制限"
+
+#~ msgid "Whether to evaluate the time-based attributes in sudo rules"
+#~ msgstr "sudo ルールにおいて時間による属性を評価するかどうか"
+
+#~ msgid "If true, SSSD will switch back to lower-wins ordering logic"
+#~ msgstr ""
+#~ "正しい場合、SSSD は小さい番号が優先される順位付けのロジックへ戻ります"
+
+#~ msgid ""
+#~ "Maximum number of rules that can be refreshed at once. If this is "
+#~ "exceeded, full refresh is performed."
+#~ msgstr ""
+#~ "一度にリフレッシュ可能なルールの最大数。最大数を超えると、フルリフレッシュ"
+#~ "が実行されます。"
+
+#~ msgid "Whether to hash host names and addresses in the known_hosts file"
+#~ msgstr ""
+#~ "known_hosts ファイルにおいてホスト名とアドレスをハッシュ化するかどうか"
+
+#~ msgid ""
+#~ "How many seconds to keep a host in the known_hosts file after its host "
+#~ "keys were requested"
+#~ msgstr "ホスト鍵が要求された後 known_hosts ファイルにホストを保持する秒数"
+
+#~ msgid "Path to storage of trusted CA certificates"
+#~ msgstr "信頼された CA 証明書のストレージへのパス"
+
+#~ msgid "Allow to generate ssh-keys from certificates"
+#~ msgstr "証明書からの ssh-key の生成を許可します"
+
+#~ msgid ""
+#~ "Use the following matching rules to filter the certificates for ssh-key "
+#~ "generation"
+#~ msgstr ""
+#~ "以下の一致するルールを使用して、ssh-key 生成用の証明書をフィルタリングしま"
+#~ "す"
+
+#~ msgid "List of UIDs or user names allowed to access the PAC responder"
+#~ msgstr "PAC レスポンダーへのアクセスが許可された UID またはユーザー名の一覧"
+
+#~ msgid "How long the PAC data is considered valid"
+#~ msgstr "PAC データが有効とされる期間"
+
+#~ msgid "List of UIDs or user names allowed to access the InfoPipe responder"
+#~ msgstr ""
+#~ "InfoPipe レスポンダーへのアクセスが許可された UID またはユーザー名の一覧"
+
+#~ msgid "List of user attributes the InfoPipe is allowed to publish"
+#~ msgstr "InfoPipe がパブリッシュを許可されたユーザー属性の一覧"
+
+#~ msgid "The provider where the secrets will be stored in"
+#~ msgstr "シークレットが保存されるプロバイダー"
+
+#~ msgid "The maximum allowed number of nested containers"
+#~ msgstr "ネストされたコンテナーの最大許可数"
+
+#~ msgid "The maximum number of secrets that can be stored"
+#~ msgstr "保存可能なシークレットの最大数"
+
+#~ msgid "The maximum number of secrets that can be stored per UID"
+#~ msgstr "UID ごとに保存可能なシークレットの最大数"
+
+#~ msgid "The maximum payload size of a secret in kilobytes"
+#~ msgstr "キロバイトでのシークレットの最大ペイロードサイズ"
+
+#~ msgid "The URL Custodia server is listening on"
+#~ msgstr "URL Custodia サーバーはリッスンしています"
+
+#~ msgid "The method to use when authenticating to a Custodia server"
+#~ msgstr "Custodia サーバーへの認証時に使用する方法"
+
+#~ msgid ""
+#~ "The name of the headers that will be added into a HTTP request with the "
+#~ "value defined in auth_header_value"
+#~ msgstr ""
+#~ "auth_header_value で値が定義され、HTTP リクエストに追加されるヘッダーの名"
+#~ "前"
+
+#~ msgid "The value sssd-secrets would use for auth_header_name"
+#~ msgstr "sssd-secrets の値は、auth_header_name で使用します"
+
+#~ msgid ""
+#~ "The list of the headers to forward to the Custodia server together with "
+#~ "the request"
+#~ msgstr "要求と共に Custodia サーバーへ転送するヘッダーの一覧"
+
+#~ msgid ""
+#~ "The username to use when authenticating to a Custodia server using "
+#~ "basic_auth"
+#~ msgstr "basic_auth を使った Custodia サーバーへの認証時に使用するユーザー名"
+
+#~ msgid ""
+#~ "The password to use when authenticating to a Custodia server using "
+#~ "basic_auth"
+#~ msgstr "basic_auth を使った Custodia サーバーへの認証時に使用するパスワード"
+
+#~ msgid ""
+#~ "If true peer's certificate is verified if proxy_url uses https protocol"
+#~ msgstr ""
+#~ "proxy_url が https protocol を使用する場合に、正しいピアの証明書が検証され"
+#~ "るかどうか"
+
+#~ msgid ""
+#~ "If false peer's certificate may contain different hostname than proxy_url "
+#~ "when https protocol is used"
+#~ msgstr ""
+#~ "https プロトコルが使用される場合に、間違ったピアの証明書が proxy_url 以外"
+#~ "の異なるホスト名を含むかどうか"
+
+#~ msgid ""
+#~ "Path to directory where certificate authority certificates are stored"
+#~ msgstr "CA 証明書が保存されているディレクトリーへのパス"
+
+#~ msgid "Path to file containing server's CA certificate"
+#~ msgstr "サーバーの CA 証明書を含むファイルへのパス"
+
+#~ msgid "Path to file containing client's certificate"
+#~ msgstr "クライアントの証明書を含むファイルへのパス"
+
+#~ msgid "Path to file containing client's private key"
+#~ msgstr "クライアントの秘密鍵を含むファイルへのパス"
+
+#~ msgid "Identity provider"
+#~ msgstr "アイデンティティープロバイダー"
+
+#~ msgid "Authentication provider"
+#~ msgstr "認証プロバイダー"
+
+#~ msgid "Access control provider"
+#~ msgstr "アクセス制御プロバイダー"
+
+#~ msgid "Password change provider"
+#~ msgstr "パスワード変更プロバイダー"
+
+#~ msgid "SUDO provider"
+#~ msgstr "SUDO プロバイダー"
+
+#~ msgid "Autofs provider"
+#~ msgstr "Autofs プロバイダー"
+
+#~ msgid "Host identity provider"
+#~ msgstr "ホスト識別プロバイダー"
+
+#~ msgid "SELinux provider"
+#~ msgstr "SELinux プロバイダー"
+
+#~ msgid "Session management provider"
+#~ msgstr "セッションマネージャーのプロバイダー"
+
+#~ msgid "Whether the domain is usable by the OS or by applications"
+#~ msgstr "OS またはアプリケーションがドメインを使用できるかどうか"
+
+#~ msgid "Minimum user ID"
+#~ msgstr "最小ユーザー ID"
+
+#~ msgid "Maximum user ID"
+#~ msgstr "最大ユーザー ID"
+
+#~ msgid "Enable enumerating all users/groups"
+#~ msgstr "すべてのユーザー・グループの列挙を有効にする"
+
+#~ msgid "Cache credentials for offline login"
+#~ msgstr "オフラインログインのためにクレデンシャルをキャッシュする"
+
+#~ msgid "Display users/groups in fully-qualified form"
+#~ msgstr "ユーザー・グループを完全修飾形式で表示する"
+
+#~ msgid "Don't include group members in group lookups"
+#~ msgstr "グループ検索にグループメンバーを含めない"
+
+#~ msgid "Entry cache timeout length (seconds)"
+#~ msgstr "エントリーキャッシュのタイムアウト長（秒）"
+
+#~ msgid ""
+#~ "Restrict or prefer a specific address family when performing DNS lookups"
+#~ msgstr ""
+#~ "DNS 検索を実行する時に特定のアドレスファミリーを制限または優先します"
+
+#~ msgid "How long to keep cached entries after last successful login (days)"
+#~ msgstr "最終ログイン成功時からキャッシュエントリーを保持する日数"
+
+#~ msgid ""
+#~ "How long should SSSD talk to single DNS server before trying next server "
+#~ "(miliseconds)"
+#~ msgstr ""
+#~ "次のサーバーを試行するまでに SSSD が単一の DNS サーバーと通信する時間 (ミ"
+#~ "リ秒)"
+
+#~ msgid "How long should keep trying to resolve single DNS query (seconds)"
+#~ msgstr "単一の DNS クエリーの解決を試行する時間 (秒)"
+
+#~ msgid ""
+#~ "How long to wait for replies from DNS when resolving servers (seconds)"
+#~ msgstr "サーバーを名前解決する時に DNS から応答を待つ時間（秒）"
+
+#~ msgid "The domain part of service discovery DNS query"
+#~ msgstr "サービス検索 DNS クエリーのドメイン部分"
+
+#~ msgid "Override GID value from the identity provider with this value"
+#~ msgstr "識別プロバイダーからの GID 値をこの値で上書きする"
+
+#~ msgid "Treat usernames as case sensitive"
+#~ msgstr "ユーザー名が大文字小文字を区別するよう取り扱う"
+
+#~ msgid "How often should expired entries be refreshed in background"
+#~ msgstr "期限切れのエントリーがバックグラウンドで更新される頻度"
+
+#~ msgid "Whether to automatically update the client's DNS entry"
+#~ msgstr "自動的にクライアントの DNS エントリーを更新するかどうか"
+
+#~ msgid "The TTL to apply to the client's DNS entry after updating it"
+#~ msgstr "クライアントの DNS 項目を更新後、適用する TTL"
+
+#~ msgid "The interface whose IP should be used for dynamic DNS updates"
+#~ msgstr "動的 DNS 更新のために使用される IP のインターフェース"
+
+#~ msgid "How often to periodically update the client's DNS entry"
+#~ msgstr "どのくらい定期的にクライアントの DNS エントリーを更新するか"
+
+#~ msgid "Whether the provider should explicitly update the PTR record as well"
+#~ msgstr ""
+#~ "プロバイダーが同じように PTR レコードを明示的に更新する必要があるかどうか"
+
+#~ msgid "Whether the nsupdate utility should default to using TCP"
+#~ msgstr "nsupdate ユーティリティーが標準で TCP を使用するかどうか"
+
+#~ msgid "What kind of authentication should be used to perform the DNS update"
+#~ msgstr "DNS 更新を実行するために使用すべき認証の種類"
+
+#~ msgid "Override the DNS server used to perform the DNS update"
+#~ msgstr "DNS の更新を実行する際に使用する DNS サーバーを上書き"
+
+#~ msgid "Control enumeration of trusted domains"
+#~ msgstr "信頼されたドメインの列挙を制御"
+
+#~ msgid "How often should subdomains list be refreshed"
+#~ msgstr "サブドメインの一覧のリフレッシュ回数"
+
+#~ msgid "List of options that should be inherited into a subdomain"
+#~ msgstr "サブドメインに継承すべきオプションの一覧"
+
+#~ msgid "Default subdomain homedir value"
+#~ msgstr "デフォルトのサブドメインホームディレクトリーの値"
+
+#~ msgid "How long can cached credentials be used for cached authentication"
+#~ msgstr "証明書キャッシュを認証キャッシュに使用できる期間"
+
+#~ msgid "Whether to automatically create private groups for users"
+#~ msgstr "ユーザーにプライベートグループを自動的に作成するかどうか"
+
+#~ msgid "IPA domain"
+#~ msgstr "IPA ドメイン"
+
+#~ msgid "IPA server address"
+#~ msgstr "IPA サーバーのアドレス"
+
+#~ msgid "Address of backup IPA server"
+#~ msgstr "バックアップ IPA サーバーのアドレス"
+
+#~ msgid "IPA client hostname"
+#~ msgstr "IPA クライアントのホスト名"
+
+#~ msgid "Whether to automatically update the client's DNS entry in FreeIPA"
+#~ msgstr ""
+#~ "FreeIPA にあるクライアントの DNS エントリーを自動的に更新するかどうか"
+
+#~ msgid "Search base for HBAC related objects"
+#~ msgstr "HBAC 関連オブジェクトの検索ベース"
+
+#~ msgid ""
+#~ "The amount of time between lookups of the HBAC rules against the IPA "
+#~ "server"
+#~ msgstr "IPA サーバーに対する HBAC ルールを検索している間の合計時間"
+
+#~ msgid ""
+#~ "The amount of time in seconds between lookups of the SELinux maps against "
+#~ "the IPA server"
+#~ msgstr "IPA サーバーに対する SELinux マップの検索の間の秒単位の合計時間"
+
+#~ msgid "If set to false, host argument given by PAM will be ignored"
+#~ msgstr ""
+#~ "もし偽に設定されていると、PAM により渡されたホスト引数は無視されます"
+
+#~ msgid "The automounter location this IPA client is using"
+#~ msgstr "この IPA クライアントが使用している automounter の場所"
+
+#~ msgid "Search base for object containing info about IPA domain"
+#~ msgstr "IPA ドメインに関する情報を含むオブジェクトに対する検索ベース"
+
+#~ msgid "Search base for objects containing info about ID ranges"
+#~ msgstr "ID 範囲に関する情報を含むオブジェクトに対する検索ベース"
+
+#~ msgid "Enable DNS sites - location based service discovery"
+#~ msgstr "DNS サイトの有効化 - 位置ベースのサービス検索"
+
+#~ msgid "Search base for view containers"
+#~ msgstr "ビューコンテナーの検索ベース"
+
+#~ msgid "Objectclass for view containers"
+#~ msgstr "ビューコンテナーのオブジェクトクラス"
+
+#~ msgid "Attribute with the name of the view"
+#~ msgstr "ビューの名前の属性"
+
+#~ msgid "Objectclass for override objects"
+#~ msgstr "上書きされたオブジェクトのオブジェクトクラス"
+
+#~ msgid "Attribute with the reference to the original object"
+#~ msgstr "オリジナルオブジェクトを参照する属性"
+
+#~ msgid "Objectclass for user override objects"
+#~ msgstr "ユーザーが上書きするオブジェクトのオブジェクトクラス"
+
+#~ msgid "Objectclass for group override objects"
+#~ msgstr "グループが上書きするオブジェクトのオブジェクトクラス"
+
+#~ msgid "Search base for Desktop Profile related objects"
+#~ msgstr "デスクトッププロファイルに関連するオブジェクトの検索ベース"
+
+#~ msgid ""
+#~ "The amount of time in seconds between lookups of the Desktop Profile "
+#~ "rules against the IPA server"
+#~ msgstr ""
+#~ "IPA サーバーに対するデスクトッププロファイルルールを検索している間の秒単位"
+#~ "の合計時間"
+
+#~ msgid ""
+#~ "The amount of time in minutes between lookups of Desktop Profiles rules "
+#~ "against the IPA server when the last request did not find any rule"
+#~ msgstr ""
+#~ "最後の要求がルールを何も見つけなかった場合の IPA サーバーに対するデスク"
+#~ "トッププロファイルル ールを検索している間の分単位の合計時間"
+
+#~ msgid "Active Directory domain"
+#~ msgstr "Active Directory ドメイン"
+
+#~ msgid "Enabled Active Directory domains"
+#~ msgstr "有効化された Active Directory ドメイン"
+
+#~ msgid "Active Directory server address"
+#~ msgstr "Active Directory サーバーアドレス"
+
+#~ msgid "Active Directory backup server address"
+#~ msgstr "Active Directory バックアップサーバーのアドレス"
+
+#~ msgid "Active Directory client hostname"
+#~ msgstr "Active Directory クライアントホスト名"
+
+#~ msgid "LDAP filter to determine access privileges"
+#~ msgstr "アクセス権限を決めるための LDAP フィルター"
+
+#~ msgid "Whether to use the Global Catalog for lookups"
+#~ msgstr "検索にグローバルカタログを使用するかどうか"
+
+#~ msgid "Operation mode for GPO-based access control"
+#~ msgstr "グローバルカタログベースのアクセス制御に対するオペレーションモード"
+
+#~ msgid ""
+#~ "The amount of time between lookups of the GPO policy files against the AD "
+#~ "server"
+#~ msgstr "AD サーバーに対する GPO ポリシーファイルを検索している間の合計時間"
+
+#~ msgid ""
+#~ "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
+#~ "settings"
+#~ msgstr ""
+#~ "GPO (Deny)InteractiveLogonRight のポリシー設定にマッピングした PAM サービ"
+#~ "ス名"
+
+#~ msgid ""
+#~ "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
+#~ "policy settings"
+#~ msgstr ""
+#~ "GPO (Deny)RemoteInteractiveLogonRight のポリシー設定にマッピングした PAM "
+#~ "サービス名"
+
+#~ msgid ""
+#~ "PAM service names that map to the GPO (Deny)NetworkLogonRight policy "
+#~ "settings"
+#~ msgstr ""
+#~ "GPO (Deny)NetworkLogonRight のポリシー設定にマッピングした PAM サービス名"
+
+#~ msgid ""
+#~ "PAM service names that map to the GPO (Deny)BatchLogonRight policy "
+#~ "settings"
+#~ msgstr ""
+#~ "GPO (Deny)BatchLogonRight のポリシー設定にマッピングした PAM サービス名"
+
+#~ msgid ""
+#~ "PAM service names that map to the GPO (Deny)ServiceLogonRight policy "
+#~ "settings"
+#~ msgstr ""
+#~ "(Deny)ServiceLogonRight のポリシー設定にマッピングした PAM サービス名"
+
+#~ msgid "PAM service names for which GPO-based access is always granted"
+#~ msgstr "GPO ベースのアクセスが常に許可される PAM サービス名"
+
+#~ msgid "PAM service names for which GPO-based access is always denied"
+#~ msgstr "GPO ベースのアクセスが常に拒否される PAM サービス名"
+
+#~ msgid ""
+#~ "Default logon right (or permit/deny) to use for unmapped PAM service names"
+#~ msgstr ""
+#~ "マッピングされていない PAM サービス名に使用するデフォルトのログオン権利 "
+#~ "(または許可/拒否)"
+
+#~ msgid "a particular site to be used by the client"
+#~ msgstr "クライアントが使用する特定のサイト"
+
+#~ msgid ""
+#~ "Maximum age in days before the machine account password should be renewed"
+#~ msgstr "マシンアカウントのパスワードの更新が必要となるまでの最大日数"
+
+#~ msgid "Option for tuning the machine account renewal task"
+#~ msgstr "マシンアカウントの更新タスクをチューニングするオプション"
+
+#~ msgid "Kerberos server address"
+#~ msgstr "Kerberos サーバーのアドレス"
+
+#~ msgid "Kerberos backup server address"
+#~ msgstr "Kerberos バックアップサーバーのアドレス"
+
+#~ msgid "Kerberos realm"
+#~ msgstr "Kerberos レルム"
+
+#~ msgid "Authentication timeout"
+#~ msgstr "認証のタイムアウト"
+
+#~ msgid "Whether to create kdcinfo files"
+#~ msgstr "kdcinfo ファイルを作成するかどうか"
+
+#~ msgid "Where to drop krb5 config snippets"
+#~ msgstr "krb5 設定スニペットを削除する場所"
+
+#~ msgid "Directory to store credential caches"
+#~ msgstr "クレデンシャルのキャッシュを保存するディレクトリー"
+
+#~ msgid "Location of the user's credential cache"
+#~ msgstr "ユーザーのクレデンシャルキャッシュの位置"
+
+#~ msgid "Location of the keytab to validate credentials"
+#~ msgstr "クレデンシャルを検証するキーテーブルの場所"
+
+#~ msgid "Enable credential validation"
+#~ msgstr "クレデンシャルの検証を有効にする"
+
+#~ msgid "Store password if offline for later online authentication"
+#~ msgstr ""
+#~ "後からオンライン認証するためにオフラインの場合にパスワードを保存します"
+
+#~ msgid "Renewable lifetime of the TGT"
+#~ msgstr "更新可能な TGT の有効期間"
+
+#~ msgid "Lifetime of the TGT"
+#~ msgstr "TGT の有効期間"
+
+#~ msgid "Time between two checks for renewal"
+#~ msgstr "更新を確認する間隔"
+
+#~ msgid "Enables FAST"
+#~ msgstr "FAST を有効にする"
+
+#~ msgid "Selects the principal to use for FAST"
+#~ msgstr "FAST に使用するプリンシパルを選択する"
+
+#~ msgid "Enables principal canonicalization"
+#~ msgstr "プリンシパル正規化を有効にする"
+
+#~ msgid "Enables enterprise principals"
+#~ msgstr "エンタープライズ・プリンシパルの有効化"
+
+#~ msgid "A mapping from user names to Kerberos principal names"
+#~ msgstr "ユーザー名から Kerberos プリンシパル名までのマッピング"
+
+#~ msgid ""
+#~ "Server where the change password service is running if not on the KDC"
+#~ msgstr "KDC になければ、パスワード変更サービスが実行されているサーバー"
+
+#~ msgid "ldap_uri, The URI of the LDAP server"
+#~ msgstr "ldap_uri, LDAP サーバーの URI"
+
+#~ msgid "ldap_backup_uri, The URI of the LDAP server"
+#~ msgstr "ldap_backup_uri, LDAP サーバーの URI"
+
+#~ msgid "The default base DN"
+#~ msgstr "デフォルトのベース DN"
+
+#~ msgid "The Schema Type in use on the LDAP server, rfc2307"
+#~ msgstr "LDAP サーバーにおいて使用中のスキーマ形式、rfc2307"
+
+#~ msgid "Mode used to change user password"
+#~ msgstr "ユーザーのパスワードの変更にモードを使用しました"
+
+#~ msgid "The default bind DN"
+#~ msgstr "デフォルトのバインド DN"
+
+#~ msgid "The type of the authentication token of the default bind DN"
+#~ msgstr "デフォルトのバインド DN の認証トークンの種類"
+
+#~ msgid "The authentication token of the default bind DN"
+#~ msgstr "デフォルトのバインド DN の認証トークン"
+
+#~ msgid "Length of time to attempt connection"
+#~ msgstr "接続を試行する時間"
+
+#~ msgid "Length of time to attempt synchronous LDAP operations"
+#~ msgstr "LDAP 同期操作を試行する時間"
+
+#~ msgid "Length of time between attempts to reconnect while offline"
+#~ msgstr "オフラインの間に再接続を試行する時間"
+
+#~ msgid "Use only the upper case for realm names"
+#~ msgstr "レルム名に対して大文字のみを使用する"
+
+#~ msgid "File that contains CA certificates"
+#~ msgstr "CA 証明書を含むファイル"
+
+#~ msgid "Path to CA certificate directory"
+#~ msgstr "CA 証明書のディレクトリーのパス"
+
+#~ msgid "File that contains the client certificate"
+#~ msgstr "クライアント証明書を含むファイル"
+
+#~ msgid "File that contains the client key"
+#~ msgstr "クライアントの鍵を含むファイル"
+
+#~ msgid "List of possible ciphers suites"
+#~ msgstr "利用可能な暗号の一覧"
+
+#~ msgid "Require TLS certificate verification"
+#~ msgstr "TLS 証明書の検証を要求する"
+
+#~ msgid "Specify the sasl mechanism to use"
+#~ msgstr "使用する SASL メカニズムを指定する"
+
+#~ msgid "Specify the sasl authorization id to use"
+#~ msgstr "使用する SASL 認可 ID を指定する"
+
+#~ msgid "Specify the sasl authorization realm to use"
+#~ msgstr "使用する SASL 認可レルムを指定する"
+
+#~ msgid "Specify the minimal SSF for LDAP sasl authorization"
+#~ msgstr "LDAP SASL 認可の最小 SSF を指定する"
+
+#~ msgid "Kerberos service keytab"
+#~ msgstr "Kerberos サービスのキーテーブル"
+
+#~ msgid "Use Kerberos auth for LDAP connection"
+#~ msgstr "LDAP 接続に対して Kerberos 認証を使用する"
+
+#~ msgid "Follow LDAP referrals"
+#~ msgstr "LDAP リフェラルにしたがう"
+
+#~ msgid "Lifetime of TGT for LDAP connection"
+#~ msgstr "LDAP 接続の TGT の有効期間"
+
+#~ msgid "How to dereference aliases"
+#~ msgstr "エイリアスを参照解決する方法"
+
+#~ msgid "Service name for DNS service lookups"
+#~ msgstr "DNS サービス検索のサービス名"
+
+#~ msgid "The number of records to retrieve in a single LDAP query"
+#~ msgstr "単一の LDAP クエリーにおいて取得するレコード数"
+
+#~ msgid "The number of members that must be missing to trigger a full deref"
+#~ msgstr "完全な参照解決を引き起こすために欠けている必要があるメンバーの数"
+
+#~ msgid ""
+#~ "Whether the LDAP library should perform a reverse lookup to canonicalize "
+#~ "the host name during a SASL bind"
+#~ msgstr ""
+#~ "LDAP ライブラリーが SASL バインド中にホスト名を正規化するために逆引きを実"
+#~ "行するかどうか"
+
+#~ msgid "entryUSN attribute"
+#~ msgstr "entryUSN 属性"
+
+#~ msgid "lastUSN attribute"
+#~ msgstr "lastUSN 属性"
+
+#~ msgid ""
+#~ "How long to retain a connection to the LDAP server before disconnecting"
+#~ msgstr "LDAP サーバーを切断する前に接続を保持する時間"
+
+#~ msgid "Disable the LDAP paging control"
+#~ msgstr "LDAP ページング制御を無効化する"
+
+#~ msgid "Disable Active Directory range retrieval"
+#~ msgstr "Active Directory 範囲の取得の無効化"
+
+#~ msgid "Length of time to wait for a search request"
+#~ msgstr "検索要求を待つ時間"
+
+#~ msgid "Length of time to wait for a enumeration request"
+#~ msgstr "列挙の要求を待つ時間"
+
+#~ msgid "Length of time between enumeration updates"
+#~ msgstr "列挙の更新間隔"
+
+#~ msgid "Length of time between cache cleanups"
+#~ msgstr "キャッシュをクリーンアップする間隔"
+
+#~ msgid "Require TLS for ID lookups"
+#~ msgstr "ID 検索に TLS を要求する"
+
+#~ msgid "Use ID-mapping of objectSID instead of pre-set IDs"
+#~ msgstr "事前設定済み ID の代わりに objectSID の ID マッピングを使用します"
+
+#~ msgid "Base DN for user lookups"
+#~ msgstr "ユーザー検索のベース DN"
+
+#~ msgid "Scope of user lookups"
+#~ msgstr "ユーザー検索の範囲"
+
+#~ msgid "Filter for user lookups"
+#~ msgstr "ユーザー検索のフィルター"
+
+#~ msgid "Objectclass for users"
+#~ msgstr "ユーザーのオブジェクトクラス"
+
+#~ msgid "Username attribute"
+#~ msgstr "ユーザー名の属性"
+
+#~ msgid "UID attribute"
+#~ msgstr "UID の属性"
+
+#~ msgid "Primary GID attribute"
+#~ msgstr "プライマリー GID の属性"
+
+#~ msgid "GECOS attribute"
+#~ msgstr "GECOS の属性"
+
+#~ msgid "Home directory attribute"
+#~ msgstr "ホームディレクトリーの属性"
+
+#~ msgid "Shell attribute"
+#~ msgstr "シェルの属性"
+
+#~ msgid "UUID attribute"
+#~ msgstr "UUID 属性"
+
+#~ msgid "objectSID attribute"
+#~ msgstr "objectSID 属性"
+
+#~ msgid "Active Directory primary group attribute for ID-mapping"
+#~ msgstr "ID マッピングの Active Directory プライマリーグループ属性"
+
+#~ msgid "User principal attribute (for Kerberos)"
+#~ msgstr "ユーザープリンシパルの属性（Kerberos 用）"
+
+#~ msgid "Full Name"
+#~ msgstr "氏名"
+
+#~ msgid "memberOf attribute"
+#~ msgstr "memberOf 属性"
+
+#~ msgid "Modification time attribute"
+#~ msgstr "変更日時の属性"
+
+#~ msgid "shadowLastChange attribute"
+#~ msgstr "shadowLastChange 属性"
+
+#~ msgid "shadowMin attribute"
+#~ msgstr "shadowMin 属性"
+
+#~ msgid "shadowMax attribute"
+#~ msgstr "shadowMax 属性"
+
+#~ msgid "shadowWarning attribute"
+#~ msgstr "shadowWarning 属性"
+
+#~ msgid "shadowInactive attribute"
+#~ msgstr "shadowInactive 属性"
+
+#~ msgid "shadowExpire attribute"
+#~ msgstr "shadowExpire 属性"
+
+#~ msgid "shadowFlag attribute"
+#~ msgstr "shadowFlag 属性"
+
+#~ msgid "Attribute listing authorized PAM services"
+#~ msgstr "認可された PAM サービスを一覧化する属性"
+
+#~ msgid "Attribute listing authorized server hosts"
+#~ msgstr "認可されたサーバーホストを一覧化する属性"
+
+#~ msgid "Attribute listing authorized server rhosts"
+#~ msgstr "認可されたサーバー rhosts を一覧化する属性"
+
+#~ msgid "krbLastPwdChange attribute"
+#~ msgstr "krbLastPwdChange 属性"
+
+#~ msgid "krbPasswordExpiration attribute"
+#~ msgstr "krbPasswordExpiration 属性"
+
+#~ msgid "Attribute indicating that server side password policies are active"
+#~ msgstr "サーバー側パスワードポリシーが有効であることを意味する属性"
+
+#~ msgid "accountExpires attribute of AD"
+#~ msgstr "AD の accountExpires 属性"
+
+#~ msgid "userAccountControl attribute of AD"
+#~ msgstr "AD の userAccountControl 属性"
+
+#~ msgid "nsAccountLock attribute"
+#~ msgstr "nsAccountLock 属性"
+
+#~ msgid "loginDisabled attribute of NDS"
+#~ msgstr "NDS の loginDisabled 属性"
+
+#~ msgid "loginExpirationTime attribute of NDS"
+#~ msgstr "NDS の loginExpirationTime 属性"
+
+#~ msgid "loginAllowedTimeMap attribute of NDS"
+#~ msgstr "NDS の loginAllowedTimeMap 属性"
+
+#~ msgid "SSH public key attribute"
+#~ msgstr "SSH 公開鍵の属性"
+
+#~ msgid "attribute listing allowed authentication types for a user"
+#~ msgstr "ユーザー用に許可された認証タイプを一覧化する属性"
+
+#~ msgid "attribute containing the X509 certificate of the user"
+#~ msgstr "ユーザーの X509 証明書を含む属性"
+
+#~ msgid "attribute containing the email address of the user"
+#~ msgstr "ユーザーの電子メールアドレスを含む属性"
+
+#~ msgid "A list of extra attributes to download along with the user entry"
+#~ msgstr "ユーザーエントリーと共にダウンロードする追加的な属性の一覧"
+
+#~ msgid "Base DN for group lookups"
+#~ msgstr "グループ検索のベース DN"
+
+#~ msgid "Objectclass for groups"
+#~ msgstr "グループのオブジェクトクラス"
+
+#~ msgid "Group name"
+#~ msgstr "グループ名"
+
+#~ msgid "Group password"
+#~ msgstr "グループのパスワード"
+
+#~ msgid "GID attribute"
+#~ msgstr "GID 属性"
+
+#~ msgid "Group member attribute"
+#~ msgstr "グループメンバー属性"
+
+#~ msgid "Group UUID attribute"
+#~ msgstr "グループ UUID 属性"
+
+#~ msgid "Modification time attribute for groups"
+#~ msgstr "グループの変更日時の属性"
+
+#~ msgid "Type of the group and other flags"
+#~ msgstr "グループおよび他のフラグのタイプ"
+
+#~ msgid "The LDAP group external member attribute"
+#~ msgstr "LDAP グループの外部メンバーの属性"
+
+#~ msgid "Maximum nesting level SSSD will follow"
+#~ msgstr "SSSD が従う最大ネストレベル"
+
+#~ msgid "Base DN for netgroup lookups"
+#~ msgstr "ネットグループ検索のベース DN"
+
+#~ msgid "Objectclass for netgroups"
+#~ msgstr "ネットグループのオブジェクトクラス"
+
+#~ msgid "Netgroup name"
+#~ msgstr "ネットグループ名"
+
+#~ msgid "Netgroups members attribute"
+#~ msgstr "ネットグループメンバーの属性"
+
+#~ msgid "Netgroup triple attribute"
+#~ msgstr "ネットグループの三つ組の属性"
+
+#~ msgid "Modification time attribute for netgroups"
+#~ msgstr "ネットグループの変更日時の属性"
+
+#~ msgid "Base DN for service lookups"
+#~ msgstr "サービス検索のベース DN"
+
+#~ msgid "Objectclass for services"
+#~ msgstr "サービスのオブジェクトクラス"
+
+#~ msgid "Service name attribute"
+#~ msgstr "サービス名の属性"
+
+#~ msgid "Service port attribute"
+#~ msgstr "サービスポートの属性"
+
+#~ msgid "Service protocol attribute"
+#~ msgstr "サービスプロトコルの属性"
+
+#~ msgid "Lower bound for ID-mapping"
+#~ msgstr "ID マッピングの下限"
+
+#~ msgid "Upper bound for ID-mapping"
+#~ msgstr "ID マッピングの上限"
+
+#~ msgid "Number of IDs for each slice when ID-mapping"
+#~ msgstr "ID マッピングするとき、各スライスに対する ID の数"
+
+#~ msgid "Use autorid-compatible algorithm for ID-mapping"
+#~ msgstr "ID マッピングに対する autorid 互換アルゴリズムを使用します"
+
+#~ msgid "Name of the default domain for ID-mapping"
+#~ msgstr "ID マッピングに対するデフォルトドメインの名前"
+
+#~ msgid "SID of the default domain for ID-mapping"
+#~ msgstr "ID マッピングに対するデフォルトドメインの SID"
+
+#~ msgid "Number of secondary slices"
+#~ msgstr "セカンダリースライスの数"
+
+#~ msgid "Whether to use Token-Groups"
+#~ msgstr "Token-Group を使うかどうか"
+
+#~ msgid "Set lower boundary for allowed IDs from the LDAP server"
+#~ msgstr "LDAP サーバーから許可される ID の下限の設定"
+
+#~ msgid "Set upper boundary for allowed IDs from the LDAP server"
+#~ msgstr "LDAP サーバーから許可される ID の上限の設定"
+
+#~ msgid "DN for ppolicy queries"
+#~ msgstr "ppolicy クエリーの DN"
+
+#~ msgid "How many maximum entries to fetch during a wildcard request"
+#~ msgstr "ワイルドカードの要求の間に取得する最大エントリーの数"
+
+#~ msgid "Policy to evaluate the password expiration"
+#~ msgstr "パスワード失効の評価のポリシー"
+
+#~ msgid "Which attributes shall be used to evaluate if an account is expired"
+#~ msgstr "どの属性がアカウントが失効しているかを評価するために使用されるか"
+
+#~ msgid "Which rules should be used to evaluate access control"
+#~ msgstr "どのルールがアクセス制御を評価するために使用されるか"
+
+#~ msgid "URI of an LDAP server where password changes are allowed"
+#~ msgstr "パスワードの変更が許可される LDAP サーバーの URI"
+
+#~ msgid "URI of a backup LDAP server where password changes are allowed"
+#~ msgstr "パスワードの変更が許可されるバックアップ LDAP サーバーの URI"
+
+#~ msgid "DNS service name for LDAP password change server"
+#~ msgstr "LDAP パスワードの変更サーバーの DNS サービス名"
+
+#~ msgid ""
+#~ "Whether to update the ldap_user_shadow_last_change attribute after a "
+#~ "password change"
+#~ msgstr ""
+#~ "パスワード変更後 ldap_user_shadow_last_change 属性を更新するかどうか"
+
+#~ msgid "Base DN for sudo rules lookups"
+#~ msgstr "sudo ルール検索のベース DN"
+
+#~ msgid "Automatic full refresh period"
+#~ msgstr "自動的な完全更新間隔"
+
+#~ msgid "Automatic smart refresh period"
+#~ msgstr "自動的なスマート更新間隔"
+
+#~ msgid "Whether to filter rules by hostname, IP addresses and network"
+#~ msgstr ""
+#~ "ホスト名、IP アドレスおよびネットワークによるフィルタールールを使用するか"
+#~ "どうか"
+
+#~ msgid ""
+#~ "Hostnames and/or fully qualified domain names of this machine to filter "
+#~ "sudo rules"
+#~ msgstr ""
+#~ "sudo ルールをフィルターするこのマシンのホスト名および/または完全修飾ドメイ"
+#~ "ン名"
+
+#~ msgid ""
+#~ "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
+#~ msgstr ""
+#~ "sudo ルールをフィルターするこのマシンの IPv4 または IPv6 アドレスまたは"
+#~ "ネットワーク"
+
+#~ msgid "Whether to include rules that contains netgroup in host attribute"
+#~ msgstr "ホスト属性にネットワークグループを含むルールを含めるかどうか"
+
+#~ msgid ""
+#~ "Whether to include rules that contains regular expression in host "
+#~ "attribute"
+#~ msgstr "ホスト属性に正規表現を含むルールを含めるかどうか"
+
+#~ msgid "Object class for sudo rules"
+#~ msgstr "sudo ルールのオブジェクトクラス"
+
+#~ msgid "Name of attribute that is used as object class for sudo rules"
+#~ msgstr "sudo ルールのオブジェクトクラスとして使用される属性の名前"
+
+#~ msgid "Sudo rule name"
+#~ msgstr "sudo ルール名"
+
+#~ msgid "Sudo rule command attribute"
+#~ msgstr "sudo ルールのコマンドの属性"
+
+#~ msgid "Sudo rule host attribute"
+#~ msgstr "sudo ルールのホストの属性"
+
+#~ msgid "Sudo rule user attribute"
+#~ msgstr "sudo ルールのユーザーの属性"
+
+#~ msgid "Sudo rule option attribute"
+#~ msgstr "sudo ルールのオプションの属性"
+
+#~ msgid "Sudo rule runas attribute"
+#~ msgstr "sudo ルールの runas の属性"
+
+#~ msgid "Sudo rule runasuser attribute"
+#~ msgstr "sudo ルールの runasuser の属性"
+
+#~ msgid "Sudo rule runasgroup attribute"
+#~ msgstr "sudo ルールの runasgroup の属性"
+
+#~ msgid "Sudo rule notbefore attribute"
+#~ msgstr "sudo ルールの notbefore の属性"
+
+#~ msgid "Sudo rule notafter attribute"
+#~ msgstr "sudo ルールの notafter の属性"
+
+#~ msgid "Sudo rule order attribute"
+#~ msgstr "sudo ルールの order の属性"
+
+#~ msgid "Object class for automounter maps"
+#~ msgstr "automounter マップのオブジェクトクラス"
+
+#~ msgid "Automounter map name attribute"
+#~ msgstr "オートマウントのマップ名の属性"
+
+#~ msgid "Object class for automounter map entries"
+#~ msgstr "automounter マップエントリーのオブジェクトクラス"
+
+#~ msgid "Automounter map entry key attribute"
+#~ msgstr "automounter マップエントリーの鍵属性"
+
+#~ msgid "Automounter map entry value attribute"
+#~ msgstr "automounter マップエントリーの値属性"
+
+#~ msgid "Base DN for automounter map lookups"
+#~ msgstr "automonter のマップ検索のベース DN"
+
+#~ msgid "Comma separated list of allowed users"
+#~ msgstr "許可ユーザーのカンマ区切り一覧"
+
+#~ msgid "Comma separated list of prohibited users"
+#~ msgstr "禁止ユーザーのカンマ区切り一覧"
+
+#~ msgid "Default shell, /bin/bash"
+#~ msgstr "デフォルトのシェル, /bin/bash"
+
+#~ msgid "Base for home directories"
+#~ msgstr "ホームディレクトリーのベース"
+
+#~ msgid "The number of preforked proxy children."
+#~ msgstr "事前にフォークされた子プロキシーの数。"
+
+#~ msgid "The name of the NSS library to use"
+#~ msgstr "使用する NSS ライブラリーの名前"
+
+#~ msgid "Whether to look up canonical group name from cache if possible"
+#~ msgstr "可能ならばキャッシュから正規化されたグループ名を検索するかどうか"
+
+#~ msgid "PAM stack to use"
+#~ msgstr "使用する PAM スタック"
+
+#~ msgid "Path of passwd file sources."
+#~ msgstr "passwd ファイルソースへのパス"
+
+#~ msgid "Path of group file sources."
+#~ msgstr "グループファイルソースへのパス"
