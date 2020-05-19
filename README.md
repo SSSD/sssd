@@ -1,51 +1,18 @@
+
 # SSSD - System Security Services Daemon
 
-## Introduction
-SSSD provides a set of daemons to manage access to remote directories and
-authentication mechanisms such as LDAP, Kerberos or FreeIPA. It provides
-an NSS and PAM interface toward the system and a pluggable backend system
-to connect to multiple different account sources.
+**ATTENTION: This repository has been moved to GitHub: [SSSD/sssd](https://github.com/SSSD/sssd)**
 
-More information about SSSD can be found on its project page -
-https://github.com/SSSD/sssd.
+**Please open any issue or pull request there.**
 
-## Downloading SSSD
-SSSD is shipped as a binary package by most Linux distributions. If you
-want to obtain the latest source files, please navigate to the
-[Releases folder on GitHub](https://github.com/SSSD/sssd/releases).
+This repository on Pagure is still available to not break any existing links. However,
+we do not pay any attention here anymore.
 
-## Releases
-SSSD maintains two release streams - stable and LTM. Releases designated as
-LTM are long-term maintenance releases and will see bugfixes and security
-patches for a longer time than other releases.
+## Quick links to GitHub repository:
 
-The list of all releases is maintained together with [SSSD documentation](https://sssd.github.io/users/releases.html).
+* **Code**: https://github.com/SSSD/sssd
+* **Issue Tracker**: https://github.com/SSSD/sssd/issues
+* **Pull Requests**: https://github.com/SSSD/sssd/pulls
+* **Documentation**: https://github.com/SSSD/sssd.github.io or https://sssd.github.io
+* **Releases**: https://github.com/SSSD/sssd/releases
 
-## Building and installation from source
-Please see the [our developer documentation](https://sssd.github.io/developers/).
-
-## Documentation
-The most up-to-date documentation can be found at https://sssd.github.io.
-
-Its source code is hosted at https://github.com/SSSD/sssd.github.io.
-
-## Submitting bugs
-Please file an issue in the [SSSD github instance](https://github.com/SSSD/sssd/issues).
-Make sure to follow the [guide on reporting SSSD bugs](https://sssd.github.io/users/reporting_bugs.html).
-
-## Licensing
-Please see the file called [COPYING](COPYING).
-
-## Social networks
-We maintain our presence on [Twitter](https://twitter.com/SysSecSvcDaemon).
-
-## Contacts
-There are several ways to contact us:
-
-* the sssd-devel mailing list: [Development of the System Security Services Daemon](
-  https://lists.fedorahosted.org/archives/list/sssd-devel@lists.fedorahosted.org/)
-* the sssd-users mailing list: [End-user discussions about the System Security Services Daemon](
-  https://lists.fedorahosted.org/archives/list/sssd-users@lists.fedorahosted.org/)
-* the #sssd and #freeipa IRC channels on freenode:
-  * irc://irc.freenode.net/sssd
-  * irc://irc.freenode.net/freeipa
