@@ -35,6 +35,7 @@
 #include "util/util_sss_idmap.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/crypto/nss/nss_util.h"
+#include "util/sss_endian.h"
 #include "db/sysdb_private.h"   /* new_subdomain() */
 #include "db/sysdb_iphosts.h"
 #include "db/sysdb_ipnetworks.h"
@@ -5308,7 +5309,13 @@ struct netent test_netent = {
     .n_name = discard_const("test_network"),
     .n_aliases = discard_const(test_netent_aliases),
     .n_addrtype = AF_INET,
+#if (__BYTE_ORDER == __LITTLE_ENDIAN)
     .n_net = 0x04030201 /* 1.2.3.4 */
+#elif (__BYTE_ORDER == __BIG_ENDIAN)
+    .n_net = 0x01020304 /* 1.2.3.4 */
+#else
+ #error "unknow endianess"
+#endif
 };
 
 static void mock_input_netbyname(const char *name)
