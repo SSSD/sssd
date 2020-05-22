@@ -4589,7 +4589,7 @@ libsss_ad_la_CFLAGS = \
     $(KRB5_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
     $(NDR_KRB5PAC_CFLAGS) \
-    $(SMBCLIENT_CFLAGS)
+    $(NULL)
 libsss_ad_la_LIBADD = \
     $(LDB_LIBS) \
     $(OPENLDAP_LIBS) \
@@ -4600,10 +4600,10 @@ libsss_ad_la_LIBADD = \
     $(NDR_NBT_LIBS) \
     $(NDR_KRB5PAC_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SMBCLIENT_LIBS) \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
-    libsss_idmap.la
+    libsss_idmap.la \
+    $(NULL)
 libsss_ad_la_LDFLAGS = \
     -avoid-version \
     -module
