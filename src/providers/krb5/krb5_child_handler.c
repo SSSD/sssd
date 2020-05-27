@@ -465,7 +465,7 @@ static errno_t fork_child(struct tevent_req *req)
     if (pid == 0) { /* child */
         exec_child_ex(state,
                       pipefd_to_child, pipefd_from_child,
-                      KRB5_CHILD, state->kr->krb5_ctx->child_debug_fd,
+                      KRB5_CHILD, KRB5_CHILD_LOG_FILE,
                       krb5_child_extra_args, false,
                       STDIN_FILENO, STDOUT_FILENO);
 

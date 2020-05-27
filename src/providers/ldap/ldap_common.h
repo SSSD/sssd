@@ -44,9 +44,6 @@
 
 #define LDAP_ENUM_PURGE_TIMEOUT 10800
 
-/* a fd the child process would log into */
-extern int ldap_child_debug_fd;
-
 struct sdap_id_ctx;
 
 struct sdap_id_conn_ctx {
@@ -341,9 +338,6 @@ errno_t
 sdap_ipnetwork_handler_recv(TALLOC_CTX *mem_ctx,
                             struct tevent_req *req,
                             struct dp_reply_std *data);
-
-/* setup child logging */
-int sdap_setup_child(void);
 
 
 errno_t string_to_shadowpw_days(const char *s, long *d);

@@ -402,13 +402,6 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
 
     sdap_id_ctx->opts->sdom->pvt = ad_id_ctx;
 
-    ret = sdap_setup_child();
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_setup_child() failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
     ret = ad_init_srv_plugin(be_ctx, ad_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup SRV plugin [%d]: %s\n",

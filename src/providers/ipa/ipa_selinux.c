@@ -51,9 +51,6 @@
 
 #include <selinux/selinux.h>
 
-/* fd used by the selinux_child process for logging */
-int selinux_child_debug_fd = -1;
-
 static struct tevent_req *
 ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
                      struct be_ctx *be_ctx,
@@ -565,7 +562,6 @@ struct selinux_child_state {
     struct child_io_fds *io;
 };
 
-static errno_t selinux_child_init(void);
 static errno_t selinux_child_create_buffer(struct selinux_child_state *state);
 static errno_t selinux_fork_child(struct selinux_child_state *state);
 static void selinux_child_step(struct tevent_req *subreq);
@@ -602,12 +598,6 @@ static struct tevent_req *selinux_child_send(TALLOC_CTX *mem_ctx,
     state->io->read_from_child_fd = -1;
     talloc_set_destructor((void *) state->io, child_io_destructor);
 
-    ret = selinux_child_init();
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to init the child\n");
-        goto immediately;
-    }
-
     ret = selinux_child_create_buffer(state);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create the send buffer\n");
@@ -636,11 +626,6 @@ immediately:
         tevent_req_post(req, ev);
     }
     return req;
-}
-
-static errno_t selinux_child_init(void)
-{
-    return child_debug_init(SELINUX_CHILD_LOG_FILE, &selinux_child_debug_fd);
 }
 
 static errno_t selinux_child_create_buffer(struct selinux_child_state *state)
@@ -712,7 +697,7 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
 
     if (pid == 0) { /* child */
         exec_child(state, pipefd_to_child, pipefd_from_child,
-                   SELINUX_CHILD, selinux_child_debug_fd);
+                   SELINUX_CHILD, SELINUX_CHILD_LOG_FILE);
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec selinux_child: [%d][%s].\n",
               ret, sss_strerror(ret));
         return ret;

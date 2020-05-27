@@ -242,7 +242,7 @@ errno_t p11_child_init(struct pam_ctx *pctx)
         return ret;
     }
 
-    return child_debug_init(P11_CHILD_LOG_FILE, &pctx->p11_child_debug_fd);
+    return EOK;
 }
 
 static inline bool
@@ -705,7 +705,6 @@ static void p11_child_timeout(struct tevent_context *ev,
 
 struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
-                                       int child_debug_fd,
                                        const char *nss_db,
                                        time_t timeout,
                                        const char *verify_opts,
@@ -838,14 +837,10 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (child_debug_fd == -1) {
-        child_debug_fd = STDERR_FILENO;
-    }
-
     child_pid = fork();
     if (child_pid == 0) { /* child */
         exec_child_ex(state, pipefd_to_child, pipefd_from_child,
-                      P11_CHILD_PATH, child_debug_fd, extra_args, false,
+                      P11_CHILD_PATH, P11_CHILD_LOG_FILE, extra_args, false,
                       STDIN_FILENO, STDOUT_FILENO);
 
         /* We should never get here */

@@ -71,14 +71,6 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
         goto done;
     }
 
-    krb5_auth_ctx->child_debug_fd = -1; /* -1 means not initialized */
-    ret = child_debug_init(KRB5_CHILD_LOG_FILE,
-                           &krb5_auth_ctx->child_debug_fd);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not set krb5_child debugging!\n");
-        goto done;
-    }
-
     ret = parse_krb5_map_user(krb5_auth_ctx,
                               dp_opt_get_cstring(krb5_auth_ctx->opts,
                                                  KRB5_MAP_USER),

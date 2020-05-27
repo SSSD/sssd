@@ -124,7 +124,6 @@ struct krb5_ctx {
     struct dp_option *opts;
     struct krb5_service *service;
     struct krb5_service *kpasswd_service;
-    int child_debug_fd;
 
     sss_regexp_t *illegal_path_re;
 

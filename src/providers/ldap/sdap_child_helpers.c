@@ -111,7 +111,7 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
     if (pid == 0) { /* child */
         exec_child(child,
                    pipefd_to_child, pipefd_from_child,
-                   LDAP_CHILD, ldap_child_debug_fd);
+                   LDAP_CHILD, LDAP_CHILD_LOG_FILE);
 
         /* We should never get here */
         DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec LDAP child\n");
@@ -511,12 +511,4 @@ static errno_t set_tgt_child_timeout(struct tevent_req *req,
     }
 
     return EOK;
-}
-
-
-
-/* Setup child logging */
-int sdap_setup_child(void)
-{
-    return child_debug_init(LDAP_CHILD_LOG_FILE, &ldap_child_debug_fd);
 }
