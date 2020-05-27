@@ -277,7 +277,6 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    pctx->p11_child_debug_fd = -1;
     if (pctx->cert_auth) {
         ret = p11_child_init(pctx);
         if (ret != EOK) {

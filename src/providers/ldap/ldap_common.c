@@ -35,9 +35,6 @@
 
 #include "providers/ldap/sdap_idmap.h"
 
-/* a fd the child process would log into */
-int ldap_child_debug_fd = -1;
-
 errno_t ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
 {
     return sdap_id_setup_tasks(ctx->be, ctx, ctx->opts->sdom,

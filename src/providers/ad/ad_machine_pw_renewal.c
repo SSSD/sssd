@@ -185,7 +185,7 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     child_pid = fork();
     if (child_pid == 0) { /* child */
         exec_child_ex(state, pipefd_to_child, pipefd_from_child,
-                      renewal_data->prog_path, -1,
+                      renewal_data->prog_path, NULL,
                       extra_args, true,
                       STDIN_FILENO, STDERR_FILENO);
 

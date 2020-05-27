@@ -24,7 +24,7 @@
 
 struct cert_to_ssh_key_state {
     struct tevent_context *ev;
-    int child_debug_fd;
+    const char *logfile;
     time_t timeout;
     const char **extra_args;
     const char **certs;
@@ -45,7 +45,7 @@ static void cert_to_ssh_key_done(int child_status,
 
 struct tevent_req *cert_to_ssh_key_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
-                                        int child_debug_fd, time_t timeout,
+                                        const char *logfile, time_t timeout,
                                         const char *ca_db,
                                         struct sss_certmap_ctx *sss_certmap_ctx,
                                         size_t cert_count,
@@ -70,8 +70,7 @@ struct tevent_req *cert_to_ssh_key_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
-    state->child_debug_fd = (child_debug_fd == -1) ? STDERR_FILENO
-                                                   : child_debug_fd;
+    state->logfile = logfile;
     state->timeout = timeout;
     state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
@@ -205,7 +204,7 @@ static errno_t cert_to_ssh_key_step(struct tevent_req *req)
     child_pid = fork();
     if (child_pid == 0) { /* child */
         exec_child_ex(state, pipefd_to_child, pipefd_from_child, P11_CHILD_PATH,
-                      state->child_debug_fd, state->extra_args, false,
+                      state->logfile, state->extra_args, false,
                       STDIN_FILENO, STDOUT_FILENO);
         /* We should never get here */
         DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec p11 child\n");

@@ -57,7 +57,7 @@ errno_t get_ssh_key_from_derb64(TALLOC_CTX *mem_ctx, const char *derb64,
 
 struct tevent_req *cert_to_ssh_key_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
-                                        int child_debug_fd, time_t timeout,
+                                        const char *logfile, time_t timeout,
                                         const char *ca_db,
                                         struct sss_certmap_ctx *sss_certmap_ctx,
                                         size_t cert_count,
