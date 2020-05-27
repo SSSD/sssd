@@ -816,6 +816,44 @@ done:
     return ret;
 }
 
+static void sss_ldap_debug(const char *buf)
+{
+    sss_debug_fn(__FILE__, __LINE__, __FUNCTION__, SSSDBG_TRACE_ALL,
+                "libldap: %s", buf);
+}
+
+void setup_ldap_debug(struct dp_option *basic_opts)
+{
+    int ret;
+    int ldap_debug_level;
+
+    ldap_debug_level = dp_opt_get_int(basic_opts, SDAP_LIBRARY_DEBUG_LEVEL);
+    if (ldap_debug_level == 0) {
+        return;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "Setting LDAP library debug level [%d].\n",
+                                ldap_debug_level);
+
+    ret = ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug_level);
+    if (ret != LBER_OPT_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to set LBER_OPT_DEBUG_LEVEL, ignored .\n");
+    }
+
+    ret = ber_set_option(NULL,  LBER_OPT_LOG_PRINT_FN, sss_ldap_debug);
+    if (ret != LBER_OPT_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to set LBER_OPT_LOG_PRINT_FN, ignored .\n");
+    }
+
+    ret = ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &ldap_debug_level);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to set LDAP_OPT_DEBUG_LEVEL, ignored .\n");
+    }
+}
+
 errno_t setup_tls_config(struct dp_option *basic_opts)
 {
     int ret;

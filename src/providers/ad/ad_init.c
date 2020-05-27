@@ -375,6 +375,8 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
         /* Continue without DNS updates */
     }
 
+    setup_ldap_debug(sdap_id_ctx->opts->basic);
+
     ret = setup_tls_config(sdap_id_ctx->opts->basic);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get TLS options [%d]: %s\n",
