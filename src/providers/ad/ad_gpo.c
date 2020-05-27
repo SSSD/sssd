@@ -99,14 +99,13 @@
 #define GPO_CHILD SSSD_LIBEXEC_PATH"/gpo_child"
 #endif
 
+#define GPO_CHILD_LOG_FILE "gpo_child"
+
 /* If INI_PARSE_IGNORE_NON_KVP is not defined, use 0 (no effect) */
 #ifndef INI_PARSE_IGNORE_NON_KVP
 #define INI_PARSE_IGNORE_NON_KVP 0
 #warning INI_PARSE_IGNORE_NON_KVP not defined.
 #endif
-
-/* fd used by the gpo_child process for logging */
-int gpo_child_debug_fd = -1;
 
 /* == common data structures and declarations ============================= */
 
@@ -1618,13 +1617,6 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
-#define GPO_CHILD_LOG_FILE "gpo_child"
-
-static errno_t gpo_child_init(void)
-{
-    return child_debug_init(GPO_CHILD_LOG_FILE, &gpo_child_debug_fd);
-}
-
 /*
  * This function retrieves the raw policy_setting_value for the input key from
  * the GPO_Result object in the sysdb cache. It then parses the raw value and
@@ -1807,9 +1799,6 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     hash_key_t key;
     hash_value_t val;
     enum gpo_map_type gpo_map_type;
-
-    /* setup logging for gpo child */
-    gpo_child_init();
 
     req = tevent_req_create(mem_ctx, &state, struct ad_gpo_access_state);
     if (req == NULL) {
@@ -4763,7 +4752,7 @@ gpo_fork_child(struct tevent_req *req)
     if (pid == 0) { /* child */
         exec_child_ex(state,
                       pipefd_to_child, pipefd_from_child,
-                      GPO_CHILD, gpo_child_debug_fd, NULL, false,
+                      GPO_CHILD, GPO_CHILD_LOG_FILE, NULL, false,
                       STDIN_FILENO, AD_GPO_CHILD_OUT_FILENO);
 
         /* We should never get here */

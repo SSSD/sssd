@@ -47,6 +47,8 @@ struct sss_child_ctx {
     struct sss_sigchild_ctx *sigchld_ctx;
 };
 
+static errno_t child_debug_init(const char *logfile, int *debug_fd);
+
 static void sss_child_handler(struct tevent_context *ev,
                               struct tevent_signal *se,
                               int signum,
@@ -725,13 +727,24 @@ fail:
 
 void exec_child_ex(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
-                   const char *binary, int debug_fd,
+                   const char *binary, const char *logfile,
                    const char *extra_argv[], bool extra_args_only,
                    int child_in_fd, int child_out_fd)
 {
     int ret;
     errno_t err;
     char **argv;
+    int debug_fd = -1;
+
+    if (logfile) {
+        ret = child_debug_init(logfile, &debug_fd);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "child_debug_init() failed.\n");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        debug_fd = STDERR_FILENO;
+    }
 
     close(pipefd_to_child[1]);
     ret = dup2(pipefd_to_child[0], child_in_fd);
@@ -767,10 +780,10 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
 
 void exec_child(TALLOC_CTX *mem_ctx,
                 int *pipefd_to_child, int *pipefd_from_child,
-                const char *binary, int debug_fd)
+                const char *binary, const char *logfile)
 {
     exec_child_ex(mem_ctx, pipefd_to_child, pipefd_from_child,
-                  binary, debug_fd, NULL, false,
+                  binary, logfile, NULL, false,
                   STDIN_FILENO, STDOUT_FILENO);
 }
 
@@ -803,7 +816,7 @@ int child_io_destructor(void *ptr)
     return EOK;
 }
 
-errno_t child_debug_init(const char *logfile, int *debug_fd)
+static errno_t child_debug_init(const char *logfile, int *debug_fd)
 {
     int ret;
     FILE *debug_filep;

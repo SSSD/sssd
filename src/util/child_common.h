@@ -106,7 +106,7 @@ void fd_nonblocking(int fd);
 /* Never returns EOK, ether returns an error, or doesn't return on success */
 void exec_child_ex(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
-                   const char *binary, int debug_fd,
+                   const char *binary, const char *logfile,
                    const char *extra_argv[], bool extra_args_only,
                    int child_in_fd, int child_out_fd);
 
@@ -115,10 +115,8 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
  */
 void exec_child(TALLOC_CTX *mem_ctx,
                 int *pipefd_to_child, int *pipefd_from_child,
-                const char *binary, int debug_fd);
+                const char *binary, const char *logfile);
 
 int child_io_destructor(void *ptr);
-
-errno_t child_debug_init(const char *logfile, int *debug_fd);
 
 #endif /* __CHILD_COMMON_H__ */

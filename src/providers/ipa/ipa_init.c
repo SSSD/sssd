@@ -571,13 +571,6 @@ static errno_t ipa_init_misc(struct be_ctx *be_ctx,
         return ret;
     }
 
-    ret = sdap_setup_child();
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup sdap child [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
     if (dp_opt_get_bool(ipa_options->basic, IPA_SERVER_MODE)) {
         ret = ipa_init_server_mode(be_ctx, ipa_options, ipa_id_ctx);
         if (ret != EOK) {

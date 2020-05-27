@@ -391,7 +391,7 @@ void test_cert_to_ssh_key_send(void **state)
     ev = tevent_context_init(ts);
     assert_non_null(ev);
 
-    req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
 #ifdef HAVE_NSS
                             "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
 #else
@@ -465,7 +465,7 @@ void test_cert_to_ssh_2keys_send(void **state)
     ev = tevent_context_init(ts);
     assert_non_null(ev);
 
-    req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
 #ifdef HAVE_NSS
                             "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
 #else
@@ -548,7 +548,7 @@ void test_cert_to_ssh_2keys_invalid_send(void **state)
     ev = tevent_context_init(ts);
     assert_non_null(ev);
 
-    req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
 #ifdef HAVE_NSS
                             "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
 #else
@@ -614,7 +614,7 @@ void test_ec_cert_to_ssh_key_send(void **state)
     ev = tevent_context_init(ts);
     assert_non_null(ev);
 
-    req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
 #ifdef HAVE_NSS
                     "sql:" ABS_BUILD_DIR "/src/tests/test_ECC_CA/p11_ecc_nssdb",
 #else
@@ -691,7 +691,7 @@ void test_cert_to_ssh_2keys_with_certmap_send(void **state)
     ev = tevent_context_init(ts);
     assert_non_null(ev);
 
-    req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
 #ifdef HAVE_NSS
                             "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
 #else
@@ -769,7 +769,7 @@ void test_cert_to_ssh_2keys_with_certmap_2_send(void **state)
     ev = tevent_context_init(ts);
     assert_non_null(ev);
 
-    req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
 #ifdef HAVE_NSS
                             "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
 #else
