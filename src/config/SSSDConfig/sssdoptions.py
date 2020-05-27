@@ -487,6 +487,7 @@ class SSSDOptions(object):
         'ldap_max_id': _('Set upper boundary for allowed IDs from the LDAP server'),
         'ldap_pwdlockout_dn': _('DN for ppolicy queries'),
         'wildcard_limit': _('How many maximum entries to fetch during a wildcard request'),
+        'ldap_library_debug_level': _('Set libldap debug level'),
 
         # [provider/ldap/auth]
         'ldap_pwd_policy': _('Policy to evaluate the password expiration'),

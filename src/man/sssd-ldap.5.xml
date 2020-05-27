@@ -1477,6 +1477,25 @@ ldap_access_filter = (employeeType=admin)
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_library_debug_level (integer)</term>
+                    <listitem>
+                        <para>
+                            Switches on libldap debugging with the given level.
+                            The libldap debug messages will be written
+                            independent of the general debug_level.
+                        </para>
+                        <para>
+                            OpenLDAP uses a bitmap to enable debugging for
+                            specific components, -1 will enable full debug
+                            output.
+                        </para>
+                        <para>
+                            Default: 0 (libldap debugging disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>
