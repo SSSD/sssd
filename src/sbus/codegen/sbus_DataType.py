@@ -65,7 +65,7 @@ class DataType:
     @staticmethod
     def Create(sbus_type, c_type, KeyFormat=None, DBusType=None,
                RequireTalloc=False):
-        """ Create a new SBus type. Specify DBusType if it differes from
+        """ Create a new SBus type. Specify DBusType if it differs from
             the SBus type. Specify printf formatter KeyFormat if this type
             can be used as a key.
         """

@@ -875,7 +875,7 @@ def test_remove_group_override(ldap_conn, env_remove_group_override):
 
 
 #
-# Overridde group import/export
+# Override group import/export
 #
 
 

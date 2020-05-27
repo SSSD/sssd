@@ -425,7 +425,7 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Even though the database might be queried with the overriden name,
+    /* Even though the database might be queried with the overridden name,
      * the original name must be used in the filter later on
      */
     orig_name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);

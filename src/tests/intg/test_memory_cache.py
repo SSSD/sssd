@@ -465,14 +465,14 @@ def assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
     user = user1_case1
     (res, errno, _) = sssd_id.call_sssd_initgroups(user, primary_gid)
     assert res == sssd_id.NssReturnCode.UNAVAIL, \
-        "Initgroups for user shoudl fail user %s, %d, %d" % (user, res, errno)
+        "Initgroups for user should fail user %s, %d, %d" % (user, res, errno)
 
     user = user1_case2
     (res, errno, _) = sssd_id.call_sssd_initgroups(user, primary_gid)
     assert res == sssd_id.NssReturnCode.UNAVAIL, \
-        "Initgroups for user shoudl fail user %s, %d, %d" % (user, res, errno)
+        "Initgroups for user should fail user %s, %d, %d" % (user, res, errno)
 
-    # Just last invocation of initgroups shoudl PASS
+    # Just last invocation of initgroups should PASS
     # Otherwise, we would not be able to invalidate it
     assert_initgroups_equal(user1_case_last, primary_gid, expected_gids)
 

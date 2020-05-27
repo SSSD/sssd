@@ -27,7 +27,7 @@ nss_get_gid(struct sss_domain_info *domain,
 {
     uint32_t gid;
 
-    /* First, try to return overriden gid. */
+    /* First, try to return overridden gid. */
     if (DOM_HAS_VIEWS(domain)) {
         gid = ldb_msg_find_attr_as_uint64(msg, OVERRIDE_PREFIX SYSDB_GIDNUM,
                                           0);

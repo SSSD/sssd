@@ -148,7 +148,7 @@ def create_sssd_fixture(request):
     request.addfinalizer(cleanup_sssd_process)
 
 
-def sysdb_sed_domainid(domain_name, doamin_id):
+def sysdb_sed_domainid(domain_name, domain_id):
     sssd_cache = "{0}/cache_{1}.ldb".format(config.DB_PATH, domain_name)
     domain_ldb = ldb.Ldb(sssd_cache)
 
@@ -163,7 +163,7 @@ def sysdb_sed_domainid(domain_name, doamin_id):
     msg = ldb.Message()
     msg.dn = ldb.Dn(domain_ldb, "cn={0},cn=sysdb".format(domain_name))
     msg["cn"] = domain_name
-    msg["domainID"] = doamin_id
+    msg["domainID"] = domain_id
     msg["distinguishedName"] = "cn={0},cn=sysdb".format(domain_name)
     domain_ldb.add(msg)
 

@@ -101,7 +101,7 @@ struct be_ctx {
     struct be_cb *unconditional_online_cb_list;
 
     bool offline;
-    /* Periodicly check if we can go online. */
+    /* Periodically check if we can go online. */
     struct be_ptask *check_if_online_ptask;
 
     struct sbus_connection *mon_conn;

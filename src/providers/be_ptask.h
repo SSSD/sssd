@@ -34,7 +34,7 @@ struct be_ptask;
 
 /**
  * Do not schedule periodic task. This flag is useful for tasks that
- * should be performend only when there is offline/online change.
+ * should be performed only when there is offline/online change.
  */
 #define BE_PTASK_NO_PERIODIC         0x0001
 

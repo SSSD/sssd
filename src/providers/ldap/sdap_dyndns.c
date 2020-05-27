@@ -118,7 +118,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->opts = opts;
     state->auth_type = auth_type;
 
-    /* fallback servername is overriden by user option */
+    /* fallback servername is overridden by user option */
     conf_servername = dp_opt_get_string(opts, DP_OPT_DYNDNS_SERVER);
     if (conf_servername != NULL) {
         state->servername = conf_servername;

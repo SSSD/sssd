@@ -275,11 +275,11 @@ SSS_NSS_GETLISTBYCERT = 0x0117, /**< Takes the zero terminated string
                                      of zero terminated fully qualified names
                                      of the related objects. */
 SSS_NSS_GETSIDBYUID   = 0x0118, /**< Takes an unsigned 32bit integer (POSIX UID)
-                                     and reurn the zero terminated string
+                                     and return the zero terminated string
                                      representation of the SID of the object
                                      with the given UID. */
 SSS_NSS_GETSIDBYGID   = 0x0119, /**< Takes an unsigned 32bit integer (POSIX GID)
-                                     and reurn the zero terminated string
+                                     and return the zero terminated string
                                      representation of the SID of the object
                                      with the given UID. */
 };

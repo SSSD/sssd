@@ -635,7 +635,7 @@ def setup_for_resp_timeout_test(request):
 @pytest.mark.slow
 def test_resp_idle_timeout_shutdown_slow(setup_for_resp_timeout_test):
     """
-    Test that the responder is shutdown after the respoder_idle_timeout is
+    Test that the responder is shutdown after the responder_idle_timeout is
     over
     """
     secpid = setup_for_resp_timeout_test

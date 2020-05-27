@@ -63,7 +63,7 @@ struct kcm_ccache;
  * Create a new KCM ccache owned by mem_ctx on the
  * memory level.
  *
- * When created, the ccache contains no credendials
+ * When created, the ccache contains no credentials
  */
 errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
                    krb5_context k5c,

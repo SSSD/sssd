@@ -204,7 +204,7 @@ def format_basic_conf(ldap_conn, schema):
 
         [ifp]
         # it need to be executed with valgrind because there is a problem
-        # problem with "ifp" + client regristration in monitor
+        # problem with "ifp" + client registration in monitor
         # There is not such problem in 1st test. Just in following tests.
         command = {ifp_command} --uid 0 --gid 0 --debug-to-files
         user_attributes = +extraName
