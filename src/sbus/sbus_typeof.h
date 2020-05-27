@@ -30,7 +30,7 @@
  * parameters. We check that the handler type matches the expected type
  * and return the sbus_handler structure value.
  *
- * We also use __attribute__((unused)) to supress compiler warning about
+ * We also use __attribute__((unused)) to suppress compiler warning about
  * unused __fn.
  *
  * We do not perform this check on platforms where this extension is not

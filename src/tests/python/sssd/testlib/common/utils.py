@@ -449,7 +449,7 @@ class LdapOperations(object):
     def del_dn(self, ldap_dn):
         """Delete dn
            :param str ldap_dn: DN to be deleted
-           :return tupele: "Success", return_value
+           :return tuple: "Success", return_value
            :Exception: ldap exception
         """
         try:

@@ -1813,7 +1813,7 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                             will be ignored.
                         </para>
                         <para>
-                            Default: not set, equivalent to 'all_rules,
+                            Default: not set, equivalent to 'all_rules',
                             all found rules or the default rule are used
                         </para>
                     </listitem>

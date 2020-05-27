@@ -107,7 +107,7 @@ class NetgroupRetriever(object):
         @param POINTER(Netgrent) result_p pointer to initialized C structure
                struct __netgrent
         @param ctypes.c_char_Array buff buffer used by C functions
-        @param int buff_len size of c_char_Array passed as a paramere buff
+        @param int buff_len size of c_char_Array passed as a parameter buff
 
         @return (int, int, List[(string, string, string])
                 (err, errno, netgroups)
@@ -147,7 +147,7 @@ class NetgroupRetriever(object):
     def get_netgroups(self):
         """
         Function will return netgroup triplets for given user. All nested
-        netgroups will be retieved as part of executions and will content
+        netgroups will be retrieved as part of executions and will content
         will be merged with direct triplets.
         Missing nested netgroups will not cause failure and are considered
         as an empty netgroup without triplets.

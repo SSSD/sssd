@@ -184,7 +184,7 @@ class TestSanityKCM(object):
 
     def test_kvno_display(self, multihost, enable_kcm):
         """
-        @Title: kcm: Test kvno correctly displays vesion numbers of principals
+        @Title: kcm: Test kvno correctly displays version numbers of principals
         #https://github.com/SSSD/sssd/issues/4763
         """
         ssh = SSHClient(multihost.master[0].sys_hostname,
