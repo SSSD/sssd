@@ -350,7 +350,7 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
                                                     SYSDB_PRIMARY_GROUP_GIDNUM,
                                                     0);
 
-    /* Try to get the real gid in case the primary group's gid was overriden. */
+    /* Try to get the real gid in case the primary group's gid was overridden. */
     ret = sysdb_search_group_by_origgid(NULL, domain, orig_gid, NULL,
                                         &primary_group_msg);
     if (ret != EOK) {

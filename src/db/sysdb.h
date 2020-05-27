@@ -182,7 +182,7 @@
 #define SYSDB_LOCAL_VIEW_NAME "LOCAL" /* reserved for client-side overrides */
 #define SYSDB_VIEW_CLASS "view"
 #define SYSDB_VIEW_NAME "viewName"
-#define SYSDB_OVERRIDE_CLASS "overrride"
+#define SYSDB_OVERRIDE_CLASS "override"
 #define SYSDB_OVERRIDE_ANCHOR_UUID "overrideAnchorUUID"
 #define SYSDB_OVERRIDE_USER_CLASS "userOverride"
 #define SYSDB_OVERRIDE_GROUP_CLASS "groupOverride"

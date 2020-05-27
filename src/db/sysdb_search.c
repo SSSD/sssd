@@ -1181,7 +1181,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     }
 
     /* We just do the ldb_search here in case domain is *not* a MPG *or*
-     * it's a MPG and we're dealing with a overriden group, which has to
+     * it's a MPG and we're dealing with a overridden group, which has to
      * use the very same filter as a non MPG domain. */
     if (res == NULL) {
         ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
@@ -1378,7 +1378,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
     }
 
     /* We just do the ldb_search here in case domain is *not* a MPG *or*
-     * it's a MPG and we're dealing with a overriden group, which has to
+     * it's a MPG and we're dealing with a overridden group, which has to
      * use the very same filter as a non MPG domain. */
     if (res == NULL) {
         ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
