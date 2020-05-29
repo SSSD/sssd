@@ -1,25 +1,26 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
-#
+# 
 # Translators:
 # Tomoyuki KATO <tomo@dream.daynight.jp>, 2012-2013
 # Noriko Mizumoto <noriko.mizumoto@gmail.com>, 2016. #zanata
 # Keiko Moriguchi <kemorigu@redhat.com>, 2019. #zanata
 # Ludek Janda <ljanda@redhat.com>, 2019. #zanata
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2020-03-17 13:40+0100\n"
-"PO-Revision-Date: 2019-11-04 03:20+0000\n"
-"Last-Translator: Keiko Moriguchi <kemorigu@redhat.com>\n"
-"Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
-"ja/)\n"
-"Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2020-05-18 01:08+0000\n"
+"Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
+"Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
+"ja/)\n"
+"Language: ja\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Zanata 4.6.2\n"
 
@@ -66,8 +67,7 @@ msgstr "レスポンダーの自動シャットダウンまでのアイドル時
 
 #: src/config/SSSDConfig/__init__.py.in:54
 msgid "Always query all the caches before querying the Data Providers"
-msgstr ""
-"データプロバイダーをクエリーする前に、常にすべてのキャッシュをクエリーします"
+msgstr "データプロバイダーをクエリーする前に、常にすべてのキャッシュをクエリーします"
 
 #: src/config/SSSDConfig/__init__.py.in:57
 msgid "SSSD Services to start"
@@ -95,9 +95,7 @@ msgstr "完全修飾名を表示するための printf 互換の形式"
 msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
-msgstr ""
-"SSSD が Kerberos リプレイキャッシュファイルを保存するファイルシステムのディレ"
-"クトリです。"
+msgstr "SSSD が Kerberos リプレイキャッシュファイルを保存するファイルシステムのディレクトリーです。"
 
 #: src/config/SSSDConfig/__init__.py.in:63
 msgid "Domain to add to names without a domain component."
@@ -113,8 +111,7 @@ msgstr "証明書検証の調整"
 
 #: src/config/SSSDConfig/__init__.py.in:66
 msgid "All spaces in group or user names will be replaced with this character"
-msgstr ""
-"グループ名またはユーザー名のすべてのスペースは、この文字に置き換えられます"
+msgstr "グループ名またはユーザー名のすべてのスペースは、この文字に置き換えられます"
 
 #: src/config/SSSDConfig/__init__.py.in:67
 msgid "Tune sssd to honor or ignore netlink state changes"
@@ -130,20 +127,20 @@ msgstr "検索するドメインの特定の順番"
 
 #: src/config/SSSDConfig/__init__.py.in:72
 msgid "Enumeration cache timeout length (seconds)"
-msgstr "列挙キャッシュのタイムアウト（秒）"
+msgstr "列挙キャッシュのタイムアウト (秒)"
 
 #: src/config/SSSDConfig/__init__.py.in:73
 msgid "Entry cache background update timeout length (seconds)"
-msgstr "エントリーキャッシュのバックグラウンド更新のタイムアウト時間（秒）"
+msgstr "エントリーキャッシュのバックグラウンド更新のタイムアウト時間 (秒)"
 
 #: src/config/SSSDConfig/__init__.py.in:74
 #: src/config/SSSDConfig/__init__.py.in:114
 msgid "Negative cache timeout length (seconds)"
-msgstr "ネガティブキャッシュのタイムアウト（秒）"
+msgstr "ネガティブキャッシュのタイムアウト (秒)"
 
 #: src/config/SSSDConfig/__init__.py.in:75
 msgid "Files negative cache timeout length (seconds)"
-msgstr "ファイルネガティブキャッシュのタイムアウト時間（秒）"
+msgstr "ファイルネガティブキャッシュのタイムアウト時間 (秒)"
 
 #: src/config/SSSDConfig/__init__.py.in:76
 msgid "Users that SSSD should explicitly ignore"
@@ -168,13 +165,11 @@ msgstr "識別プロバイダーからのホームディレクトリーの値を
 #: src/config/SSSDConfig/__init__.py.in:81
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
-msgstr ""
-"アイデンティティプロバイダーからの空のホームディレクトリーをこの値で置き換え"
-"ます"
+msgstr "アイデンティティープロバイダーからの空のホームディレクトリーをこの値で置き換えます"
 
 #: src/config/SSSDConfig/__init__.py.in:82
 msgid "Override shell value from the identity provider with this value"
-msgstr "アイデンティティプロバイダーからのシェル値をこの値で上書きします"
+msgstr "アイデンティティープロバイダーからのシェル値をこの値で上書きします"
 
 #: src/config/SSSDConfig/__init__.py.in:83
 msgid "The list of shells users are allowed to log in with"
@@ -189,9 +184,7 @@ msgstr "拒否されてフォールバックシェルで置き換えられるシ
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
-msgstr ""
-"中央ディレクトリーに保存されたシェルが許可されるが、利用できない場合、この"
-"フォールバックを使用する"
+msgstr "中央ディレクトリーに保存されたシェルが許可されるが、利用できない場合、このフォールバックを使用する"
 
 #: src/config/SSSDConfig/__init__.py.in:86
 msgid "Shell to use if the provider does not list one"
@@ -207,7 +200,7 @@ msgstr "NSS レスポンダーがパブリッシュを許可されたユーザ�
 
 #: src/config/SSSDConfig/__init__.py.in:91
 msgid "How long to allow cached logins between online logins (days)"
-msgstr "オンラインログイン中にキャッシュによるログインが許容される期間（日数）"
+msgstr "オンラインログイン中にキャッシュによるログインが許容される期間 (日数)"
 
 #: src/config/SSSDConfig/__init__.py.in:92
 msgid "How many failed logins attempts are allowed when offline"
@@ -217,7 +210,7 @@ msgstr "オフラインのときに許容されるログイン試行失敗回数
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
-msgstr "offline_failed_login_attempts に達した後にログインを拒否する時間（分）"
+msgstr "offline_failed_login_attempts に達した後にログインを拒否する時間 (分)"
 
 #: src/config/SSSDConfig/__init__.py.in:94
 msgid "What kind of messages are displayed to the user during authentication"
@@ -233,7 +226,7 @@ msgstr "PAM 要求に対してキャッシュされた認証情報を保持す�
 
 #: src/config/SSSDConfig/__init__.py.in:97
 msgid "How many days before password expiration a warning should be displayed"
-msgstr "警告が表示されるパスワード失効前の日数"
+msgstr "パスワードの失効まで警告が表示される期間 (日数)"
 
 #: src/config/SSSDConfig/__init__.py.in:98
 msgid "List of trusted uids or user's name"
@@ -283,9 +276,7 @@ msgstr "正しい場合、SSSD は小さい番号が優先される順位付け�
 msgid ""
 "Maximum number of rules that can be refreshed at once. If this is exceeded, "
 "full refresh is performed."
-msgstr ""
-"一度にリフレッシュ可能なルールの最大数。最大数を超えると、フルリフレッシュが"
-"実行されます。"
+msgstr "一度にリフレッシュ可能なルールの最大数。最大数を超えると、フルリフレッシュが実行されます。"
 
 #: src/config/SSSDConfig/__init__.py.in:117
 msgid "Whether to hash host names and addresses in the known_hosts file"
@@ -311,8 +302,7 @@ msgstr "PAC データが有効とされる期間"
 
 #: src/config/SSSDConfig/__init__.py.in:126
 msgid "List of UIDs or user names allowed to access the InfoPipe responder"
-msgstr ""
-"InfoPipe レスポンダーへのアクセスが許可された UID またはユーザー名の一覧"
+msgstr "InfoPipe レスポンダーへのアクセスが許可された UID またはユーザー名の一覧"
 
 #: src/config/SSSDConfig/__init__.py.in:127
 msgid "List of user attributes the InfoPipe is allowed to publish"
@@ -350,8 +340,7 @@ msgstr "Custodia サーバーへの認証時に使用する方法"
 msgid ""
 "The name of the headers that will be added into a HTTP request with the "
 "value defined in auth_header_value"
-msgstr ""
-"auth_header_value で値が定義され、HTTP リクエストに追加されるヘッダーの名前"
+msgstr "auth_header_value で値が定義され、HTTP リクエストに追加されるヘッダーの名前"
 
 #: src/config/SSSDConfig/__init__.py.in:139
 msgid "The value sssd-secrets would use for auth_header_name"
@@ -365,27 +354,26 @@ msgstr "要求と共に Custodia サーバーへ転送するヘッダーの一�
 
 #: src/config/SSSDConfig/__init__.py.in:141
 msgid ""
-"The username to use when authenticating to a Custodia server using basic_auth"
+"The username to use when authenticating to a Custodia server using "
+"basic_auth"
 msgstr "basic_auth を使った Custodia サーバーへの認証時に使用するユーザー名"
 
 #: src/config/SSSDConfig/__init__.py.in:142
 msgid ""
-"The password to use when authenticating to a Custodia server using basic_auth"
+"The password to use when authenticating to a Custodia server using "
+"basic_auth"
 msgstr "basic_auth を使った Custodia サーバーへの認証時に使用するパスワード"
 
 #: src/config/SSSDConfig/__init__.py.in:143
-msgid "If true peer's certificate is verified if proxy_url uses https protocol"
-msgstr ""
-"proxy_url が https protocol を使用する場合に、正しいピアの証明書が検証される"
-"かどうか"
+msgid ""
+"If true peer's certificate is verified if proxy_url uses https protocol"
+msgstr "proxy_url が https protocol を使用する場合に、正しいピアの証明書が検証されるかどうか"
 
 #: src/config/SSSDConfig/__init__.py.in:144
 msgid ""
 "If false peer's certificate may contain different hostname than proxy_url "
 "when https protocol is used"
-msgstr ""
-"https プロトコルが使用される場合に、間違ったピアの証明書が proxy_url 以外の異"
-"なるホスト名を含むかどうか"
+msgstr "https プロトコルが使用される場合に、間違ったピアの証明書が proxy_url 以外の異なるホスト名を含むかどうか"
 
 #: src/config/SSSDConfig/__init__.py.in:145
 msgid "Path to directory where certificate authority certificates are stored"
@@ -405,7 +393,7 @@ msgstr "クライアントのプライベートキーを含むファイルへの
 
 #: src/config/SSSDConfig/__init__.py.in:151
 msgid "Identity provider"
-msgstr "アイデンティティプロバイダー"
+msgstr "アイデンティティープロバイダー"
 
 #: src/config/SSSDConfig/__init__.py.in:152
 msgid "Authentication provider"
@@ -453,7 +441,7 @@ msgstr "最大ユーザー ID"
 
 #: src/config/SSSDConfig/__init__.py.in:165
 msgid "Enable enumerating all users/groups"
-msgstr "すべてのユーザー・グループの列挙を有効にする"
+msgstr "すべてのユーザー/グループの列挙を有効にする"
 
 #: src/config/SSSDConfig/__init__.py.in:166
 msgid "Cache credentials for offline login"
@@ -466,7 +454,7 @@ msgstr "パスワードハッシュを保存する"
 
 #: src/config/SSSDConfig/__init__.py.in:168
 msgid "Display users/groups in fully-qualified form"
-msgstr "ユーザー・グループを完全修飾形式で表示する"
+msgstr "ユーザー/グループを完全修飾形式で表示する"
 
 #: src/config/SSSDConfig/__init__.py.in:169
 msgid "Don't include group members in group lookups"
@@ -480,7 +468,7 @@ msgstr "グループ検索にグループメンバーを含めない"
 #: src/config/SSSDConfig/__init__.py.in:181
 #: src/config/SSSDConfig/__init__.py.in:182
 msgid "Entry cache timeout length (seconds)"
-msgstr "エントリーキャッシュのタイムアウト長（秒）"
+msgstr "エントリーキャッシュのタイムアウト長 (秒)"
 
 #: src/config/SSSDConfig/__init__.py.in:171
 msgid ""
@@ -489,11 +477,11 @@ msgstr "DNS 検索を実行するときに特定のアドレスファミリー�
 
 #: src/config/SSSDConfig/__init__.py.in:172
 msgid "How long to keep cached entries after last successful login (days)"
-msgstr "最終ログイン成功時からキャッシュエントリーを保持する日数"
+msgstr "最終ログイン成功時からキャッシュエントリーを保持する期間 (日数)"
 
 #: src/config/SSSDConfig/__init__.py.in:173
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
-msgstr "サーバーを名前解決するときに DNS から応答を待つ時間（秒）"
+msgstr "サーバーを名前解決するときに DNS から応答を待つ時間 (秒)"
 
 #: src/config/SSSDConfig/__init__.py.in:174
 msgid "The domain part of service discovery DNS query"
@@ -531,8 +519,7 @@ msgstr "どのくらい定期的にクライアントの DNS エントリーを�
 
 #: src/config/SSSDConfig/__init__.py.in:188
 msgid "Whether the provider should explicitly update the PTR record as well"
-msgstr ""
-"プロバイダーが同じように PTR レコードを明示的に更新する必要があるかどうか"
+msgstr "プロバイダーが同じように PTR レコードを明示的に更新する必要があるかどうか"
 
 #: src/config/SSSDConfig/__init__.py.in:189
 msgid "Whether the nsupdate utility should default to using TCP"
@@ -662,17 +649,13 @@ msgstr "デスクトッププロファイルに関連するオブジェクトの
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
-msgstr ""
-"IPA サーバーに対するデスクトッププロファイルルールを検索している間の秒単位の"
-"合計時間"
+msgstr "IPA サーバーに対するデスクトッププロファイルルールを検索している間の秒単位の合計時間"
 
 #: src/config/SSSDConfig/__init__.py.in:226
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
-msgstr ""
-"最後の要求がルールを何も見つけなかった場合の IPA サーバーに対するデスクトップ"
-"プロファイルル ールを検索している間の分単位の合計時間"
+msgstr "最後の要求がルールを何も見つけなかった場合の IPA サーバーに対するデスクトッププロファイルル ールを検索している間の分単位の合計時間"
 
 #: src/config/SSSDConfig/__init__.py.in:229
 msgid "Active Directory domain"
@@ -717,32 +700,29 @@ msgstr "AD サーバーに対する GPO ポリシーファイルを検索して�
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
-msgstr ""
-"GPO (Deny)InteractiveLogonRight のポリシー設定にマッピングした PAM サービス名"
+msgstr "GPO (Deny)InteractiveLogonRight のポリシー設定にマッピングした PAM サービス名"
 
 #: src/config/SSSDConfig/__init__.py.in:240
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
-msgstr ""
-"GPO (Deny)RemoteInteractiveLogonRight のポリシー設定にマッピングした PAM サー"
-"ビス名"
+msgstr "GPO (Deny)RemoteInteractiveLogonRight のポリシー設定にマッピングした PAM サービス名"
 
 #: src/config/SSSDConfig/__init__.py.in:241
 msgid ""
-"PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
-msgstr ""
-"GPO (Deny)NetworkLogonRight のポリシー設定にマッピングした PAM サービス名"
+"PAM service names that map to the GPO (Deny)NetworkLogonRight policy "
+"settings"
+msgstr "GPO (Deny)NetworkLogonRight のポリシー設定にマッピングした PAM サービス名"
 
 #: src/config/SSSDConfig/__init__.py.in:242
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
-msgstr ""
-"GPO (Deny)BatchLogonRight のポリシー設定にマッピングした PAM サービス名"
+msgstr "GPO (Deny)BatchLogonRight のポリシー設定にマッピングした PAM サービス名"
 
 #: src/config/SSSDConfig/__init__.py.in:243
 msgid ""
-"PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
+"PAM service names that map to the GPO (Deny)ServiceLogonRight policy "
+"settings"
 msgstr "(Deny)ServiceLogonRight のポリシー設定にマッピングした PAM サービス名"
 
 #: src/config/SSSDConfig/__init__.py.in:244
@@ -756,9 +736,7 @@ msgstr "GPO ベースのアクセスが常に拒否される PAM サービス名
 #: src/config/SSSDConfig/__init__.py.in:246
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
-msgstr ""
-"マッピングされていない PAM サービス名に使用するデフォルトのログオン権利 (また"
-"は許可/拒否)"
+msgstr "マッピングされていない PAM サービス名に使用するデフォルトのログオン権利 (または許可/拒否)"
 
 #: src/config/SSSDConfig/__init__.py.in:247
 msgid "a particular site to be used by the client"
@@ -775,7 +753,7 @@ msgstr "マシンアカウントの更新タスクをチューニングするオ
 
 #: src/config/SSSDConfig/__init__.py.in:250
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
-msgstr ""
+msgstr "LDAP およびグローバルカタログのリクエストに LDAPS ポートを使用する"
 
 #: src/config/SSSDConfig/__init__.py.in:253
 #: src/config/SSSDConfig/__init__.py.in:254
@@ -848,7 +826,7 @@ msgstr "プリンシパル正規化を有効にする"
 
 #: src/config/SSSDConfig/__init__.py.in:273
 msgid "Enables enterprise principals"
-msgstr "エンタープライズ・プリンシパルの有効化"
+msgstr "エンタープライズプリンシパルの有効化"
 
 #: src/config/SSSDConfig/__init__.py.in:274
 msgid "A mapping from user names to Kerberos principal names"
@@ -948,9 +926,8 @@ msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr "LDAP SASL 認可の最小 SSF を指定する"
 
 #: src/config/SSSDConfig/__init__.py.in:303
-#, fuzzy
 msgid "Specify the maximal SSF for LDAP sasl authorization"
-msgstr "LDAP SASL 認可の最小 SSF を指定する"
+msgstr "LDAP SASL 認可の最大 SSF を指定する"
 
 #: src/config/SSSDConfig/__init__.py.in:304
 msgid "Kerberos service keytab"
@@ -988,9 +965,7 @@ msgstr "完全な参照解決を引き起こすために欠けている必要が
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
-msgstr ""
-"LDAP ライブラリーが SASL バインド中にホスト名を正規化するために逆引きを実行す"
-"るかどうか"
+msgstr "LDAP ライブラリーが SASL バインド中にホスト名を正規化するために逆引きを実行するかどうか"
 
 #: src/config/SSSDConfig/__init__.py.in:314
 msgid "entryUSN attribute"
@@ -1001,7 +976,8 @@ msgid "lastUSN attribute"
 msgstr "lastUSN 属性"
 
 #: src/config/SSSDConfig/__init__.py.in:317
-msgid "How long to retain a connection to the LDAP server before disconnecting"
+msgid ""
+"How long to retain a connection to the LDAP server before disconnecting"
 msgstr "LDAP サーバーを切断する前に接続を保持する時間"
 
 #: src/config/SSSDConfig/__init__.py.in:319
@@ -1070,7 +1046,7 @@ msgstr "GECOS の属性"
 
 #: src/config/SSSDConfig/__init__.py.in:338
 msgid "Home directory attribute"
-msgstr "ホームディレクトリの属性"
+msgstr "ホームディレクトリーの属性"
 
 #: src/config/SSSDConfig/__init__.py.in:339
 msgid "Shell attribute"
@@ -1091,7 +1067,7 @@ msgstr "ID マッピングの Active Directory プライマリーグループ属
 
 #: src/config/SSSDConfig/__init__.py.in:343
 msgid "User principal attribute (for Kerberos)"
-msgstr "ユーザープリンシパルの属性（Kerberos 用）"
+msgstr "ユーザープリンシパルの属性 (Kerberos 用)"
 
 #: src/config/SSSDConfig/__init__.py.in:344
 msgid "Full Name"
@@ -1391,23 +1367,17 @@ msgstr "自動的なスマート更新間隔"
 
 #: src/config/SSSDConfig/__init__.py.in:438
 msgid "Whether to filter rules by hostname, IP addresses and network"
-msgstr ""
-"ホスト名、IP アドレスおよびネットワークによるフィルタールールを使用するかどう"
-"か"
+msgstr "ホスト名、IP アドレスおよびネットワークによるフィルタールールを使用するかどうか"
 
 #: src/config/SSSDConfig/__init__.py.in:439
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
-msgstr ""
-"sudo ルールをフィルターするこのマシンのホスト名および/または完全修飾ドメイン"
-"名"
+msgstr "sudo ルールをフィルターするこのマシンのホスト名および/または完全修飾ドメイン名"
 
 #: src/config/SSSDConfig/__init__.py.in:440
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
-msgstr ""
-"sudo ルールをフィルターするこのマシンの IPv4 または IPv6 アドレスまたはネット"
-"ワーク"
+msgstr "sudo ルールをフィルターするこのマシンの IPv4 または IPv6 アドレスまたはネットワーク"
 
 #: src/config/SSSDConfig/__init__.py.in:441
 msgid "Whether to include rules that contains netgroup in host attribute"
@@ -1424,7 +1394,7 @@ msgstr "sudo ルールのオブジェクトクラス"
 
 #: src/config/SSSDConfig/__init__.py.in:444
 msgid "Name of attribute that is used as object class for sudo rules"
-msgstr ""
+msgstr "sudo ルールのオブジェクトクラスとして使用される属性の名前"
 
 #: src/config/SSSDConfig/__init__.py.in:445
 msgid "Sudo rule name"
@@ -1536,11 +1506,11 @@ msgstr "グループファイルソースへのパス"
 
 #: src/monitor/monitor.c:2452
 msgid "Become a daemon (default)"
-msgstr "デーモンとして実行（デフォルト）"
+msgstr "デーモンとして実行 (デフォルト)"
 
 #: src/monitor/monitor.c:2454
 msgid "Run interactive (not a daemon)"
-msgstr "対話的に実行（デーモンではない）"
+msgstr "対話的に実行 (デーモンではない)"
 
 #: src/monitor/monitor.c:2457
 msgid "Disable netlink interface"
@@ -1648,7 +1618,7 @@ msgstr "エラーの説明を検索中に予期しないエラーが発生しま
 
 #: src/sss_client/pam_sss.c:76
 msgid "Permission denied. "
-msgstr "パーミッションが拒否されました。"
+msgstr "パーミッションが拒否されました。 "
 
 #: src/sss_client/pam_sss.c:77 src/sss_client/pam_sss.c:785
 #: src/sss_client/pam_sss.c:796
@@ -1693,9 +1663,7 @@ msgstr "システムがオフラインです、パスワード変更ができま
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
-msgstr ""
-"OTP パスワードの変更後、チケットを取得するためにログアウト後に再びログインす"
-"る必要があります"
+msgstr "OTP パスワードの変更後、チケットを取得するためにログアウト後に再びログインする必要があります"
 
 #: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
 msgid "Password change failed. "
@@ -1719,7 +1687,7 @@ msgstr "2 番目の要素 (オプション): "
 
 #: src/sss_client/pam_sss.c:2134 src/sss_client/pam_sss.c:2297
 msgid "Second Factor: "
-msgstr "2 番目の要素:  "
+msgstr "2 番目の要素: "
 
 #: src/sss_client/pam_sss.c:2149
 msgid "Password: "
@@ -1794,7 +1762,7 @@ msgstr "プロキシコマンドへのパスは絶対パスにする必要があ
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:342
 #, c-format
 msgid "sss_ssh_knownhostsproxy: Could not resolve hostname %s\n"
-msgstr ""
+msgstr "sss_ssh_knownhostsproxy: ホスト名 %s を解決できませんでした\n"
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
@@ -1846,8 +1814,7 @@ msgstr "追加するユーザーを指定してください\n"
 #: src/tools/sss_groupshow.c:714 src/tools/sss_userdel.c:198
 #: src/tools/sss_usermod.c:162
 msgid "Error initializing the tools - no local domain\n"
-msgstr ""
-"ツールを初期化中にエラーが発生しました - ローカルドメインがありません\n"
+msgstr "ツールを初期化中にエラーが発生しました - ローカルドメインがありません\n"
 
 #: src/tools/sss_useradd.c:123 src/tools/sss_groupadd.c:88
 #: src/tools/sss_groupdel.c:82 src/tools/sss_groupmod.c:115
@@ -1897,9 +1864,7 @@ msgstr "ユーザーに関する情報を取得できません\n"
 
 #: src/tools/sss_useradd.c:236
 msgid "User's home directory already exists, not copying data from skeldir\n"
-msgstr ""
-"ユーザーのホームディレクトリーがすでに存在します、スケルトンディレクトリーか"
-"らデータをコピーしません\n"
+msgstr "ユーザーのホームディレクトリーがすでに存在します、スケルトンディレクトリーからデータをコピーしません\n"
 
 #: src/tools/sss_useradd.c:239
 #, c-format
@@ -1962,16 +1927,13 @@ msgstr "グループ %1$s はドメインに対して定義された ID の範�
 #: src/tools/sss_usermod.c:289 src/tools/sss_usermod.c:296
 #, c-format
 msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
-msgstr ""
-"NSS リクエストに失敗しました (%1$d)。項目はメモリーキャッシュに残されます。\n"
+msgstr "NSS リクエストに失敗しました (%1$d)。項目はメモリーキャッシュに残されます。\n"
 
 #: src/tools/sss_groupdel.c:132
 msgid ""
-"No such group in local domain. Removing groups only allowed in local "
-"domain.\n"
-msgstr ""
-"そのようなグループはローカルドメインにありません。グループの削除はローカルド"
-"メインにおいてのみ許可されます。\n"
+"No such group in local domain. Removing groups only allowed in local domain."
+"\n"
+msgstr "そのようなグループはローカルドメインにありません。グループの削除はローカルドメインにおいてのみ許可されます。\n"
 
 #: src/tools/sss_groupdel.c:137
 msgid "Internal error. Could not remove group.\n"
@@ -1997,9 +1959,7 @@ msgstr "変更するグループを指定してください\n"
 msgid ""
 "Cannot find group in local domain, modifying groups is allowed only in local "
 "domain\n"
-msgstr ""
-"ローカルドメインにグループが見つかりませんでした。グループの変更はローカルド"
-"メインにおいてのみ許可されます\n"
+msgstr "ローカルドメインにグループが見つかりませんでした。グループの変更はローカルドメインにおいてのみ許可されます\n"
 
 #: src/tools/sss_groupmod.c:153 src/tools/sss_groupmod.c:182
 msgid "Member groups must be in the same domain as parent group\n"
@@ -2011,20 +1971,15 @@ msgstr "メンバーグループが親グループと同じドメインにある
 msgid ""
 "Cannot find group %1$s in local domain, only groups in local domain are "
 "allowed\n"
-msgstr ""
-"ローカルドメインにグループ %1$s が見つかりません。ローカルドメインにあるグ"
-"ループのみが許可されます\n"
+msgstr "ローカルドメインにグループ %1$s が見つかりません。ローカルドメインにあるグループのみが許可されます\n"
 
 #: src/tools/sss_groupmod.c:257
 msgid "Could not modify group - check if member group names are correct\n"
-msgstr ""
-"グループを変更できませんでした - メンバーグループ名が正しいかを確認してくださ"
-"い\n"
+msgstr "グループを変更できませんでした - メンバーグループ名が正しいかを確認してください\n"
 
 #: src/tools/sss_groupmod.c:261
 msgid "Could not modify group - check if groupname is correct\n"
-msgstr ""
-"グループを変更できませんでした - グループ名が正しいかを確認してください\n"
+msgstr "グループを変更できませんでした - グループ名が正しいかを確認してください\n"
 
 #: src/tools/sss_groupmod.c:265
 msgid "Transaction error. Could not modify group.\n"
@@ -2051,20 +2006,16 @@ msgstr "%1$s メンバーユーザー: "
 
 #: src/tools/sss_groupshow.c:627
 #, c-format
-msgid ""
-"\n"
+msgid "\n"
 "%1$sIs a member of: "
-msgstr ""
-"\n"
+msgstr "\n"
 "%1$s は次のメンバー: "
 
 #: src/tools/sss_groupshow.c:634
 #, c-format
-msgid ""
-"\n"
+msgid "\n"
 "%1$sMember groups: "
-msgstr ""
-"\n"
+msgstr "\n"
 "%1$s メンバーグループ: "
 
 #: src/tools/sss_groupshow.c:670
@@ -2077,11 +2028,9 @@ msgstr "表示するグループを指定してください\n"
 
 #: src/tools/sss_groupshow.c:744
 msgid ""
-"No such group in local domain. Printing groups only allowed in local "
-"domain.\n"
-msgstr ""
-"そのようなグループはローカルドメインにありません。グループの表示はローカルド"
-"メインにおいてのみ許可されます。\n"
+"No such group in local domain. Printing groups only allowed in local domain."
+"\n"
+msgstr "そのようなグループはローカルドメインにありません。グループの表示はローカルドメインにおいてのみ許可されます。\n"
 
 #: src/tools/sss_groupshow.c:749
 msgid "Internal error. Could not print group.\n"
@@ -2119,13 +2068,11 @@ msgstr "SELinux ログインコンテキストをリセットできません\n"
 #: src/tools/sss_userdel.c:271
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
-msgstr ""
-"警告: ユーザー (uid %1$lu) が削除されたときにまだログインしていました。\n"
+msgstr "警告: ユーザー (uid %1$lu) が削除されたときにまだログインしていました。\n"
 
 #: src/tools/sss_userdel.c:276
 msgid "Cannot determine if the user was logged in on this platform"
-msgstr ""
-"ユーザーがこのプラットフォームにログインしていたかを確認できませんでした"
+msgstr "ユーザーがこのプラットフォームにログインしていたかを確認できませんでした"
 
 #: src/tools/sss_userdel.c:281
 msgid "Error while checking if the user was logged in\n"
@@ -2138,8 +2085,7 @@ msgstr "削除後コマンドの実行に失敗しました: %1$s\n"
 
 #: src/tools/sss_userdel.c:308
 msgid "Not removing home dir - not owned by user\n"
-msgstr ""
-"ホームディレクトリーを削除していません - ユーザーにより所有されていません\n"
+msgstr "ホームディレクトリーを削除していません - ユーザーにより所有されていません\n"
 
 #: src/tools/sss_userdel.c:310
 #, c-format
@@ -2149,9 +2095,7 @@ msgstr "ホームディレクトリーを削除できません: %1$s\n"
 #: src/tools/sss_userdel.c:324
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
-msgstr ""
-"そのようなユーザーはローカルドメインにいません。ユーザーの削除はローカルドメ"
-"インにおいてのみ許可されます。\n"
+msgstr "そのようなユーザーはローカルドメインにいません。ユーザーの削除はローカルドメインにおいてのみ許可されます。\n"
 
 #: src/tools/sss_userdel.c:329
 msgid "Internal error. Could not remove user.\n"
@@ -2190,8 +2134,7 @@ msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
-"名前/値のペアに属性を指定します。形式は attrname=value です。複数の値を持つ属"
-"性の場合、コマンドがすでに存在する値に置き換えられます。"
+"名前/値のペアに属性を指定します。形式は attrname=value です。複数の値を持つ属性の場合、コマンドがすでに存在する値に置き換えられます。"
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
@@ -2206,19 +2149,15 @@ msgstr "変更するユーザーを指定してください\n"
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
-msgstr ""
-"ローカルドメインにユーザーを見つけられません。ユーザーの変更はローカルドメイ"
-"ンにおいてのみ許可されます。\n"
+msgstr "ローカルドメインにユーザーを見つけられません。ユーザーの変更はローカルドメインにおいてのみ許可されます。\n"
 
 #: src/tools/sss_usermod.c:322
 msgid "Could not modify user - check if group names are correct\n"
-msgstr ""
-"ユーザーを変更できませんでした - グループ名が正しいかを確認してください\n"
+msgstr "ユーザーを変更できませんでした - グループ名が正しいかを確認してください\n"
 
 #: src/tools/sss_usermod.c:326
 msgid "Could not modify user - user already member of groups?\n"
-msgstr ""
-"ユーザーを変更できませんでした - ユーザーはすでにグループのメンバーですか?\n"
+msgstr "ユーザーを変更できませんでした - ユーザーはすでにグループのメンバーですか?\n"
 
 #: src/tools/sss_usermod.c:330
 msgid "Transaction error. Could not modify user.\n"
@@ -2236,7 +2175,7 @@ msgstr "%1$s を無効化できませんでした\n"
 #: src/tools/sss_cache.c:526
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s\n"
-msgstr "%1$s %2$s を無効化できませんでした\n"
+msgstr "%1$s %2$s 無効化できませんでした\n"
 
 #: src/tools/sss_cache.c:704
 msgid "Invalidate all cached entries"
@@ -2306,9 +2245,7 @@ msgstr "特定のドメインのみからエントリーを無効にする"
 msgid ""
 "Unexpected argument(s) provided, options that invalidate a single object "
 "only accept a single provided argument.\n"
-msgstr ""
-"予期しない引数が提供される場合、1 つのオブジェクトを無効化するオプションは、"
-"提供された引数を 1 つだけ受け取ります。\n"
+msgstr "予期しない引数が提供される場合、1 つのオブジェクトを無効化するオプションは、提供された引数を 1 つだけ受け取ります。\n"
 
 #: src/tools/sss_cache.c:804
 msgid "Please select at least one object to invalidate\n"
@@ -2320,8 +2257,8 @@ msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
-"ドメイン %1$s を開けませんでした。ドメインがサブドメイン (信頼済みドメイン) "
-"であれば、--domain/-d パラメーターの代わりに完全修飾名を使用してください。\n"
+"ドメイン %1$s を開けませんでした。ドメインがサブドメイン (信頼済みドメイン) であれば、--domain/-d "
+"パラメーターの代わりに完全修飾名を使用してください。\n"
 
 #: src/tools/sss_cache.c:892
 msgid "Could not open available domains\n"
@@ -2330,8 +2267,7 @@ msgstr "利用可能なドメインを開けませんでした\n"
 #: src/tools/tools_util.c:202
 #, c-format
 msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
-msgstr ""
-"名前 '%1$s' が FQDN であるように見えません ('%2$s = TRUE' が設定されます)\n"
+msgstr "名前 '%1$s' が FQDN であるように見えません ('%2$s = TRUE' が設定されます)\n"
 
 #: src/tools/tools_util.c:309
 msgid "Out of memory\n"
@@ -2366,8 +2302,7 @@ msgstr "ユーザーインプットの読み込みができませんでした\n"
 #: src/tools/sssctl/sssctl.c:91
 #, c-format
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
-msgstr ""
-"無効なインプットです。'%s' または '%s' のいずれかを提供してください。\n"
+msgstr "無効なインプットです。'%s' または '%s' のいずれかを提供してください。\n"
 
 #: src/tools/sssctl/sssctl.c:109 src/tools/sssctl/sssctl.c:114
 #, c-format
@@ -2451,17 +2386,13 @@ msgstr "グループ ID で検索"
 msgid ""
 "File %1$s does not exist. SSSD will use default configuration with files "
 "provider.\n"
-msgstr ""
-"ファイル %1$s は存在しません。SSSD は、ファイルプロバイダーでデフォルトの設定"
-"を使用します。\n"
+msgstr "ファイル %1$s は存在しません。SSSD は、ファイルプロバイダーでデフォルトの設定を使用します。\n"
 
 #: src/tools/sssctl/sssctl_config.c:81
 #, c-format
 msgid ""
 "File ownership and permissions check failed. Expected root:root and 0600.\n"
-msgstr ""
-"ファイルの所有権とパーミッションの確認に失敗しました。予期される root:root お"
-"よび 0600。\n"
+msgstr "ファイルの所有権とパーミッションの確認に失敗しました。予期される root:root および 0600。\n"
 
 #: src/tools/sssctl/sssctl_config.c:104
 #, c-format
@@ -2485,8 +2416,7 @@ msgstr "バックアップディレクトリー [%d] の作成に失敗: %s"
 
 #: src/tools/sssctl/sssctl_data.c:95
 msgid "SSSD backup of local data already exists, override?"
-msgstr ""
-"ローカルデータの SSSD バックアップはすでに存在しますが、上書きしますか?"
+msgstr "ローカルデータの SSSD バックアップはすでに存在しますが、上書きしますか?"
 
 #: src/tools/sssctl/sssctl_data.c:111
 #, c-format
@@ -2541,9 +2471,7 @@ msgstr "ローカルデータのバックアップを作成中...\n"
 #: src/tools/sssctl/sssctl_data.c:238
 #, c-format
 msgid "Unable to create backup of local data, can not remove the cache.\n"
-msgstr ""
-"ローカルデータのバックアップの作成ができません。キャッシュを削除できませ"
-"ん。\n"
+msgstr "ローカルデータのバックアップの作成ができません。キャッシュを削除できません。\n"
 
 #: src/tools/sssctl/sssctl_data.c:243
 #, c-format
@@ -2562,8 +2490,7 @@ msgstr "ローカルデータの復元中...\n"
 
 #: src/tools/sssctl/sssctl_domains.c:75
 msgid "Show domain list including primary or trusted domain type"
-msgstr ""
-"プライマリーまたは信頼されたドメインタイプを含むドメインリストを表示します"
+msgstr "プライマリーまたは信頼されたドメインタイプを含むドメインリストを表示します"
 
 #: src/tools/sssctl/sssctl_domains.c:156
 #, c-format
@@ -2615,7 +2542,7 @@ msgstr "ドメイン名を指定します。"
 #: src/tools/sssctl/sssctl_domains.c:360
 #, c-format
 msgid "Out of memory!\n"
-msgstr "メモリの空き容量がありません。\n"
+msgstr "メモリーの空き容量がありません。\n"
 
 #: src/tools/sssctl/sssctl_domains.c:377 src/tools/sssctl/sssctl_domains.c:387
 #, c-format
@@ -2658,7 +2585,7 @@ msgstr "ログファイルの切り捨てができません\n"
 #: src/tools/sssctl/sssctl_logs.c:286
 #, c-format
 msgid "Out of memory!"
-msgstr "メモリの空き容量がありません。"
+msgstr "メモリーの空き容量がありません。"
 
 #: src/tools/sssctl/sssctl_logs.c:289
 #, c-format
@@ -2679,9 +2606,8 @@ msgid ""
 "Check that SSSD is running and the InfoPipe responder is enabled. Make sure "
 "'ifp' is listed in the 'services' option in sssd.conf.\n"
 msgstr ""
-"SSSD が実行中で、InfoPipe レスポンダーが有効化されていることを確認しま"
-"す。'ifp' が sssd.conf の 'services' オプションに一覧表示されていることを確認"
-"します。\n"
+"SSSD が実行中で、InfoPipe レスポンダーが有効化されていることを確認します。'ifp' が sssd.conf の 'services' "
+"オプションに一覧表示されていることを確認します。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:91
 #, c-format
@@ -2755,11 +2681,9 @@ msgstr " - home directory: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:179
 #, c-format
-msgid ""
-" - shell: %s\n"
+msgid " - shell: %s\n"
 "\n"
-msgstr ""
-" - shell: %s\n"
+msgstr " - shell: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:211
@@ -2776,13 +2700,11 @@ msgstr "ユーザー名を指定します。"
 
 #: src/tools/sssctl/sssctl_user_checks.c:226
 #, c-format
-msgid ""
-"user: %s\n"
+msgid "user: %s\n"
 "action: %s\n"
 "service: %s\n"
 "\n"
-msgstr ""
-"ユーザー: %s\n"
+msgstr "ユーザー: %s\n"
 "アクション: %s\n"
 "サービス: %s\n"
 "\n"
@@ -2804,11 +2726,9 @@ msgstr "pam_start に失敗しました: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:249
 #, c-format
-msgid ""
-"testing pam_authenticate\n"
+msgid "testing pam_authenticate\n"
 "\n"
-msgstr ""
-"pam_authenticate のテスト中\n"
+msgstr "pam_authenticate のテスト中\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:253
@@ -2818,95 +2738,79 @@ msgstr "pam_get_item に失敗しました: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:257
 #, c-format
-msgid ""
-"pam_authenticate for user [%s]: %s\n"
+msgid "pam_authenticate for user [%s]: %s\n"
 "\n"
-msgstr ""
-"ユーザー [%s] 向けの pam_authenticate: %s\n"
+msgstr "ユーザー [%s] 向けの pam_authenticate: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:260
 #, c-format
-msgid ""
-"testing pam_chauthtok\n"
+msgid "testing pam_chauthtok\n"
 "\n"
-msgstr ""
-"pam_chauthtok のテスト中\n"
+msgstr "pam_chauthtok のテスト中\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:262
 #, c-format
-msgid ""
-"pam_chauthtok: %s\n"
+msgid "pam_chauthtok: %s\n"
 "\n"
-msgstr ""
-"pam_chauthtok: %s\n"
+msgstr "pam_chauthtok: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:264
 #, c-format
-msgid ""
-"testing pam_acct_mgmt\n"
+msgid "testing pam_acct_mgmt\n"
 "\n"
 msgstr "pam_acct_mgmt のテスト中\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:266
 #, c-format
-msgid ""
-"pam_acct_mgmt: %s\n"
+msgid "pam_acct_mgmt: %s\n"
 "\n"
-msgstr ""
-"pam_acct_mgmt: %s\n"
+msgstr "pam_acct_mgmt: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:268
 #, c-format
-msgid ""
-"testing pam_setcred\n"
+msgid "testing pam_setcred\n"
 "\n"
-msgstr ""
-"pam_setcred のテスト中\n"
+msgstr "pam_setcred のテスト中\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:270
 #, c-format
-msgid ""
-"pam_setcred: [%s]\n"
+msgid "pam_setcred: [%s]\n"
 "\n"
-msgstr ""
-"pam_setcred: [%s]\n"
+msgstr "pam_setcred: [%s]\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:272
 #, c-format
-msgid ""
-"testing pam_open_session\n"
+msgid "testing pam_open_session\n"
 "\n"
 msgstr "pam_open_session のテスト中\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:274
 #, c-format
-msgid ""
-"pam_open_session: %s\n"
+msgid "pam_open_session: %s\n"
 "\n"
-msgstr ""
-"pam_open_session: %s\n"
+msgstr "pam_open_session: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
-msgid ""
-"testing pam_close_session\n"
+msgid "testing pam_close_session\n"
 "\n"
 msgstr "pam_close_session のテスト中\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:278
 #, c-format
-msgid ""
-"pam_close_session: %s\n"
+msgid "pam_close_session: %s\n"
 "\n"
-msgstr ""
-"pam_close_session: %s\n"
+msgstr "pam_close_session: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:281
@@ -2939,3 +2843,4 @@ msgstr "レスポンダーがソケットでアクティベートされたと知
 #: src/util/util.h:95
 msgid "Informs that the responder has been dbus-activated"
 msgstr "レスポンダーが dbus でアクティベートされたと知らせます"
+

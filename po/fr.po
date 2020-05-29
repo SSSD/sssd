@@ -10,19 +10,20 @@
 # Jérôme Fenal <jfenal@gmail.com>, 2015. #zanata
 # Jérôme Fenal <jfenal@gmail.com>, 2016. #zanata
 # corina roe <croe@redhat.com>, 2019. #zanata
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2020-03-17 13:40+0100\n"
-"PO-Revision-Date: 2019-10-09 01:48+0000\n"
-"Last-Translator: corina roe <croe@redhat.com>\n"
-"Language-Team: French (http://www.transifex.com/projects/p/sssd/language/"
-"fr/)\n"
-"Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2020-05-18 01:08+0000\n"
+"Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
+"Language-Team: French (http://www.transifex.com/projects/p/sssd/language/fr/"
+")\n"
+"Language: fr\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Generator: Zanata 4.6.2\n"
 
@@ -186,18 +187,21 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:82
 msgid "Override shell value from the identity provider with this value"
-msgstr "Écraser le shell donné par le fournisseur d'identité avec cette valeur"
+msgstr ""
+"Écraser le shell donné par le fournisseur d'identité avec cette valeur"
 
 #: src/config/SSSDConfig/__init__.py.in:83
 msgid "The list of shells users are allowed to log in with"
 msgstr ""
-"Liste des interpréteurs de commandes utilisateurs autorisés pour se connecter"
+"Liste des interpréteurs de commandes utilisateurs autorisés pour se "
+"connecter"
 
 #: src/config/SSSDConfig/__init__.py.in:84
 msgid ""
 "The list of shells that will be vetoed, and replaced with the fallback shell"
 msgstr ""
-"Liste des interpréteurs de commandes bannis et remplacés par celui par défaut"
+"Liste des interpréteurs de commandes bannis et remplacés par celui par "
+"défaut"
 
 #: src/config/SSSDConfig/__init__.py.in:85
 msgid ""
@@ -302,7 +306,8 @@ msgstr "Services autorisés à utiliser les smartcards"
 
 #: src/config/SSSDConfig/__init__.py.in:109
 msgid "Whether to evaluate the time-based attributes in sudo rules"
-msgstr "Faut-il évaluer les attributs dépendants du temps dans les règles sudo"
+msgstr ""
+"Faut-il évaluer les attributs dépendants du temps dans les règles sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:110
 msgid "If true, SSSD will switch back to lower-wins ordering logic"
@@ -402,20 +407,23 @@ msgstr "Liste des en-têtes à envoyer au serveur Custodia avec la demande"
 
 #: src/config/SSSDConfig/__init__.py.in:141
 msgid ""
-"The username to use when authenticating to a Custodia server using basic_auth"
+"The username to use when authenticating to a Custodia server using "
+"basic_auth"
 msgstr ""
 "Le nom d'utilisateur à utiliser lors de l'authentification à un serveur "
 "Custodia quand on utilise basic_auth"
 
 #: src/config/SSSDConfig/__init__.py.in:142
 msgid ""
-"The password to use when authenticating to a Custodia server using basic_auth"
+"The password to use when authenticating to a Custodia server using "
+"basic_auth"
 msgstr ""
 "Le mot de passe à utiliser quand on authentifie un serveur Custodia avec "
 "basic_auth"
 
 #: src/config/SSSDConfig/__init__.py.in:143
-msgid "If true peer's certificate is verified if proxy_url uses https protocol"
+msgid ""
+"If true peer's certificate is verified if proxy_url uses https protocol"
 msgstr ""
 "Si défini sur true, le certificat du pair sera vérifié si proxy_url utilise "
 "le protocole https"
@@ -482,7 +490,8 @@ msgstr "Fournisseur de gestion des sessions"
 
 #: src/config/SSSDConfig/__init__.py.in:162
 msgid "Whether the domain is usable by the OS or by applications"
-msgstr "Indique si le domaine est utilisable par le SE ou par les applications"
+msgstr ""
+"Indique si le domaine est utilisable par le SE ou par les applications"
 
 #: src/config/SSSDConfig/__init__.py.in:163
 msgid "Minimum user ID"
@@ -506,11 +515,13 @@ msgstr "Stocke les hâchages de mots de passe"
 
 #: src/config/SSSDConfig/__init__.py.in:168
 msgid "Display users/groups in fully-qualified form"
-msgstr "Afficher les utilisateurs/groupes dans un format complétement qualifié"
+msgstr ""
+"Afficher les utilisateurs/groupes dans un format complétement qualifié"
 
 #: src/config/SSSDConfig/__init__.py.in:169
 msgid "Don't include group members in group lookups"
-msgstr "Ne pas inclure les membres des groupes dans les recherches de groupes."
+msgstr ""
+"Ne pas inclure les membres des groupes dans les recherches de groupes."
 
 #: src/config/SSSDConfig/__init__.py.in:170
 #: src/config/SSSDConfig/__init__.py.in:177
@@ -525,7 +536,8 @@ msgstr "Durée de validité des entrées en cache (en secondes)"
 #: src/config/SSSDConfig/__init__.py.in:171
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
-msgstr "Restreindre ou préférer une famille d'adresses lors des recherches DNS"
+msgstr ""
+"Restreindre ou préférer une famille d'adresses lors des recherches DNS"
 
 #: src/config/SSSDConfig/__init__.py.in:172
 msgid "How long to keep cached entries after last successful login (days)"
@@ -790,7 +802,8 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:241
 msgid ""
-"PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
+"PAM service names that map to the GPO (Deny)NetworkLogonRight policy "
+"settings"
 msgstr ""
 "Noms de services PAM correspondant à la configuration de la politique "
 "(Deny)NetworkLogonRight de la GPO"
@@ -804,7 +817,8 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:243
 msgid ""
-"PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
+"PAM service names that map to the GPO (Deny)ServiceLogonRight policy "
+"settings"
 msgstr ""
 "Noms de services PAM correspondant à la configuration de la politique "
 "(Deny)ServiceLogonRight de la GPO"
@@ -843,7 +857,7 @@ msgstr "Option de renouvellement automatique du compte de la machine"
 
 #: src/config/SSSDConfig/__init__.py.in:250
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
-msgstr ""
+msgstr "Utiliser le port LDAPS pour les requêtes LDAP et Catalogue global"
 
 #: src/config/SSSDConfig/__init__.py.in:253
 #: src/config/SSSDConfig/__init__.py.in:254
@@ -1019,12 +1033,11 @@ msgstr "Spécifier le domaine d'authorisation SASL à utiliser"
 
 #: src/config/SSSDConfig/__init__.py.in:302
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr "Spécifie le minimum SSF pour l'autorisation sasl LDAP"
+msgstr "Spécifie le SSF minimum pour l'autorisation sasl LDAP"
 
 #: src/config/SSSDConfig/__init__.py.in:303
-#, fuzzy
 msgid "Specify the maximal SSF for LDAP sasl authorization"
-msgstr "Spécifie le minimum SSF pour l'autorisation sasl LDAP"
+msgstr "Spécifie le SFF maximal pour l'autorisation sasl LDAP"
 
 #: src/config/SSSDConfig/__init__.py.in:304
 msgid "Kerberos service keytab"
@@ -1077,7 +1090,8 @@ msgid "lastUSN attribute"
 msgstr "attribut lastUSN"
 
 #: src/config/SSSDConfig/__init__.py.in:317
-msgid "How long to retain a connection to the LDAP server before disconnecting"
+msgid ""
+"How long to retain a connection to the LDAP server before disconnecting"
 msgstr ""
 "Combien de temps conserver la connexion au serveur LDAP avant de se "
 "déconnecter"
@@ -1269,7 +1283,8 @@ msgstr "Attribut de clé public SSH"
 #: src/config/SSSDConfig/__init__.py.in:368
 msgid "attribute listing allowed authentication types for a user"
 msgstr ""
-"attribut énumérant les types d'authentification autorisés pour un utilisateur"
+"attribut énumérant les types d'authentification autorisés pour un "
+"utilisateur"
 
 #: src/config/SSSDConfig/__init__.py.in:369
 msgid "attribute containing the X509 certificate of the user"
@@ -1448,7 +1463,8 @@ msgstr "Quelles règles utiliser pour évaluer le contrôle d'accès"
 
 #: src/config/SSSDConfig/__init__.py.in:429
 msgid "URI of an LDAP server where password changes are allowed"
-msgstr "URI d'un serveur LDAP où les changements de mot de passe sont acceptés"
+msgstr ""
+"URI d'un serveur LDAP où les changements de mot de passe sont acceptés"
 
 #: src/config/SSSDConfig/__init__.py.in:430
 msgid "URI of a backup LDAP server where password changes are allowed"
@@ -1517,6 +1533,7 @@ msgstr "Classe objet pour les règles sudo"
 #: src/config/SSSDConfig/__init__.py.in:444
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr ""
+"Nom de l'attribut qui est utilisé comme classe d'objet pour les règles sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:445
 msgid "Sudo rule name"
@@ -1786,7 +1803,8 @@ msgstr "L'authentification est refusée jusque :"
 #: src/sss_client/pam_sss.c:679
 msgid "System is offline, password change not possible"
 msgstr ""
-"Le système est hors-ligne, les modifications du mot de passe sont impossibles"
+"Le système est hors-ligne, les modifications du mot de passe sont "
+"impossibles"
 
 #: src/sss_client/pam_sss.c:694
 msgid ""
@@ -1893,7 +1911,7 @@ msgstr "Le chemin vers la commande de proxy doit être absolue\n"
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:342
 #, c-format
 msgid "sss_ssh_knownhostsproxy: Could not resolve hostname %s\n"
-msgstr ""
+msgstr "sss_ssh_knownhostsproxy : Impossible de résoudre le nom d'hôte %s\n"
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
@@ -1921,7 +1939,8 @@ msgstr "Créer le repertoire utilisateur s'il n'existe pas"
 
 #: src/tools/sss_useradd.c:55
 msgid "Never create user's directory, overrides config"
-msgstr "Ne jamais créer de répertoire utilisateur, outrepasse la configuration"
+msgstr ""
+"Ne jamais créer de répertoire utilisateur, outrepasse la configuration"
 
 #: src/tools/sss_useradd.c:56
 msgid "Specify an alternative skeleton directory"
@@ -2071,8 +2090,8 @@ msgstr ""
 
 #: src/tools/sss_groupdel.c:132
 msgid ""
-"No such group in local domain. Removing groups only allowed in local "
-"domain.\n"
+"No such group in local domain. Removing groups only allowed in local domain."
+"\n"
 msgstr ""
 "Aucun groupe dans le domaine local. La suppression de groupes n'est "
 "autorisée que dans le domaine local.\n"
@@ -2158,20 +2177,16 @@ msgstr "Utilisateurs membres de %1$s :"
 
 #: src/tools/sss_groupshow.c:627
 #, c-format
-msgid ""
-"\n"
+msgid "\n"
 "%1$sIs a member of: "
-msgstr ""
-"\n"
+msgstr "\n"
 "%1$s est membre de : "
 
 #: src/tools/sss_groupshow.c:634
 #, c-format
-msgid ""
-"\n"
+msgid "\n"
 "%1$sMember groups: "
-msgstr ""
-"\n"
+msgstr "\n"
 "Groupes membres de %1$s : "
 
 #: src/tools/sss_groupshow.c:670
@@ -2184,8 +2199,8 @@ msgstr "Définir le groupe à afficher\n"
 
 #: src/tools/sss_groupshow.c:744
 msgid ""
-"No such group in local domain. Printing groups only allowed in local "
-"domain.\n"
+"No such group in local domain. Printing groups only allowed in local domain."
+"\n"
 msgstr ""
 "Aucun groupe dans le domaine local. L'affichage des groupes n'est autorisé "
 "que dans le domaine local.\n"
@@ -2502,7 +2517,8 @@ msgstr ""
 #: src/tools/sssctl/sssctl.c:231
 msgid "SSSD needs to be restarted. Restart SSSD now?"
 msgstr ""
-"SSSD doit être démarré à nouveau. Souhaitez-vous redémarrer SSSD maintenant ?"
+"SSSD doit être démarré à nouveau. Souhaitez-vous redémarrer SSSD "
+"maintenant ?"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2578,7 +2594,7 @@ msgstr ""
 msgid ""
 "File ownership and permissions check failed. Expected root:root and 0600.\n"
 msgstr ""
-"La vérification de la propriété et des permissions des fichiers ont échoué. "
+"La vérification de la propriété et des permissions des fichiers ont échoué."
 "Résultat attendu root:root et 0600.\n"
 
 #: src/tools/sssctl/sssctl_config.c:104
@@ -2875,11 +2891,9 @@ msgstr " - répertoire d'accueil : %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:179
 #, c-format
-msgid ""
-" - shell: %s\n"
+msgid " - shell: %s\n"
 "\n"
-msgstr ""
-" - shell : %s\n"
+msgstr " - shell : %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:211
@@ -2896,13 +2910,11 @@ msgstr "Indiquer le nom d'utilisateur."
 
 #: src/tools/sssctl/sssctl_user_checks.c:226
 #, c-format
-msgid ""
-"user: %s\n"
+msgid "user: %s\n"
 "action: %s\n"
 "service: %s\n"
 "\n"
-msgstr ""
-"utilisateur: %s\n"
+msgstr "utilisateur: %s\n"
 "action: %s\n"
 "service: %s\n"
 "\n"
@@ -2924,11 +2936,9 @@ msgstr "pam_start a échoué : %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:249
 #, c-format
-msgid ""
-"testing pam_authenticate\n"
+msgid "testing pam_authenticate\n"
 "\n"
-msgstr ""
-"testing pam_authenticate\n"
+msgstr "testing pam_authenticate\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:253
@@ -2938,101 +2948,79 @@ msgstr "pam_get_item a échoué : %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:257
 #, c-format
-msgid ""
-"pam_authenticate for user [%s]: %s\n"
+msgid "pam_authenticate for user [%s]: %s\n"
 "\n"
-msgstr ""
-"pam_authenticate pour utilisateur [%s]: %s\n"
+msgstr "pam_authenticate pour utilisateur [%s]: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:260
 #, c-format
-msgid ""
-"testing pam_chauthtok\n"
+msgid "testing pam_chauthtok\n"
 "\n"
-msgstr ""
-"testing pam_chauthtok\n"
+msgstr "testing pam_chauthtok\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:262
 #, c-format
-msgid ""
-"pam_chauthtok: %s\n"
+msgid "pam_chauthtok: %s\n"
 "\n"
-msgstr ""
-"pam_chauthtok: %s\n"
+msgstr "pam_chauthtok: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:264
 #, c-format
-msgid ""
-"testing pam_acct_mgmt\n"
+msgid "testing pam_acct_mgmt\n"
 "\n"
-msgstr ""
-"testing pam_acct_mgmt\n"
+msgstr "testing pam_acct_mgmt\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:266
 #, c-format
-msgid ""
-"pam_acct_mgmt: %s\n"
+msgid "pam_acct_mgmt: %s\n"
 "\n"
-msgstr ""
-"pam_acct_mgmt: %s\n"
+msgstr "pam_acct_mgmt: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:268
 #, c-format
-msgid ""
-"testing pam_setcred\n"
+msgid "testing pam_setcred\n"
 "\n"
-msgstr ""
-"testing pam_setcred\n"
+msgstr "testing pam_setcred\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:270
 #, c-format
-msgid ""
-"pam_setcred: [%s]\n"
+msgid "pam_setcred: [%s]\n"
 "\n"
-msgstr ""
-"pam_setcred: [%s]\n"
+msgstr "pam_setcred: [%s]\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:272
 #, c-format
-msgid ""
-"testing pam_open_session\n"
+msgid "testing pam_open_session\n"
 "\n"
-msgstr ""
-"testing pam_open_session\n"
+msgstr "testing pam_open_session\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:274
 #, c-format
-msgid ""
-"pam_open_session: %s\n"
+msgid "pam_open_session: %s\n"
 "\n"
-msgstr ""
-"pam_open_session: %s\n"
+msgstr "pam_open_session: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
-msgid ""
-"testing pam_close_session\n"
+msgid "testing pam_close_session\n"
 "\n"
-msgstr ""
-"testing pam_close_session\n"
+msgstr "testing pam_close_session\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:278
 #, c-format
-msgid ""
-"pam_close_session: %s\n"
+msgid "pam_close_session: %s\n"
 "\n"
-msgstr ""
-"pam_close_session: %s\n"
+msgstr "pam_close_session: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:281
@@ -3043,7 +3031,7 @@ msgstr "action inconnue\n"
 #: src/tools/sssctl/sssctl_user_checks.c:284
 #, c-format
 msgid "PAM Environment:\n"
-msgstr "Environnement PAM\n"
+msgstr "Environnement PAM:\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:292
 #, c-format
@@ -3065,3 +3053,4 @@ msgstr "Indique que le répondant a été activé par socket-activated"
 #: src/util/util.h:95
 msgid "Informs that the responder has been dbus-activated"
 msgstr "Indique que le répondant a été activé par dbus-activated"
+
