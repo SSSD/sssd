@@ -494,6 +494,9 @@ remove_ipv6_brackets(char *ipv6addr);
 errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
                            char ***list_p);
 
+errno_t del_string_from_list(const char *string,
+                             char ***list_p, bool case_sensitive);
+
 bool string_in_list(const char *string, char **list, bool case_sensitive);
 
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn);

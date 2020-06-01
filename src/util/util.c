@@ -618,6 +618,39 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
     return EOK;
 }
 
+errno_t del_string_from_list(const char *string,
+                             char ***list_p, bool case_sensitive)
+{
+    char **list;
+    int(*compare)(const char *s1, const char *s2);
+
+    if (string == NULL || list_p == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing string or list.\n");
+        return EINVAL;
+    }
+
+    if (!string_in_list(string, *list_p, case_sensitive)) {
+        return ENOENT;
+    }
+
+    compare = case_sensitive ? strcmp : strcasecmp;
+    list = *list_p;
+    int matches = 0;
+    int index = 0;
+    while (list[index]) {
+        if (compare(string, list[index]) == 0) {
+            matches++;
+            TALLOC_FREE(list[index]);
+        } else if (matches) {
+            list[index - matches] = list[index];
+            list[index] = NULL;
+        }
+        index++;
+    }
+
+    return EOK;
+}
+
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
 {
     const char *s;

@@ -174,6 +174,7 @@ class SSSDOptions(object):
 
         # [domain]
         'domain_type': _('Whether the domain is usable by the OS or by applications'),
+        'enabled': _('Enable or disable the domain'),
         'min_id': _('Minimum user ID'),
         'max_id': _('Maximum user ID'),
         'enumerate': _('Enable enumerating all users/groups'),
