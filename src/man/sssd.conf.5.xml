@@ -2031,6 +2031,21 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
             <quote>[domain/<replaceable>NAME</replaceable>]</quote>
             <variablelist>
                 <varlistentry>
+                    <term>enabled</term>
+                    <listitem>
+                        <para>
+                            Explicitly enable or disable the domain. If
+                            <quote>true</quote>, the domain is always
+                            <quote>enabled</quote>. If <quote>false</quote>,
+                            the domain is always <quote>disabled</quote>. If
+                            this option is not set, the domain is enabled only
+                            if it is listed in the domains option in the
+                            <quote>[sssd]</quote> section.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>domain_type (string)</term>
                     <listitem>
                         <para>

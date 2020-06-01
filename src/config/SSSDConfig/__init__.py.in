@@ -1373,23 +1373,27 @@ class SSSDConfig(SSSDChangeConf):
             raise NotInitializedError
 
         if (self.has_option('sssd', 'domains')):
-            active_domains = striplist(self.get('sssd', 'domains').split(','))
-            domain_dict = dict.fromkeys(active_domains)
+            sssd_domains = striplist(self.get('sssd', 'domains').split(','))
+            domain_dict = dict.fromkeys(sssd_domains)
             if '' in domain_dict:
                 del domain_dict['']
-
-            # Remove any entries in this list that don't
-            # correspond to an active domain, for integrity
-            configured_domains = self.list_domains()
-            for dom in list(domain_dict):
-                if dom not in configured_domains:
-                    del domain_dict[dom]
-
-            active_domains = list(domain_dict)
+            sssd_domains = list(domain_dict)
         else:
-            active_domains = []
+            sssd_domains = []
 
-        return active_domains
+        domains = self.list_domains()
+        for dom in self.list_domains():
+            # Remove explicitly enabled from the list
+            if self.has_option('domain/%s' % dom, 'enabled'):
+                if self.get('domain/%s' % dom, 'enabled') == 'false':
+                    domains.remove(dom)
+                    if dom in sssd_domains:
+                        sssd_domains.remove(dom)
+            else:
+                if dom not in sssd_domains:
+                    domains.remove(dom)
+
+        return domains
 
     def list_inactive_domains(self):
         """
@@ -1407,12 +1411,24 @@ class SSSDConfig(SSSDChangeConf):
             raise NotInitializedError
 
         if (self.has_option('sssd', 'domains')):
-            active_domains = striplist(self.get('sssd', 'domains').split(','))
+            sssd_domains = striplist(self.get('sssd', 'domains').split(','))
+            domain_dict = dict.fromkeys(sssd_domains)
+            if '' in domain_dict:
+                del domain_dict['']
+            sssd_domains = list(domain_dict)
         else:
-            active_domains = []
+            sssd_domains = []
 
-        domains = [x for x in self.list_domains()
-                   if x not in active_domains]
+        domains = self.list_domains()
+        for dom in self.list_domains():
+            # Remove explicitly enabled from the list
+            if self.has_option('domain/%s' % dom, 'enabled'):
+                if self.get('domain/%s' % dom, 'enabled') == 'true':
+                    domains.remove(dom)
+            else:
+                if dom in sssd_domains:
+                    domains.remove(dom)
+
         return domains
 
     def list_domains(self):

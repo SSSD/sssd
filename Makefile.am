@@ -291,6 +291,7 @@ if HAVE_CMOCKA
         test_iobuf \
         sss_certmap_test \
         test_sssd_krb5_locator_plugin \
+        test_confdb \
         $(NULL)
 
 
@@ -480,6 +481,7 @@ dist_noinst_DATA = \
     src/config/testconfigs/sssd-invalid-badbool.conf \
     src/config/testconfigs/sssd-nonexisting-services-domains.conf \
     src/config/testconfigs/sssd-test-parse.conf \
+    src/config/testconfigs/sssd-enabled-option.conf \
     src/config/etc/sssd.api.d/crash_test_dummy \
     contrib/ci/README.md \
     contrib/ci/configure.sh \
@@ -3858,6 +3860,21 @@ test_iobuf_CFLAGS = \
 test_iobuf_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
+    $(NULL)
+
+test_confdb_SOURCES = \
+    src/tests/cmocka/confdb/test_confdb.c \
+    $(NULL)
+test_confdb_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_confdb_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(LDB_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
     $(NULL)
 
 EXTRA_simple_access_tests_DEPENDENCIES = \

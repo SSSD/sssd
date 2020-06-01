@@ -45,6 +45,13 @@
 /* SSSD domain name that is used for the auto-configured files domain */
 #define IMPLICIT_FILES_DOMAIN_NAME "implicit_files"
 
+
+static int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
+                                          TALLOC_CTX *ctx, char ***_result);
+static int confdb_get_domain_enabled(struct confdb_ctx *cdb,
+                                     const char *domain, bool *_enabled);
+
+
 static char *prepend_cn(char *str, int *slen, const char *comp, int clen)
 {
     char *ret;
@@ -1557,10 +1564,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    ret = confdb_get_string_as_list(cdb, tmp_ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
-                                    &domlist);
+    ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domlist);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_MINOR_FAILURE, "No domains configured, fatal error!\n");
         goto done;
@@ -2436,5 +2440,150 @@ int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
 done:
     talloc_free(tmp_ctx);
 
+    return ret;
+}
+
+/**
+ * Retrieve the list of enabled domains considering the explicit list
+ * and the 'enabled' attribute.
+ * @param cdb The database configuration context.
+ * @param ctx The memory context.
+ * @param result Output variable where the list of domains will be stored.
+ * @return 0 if the list was retrieved properly, another value on error.
+ */
+static int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
+                                          TALLOC_CTX *ctx, char ***_result)
+{
+    int ret;
+    char **domlist = NULL;
+    char **all_domains = NULL;
+    bool enabled;
+
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    ret = confdb_get_string_as_list(cdb, tmp_ctx,
+                                    CONFDB_MONITOR_CONF_ENTRY,
+                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
+                                    &domlist);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to get [%s] from [%s], error [%d] (%s)\n",
+              CONFDB_MONITOR_ACTIVE_DOMAINS, "sssd",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    ret = confdb_list_all_domain_names(tmp_ctx, cdb, &all_domains);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed retrieving all domain name "
+              "list, error [%d], description '%s'\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    for (int idx = 0; all_domains[idx]; idx++) {
+        ret = confdb_get_domain_enabled(cdb, all_domains[idx], &enabled);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed retrieving 'enabled' attribute from '%s' domain; "
+                  "error [%d], description '%s'\n",
+                  all_domains[idx],
+                  ret, strerror(ret));
+            goto done;
+        }
+
+        if (ret == ENOENT) continue;
+
+        if (enabled && !string_in_list(all_domains[idx], domlist, false)) {
+            ret = add_string_to_list(tmp_ctx, all_domains[idx], &domlist);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                    "Failed adding '%s' domain to domain list; "
+                    "error [%d], description '%s'\n",
+                    all_domains[idx],
+                    ret, strerror(ret));
+                goto done;
+            }
+        }
+
+        if (!enabled && string_in_list(all_domains[idx], domlist, false)) {
+            ret = del_string_from_list(all_domains[idx], &domlist, false);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                    "Failed deleting '%s' domain from domain list; "
+                    "error [%d], description '%s'\n",
+                    all_domains[idx],
+                    ret, strerror(ret));
+                goto done;
+            }
+        }
+    }
+
+    ret = EOK;
+    talloc_steal(ctx, domlist);
+    *_result = domlist;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+
+/**
+ * Retrieve the enabled attribute for a specific domain.
+ * @param cdb The database configuration context.
+ * @param domain The domain name.
+ * @param enabled The output variable; it can not be NULL; if the
+ * domain is explicitely enabled, *enabled is equal to 1; if the
+ * domain is explicitely disabled, *enabled is equal to 0; any
+ * other case, *enabled is -1.
+ * @param Return EOK if the operation happened properly and *enabled
+ * contain the value of the attribute; if no entry found for enabled
+ * attribute it returns ENOENT, else an error code.
+ */
+static int confdb_get_domain_enabled(struct confdb_ctx *cdb,
+                                     const char *domain, bool *_enabled)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *section = NULL;
+    char **values = NULL;
+    int ret = EINVAL;
+
+    section = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL, domain);
+    values = NULL;
+    ret = confdb_get_param(cdb, tmp_ctx, section, CONFDB_DOMAIN_ENABLED, &values);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed retrieving '%s' attribute in '%s' section; "
+              "error [%d], description '%s'\n",
+              CONFDB_DOMAIN_ENABLED, section,
+              ret, strerror(ret));
+        goto done;
+    }
+
+    /* Check return and output value */
+    if (ret == ENOENT || !values || !values[0]) {
+        ret = ENOENT;
+        goto done;
+    }
+    if (values[1]) {
+        /* More than one value it's an invalid configuration file */
+        ret = EINVAL;
+        goto done;
+    }
+    if (0 == strcasecmp(values[0], "true")) {
+        ret = EOK;
+        *_enabled = true;
+        goto done;
+    }
+    if (0 == strcasecmp(values[0], "false")) {
+        ret = EOK;
+        *_enabled = false;
+        goto done;
+    }
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
