@@ -19,19 +19,19 @@ SSSD maintains two release streams - stable and LTM. Releases designated as
 LTM are long-term maintenance releases and will see bugfixes and security
 patches for a longer time than other releases.
 
-The list of all releases is maintained together with [SSSD documentation](https://sssd.github.io/users/releases.html).
+The list of all releases is maintained together with [SSSD documentation](https://sssd.io/docs/users/releases.html).
 
 ## Building and installation from source
-Please see the [our developer documentation](https://sssd.github.io/developers/).
+Please see the [our developer documentation](https://sssd.io/docs/developers/).
 
 ## Documentation
-The most up-to-date documentation can be found at https://sssd.github.io.
+The most up-to-date documentation can be found at https://sssd.io.
 
 Its source code is hosted at https://github.com/SSSD/sssd.github.io.
 
 ## Submitting bugs
 Please file an issue in the [SSSD github instance](https://github.com/SSSD/sssd/issues).
-Make sure to follow the [guide on reporting SSSD bugs](https://sssd.github.io/users/reporting_bugs.html).
+Make sure to follow the [guide on reporting SSSD bugs](https://sssd.io/docs/users/reporting_bugs.html).
 
 ## Licensing
 Please see the file called [COPYING](COPYING).
