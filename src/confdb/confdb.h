@@ -189,6 +189,7 @@
 #define CONFDB_SESSION_RECORDING_GROUPS "groups"
 
 /* Domains */
+#define CONFDB_DOMAIN_ENABLED "enabled"
 #define CONFDB_DOMAIN_PATH_TMPL "config/domain/%s"
 #define CONFDB_DOMAIN_BASEDN "cn=domain,cn=config"
 #define CONFDB_APP_DOMAIN_BASEDN "cn=application,cn=config"

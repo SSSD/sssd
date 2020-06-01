@@ -44,6 +44,10 @@ def create_temp_dir():
     return tempfile.mkdtemp(dir=test_dir)
 
 
+def striplist(l):
+    return([x.strip() for x in l])
+
+
 class SSSDConfigTestValid(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = create_temp_dir()
@@ -580,6 +584,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         options = domain.list_options()
         control_list = [
             'description',
+            'enabled',
             'debug',
             'debug_level',
             'debug_timestamps',
@@ -955,6 +960,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         options = domain.list_options()
         control_list = [
             'description',
+            'enabled',
             'debug',
             'debug_level',
             'debug_timestamps',
@@ -2129,6 +2135,88 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                                     'value': [{'type': 'option',
                                                'name': 'debug_level',
                                                'value': '0xfC10'}]})
+
+    def testEnabledOption(self):
+        """Test the new enabled option."""
+        # Positive Test
+        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                           srcdir + "/etc/sssd.api.d")
+        sssdconfig.import_config(srcdir + "/testconfigs/sssd-enabled-option.conf")
+
+        # Verify that all sections were imported
+        control_list = [
+            'nss',
+            'sssd',
+            'pam',
+            'domain/enabled_1',
+            'domain/enabled_2',
+            'domain/enabled_3',
+            'domain/disabled_1',
+            'domain/disabled_2',
+            'domain/disabled_3',
+            ]
+
+        for section in control_list:
+            self.assertTrue(sssdconfig.has_section(section),
+                            "Section [%s] missing" %
+                            section)
+        for section in sssdconfig.sections():
+            self.assertTrue(section['name'] in control_list)
+
+        # Verify that all options were imported for [sssd] section
+        control_list = [
+            'services',
+            'reconnection_retries',
+            'domains',
+            'config_file_version',
+            'debug_timestamps']
+
+        for option in control_list:
+            self.assertTrue(sssdconfig.has_option('sssd', option),
+                            "Option [%s] missing from [sssd]" %
+                            option)
+        for option in sssdconfig.options('sssd'):
+            if option['type'] in ('empty', 'comment'):
+                continue
+            self.assertTrue(option['name'] in control_list,
+                            "Option [%s] unexpectedly found" %
+                            option)
+
+        # Verify enabled domains
+        control_list = [
+            'enabled_1',
+            'enabled_2',
+            'enabled_3']
+
+        if (sssdconfig.has_option('sssd', 'domains')):
+            sssd_domains = striplist(sssdconfig.get('sssd', 'domains').split(','))
+            domain_dict = dict.fromkeys(sssd_domains)
+            if '' in domain_dict:
+                del domain_dict['']
+            sssd_domains = list(domain_dict)
+        else:
+            sssd_domains = []
+
+        for domain in sssdconfig.list_active_domains():
+            self.assertTrue(domain in control_list,
+                            "Domain [domain/%s] should be disabled" % domain)
+        for domain in control_list:
+            self.assertTrue(domain in sssdconfig.list_active_domains(),
+                            "Domain [domain/%s] should be enabled" % domain)
+
+        # Verify disabled domains
+        control_list = [
+            'disabled_1',
+            'disabled_2',
+            'disabled_3']
+
+        for domain in sssdconfig.list_inactive_domains():
+            self.assertTrue(domain in control_list,
+                            "Domain [domain/%s] should be enabled" % domain)
+        for domain in control_list:
+            self.assertTrue(domain in sssdconfig.list_inactive_domains(),
+                            "Domain [domain/%s] should be disabled" % domain)
+
 
 
 if __name__ == "__main__":
