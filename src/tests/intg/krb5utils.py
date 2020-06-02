@@ -98,7 +98,7 @@ class Krb5Utils(object):
         if retval != 0:
             return 0
 
-        outlines = [l for l in out.split('\n') if len(l) > 1]
+        outlines = [ln for ln in out.split('\n') if len(ln) > 1]
         return len(outlines) - 2
 
     def list_princs(self, env=None):
@@ -113,7 +113,7 @@ class Krb5Utils(object):
         if len(outlines) < 2:
             raise Exception("Not enough output from klist -l")
 
-        return [l for l in outlines[2:] if len(l) > 0]
+        return [ln for ln in outlines[2:] if len(ln) > 0]
 
     def has_principal(self, exp_principal, exp_cache=None, env=None):
         try:
@@ -137,7 +137,7 @@ class Krb5Utils(object):
         thisrealm = None
         ccache_dict = dict()
 
-        for line in [l for l in out.split('\n') if len(l) > 0]:
+        for line in [ln for ln in out.split('\n') if len(ln) > 0]:
             if line.startswith("Default principal"):
                 dflprinc = line.split()[2]
                 thisrealm = '@' + dflprinc.split('@')[1]
