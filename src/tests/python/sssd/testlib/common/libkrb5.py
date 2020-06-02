@@ -30,14 +30,8 @@ class krb5srv(object):
         self.krb5_log_file = '/var/log/krb5kdc.log'
         self.admin_keytab = '%s/kadm5.keytab' % (self.krb5_kdc_data_dir)
         self.kadmin_log_file = '/var/log/kadmind.log'
-        self.enc_type = ['aes256-cts:normal', 'aes128-cts:normal',
-                         'des3-hmac-sha1:normal', 'arcfour-hmac:normal',
-                         'camellia256-cts:normal', 'camellia128-cts:normal',
-                         'des-hmac-sha1:normal', 'des-cbc-md5:normal',
-                         'des-cbc-crc:normal']
         self.krb_acl_file = '%s/kadm5.acl' % (self.krb5_kdc_data_dir)
         self.admin_keytab = '%s/kadm5.keytab' % (self.krb5_kdc_data_dir)
-        self.supported_enctypes = ' '.join(self.enc_type)
         self.kdc_conf = '%s/kdc.conf' % (self.krb5_kdc_data_dir)
 
     def _config_krb5kdc(self):
@@ -48,10 +42,8 @@ class krb5srv(object):
         realm_def = """ {
         acl_file = %s
         admin_keytab = %s
-        supported_enctypes = %s
         } """ % (self.krb_acl_file,
-                 self.admin_keytab,
-                 self.supported_enctypes)
+                 self.admin_keytab)
         config = ConfigParser.RawConfigParser()
         config.optionxform = str
         config.add_section('kdcdefaults')
