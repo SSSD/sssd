@@ -51,7 +51,7 @@ class LocalTest(unittest.TestCase):
 
         kw = {}
         for key, value in \
-                [l.split(':') for l in output.split('\n') if ":" in l]:
+                [ln.split(':') for ln in output.split('\n') if ":" in ln]:
             kw[key] = value.strip()
 
         del kw['asq']
@@ -99,7 +99,7 @@ class LocalTest(unittest.TestCase):
             return []
 
         members = [value.strip() for key, value in
-                   [l.split(':') for l in output.split('\n') if ":" in l]
+                   [ln.split(':') for ln in output.split('\n') if ":" in ln]
                    if key == "memberof"]
         return members
 
