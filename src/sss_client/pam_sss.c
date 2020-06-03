@@ -1799,8 +1799,13 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     struct pam_message m[2] = { { 0 }, { 0 } };
     struct pam_response *resp = NULL;
     struct cert_auth_info *cai = pi->selected_cert;
+    struct cert_auth_info empty_cai = { NULL, NULL, discard_const("Smartcard"),
+                                        NULL, NULL, NULL, NULL, NULL };
 
-    if (cai == NULL || cai->token_name == NULL || *cai->token_name == '\0') {
+    if (cai == NULL && SERVICE_IS_GDM_SMARTCARD(pi)) {
+        cai = &empty_cai;
+    } else if (cai == NULL || cai->token_name == NULL
+                    || *cai->token_name == '\0') {
         return EINVAL;
     }
 
@@ -2147,6 +2152,9 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                     }
                 }
                 ret = prompt_sc_pin(pamh, pi);
+            } else if (SERVICE_IS_GDM_SMARTCARD(pi)) {
+               /* Use pin prompt as fallback for gdm-smartcard */
+                ret = prompt_sc_pin(pamh, pi);
             } else {
                 ret = prompt_password(pamh, pi, _("Password: "));
             }
@@ -2444,7 +2452,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 {
     int ret;
     int pam_status;
-    struct pam_items pi;
+    struct pam_items pi = { 0 };
     uint32_t flags = 0;
     const int *exp_data;
     int *pw_exp_data;
@@ -2503,7 +2511,8 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                         /*
                          * Since we are only interested in the result message
                          * and will always use password authentication
-                         * as a fallback, errors can be ignored here.
+                         * as a fallback (except for gdm-smartcard),
+                         * errors can be ignored here.
                          */
                     }
                 }
@@ -2512,7 +2521,6 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                     ret = check_login_token_name(pamh, &pi, quiet_mode);
                     if (ret != PAM_SUCCESS) {
                         D(("check_login_token_name failed.\n"));
-                        return ret;
                     }
                 }
 
