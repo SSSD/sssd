@@ -71,6 +71,8 @@
 #define DEBUG_MGS_LEN 1024
 #define MAX_AUTHTOK_SIZE (1024*1024)
 #define CHECK_AND_RETURN_PI_STRING(s) ((s != NULL && *s != '\0')? s : "(not available)")
+#define SERVICE_IS_GDM_SMARTCARD(pitem) (strcmp((pitem)->pam_service, \
+                                                "gdm-smartcard") == 0)
 
 static void logger(pam_handle_t *pamh, int level, const char *fmt, ...) {
     va_list ap;
@@ -2580,7 +2582,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                     return PAM_AUTHINFO_UNAVAIL;
                 }
 
-                if (strcmp(pi.pam_service, "gdm-smartcard") == 0
+                if (SERVICE_IS_GDM_SMARTCARD(&pi)
                         || (flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)) {
                     ret = check_login_token_name(pamh, &pi, retries,
                                                  quiet_mode);
