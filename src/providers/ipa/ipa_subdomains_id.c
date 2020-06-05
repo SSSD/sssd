@@ -208,6 +208,20 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
                                    &state->override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
+        ret = sdap_id_op_done(state->op, ret, &dp_error);
+
+        if (dp_error == DP_ERR_OK && ret != EOK) {
+            /* retry */
+            subreq = sdap_id_op_connect_send(state->op, state, &ret);
+            if (subreq == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed.\n");
+                goto fail;
+            }
+            tevent_req_set_callback(subreq, ipa_subdomain_account_connected,
+                                    req);
+            return;
+        }
+
         DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
         goto fail;
     }
