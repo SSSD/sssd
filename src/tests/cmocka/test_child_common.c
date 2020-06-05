@@ -97,7 +97,7 @@ void test_exec_child(void **state)
         exec_child(child_tctx,
                    child_tctx->pipefd_to_child,
                    child_tctx->pipefd_from_child,
-                   CHILD_DIR"/"TEST_BIN, 2);
+                   CHILD_DIR"/"TEST_BIN, NULL);
     } else {
             do {
                 errno = 0;
@@ -168,7 +168,7 @@ static void extra_args_test(struct child_test_ctx *child_tctx,
         exec_child_ex(child_tctx,
                       child_tctx->pipefd_to_child,
                       child_tctx->pipefd_from_child,
-                      CHILD_DIR"/"TEST_BIN, 2, extra_args,
+                      CHILD_DIR"/"TEST_BIN, NULL, extra_args,
                       extra_args_only,
                       STDIN_FILENO, STDOUT_FILENO);
     } else {
@@ -291,7 +291,7 @@ void test_exec_child_handler(void **state)
         exec_child(child_tctx,
                    child_tctx->pipefd_to_child,
                    child_tctx->pipefd_from_child,
-                   CHILD_DIR"/"TEST_BIN, 2);
+                   CHILD_DIR"/"TEST_BIN, NULL);
     }
 
     ret = child_handler_setup(child_tctx->test_ctx->ev, child_pid,
@@ -341,7 +341,7 @@ void test_exec_child_echo(void **state)
         exec_child_ex(child_tctx,
                       child_tctx->pipefd_to_child,
                       child_tctx->pipefd_from_child,
-                      CHILD_DIR"/"TEST_BIN, 2, NULL, false,
+                      CHILD_DIR"/"TEST_BIN, NULL, NULL, false,
                       STDIN_FILENO, 3);
     }
 
@@ -474,7 +474,7 @@ void test_sss_child(void **state)
         exec_child(child_tctx,
                    child_tctx->pipefd_to_child,
                    child_tctx->pipefd_from_child,
-                   CHILD_DIR"/"TEST_BIN, 2);
+                   CHILD_DIR"/"TEST_BIN, NULL);
     }
 
     ret = sss_child_register(child_tctx, sc_ctx,
