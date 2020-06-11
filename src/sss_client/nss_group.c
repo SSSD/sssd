@@ -92,7 +92,11 @@ static enum nss_status sss_nss_get_getgr_cache(const char *name, gid_t gid,
 
     switch (type) {
     case GETGR_NAME:
-        ret = strcmp(name, sss_nss_getgr_data.id.grname);
+        if (name != NULL) {
+            ret = strcmp(name, sss_nss_getgr_data.id.grname);
+        } else {
+            ret = -1;
+        }
         if (ret != 0) {
             status = NSS_STATUS_NOTFOUND;
             goto done;
