@@ -97,7 +97,7 @@
                             hostname or discovery domain.
                         </para>
                         <para>
-                            Default: 2
+                            Default: 3
                         </para>
                     </listitem>
                 </varlistentry>
@@ -113,7 +113,7 @@
                             queries or locating the site.
                         </para>
                         <para>
-                            Default: 4
+                            Default: 6
                         </para>
                     </listitem>
                 </varlistentry>
