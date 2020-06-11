@@ -1356,7 +1356,7 @@ static void kcm_op_get_cache_uuid_list_done(struct tevent_req *subreq)
         return;
     }
 
-    if (uuid_list == NULL || uuid_list[0] == NULL) {
+    if (uuid_list == NULL || uuid_is_null(uuid_list[0])) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Nothing to list\n");
         state->op_ret = ERR_NO_MATCHING_CREDS;
         tevent_req_done(req);
