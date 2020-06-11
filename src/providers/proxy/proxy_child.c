@@ -479,7 +479,7 @@ int main(int argc, const char *argv[])
     char *conf_entry = NULL;
     struct main_context *main_ctx;
     int ret;
-    long id;
+    long id = 0;
     char *pam_target = NULL;
     uid_t uid;
     gid_t gid;
