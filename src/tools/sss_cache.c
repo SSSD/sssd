@@ -160,7 +160,7 @@ int main(int argc, const char *argv[])
      * https://github.com/systemd/systemd/pull/7631
      */
     const char *systemd_offline = getenv ("SYSTEMD_OFFLINE");
-    if (systemd_offline && strcmp (systemd_offline, "1") == 0 && access(DB_PATH, W_OK) != 0) {
+    if (systemd_offline && strcmp (systemd_offline, "1") == 0) {
         return 0;
     }
 
