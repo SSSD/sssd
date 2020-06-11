@@ -337,22 +337,22 @@ static int sssd_supplementary_group(struct nss_ctx *nss_ctx)
             ret = ENOMEM;
             goto done;
         }
-    }
 
-    size = getgroups(size, supp_gids);
-    if (size == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Getgroups failed! (%d, %s)\n",
-                                    ret, sss_strerror(ret));
-        goto done;
-    }
-
-    for (int i = 0; i < size; i++) {
-        if (supp_gids[i] == nss_ctx->mc_gid) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  "Already assigned to the SSSD supplementary group\n");
-            ret = EOK;
+        size = getgroups(size, supp_gids);
+        if (size == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "Getgroups failed! (%d, %s)\n",
+                                        ret, sss_strerror(ret));
             goto done;
+        }
+
+        for (int i = 0; i < size; i++) {
+            if (supp_gids[i] == nss_ctx->mc_gid) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "Already assigned to the SSSD supplementary group\n");
+                ret = EOK;
+                goto done;
+            }
         }
     }
 
