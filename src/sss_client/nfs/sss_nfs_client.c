@@ -82,7 +82,11 @@ static int get_uid_from_mc(id_t *uid, const char *name)
         return -1;
     }
 
-    sss_strnlen(name, SSS_NAME_MAX, &len);
+    rc = sss_strnlen(name, SSS_NAME_MAX, &len);
+    if (rc != 0) {
+        IDMAP_LOG(0, ("%s: no-strnlen; rc=%i", __func__, rc));
+        return rc;
+    }
 
     do {
         buflen += BUF_LEN;
@@ -119,7 +123,11 @@ static int get_gid_from_mc(id_t *gid, const char *name)
         return -1;
     }
 
-    sss_strnlen(name, SSS_NAME_MAX, &len);
+    rc = sss_strnlen(name, SSS_NAME_MAX, &len);
+    if (rc != 0) {
+        IDMAP_LOG(0, ("%s: no-strnlen; rc=%i", __func__, rc));
+        return rc;
+    }
 
     do {
         buflen += BUF_LEN;
@@ -233,7 +241,11 @@ static int name_to_id(const char *name, id_t *id, enum sss_cli_command cmd)
     size_t rep_len = 0;
     size_t name_len;
 
-    sss_strnlen(name, SSS_NAME_MAX, &name_len);
+    rc = sss_strnlen(name, SSS_NAME_MAX, &name_len);
+    if (rc != 0) {
+        IDMAP_LOG(0, ("%s: no-strnlen; rc=%i", __func__, rc));
+        return rc;
+    }
 
     rc = send_recv(&rep, &rep_len, cmd, name, name_len + 1);
     if (rc == 0) {
