@@ -319,7 +319,9 @@ static void snotify_internal_cb(struct tevent_context *ev,
 
             in_event = (const struct inotify_event *) ptr;
 
-            //debug_flags(in_event->mask, in_event->name);
+#if 0
+            debug_flags(in_event->mask, in_event->name);
+#endif
 
             if (snctx->wctx->dir_wd == in_event->wd) {
                 ret = process_dir_event(snctx, in_event);
@@ -343,7 +345,6 @@ static void snotify_internal_cb(struct tevent_context *ev,
             } else {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Unknown watch %d\n", in_event->wd);
-                ret = EOK;
             }
         }
     }
