@@ -286,7 +286,7 @@ static void snotify_internal_cb(struct tevent_context *ev,
     struct snotify_ctx *snctx;
     ssize_t len;
     errno_t ret;
-    bool rewatch;
+    bool rewatch = false;
 
     snctx = talloc_get_type(data, struct snotify_ctx);
     if (snctx == NULL) {
@@ -305,7 +305,7 @@ static void snotify_internal_cb(struct tevent_context *ev,
             } else {
                 DEBUG(SSSDBG_TRACE_INTERNAL, "All inotify events processed\n");
             }
-            return;
+            break;
         }
 
         if ((size_t) len < sizeof(struct inotify_event)) {
@@ -325,26 +325,22 @@ static void snotify_internal_cb(struct tevent_context *ev,
 
             if (snctx->wctx->dir_wd == in_event->wd) {
                 ret = process_dir_event(snctx, in_event);
-                if (ret == EAGAIN) {
-                    rewatch = true;
-                    /* Continue with the loop and read all the events from
-                     * this descriptor first, then rewatch when done
-                     */
-                } else if (ret != EOK) {
-                    DEBUG(SSSDBG_MINOR_FAILURE,
-                        "Failed to process inotify event\n");
-                    continue;
-                }
             } else if (snctx->wctx->file_wd == in_event->wd) {
                 ret = process_file_event(snctx, in_event);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_MINOR_FAILURE,
-                        "Failed to process inotify event\n");
-                    continue;
-                }
             } else {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Unknown watch %d\n", in_event->wd);
+                ret = EOK;
+            }
+
+            if (ret == EAGAIN) {
+                rewatch = true;
+                /* Continue with the loop and read all the events from
+                 * this descriptor first, then rewatch when done
+                 */
+            } else if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Failed to process inotify event\n");
             }
         }
     }
