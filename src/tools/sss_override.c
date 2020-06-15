@@ -1565,7 +1565,7 @@ static int override_user_import(struct sss_cmdline *cmdline,
     TALLOC_CTX *tmp_ctx;
     struct sss_colondb *db;
     const char *filename;
-    struct override_user obj;
+    struct override_user obj = {0};
     int linenum = 1;
     errno_t ret;
 
@@ -1821,7 +1821,7 @@ static int override_group_import(struct sss_cmdline *cmdline,
     TALLOC_CTX *tmp_ctx;
     struct sss_colondb *db;
     const char *filename;
-    struct override_group obj;
+    struct override_group obj = {0};
     int linenum = 1;
     errno_t ret;
 
