@@ -784,13 +784,13 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     size_t count;
     const char *key;
     const char *val;
-    char **sysdb_entrylist;
-    char **ldap_entrylist;
-    char **add_entries;
-    char **del_entries;
+    char **sysdb_entrylist = NULL;
+    char **ldap_entrylist = NULL;
+    char **add_entries = NULL;
+    char **del_entries = NULL;
     size_t i, j;
 
-    hash_table_t *entry_hash;
+    hash_table_t *entry_hash = NULL;
     hash_key_t hkey;
     hash_value_t value;
     int hret;
