@@ -768,7 +768,6 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
     memcpy(&data->strs[pos], homedir->str, homedir->len);
     pos += homedir->len;
     memcpy(&data->strs[pos], shell->str, shell->len);
-    pos += shell->len;
 
     MC_LOWER_BARRIER(rec);
 
@@ -907,7 +906,6 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
     memcpy(&data->strs[pos], pw->str, pw->len);
     pos += pw->len;
     memcpy(&data->strs[pos], membuf, memsize);
-    pos += memsize;
 
     MC_LOWER_BARRIER(rec);
 
