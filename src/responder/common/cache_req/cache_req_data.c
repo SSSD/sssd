@@ -46,8 +46,6 @@ cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    i = 0;
-
     for (i = 0; i < reqnum; i++) {
         attrs[i] = talloc_strdup(attrs, requested[i]);
         if (attrs[i] == NULL) {
@@ -56,7 +54,7 @@ cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
         }
     }
 
-    for (; i < total; i++) {
+    for (/* continue */; i < total; i++) {
         attrs[i] = talloc_strdup(attrs, defattrs[i - reqnum]);
         if (attrs[i] == NULL) {
             talloc_free(attrs);
