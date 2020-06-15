@@ -1037,9 +1037,7 @@ ipa_deskprofile_rules_remove_user_dir(const char *user_dir,
     }
 
     ret = sss_remove_tree(user_dir);
-    if (ret == ENOENT) {
-        ret = EOK;
-    } else if (ret != EOK) {
+    if ((ret != EOK) && (ret != ENOENT)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot remove \"%s\" directory [%d]: %s\n",
               user_dir, ret, sss_strerror(ret));
