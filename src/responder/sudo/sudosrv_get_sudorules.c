@@ -177,7 +177,7 @@ static errno_t sudosrv_format_rules(struct resp_ctx *rctx,
                                     uint32_t num_rules)
 {
     uint32_t i;
-    errno_t ret;
+    errno_t ret = EOK;
 
 
     for (i = 0; i < num_rules; i++) {
