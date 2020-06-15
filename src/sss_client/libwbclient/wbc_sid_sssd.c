@@ -149,7 +149,10 @@ wbcErr wbcLookupSid(const struct wbcDomainSid *sid,
     if (pdomain != NULL) {
         *pdomain = wbcStrDup(p + 1);
         if (*pdomain == NULL) {
-            wbcFreeMemory(*pname);
+            if (pname != NULL) {
+                wbcFreeMemory(*pname);
+            }
+
             wbc_status = WBC_ERR_NO_MEMORY;
             goto done;
         }
