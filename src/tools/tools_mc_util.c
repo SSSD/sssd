@@ -244,14 +244,13 @@ enum sss_tools_ent {
 
 static errno_t sss_mc_refresh_ent(const char *name, enum sss_tools_ent ent)
 {
-    enum sss_cli_command cmd;
+    enum sss_cli_command cmd = SSS_CLI_NULL;
     struct sss_cli_req_data rd;
     uint8_t *repbuf = NULL;
     size_t replen;
     enum nss_status nret;
     errno_t ret;
 
-    cmd = SSS_CLI_NULL;
     switch (ent) {
         case SSS_TOOLS_USER:
             cmd = SSS_NSS_GETPWNAM;
