@@ -188,7 +188,6 @@ nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
     }
 
     SAFEALIGN_COPY_UINT32(&flags, p, NULL);
-    p += sizeof(uint32_t);
 
     *_rawname = rawname;
     *_flags = flags;
