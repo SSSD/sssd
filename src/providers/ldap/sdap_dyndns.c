@@ -655,7 +655,7 @@ sdap_dyndns_add_ldap_conn(struct sdap_dyndns_get_addrs_state *state,
 {
     int ret;
     int fd;
-    struct sockaddr_storage ss;
+    struct sockaddr_storage ss = {0};
     socklen_t ss_len = sizeof(ss);
 
     if (sh == NULL) {
