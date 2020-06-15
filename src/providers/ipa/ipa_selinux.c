@@ -1550,7 +1550,6 @@ ipa_selinux_handler_send(TALLOC_CTX *mem_ctx,
                                  IPA_HOSTNAME);
     if (hostname == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot determine this machine's host name\n");
-        ret = EINVAL;
         goto immediately;
     }
 
@@ -1628,7 +1627,6 @@ static void ipa_selinux_handler_get_done(struct tevent_req *subreq)
      */
     subreq = selinux_child_send(state, state->ev, sci);
     if (subreq == NULL) {
-        ret = ENOMEM;
         goto done;
     }
     tevent_req_set_callback(subreq, ipa_selinux_handler_done, req);
