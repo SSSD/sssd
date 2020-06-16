@@ -146,6 +146,7 @@ int sss_ncache_set_locate_uid(struct sss_nc_ctx *ctx,
                               uid_t uid);
 
 int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx);
+/* sss_ncache_reset_[users/groups] skips permanent entries */
 int sss_ncache_reset_users(struct sss_nc_ctx *ctx);
 int sss_ncache_reset_groups(struct sss_nc_ctx *ctx);
 
