@@ -900,9 +900,18 @@ static int delete_prefix(struct tdb_context *tdb,
                          TDB_DATA key, TDB_DATA data, void *state)
 {
     const char *prefix = (const char *) state;
+    unsigned long long int timestamp;
+    char *ep = NULL;
 
     if (strncmp((char *)key.dptr, prefix, strlen(prefix) - 1) != 0) {
         /* not interested in this key */
+        return 0;
+    }
+
+    errno = 0;
+    timestamp = strtoull((const char *)data.dptr, &ep, 10);
+    if ((errno == 0) && (*ep == '\0') && (timestamp == 0)) {
+        /* skip permanent entries */
         return 0;
     }
 
