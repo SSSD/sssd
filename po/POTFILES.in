@@ -1,6 +1,7 @@
 # List of source files which contain translatable strings.
 src/confdb/confdb_setup.c
 src/config/SSSDConfig/__init__.py.in
+src/config/SSSDConfig/sssdoptions.py
 src/monitor/monitor.c
 src/providers/krb5/krb5_child.c
 src/providers/ldap/ldap_child.c
