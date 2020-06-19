@@ -2467,6 +2467,8 @@ static int check_login_token_name(pam_handle_t *pamh, struct pam_items *pi,
                         && strcmp(login_token_name,
                                   pi->cert_list->token_name) != 0)) {
 
+        free_cert_list(pi->cert_list);
+        pi->cert_list = NULL;
         if (retries < 0) {
             ret = PAM_AUTHINFO_UNAVAIL;
             goto done;
