@@ -1036,10 +1036,14 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     }
 
     /* free old one and replace with new one */
-    talloc_zfree(service->sdap->uri);
-    service->sdap->uri = new_uri;
-    talloc_zfree(service->sdap->sockaddr);
-    service->sdap->sockaddr = talloc_steal(service->sdap, sockaddr);
+    if (sdata == NULL || !sdata->gc) {
+        /* do not update LDAP data during GC lookups because the selected server
+         * might be from a different domain. */
+        talloc_zfree(service->sdap->uri);
+        service->sdap->uri = new_uri;
+        talloc_zfree(service->sdap->sockaddr);
+        service->sdap->sockaddr = talloc_steal(service->sdap, sockaddr);
+    }
 
     talloc_zfree(service->gc->uri);
     talloc_zfree(service->gc->sockaddr);
