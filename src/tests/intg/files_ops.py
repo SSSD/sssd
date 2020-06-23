@@ -103,6 +103,13 @@ class FilesOps(object):
 
         contents = self._read_contents()
 
+    def _has_line(self, key):
+        try:
+            self._get_named_line(key, self._read_contents())
+            return True
+        except KeyError:
+            return False
+
 
 class PasswdOps(FilesOps):
     """
@@ -132,6 +139,9 @@ class PasswdOps(FilesOps):
     def userdel(self, name):
         self._del_line(name)
 
+    def userexist(self, name):
+        return self._has_line(name)
+
 
 class GroupOps(FilesOps):
     """
@@ -158,3 +168,6 @@ class GroupOps(FilesOps):
 
     def groupdel(self, name):
         self._del_line(name)
+
+    def groupexist(self, name):
+        return self._has_line(name)
