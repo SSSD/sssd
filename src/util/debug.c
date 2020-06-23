@@ -45,7 +45,7 @@ int debug_to_file = 0;
 int debug_to_stderr = 0;
 enum sss_logger_t sss_logger;
 const char *debug_log_file = "sssd";
-FILE *debug_file = NULL;
+static FILE *debug_file;
 
 const char *sss_logger_str[] = {
         [STDERR_LOGGER] = "stderr",
@@ -465,31 +465,33 @@ int rotate_debug_files(void)
 
     if (sss_logger != FILES_LOGGER) return EOK;
 
-    do {
-        error = 0;
-        ret = fclose(debug_file);
-        if (ret != 0) {
-            error = errno;
+    if (debug_file != NULL) {
+        do {
+            error = 0;
+            ret = fclose(debug_file);
+            if (ret != 0) {
+                error = errno;
+            }
+
+            /* Check for EINTR, which means we should retry
+             * because the system call was interrupted by a
+             * signal
+             */
+        } while (error == EINTR);
+
+        if (error != 0) {
+            /* Even if we were unable to close the debug log, we need to make
+             * sure that we open up a new one. Log rotation will remove the
+             * current file, so all debug messages will be disappearing.
+             *
+             * We should write an error to the syslog warning of the resource
+             * leak and then proceed with opening the new file.
+             */
+            sss_log(SSS_LOG_ALERT, "Could not close debug file [%s]. [%d][%s]\n",
+                                   debug_log_file, error, strerror(error));
+            sss_log(SSS_LOG_ALERT, "Attempting to open new file anyway. "
+                                   "Be aware that this is a resource leak\n");
         }
-
-        /* Check for EINTR, which means we should retry
-         * because the system call was interrupted by a
-         * signal
-         */
-    } while (error == EINTR);
-
-    if (error != 0) {
-        /* Even if we were unable to close the debug log, we need to make
-         * sure that we open up a new one. Log rotation will remove the
-         * current file, so all debug messages will be disappearing.
-         *
-         * We should write an error to the syslog warning of the resource
-         * leak and then proceed with opening the new file.
-         */
-        sss_log(SSS_LOG_ALERT, "Could not close debug file [%s]. [%d][%s]\n",
-                               debug_log_file, error, strerror(error));
-        sss_log(SSS_LOG_ALERT, "Attempting to open new file anyway. "
-                               "Be aware that this is a resource leak\n");
     }
 
     debug_file = NULL;
