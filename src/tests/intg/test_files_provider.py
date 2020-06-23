@@ -60,10 +60,12 @@ OV_USER1 = dict(name='ov_user1', passwd='x', uid=10010, gid=20010,
                 dir='/home/ov/user1',
                 shell='/bin/ov_user1_shell')
 
-ALT_USER1 = dict(name='altuser1', passwd='x', uid=60001, gid=70001,
+ALT_USER1 = dict(name='alt_user1', passwd='x', uid=60001, gid=70001,
                  gecos='User for tests from alt files',
                  dir='/home/altuser1',
                  shell='/bin/bash')
+
+ALL_USERS = [CANARY, USER1, USER2, OV_USER1, ALT_USER1]
 
 CANARY_GR = dict(name='canary',
                  gid=300001,
@@ -365,21 +367,34 @@ def setup_pw_with_canary(passwd_ops_setup):
     return setup_pw_with_list(passwd_ops_setup, [CANARY])
 
 
-def setup_gr_with_list(grp_ops, group_list):
+def add_group_members(pwd_ops, group):
+    members = {x['name']: x for x in ALL_USERS}
+    for member in group['mem']:
+        if pwd_ops.userexist(member):
+            continue
+
+        pwd_ops.useradd(**members[member])
+
+
+def setup_gr_with_list(pwd_ops, grp_ops, group_list):
     for group in group_list:
+        add_group_members(pwd_ops, group)
         grp_ops.groupadd(**group)
+
     ent.assert_group_by_name(CANARY_GR['name'], CANARY_GR)
     return grp_ops
 
 
 @pytest.fixture
-def add_group_with_canary(group_ops_setup):
-    return setup_gr_with_list(group_ops_setup, [GROUP1, CANARY_GR])
+def add_group_with_canary(passwd_ops_setup, group_ops_setup):
+    return setup_gr_with_list(
+        passwd_ops_setup, group_ops_setup, [GROUP1, CANARY_GR]
+    )
 
 
 @pytest.fixture
-def setup_gr_with_canary(group_ops_setup):
-    return setup_gr_with_list(group_ops_setup, [CANARY_GR])
+def setup_gr_with_canary(passwd_ops_setup, group_ops_setup):
+    return setup_gr_with_list(passwd_ops_setup, group_ops_setup, [CANARY_GR])
 
 
 def poll_canary(fn, name, threshold=20):
@@ -766,7 +781,9 @@ def test_gid_zero_does_not_resolve(files_domain_only):
     assert res == NssReturnCode.NOTFOUND
 
 
-def test_add_remove_add_file_group(setup_gr_with_canary, files_domain_only):
+def test_add_remove_add_file_group(
+        setup_pw_with_canary, setup_gr_with_canary, files_domain_only
+):
     """
     Test that removing a group is detected and the group
     is removed from the sssd database. Similarly, an add
@@ -776,6 +793,7 @@ def test_add_remove_add_file_group(setup_gr_with_canary, files_domain_only):
     res, group = call_sssd_getgrnam(GROUP1["name"])
     assert res == NssReturnCode.NOTFOUND
 
+    add_group_members(setup_pw_with_canary, GROUP1)
     setup_gr_with_canary.groupadd(**GROUP1)
     check_group(GROUP1)
 
@@ -817,8 +835,10 @@ def test_mod_group_gid(add_group_with_canary, files_domain_only):
 
 
 @pytest.fixture
-def add_group_nomem_with_canary(group_ops_setup):
-    return setup_gr_with_list(group_ops_setup, [GROUP_NOMEM, CANARY_GR])
+def add_group_nomem_with_canary(passwd_ops_setup, group_ops_setup):
+    return setup_gr_with_list(
+        passwd_ops_setup, group_ops_setup, [GROUP_NOMEM, CANARY_GR]
+    )
 
 
 def test_getgrnam_no_members(add_group_nomem_with_canary, files_domain_only):
@@ -911,16 +931,19 @@ def test_getgrnam_ghost(setup_pw_with_canary,
                         setup_gr_with_canary,
                         files_domain_only):
     """
-    Test that a group with members while the members are not present
-    are added as ghosts. This is also what nss_files does, getgrnam would
-    return group members that do not exist as well.
+    Test that group if not found (and will be handled by nss_files) if there
+    are any ghost members.
     """
     user_and_group_setup(setup_pw_with_canary,
                          setup_gr_with_canary,
                          [],
                          [GROUP12],
                          False)
-    check_group(GROUP12)
+
+    time.sleep(1)
+    res, group = call_sssd_getgrnam(GROUP12["name"])
+    assert res == NssReturnCode.NOTFOUND
+
     for member in GROUP12['mem']:
         res, _ = call_sssd_getpwnam(member)
         assert res == NssReturnCode.NOTFOUND
@@ -932,7 +955,10 @@ def ghost_and_member_test(pw_ops, grp_ops, reverse):
                          [USER1],
                          [GROUP12],
                          reverse)
-    check_group(GROUP12)
+
+    time.sleep(1)
+    res, group = call_sssd_getgrnam(GROUP12["name"])
+    assert res == NssReturnCode.NOTFOUND
 
     # We checked that the group added has the same members as group12,
     # so both user1 and user2. Now check that user1 is a member of
@@ -1027,27 +1053,20 @@ def test_getgrnam_add_remove_ghosts(setup_pw_with_canary,
     modgroup = dict(GROUP_NOMEM)
     modgroup['mem'] = ['user1', 'user2']
     add_group_nomem_with_canary.groupmod(old_name=modgroup['name'], **modgroup)
-    check_group(modgroup)
+    time.sleep(1)
+    res, group = call_sssd_getgrnam(modgroup['name'])
+    assert res == sssd_id.NssReturnCode.NOTFOUND
 
     modgroup['mem'] = ['user2']
     add_group_nomem_with_canary.groupmod(old_name=modgroup['name'], **modgroup)
-    check_group(modgroup)
+    time.sleep(1)
+    res, group = call_sssd_getgrnam(modgroup['name'])
+    assert res == sssd_id.NssReturnCode.NOTFOUND
 
     res, _ = call_sssd_getpwnam('user1')
     assert res == NssReturnCode.NOTFOUND
     res, _ = call_sssd_getpwnam('user2')
     assert res == NssReturnCode.NOTFOUND
-
-    # Add this user and verify it's been added as a member
-    pwd_ops.useradd(**USER2)
-    # The negative cache might still have user2 from the previous request,
-    # flushing the caches might help to prevent a failed lookup after adding
-    # the user.
-    subprocess.call(["sss_cache", "-E"])
-    res, groups = sssd_id_sync('user2')
-    assert res == sssd_id.NssReturnCode.SUCCESS
-    assert len(groups) == 2
-    assert 'group_nomem' in groups
 
 
 def realloc_users(pwd_ops, num):
