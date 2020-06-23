@@ -879,6 +879,10 @@ convert_ext_user(TALLOC_CTX *mem_ctx,
                  const char *value,
                  bool *skip_entry)
 {
+    /* If value is already fully qualified, return it as it is */
+    if (strrchr(value, '@') != NULL) {
+        return talloc_strdup(mem_ctx, value);
+    }
     return sss_create_internal_fqname(mem_ctx, value, conv->dom->name);
 }
 
