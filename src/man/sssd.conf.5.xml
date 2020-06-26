@@ -1135,11 +1135,17 @@ fallback_homedir = /home/%u
                             <quote>password</quote> field.
                         </para>
                         <para>
-                            This option can also be set per-domain.
+                            Default: <quote>*</quote>
                         </para>
                         <para>
-                            Default: <quote>*</quote> (remote domains)
-                            or <quote>x</quote> (the files domain)
+                            Note: This option can also be set per-domain which
+                            overwrites the value in [nss] section.
+                        </para>
+                        <para>
+                            Default: <quote>not set</quote> (remote domains),
+                            <quote>x</quote> (the files domain),
+                            <quote>x</quote> (proxy domain with nss_files
+                            and sssd-shadowutils target)
                         </para>
                     </listitem>
                 </varlistentry>

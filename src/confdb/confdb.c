@@ -872,7 +872,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     struct sss_domain_info *domain;
     struct ldb_result *res;
     TALLOC_CTX *tmp_ctx;
-    const char *tmp;
+    const char *tmp, *tmp_pam_target, *tmp_auth;
     int ret, val;
     uint32_t entry_cache_timeout;
     char *default_domain;
@@ -1030,13 +1030,28 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     if (domain->provider != NULL && strcasecmp(domain->provider, "proxy") == 0) {
-        /* The password field must be  reported as 'x' for proxy provider
-         * using files library, else pam_unix won't
-         * authenticate this entry. */
+        /* The password field must be reported as 'x' for proxy provider
+         * using files library, else pam_unix won't authenticate this entry.
+         * We set this only for sssd-shadowutils target which can be used
+         * to authenticate with pam_unix only. Otherwise we let administrator
+         * to overwrite default * value with pwfield option to avoid regression
+         * on more common use case where remote authentication is required. */
         tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                           CONFDB_PROXY_LIBNAME,
                                           NULL);
-        if (tmp != NULL && strcasecmp(tmp, "files") == 0) {
+
+        tmp_auth = ldb_msg_find_attr_as_string(res->msgs[0],
+                                                CONFDB_DOMAIN_AUTH_PROVIDER,
+                                                NULL);
+
+        tmp_pam_target = ldb_msg_find_attr_as_string(res->msgs[0],
+                                                     CONFDB_PROXY_PAM_TARGET,
+                                                     NULL);
+
+        if (tmp != NULL && tmp_pam_target != NULL
+            && strcasecmp(tmp, "files") == 0
+            && (tmp_auth == NULL || strcasecmp(tmp_auth, "proxy") == 0)
+            && strcmp(tmp_pam_target, "sssd-shadowutils") == 0) {
             domain->pwfield = "x";
         }
     }
