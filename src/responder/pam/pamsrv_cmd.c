@@ -1941,10 +1941,8 @@ static void pam_check_user_search_next(struct tevent_req *req)
     ret = cache_req_single_domain_recv(preq, req, &result);
     talloc_zfree(req);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Fatal error, killing connection!\n");
-        talloc_zfree(preq->cctx);
-        return;
+        DEBUG(SSSDBG_OP_FAILURE, "Cache lookup failed, trying to get fresh "
+                                 "data from the backened.\n");
     }
 
     DEBUG(SSSDBG_TRACE_ALL, "PAM initgroups scheme [%s].\n",
