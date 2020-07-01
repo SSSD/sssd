@@ -194,7 +194,6 @@ static void dp_req_initgr_pp_sr_overlay(struct data_provider *provider,
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed creating temporary talloc context\n");
-        ret = ENOMEM;
         goto done;
     }
 
@@ -305,7 +304,6 @@ static void dp_req_initgr_pp_sr_overlay(struct data_provider *provider,
     if (add_attrs == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed creating attributes\n");
-        ret = ENOMEM;
         goto done;
     }
     ret = sysdb_attrs_add_bool(add_attrs, SYSDB_SESSION_RECORDING, enabled);
