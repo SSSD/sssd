@@ -2061,7 +2061,6 @@ bool sysdb_entry_attrs_diff(struct sysdb_ctx *sysdb,
     TALLOC_CTX *tmp_ctx;
     bool differs = true;
     int lret;
-    errno_t ret;
     struct ldb_result *res;
     const char *attrnames[attrs->num+1];
 
@@ -2098,15 +2097,14 @@ bool sysdb_entry_attrs_diff(struct sysdb_ctx *sysdb,
     lret = ldb_search(sysdb->ldb, tmp_ctx, &res, entry_dn, LDB_SCOPE_BASE,
                       attrnames, NULL);
     if (lret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(lret);
-        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot search sysdb: %d\n", ret);
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot search sysdb: %d\n",
+              sysdb_error_to_errno(lret));
         goto done;
     }
 
     if (res->count == 0) {
         return true;
     } else if (res->count != 1) {
-        ret = EIO;
         goto done;
     }
 
