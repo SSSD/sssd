@@ -32,6 +32,7 @@
 #include "db/sysdb_autofs.h"
 #include "db/sysdb_ssh.h"
 #include "db/sysdb_sudo.h"
+#include "tools/common/sss_process.h"
 
 #define INVALIDATE_NONE 0
 #define INVALIDATE_USERS 1
@@ -161,6 +162,10 @@ int main(int argc, const char *argv[])
      */
     const char *systemd_offline = getenv ("SYSTEMD_OFFLINE");
     if (systemd_offline && strcmp (systemd_offline, "1") == 0 && access(DB_PATH, W_OK) != 0) {
+        return 0;
+    }
+
+    if (!sss_daemon_running()) {
         return 0;
     }
 
