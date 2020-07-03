@@ -65,7 +65,7 @@ struct sss_mc_ctx {
 
     uint8_t *free_table;    /* free list bitmaps */
     uint32_t ft_size;       /* size of free table */
-    uint32_t next_slot;     /* the next slot after last allocation */
+    uint32_t next_slot;     /* the next slot after last allocation done via erasure */
 
     uint8_t *data_table;    /* data table address (in mmap) */
     uint32_t dt_size;       /* size of data table */
@@ -442,6 +442,9 @@ static errno_t sss_mc_find_free_slots(struct sss_mc_ctx *mcc,
         if (cur == t) {
             /* ok found num_slots consecutive free bits */
             *free_slot = cur - num_slots;
+            /* `mcc->next_slot` is not updated here intentionally.
+             * For details see discussion in https://github.com/SSSD/sssd/pull/999
+             */
             return EOK;
         }
     }
