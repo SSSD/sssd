@@ -59,7 +59,6 @@ static void sss_tool_common_opts(struct sss_tool_ctx *tool_ctx,
     int debug = SSSDBG_DEFAULT;
     int orig_argc = *argc;
     int help = 0;
-    int opt;
 
     struct poptOption options[] = {
         {"debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_STRIP, &debug,
@@ -70,7 +69,7 @@ static void sss_tool_common_opts(struct sss_tool_ctx *tool_ctx,
     };
 
     pc = poptGetContext(argv[0], orig_argc, argv, options, 0);
-    while ((opt = poptGetNextOpt(pc)) != -1) {
+    while (poptGetNextOpt(pc) != -1) {
         /* do nothing */
     }
 

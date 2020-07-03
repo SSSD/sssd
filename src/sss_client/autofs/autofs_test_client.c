@@ -56,7 +56,7 @@ int main(int argc, const char *argv[])
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "MAPNAME");
 
-    while ((ret = poptGetNextOpt(pc)) > 0)
+    while (poptGetNextOpt(pc) > 0)
         ;
 
     mapname = poptGetArg(pc);
