@@ -183,11 +183,14 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
     int ret;
 
     buf = (uint8_t *)packet->buffer + packet->iop;
-    if (packet->iop > 4) len = sss_packet_get_len(packet) - packet->iop;
-    else len = packet->memsize - packet->iop;
+    if (packet->iop >= SSS_PACKET_CMD_OFFSET) {
+        len = sss_packet_get_len(packet) - packet->iop;
+    } else {
+        len = packet->memsize - packet->iop;
+    }
 
     /* check for wrapping */
-    if (len > packet->memsize) {
+    if (len > (packet->memsize - packet->iop)) {
         return EINVAL;
     }
 
@@ -206,7 +209,13 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
         return ENODATA;
     }
 
-    if (sss_packet_get_len(packet) > packet->memsize) {
+    packet->iop += rb;
+    if (packet->iop < SSS_PACKET_CMD_OFFSET) {
+        return EAGAIN;
+    }
+
+    new_len = sss_packet_get_len(packet);
+    if (new_len > packet->memsize) {
         /* Allow certificate based requests to use larger buffer but not
          * larger than SSS_CERT_PACKET_MAX_RECV_SIZE. Due to the way
          * sss_packet_grow() works the packet len must be set to '0' first and
@@ -214,9 +223,7 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
         if ((sss_packet_get_cmd(packet) == SSS_NSS_GETNAMEBYCERT
                     || sss_packet_get_cmd(packet) == SSS_NSS_GETLISTBYCERT)
                 && packet->memsize < SSS_CERT_PACKET_MAX_RECV_SIZE
-                && (new_len = sss_packet_get_len(packet))
-                                   < SSS_CERT_PACKET_MAX_RECV_SIZE) {
-            new_len = sss_packet_get_len(packet);
+                && new_len < SSS_CERT_PACKET_MAX_RECV_SIZE) {
             sss_packet_set_len(packet, 0);
             ret = sss_packet_grow(packet, new_len);
             if (ret != EOK) {
@@ -227,12 +234,7 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
         }
     }
 
-    packet->iop += rb;
-    if (packet->iop < 4) {
-        return EAGAIN;
-    }
-
-    if (packet->iop < sss_packet_get_len(packet)) {
+    if (packet->iop < new_len) {
         return EAGAIN;
     }
 
