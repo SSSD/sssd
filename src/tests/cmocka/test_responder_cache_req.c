@@ -2451,6 +2451,96 @@ void test_users_by_filter_notfound(void **state)
     assert_true(check_leaks_pop(req_mem_ctx));
 }
 
+/*
+ * Given two users are present
+ * When the users are searched by filtering domains
+ * Then the two users are returned correctly.
+ */
+static void test_users_by_filter_multiple_domains_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    size_t num_users = 2;
+    const char **input_dns = NULL;
+    const char **user_names = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->create_user1 = true;
+    test_ctx->create_user2 = true;
+
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    /* Generate DN for user1 */
+    input_dns = talloc_zero_array(test_ctx, const char *, num_users);
+    assert_non_null(input_dns);
+    input_dns[0] = talloc_asprintf(input_dns, "cn=%s,dc=test",
+                                    users[0].short_name);
+    assert_non_null(input_dns[0]);
+
+    /* Generate internal FQDN for user1 */
+    user_names = talloc_zero_array(test_ctx, const char *, num_users);
+    assert_non_null(user_names);
+    user_names[0] = sss_create_internal_fqname(user_names, users[0].short_name,
+                                                domain->name);
+    assert_non_null(user_names[0]);
+
+    ret = sysdb_store_user(domain, user_names[0], "pwd", 1000, 1000,
+                           NULL, NULL, NULL, input_dns[0], NULL,
+                           NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    /* Generate DN for user2 */
+    input_dns[1] = talloc_asprintf(input_dns, "cn=%s,dc=test",
+                                    users[1].short_name);
+    assert_non_null(input_dns[1]);
+
+    /* Generate internal FQDN for user2 */
+    user_names[1] = sss_create_internal_fqname(user_names, users[1].short_name,
+                                                domain->name);
+    assert_non_null(user_names[1]);
+
+    ret = sysdb_store_user(domain, user_names[1], "pwd", 1001, 1001,
+                           NULL, NULL, NULL, input_dns[1], NULL,
+                           NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
+                                        test_ctx->tctx->dom->name,
+                                        TEST_USER_PREFIX);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, num_users);
+
+    for (int i = 0; i < num_users; ++i) {
+        assert_msg_has_shortname(test_ctx,
+                                 test_ctx->result->msgs[i],
+                                 users[i].short_name);
+    }
+
+    talloc_free(user_names);
+    talloc_free(input_dns);
+}
+
 void test_users_by_filter_multiple_domains_notfound(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
@@ -4027,6 +4117,7 @@ int main(int argc, const char *argv[])
 
         new_single_domain_test(users_by_filter_filter_old),
         new_single_domain_test(users_by_filter_notfound),
+        new_multi_domain_test(users_by_filter_multiple_domains_valid),
         new_multi_domain_test(users_by_filter_multiple_domains_notfound),
         new_single_domain_test(groups_by_filter_notfound),
         new_multi_domain_test(groups_by_filter_multiple_domains_notfound),
