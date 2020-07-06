@@ -2724,6 +2724,84 @@ void test_groups_by_filter_notfound(void **state)
     assert_true(check_leaks_pop(req_mem_ctx));
 }
 
+/*
+ * Given two groups are present
+ * When the groups are searched by filtering domains
+ * Then the two groups are returned correctly.
+ */
+void test_groups_by_filter_multiple_domains_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    size_t num_groups = 2;
+    const char **group_names = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->create_group1 = true;
+    test_ctx->create_group2 = true;
+
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    /* Generate internal FQDN for group1 */
+    group_names = talloc_zero_array(test_ctx, const char *, num_groups);
+    assert_non_null(group_names);
+    group_names[0] = sss_create_internal_fqname(group_names,
+                                                groups[0].short_name,
+                                                domain->name);
+    assert_non_null(group_names[0]);
+
+    ret = sysdb_store_group(domain, group_names[0],
+                            1000, NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    /* Generate internal FQDN for group2 */
+    group_names[1] = sss_create_internal_fqname(group_names,
+                                                groups[1].short_name,
+                                                domain->name);
+    assert_non_null(group_names[1]);
+
+    ret = sysdb_store_group(domain, group_names[1],
+                            1001, NULL, 1001, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
+                                        test_ctx->tctx->dom->name,
+                                        TEST_USER_PREFIX);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, num_groups);
+
+    assert_msg_has_shortname(test_ctx,
+                             test_ctx->result->msgs[0],
+                             groups[1].short_name);
+
+    assert_msg_has_shortname(test_ctx,
+                             test_ctx->result->msgs[1],
+                             groups[0].short_name);
+
+    talloc_free(group_names);
+}
+
 void test_groups_by_filter_multiple_domains_notfound(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
@@ -4120,6 +4198,7 @@ int main(int argc, const char *argv[])
         new_multi_domain_test(users_by_filter_multiple_domains_valid),
         new_multi_domain_test(users_by_filter_multiple_domains_notfound),
         new_single_domain_test(groups_by_filter_notfound),
+        new_multi_domain_test(groups_by_filter_multiple_domains_valid),
         new_multi_domain_test(groups_by_filter_multiple_domains_notfound),
 
         new_single_domain_test(object_by_sid_user_cache_valid),
