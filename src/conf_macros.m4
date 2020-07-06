@@ -738,11 +738,13 @@ AC_DEFUN([WITH_IFP],
 AC_DEFUN([WITH_LIBWBCLIENT],
   [ AC_ARG_WITH([libwbclient],
                 [AC_HELP_STRING([--with-libwbclient],
-                                [Whether to build SSSD implementation of libwbclient [yes]]
+                                [Whether to build SSSD implementation of libwbclient [no].
+                                 Please note SSSD's libwbclient is deprecated and will be
+                                 removed in one of the next versions of SSSD.]
                                )
                 ],
                 [with_libwbclient=$withval],
-                with_libwbclient=yes
+                with_libwbclient=no
                )
 
     if test x"$with_libwbclient" = xyes; then
