@@ -1902,6 +1902,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
     cache_req_data_set_bypass_cache(data, false);
     cache_req_data_set_bypass_dp(data, true);
+    cache_req_data_set_requested_domains(data, preq->pd->requested_domains);
 
     dpreq = cache_req_send(preq,
                            preq->cctx->rctx->ev,
@@ -2010,6 +2011,7 @@ static void pam_check_user_search_next(struct tevent_req *req)
     }
     cache_req_data_set_bypass_cache(data, true);
     cache_req_data_set_bypass_dp(data, false);
+    cache_req_data_set_requested_domains(data, preq->pd->requested_domains);
 
     dpreq = cache_req_send(preq,
                            preq->cctx->rctx->ev,
