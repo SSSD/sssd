@@ -2240,6 +2240,10 @@ static void service_startup_handler(struct tevent_context *ev,
     DEBUG(SSSDBG_FATAL_FAILURE,
           "Could not exec %s, reason: %s\n", mt_svc->command, strerror(errno));
 
+    /* Also log to syslog since SSSD failed to start. */
+    sss_log(SSS_LOG_ERR, "Could not exec %s, reason: %s",
+            mt_svc->command, strerror(errno));
+
     /* We have to call _exit() instead of exit() here
      * because a bug in D-BUS will cause the server to
      * close its socket at exit() */
