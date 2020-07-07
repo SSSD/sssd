@@ -47,6 +47,7 @@ struct so {
     { "libnss_sss.so", { LIBPFX"libnss_sss.so", NULL } },
     { "libsss_certmap.so", { LIBPFX"libsss_certmap.so", NULL } },
     { "pam_sss.so", { LIBPFX"pam_sss.so", NULL } },
+    { "pam_sss_gss.so", { LIBPFX"pam_sss_gss.so", NULL } },
 #ifdef BUILD_WITH_LIBSECRET
     { "libsss_secrets.so", { LIBPFX"libsss_secrets.so", NULL } },
 #endif /* BUILD_WITH_LIBSECRET */

@@ -233,6 +233,8 @@ enum sss_cli_command {
                                         * an authentication request to find
                                         * out which authentication methods
                                         * are available for the given user. */
+    SSS_GSSAPI_INIT          = 0x00FA, /**< Initialize GSSAPI authentication. */
+    SSS_GSSAPI_SEC_CTX       = 0x00FB, /**< Establish GSSAPI security ctx. */
 
 /* PAC responder calls */
     SSS_PAC_ADD_PAC_USER     = 0x0101,
@@ -720,5 +722,11 @@ errno_t sss_readrep_copy_string(const char *in,
                                 size_t *dlen,
                                 char **out,
                                 size_t *size);
+
+enum pam_gssapi_cmd {
+    PAM_GSSAPI_GET_NAME,
+    PAM_GSSAPI_INIT,
+    PAM_GSSAPI_SENTINEL
+};
 
 #endif /* _SSSCLI_H */
