@@ -50,6 +50,7 @@ cache_req_domain_get_domain_by_name(struct cache_req_domain *domains,
 errno_t
 cache_req_domain_copy_cr_domains(TALLOC_CTX *mem_ctx,
                                  struct cache_req_domain *src,
+                                 char **requested_domains,
                                  struct cache_req_domain **_dest)
 {
     struct cache_req_domain *cr_domains = NULL;
@@ -62,6 +63,12 @@ cache_req_domain_copy_cr_domains(TALLOC_CTX *mem_ctx,
     }
 
     DLIST_FOR_EACH(iter, src) {
+        if (requested_domains != NULL
+                && !string_in_list(iter->domain->name, requested_domains,
+                                   false)) {
+            continue;
+        }
+
         cr_domain = talloc_zero(mem_ctx, struct cache_req_domain);
         if (cr_domain == NULL) {
             ret = ENOMEM;
@@ -72,6 +79,17 @@ cache_req_domain_copy_cr_domains(TALLOC_CTX *mem_ctx,
         cr_domain->fqnames = iter->fqnames;
 
         DLIST_ADD_END(cr_domains, cr_domain, struct cache_req_domain *);
+    }
+
+    if (cr_domains == NULL) {
+        if (requested_domains != NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "No requested domains found, "
+                  "please check configuration options for typos.\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy domains.\n");
+        }
+        ret = EINVAL;
+        goto done;
     }
 
     *_dest = cr_domains;
