@@ -145,4 +145,8 @@ errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd);
 
 enum pam_initgroups_scheme pam_initgroups_string_to_enum(const char *str);
 const char *pam_initgroup_enum_to_string(enum pam_initgroups_scheme scheme);
+
+int pam_cmd_gssapi_init(struct cli_ctx *cli_ctx);
+int pam_cmd_gssapi_sec_ctx(struct cli_ctx *cctx);
+
 #endif /* __PAMSRV_H__ */

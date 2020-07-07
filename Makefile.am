@@ -1585,12 +1585,14 @@ sssd_pam_SOURCES = \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_dp.c \
+    src/responder/pam/pamsrv_gssapi.c \
     src/responder/pam/pam_prompting_config.c \
     src/sss_client/pam_sss_prompt_config.c \
     src/responder/pam/pam_helpers.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_pam_CFLAGS = \
     $(AM_CFLAGS) \
+    $(GSSAPI_KRB5_CFLAGS) \
     $(NULL)
 sssd_pam_LDADD = \
     $(LIBADD_DL) \
@@ -1599,6 +1601,7 @@ sssd_pam_LDADD = \
     $(SELINUX_LIBS) \
     $(PAM_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
+    $(GSSAPI_KRB5_LIBS) \
     libsss_certmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
@@ -2710,6 +2713,7 @@ pam_srv_tests_SOURCES = \
     src/sss_client/pam_message.c \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_p11.c \
+    src/responder/pam/pamsrv_gssapi.c \
     src/responder/pam/pam_helpers.c \
     src/responder/pam/pamsrv_dp.c \
     src/responder/pam/pam_LOCAL_domain.c \
@@ -2721,6 +2725,7 @@ pam_srv_tests_CFLAGS = \
     -I$(abs_builddir)/src \
     $(AM_CFLAGS) \
     $(CMOCKA_CFLAGS) \
+    $(GSSAPI_KRB5_CFLAGS) \
     $(NULL)
 pam_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_packet_get_body \
@@ -2736,6 +2741,7 @@ pam_srv_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
+    $(GSSAPI_KRB5_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
     libsss_certmap.la \
@@ -4149,6 +4155,28 @@ pam_sss_la_LDFLAGS = \
     -avoid-version \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_pam.exports
 
+pamlib_LTLIBRARIES += pam_sss_gss.la
+pam_sss_gss_la_SOURCES = \
+    src/sss_client/pam_sss_gss.c \
+    src/sss_client/common.c \
+    $(NULL)
+
+pam_sss_gss_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(GSSAPI_KRB5_CFLAGS) \
+    $(NULL)
+
+pam_sss_gss_la_LIBADD = \
+    $(CLIENT_LIBS) \
+    $(PAM_LIBS) \
+    $(GSSAPI_KRB5_LIBS) \
+    $(NULL)
+
+pam_sss_gss_la_LDFLAGS = \
+    -module \
+    -avoid-version \
+    -Wl,--version-script,$(srcdir)/src/sss_client/pam_sss_gss.exports
+
 if BUILD_SUDO
 
 libsss_sudo_la_SOURCES = \
@@ -4187,7 +4215,10 @@ endif
 
 dist_noinst_DATA += \
     src/sss_client/sss_nss.exports \
-    src/sss_client/sss_pam.exports
+    src/sss_client/sss_pam.exports \
+    src/sss_client/pam_sss_gss.exports \
+    $(NULL)
+
 if BUILD_SUDO
 dist_noinst_DATA += src/sss_client/sss_sudo.exports
 endif
