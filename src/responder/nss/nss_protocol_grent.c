@@ -127,7 +127,7 @@ nss_protocol_fill_members(struct sss_packet *packet,
     struct ldb_message_element *el;
     struct sized_string *name;
     const char *member_name;
-    uint32_t num_members;
+    uint32_t num_members = 0;
     size_t body_len;
     uint8_t *body;
     errno_t ret;
@@ -161,7 +161,6 @@ nss_protocol_fill_members(struct sss_packet *packet,
 
     sss_packet_get_body(packet, &body, &body_len);
 
-    num_members = 0;
     for (i = 0; i < sizeof(members) / sizeof(members[0]); i++) {
         el = members[i];
         if (el == NULL) {
