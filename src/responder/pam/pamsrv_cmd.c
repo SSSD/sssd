@@ -2401,6 +2401,8 @@ struct sss_cmd_table *get_pam_cmds(void)
         {SSS_PAM_CHAUTHTOK, pam_cmd_chauthtok},
         {SSS_PAM_CHAUTHTOK_PRELIM, pam_cmd_chauthtok_prelim},
         {SSS_PAM_PREAUTH, pam_cmd_preauth},
+        {SSS_GSSAPI_INIT, pam_cmd_gssapi_init},
+        {SSS_GSSAPI_SEC_CTX, pam_cmd_gssapi_sec_ctx},
         {SSS_CLI_NULL, NULL}
     };
 

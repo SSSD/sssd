@@ -1166,6 +1166,7 @@ done
 %license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
+/%{_lib}/security/pam_sss_gss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
 %{_libdir}/krb5/plugins/authdata/sssd_pac_plugin.so
 %if (0%{?with_cifs_utils_plugin} == 1)
@@ -1178,6 +1179,7 @@ done
 %dir %{_libdir}/%{name}/modules
 %{_libdir}/%{name}/modules/sssd_krb5_localauth_plugin.so
 %{_mandir}/man8/pam_sss.8*
+%{_mandir}/man8/pam_sss_gss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
 
 %files -n libsss_sudo
