@@ -100,6 +100,9 @@ struct cache_req_data {
 
     bool bypass_cache;
     bool bypass_dp;
+
+    /* if set, only search in the listed domains */
+    char **requested_domains;
 };
 
 struct tevent_req *

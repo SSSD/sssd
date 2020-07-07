@@ -443,6 +443,18 @@ cache_req_data_set_bypass_dp(struct cache_req_data *data,
     data->bypass_dp = bypass_dp;
 }
 
+void
+cache_req_data_set_requested_domains(struct cache_req_data *data,
+                                     char **requested_domains)
+{
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_data should never be NULL\n");
+        return;
+    }
+
+    data->requested_domains = requested_domains;
+}
+
 enum cache_req_type
 cache_req_data_get_type(struct cache_req_data *data)
 {
