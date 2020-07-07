@@ -155,8 +155,9 @@
                         SSSD domain names, as specified in the sssd.conf file.
                     </para>
                     <para>
-                        NOTE: Must be used in conjunction with the
-                        <quote>pam_trusted_users</quote> and
+                        NOTE: If this is used for a service not running as root
+                        user, e.g. a web-server, it must be used in conjunction
+                        with the <quote>pam_trusted_users</quote> and
                         <quote>pam_public_domains</quote> options.
                         Please see the
                         <citerefentry>
