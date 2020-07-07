@@ -1059,7 +1059,8 @@ static void cache_req_domains_updated(struct tevent_req *subreq);
 static void cache_req_input_parsed(struct tevent_req *subreq);
 
 static errno_t cache_req_select_domains(struct tevent_req *req,
-                                        const char *domain_name);
+                                        const char *domain_name,
+                                        char **requested_domains);
 
 static errno_t
 cache_req_search_domains(struct tevent_req *req,
@@ -1117,7 +1118,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = cache_req_select_domains(req, state->domain_name);
+    ret = cache_req_select_domains(req, state->domain_name,
+                                   cr->data->requested_domains);
 
 done:
     if (ret == EOK) {
@@ -1230,7 +1232,8 @@ static void cache_req_domains_updated(struct tevent_req *subreq)
     }
 
 immediately:
-    ret = cache_req_select_domains(req, state->domain_name);
+    ret = cache_req_select_domains(req, state->domain_name,
+                                   state->cr->data->requested_domains);
 
 done:
     if (ret != EOK && ret != EAGAIN) {
@@ -1275,7 +1278,8 @@ static void cache_req_input_parsed(struct tevent_req *subreq)
     }
 
     state->domain_name = domain;
-    ret = cache_req_select_domains(req, domain);
+    ret = cache_req_select_domains(req, domain,
+                                   state->cr->data->requested_domains);
     if (ret != EAGAIN) {
         tevent_req_error(req, ret);
         return;
@@ -1283,7 +1287,8 @@ static void cache_req_input_parsed(struct tevent_req *subreq)
 }
 
 static errno_t cache_req_select_domains(struct tevent_req *req,
-                                        const char *domain_name)
+                                        const char *domain_name,
+                                        char **requested_domains)
 {
     struct cache_req_state *state = NULL;
     struct cache_req_domain *cr_domain;
@@ -1303,6 +1308,7 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
 
     ret = cache_req_domain_copy_cr_domains(state,
                                            state->cr->rctx->cr_domains,
+                                           requested_domains,
                                            &state->cr_domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_copy_cr_domains() failed\n");
@@ -1391,7 +1397,8 @@ static void cache_req_process_result(struct tevent_req *subreq)
     if (ret == ENOENT && state->first_iteration) {
         /* Try again different search schema. */
         state->first_iteration = false;
-        ret = cache_req_select_domains(req, state->domain_name);
+        ret = cache_req_select_domains(req, state->domain_name,
+                                       state->cr->data->requested_domains);
         if (ret == EOK) {
             /* We're done searching and we have found nothing. */
             ret = ENOENT;
@@ -1404,7 +1411,8 @@ static void cache_req_process_result(struct tevent_req *subreq)
                 if (cache_req_assume_upn(state->cr)) {
                     /* Try UPN now. */
                     state->first_iteration = true;
-                    ret = cache_req_select_domains(req, NULL);
+                    ret = cache_req_select_domains(req, NULL,
+                                            state->cr->data->requested_domains);
                 }
             }
         }

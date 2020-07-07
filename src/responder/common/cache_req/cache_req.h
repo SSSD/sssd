@@ -167,6 +167,9 @@ void
 cache_req_data_set_bypass_dp(struct cache_req_data *data,
                              bool bypass_dp);
 
+void
+cache_req_data_set_requested_domains(struct cache_req_data *data,
+                                     char **requested_domains);
 
 enum cache_req_type
 cache_req_data_get_type(struct cache_req_data *data);
