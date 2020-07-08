@@ -242,12 +242,6 @@ static int setup_memcaches(struct nss_ctx *nctx)
         return ret;
     }
 
-    if (memcache_timeout == 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Fast in-memory cache will not be initialized.");
-        return EOK;
-    }
-
     /* Get all memcache sizes from confdb (pwd, grp, initgr) */
 
     ret = confdb_get_int(nctx->rctx->cdb,
@@ -288,64 +282,40 @@ static int setup_memcaches(struct nss_ctx *nctx)
 
     /* Initialize the fast in-memory caches if they were not disabled */
 
-    if (mc_size_passwd != 0) {
-        ret = sss_mmap_cache_init(nctx, "passwd",
-                                  nctx->mc_uid, nctx->mc_gid,
-                                  SSS_MC_PASSWD,
-                                  mc_size_passwd * SSS_MC_CACHE_SLOTS_PER_MB,
-                                  (time_t)memcache_timeout,
-                                  &nctx->pwd_mc_ctx);
-        if (ret) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to initialize passwd mmap cache: '%s'\n",
-                  sss_strerror(ret));
-        } else {
-            DEBUG(SSSDBG_CONF_SETTINGS, "Passwd mmap cache size is %d\n",
-                  mc_size_passwd);
-        }
-    } else {
-        DEBUG(SSSDBG_IMPORTANT_INFO,
-              "Passwd mmap cache is explicitly DISABLED\n");
+    ret = sss_mmap_cache_init(nctx, "passwd",
+                              nctx->mc_uid, nctx->mc_gid,
+                              SSS_MC_PASSWD,
+                              mc_size_passwd * SSS_MC_CACHE_SLOTS_PER_MB,
+                              (time_t)memcache_timeout,
+                              &nctx->pwd_mc_ctx);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize passwd mmap cache: '%s'\n",
+              sss_strerror(ret));
     }
 
-    if (mc_size_group != 0) {
-        ret = sss_mmap_cache_init(nctx, "group",
-                                  nctx->mc_uid, nctx->mc_gid,
-                                  SSS_MC_GROUP,
-                                  mc_size_group * SSS_MC_CACHE_SLOTS_PER_MB,
-                                  (time_t)memcache_timeout,
-                                  &nctx->grp_mc_ctx);
-        if (ret) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to initialize group mmap cache: '%s'\n",
-                  sss_strerror(ret));
-        } else {
-            DEBUG(SSSDBG_CONF_SETTINGS, "Group mmap cache size is %d\n",
-                  mc_size_group);
-        }
-    } else {
-        DEBUG(SSSDBG_IMPORTANT_INFO,
-              "Group mmap cache is explicitly DISABLED\n");
+    ret = sss_mmap_cache_init(nctx, "group",
+                              nctx->mc_uid, nctx->mc_gid,
+                              SSS_MC_GROUP,
+                              mc_size_group * SSS_MC_CACHE_SLOTS_PER_MB,
+                              (time_t)memcache_timeout,
+                              &nctx->grp_mc_ctx);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize group mmap cache: '%s'\n",
+              sss_strerror(ret));
     }
 
-    if (mc_size_initgroups != 0) {
-        ret = sss_mmap_cache_init(nctx, "initgroups",
-                                  nctx->mc_uid, nctx->mc_gid,
-                                  SSS_MC_INITGROUPS,
-                                  mc_size_initgroups * SSS_MC_CACHE_SLOTS_PER_MB,
-                                  (time_t)memcache_timeout,
-                                  &nctx->initgr_mc_ctx);
-        if (ret) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to initialize initgroups mmap cache: '%s'\n",
-                  sss_strerror(ret));
-        } else {
-            DEBUG(SSSDBG_CONF_SETTINGS, "Initgroups mmap cache size is %d\n",
-                  mc_size_initgroups);
-        }
-    } else {
-        DEBUG(SSSDBG_IMPORTANT_INFO,
-              "Initgroups mmap cache is explicitly DISABLED\n");
+    ret = sss_mmap_cache_init(nctx, "initgroups",
+                              nctx->mc_uid, nctx->mc_gid,
+                              SSS_MC_INITGROUPS,
+                              mc_size_initgroups * SSS_MC_CACHE_SLOTS_PER_MB,
+                              (time_t)memcache_timeout,
+                              &nctx->initgr_mc_ctx);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize initgroups mmap cache: '%s'\n",
+              sss_strerror(ret));
     }
 
     return EOK;
