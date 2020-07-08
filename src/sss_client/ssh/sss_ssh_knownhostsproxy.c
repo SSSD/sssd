@@ -311,20 +311,27 @@ int main(int argc, const char **argv)
         ret = connect_proxy_command(discard_const(pc_args));
     } else if (ai) {
         /* Try all IP addresses before giving up */
+        int socket_descriptor = -1;
         for (struct addrinfo *ti = ai; ti != NULL; ti = ti->ai_next) {
-            int socket_descriptor = -1;
             ret = connect_socket(ti->ai_family, ti->ai_addr, ti->ai_addrlen,
                                  &socket_descriptor);
-            if (ret == 0) {
-                ret = proxy_data(socket_descriptor);
+            if (ret == EOK) {
                 break;
             }
+        }
+
+        if (ret == EOK) {
+            ret = proxy_data(socket_descriptor);
+        } else {
+            ERROR("sss_ssh_knownhostsproxy: connect to host %s port %d: "
+                  "%s\n", pc_host, pc_port, strerror(ret));
         }
     } else {
         ERROR("sss_ssh_knownhostsproxy: Could not resolve hostname %s\n",
               pc_host);
         ret = EFAULT;
     }
+
     ret = (ret == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
 
 fini:
