@@ -1108,48 +1108,48 @@ static errno_t sss_mc_set_recycled(int fd)
     return EOK;
 }
 
-/*
- * When we (re)create a new file we must mark the current file as recycled
- * so active clients will abandon its use ASAP.
- * We unlink the current file and make a new one.
- */
-static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
+static void sss_mc_destroy_file(const char *filename)
 {
-    mode_t old_mask;
+    const useconds_t t = 50000;
+    const int retries = 3;
     int ofd;
-    int ret, uret;
-    useconds_t t = 50000;
-    int retries = 3;
+    int ret;
 
-    ofd = open(mc_ctx->file, O_RDWR);
+    ofd = open(filename, O_RDWR);
     if (ofd != -1) {
         ret = sss_br_lock_file(ofd, 0, 1, retries, t);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Failed to lock file %s.\n", mc_ctx->file);
+            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to lock file %s.\n", filename);
         }
         ret = sss_mc_set_recycled(ofd);
         if (ret) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Failed to mark mmap file %s as"
-                                         " recycled: %d(%s)\n",
-                                         mc_ctx->file, ret, strerror(ret));
+                                         " recycled: %d (%s)\n",
+                                         filename, ret, strerror(ret));
         }
-
         close(ofd);
     } else if (errno != ENOENT) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to open old memory cache file %s: %d(%s).\n",
-               mc_ctx->file, ret, strerror(ret));
+              "Failed to open old memory cache file %s: %d (%s)\n",
+               filename, ret, strerror(ret));
     }
 
     errno = 0;
-    ret = unlink(mc_ctx->file);
+    ret = unlink(filename);
     if (ret == -1 && errno != ENOENT) {
         ret = errno;
-        DEBUG(SSSDBG_TRACE_FUNC, "Failed to rm mmap file %s: %d(%s)\n",
-                                  mc_ctx->file, ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Failed to delete mmap file %s: %d (%s)\n",
+                                  filename, ret, strerror(ret));
     }
+}
+
+static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
+{
+    const useconds_t t = 50000;
+    const int retries = 3;
+    mode_t old_mask;
+    int ret, uret;
 
     /* temporarily relax umask as we need the file to be readable
      * by everyone for now */
@@ -1276,9 +1276,32 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
 
     struct sss_mc_ctx *mc_ctx = NULL;
     int ret, dret;
+    char *filename;
+
+    filename = talloc_asprintf(mem_ctx, "%s/%s", SSS_NSS_MCACHE_DIR, name);
+    if (!filename) {
+        return ENOMEM;
+    }
+    /*
+     * First of all mark the current file as recycled
+     * and unlink so active clients will abandon its use ASAP
+     */
+    sss_mc_destroy_file(filename);
+
+    if ((timeout == 0) || (n_elem == 0)) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Fast '%s' mmap cache is explicitly DISABLED\n",
+              mc_type_to_str(type));
+        *mcc = NULL;
+        return EOK;
+    }
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Fast '%s' mmap cache: timeout = %d, slots = %zu\n",
+          mc_type_to_str(type), (int)timeout, n_elem);
 
     mc_ctx = talloc_zero(mem_ctx, struct sss_mc_ctx);
     if (!mc_ctx) {
+        talloc_free(filename);
         return ENOMEM;
     }
     mc_ctx->fd = -1;
@@ -1297,12 +1320,7 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
 
     mc_ctx->valid_time_slot = timeout;
 
-    mc_ctx->file = talloc_asprintf(mc_ctx, "%s/%s",
-                                   SSS_NSS_MCACHE_DIR, name);
-    if (!mc_ctx->file) {
-        ret = ENOMEM;
-        goto done;
-    }
+    mc_ctx->file = talloc_steal(mc_ctx, filename);
 
     /* elements must always be multiple of 8 to make things easier to handle,
      * so we increase by the necessary amount if they are not a multiple */
@@ -1319,8 +1337,6 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                         MC_ALIGN64(mc_ctx->ft_size) +
                         MC_ALIGN64(mc_ctx->ht_size);
 
-
-    /* for now ALWAYS create a new file on restart */
 
     ret = sss_mc_create_file(mc_ctx);
     if (ret) {
