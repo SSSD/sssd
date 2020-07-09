@@ -1774,6 +1774,7 @@ struct ad_gpo_access_state {
     struct gp_gpo **cse_filtered_gpos;
     int num_cse_filtered_gpos;
     int cse_gpo_index;
+    const char *ad_domain;
 };
 
 static void ad_gpo_connect_done(struct tevent_req *subreq);
@@ -1868,6 +1869,8 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
      */
     state->user_domain = domain;
     state->host_domain = get_domains_head(domain);
+    state->ad_domain = dp_opt_get_string(ctx->ad_id_ctx->ad_options->basic,
+                                         AD_DOMAIN);
 
     state->gpo_map_type = gpo_map_type;
     state->dacl_filtered_gpos = NULL;
@@ -1893,6 +1896,7 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto immediately;
     }
+
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (subreq == NULL) {
@@ -2037,11 +2041,11 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "sam_account_name is %s\n", sam_account_name);
 
     /* Convert the domain name into domain DN */
-    ret = domain_to_basedn(state, state->host_domain->name, &domain_dn);
+    ret = domain_to_basedn(state, state->ad_domain, &domain_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot convert domain name [%s] to base DN [%d]: %s\n",
-               state->host_domain->name, ret, sss_strerror(ret));
+              state->ad_domain, ret, sss_strerror(ret));
         goto done;
     }
 
@@ -2220,7 +2224,7 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
                                      state->access_ctx->ad_options,
                                      state->timeout,
                                      state->target_dn,
-                                     state->host_domain->name);
+                                     state->ad_domain);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
@@ -2340,7 +2344,7 @@ static void ad_gpo_get_host_sid_retrieval_done(struct tevent_req *subreq)
                                      state->access_ctx->ad_options,
                                      state->timeout,
                                      state->target_dn,
-                                     state->host_domain->name);
+                                     state->ad_domain);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
