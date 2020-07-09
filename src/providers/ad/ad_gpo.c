@@ -2091,7 +2091,6 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
     struct sysdb_attrs **reply;
     const char *target_dn = NULL;
     uint32_t uac;
-    char *domain_dn;
     const char *attrs[] = {AD_AT_SID, NULL};
     struct ldb_message *msg;
     static const char *host_attrs[] = { SYSDB_SID_STR, NULL };
@@ -2185,15 +2184,6 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
                              host_attrs, &msg);
     if (ret == ENOENT) {
         /* The computer is not in cache so query LDAP server */
-        /* Convert the domain name into domain DN */
-        ret = domain_to_basedn(state, state->host_domain->name, &domain_dn);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Cannot convert domain name [%s] to base DN [%d]: %s\n",
-                   state->host_domain->name, ret, sss_strerror(ret));
-            goto done;
-        }
-
         subreq = sdap_get_generic_send(state, state->ev, state->opts,
                                        sdap_id_op_handle(state->sdap_op),
                                        state->target_dn, LDAP_SCOPE_BASE,
