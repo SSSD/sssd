@@ -477,9 +477,68 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                             built-in Administrators group if no GPO rules
                             apply to them.
                         </para>
+
                         <para>
                             Default: False
                         </para>
+
+                        <para>
+                            The following 2 tables should illustrate when a user
+                            is allowed or rejected based on the allow and deny
+                            login rights defined on the server-side and the
+                            setting of ad_gpo_implicit_deny.
+                        </para>
+                        <informaltable frame='all'>
+                        <tgroup cols='3'>
+                        <colspec colname='c1' align='center'/>
+                        <colspec colname='c2' align='center'/>
+                        <colspec colname='c3' align='center'/>
+                        <thead>
+                        <row><entry namest='c1' nameend='c3' align='center'>
+                            ad_gpo_implicit_deny = False (default)</entry></row>
+                        <row><entry>allow-rules</entry><entry>deny-rules</entry>
+                            <entry>results</entry></row>
+                        </thead>
+                        <tbody>
+                        <row><entry>missing</entry><entry>missing</entry>
+                            <entry><para>all users are allowed</para>
+                            </entry></row>
+                        <row><entry>missing</entry><entry>present</entry>
+                            <entry><para>only users not in deny-rules are
+                            allowed</para></entry></row>
+                        <row><entry>present</entry><entry>missing</entry>
+                            <entry><para>only users in allow-rules are
+                            allowed</para></entry></row>
+                        <row><entry>present</entry><entry>present</entry>
+                            <entry><para>only users in allow-rules and not in
+                            deny-rules are allowed</para></entry></row>
+                        </tbody></tgroup></informaltable>
+
+                        <informaltable frame='all'>
+                        <tgroup cols='3'>
+                        <colspec colname='c1' align='center'/>
+                        <colspec colname='c2' align='center'/>
+                        <colspec colname='c3' align='center'/>
+                        <thead>
+                        <row><entry namest='c1' nameend='c3' align='center'>
+                            ad_gpo_implicit_deny = True</entry></row>
+                        <row><entry>allow-rules</entry><entry>deny-rules</entry>
+                            <entry>results</entry></row>
+                        </thead>
+                        <tbody>
+                        <row><entry>missing</entry><entry>missing</entry>
+                            <entry><para>no users are allowed</para>
+                            </entry></row>
+                        <row><entry>missing</entry><entry>present</entry>
+                            <entry><para>no users are allowed</para>
+                            </entry></row>
+                        <row><entry>present</entry><entry>missing</entry>
+                            <entry><para>only users in allow-rules are
+                            allowed</para></entry></row>
+                        <row><entry>present</entry><entry>present</entry>
+                            <entry><para>only users in allow-rules and not in
+                            deny-rules are allowed</para></entry></row>
+                        </tbody></tgroup></informaltable>
                     </listitem>
                 </varlistentry>
 
