@@ -1531,6 +1531,7 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
                     enum gpo_access_control_mode gpo_mode,
                     enum gpo_map_type gpo_map_type,
                     const char *user,
+                    bool gpo_implicit_deny,
                     struct sss_domain_info *domain,
                     char **allowed_sids,
                     int allowed_size,
@@ -1575,7 +1576,7 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
               group_sids[j]);
     }
 
-    if (allowed_size == 0) {
+    if (allowed_size == 0 && !gpo_implicit_deny) {
         access_granted = true;
     }  else {
         access_granted = check_rights(allowed_sids, allowed_size, user_sid,
@@ -1694,6 +1695,7 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
                                enum gpo_access_control_mode gpo_mode,
                                enum gpo_map_type gpo_map_type,
                                const char *user,
+                               bool gpo_implicit_deny,
                                struct sss_domain_info *user_domain,
                                struct sss_domain_info *host_domain)
 {
@@ -1732,8 +1734,8 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
 
     /* perform access check with the final resultant allow_sids and deny_sids */
     ret = ad_gpo_access_check(mem_ctx, gpo_mode, gpo_map_type, user,
-                              user_domain, allow_sids, allow_size, deny_sids,
-                              deny_size);
+                              gpo_implicit_deny, user_domain,
+                              allow_sids, allow_size, deny_sids, deny_size);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1918,6 +1920,7 @@ immediately:
 static errno_t
 process_offline_gpos(TALLOC_CTX *mem_ctx,
                      const char *user,
+                     bool gpo_implicit_deny,
                      enum gpo_access_control_mode gpo_mode,
                      struct sss_domain_info *user_domain,
                      struct sss_domain_info *host_domain,
@@ -1930,6 +1933,7 @@ process_offline_gpos(TALLOC_CTX *mem_ctx,
                                          gpo_mode,
                                          gpo_map_type,
                                          user,
+                                         gpo_implicit_deny,
                                          user_domain,
                                          host_domain);
     if (ret != EOK) {
@@ -1976,6 +1980,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
             ret = process_offline_gpos(state,
                                        state->user,
+                                       state->gpo_implicit_deny,
                                        state->gpo_mode,
                                        state->user_domain,
                                        state->host_domain,
@@ -2102,6 +2107,7 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
             ret = process_offline_gpos(state,
                                        state->user,
+                                       state->gpo_implicit_deny,
                                        state->gpo_mode,
                                        state->user_domain,
                                        state->host_domain,
@@ -2766,6 +2772,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
                                              state->gpo_mode,
                                              state->gpo_map_type,
                                              state->user,
+                                             state->gpo_implicit_deny,
                                              state->user_domain,
                                              state->host_domain);
         if (ret != EOK) {
