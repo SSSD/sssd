@@ -75,6 +75,11 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     struct poptOption long_options[] = {
         {"config", 'c', POPT_ARG_STRING, &config_path,
             0, _("Specify a non-default config file"), NULL},
+        {"snippet", 's', POPT_ARG_STRING, &config_snippet_path,
+            0, _("Specify a non-default snippet dir (The default is to look in "
+                 "the same place where the main config file is located. For "
+                 "example if the config is set to \"/my/path/sssd.conf\", "
+                 "the snippet dir \"/my/path/conf.d\" is used)"), NULL},
         POPT_TABLEEND
     };
 
@@ -92,16 +97,17 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
         goto done;
     }
 
-    if (config_path != NULL) {
+    if (config_path == NULL) {
+        config_path = SSSD_CONFIG_FILE;
+    }
+
+    if (config_snippet_path == NULL) {
         config_snippet_path = sssctl_config_snippet_path(tmp_ctx, config_path);
         if (config_snippet_path == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create snippet path\n");
             ret = ENOMEM;
             goto done;
         }
-    } else {
-        config_path = SSSD_CONFIG_FILE;
-        config_snippet_path = CONFDB_DEFAULT_CONFIG_DIR;
     }
 
     ret = sss_ini_read_sssd_conf(init_data,
