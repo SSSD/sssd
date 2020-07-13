@@ -2378,7 +2378,7 @@ msgid ""
 "with e.g. the '--list-all' will show PKCS#11 URIs as well."
 msgstr ""
 "Exempel: <placeholder type=\"programlisting\" id=\"0\"/> rllrt <placeholder "
-"type=\"programlisting\" d=\"1\"/> För att hitta en lämplig URI, kontrollera "
+"type=\"programlisting\" id=\"1\"/> För att hitta en lämplig URI, kontrollera "
 "felsökningsutdata från p11_child.  Som ett alternativ kommer GnuTLS-"
 "verktyget ”p11tool” med t.ex. ”--list-all” visa även PKCS#11 URI:er."
 
