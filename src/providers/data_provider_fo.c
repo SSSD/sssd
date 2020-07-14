@@ -836,6 +836,7 @@ static struct dp_option dp_res_default_opts[] = {
     { "dns_resolver_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "dns_resolver_op_timeout", DP_OPT_NUMBER, { .number = 3 }, NULL_NUMBER },
     { "dns_resolver_server_timeout", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER },
+    { "dns_resolver_perform_dns_search", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "dns_discovery_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
@@ -899,6 +900,8 @@ errno_t be_res_init(struct be_ctx *ctx)
                                      DP_RES_OPT_RESOLVER_OP_TIMEOUT),
                       dp_opt_get_int(ctx->be_res->opts,
                                      DP_RES_OPT_RESOLVER_SERVER_TIMEOUT),
+                      dp_opt_get_bool(ctx->be_res->opts,
+                                      DP_RES_OPT_RESOLVER_PERFORM_DNS_SEARCH),
                       &ctx->be_res->resolv);
     if (ret != EOK) {
         talloc_zfree(ctx->be_res);

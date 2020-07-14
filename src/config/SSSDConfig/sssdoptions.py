@@ -191,6 +191,7 @@ class SSSDOptions(object):
                                          'miliseconds)'),
         'dns_resolver_op_timeout': _('How long should keep trying to resolve single DNS query (seconds)'),
         'dns_resolver_timeout': _('How long to wait for replies from DNS when resolving servers (seconds)'),
+        'dns_resolver_perform_dns_search': _('Should resolver perform DNS search'),
         'dns_discovery_domain': _('The domain part of service discovery DNS query'),
         'override_gid': _('Override GID value from the identity provider with this value'),
         'case_sensitive': _('Treat usernames as case sensitive'),

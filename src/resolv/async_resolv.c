@@ -81,6 +81,9 @@ struct resolv_ctx {
     /* Time in milliseconds before canceling a DNS request */
     int timeout;
 
+    /* use search list from resolv.conf when translating name to ip address */
+    bool domain_search;
+
     /* Time in milliseconds for communication with single DNS server. */
     int ares_timeout;
 
@@ -428,11 +431,19 @@ recreate_ares_channel(struct resolv_ctx *ctx)
     /* Only affects ares_gethostbyname */
     options.lookups = discard_const("f");
     options.tries = 1;
+
+    /* domain search */
+    options.flags = 0;
+    if (!ctx->domain_search) {
+        options.flags |= ARES_FLAG_NOSEARCH;
+    }
+
     ret = ares_init_options(&new_channel, &options,
                             ARES_OPT_SOCK_STATE_CB |
                             ARES_OPT_TIMEOUTMS |
                             ARES_OPT_LOOKUPS |
-                            ARES_OPT_TRIES);
+                            ARES_OPT_TRIES |
+                            ARES_OPT_FLAGS);
     if (ret != ARES_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize ares channel: %s\n",
                   resolv_strerror(ret));
@@ -451,7 +462,8 @@ recreate_ares_channel(struct resolv_ctx *ctx)
 
 int
 resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
-            int timeout, int ares_timeout, struct resolv_ctx **ctxp)
+            int timeout, int ares_timeout, bool domain_search,
+            struct resolv_ctx **ctxp)
 {
     int ret;
     struct resolv_ctx *ctx;
@@ -469,6 +481,7 @@ resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
     ctx->ev_ctx = ev_ctx;
     ctx->timeout = timeout;
     ctx->ares_timeout = ares_timeout;
+    ctx->domain_search = domain_search;
 
     ret = recreate_ares_channel(ctx);
     if (ret != EOK) {
