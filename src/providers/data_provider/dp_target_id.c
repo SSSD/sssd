@@ -177,6 +177,8 @@ static void dp_req_initgr_pp_sr_overlay(struct data_provider *provider,
     char *output_name;
     char **conf_user;
     char **conf_group;
+    char **conf_exclude_user;
+    char **conf_exclude_group;
     size_t i;
     TALLOC_CTX *tmp_ctx = NULL;
     errno_t ret;
@@ -184,10 +186,13 @@ static void dp_req_initgr_pp_sr_overlay(struct data_provider *provider,
     struct sysdb_attrs del_attrs = { 1, &el };
     struct sysdb_attrs *add_attrs;
 
-    /* If selective session recording is not enabled */
-    if (be->sr_conf.scope != SESSION_RECORDING_SCOPE_SOME) {
+    /* Only proceed if scope is applicable: 'some' or 'all' */
+    if (be->sr_conf.scope == SESSION_RECORDING_SCOPE_NONE) {
         goto done;
     }
+
+    /* Default to enabled when scope is 'all' */
+    enabled = be->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL ? true : false;
 
     /* Allocate temporary talloc context */
     tmp_ctx = talloc_new(NULL);
@@ -240,12 +245,29 @@ static void dp_req_initgr_pp_sr_overlay(struct data_provider *provider,
         }
     }
 
+    /* For each exclude user name in session recording config */
+    conf_exclude_user = be->sr_conf.exclude_users;
+    if (conf_exclude_user != NULL &&
+            be->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL) {
+        for (; *conf_exclude_user != NULL && enabled; conf_exclude_user++) {
+            if (strcmp(*conf_exclude_user, output_name) == 0) {
+                enabled = false;
+            }
+        }
+    }
+
     /* If we have groups in config and are not yet enabled */
-    if (be->sr_conf.groups != NULL &&
+    if ((be->sr_conf.scope == SESSION_RECORDING_SCOPE_SOME &&
+        be->sr_conf.groups != NULL &&
         be->sr_conf.groups[0] != NULL &&
-        !enabled) {
+        !enabled) ||
+        /* Or if we have exclude_groups in config and are enabled */
+        (be->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL &&
+        be->sr_conf.exclude_groups != NULL &&
+        be->sr_conf.exclude_groups[0] != NULL &&
+        enabled)) {
         /* For each group in response */
-        for (i = 0; i < res->count && !enabled; i++) {
+        for (i = 0; i < res->count; i++) {
             /* Get the group msg */
             if (i == 0) {
                 gid_t gid;
@@ -289,12 +311,31 @@ static void dp_req_initgr_pp_sr_overlay(struct data_provider *provider,
                 goto done;
             }
             /* For each group in configuration */
-            for (conf_group = be->sr_conf.groups;
-                 *conf_group != NULL && !enabled;
-                 conf_group++) {
-                if (strcmp(*conf_group, output_name) == 0) {
-                    enabled = true;
+            if (be->sr_conf.scope == SESSION_RECORDING_SCOPE_SOME) {
+                for (conf_group = be->sr_conf.groups;
+                     *conf_group != NULL && !enabled;
+                     conf_group++) {
+                    if (strcmp(*conf_group, output_name) == 0) {
+                        enabled = true;
+                    }
                 }
+            /* For each exclude group in configuration */
+            } else if (be->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL) {
+                for (conf_exclude_group = be->sr_conf.exclude_groups;
+                     *conf_exclude_group != NULL && enabled;
+                     conf_exclude_group++) {
+                    if (strcmp(*conf_exclude_group, output_name) == 0) {
+                        enabled = false;
+                    }
+                }
+            }
+
+            /* Found a matched group */
+            if ((be->sr_conf.scope == SESSION_RECORDING_SCOPE_SOME
+                && enabled) ||
+                (be->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL
+                && !enabled)) {
+                break;
             }
         }
     }
