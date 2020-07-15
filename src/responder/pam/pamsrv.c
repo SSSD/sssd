@@ -49,11 +49,7 @@
 #define NO_DOMAINS_ARE_PUBLIC "none"
 #define DEFAULT_ALLOWED_UIDS ALL_UIDS_ALLOWED
 #define DEFAULT_PAM_CERT_AUTH false
-#ifdef HAVE_NSS
-#define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/pki/nssdb"
-#else
 #define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/sssd/pki/sssd_auth_ca_db.pem"
-#endif
 #define DEFAULT_PAM_INITGROUPS_SCHEME "no_session"
 
 static errno_t get_trusted_uids(struct pam_ctx *pctx)

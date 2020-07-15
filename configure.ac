@@ -161,7 +161,6 @@ WITH_SUDO_LIB_PATH
 WITH_AUTOFS
 WITH_SSH
 WITH_IFP
-WITH_CRYPTO
 WITH_SYSLOG
 WITH_SAMBA
 WITH_NFS
@@ -400,14 +399,8 @@ if test x$syslog = xjournald; then
     AM_CHECK_JOURNALD
 fi
 
-if test x$cryptolib = xnss; then
-    AM_CHECK_NSS
-fi
-
-if test x$cryptolib = xlibcrypto; then
-    AM_CHECK_LIBCRYPTO
-    m4_include([src/external/p11-kit.m4])
-fi
+AM_CHECK_LIBCRYPTO
+m4_include([src/external/p11-kit.m4])
 
 AM_CHECK_INOTIFY
 

@@ -148,15 +148,8 @@ clean-local:
 	rm -Rf root
 	rm -f $(builddir)/cwrap-dbus-system.conf
 
-if HAVE_NSS
-PAM_CERT_DB_PATH="sql:$(DESTDIR)$(sysconfdir)/pki/nssdb"
-SOFTHSM2_CONF=""
-USE_NSS=1
-else
 PAM_CERT_DB_PATH="$(abs_builddir)/../test_CA/SSSD_test_CA.pem"
 SOFTHSM2_CONF="$(abs_builddir)/../test_CA/softhsm2_one.conf"
-USE_NSS=0
-endif
 
 intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service pam_sss_sc_required pam_sss_try_sc pam_sss_allow_missing_name
 	pipepath="$(DESTDIR)$(pipepath)"; \
@@ -190,7 +183,6 @@ intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service 
 	PAM_WRAPPER_PATH=$$(pkg-config --libs pam_wrapper) \
 	PAM_CERT_DB_PATH=$(PAM_CERT_DB_PATH) \
 	SOFTHSM2_CONF=$(SOFTHSM2_CONF) \
-	USE_NSS=$(USE_NSS) \
 	DBUS_SOCK_DIR="$(DESTDIR)$(runstatedir)/dbus/" \
 	DBUS_SESSION_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/fake_socket" \
 	DBUS_SYSTEM_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/system_bus_socket" \

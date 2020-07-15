@@ -36,13 +36,7 @@
 #include "tests/cmocka/common_mock.h"
 #include "tests/common.h"
 
-#ifdef HAVE_NSS
-#include "util/crypto/nss/nss_util.h"
-#endif
-
-#ifdef HAVE_LIBCRYPTO
 #include <openssl/crypto.h>
-#endif
 
 #ifdef HAVE_TEST_CA
 #include "tests/test_CA/SSSD_test_cert_x509_0003.h"
@@ -1736,21 +1730,10 @@ int main(int argc, const char *argv[])
 
     DEBUG_CLI_INIT(debug_level);
 
-#ifdef HAVE_NSS
-    nspr_nss_init();
-#endif
-
     tests_set_cwd();
     rv = cmocka_run_group_tests(tests, NULL, NULL);
 
-#ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make Valgrind happy. */
-    nspr_nss_cleanup();
-#endif
-
-#ifdef HAVE_LIBCRYPTO
     CRYPTO_cleanup_all_ex_data(); /* to make Valgrind happy */
-#endif
 
     return rv;
 }

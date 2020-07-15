@@ -31,9 +31,6 @@
 
 #include "providers/ad/ad_pac.h"
 #include "util/crypto/sss_crypto.h"
-#ifdef HAVE_NSS
-#include "util/crypto/nss/nss_util.h"
-#endif
 #include "util/util_sss_idmap.h"
 
 /* In order to access opaque types */
@@ -1035,11 +1032,6 @@ int main(int argc, const char *argv[])
     tests_set_cwd();
 
     ret = cmocka_run_group_tests(tests, NULL, NULL);
-
-#ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make Valgrind happy. */
-    nspr_nss_cleanup();
-#endif
 
     return ret;
 }

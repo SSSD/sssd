@@ -80,10 +80,6 @@
     %global with_initscript --with-initscript=sysv
 %endif
 
-%if (0%{?fedora} > 28 || 0%{?rhel} > 7)
-    %global use_openssl 1
-%endif
-
 %global enable_experimental 1
 
 %if (0%{?enable_experimental} == 1)
@@ -210,11 +206,8 @@ BuildRequires: dbus-devel
 BuildRequires: dbus-libs
 BuildRequires: openldap-devel
 BuildRequires: pam-devel
-%if (0%{?use_openssl} == 1)
 BuildRequires: p11-kit-devel
 BuildRequires: openssl-devel
-%endif
-BuildRequires: nss-devel
 BuildRequires: nspr-devel
 BuildRequires: pcre-devel
 BuildRequires: libxslt
@@ -245,23 +238,15 @@ BuildRequires: uid_wrapper
 BuildRequires: nss_wrapper
 BuildRequires: pam_wrapper
 
-# Test CA requires openssl independent if SSSD is build with NSS or openssl,
-# openssh is needed for ssh-keygen and NSS builds need nss-tools for certutil.
-# Currently only cmocka based tests use the test CA. If it is used elsewhere
-# you might want to move the following requires out of the if-block.
-# If SSSD is build with OpenSSL instead of NSS p11tool from the gnutls-utils
-# package and softhsm2-util from the softhsm package are needed to prepare the
-# data needed for the p11_child Smartcard tests. Since p11_child only looks at
-# slots with are flagged as 'removable' softhsm version 2.1.0 or higher is
-# needed.
-%if (0%{?use_openssl} == 1)
+# p11tool from the gnutls-utils package and softhsm2-util from the softhsm package
+# are needed to prepare the data needed for the p11_child Smartcard tests.
+# Since p11_child only looks at slots with are flagged as 'removable'
+# softhsm version 2.1.0 or higher is needed.
 BuildRequires: gnutls-utils
 BuildRequires: softhsm >= 2.1.0
-%endif
 
 BuildRequires: openssl
 BuildRequires: openssh
-BuildRequires: nss-tools
 %endif
 BuildRequires: libnl3-devel
 %if (0%{?use_systemd} == 1)
@@ -800,11 +785,6 @@ autoreconf -ivf
     --enable-pammoddir=/%{_lib}/security \
     --enable-nfsidmaplibdir=%{_libdir}/libnfsidmap \
     --disable-static \
-%if (0%{?use_openssl} == 1)
-    --with-crypto=libcrypto \
-%else
-    --with-crypto=nss \
-%endif
     --disable-rpath \
 %if %{with sssd_user}
     --with-sssd-user=sssd \
@@ -1057,9 +1037,7 @@ done
 %attr(750,sssd,sssd) %dir %{_var}/log/%{name}
 %attr(711,sssd,sssd) %dir %{_sysconfdir}/sssd
 %attr(711,sssd,sssd) %dir %{_sysconfdir}/sssd/conf.d
-%if (0%{?use_openssl} == 1)
 %attr(711,sssd,sssd) %dir %{_sysconfdir}/sssd/pki
-%endif
 %ghost %attr(0600,sssd,sssd) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %dir %{_sysconfdir}/logrotate.d
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd

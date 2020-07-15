@@ -167,11 +167,7 @@
 #define CONFDB_SSH_KNOWN_HOSTS_TIMEOUT "ssh_known_hosts_timeout"
 #define CONFDB_DEFAULT_SSH_KNOWN_HOSTS_TIMEOUT 180
 #define CONFDB_SSH_CA_DB "ca_db"
-#ifdef HAVE_NSS
-#define CONFDB_DEFAULT_SSH_CA_DB SYSCONFDIR"/pki/nssdb"
-#else
 #define CONFDB_DEFAULT_SSH_CA_DB SYSCONFDIR"/sssd/pki/sssd_auth_ca_db.pem"
-#endif
 #define CONFDB_SSH_USE_CERT_KEYS "ssh_use_certificate_keys"
 #define CONFDB_DEFAULT_SSH_USE_CERT_KEYS true
 #define CONFDB_SSH_USE_CERT_RULES "ssh_use_certificate_matching_rules"

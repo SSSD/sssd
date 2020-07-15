@@ -26,9 +26,7 @@
  * READ ME:
  *
  * Please note that password obfuscation does not improve security in any
- * way. It is just a mechanism to make the password human-unreadable. If you
- * need to secure passwords in your application, you should probably take a
- * look at storing passwords in NSS-backed database.
+ * way. It is just a mechanism to make the password human-unreadable.
  */
 
 #include "config.h"
