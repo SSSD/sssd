@@ -134,10 +134,7 @@ nss_get_shell(struct nss_ctx *nss_ctx,
 {
     const char *shell = NULL;
 
-    if (nss_ctx->rctx->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL) {
-        shell = SESSION_RECORDING_SHELL;
-    } else if (nss_ctx->rctx->sr_conf.scope ==
-               SESSION_RECORDING_SCOPE_SOME) {
+    if (nss_ctx->rctx->sr_conf.scope != SESSION_RECORDING_SCOPE_NONE) {
         const char *sr_enabled;
         sr_enabled = ldb_msg_find_attr_as_string(
                                     msg, SYSDB_SESSION_RECORDING, NULL);
