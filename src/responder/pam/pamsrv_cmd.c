@@ -752,9 +752,6 @@ static int pam_reply_sr_export_shell(struct pam_auth_req *preq,
     if (preq->cctx->rctx->sr_conf.scope ==
             SESSION_RECORDING_SCOPE_NONE) {
         enabled = false;
-    } else if (preq->cctx->rctx->sr_conf.scope ==
-            SESSION_RECORDING_SCOPE_ALL) {
-        enabled = true;
     } else {
         enabled_str = ldb_msg_find_attr_as_string(preq->user_obj,
                                                   SYSDB_SESSION_RECORDING, NULL);
