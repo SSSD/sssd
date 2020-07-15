@@ -30,26 +30,8 @@
 
 /* interfaces under test */
 #include "util/crypto/sss_crypto.h"
-#include "util/crypto/nss/nss_util.h"
 
 static TALLOC_CTX *test_ctx = NULL;
-
-#ifdef HAVE_NSS
-START_TEST(test_nss_init)
-{
-    int ret;
-
-    ret = nspr_nss_init();
-    fail_if(ret != EOK,
-            "nspr_nss_init failed with error: %d", ret);
-
-
-    ret = nspr_nss_cleanup();
-    fail_if(ret != EOK,
-            "nspr_nss_cleanup failed with error: %d", ret);
-}
-END_TEST
-#endif
 
 START_TEST(test_sss_password_encrypt_decrypt)
 {
@@ -61,13 +43,7 @@ START_TEST(test_sss_password_encrypt_decrypt)
     char *obfpwd = NULL;
     char *ctpwd = NULL;
     int ret;
-    int expected;
-
-#if defined(HAVE_NSS) || defined(HAVE_LIBCRYPTO)
-    expected = EOK;
-#else
-#error Unknown crypto back end
-#endif
+    int expected = EOK;
 
     test_ctx = talloc_new(NULL);
     fail_if(test_ctx == NULL, "Failed to allocate memory");
@@ -112,12 +88,7 @@ START_TEST(test_hmac_sha1)
     unsigned char out[SSS_SHA1_LENGTH];
     int ret, expected;
     int i;
-
-#if defined(HAVE_NSS) || defined(HAVE_LIBCRYPTO)
     expected = EOK;
-#else
-#error Unknown crypto back end
-#endif
 
     for (i = 0; keys[i]; i++) {
         ret = sss_hmac_sha1((const unsigned char *)keys[i], strlen(keys[i]),
@@ -252,9 +223,6 @@ Suite *crypto_suite(void)
     TCase *tc = tcase_create("sss crypto tests");
     tcase_add_checked_fixture(tc, ck_leak_check_setup, ck_leak_check_teardown);
     /* Do some testing */
-#ifdef HAVE_NSS
-    tcase_add_test(tc, test_nss_init);
-#endif
     tcase_add_test(tc, test_sss_password_encrypt_decrypt);
     tcase_add_test(tc, test_hmac_sha1);
     tcase_add_test(tc, test_base64_encode);

@@ -16,11 +16,7 @@ pubkeys = $(addprefix SSSD_test_ECC_cert_pubsshkey_,$(addsuffix .pub,$(ids)))
 pubkeys_h = $(addprefix SSSD_test_ECC_cert_pubsshkey_,$(addsuffix .h,$(ids)))
 pkcs12 = $(addprefix SSSD_test_ECC_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 
-if HAVE_NSS
-extra = p11_ecc_nssdb
-else
 extra = softhsm2_ecc_one
-endif
 
 # If openssl is run in parallel there might be conflicts with the serial
 .NOTPARALLEL:
@@ -56,13 +52,6 @@ SSSD_test_ECC_cert_pubsshkey_%.h: SSSD_test_ECC_cert_pubsshkey_%.pub
 	@echo "#define SSSD_TEST_ECC_CERT_SSH_KEY_$* \""$(shell cut -d' ' -f2 $<)"\"" > $@
 
 
-p11_ecc_nssdb: SSSD_test_ECC_cert_pkcs12_0001.pem SSSD_test_ECC_CA.pem $(pwdfile)
-	mkdir $@
-	$(CERTUTIL) -d sql:./$@ -N -f $(pwdfile)
-	$(CERTUTIL) -d sql:./$@ -A -n 'SSSD test ECC CA' -t CT,CT,CT -a -i SSSD_test_ECC_CA.pem -f $(pwdfile)
-	$(PK12UTIL) -d sql:./$@ -i SSSD_test_ECC_cert_pkcs12_0001.pem -w $(pwdfile) -k $(pwdfile)
-
-
 softhsm2_ecc_one: softhsm2_ecc_one.conf
 	mkdir $@
 	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test ECC Token" --pin 123456 --so-pin 123456 --free
@@ -85,7 +74,6 @@ CLEANFILES = \
 
 clean-local:
 	rm -rf newcerts
-	rm -rf p11_ecc_nssdb
 	rm -rf softhsm*
 
 serial: clean

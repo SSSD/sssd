@@ -482,10 +482,7 @@
                                 <varlistentry>
                                     <term>soft_ocsp</term>
                                     <listitem>
-                                        <para>(NSS Version) This option is
-                                        ignored.</para>
-
-                                        <para>(OpenSSL Version) If a connection
+                                        <para> If a connection
                                         cannot be established to an OCSP
                                         responder the OCSP check is skipped.
                                         This option should be used to allow
@@ -510,9 +507,6 @@
                                             Default: sha1 (to allow compatibility with
                                             RFC5019-compliant responder)
                                         </para>
-                                        <para>(NSS Version) This option is
-                                        ignored, because NSS uses sha1
-                                        unconditionally.</para>
                                     </listitem>
                                 </varlistentry>
                                 <varlistentry>
@@ -532,24 +526,13 @@
                                         be replaced with the URL of the OCSP
                                         default responder e.g.
                                         http://example.com:80/ocsp.</para>
-                                        <para>(NSS Version) This option must be
-                                        used together with
-                                        ocsp_default_responder_signing_cert.
-                                        </para>
                                     </listitem>
                                 </varlistentry>
                                 <varlistentry>
                                     <term>
                                     ocsp_default_responder_signing_cert=NAME</term>
                                     <listitem>
-                                        <para>(NSS Version) The nickname of the
-                                        cert to trust (expected) to sign the
-                                        OCSP responses.  The certificate with
-                                        the given nickname must be available in
-                                        the systems NSS database.</para>
-                                        <para>This option must be used together
-                                        with ocsp_default_responder.</para>
-                                        <para>(OpenSSL version) This option is
+                                        <para>This option is
                                         currently ignored. All needed
                                         certificates must be available in the
                                         PEM file given by
@@ -559,16 +542,7 @@
                                 <varlistentry>
                                     <term>crl_file=/PATH/TO/CRL/FILE</term>
                                     <listitem>
-                                        <para>(NSS Version) This option is
-                                        ignored, please see
-                                            <citerefentry>
-                                                <refentrytitle>crlutil</refentrytitle>
-                                                <manvolnum>1</manvolnum>
-                                            </citerefentry>
-                                        how to import a Certificate Revocation
-                                        List (CRL) into a NSS database.</para>
-
-                                        <para>(OpenSSL Version) Use the
+                                        <para>Use the
                                         Certificate Revocation List (CRL) from
                                         the given file during the verification
                                         of the certificate. The CRL must be
@@ -583,12 +557,9 @@
                                 <varlistentry>
                                     <term>soft_crl</term>
                                     <listitem>
-                                        <para>(NSS Version) This option is
-                                        ignored.</para>
-
-                                        <para>(OpenSSL Version) If a
-                                        Certificate Revocation List (CRL) is
-                                        expired ignore the CRL checks for the
+                                        <para>
+                                        If a Certificate Revocation List (CRL)
+                                        is expired ignore the CRL checks for the
                                         related certificates. This option should
                                         be used to allow authentication when the
                                         system is offline and the CRL cannot be
@@ -596,13 +567,6 @@
                                     </listitem>
                                 </varlistentry>
                                 </variablelist>
-                            </para>
-                            <para condition="with_nss">
-                                This man page was generated for the NSS version.
-                            </para>
-                            <para condition="with_openssl">
-                                This man page was generated for the OpenSSL
-                                version.
                             </para>
                             <para>
                                 Unknown options are reported but ignored.
@@ -1533,23 +1497,12 @@ pam_account_locked_message = Account locked, please contact help desk.
                         <para>
                             Default:
                             <itemizedlist>
-                                <listitem><para>/etc/pki/nssdb (NSS version,
-                                                path to a NSS database which
-                                                contains the PKCS#11 modules
-                                                to access the Smartcard and
-                                                the trusted CA certificates)
-                                                </para></listitem>
                                 <listitem><para>/etc/sssd/pki/sssd_auth_ca_db.pem
-                                                (OpenSSL version, path to a file
-                                                with trusted CA certificates in
-                                                PEM format)</para></listitem>
+                                                (path to a file with trusted CA
+                                                certificates in PEM format)
+                                          </para>
+                                </listitem>
                             </itemizedlist>
-                        </para>
-                        <para condition="with_nss">
-                            This man page was generated for the NSS version.
-                        </para>
-                        <para condition="with_openssl">
-                            This man page was generated for the OpenSSL version.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1911,20 +1864,12 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                         <para>
                             Default:
                             <itemizedlist>
-                                <listitem><para>/etc/pki/nssdb (NSS version,
-                                                path to a NSS
-                                                database)</para></listitem>
                                 <listitem><para>/etc/sssd/pki/sssd_auth_ca_db.pem
-                                                (OpenSSL version, path to a file
-                                                with trusted CA certificates in
-                                                PEM format)</para></listitem>
+                                                (path to a file with trusted CA
+                                                certificates in PEM format)
+                                          </para>
+                                </listitem>
                             </itemizedlist>
-                        </para>
-                        <para condition="with_nss">
-                            This man page was generated for the NSS version.
-                        </para>
-                        <para condition="with_openssl">
-                            This man page was generated for the OpenSSL version.
                         </para>
                     </listitem>
                 </varlistentry>

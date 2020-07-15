@@ -435,9 +435,6 @@ static int parse_krb5_get_san_value(TALLOC_CTX *mem_ctx,
         if (comp->val != NULL) {
             comp->bin_val = sss_base64_decode(comp, comp->val,
                                               &comp->bin_val_len);
-            /* for some reasons the NSS version of sss_base64_decode might
-             * return a non-NULL value on error but len is still 0, so better
-             * check both. */
             if (comp->bin_val == NULL || comp->bin_val_len == 0) {
                 CM_DEBUG(ctx, "Base64 decode failed.");
                 ret = EINVAL;

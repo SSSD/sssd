@@ -30,9 +30,6 @@
 #include "lib/certmap/sss_certmap.h"
 #include "util/crypto/sss_crypto.h"
 #include "responder/ifp/ifp_iface/ifp_iface_sync.h"
-#ifdef HAVE_NSS
-#include "util/crypto/nss/nss_util.h"
-#endif
 
 #define PEM_HEAD "-----BEGIN CERTIFICATE-----\n"
 #define PEM_FOOT "-----END CERTIFICATE-----"
@@ -88,11 +85,6 @@ errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
 
 done:
     talloc_free(tmp_ctx);
-
-#ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make Valgrind happy. */
-    nspr_nss_cleanup();
-#endif
 
     return ret;
 }
@@ -173,11 +165,6 @@ errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
 
     ret = EOK;
 done:
-
-#ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make Valgrind happy. */
-    nspr_nss_cleanup();
-#endif
 
     talloc_free(tmp_ctx);
 

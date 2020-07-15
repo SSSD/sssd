@@ -240,49 +240,6 @@ def create_sssd_fixture(request):
     request.addfinalizer(cleanup_sssd_process)
 
 
-def create_nssdb():
-    os.mkdir(config.SYSCONFDIR + "/pki")
-    os.mkdir(config.SYSCONFDIR + "/pki/nssdb")
-    if subprocess.call(["certutil", "-N", "-d",
-                        "sql:" + config.SYSCONFDIR + "/pki/nssdb/",
-                        "--empty-password"]) != 0:
-        raise Exception("certutil failed")
-
-    pkcs11_txt = open(config.SYSCONFDIR + "/pki/nssdb/pkcs11.txt", "w")
-    pkcs11_txt.write("library=libsoftokn3.so\nname=soft\n" +
-                     "parameters=configdir='sql:" + config.ABS_BUILDDIR +
-                     "/../test_CA/p11_nssdb' " +
-                     "dbSlotDescription='SSSD Test Slot' " +
-                     "dbTokenDescription='SSSD Test Token' " +
-                     "secmod='secmod.db' flags=readOnly)\n\n")
-    pkcs11_txt.close()
-
-
-def create_nssdb_no_cert():
-    os.mkdir(config.SYSCONFDIR + "/pki")
-    os.mkdir(config.SYSCONFDIR + "/pki/nssdb")
-    if subprocess.call(["certutil", "-N", "-d",
-                        "sql:" + config.SYSCONFDIR + "/pki/nssdb/",
-                        "--empty-password"]) != 0:
-        raise Exception("certutil failed")
-
-
-def cleanup_nssdb():
-    shutil.rmtree(config.SYSCONFDIR + "/pki")
-
-
-def create_nssdb_fixture(request):
-    if 'USE_NSS' in os.environ and os.environ['USE_NSS'] == '1':
-        create_nssdb()
-        request.addfinalizer(cleanup_nssdb)
-
-
-def create_nssdb_no_cert_fixture(request):
-    if 'USE_NSS' in os.environ and os.environ['USE_NSS'] == '1':
-        create_nssdb_no_cert()
-        request.addfinalizer(cleanup_nssdb)
-
-
 @pytest.fixture
 def simple_pam_cert_auth(request, passwd_ops_setup):
     """Setup SSSD with pam_cert_auth=True"""
@@ -290,7 +247,6 @@ def simple_pam_cert_auth(request, passwd_ops_setup):
     conf = format_pam_cert_auth_conf(config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    create_nssdb_fixture(request)
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
     return None
@@ -307,7 +263,6 @@ def simple_pam_cert_auth_no_cert(request, passwd_ops_setup):
     conf = format_pam_cert_auth_conf(config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    create_nssdb_no_cert_fixture(request)
 
     os.environ['SOFTHSM2_CONF'] = old_softhsm2_conf
 
@@ -324,7 +279,6 @@ def simple_pam_cert_auth_name_format(request, passwd_ops_setup):
     conf = format_pam_cert_auth_conf_name_format(config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    create_nssdb_fixture(request)
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
     return None

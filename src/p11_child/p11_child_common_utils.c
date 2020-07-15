@@ -154,11 +154,6 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                 goto done;
             }
         } else if (strncasecmp(opts[c], OCSP_DGST, OCSP_DGST_LEN) == 0) {
-#ifdef HAVE_NSS
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Option [%s] is not supported in NSS build, ignored.\n",
-                  OCSP_DGST);
-#else
             if (strcmp("sha1", &opts[c][OCSP_DGST_LEN]) == 0) {
                 cert_verify_opts->ocsp_dgst = CKM_SHA_1;
                 DEBUG(SSSDBG_TRACE_ALL, "Using sha1 for OCSP.\n");
@@ -177,7 +172,6 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                       "using default sha1.\n", &opts[c][OCSP_DGST_LEN]);
                 cert_verify_opts->ocsp_dgst = CKM_SHA_1;
             }
-#endif
         } else if (strcasecmp(opts[c], "soft_ocsp") == 0) {
             DEBUG(SSSDBG_TRACE_ALL,
                   "Found 'soft_ocsp' option, verification will not fail if "
@@ -194,21 +188,6 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                   "skipping.\n", opts[c]);
         }
     }
-
-#ifdef HAVE_NSS
-    if ((cert_verify_opts->ocsp_default_responder == NULL
-            && cert_verify_opts->ocsp_default_responder_signing_cert != NULL)
-        || (cert_verify_opts->ocsp_default_responder != NULL
-            && cert_verify_opts->ocsp_default_responder_signing_cert == NULL)) {
-
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ocsp_default_responder and ocsp_default_responder_signing_cert "
-              "must be used together.\n");
-
-        ret = EINVAL;
-        goto done;
-    }
-#endif
 
     ret = EOK;
 

@@ -905,11 +905,6 @@ dist_noinst_HEADERS = \
     $(NULL)
 
 
-if HAVE_NSS
-    dist_noinst_HEADERS += src/util/crypto/nss/nss_util.h \
-                           src/util/crypto/nss/nss_crypto.h
-endif
-
 SSSD_DOCS = \
     doc \
     hbac_doc \
@@ -952,61 +947,29 @@ libsss_child_la_LDFLAGS = -avoid-version
 
 pkglib_LTLIBRARIES += libsss_crypt.la
 
-# NOTE:
-# Please try to avoid using SSS_CRYPT_{CFLAGS,LIBS} directly for compiling and
-# linking programs or libraries. This is purpose of wrapper library
-# libsss_crypt.so to hide internals. SSS_CRYPT_{CFLAGS,LIBS} might be used
-# in unit tests if you directly uses functions from underlining crypto libraries
-if HAVE_NSS
-    SSS_CRYPT_SOURCES = src/util/crypto/nss/nss_base64.c \
-                        src/util/crypto/nss/nss_hmac_sha1.c \
-                        src/util/crypto/nss/nss_sha512crypt.c \
-                        src/util/crypto/nss/nss_obfuscate.c \
-                        src/util/crypto/nss/nss_nite.c \
-                        src/util/crypto/nss/nss_util.c \
-                        src/util/crypto/nss/nss_prng.c \
-                        src/util/atomic_io.c \
-                        src/util/memory.c \
-                        $(NULL)
-    SSS_CRYPT_CFLAGS = $(NSS_CFLAGS)
-    SSS_CRYPT_LIBS = $(NSS_LIBS)
+SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
+                    src/util/crypto/libcrypto/crypto_hmac_sha1.c \
+                    src/util/crypto/libcrypto/crypto_sha512crypt.c \
+                    src/util/crypto/libcrypto/crypto_obfuscate.c \
+                    src/util/crypto/libcrypto/crypto_nite.c \
+                    src/util/crypto/libcrypto/crypto_prng.c \
+                    src/util/atomic_io.c \
+                    src/util/memory.c \
+                    $(NULL)
+SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
+SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
 
-    SSS_CERT_SOURCES = \
-        src/util/cert/cert_common.c \
-        src/util/cert/cert_common_p11_child.c \
-        src/util/cert/nss/cert.c \
-        $(NULL)
-    SSS_CERT_CFLAGS = \
-        $(NSS_CFLAGS) \
-        $(NULL)
-    SSS_CERT_LIBS = \
-        $(NSS_LIBS) \
-        $(NULL)
-else
-    SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
-                        src/util/crypto/libcrypto/crypto_hmac_sha1.c \
-                        src/util/crypto/libcrypto/crypto_sha512crypt.c \
-                        src/util/crypto/libcrypto/crypto_obfuscate.c \
-                        src/util/crypto/libcrypto/crypto_nite.c \
-                        src/util/crypto/libcrypto/crypto_prng.c \
-                        src/util/atomic_io.c \
-                        src/util/memory.c \
-                        $(NULL)
-    SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
-    SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
-
-    SSS_CERT_SOURCES = \
-        src/util/cert/cert_common.c \
-        src/util/cert/cert_common_p11_child.c \
-        src/util/cert/libcrypto/cert.c \
-        $(NULL)
-    SSS_CERT_CFLAGS = \
-        $(CRYPTO_CFLAGS) \
-        $(NULL)
-    SSS_CERT_LIBS = \
-        $(CRYPTO_LIBS) \
-        $(NULL)
-endif
+SSS_CERT_SOURCES = \
+    src/util/cert/cert_common.c \
+    src/util/cert/cert_common_p11_child.c \
+    src/util/cert/libcrypto/cert.c \
+    $(NULL)
+SSS_CERT_CFLAGS = \
+    $(CRYPTO_CFLAGS) \
+    $(NULL)
+SSS_CERT_LIBS = \
+    $(CRYPTO_LIBS) \
+    $(NULL)
 
 libsss_crypt_la_SOURCES = \
     $(SSS_CRYPT_SOURCES)
@@ -2165,25 +2128,13 @@ libsss_certmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/certmap/sss_certmap.exports \
     -version-info 2:0:2
 
-if HAVE_NSS
-libsss_certmap_la_SOURCES += \
-    src/lib/certmap/sss_cert_content_nss.c \
-    src/util/crypto/nss/nss_base64.c \
-    src/util/cert/nss/cert.c \
-    src/util/crypto/nss/nss_util.c \
-    $(NULL)
-libsss_certmap_la_CFLAGS += $(NSS_CFLAGS)
-libsss_certmap_la_LIBADD += $(NSS_LIBS)
-else
 libsss_certmap_la_SOURCES += \
     src/lib/certmap/sss_cert_content_crypto.c \
     src/util/crypto/libcrypto/crypto_base64.c \
     src/util/cert/libcrypto/cert.c \
     $(NULL)
-
 libsss_certmap_la_CFLAGS += $(CRYPTO_CFLAGS)
 libsss_certmap_la_LIBADD += $(CRYPTO_LIBS)
-endif
 
 dist_noinst_DATA += src/lib/certmap/sss_certmap.exports
 dist_noinst_HEADERS += src/lib/certmap/sss_certmap_int.h
@@ -3083,15 +3034,9 @@ test_utils_SOURCES += src/tests/cmocka/test_sss_ssh.c
 endif
 test_utils_CFLAGS = \
     $(AM_CFLAGS)
-if HAVE_NSS
-test_utils_CFLAGS += \
-    $(NSS_CFLAGS) \
-    $(NULL)
-else
 test_utils_CFLAGS += \
     $(P11_KIT_CFLAGS) \
     $(NULL)
-endif
 test_utils_LDADD = \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
@@ -3940,14 +3885,14 @@ sss_certmap_test_SOURCES = \
     $(NULL)
 sss_certmap_test_CFLAGS = \
     $(AM_CFLAGS) \
-    $(NSS_CFLAGS) \
+    $(SSS_CERT_CFLAGS) \
     -I$(abs_builddir)/src \
     $(NULL)
 sss_certmap_test_LDADD = \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
-    $(NSS_LIBS) \
+    $(SSS_CERT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libsss_certmap.la \
@@ -4752,27 +4697,17 @@ p11_child_SOURCES = \
     src/util/util.c \
     src/util/util_ext.c \
     $(NULL)
-if HAVE_NSS
-p11_child_SOURCES += src/p11_child/p11_child_nss.c
-else
 p11_child_SOURCES += src/p11_child/p11_child_openssl.c
-endif
 
 p11_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
     $(NULL)
-if HAVE_NSS
-p11_child_CFLAGS += \
-    $(NSS_CFLAGS) \
-    $(NULL)
-else
 p11_child_CFLAGS += \
     $(P11_KIT_CFLAGS) \
     $(CRYPTO_CFLAGS) \
     $(SSL_CFLAGS) \
     $(NULL)
-endif
 
 p11_child_LDADD = \
     libsss_debug.la \
@@ -4781,17 +4716,11 @@ p11_child_LDADD = \
     $(POPT_LIBS) \
     libsss_crypt.la \
     $(NULL)
-if HAVE_NSS
-p11_child_LDADD += \
-    $(NSS_LIBS) \
-    $(NULL)
-else
 p11_child_LDADD += \
     $(P11_KIT_LIBS) \
     $(CRYPTO_LIBS) \
     $(SSL_LIBS) \
     $(NULL)
-endif
 
 memberof_la_SOURCES = \
     src/ldb_modules/memberof.c \

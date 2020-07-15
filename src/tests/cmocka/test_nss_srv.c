@@ -34,7 +34,6 @@
 #include "sss_client/idmap/sss_nss_idmap.h"
 #include "util/util_sss_idmap.h"
 #include "util/crypto/sss_crypto.h"
-#include "util/crypto/nss/nss_util.h"
 #include "util/sss_endian.h"
 #include "db/sysdb_iphosts.h"
 #include "db/sysdb_ipnetworks.h"
@@ -5737,11 +5736,6 @@ int main(int argc, const char *argv[])
     if (rv == 0 && !no_cleanup) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }
-
-#ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make Valgrind happy. */
-    nspr_nss_cleanup();
-#endif
 
     return rv;
 }

@@ -25,13 +25,9 @@ pubkeys = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .pub,$(ids)))
 pubkeys_h = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .h,$(ids)))
 pkcs12 = $(addprefix SSSD_test_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 
-if HAVE_NSS
-extra = p11_nssdb p11_nssdb_2certs p11_nssdb_ocsp
-else
 extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens softhsm2_ocsp
 if HAVE_FAKETIME
 extra += SSSD_test_CA_expired_crl.pem
-endif
 endif
 
 # If openssl is run in parallel there might be conflicts with the serial
@@ -74,33 +70,8 @@ SSSD_test_cert_pubsshkey_%.h: SSSD_test_cert_pubsshkey_%.pub
 SSSD_test_CA_expired_crl.pem:
 	$(FAKETIME) -f '-7d' $(OPENSSL) ca -gencrl -out $@ -keyfile $(openssl_ca_key) -config ${openssl_ca_config} -crlhours 1
 
-# This nss db is used in
-# - src/tests/cmocka/test_cert_utils.c (validation only)
-# - src/tests/cmocka/test_pam_srv.c
-p11_nssdb: SSSD_test_cert_pkcs12_0001.pem SSSD_test_CA.pem $(pwdfile)
-	mkdir $@
-	$(CERTUTIL) -d sql:./$@ -N -f $(pwdfile)
-	$(CERTUTIL) -d sql:./$@ -A -n 'SSSD test CA' -t CT,CT,CT -a -i SSSD_test_CA.pem -f $(pwdfile)
-	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0001.pem -w $(pwdfile) -k $(pwdfile)
-
-# This nss db is used in
-# - src/tests/cmocka/test_pam_srv.c
-p11_nssdb_2certs: SSSD_test_cert_pkcs12_0001.pem SSSD_test_cert_pkcs12_0002.pem SSSD_test_CA.pem $(pwdfile)
-	mkdir $@
-	$(CERTUTIL) -d sql:./$@ -N -f $(pwdfile)
-	$(CERTUTIL) -d sql:./$@ -A -n 'SSSD test CA' -t CT,CT,CT -a -i SSSD_test_CA.pem -f $(pwdfile)
-	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0001.pem -w $(pwdfile) -k $(pwdfile)
-	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0002.pem -w $(pwdfile) -k $(pwdfile)
-
-p11_nssdb_ocsp: SSSD_test_cert_pkcs12_0005.pem SSSD_test_CA.pem $(pwdfile)
-	mkdir $@
-	$(CERTUTIL) -d sql:./$@ -N -f $(pwdfile)
-	$(CERTUTIL) -d sql:./$@ -A -n 'SSSD test CA' -t CT,CT,CT -a -i SSSD_test_CA.pem -f $(pwdfile)
-	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0005.pem -w $(pwdfile) -k $(pwdfile)
-
 # The softhsm2 PKCS#11 setups are used in
 # - src/tests/cmocka/test_pam_srv.c
-# if SSSD is build with OpenSSL/libcrypto
 softhsm2_none: softhsm2_none.conf
 	mkdir $@
 	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token" --pin 123456 --so-pin 123456 --free
@@ -170,9 +141,6 @@ CLEANFILES = \
 
 clean-local:
 	rm -rf newcerts
-	rm -rf p11_nssdb
-	rm -rf p11_nssdb_2certs
-	rm -rf p11_nssdb_ocsp
 	rm -rf softhsm*
 
 serial: clean

@@ -30,9 +30,6 @@
 #include "confdb/confdb.h"
 
 #include "util/crypto/sss_crypto.h"
-#ifdef HAVE_NSS
-#include "util/crypto/nss/nss_util.h"
-#endif
 
 #ifdef HAVE_TEST_CA
 #include "tests/test_CA/SSSD_test_cert_x509_0001.h"
@@ -630,13 +627,8 @@ void test_ssh_user_pubkey_cert(void **state)
 
     /* Enable certificate support */
     ssh_test_ctx->ssh_ctx->use_cert_keys = true;
-#ifdef HAVE_NSS
-    ssh_test_ctx->ssh_ctx->ca_db = discard_const("sql:" ABS_BUILD_DIR
-                                                "/src/tests/test_CA/p11_nssdb");
-#else
     ssh_test_ctx->ssh_ctx->ca_db = discard_const(ABS_BUILD_DIR
                                                 "/src/tests/test_CA/SSSD_test_CA.pem");
-#endif
 
     set_cmd_cb(test_ssh_user_pubkey_cert_check);
     ret = sss_cmd_execute(ssh_test_ctx->cctx, SSS_SSH_GET_USER_PUBKEYS,
@@ -694,13 +686,8 @@ void test_ssh_user_pubkey_cert_with_rule(void **state)
     ssh_test_ctx->ssh_ctx->rctx->domains->certmaps = certmap_list;
     ssh_test_ctx->ssh_ctx->certmap_last_read = 0;
     ssh_test_ctx->ssh_ctx->rctx->get_domains_last_call.tv_sec = 1;
-#ifdef HAVE_NSS
-    ssh_test_ctx->ssh_ctx->ca_db = discard_const("sql:" ABS_BUILD_DIR
-                                                "/src/tests/test_CA/p11_nssdb");
-#else
     ssh_test_ctx->ssh_ctx->ca_db = discard_const(ABS_BUILD_DIR
                                                 "/src/tests/test_CA/SSSD_test_CA.pem");
-#endif
 
     set_cmd_cb(test_ssh_user_pubkey_cert_check);
     ret = sss_cmd_execute(ssh_test_ctx->cctx, SSS_SSH_GET_USER_PUBKEYS,
@@ -751,13 +738,8 @@ void test_ssh_user_pubkey_cert_with_all_rules(void **state)
     ssh_test_ctx->ssh_ctx->certmap_last_read = 0;
     ssh_test_ctx->ssh_ctx->rctx->get_domains_last_call.tv_sec = 1;
     ssh_test_ctx->ssh_ctx->cert_rules = discard_const(rule_list);
-#ifdef HAVE_NSS
-    ssh_test_ctx->ssh_ctx->ca_db = discard_const("sql:" ABS_BUILD_DIR
-                                                "/src/tests/test_CA/p11_nssdb");
-#else
     ssh_test_ctx->ssh_ctx->ca_db = discard_const(ABS_BUILD_DIR
                                                 "/src/tests/test_CA/SSSD_test_CA.pem");
-#endif
 
     set_cmd_cb(test_ssh_user_pubkey_cert_check);
     ret = sss_cmd_execute(ssh_test_ctx->cctx, SSS_SSH_GET_USER_PUBKEYS,
@@ -807,13 +789,8 @@ void test_ssh_user_pubkey_cert_with_all_rules_but_no_rules_present(void **state)
     ssh_test_ctx->ssh_ctx->certmap_last_read = 0;
     ssh_test_ctx->ssh_ctx->rctx->get_domains_last_call.tv_sec = 1;
     ssh_test_ctx->ssh_ctx->cert_rules = discard_const(rule_list);
-#ifdef HAVE_NSS
-    ssh_test_ctx->ssh_ctx->ca_db = discard_const("sql:" ABS_BUILD_DIR
-                                                "/src/tests/test_CA/p11_nssdb");
-#else
     ssh_test_ctx->ssh_ctx->ca_db = discard_const(ABS_BUILD_DIR
                                                 "/src/tests/test_CA/SSSD_test_CA.pem");
-#endif
 
     set_cmd_cb(test_ssh_user_pubkey_cert_check);
     ret = sss_cmd_execute(ssh_test_ctx->cctx, SSS_SSH_GET_USER_PUBKEYS,
@@ -864,13 +841,8 @@ void test_ssh_user_pubkey_cert_with_no_rules(void **state)
     ssh_test_ctx->ssh_ctx->certmap_last_read = 0;
     ssh_test_ctx->ssh_ctx->rctx->get_domains_last_call.tv_sec = 1;
     ssh_test_ctx->ssh_ctx->cert_rules = discard_const(rule_list);
-#ifdef HAVE_NSS
-    ssh_test_ctx->ssh_ctx->ca_db = discard_const("sql:" ABS_BUILD_DIR
-                                                "/src/tests/test_CA/p11_nssdb");
-#else
     ssh_test_ctx->ssh_ctx->ca_db = discard_const(ABS_BUILD_DIR
                                                 "/src/tests/test_CA/SSSD_test_CA.pem");
-#endif
 
     set_cmd_cb(test_ssh_user_pubkey_cert_check);
     ret = sss_cmd_execute(ssh_test_ctx->cctx, SSS_SSH_GET_USER_PUBKEYS,
@@ -920,13 +892,8 @@ void test_ssh_user_pubkey_cert_with_unknow_rule_name(void **state)
     ssh_test_ctx->ssh_ctx->certmap_last_read = 0;
     ssh_test_ctx->ssh_ctx->rctx->get_domains_last_call.tv_sec = 1;
     ssh_test_ctx->ssh_ctx->cert_rules = discard_const(rule_list);
-#ifdef HAVE_NSS
-    ssh_test_ctx->ssh_ctx->ca_db = discard_const("sql:" ABS_BUILD_DIR
-                                                "/src/tests/test_CA/p11_nssdb");
-#else
     ssh_test_ctx->ssh_ctx->ca_db = discard_const(ABS_BUILD_DIR
                                                 "/src/tests/test_CA/SSSD_test_CA.pem");
-#endif
 
     set_cmd_cb(test_ssh_user_one_pubkey_check);
     ret = sss_cmd_execute(ssh_test_ctx->cctx, SSS_SSH_GET_USER_PUBKEYS,
@@ -976,13 +943,8 @@ void test_ssh_user_pubkey_cert_with_rule_1(void **state)
     ssh_test_ctx->ssh_ctx->certmap_last_read = 0;
     ssh_test_ctx->ssh_ctx->rctx->get_domains_last_call.tv_sec = 1;
     ssh_test_ctx->ssh_ctx->cert_rules = discard_const(rule_list);
-#ifdef HAVE_NSS
-    ssh_test_ctx->ssh_ctx->ca_db = discard_const("sql:" ABS_BUILD_DIR
-                                                "/src/tests/test_CA/p11_nssdb");
-#else
     ssh_test_ctx->ssh_ctx->ca_db = discard_const(ABS_BUILD_DIR
                                                 "/src/tests/test_CA/SSSD_test_CA.pem");
-#endif
 
     set_cmd_cb(test_ssh_user_pubkey_cert_1_check);
     ret = sss_cmd_execute(ssh_test_ctx->cctx, SSS_SSH_GET_USER_PUBKEYS,
@@ -1060,11 +1022,6 @@ int main(int argc, const char *argv[])
     if (rv == 0 && !no_cleanup) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }
-
-#ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make Valgrind happy. */
-    nspr_nss_cleanup();
-#endif
 
     return rv;
 }
