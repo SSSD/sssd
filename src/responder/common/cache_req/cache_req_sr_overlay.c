@@ -70,7 +70,7 @@ struct tevent_req *cache_req_sr_overlay_send(
     state->num_results = num_results;
 
     /* If session recording is selective */
-    if (rctx->sr_conf.scope == SESSION_RECORDING_SCOPE_SOME) {
+    if (rctx->sr_conf.scope != SESSION_RECORDING_SCOPE_NONE) {
         /* If it's a request for a user/users */
         switch (cr->data->type) {
         case CACHE_REQ_USER_BY_NAME:
@@ -78,8 +78,10 @@ struct tevent_req *cache_req_sr_overlay_send(
         case CACHE_REQ_USER_BY_ID:
         case CACHE_REQ_ENUM_USERS:
             /* If we have group names to match against */
-            if (rctx->sr_conf.groups != NULL &&
-                rctx->sr_conf.groups[0] != NULL) {
+            if ((rctx->sr_conf.groups != NULL &&
+                 rctx->sr_conf.groups[0] != NULL) ||
+                (rctx->sr_conf.exclude_groups != NULL &&
+                 rctx->sr_conf.exclude_groups[0] != NULL)) {
                 /* Pull and match group and user names for each user entry */
                 subreq = cache_req_sr_overlay_match_all_step_send(state);
                 if (subreq == NULL) {
@@ -128,6 +130,7 @@ static errno_t cache_req_sr_overlay_match_users(
     const char *name;
     char *output_name;
     char **conf_user;
+    char **conf_exclude_user;
     bool enabled;
     char *enabled_str;
 
@@ -170,12 +173,27 @@ static errno_t cache_req_sr_overlay_match_users(
             /* For each user name in session recording config */
             enabled = false;
             conf_user = rctx->sr_conf.users;
-            if (conf_user != NULL) {
-                for (; *conf_user != NULL; conf_user++) {
-                    /* If it matches the requested user name */
-                    if (strcmp(*conf_user, output_name) == 0) {
-                        enabled = true;
-                        break;
+            if (rctx->sr_conf.scope == SESSION_RECORDING_SCOPE_SOME) {
+                if (conf_user != NULL) {
+                    for (; *conf_user != NULL; conf_user++) {
+                        /* If it matches the requested user name */
+                        if (strcmp(*conf_user, output_name) == 0) {
+                            enabled = true;
+                            break;
+                        }
+                    }
+                }
+            /* For each exclude user name in session recording config */
+            } else if (rctx->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL) {
+                enabled = true;
+                conf_exclude_user = rctx->sr_conf.exclude_users;
+                if (conf_exclude_user != NULL) {
+                    for (; *conf_exclude_user != NULL; conf_exclude_user++) {
+                        /* If it matches the requested user name */
+                        if (strcmp(*conf_exclude_user, output_name) == 0) {
+                            enabled = false;
+                            break;
+                        }
                     }
                 }
             }
