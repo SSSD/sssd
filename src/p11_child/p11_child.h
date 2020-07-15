@@ -26,11 +26,7 @@
 #define __P11_CHILD_H__
 
 /* for CK_MECHANISM_TYPE */
-#ifdef HAVE_NSS
-#include <pkcs11t.h>
-#else
 #include <p11-kit/pkcs11.h>
-#endif
 
 /* Time to wait during a C_Finalize C_Initialize cycle to discover
  * new slots. */

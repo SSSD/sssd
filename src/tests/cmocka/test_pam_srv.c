@@ -35,9 +35,6 @@
 #include "confdb/confdb.h"
 
 #include "util/crypto/sss_crypto.h"
-#ifdef HAVE_NSS
-#include "util/crypto/nss/nss_util.h"
-#endif
 
 #ifdef HAVE_TEST_CA
 #include "tests/test_CA/SSSD_test_cert_x509_0001.h"
@@ -59,40 +56,16 @@
 #define TEST_SUBDOM_NAME "test.subdomain"
 #define TEST_ID_PROVIDER "ldap"
 
-#define NSS_DB_PATH TESTS_PATH
-#define NSS_DB "sql:"NSS_DB_PATH
-
-#define NSS_DB_PATH_2CERTS TESTS_PATH "_2certs"
-#define NSS_DB_2CERTS "sql:"NSS_DB_PATH_2CERTS
-
-#define NSS_DB_PATH_OCSP TESTS_PATH "_ocsp"
-#define NSS_DB_OCSP "sql:"NSS_DB_PATH_OCSP
-
-#define NSS_DB_PATH_ECC TESTS_PATH "_ecc"
-#define NSS_DB_ECC "sql:"NSS_DB_PATH_ECC
-
-#ifdef HAVE_NSS
-#define CA_DB NSS_DB
-#define ECC_CA_DB NSS_DB_ECC
-#else
 #define CA_DB ABS_BUILD_DIR"/src/tests/test_CA/SSSD_test_CA.pem"
 #define ECC_CA_DB ABS_BUILD_DIR"/src/tests/test_ECC_CA/SSSD_test_ECC_CA.pem"
-#endif
 
 #define TEST_TOKEN_NAME "SSSD Test Token"
 #define TEST_TOKEN2_NAME "SSSD Test Token Number 2"
 #define TEST_KEY_ID "C554C9F82C2A9D58B70921C143304153A8A42F17"
-#ifdef HAVE_NSS
-#define TEST_MODULE_NAME "NSS-Internal"
-#define TEST_PROMPT "SSSD test cert 0001 - SSSD\nCN=SSSD test cert 0001,OU=SSSD test,O=SSSD"
-#define TEST2_PROMPT "SSSD test cert 0002 - SSSD\nCN=SSSD test cert 0002,OU=SSSD test,O=SSSD"
-#define TEST5_PROMPT "SSSD test cert 0005 - SSSD\nCN=SSSD test cert 0005,OU=SSSD test,O=SSSD"
-#else
 #define TEST_MODULE_NAME SOFTHSM2_PATH
 #define TEST_PROMPT "SSSD test cert 0001\nCN=SSSD test cert 0001,OU=SSSD test,O=SSSD"
 #define TEST2_PROMPT "SSSD test cert 0002\nCN=SSSD test cert 0002,OU=SSSD test,O=SSSD"
 #define TEST5_PROMPT "SSSD test cert 0005\nCN=SSSD test cert 0005,OU=SSSD test,O=SSSD"
-#endif
 
 #define TEST2_KEY_ID "5405842D56CF31F0BB025A695C5F3E907051C5B9"
 #define TEST5_KEY_ID "1195833C424AB00297F582FC43FFFFAB47A64CC9"
@@ -119,278 +92,6 @@ struct pam_test_ctx {
 
 /* Must be global because it is needed in some wrappers */
 struct pam_test_ctx *pam_test_ctx;
-
-#ifdef HAVE_NSS
-static errno_t setup_nss_db(void)
-{
-    int ret;
-    FILE *fp;
-    int status;
-    pid_t child_pid;
-
-    ret = mkdir(NSS_DB_PATH, 0775);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to create " NSS_DB_PATH ".\n");
-        return ret;
-    }
-
-    ret = mkdir(NSS_DB_PATH_2CERTS, 0775);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to create " NSS_DB_PATH_2CERTS ".\n");
-        return ret;
-    }
-
-    ret = mkdir(NSS_DB_PATH_OCSP, 0775);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to create " NSS_DB_PATH_OCSP ".\n");
-        return ret;
-    }
-
-    ret = mkdir(NSS_DB_PATH_ECC, 0775);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to create " NSS_DB_PATH_ECC ".\n");
-        return ret;
-    }
-
-    child_pid = fork();
-    if (child_pid == 0) { /* child */
-        ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
-                     NSS_DB, NULL);
-        if (ret == -1) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "execl() failed.\n");
-            exit(-1);
-        }
-    } else if (child_pid > 0) {
-        wait(&status);
-    } else {
-        ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE, "fork() failed\n");
-        return ret;
-    }
-
-    child_pid = fork();
-    if (child_pid == 0) { /* child */
-        ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
-                     NSS_DB_2CERTS, NULL);
-        if (ret == -1) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "execl() failed.\n");
-            exit(-1);
-        }
-    } else if (child_pid > 0) {
-        wait(&status);
-    } else {
-        ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE, "fork() failed\n");
-        return ret;
-    }
-
-    child_pid = fork();
-    if (child_pid == 0) { /* child */
-        ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
-                     NSS_DB_OCSP, NULL);
-        if (ret == -1) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "execl() failed.\n");
-            exit(-1);
-        }
-    } else if (child_pid > 0) {
-        wait(&status);
-    } else {
-        ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE, "fork() failed\n");
-        return ret;
-    }
-
-    child_pid = fork();
-    if (child_pid == 0) { /* child */
-        ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
-                     NSS_DB_ECC, NULL);
-        if (ret == -1) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "execl() failed.\n");
-            exit(-1);
-        }
-    } else if (child_pid > 0) {
-        wait(&status);
-    } else {
-        ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE, "fork() failed\n");
-        return ret;
-    }
-
-    fp = fopen(NSS_DB_PATH"/pkcs11.txt", "w");
-    if (fp == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fopen() failed.\n");
-        return ret;
-    }
-    ret = fprintf(fp, "library=libsoftokn3.so\nname=soft\n");
-    if (ret < 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
-        return ret;
-    }
-    ret = fprintf(fp, "parameters=configdir='sql:%s/src/tests/test_CA/p11_nssdb' dbSlotDescription='SSSD Test Slot' dbTokenDescription='SSSD Test Token' secmod='secmod.db' flags=readOnly \n\n", ABS_BUILD_DIR);
-    if (ret < 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
-        return ret;
-    }
-    ret = fclose(fp);
-    if (ret != 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fclose() failed.\n");
-        return ret;
-    }
-
-    fp = fopen(NSS_DB_PATH_2CERTS"/pkcs11.txt", "w");
-    if (fp == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fopen() failed.\n");
-        return ret;
-    }
-    ret = fprintf(fp, "library=libsoftokn3.so\nname=soft\n");
-    if (ret < 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
-        return ret;
-    }
-    ret = fprintf(fp, "parameters=configdir='sql:%s/src/tests/test_CA/p11_nssdb_2certs' dbSlotDescription='SSSD Test Slot' dbTokenDescription='SSSD Test Token' secmod='secmod.db' flags=readOnly \n\n", ABS_BUILD_DIR);
-    if (ret < 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
-        return ret;
-    }
-    ret = fclose(fp);
-    if (ret != 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fclose() failed.\n");
-        return ret;
-    }
-
-    fp = fopen(NSS_DB_PATH_OCSP"/pkcs11.txt", "w");
-    if (fp == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fopen() failed.\n");
-        return ret;
-    }
-    ret = fprintf(fp, "library=libsoftokn3.so\nname=soft\n");
-    if (ret < 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
-        return ret;
-    }
-    ret = fprintf(fp, "parameters=configdir='sql:%s/src/tests/test_CA/p11_nssdb_ocsp' dbSlotDescription='SSSD Test Slot' dbTokenDescription='SSSD Test Token' secmod='secmod.db' flags=readOnly \n\n", ABS_BUILD_DIR);
-    if (ret < 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
-        return ret;
-    }
-    ret = fclose(fp);
-    if (ret != 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fclose() failed.\n");
-        return ret;
-    }
-
-    fp = fopen(NSS_DB_PATH_ECC"/pkcs11.txt", "w");
-    if (fp == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fopen() failed.\n");
-        return ret;
-    }
-    ret = fprintf(fp, "library=libsoftokn3.so\nname=soft\n");
-    if (ret < 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
-        return ret;
-    }
-    ret = fprintf(fp, "parameters=configdir='sql:%s/src/tests/test_ECC_CA/p11_ecc_nssdb' dbSlotDescription='SSSD Test ECC Slot' dbTokenDescription='SSSD Test ECC Token' secmod='secmod.db' flags=readOnly \n\n", ABS_BUILD_DIR);
-    if (ret < 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
-        return ret;
-    }
-    ret = fclose(fp);
-    if (ret != 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "fclose() failed.\n");
-        return ret;
-    }
-
-    return EOK;
-}
-
-static void cleanup_nss_db(void)
-{
-    int ret;
-
-    ret = unlink(NSS_DB_PATH"/cert9.db");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove cert9.db.\n");
-    }
-
-    ret = unlink(NSS_DB_PATH"/key4.db");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove key4.db.\n");
-    }
-
-    ret = unlink(NSS_DB_PATH"/pkcs11.txt");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove pkcs11.db.\n");
-    }
-
-    ret = rmdir(NSS_DB_PATH);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
-    }
-
-    ret = unlink(NSS_DB_PATH_2CERTS"/cert9.db");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove cert9.db.\n");
-    }
-
-    ret = unlink(NSS_DB_PATH_2CERTS"/key4.db");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove key4.db.\n");
-    }
-
-    ret = unlink(NSS_DB_PATH_2CERTS"/pkcs11.txt");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove pkcs11.db.\n");
-    }
-
-    ret = rmdir(NSS_DB_PATH_2CERTS);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
-    }
-
-    ret = unlink(NSS_DB_PATH_OCSP"/cert9.db");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove cert9.db.\n");
-    }
-
-    ret = unlink(NSS_DB_PATH_OCSP"/key4.db");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove key4.db.\n");
-    }
-
-    ret = unlink(NSS_DB_PATH_OCSP"/pkcs11.txt");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove pkcs11.db.\n");
-    }
-
-    ret = rmdir(NSS_DB_PATH_OCSP);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
-    }
-
-    ret = unlink(NSS_DB_PATH_ECC"/cert9.db");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove cert9.db.\n");
-    }
-
-    ret = unlink(NSS_DB_PATH_ECC"/key4.db");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove key4.db.\n");
-    }
-
-    ret = unlink(NSS_DB_PATH_ECC"/pkcs11.txt");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove pkcs11.db.\n");
-    }
-
-    ret = rmdir(NSS_DB_PATH_ECC);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
-    }
-}
-#endif
 
 struct pam_ctx *mock_pctx(TALLOC_CTX *mem_ctx)
 {
@@ -507,9 +208,7 @@ static void pam_test_setup_common(void)
     errno_t ret;
     time_t now;
 
-#ifndef HAVE_NSS
     putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_one.conf"));
-#endif
 
     pam_test_ctx->pam_user_fqdn = \
                     sss_create_internal_fqname(pam_test_ctx,
@@ -2159,13 +1858,8 @@ void test_pam_preauth_cert_nocert(void **state)
 {
     int ret;
 
-#ifdef HAVE_NSS
-    set_cert_auth_param(pam_test_ctx->pctx, "/no/path");
-#else
     set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
     unsetenv("SOFTHSM2_CONF");
-#endif
-
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         NULL, NULL);
@@ -2305,9 +1999,8 @@ void test_pam_preauth_cert_nomatch(void **state)
 {
     int ret;
 
-#ifndef HAVE_NSS
     putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_one.conf"));
-#endif
+
     set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
@@ -2583,9 +2276,8 @@ void test_pam_ecc_cert_auth(void **state)
 {
     int ret;
 
-#ifndef HAVE_NSS
     putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_ECC_CA/softhsm2_ecc_one.conf"));
-#endif
+
     set_cert_auth_param(pam_test_ctx->pctx, ECC_CA_DB);
 
     /* Here the last option must be set to true because the backend is only
@@ -2621,9 +2313,7 @@ void test_pam_cert_auth_no_logon_name(void **state)
 {
     int ret;
 
-#ifndef HAVE_NSS
     putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_one.conf"));
-#endif
     set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     /* Here the last option must be set to true because the backend is only
@@ -2720,12 +2410,8 @@ void test_pam_cert_preauth_2certs_one_mapping(void **state)
 {
     int ret;
 
-#ifdef HAVE_NSS
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
-#else
     set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
     putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_two.conf"));
-#endif
 
     ret = test_lookup_by_cert_cb(discard_const(SSSD_TEST_CERT_0001));
     assert_int_equal(ret, EOK);
@@ -2749,12 +2435,8 @@ void test_pam_cert_preauth_2certs_two_mappings(void **state)
 {
     int ret;
 
-#ifdef HAVE_NSS
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
-#else
     set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
     putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_two.conf"));
-#endif
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb_2nd_cert_same_user,
@@ -2777,12 +2459,8 @@ void test_pam_cert_auth_2certs_one_mapping(void **state)
 {
     int ret;
 
-#ifdef HAVE_NSS
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
-#else
     set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
     putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_two.conf"));
-#endif
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", "SSSD Test Token",
                         TEST_MODULE_NAME,
@@ -2950,12 +2628,8 @@ void test_pam_preauth_ocsp(void **state)
     ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-#ifdef HAVE_NSS
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_OCSP);
-#else
     set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
     putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_ocsp.conf"));
-#endif
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         NULL, NULL);
@@ -2996,12 +2670,8 @@ void test_pam_preauth_ocsp_no_ocsp(void **state)
     ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-#ifdef HAVE_NSS
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_OCSP);
-#else
     set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
     putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_ocsp.conf"));
-#endif
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, SSSD_TEST_CERT_0005);
@@ -3034,12 +2704,8 @@ void test_pam_preauth_ocsp_soft_ocsp(void **state)
     ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-#ifdef HAVE_NSS
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_OCSP);
-#else
     set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
     putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_ocsp.conf"));
-#endif
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, SSSD_TEST_CERT_0005);
@@ -3500,7 +3166,6 @@ int main(int argc, const char *argv[])
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth_no_logon_name_no_key_id,
                                         pam_test_setup, pam_test_teardown),
-#ifndef HAVE_NSS
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_uri_token1,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_uri_token2,
@@ -3511,15 +3176,12 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_preauth_expired_crl_file_soft,
                                         pam_test_setup, pam_test_teardown),
 #endif /* HAVE_FAKETIME */
-#endif /* ! HAVE_NSS */
         cmocka_unit_test_setup_teardown(test_pam_preauth_ocsp,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_ocsp_no_ocsp,
                                         pam_test_setup, pam_test_teardown),
-#ifndef HAVE_NSS
         cmocka_unit_test_setup_teardown(test_pam_preauth_ocsp_soft_ocsp,
                                         pam_test_setup, pam_test_teardown),
-#endif /* ! HAVE_NSS */
 #endif /* HAVE_TEST_CA */
 
         cmocka_unit_test_setup_teardown(test_filter_response,
@@ -3561,27 +3223,10 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
 
-#ifdef HAVE_NSS
-    cleanup_nss_db();
-    rv = setup_nss_db();
-    if (rv != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "setup_nss_db failed.\n");
-        exit(-1);
-    }
-#endif
-
     rv = cmocka_run_group_tests(tests, NULL, NULL);
     if (rv == 0 && !no_cleanup) {
-#ifdef HAVE_NSS
-        cleanup_nss_db();
-#endif
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }
-
-#ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make Valgrind happy. */
-    nspr_nss_cleanup();
-#endif
 
     return rv;
 }

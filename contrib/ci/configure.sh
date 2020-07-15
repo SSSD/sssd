@@ -65,16 +65,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
     )
 fi
 
-if [[ "$DISTRO_BRANCH" == -redhat-fedora-29* ||
-      "$DISTRO_BRANCH" == -redhat-fedora-3* ||
-      "$DISTRO_BRANCH" == -debian-* ||
-      "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
-      "$DISTRO_BRANCH" == -redhat-centos-8.*- ]]; then
-    CONFIGURE_ARG_LIST+=(
-        "--with-crypto=libcrypto"
-    )
-fi
-
 if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[2-9]* ]]; then
     CONFIGURE_ARG_LIST+=(
         "--without-python2-bindings"
