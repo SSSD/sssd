@@ -162,6 +162,9 @@ class SSSDOptions(object):
         'groups': _('A comma-separated list of groups, members of which should have session recording enabled. '
                     'Matches group names as returned by NSS. I.e. after the possible space replacement, case changes, '
                     'etc.'),
+        'exclude_users': _('A comma-separated list of users to be excluded from recording, only when scope=all'),
+        'exclude_groups': _('A comma-separated list of groups, members of which should be excluded from recording, '
+                            ' only when scope=all. '),
 
         # [provider]
         'id_provider': _('Identity provider'),
