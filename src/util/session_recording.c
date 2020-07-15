@@ -107,6 +107,20 @@ errno_t session_recording_conf_load(TALLOC_CTX *mem_ctx,
                                     &pconf->groups);
     if (ret != EOK && ret != ENOENT) goto done;
 
+    /* Read session_recording/exclude users option */
+    ret = confdb_get_string_as_list(cdb, mem_ctx,
+                                    CONFDB_SESSION_RECORDING_CONF_ENTRY,
+                                    CONFDB_SESSION_RECORDING_EXCLUDE_USERS,
+                                    &pconf->exclude_users);
+    if (ret != EOK && ret != ENOENT) goto done;
+
+    /* Read session_recording/exclude groups option */
+    ret = confdb_get_string_as_list(cdb, mem_ctx,
+                                    CONFDB_SESSION_RECORDING_CONF_ENTRY,
+                                    CONFDB_SESSION_RECORDING_EXCLUDE_GROUPS,
+                                    &pconf->exclude_groups);
+    if (ret != EOK && ret != ENOENT) goto done;
+
     ret = EOK;
 done:
     return ret;

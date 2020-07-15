@@ -53,6 +53,17 @@ struct session_recording_conf {
      * scope is "some"
      */
     char                          **groups;
+    /**
+     * NULL-terminated list of users to be excluded from recording.
+     * Can be NULL, meaning empty list. Only applicable if scope is "all".
+     */
+    char                          **exclude_users;
+    /**
+     * NULL-terminated list of groups, members of which should be excluded
+     * from recording. Can be NULL, meaning empty list. Only applicable if
+     * scope is "all"
+     */
+    char                          **exclude_groups;
 };
 
 /**
