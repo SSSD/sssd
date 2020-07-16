@@ -2094,6 +2094,38 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>exclude_users (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of users to be excluded from
+                            recording, only applicable with 'scope=all'.
+                        </para>
+                        <para>
+                            Default: Empty. No users excluded.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>exclude_groups (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of groups, members of which
+                            should be excluded from recording. Only applicable
+                            with 'scope=all'.
+                        </para>
+                        <para>
+                            NOTE: using this option (having it set to
+                            anything) has a considerable performance cost,
+                            because each uncached request for a user requires
+                            retrieving and matching the groups the user is
+                            member of.
+                        </para>
+                        <para>
+                            Default: Empty. No groups excluded.
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 
