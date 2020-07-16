@@ -1000,3 +1000,165 @@ def test_some_users_and_groups_ent(some_users_and_groups):
             dict(name="user4", uid=1004, shell="/bin/sh4"),
         )
     )
+
+
+@pytest.fixture
+def all_exclude_users(request, ldap_conn, users_and_groups):
+    """
+    Test "all" scope with a simple excludes user list
+    """
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
+        unindent("""\
+            [session_recording]
+            scope = all
+            exclude_users = user1, user3
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_all_exclude_users_nam(all_exclude_users):
+    """Test "all" scope with exclude users list and getpwnam"""
+    ent.assert_each_passwd_by_name(dict(
+        user1=dict(name="user1", uid=1001, shell="/bin/sh1"),
+        user2=dict(name="user2", uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
+        user4=dict(name="user4", uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
+    ))
+
+
+def test_all_exclude_users_uid(all_exclude_users):
+    """Test "all" scope with exclude users list and getpwuid"""
+    ent.assert_each_passwd_by_uid({
+        1001: dict(name="user1", uid=1001, shell="/bin/sh1"),
+        1002: dict(name="user2", uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1003: dict(name="user3", uid=1003, shell="/bin/sh3"),
+        1004: dict(name="user4", uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
+    })
+
+
+def test_all_exclude_users_ent(all_exclude_users):
+    """Test "all" scope with exclude users list and getpwent"""
+    ent.assert_passwd_list(
+        ent.contains_only(
+            dict(name="user1", uid=1001, shell="/bin/sh1"),
+            dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user3", uid=1003, shell="/bin/sh3"),
+            dict(name="user4", uid=1004, shell=config.SESSION_RECORDING_SHELL),
+        )
+    )
+
+
+@pytest.fixture
+def all_exclude_groups(request, ldap_conn, users_and_groups):
+    """
+    Fixture with scope "all", specifying two primary exclude
+    groups and one supplementary exclude group.
+    """
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
+        unindent("""\
+            [session_recording]
+            scope = all
+            exclude_groups = group1, group3, two_user_group
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_all_exclude_groups_nam(all_exclude_groups):
+    """Test "all" scope with exclude groups list and getpwnam"""
+    ent.assert_each_passwd_by_name(dict(
+        user1=dict(name="user1", uid=1001, shell="/bin/sh1"),
+        user2=dict(name="user2", uid=1002, shell="/bin/sh2"),
+        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
+        user4=dict(name="user4", uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
+    ))
+
+
+def test_all_exclude_groups_uid(all_exclude_groups):
+    """Test "all" scope with group list and getpwuid"""
+    ent.assert_each_passwd_by_uid({
+        1001: dict(name="user1", uid=1001, shell="/bin/sh1"),
+        1002: dict(name="user2", uid=1002, shell="/bin/sh2"),
+        1003: dict(name="user3", uid=1003, shell="/bin/sh3"),
+        1004: dict(name="user4", uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
+    })
+
+
+def test_all_exclude_groups_ent(all_exclude_groups):
+    """Test "all" scope with group list and getpwent"""
+    ent.assert_passwd_list(
+        ent.contains_only(
+            dict(name="user1", uid=1001, shell="/bin/sh1"),
+            dict(name="user2", uid=1002, shell="/bin/sh2"),
+            dict(name="user3", uid=1003, shell="/bin/sh3"),
+            dict(name="user4", uid=1004,
+                 shell=config.SESSION_RECORDING_SHELL),
+        )
+    )
+
+
+@pytest.fixture
+def some_users_and_exclude_groups(request, ldap_conn, users_and_groups):
+    """
+    Fixture with scope "some" containing users to
+    enable recording, and exclude_* options to be ignored
+    intentionally
+    """
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
+        unindent("""\
+            [session_recording]
+            scope = some
+            users = user1, user2
+            exclude_users = user1, user2, user3
+            exclude_groups = group1, group3, two_user_group
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_some_users_and_exclude_groups_nam(some_users_and_exclude_groups):
+    """Test "some" scope with exclude users and groups list and getpwnam"""
+    ent.assert_each_passwd_by_name(dict(
+        user1=dict(name="user1", uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2", uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
+        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+    ))
+
+
+def test_some_users_and_exclude_groups_uid(some_users_and_exclude_groups):
+    """Test "some" scope with exclude users and groups list and getpwuid"""
+    ent.assert_each_passwd_by_uid({
+        1001: dict(name="user1", uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2", uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1003: dict(name="user3", uid=1003, shell="/bin/sh3"),
+        1004: dict(name="user4", uid=1004, shell="/bin/sh4"),
+    })
+
+
+def test_some_users_and_exclude_groups_ent(some_users_and_exclude_groups):
+    """Test "some" scope with exclude users and group list and getpwent"""
+    ent.assert_passwd_list(
+        ent.contains_only(
+            dict(name="user1", uid=1001,
+                 shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user2", uid=1002,
+                 shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user3", uid=1003, shell="/bin/sh3"),
+            dict(name="user4", uid=1004, shell="/bin/sh4"),
+        )
+    )
