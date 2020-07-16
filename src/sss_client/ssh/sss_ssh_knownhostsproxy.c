@@ -322,6 +322,10 @@ int main(int argc, const char **argv)
 
         if (ret == EOK) {
             ret = proxy_data(socket_descriptor);
+            if (ret != EOK) {
+                ERROR("sss_ssh_knownhostsproxy: unable to proxy data: "
+                      "%s\n", strerror(ret));
+            }
         } else {
             ERROR("sss_ssh_knownhostsproxy: connect to host %s port %d: "
                   "%s\n", pc_host, pc_port, strerror(ret));
