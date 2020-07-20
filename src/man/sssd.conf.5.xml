@@ -3372,6 +3372,9 @@ pam_gssapi_services = sudo, sudo-i
                             used if ldap_krb5_keytab is not set explicitly)
                         </para>
                         <para>
+                            auto_private_groups
+                        </para>
+                        <para>
                             Example:
                             <programlisting>
 subdomain_inherit = ldap_purge_cache_timeout
