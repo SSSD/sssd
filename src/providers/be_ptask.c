@@ -214,12 +214,12 @@ static void be_ptask_schedule(struct be_ptask *task,
             return;
         }
 
-        delay = task->period;
-
         if (backoff_allowed(task)) {
             /* double the period for the next execution */
             task->period = MIN(task->period * 2, task->max_backoff);
         }
+
+        delay = task->period;
         break;
     }
 
