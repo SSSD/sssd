@@ -1851,7 +1851,7 @@ void test_pam_auth_upn_logon_name(void **state)
 static void set_cert_auth_param(struct pam_ctx *pctx, const char *dbpath)
 {
     pam_test_ctx->pctx->cert_auth = true;
-    pam_test_ctx->pctx->nss_db = discard_const(dbpath);
+    pam_test_ctx->pctx->ca_db = discard_const(dbpath);
 }
 
 void test_pam_preauth_cert_nocert(void **state)

@@ -151,7 +151,7 @@ int main(int argc, const char *argv[])
     enum op_mode mode = OP_NONE;
     enum pin_mode pin_mode = PIN_NONE;
     char *pin = NULL;
-    char *nss_db = NULL;
+    char *ca_db = NULL;
     struct cert_verify_opts *cert_verify_opts;
     char *verify_opts = NULL;
     char *multi = NULL;
@@ -186,7 +186,7 @@ int main(int argc, const char *argv[])
          NULL},
         {"verify", 0, POPT_ARG_STRING, &verify_opts, 0 , _("Tune validation"),
          NULL},
-        {"nssdb", 0, POPT_ARG_STRING, &nss_db, 0, _("NSS DB to use"),
+        {"ca_db", 0, POPT_ARG_STRING, &ca_db, 0, _("CA DB to use"),
          NULL},
         {"module_name", 0, POPT_ARG_STRING, &module_name, 0,
          _("Module name for authentication"), NULL},
@@ -276,8 +276,8 @@ int main(int argc, const char *argv[])
         }
     }
 
-    if (nss_db == NULL) {
-        fprintf(stderr, "\nMissing NSS DB --nssdb must be specified.\n\n");
+    if (ca_db == NULL) {
+        fprintf(stderr, "\nMissing CA DB path: --ca_db must be specified.\n\n");
         poptPrintUsage(pc, stderr, 0);
         _exit(-1);
     }
@@ -368,7 +368,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    ret = do_work(main_ctx, mode, nss_db, cert_verify_opts, wait_for_card,
+    ret = do_work(main_ctx, mode, ca_db, cert_verify_opts, wait_for_card,
                   cert_b64, pin, module_name, token_name, key_id, uri, &multi);
     if (ret != 0) {
         DEBUG(SSSDBG_OP_FAILURE, "do_work failed.\n");

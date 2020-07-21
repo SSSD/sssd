@@ -1402,7 +1402,7 @@ static errno_t check_cert(TALLOC_CTX *mctx,
     }
 
     req = pam_check_cert_send(mctx, ev,
-                              pctx->nss_db, p11_child_timeout,
+                              pctx->ca_db, p11_child_timeout,
                               cert_verification_opts, pctx->sss_certmap_ctx,
                               uri, pd);
     if (req == NULL) {
