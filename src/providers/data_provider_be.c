@@ -51,6 +51,8 @@
 #define ONLINE_CB_RETRY 3
 #define ONLINE_CB_RETRY_MAX_DELAY 4
 
+#define OFFLINE_TIMEOUT_MAX_DEFAULT 3600
+
 /* sssd.service */
 static errno_t
 data_provider_res_init(TALLOC_CTX *mem_ctx,
@@ -110,9 +112,29 @@ static int get_offline_timeout(struct be_ctx *ctx)
     return offline_timeout;
 }
 
+static int get_offline_timeout_max(struct be_ctx *ctx)
+{
+    int offline_timeout_max;
+    errno_t ret;
+
+    ret = confdb_get_int(ctx->cdb, ctx->conf_path,
+                         CONFDB_DOMAIN_OFFLINE_TIMEOUT_MAX,
+                         OFFLINE_TIMEOUT_MAX_DEFAULT,
+                         &offline_timeout_max);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Failed to get offline_timeout_max from confdb. "
+              "Will use %d seconds.\n", OFFLINE_TIMEOUT_MAX_DEFAULT);
+        offline_timeout_max = OFFLINE_TIMEOUT_MAX_DEFAULT;
+    }
+
+    return offline_timeout_max;
+}
+
 void be_mark_offline(struct be_ctx *ctx)
 {
     int offline_timeout;
+    int offline_timeout_max;
     errno_t ret;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Going offline!\n");
@@ -126,11 +148,12 @@ void be_mark_offline(struct be_ctx *ctx)
         DEBUG(SSSDBG_TRACE_INTERNAL, "Initialize check_if_online_ptask.\n");
 
         offline_timeout = get_offline_timeout(ctx);
+        offline_timeout_max = get_offline_timeout_max(ctx);
 
         ret = be_ptask_create_sync(ctx, ctx,
                                    offline_timeout, offline_timeout,
                                    offline_timeout, 30, offline_timeout,
-                                   3600 /* max_backoff */,
+                                   offline_timeout_max,
                                    try_to_go_online,
                                    ctx, "Check if online (periodic)",
                                    BE_PTASK_OFFLINE_EXECUTE,
