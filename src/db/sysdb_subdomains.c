@@ -221,6 +221,7 @@ check_subdom_config_file(struct confdb_ctx *confdb,
                          struct sss_domain_info *subdomain)
 {
     char *sd_conf_path;
+    char *case_sensitive_opt;
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
 
@@ -270,6 +271,38 @@ check_subdom_config_file(struct confdb_ctx *confdb,
               "Failed to get %s option for the subdomain: %s\n",
               CONFDB_PAM_GSSAPI_CHECK_UPN, subdomain->name);
         goto done;
+    }
+
+    /* case_sensitive=Preserving */
+    ret = confdb_get_string(confdb, tmp_ctx, sd_conf_path,
+                            CONFDB_DOMAIN_CASE_SENSITIVE, NULL,
+                            &case_sensitive_opt);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to get %s option for the subdomain: %s\n",
+              CONFDB_DOMAIN_CASE_SENSITIVE, subdomain->name);
+        goto done;
+    }
+
+    if (case_sensitive_opt != NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "%s/%s has value %s\n", sd_conf_path,
+              CONFDB_DOMAIN_CASE_SENSITIVE, case_sensitive_opt);
+        if (strcasecmp(case_sensitive_opt, "true") == 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Warning: subdomain can not be set as case-sensitive.\n");
+            subdomain->case_sensitive = false;
+            subdomain->case_preserve = false;
+        } else if (strcasecmp(case_sensitive_opt, "false") == 0) {
+            subdomain->case_sensitive = false;
+            subdomain->case_preserve = false;
+        } else if (strcasecmp(case_sensitive_opt, "preserving") == 0) {
+            subdomain->case_sensitive = false;
+            subdomain->case_preserve = true;
+        } else {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                "Invalid value for %s\n", CONFDB_DOMAIN_CASE_SENSITIVE);
+            goto done;
+        }
     }
 
     ret = EOK;
