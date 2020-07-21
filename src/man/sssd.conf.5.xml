@@ -748,12 +748,34 @@
                         </para>
                         <para>
                             Note that the maximum length of each interval
-                            is currently limited to one hour. If the
-                            calculated length of new_interval is greater
-                            than an hour, it will be forced to one hour.
+                            is defined by offline_timeout_max, which defaults
+                            to one hour. If the calculated length of new_interval
+                            is greater than offline_timeout_max, it will be forced
+                            to the offline_timeout_max value.
                         </para>
                         <para>
                             Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>offline_timeout_max (integer)</term>
+                    <listitem>
+                        <para>
+                            Controls by how much the time between attempts to go
+                            online can be incremented following unsuccessful
+                            attempts to go online.
+                        </para>
+                        <para>
+                            A value of 0 disables the incrementing behaviour.
+                        </para>
+                        <para>
+                            Although a value between 0 and offline_timeout may be
+                            specified, it has the effect of overriding the
+                            offline_timeout value so is of little use.
+                        </para>
+                        <para>
+                            Default: 3600
                         </para>
                     </listitem>
                 </varlistentry>
