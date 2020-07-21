@@ -57,7 +57,7 @@ enum pin_mode {
     PIN_KEYPAD
 };
 
-errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *nss_db,
+errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
                      bool wait_for_card, struct p11_ctx **p11_ctx);
 
 errno_t init_verification(struct p11_ctx *p11_ctx,

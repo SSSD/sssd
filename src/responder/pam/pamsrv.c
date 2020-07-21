@@ -284,7 +284,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                                 CONFDB_PAM_CONF_ENTRY,
                                 CONFDB_PAM_CERT_DB_PATH,
                                 DEFAULT_PAM_CERT_DB_PATH,
-                                &pctx->nss_db);
+                                &pctx->ca_db);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Failed to determine if certificate based authentication is " \

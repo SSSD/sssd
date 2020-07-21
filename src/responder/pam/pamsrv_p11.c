@@ -705,7 +705,7 @@ static void p11_child_timeout(struct tevent_context *ev,
 
 struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
-                                       const char *nss_db,
+                                       const char *ca_db,
                                        time_t timeout,
                                        const char *verify_opts,
                                        struct sss_certmap_ctx *sss_certmap_ctx,
@@ -733,8 +733,8 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (nss_db == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing NSS DB.\n");
+    if (ca_db == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing CA DB path.\n");
         ret = EINVAL;
         goto done;
     }
@@ -756,8 +756,8 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     if ((pd->cli_flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH) && pd->priv == 1) {
         extra_args[arg_c++] = "--wait_for_card";
     }
-    extra_args[arg_c++] = nss_db;
-    extra_args[arg_c++] = "--nssdb";
+    extra_args[arg_c++] = ca_db;
+    extra_args[arg_c++] = "--ca_db";
     if (verify_opts != NULL) {
         extra_args[arg_c++] = verify_opts;
         extra_args[arg_c++] = "--verify";
