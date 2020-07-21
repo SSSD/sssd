@@ -54,7 +54,7 @@ struct pam_ctx {
     char **app_services;
 
     bool cert_auth;
-    char *nss_db;
+    char *ca_db;
     struct sss_certmap_ctx *sss_certmap_ctx;
     char **smartcard_services;
 
@@ -109,7 +109,7 @@ void sss_cai_check_users(struct cert_auth_info **list, size_t *_cert_count,
 
 struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
-                                       const char *nss_db,
+                                       const char *ca_db,
                                        time_t timeout,
                                        const char *verify_opts,
                                        struct sss_certmap_ctx *sss_certmap_ctx,
