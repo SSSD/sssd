@@ -157,6 +157,14 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
         dom->ignore_group_members = parent->ignore_group_members;
     }
 
+    /* Inherit case_sensitive. All subdomains are always case insensitive,
+     * but we want to inherit case preserving which is set with
+     * case_sensitive=Preserving. */
+    inherit_option = string_in_list(CONFDB_DOMAIN_CASE_SENSITIVE,
+                                    parent->sd_inherit, false);
+    dom->case_sensitive = false;
+    dom->case_preserve = inherit_option ? parent->case_preserve : false;
+
     dom->trust_direction = trust_direction;
     /* If the parent domain explicitly limits ID ranges, the subdomain
      * should honour the limits as well.
@@ -168,14 +176,12 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->cache_credentials_min_ff_length =
                                         parent->cache_credentials_min_ff_length;
     dom->cached_auth_timeout = parent->cached_auth_timeout;
-    dom->case_sensitive = false;
     dom->user_timeout = parent->user_timeout;
     dom->group_timeout = parent->group_timeout;
     dom->netgroup_timeout = parent->netgroup_timeout;
     dom->service_timeout = parent->service_timeout;
     dom->resolver_timeout = parent->resolver_timeout;
     dom->names = parent->names;
-
     dom->override_homedir = parent->override_homedir;
     dom->fallback_homedir = parent->fallback_homedir;
     dom->subdomain_homedir = parent->subdomain_homedir;

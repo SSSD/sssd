@@ -3375,6 +3375,9 @@ pam_gssapi_services = sudo, sudo-i
                             auto_private_groups
                         </para>
                         <para>
+                            case_sensitive
+                        </para>
+                        <para>
                             Example:
                             <programlisting>
 subdomain_inherit = ldap_purge_cache_timeout
