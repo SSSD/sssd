@@ -844,6 +844,46 @@ done:
     return ret;
 }
 
+static char *s2n_response_to_attrs_fqname(TALLOC_CTX *mem_ctx,
+                                          enum extdom_protocol protocol,
+                                          const char *domain_name,
+                                          const char *name)
+{
+    char *lc_name;
+    char *out_name;
+
+    if (protocol == EXTDOM_V0) {
+        /* Compatibility with older IPA servers that may use winbind instead
+         * of SSSD's server mode.
+         *
+         * Winbind is not consistent with the case of the returned user
+         * name. In general all names should be lower case but there are
+         * bug in some version of winbind which might lead to upper case
+         * letters in the name. To be on the safe side we explicitly
+         * lowercase the name.
+         */
+
+        lc_name = sss_tc_utf8_str_tolower(NULL, name);
+        if (lc_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+            return NULL;
+        }
+
+        out_name = sss_create_internal_fqname(mem_ctx, lc_name, domain_name);
+        talloc_free(lc_name);
+    } else {
+        /* Keep the original casing to support case_sensitive=Preserving */
+        out_name = sss_create_internal_fqname(mem_ctx, name, domain_name);
+    }
+
+    if (out_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return NULL;
+    }
+
+    return out_name;
+}
+
 static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct req_input *req_input,
                                     struct resp_attrs *attrs,
@@ -865,7 +905,6 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
     enum response_types type;
     char *domain_name = NULL;
     char *name = NULL;
-    char *lc_name = NULL;
     uid_t uid;
     gid_t gid;
     struct resp_attrs *attrs = NULL;
@@ -920,23 +959,11 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                 goto done;
             }
 
-            /* Winbind is not consistent with the case of the returned user
-             * name. In general all names should be lower case but there are
-             * bug in some version of winbind which might lead to upper case
-             * letters in the name. To be on the safe side we explicitly
-             * lowercase the name. */
-            lc_name = sss_tc_utf8_str_tolower(attrs, name);
-            if (lc_name == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            attrs->a.user.pw_name = sss_create_internal_fqname(attrs,
-                                                               lc_name,
-                                                               domain_name);
-            talloc_free(lc_name);
+            attrs->a.user.pw_name = s2n_response_to_attrs_fqname(attrs,
+                                                                 protocol,
+                                                                 domain_name,
+                                                                 name);
             if (attrs->a.user.pw_name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -969,23 +996,11 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                 goto done;
             }
 
-            /* Winbind is not consistent with the case of the returned user
-             * name. In general all names should be lower case but there are
-             * bug in some version of winbind which might lead to upper case
-             * letters in the name. To be on the safe side we explicitly
-             * lowercase the name. */
-            lc_name = sss_tc_utf8_str_tolower(attrs, name);
-            if (lc_name == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            attrs->a.group.gr_name = sss_create_internal_fqname(attrs,
-                                                                lc_name,
-                                                                domain_name);
-            talloc_free(lc_name);
+            attrs->a.group.gr_name = s2n_response_to_attrs_fqname(attrs,
+                                                                  protocol,
+                                                                  domain_name,
+                                                                  name);
             if (attrs->a.group.gr_name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
