@@ -14,10 +14,10 @@ from sssd.testlib.common.exceptions import DirSrvException
 from sssd.testlib.common.exceptions import LdapException
 from sssd.testlib.common.utils import LdapOperations
 
-DS_USER = 'nobody'
-DS_GROUP = 'nobody'
+DS_USER = 'dirsrv'
+DS_GROUP = 'dirsrv'
 DS_ADMIN = 'admin'
-DS_ROOTDN = 'CN=Directory Manager'
+DS_ROOTDN = 'cn=Directory Manager'
 
 
 class DirSrv(object):
@@ -51,7 +51,7 @@ class DirSrv(object):
                                self.__dict__)
 
     def create_config(self):
-        """create config file for setup-ds.pl to setup DS instances.
+        """create inf file for dscreate to setup DS instances.
 
         Args:
             param1 (None):
@@ -64,17 +64,21 @@ class DirSrv(object):
         """
         config = ConfigParser.RawConfigParser()
         config.optionxform = str
-        config.add_section('General')
-        config.set('General', 'FullMachineName', self.dsinstance_host)
-        config.set('General', 'SuiteSpotUserID', DS_USER)
-        config.set('General', 'SuiteSpotGroup', DS_GROUP)
-        config.set('General', 'ConfigDirectoryAdminID', DS_ADMIN)
+        config.add_section('general')
+        config.set('general', 'full_machine_name', self.dsinstance_host)
+        config.set('general', 'user', DS_USER)
+        config.set('general', 'group', DS_GROUP)
         config.add_section('slapd')
-        config.set('slapd', 'ServerIdentifier', self.instance_name)
-        config.set('slapd', 'ServerPort', self.dsldap_port)
-        config.set('slapd', 'Suffix', self.dsinstance_suffix)
-        config.set('slapd', 'RootDN', self.dsrootdn)
-        config.set('slapd', 'RootDNPwd', self.dsrootdn_pwd)
+        config.set('slapd', 'instance_name', self.instance_name)
+        config.set('slapd', 'port', self.dsldap_port)
+        config.set('slapd', 'suffix', self.dsinstance_suffix)
+        config.set('slapd', 'root_dn', self.dsrootdn)
+        config.set('slapd', 'root_password', self.dsrootdn_pwd)
+        config.set('slapd', 'self_sign_cert', False)
+        config.add_section('backend-userRoot')
+        config.set('backend-userRoot', 'create_suffix_entry', 'True')
+        config.set('backend-userRoot', 'sample_entries', '001003006')
+        config.set('backend-userRoot', 'suffix', self.dsinstance_suffix)
 
         (ds_config, ds_config_file_path) = tempfile.mkstemp(suffix='cfg')
         os.close(ds_config)
@@ -83,23 +87,23 @@ class DirSrv(object):
         return ds_config_file_path
 
     def setup_ds(self, ds_cfg_file):
-        """create DS instance by running setup-ds.pl.
+        """create DS instance by running dscreate
 
         Args:
              ds_config_file (str): ds_config_file: Configuration File path
 
         Returns:
-             bool: True if setup-ds.pl ran successfully else False
+             bool: True if dscreate ran successfully else False
 
         Exceptions:
              subprocess.CalledProcessError:
         """
         self.multihost.transport.put_file(ds_cfg_file, '/tmp/test.cfg')
-        setup_args = ['setup-ds.pl', '--silent',
-                      '--file=/tmp/test.cfg', '--debug']
+        setup_cmd = 'dscreate -v from-file %s' % '/tmp/test.cfg'
         try:
-            self.multihost.run_command(setup_args)
+            self.multihost.run_command(setup_cmd)
         except subprocess.CalledProcessError:
+            self.multihost.log.info("Failed to setup Directory Server")
             raise
         else:
             os.remove(ds_cfg_file)
@@ -119,17 +123,18 @@ class DirSrv(object):
         """
         if inst_name is None:
             inst_name = self.ds_inst_name
-        remove_args = ['remove-ds.pl', '-i', inst_name, '-d']
+        remove_cmd = 'dsctl %s remove --do-it' % (inst_name)
         try:
-            self.multihost.run_command(remove_args)
+            self.multihost.run_command(remove_cmd)
         except subprocess.CalledProcessError:
+            self.multihost.log.info("Failed to remove %s instance" % inst_name)
             raise
 
     def _copy_pkcs12(self, ssl_dir):
         """ Copy the pkcs12 files from ssl_dir to
         DS instance directory """
-
-        nss_db_files = ['ca.p12', 'server.p12', 'pin.txt', 'pwfile']
+        server_p12 = '%s-server.p12' % self.multihost.sys_hostname
+        nss_db_files = ['ca.p12', 'pin.txt', 'pwfile', server_p12]
         for db_file in nss_db_files:
             source = os.path.join(ssl_dir, db_file)
             destination = os.path.join(self.dsinst_path, db_file)
@@ -158,18 +163,18 @@ class DirSrv(object):
             self.multihost.run_command(change_ownership)
         except subprocess.CalledProcessError:
             raise DirSrvException(
-                'fail to user change ownership of pin.txt fail')
+                'Failed to change ownership of pin.txt')
         try:
             self.multihost.run_command(change_group)
         except subprocess.CalledProcessError:
             raise DirSrvException(
-                'fail to change group ownership of pin.txt file')
+                'Failed to change group ownership of pin.txt')
         try:
             self.multihost.run_command(chmod_file)
         except subprocess.CalledProcessError:
-            raise DirSrvException('fail to change permissions of pin.txt file')
+            raise DirSrvException('Failed to change permissions of pin.txt')
 
-    def setup_certs(self, ssl_dir):
+    def setup_certs(self, ssl_dir, client_host=None, canick=None):
         """copy CA and Server certs to all DS instances.
 
         Args:
@@ -189,7 +194,7 @@ class DirSrv(object):
         try:
             self.multihost.run_command(stop_ds)
         except subprocess.CalledProcessError:
-            raise DirSrvException("Unable to stop Directory Server instance")
+            raise DirSrvException("Failed to stop Directory Server instance")
         else:
             self.multihost.log.info('DS instance stopped successfully')
             self._copy_pkcs12(ssl_dir)
@@ -197,23 +202,31 @@ class DirSrv(object):
         target_pin_file = os.path.join(self.dsinst_path, 'pin.txt')
         pwfile = os.path.join(self.dsinst_path, 'pwfile')
         ca_p12 = os.path.join(self.dsinst_path, 'ca.p12')
-        server_p12 = os.path.join(self.dsinst_path, 'server.p12')
-        # recreate the database
-        certutil_cmd = 'certutil -N -d %s -f %s' % (self.dsinst_path, pwfile)
+        server_p12_name = '%s-%s' % (self.multihost.sys_hostname, 'server.p12')
+        server_p12 = os.path.join(self.dsinst_path, server_p12_name)
+        # create directory to copy ca cert
+        certutil_cmd = 'certutil -T -d %s -f %s' % (self.dsinst_path, pwfile)
         self.multihost.run_command(certutil_cmd)
         create_cert_dir = 'mkdir -p /etc/openldap/cacerts'
         # recreate the database
         self.multihost.run_command(create_cert_dir)
+        if not canick:
+            canick = "ExampleCA"
         pkcs12_file = [ca_p12, server_p12]
         for pkcs_file in pkcs12_file:
             if not self._import_certs(pkcs_file, pwfile):
                 raise DirSrvException("importing certificates failed")
-        set_trust_cmd = 'certutil -M -d %s -n "ExampleCA"'\
-                        ' -t "CTu,u,u" -f %s' % (self.dsinst_path, pwfile)
+        set_trust_cmd = 'certutil -M -d %s -n %s ' \
+                        '-t "CT,C,T" -f %s' % (self.dsinst_path,
+                                               canick, pwfile)
         self.multihost.run_command(create_cert_dir)
         self.multihost.run_command(set_trust_cmd)
         self.multihost.transport.put_file(os.path.join(
             ssl_dir, 'cacert.pem'), cacert_file_path)
+        if client_host:
+            client_host.run_command(create_cert_dir)
+            client_host.transport.put_file(
+                os.path.join(ssl_dir, 'cacert.pem'), cacert_file_path)
         try:
             self._set_dsperms(target_pin_file)
         except DirSrvException:
@@ -222,7 +235,7 @@ class DirSrv(object):
         try:
             self.multihost.run_command(start_ds)
         except subprocess.CalledProcessError:
-            raise DirSrvException('Could not Start DS Instance')
+            raise DirSrvException('Failed to start DS Instance')
         else:
             self.multihost.log.info('DS instance started successfully')
 
@@ -246,7 +259,7 @@ class DirSrv(object):
         add_tls = [(ldap.MOD_ADD, 'nsTLS1', [b'on'])]
         (ret, return_value) = ldap_obj.modify_ldap(mod_dn1, add_tls)
         if not return_value:
-            raise LdapException('fail to enable TLS, Error:%s' % (ret))
+            raise LdapException('Failed to enable TLS, Error:%s' % (ret))
         else:
             print('Enabled nsTLS1=on')
         mod_dn2 = 'cn=RSA,cn=encryption,cn=config'
@@ -255,7 +268,7 @@ class DirSrv(object):
                           ((self.dsinstance_host.encode()))])]
         (ret, return_value) = ldap_obj.modify_ldap(mod_dn2, mod_security)
         if not return_value:
-            raise LdapException('fail to set Server-Cert nick:%s' % (ret))
+            raise LdapException('Failed to set Server-Cert nick:%s' % (ret))
         else:
             print('Enabled Server-Cert nick')
 
@@ -265,7 +278,7 @@ class DirSrv(object):
         (ret, return_value) = ldap_obj.modify_ldap(mod_dn3, enable_security)
         if not return_value:
             raise LdapException(
-                'fail to enable nsslapd-security, Error:%s' % (ret))
+                'Failed to enable nsslapd-security, Error:%s' % (ret))
         else:
             print('Enabled nsslapd-security')
 
@@ -276,9 +289,34 @@ class DirSrv(object):
         (ret, return_value) = ldap_obj.modify_ldap(mod_dn4, enable_ssl_port)
         if not return_value:
             raise LdapException(
-                'fail to set nsslapd-securePort, Error:%s' % (ret))
+                'Failed to set nsslapd-securePort, Error:%s' % (ret))
         else:
             print('Enabled nsslapd-securePort=%r' % tls_port)
+
+    def enable_anonymous_search(self, binduri):
+        """Enable anonymous search access to basedn
+        Args:
+            binduri (str): LDAP uri to bind with
+        Returns:
+            boold: True if ACI is added
+        Exceptions:
+            LdapException
+        """
+        ldap_obj = LdapOperations(
+            uri=binduri, binddn=self.dsrootdn, bindpw=self.dsrootdn_pwd)
+        # Enable Anonymous access aci
+        allow_anonymous = "(targetattr!=\"userPassword || aci\")" \
+                          "(version 3.0; acl \"Enable anonymous " \
+                          "access\"; allow " \
+                          "(read, search, compare) userdn=\"ldap:///anyone\";)"
+        add_aci = [(ldap.MOD_ADD, 'aci', [allow_anonymous.encode('utf-8')])]
+        (ret, return_value) = ldap_obj.modify_ldap(
+            self.dsinstance_suffix, add_aci)
+        if not return_value:
+            raise LdapException("Failed to enable anonymous access aci")
+        else:
+            print("Enabled Anonymous access "
+                  "aci to %s" % self.dsinstance_suffix)
 
 
 class DirSrvWrap(object):
@@ -289,7 +327,8 @@ class DirSrvWrap(object):
     LDAP and TLS ports, specifies default suffix.
     """
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, multihost_obj, ssl=None, ssldb=None):
+    def __init__(self, multihost_obj,
+                 client_obj=None, ssl=None, ssldb=None, canick=None):
         """
         Create a DirSrv object for a specific Host. Specify the ports,
         instance details to the Dirsrv object
@@ -305,6 +344,7 @@ class DirSrvWrap(object):
         self.ds_instance_name = None
         self.multihost = multihost_obj
         self.ds_instance_host = self.multihost.sys_hostname
+        self.client_host = client_obj
         self.ds_instance_suffix = None
         self.ds_rootdn_pwd = None
         self.ds_ldap_port = None
@@ -312,6 +352,7 @@ class DirSrvWrap(object):
         self.ssl = ssl
         if self.ssl:
             self.ssl_dir = ssldb
+        self.canick = canick
 
     def __iter__(self):
         """ iter values of each instance """
@@ -467,7 +508,7 @@ class DirSrvWrap(object):
                            root_dn_pwd=None,
                            ldap_port=None,
                            tls_port=None):
-        """create Directory server instance.
+        """Create Directory server instance.
 
         Args:
             inst_name (str): Instance Name
@@ -500,18 +541,25 @@ class DirSrvWrap(object):
             try:
                 self.dirsrv_obj.setup_ds(cfg_file)
             except subprocess.CalledProcessError:
-                raise DirSrvException('fail to DS config file to setup')
+                raise DirSrvException('Failed to setup Directory server')
             self.dirsrv_info[self.ds_instance_name] = self.dirsrv_obj.__dict__
+            ldap_uri = 'ldap://%s:%r' % (self.ds_instance_host,
+                                         self.ds_ldap_port)
+            try:
+                self.dirsrv_obj.enable_anonymous_search(ldap_uri)
+            except LdapException:
+                raise DirSrvException("Failed to enable anonymous search")
             if self.ssl:
                 try:
-                    self.dirsrv_obj.setup_certs(self.ssl_dir)
+                    self.dirsrv_obj.setup_certs(self.ssl_dir,
+                                                self.client_host, self.canick)
                 except DirSrvException as err:
                     return err.msg, err.rval
                 else:
                     (result, return_code) = self.enablessl()
             return result, return_code
         else:
-            raise DirSrvException('fail to setup Directory Server instance')
+            raise DirSrvException('Failed to setup Directory Server instance')
 
     def enablessl(self):
         """Enable SSL/TLS on instance.
@@ -539,7 +587,7 @@ class DirSrvWrap(object):
             try:
                 self.multihost.run_command(add_tls_port)
             except subprocess.CalledProcessError:
-                return "Unable to set tls_port as ldap_port_t", 1
+                return "Failed to set tls_port as ldap_port_t", 1
             else:
                 self.multihost.log.info('Added %s port to ldap_port_t' %
                                         self.ds_tls_port)
@@ -581,12 +629,12 @@ class DirSrvWrap(object):
         """
         ret = self.dirsrv_info[instance_name]
         if ret['instance_name'] == instance_name:
-            ds_inst_name = ret['ds_inst_name']
+            inst_name = ret['ds_inst_name']
             try:
-                self.dirsrv_obj.remove_ds(ds_inst_name)
+                self.dirsrv_obj.remove_ds(inst_name)
             except subprocess.CalledProcessError:
-                raise DirSrvException('Could not remove DS Instance',
-                                      ds_inst_name)
+                raise DirSrvException('Failed to '
+                                      'remove %s instance', inst_name)
             else:
                 del self.ds_used_ports[instance_name]
                 return True
