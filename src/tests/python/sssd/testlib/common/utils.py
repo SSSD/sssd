@@ -692,7 +692,7 @@ class PkiTools(object):
         else:
             self.nssdb = nssdir
         if nssdir_pwd is None:
-            self.nssdb_pwd = 'Secret123'
+            self.nssdb_pwd = 'Secret12@38/-\245550'
         else:
             self.nssdb_pwd = nssdir_pwd
         self.pwdfilename = 'pwfile'
@@ -764,7 +764,7 @@ class PkiTools(object):
     def createselfsignedcerts(self,
                               serverlist,
                               ca_dn=None,
-                              passphrase='Secret123',
+                              passphrase='Secret12@38/-\245550',
                               canickname='ExampleCA'):
         """
         Creates a NSS DB in /tmp/nssDirxxxx where self signed Root CA
@@ -782,13 +782,17 @@ class PkiTools(object):
         ca_pempath = os.path.join(nss_dir, 'cacert.pem')
         server_pempath = os.path.join(nss_dir, 'server.pem')
         ca_p12_path = os.path.join(nss_dir, 'ca.p12')
-        server_p12_path = os.path.join(nss_dir, 'server.p12')
+        # server_p12_path = os.path.join(nss_dir, 'server.p12')
         with open(self.noisefilepath, 'w') as outfile:
             outfile.write(str(self.noise))
+        keyUsage = 'digitalSignature,certSigning,crlSigning,critical'
         ca_args = 'certutil -d %s -f %s -S -n "%s" -s %s' \
-                  ' -t "CT,," -x -z %s' % (nss_dir, self.pwdfilepath,
-                                           canickname, ca_dn,
-                                           self.noisefilepath)
+                  ' -t "CT,," -x --keyUsage %s -z %s' % (nss_dir,
+                                                         self.pwdfilepath,
+                                                         canickname,
+                                                         ca_dn,
+                                                         keyUsage,
+                                                         self.noisefilepath)
 
         ca_pem = 'certutil -d %s -f %s -L -n "%s"' \
                  ' -a -o %s' % (nss_dir, self.pwdfilepath,
@@ -829,9 +833,10 @@ class PkiTools(object):
                                 ' -k %s -w %s' % (nss_dir, ca_p12_path,
                                                   canickname, self.pwdfilepath,
                                                   self.pwdfilepath)
-                _, _, return_code = self.execute(shlex.split(export_ca_p12))
+                server_pkcs12_file = '%s-%s' % (server, 'server.p12')
+                server_p12 = os.path.join(nss_dir, server_pkcs12_file)
                 export_svr_p12 = 'pk12util -d %s -o %s -n %s'\
-                                 ' -k %s -w %s' % (nss_dir, server_p12_path,
+                                 ' -k %s -w %s' % (nss_dir, server_p12,
                                                    server_nickname,
                                                    self.pwdfilepath,
                                                    self.pwdfilepath)
