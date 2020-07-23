@@ -38,7 +38,7 @@ def package_install(session_multihost):
     distro = session_multihost.master[0].distro
     pkg_list = 'authselect nss-tools 389-ds-base krb5-server '\
                'openldap-clients krb5-workstation '\
-               '389-ds-base-legacy-tools sssd sssd-dbus sssd-kcm ' \
+               'sssd sssd-dbus sssd-kcm ' \
                'expect ldb-tools sssd-tools'
     if 'Fedora' in distro:
         cmd = 'dnf install -y %s' % (pkg_list)
@@ -281,7 +281,7 @@ def enable_files_domain(session_multihost):
     """
     session_multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
                                                    '/tmp/sssd.conf')
-    sssdconfig = ConfigParser.SafeConfigParser()
+    sssdconfig = ConfigParser.RawConfigParser(delimiters=('='))
     sssdconfig.read('/tmp/sssd.conf')
     sssd_section = 'sssd'
     if sssd_section in sssdconfig.sections():
