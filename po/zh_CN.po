@@ -13,7 +13,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2020-06-18 09:05+0000\n"
+"PO-Revision-Date: 2020-07-22 07:46-0400\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/projects/p/sssd/"
 "language/zh_CN/)\n"
@@ -73,12 +73,14 @@ msgid ""
 "is in seconds and calculated by the following: offline_timeout + "
 "random_offset."
 msgstr ""
+"当 SSSD 切换到脱机模式时，它尝试重新上线前的时间会根据断开连接的时间而增加。这个值以秒为单位，并使用以下公式计算：offline_timeout "
+"+ random_offset。"
 
 #: src/config/SSSDConfig/sssdoptions.py:38
 msgid ""
 "Indicates what is the syntax of the config file. SSSD 0.6.0 and later use "
 "version 2."
-msgstr ""
+msgstr "表示配置文件的语法是什么。SSSD 0.6.0 及以后的版本使用版本 2。"
 
 #: src/config/SSSDConfig/sssdoptions.py:39
 msgid "SSSD Services to start"
@@ -138,7 +140,7 @@ msgstr "要查询的域的特定顺序"
 msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
-msgstr ""
+msgstr "控制 SSSD 是否应监控 resolv.conf 的状态，以确定何时需要更新其内部 DNS 解析器。"
 
 #: src/config/SSSDConfig/sssdoptions.py:54
 msgid ""
@@ -147,6 +149,8 @@ msgid ""
 "this, and will fall back to polling resolv.conf every five seconds if "
 "inotify cannot be used."
 msgstr ""
+"SSSD 监视 resolv.conf 的状态，以确定何时需要更新其内部的 DNS 解析器。默认情况下，我们会尝试使用 inotify "
+"进行。如果不能使用 inotify，则会回到每五秒轮询一次 resolv.conf 的状态。"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Enumeration cache timeout length (seconds)"
@@ -221,20 +225,20 @@ msgstr "内存缓存记录有效期的长度"
 msgid ""
 "The value of this option will be used in the expansion of the "
 "override_homedir option if the template contains the format string %H."
-msgstr ""
+msgstr "如果模板中包含格式字符串%H，那么这个选项的值将被用于 override_homedir 选项的扩展。"
 
 #: src/config/SSSDConfig/sssdoptions.py:77
 msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
-msgstr ""
+msgstr "指定子域列表被视为有效的时间，以秒为单位。"
 
 #: src/config/SSSDConfig/sssdoptions.py:79
 msgid ""
 "The entry cache can be set to automatically update entries in the background "
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
-msgstr ""
+msgstr "条目缓存可以设置为在后台自动更新条目，如果被请求的时间超过域名的 entry_cache_timeout 值的一个百分比。"
 
 #: src/config/SSSDConfig/sssdoptions.py:84
 msgid "How long to allow cached logins between online logins (days)"
@@ -304,17 +308,17 @@ msgstr "允许服务使用智能卡"
 
 #: src/config/SSSDConfig/sssdoptions.py:101
 msgid "Additional timeout to wait for a card if requested"
-msgstr ""
+msgstr "等待卡的额外超时，如果请求。"
 
 #: src/config/SSSDConfig/sssdoptions.py:102
 msgid ""
 "PKCS#11 URI to restrict the selection of devices for Smartcard "
 "authentication"
-msgstr ""
+msgstr "PKCS#11 URI，用于限制智能卡认证设备的选择。"
 
 #: src/config/SSSDConfig/sssdoptions.py:103
 msgid "When shall the PAM responder force an initgroups request"
-msgstr ""
+msgstr "什么时候 PAM 响应者要强制发起 initgroups 请求？"
 
 #: src/config/SSSDConfig/sssdoptions.py:106
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -346,13 +350,13 @@ msgstr "到可信 CA 证书存储的路径"
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Allow to generate ssh-keys from certificates"
-msgstr ""
+msgstr "允许从证书中生成 ssh-keys。"
 
 #: src/config/SSSDConfig/sssdoptions.py:120
 msgid ""
 "Use the following matching rules to filter the certificates for ssh-key "
 "generation"
-msgstr ""
+msgstr "使用以下匹配规则来过滤生成 ssh-key 的证书。"
 
 #: src/config/SSSDConfig/sssdoptions.py:124
 msgid "List of UIDs or user names allowed to access the PAC responder"
@@ -455,20 +459,21 @@ msgid ""
 "- No users are recorded. some - Users/groups specified by users and groups "
 "options are recorded. all - All users are recorded."
 msgstr ""
+"使用以下字符串之一指定会话记录范围： none - 不记录用户。 some - 记录由用户和组选项指定的用户和组。 all - 记录所有用户。"
 
 #: src/config/SSSDConfig/sssdoptions.py:157
 msgid ""
 "A comma-separated list of users which should have session recording enabled. "
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
-msgstr ""
+msgstr "以逗号分隔的用户列表，这些用户应该启用会话记录。匹配 NSS 返回的用户名。在可能的空格替换、大小写更改等之后。"
 
 #: src/config/SSSDConfig/sssdoptions.py:159
 msgid ""
 "A comma-separated list of groups, members of which should have session "
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
-msgstr ""
+msgstr "以逗号分隔的组列表，其成员应已启用会话记录。匹配NSS 返回的组名。在可能的空格替换、大小写改变等之后。"
 
 #: src/config/SSSDConfig/sssdoptions.py:164
 msgid "Identity provider"
@@ -508,7 +513,7 @@ msgstr "会话管理提供者"
 
 #: src/config/SSSDConfig/sssdoptions.py:173
 msgid "Resolver provider"
-msgstr ""
+msgstr "解析器提供者"
 
 #: src/config/SSSDConfig/sssdoptions.py:176
 msgid "Whether the domain is usable by the OS or by applications"
@@ -562,11 +567,11 @@ msgstr "上次成功登录后保留缓存条目的时间（天）"
 msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
-msgstr ""
+msgstr "在尝试下一个服务器之前，SSSD 应该与一个 DNS 服务器联系多久（毫秒）？"
 
 #: src/config/SSSDConfig/sssdoptions.py:188
 msgid "How long should keep trying to resolve single DNS query (seconds)"
-msgstr ""
+msgstr "尝试解析单个 DNS 查询需要多长时间（秒）？"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
@@ -648,24 +653,24 @@ msgstr "是否自动为用户创建私人组"
 
 #: src/config/SSSDConfig/sssdoptions.py:215
 msgid "Display a warning N days before the password expires."
-msgstr ""
+msgstr "在密码过期前 N 天显示一个警告。"
 
 #: src/config/SSSDConfig/sssdoptions.py:216
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
-msgstr ""
+msgstr "realmd 配置服务为这个域存储的各种标签。"
 
 #: src/config/SSSDConfig/sssdoptions.py:217
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
-msgstr ""
+msgstr "应该处理子域获取的提供者，这个值应始终和 id_provider 相同。"
 
 #: src/config/SSSDConfig/sssdoptions.py:219
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
-msgstr ""
+msgstr "刷新后主机 ssh 密钥要保留多少秒。IE 缓存主机密钥多长时间。"
 
 #: src/config/SSSDConfig/sssdoptions.py:221
 msgid ""
@@ -673,6 +678,8 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
+"如果使用 2-Factor-Authentication (2FA)，应该保存凭证，这个值决定了第一个认证因素(（期密码）必须以SHA512 "
+"哈希值的形式保存到缓存中的最小长度。"
 
 #: src/config/SSSDConfig/sssdoptions.py:227
 msgid "IPA domain"
@@ -776,116 +783,116 @@ msgstr "当最后一个请求未找到任何规则时，针对 IPA 服务器的D
 
 #: src/config/SSSDConfig/sssdoptions.py:256
 msgid "The LDAP attribute that contains FQDN of the host."
-msgstr ""
+msgstr "包含主机 FQDN 的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:257
 #: src/config/SSSDConfig/sssdoptions.py:280
 msgid "The object class of a host entry in LDAP."
-msgstr ""
+msgstr "LDAP 中主机条目的对象类。"
 
 #: src/config/SSSDConfig/sssdoptions.py:258
 msgid "Use the given string as search base for host objects."
-msgstr ""
+msgstr "使用给定的字符串作为主机对象的搜索基础。"
 
 #: src/config/SSSDConfig/sssdoptions.py:259
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr ""
+msgstr "包含主机 SSH 公钥的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:260
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
-msgstr ""
+msgstr "包含 netgroup 的 NIS 域名的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:261
 msgid "The LDAP attribute that contains the names of the netgroup's members."
-msgstr ""
+msgstr "包含 netgroup 成员名称的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:262
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
-msgstr ""
+msgstr "列出属于 netgroup 成员的主机和主机组的 FQDN 的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:264
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
-msgstr ""
+msgstr "LDAP属性，列出作为 netgroup 直接成员的主机和主机组。"
 
 #: src/config/SSSDConfig/sssdoptions.py:266
 msgid "The LDAP attribute that lists netgroup's memberships."
-msgstr ""
+msgstr "列出 netgroup 成员资格的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:267
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
-msgstr ""
+msgstr "LDAP 属性，列出作为 netgroup 直接成员的系统用户和组。"
 
 #: src/config/SSSDConfig/sssdoptions.py:269
 msgid "The LDAP attribute that corresponds to the netgroup name."
-msgstr ""
+msgstr "与 netgroup 名称相对应的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:270
 msgid "The object class of a netgroup entry in LDAP."
-msgstr ""
+msgstr "LDAP 中 netgroup 条目的对象类。"
 
 #: src/config/SSSDConfig/sssdoptions.py:271
 msgid ""
 "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
-msgstr ""
+msgstr "包含 LDAP netgroup 对象的 UUID/GUID 的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:272
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
-msgstr ""
+msgstr "包含是否启用用户映射的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:274
 msgid "The LDAP attribute that contains host category such as 'all'."
-msgstr ""
+msgstr "包含主机类别的 LDAP 属性，如'all'。"
 
 #: src/config/SSSDConfig/sssdoptions.py:275
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
-msgstr ""
+msgstr "包含此规则所匹配的所有主机/主机组的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:277
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
-msgstr ""
+msgstr "包含该规则所匹配的所有用户/组的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:279
 msgid "The LDAP attribute that contains the name of SELinux usermap."
-msgstr ""
+msgstr "包含 SELinux usermap 名称的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:281
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
-msgstr ""
+msgstr "包含 HBAC 规则的 DN 的 LDAP 属性，可以用来代替 memberUser 和 memberHost 进行匹配。"
 
 #: src/config/SSSDConfig/sssdoptions.py:283
 msgid "The LDAP attribute that contains SELinux user string itself."
-msgstr ""
+msgstr "包含 SELinux 用户字符串的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:284
 msgid "The LDAP attribute that contains user category such as 'all'."
-msgstr ""
+msgstr "包含用户类别的 LDAP 属性，如'all'。"
 
 #: src/config/SSSDConfig/sssdoptions.py:285
 msgid "The LDAP attribute that contains unique ID of the user map."
-msgstr ""
+msgstr "包含用户映射的唯一 ID 的 LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:286
 msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
-msgstr ""
+msgstr "该选项表示 SSSD 在 IPA 服务器上运行，应该以不同的方式执行来自受信任域的用户和组的查找。"
 
 #: src/config/SSSDConfig/sssdoptions.py:288
 msgid "Use the given string as search base for trusted domains."
-msgstr ""
+msgstr "使用给定的字符串作为可信域的搜索基础。"
 
 #: src/config/SSSDConfig/sssdoptions.py:291
 msgid "Active Directory domain"
@@ -983,7 +990,7 @@ msgstr "用于调整机器帐户续订任务的选项"
 
 #: src/config/SSSDConfig/sssdoptions.py:315
 msgid "Whether to update the machine account password in the Samba database"
-msgstr ""
+msgstr "是否要更新 Samba 数据库中的机器账户密码？"
 
 #: src/config/SSSDConfig/sssdoptions.py:317
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
@@ -1205,7 +1212,7 @@ msgstr "在 SASL绑定期间，LDAP 库是否应执行反向查找以规范化�
 msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
-msgstr ""
+msgstr "允许保留本地用户作为使用 RFC2307 模式的服务器的 LDAP 组成员。"
 
 #: src/config/SSSDConfig/sssdoptions.py:384
 msgid "entryUSN attribute"
@@ -1463,11 +1470,11 @@ msgstr "将遵循的最大嵌套级别 SSSD"
 
 #: src/config/SSSDConfig/sssdoptions.py:454
 msgid "Filter for group lookups"
-msgstr ""
+msgstr "组查询的过滤器"
 
 #: src/config/SSSDConfig/sssdoptions.py:455
 msgid "Scope of group lookups"
-msgstr ""
+msgstr "组查询的范围"
 
 #: src/config/SSSDConfig/sssdoptions.py:457
 msgid "Base DN for netgroup lookups"
@@ -1704,47 +1711,47 @@ msgstr "自动挂载程序映射查找的基本 DN"
 
 #: src/config/SSSDConfig/sssdoptions.py:529
 msgid "The name of the automount master map in LDAP."
-msgstr ""
+msgstr "LDAP 中自动挂载主映射的名称。"
 
 #: src/config/SSSDConfig/sssdoptions.py:532
 msgid "Base DN for IP hosts lookups"
-msgstr ""
+msgstr "IP 主机查询的基础 DN"
 
 #: src/config/SSSDConfig/sssdoptions.py:533
 msgid "Object class for IP hosts"
-msgstr ""
+msgstr "IP 主机的对象类"
 
 #: src/config/SSSDConfig/sssdoptions.py:534
 msgid "IP host name attribute"
-msgstr ""
+msgstr "IP 主机名属性"
 
 #: src/config/SSSDConfig/sssdoptions.py:535
 msgid "IP host number (address) attribute"
-msgstr ""
+msgstr "IP 主机号（地址）属性"
 
 #: src/config/SSSDConfig/sssdoptions.py:536
 msgid "IP host entryUSN attribute"
-msgstr ""
+msgstr "IP 主机 entryUSN 属性"
 
 #: src/config/SSSDConfig/sssdoptions.py:537
 msgid "Base DN for IP networks lookups"
-msgstr ""
+msgstr "IP 网络查询的基础 DN"
 
 #: src/config/SSSDConfig/sssdoptions.py:538
 msgid "Object class for IP networks"
-msgstr ""
+msgstr "IP 网络的对象类"
 
 #: src/config/SSSDConfig/sssdoptions.py:539
 msgid "IP network name attribute"
-msgstr ""
+msgstr "IP 网络名称属性"
 
 #: src/config/SSSDConfig/sssdoptions.py:540
 msgid "IP network number (address) attribute"
-msgstr ""
+msgstr "I P网号（地址）属性"
 
 #: src/config/SSSDConfig/sssdoptions.py:541
 msgid "IP network entryUSN attribute"
-msgstr ""
+msgstr "IP 网络 entryUSN 属性"
 
 #: src/config/SSSDConfig/sssdoptions.py:544
 msgid "Comma separated list of allowed users"
@@ -1758,14 +1765,14 @@ msgstr "以逗号分隔的不允许的用户列表"
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
-msgstr ""
+msgstr "以逗号分隔的允许登录的组的列表。这只适用于此 SSSD 域内的组。本地组不被评估。"
 
 #: src/config/SSSDConfig/sssdoptions.py:548
 msgid ""
 "Comma separated list of groups that are explicitly denied access. This "
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
-msgstr ""
+msgstr "以逗号分隔的明确拒绝访问的组的列表。这只适用于此 SSSD 域内的组。本地组不被评估。"
 
 #: src/config/SSSDConfig/sssdoptions.py:552
 msgid "Base for home directories"
@@ -1773,27 +1780,27 @@ msgstr "家目录的基础"
 
 #: src/config/SSSDConfig/sssdoptions.py:553
 msgid "Indicate if a home directory should be created for new users."
-msgstr ""
+msgstr "指定是否应该为新用户创建主目录。"
 
 #: src/config/SSSDConfig/sssdoptions.py:554
 msgid "Indicate if a home directory should be removed for deleted users."
-msgstr ""
+msgstr "指定是否要删除已删除用户的主目录。"
 
 #: src/config/SSSDConfig/sssdoptions.py:555
 msgid "Specify the default permissions on a newly created home directory."
-msgstr ""
+msgstr "指定新创建的主目录的默认权限。"
 
 #: src/config/SSSDConfig/sssdoptions.py:556
 msgid "The skeleton directory."
-msgstr ""
+msgstr "skeleton 目录。"
 
 #: src/config/SSSDConfig/sssdoptions.py:557
 msgid "The mail spool directory."
-msgstr ""
+msgstr "邮件 spool 目录。"
 
 #: src/config/SSSDConfig/sssdoptions.py:558
 msgid "The command that is run after a user is removed."
-msgstr ""
+msgstr "用户被删除后运行的命令。"
 
 #: src/config/SSSDConfig/sssdoptions.py:561
 msgid "The number of preforked proxy children."
@@ -1805,7 +1812,7 @@ msgstr "使用的 NSS 库的名称"
 
 #: src/config/SSSDConfig/sssdoptions.py:565
 msgid "The name of the NSS library to use for hosts and networks lookups"
-msgstr ""
+msgstr "用于查询主机和网络的 NSS 库名称。"
 
 #: src/config/SSSDConfig/sssdoptions.py:566
 msgid "Whether to look up canonical group name from cache if possible"
@@ -1846,7 +1853,7 @@ msgstr "刷新配置数据库，然后退出"
 
 #: src/monitor/monitor.c:2383
 msgid "Similar to --genconf, but only refreshes the given section"
-msgstr ""
+msgstr "类似于 --genconf，但只刷新指定的部分。"
 
 #: src/monitor/monitor.c:2386
 msgid "Print version number and exit"
@@ -1934,11 +1941,11 @@ msgstr "SSSD 没有由 root 运行。"
 
 #: src/sss_client/common.c:1091
 msgid "SSSD socket does not exist."
-msgstr ""
+msgstr "SSSD socket 不存在。"
 
 #: src/sss_client/common.c:1094
 msgid "Cannot get stat of SSSD socket."
-msgstr ""
+msgstr "无法获取 SSSD socket 的统计数据。"
 
 #: src/sss_client/common.c:1099
 msgid "An error occurred, but no description can be found."
@@ -2711,12 +2718,12 @@ msgstr "使用组 ID 搜索"
 #: src/tools/sssctl/sssctl_config.c:112
 #, c-format
 msgid "Failed to open %s\n"
-msgstr ""
+msgstr "打开失败：%s\n"
 
 #: src/tools/sssctl/sssctl_config.c:117
 #, c-format
 msgid "File %1$s does not exist.\n"
-msgstr ""
+msgstr "文件 %1$s 不存在\n"
 
 #: src/tools/sssctl/sssctl_config.c:121
 msgid ""
@@ -2726,21 +2733,21 @@ msgstr "文件所有权和权限检查失败。预期的是 root:root 和 0600�
 #: src/tools/sssctl/sssctl_config.c:127
 #, c-format
 msgid "Failed to load configuration from %s.\n"
-msgstr ""
+msgstr "从 %s 加载配置失败。\n"
 
 #: src/tools/sssctl/sssctl_config.c:133
 msgid "Error while reading configuration directory.\n"
-msgstr ""
+msgstr "读取配置目录时出错。\n"
 
 #: src/tools/sssctl/sssctl_config.c:141
 msgid ""
 "There is no configuration. SSSD will use default configuration with files "
 "provider.\n"
-msgstr ""
+msgstr "没有配置。SSSD 将使用默认配置与文件提供者。\n"
 
 #: src/tools/sssctl/sssctl_config.c:153
 msgid "Failed to run validators"
-msgstr ""
+msgstr "运行验证器失败"
 
 #: src/tools/sssctl/sssctl_config.c:157
 #, c-format
@@ -2755,7 +2762,7 @@ msgstr "配置合并期间生成的消息： %zu\n"
 #: src/tools/sssctl/sssctl_config.c:179
 #, c-format
 msgid "Used configuration snippet files: %zu\n"
-msgstr ""
+msgstr "所使用的配置摘要文件： %zu\n"
 
 #: src/tools/sssctl/sssctl_data.c:89
 #, c-format
@@ -2834,7 +2841,7 @@ msgstr "显示域列表，包括主要或受信任的域类型"
 #: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:367
 #: src/tools/sssctl/sssctl_user_checks.c:95
 msgid "Unable to connect to system bus!\n"
-msgstr ""
+msgstr "无法连接到系统总线!\n"
 
 #: src/tools/sssctl/sssctl_domains.c:167
 msgid "Online"
@@ -2851,7 +2858,7 @@ msgstr "在线状态： %s\n"
 
 #: src/tools/sssctl/sssctl_domains.c:213
 msgid "This domain has no active servers.\n"
-msgstr ""
+msgstr "这个域没有活跃的服务器。\n"
 
 #: src/tools/sssctl/sssctl_domains.c:218
 msgid "Active servers:\n"
@@ -2863,7 +2870,7 @@ msgstr "未连接"
 
 #: src/tools/sssctl/sssctl_domains.c:267
 msgid "No servers discovered.\n"
-msgstr ""
+msgstr "没有发现服务器。\n"
 
 #: src/tools/sssctl/sssctl_domains.c:273
 #, c-format
