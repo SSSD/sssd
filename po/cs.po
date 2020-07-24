@@ -6,15 +6,15 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2020-06-17 22:51+0200\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2019-08-31 07:00+0000\n"
+"PO-Revision-Date: 2019-08-31 07:00-0400\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
 "Language-Team: Czech\n"
 "Language: cs\n"
-"X-Generator: Zanata 4.6.2\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2\n"
+"X-Generator: Zanata 4.6.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -66,8 +66,8 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:32
 msgid ""
 "When SSSD switches to offline mode the amount of time before it tries to go "
-"back online will increase based upon the time spent disconnected. This value "
-"is in seconds and calculated by the following: offline_timeout + "
+"back online will increase based upon the time spent disconnected. This value"
+" is in seconds and calculated by the following: offline_timeout + "
 "random_offset."
 msgstr ""
 
@@ -137,8 +137,8 @@ msgstr "Konkrétní pořadí domén ve které je hledat"
 
 #: src/config/SSSDConfig/sssdoptions.py:52
 msgid ""
-"Controls if SSSD should monitor the state of resolv.conf to identify when it "
-"needs to update its internal DNS resolver."
+"Controls if SSSD should monitor the state of resolv.conf to identify when it"
+" needs to update its internal DNS resolver."
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:54
@@ -241,16 +241,16 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:79
 msgid ""
-"The entry cache can be set to automatically update entries in the background "
-"if they are requested beyond a percentage of the entry_cache_timeout value "
+"The entry cache can be set to automatically update entries in the background"
+" if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:84
 msgid "How long to allow cached logins between online logins (days)"
 msgstr ""
-"Po jak dlouho umožnit přihlášení vůči mezipaměti do přihlášení při připojení "
-"(dny)"
+"Po jak dlouho umožnit přihlášení vůči mezipaměti do přihlášení při připojení"
+" (dny)"
 
 #: src/config/SSSDConfig/sssdoptions.py:85
 msgid "How many failed logins attempts are allowed when offline"
@@ -441,8 +441,8 @@ msgid ""
 "The username to use when authenticating to a Custodia server using "
 "basic_auth"
 msgstr ""
-"Uživatelské jméno které použít při ověřování se vůči Custodia serveru pomocí "
-"basic_auth"
+"Uživatelské jméno které použít při ověřování se vůči Custodia serveru pomocí"
+" basic_auth"
 
 #: src/config/SSSDConfig/sssdoptions.py:144
 msgid ""
@@ -486,15 +486,15 @@ msgstr "Popis umístění souboru obsahujícího soukromý klíč klienta"
 
 #: src/config/SSSDConfig/sssdoptions.py:154
 msgid ""
-"One of the following strings specifying the scope of session recording: none "
-"- No users are recorded. some - Users/groups specified by users and groups "
+"One of the following strings specifying the scope of session recording: none"
+" - No users are recorded. some - Users/groups specified by users and groups "
 "options are recorded. all - All users are recorded."
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:157
 msgid ""
-"A comma-separated list of users which should have session recording enabled. "
-"Matches user names as returned by NSS. I.e. after the possible space "
+"A comma-separated list of users which should have session recording enabled."
+" Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
 
@@ -931,8 +931,8 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:286
 msgid ""
-"The option denotes that the SSSD is running on IPA server and should perform "
-"lookups of users and groups from trusted domains differently."
+"The option denotes that the SSSD is running on IPA server and should perform"
+" lookups of users and groups from trusted domains differently."
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:288
@@ -1265,11 +1265,11 @@ msgstr "Počet členů který je třeba aby chyběli, aby bylo spuštěno plné 
 
 #: src/config/SSSDConfig/sssdoptions.py:379
 msgid ""
-"Whether the LDAP library should perform a reverse lookup to canonicalize the "
-"host name during a SASL bind"
+"Whether the LDAP library should perform a reverse lookup to canonicalize the"
+" host name during a SASL bind"
 msgstr ""
-"Zda LDAP knihovna má provádět zpětný překlad pro kanonizaci názvu stroje při "
-"SASL spojení"
+"Zda LDAP knihovna má provádět zpětný překlad pro kanonizaci názvu stroje při"
+" SASL spojení"
 
 #: src/config/SSSDConfig/sssdoptions.py:381
 msgid ""
@@ -1381,7 +1381,8 @@ msgstr "Hlavní atribut skupiny z Active Directory pro mapování identifikátor
 msgid "User principal attribute (for Kerberos)"
 msgstr "Atribut obsahující principal uživatele (pro kerberos)"
 
-# auto translated by TM merge from project: Cockpit, version: rhel-7.4, DocId: cockpit
+# auto translated by TM merge from project: Cockpit, version: rhel-7.4, DocId:
+# cockpit
 #: src/config/SSSDConfig/sssdoptions.py:414
 msgid "Full Name"
 msgstr "Celé jméno"
@@ -1683,8 +1684,8 @@ msgstr "Zda filtrovat pravidla podle názvů strojů, IP adres a sítě"
 
 #: src/config/SSSDConfig/sssdoptions.py:504
 msgid ""
-"Hostnames and/or fully qualified domain names of this machine to filter sudo "
-"rules"
+"Hostnames and/or fully qualified domain names of this machine to filter sudo"
+" rules"
 msgstr ""
 "Názvy strojů a/nebo úplné doménové názvy tohoto stroje pro filtrování sudo "
 "pravidel"
@@ -1836,8 +1837,8 @@ msgstr "Čárkou oddělovaný seznam uživatelů, kterým je odepřen přístup"
 
 #: src/config/SSSDConfig/sssdoptions.py:546
 msgid ""
-"Comma separated list of groups that are allowed to log in. This applies only "
-"to groups within this SSSD domain. Local groups are not evaluated."
+"Comma separated list of groups that are allowed to log in. This applies only"
+" to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:548
@@ -2038,7 +2039,8 @@ msgstr "Přístup odepřen."
 msgid "Server message: "
 msgstr "Zpráva ze serveru:"
 
-# auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId: po/ipa
+# auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId:
+# po/ipa
 #: src/sss_client/pam_sss.c:299
 msgid "Passwords do not match"
 msgstr "Zadání hesla se neshodují"
@@ -2104,7 +2106,8 @@ msgstr "Druhý faktor (volitelné):"
 msgid "Second Factor: "
 msgstr "Druhý faktor:"
 
-# auto translated by TM merge from project: anaconda, version: f25, DocId: main
+# auto translated by TM merge from project: anaconda, version: f25, DocId:
+# main
 #: src/sss_client/pam_sss.c:2200
 msgid "Password: "
 msgstr "Heslo: "
@@ -2196,7 +2199,8 @@ msgstr "Domovská složka"
 msgid "Login shell"
 msgstr "Přihlašovací shell"
 
-# auto translated by TM merge from project: Cockpit, version: rhel-7.4, DocId: cockpit
+# auto translated by TM merge from project: Cockpit, version: rhel-7.4, DocId:
+# cockpit
 #: src/tools/sss_useradd.c:53
 msgid "Groups"
 msgstr "Skupiny"
@@ -2288,7 +2292,8 @@ msgstr ""
 #: src/tools/sss_useradd.c:239
 #, c-format
 msgid "Cannot create user's home directory: %1$s\n"
-msgstr "Domovskou složku uživatele se nedaří vytvořit: %1$s\n"
+msgstr ""
+"Domovskou složku uživatele se nedaří vytvořit: %1$s\n"
 "\n"
 
 #: src/tools/sss_useradd.c:250
@@ -2350,13 +2355,13 @@ msgstr "Identifikátor skupiny %1$s se nachází mimo určený rozsah pro domén
 #, c-format
 msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 msgstr ""
-"NSS požadavek se nezdařil (%1$d). Položka mohla zůstat v mezipaměti v paměti."
-"\n"
+"NSS požadavek se nezdařil (%1$d). Položka mohla zůstat v mezipaměti v "
+"paměti.\n"
 
 #: src/tools/sss_groupdel.c:132
 msgid ""
-"No such group in local domain. Removing groups only allowed in local domain."
-"\n"
+"No such group in local domain. Removing groups only allowed in local "
+"domain.\n"
 msgstr ""
 "V místní doméně taková skupina neexistuje. Odebírání skupin je umožněno "
 "pouze v místní doméně.\n"
@@ -2383,11 +2388,11 @@ msgstr "Zadejte skupinu pro úpravu\n"
 
 #: src/tools/sss_groupmod.c:130
 msgid ""
-"Cannot find group in local domain, modifying groups is allowed only in local "
-"domain\n"
+"Cannot find group in local domain, modifying groups is allowed only in local"
+" domain\n"
 msgstr ""
-"Skupinu se nedaří najít v místní doméně, upravování skupin je dovoleno pouze "
-"v místní doméně\n"
+"Skupinu se nedaří najít v místní doméně, upravování skupin je dovoleno pouze"
+" v místní doméně\n"
 
 #: src/tools/sss_groupmod.c:153 src/tools/sss_groupmod.c:182
 msgid "Member groups must be in the same domain as parent group\n"
@@ -2402,8 +2407,7 @@ msgid ""
 "Cannot find group %1$s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
-"Skupinu %1$s se nedaří najít v místní doméně, jsou dovoleny pouze skupiny z "
-"místní domény\n"
+"Skupinu %1$s se nedaří najít v místní doméně, jsou dovoleny pouze skupiny z místní domény\n"
 "\n"
 
 #: src/tools/sss_groupmod.c:257
@@ -2441,16 +2445,20 @@ msgstr "%1$sčlenové uživatelé: "
 
 #: src/tools/sss_groupshow.c:627
 #, c-format
-msgid "\n"
+msgid ""
+"\n"
 "%1$sIs a member of: "
-msgstr "\n"
+msgstr ""
+"\n"
 "%1$sJe členem: "
 
 #: src/tools/sss_groupshow.c:634
 #, c-format
-msgid "\n"
+msgid ""
+"\n"
 "%1$sMember groups: "
-msgstr "\n"
+msgstr ""
+"\n"
 "%1$sČlenské skupiny: "
 
 #: src/tools/sss_groupshow.c:670
@@ -2463,8 +2471,8 @@ msgstr "Zadejte skupinu, kterou zobrazit\n"
 
 #: src/tools/sss_groupshow.c:744
 msgid ""
-"No such group in local domain. Printing groups only allowed in local domain."
-"\n"
+"No such group in local domain. Printing groups only allowed in local "
+"domain.\n"
 msgstr ""
 "V místní doméně se taková skupina nenachází. Vypisování skupin je dovolené "
 "pouze v místní doméně.\n"
@@ -2497,8 +2505,7 @@ msgstr "Zadejte uživatele, kterého smazat\n"
 #: src/tools/sss_userdel.c:236
 #, c-format
 msgid "User %1$s is outside the defined ID range for domain\n"
-msgstr ""
-"Uživatel %1$s se nachází mimo určený rozsah idenfifikátorů pro doménu\n"
+msgstr "Uživatel %1$s se nachází mimo určený rozsah idenfifikátorů pro doménu\n"
 
 #: src/tools/sss_userdel.c:261
 msgid "Cannot reset SELinux login context\n"
@@ -2724,7 +2731,8 @@ msgstr "Došla paměť\n"
 msgid "%1$s must be run as root\n"
 msgstr "%1$s je třeba spustit s právy správce systému (root)\n"
 
-# auto translated by TM merge from project: Cockpit, version: rhel-7.4, DocId: cockpit
+# auto translated by TM merge from project: Cockpit, version: rhel-7.4, DocId:
+# cockpit
 #: src/tools/sssctl/sssctl.c:35
 msgid "yes"
 msgstr "ano"
@@ -2733,7 +2741,8 @@ msgstr "ano"
 msgid "no"
 msgstr "ne"
 
-# auto translated by TM merge from project: firewalld, version: master, DocId: po/firewalld
+# auto translated by TM merge from project: firewalld, version: master, DocId:
+# po/firewalld
 #: src/tools/sssctl/sssctl.c:39
 msgid "error"
 msgstr "chyba"
@@ -2772,7 +2781,8 @@ msgstr "Je třeba, aby bylo SSSD restartováno. Restartovat ho nyní?"
 msgid " %s is not present in cache.\n"
 msgstr "%s se nenachází v mezipaměti.\n"
 
-# auto translated by TM merge from project: libosinfo, version: master, DocId: libosinfo
+# auto translated by TM merge from project: libosinfo, version: master, DocId:
+# libosinfo
 #: src/tools/sssctl/sssctl_cache.c:33
 msgid "Name"
 msgstr "Název"
@@ -2842,8 +2852,8 @@ msgstr ""
 msgid ""
 "File ownership and permissions check failed. Expected root:root and 0600.\n"
 msgstr ""
-"Kontrola vlastnictví a oprávnění souboru se nezdařila. Očekáváno root:root a "
-"0600.\n"
+"Kontrola vlastnictví a oprávnění souboru se nezdařila. Očekáváno root:root a"
+" 0600.\n"
 
 #: src/tools/sssctl/sssctl_config.c:127
 #, c-format
@@ -3012,7 +3022,8 @@ msgstr "Zobrazit seznam objevených serverů"
 msgid "Specify domain name."
 msgstr "Zadejte název domény."
 
-# auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId: po/ipa
+# auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId:
+# po/ipa
 #: src/tools/sssctl/sssctl_domains.c:355
 msgid "Out of memory!\n"
 msgstr "Nedostatek paměti!\n"
@@ -3120,9 +3131,11 @@ msgstr " - domovská složka: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:200
 #, c-format
-msgid " - shell: %s\n"
+msgid ""
+" - shell: %s\n"
 "\n"
-msgstr " - shell: %s\n"
+msgstr ""
+" - shell: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:232
@@ -3139,11 +3152,13 @@ msgstr "Zadejte uživatelské jméno."
 
 #: src/tools/sssctl/sssctl_user_checks.c:247
 #, c-format
-msgid "user: %s\n"
+msgid ""
+"user: %s\n"
 "action: %s\n"
 "service: %s\n"
 "\n"
-msgstr "uživatel: %s\n"
+msgstr ""
+"uživatel: %s\n"
 "akce: %s\n"
 "služba: %s\n"
 "\n"
@@ -3164,9 +3179,11 @@ msgid "pam_start failed: %s\n"
 msgstr "pam_start se nezdařilo: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:268
-msgid "testing pam_authenticate\n"
+msgid ""
+"testing pam_authenticate\n"
 "\n"
-msgstr "zkoušení pam_authenticate\n"
+msgstr ""
+"zkoušení pam_authenticate\n"
 "\n"
 "\n"
 
@@ -3177,74 +3194,96 @@ msgstr "pam_get_item se nezdařilo: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:275
 #, c-format
-msgid "pam_authenticate for user [%s]: %s\n"
+msgid ""
+"pam_authenticate for user [%s]: %s\n"
 "\n"
-msgstr "pam_authenticate pro uživatele [%s]: %s\n"
+msgstr ""
+"pam_authenticate pro uživatele [%s]: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:278
-msgid "testing pam_chauthtok\n"
+msgid ""
+"testing pam_chauthtok\n"
 "\n"
-msgstr "zkoušení pam_chauthtok\n"
+msgstr ""
+"zkoušení pam_chauthtok\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:280
 #, c-format
-msgid "pam_chauthtok: %s\n"
+msgid ""
+"pam_chauthtok: %s\n"
 "\n"
-msgstr "pam_chauthtok: %s\n"
+msgstr ""
+"pam_chauthtok: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:282
-msgid "testing pam_acct_mgmt\n"
+msgid ""
+"testing pam_acct_mgmt\n"
 "\n"
-msgstr "zkoušení pam_acct_mgmt\n"
+msgstr ""
+"zkoušení pam_acct_mgmt\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:284
 #, c-format
-msgid "pam_acct_mgmt: %s\n"
+msgid ""
+"pam_acct_mgmt: %s\n"
 "\n"
-msgstr "pam_acct_mgmt: %s\n"
+msgstr ""
+"pam_acct_mgmt: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:286
-msgid "testing pam_setcred\n"
+msgid ""
+"testing pam_setcred\n"
 "\n"
-msgstr "zkoušení pam_setcred\n"
+msgstr ""
+"zkoušení pam_setcred\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:288
 #, c-format
-msgid "pam_setcred: [%s]\n"
+msgid ""
+"pam_setcred: [%s]\n"
 "\n"
-msgstr "pam_setcred: [%s]\n"
+msgstr ""
+"pam_setcred: [%s]\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:290
-msgid "testing pam_open_session\n"
+msgid ""
+"testing pam_open_session\n"
 "\n"
-msgstr "zkoušení pam_open_session\n"
+msgstr ""
+"zkoušení pam_open_session\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:292
 #, c-format
-msgid "pam_open_session: %s\n"
+msgid ""
+"pam_open_session: %s\n"
 "\n"
-msgstr "pam_open_session: %s\n"
+msgstr ""
+"pam_open_session: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:294
-msgid "testing pam_close_session\n"
+msgid ""
+"testing pam_close_session\n"
 "\n"
-msgstr "zkoušení pam_close_session\n"
+msgstr ""
+"zkoušení pam_close_session\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:296
 #, c-format
-msgid "pam_close_session: %s\n"
+msgid ""
+"pam_close_session: %s\n"
 "\n"
-msgstr "pam_close_session: %s\n"
+msgstr ""
+"pam_close_session: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:298
