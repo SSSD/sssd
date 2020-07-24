@@ -244,7 +244,7 @@ static void test_confdb_get_enabled_domain_list(void **state)
         assert_true(string_in_list(expected_enabled_domain_list[index], result, false));
     }
     for (int index = 0; result[index]; index++) {
-        assert_true(string_in_list(result[index], expected_enabled_domain_list, false));
+        assert_true(string_in_list(result[index], discard_const(expected_enabled_domain_list), false));
     }
 
     TALLOC_FREE(tmp_ctx);
