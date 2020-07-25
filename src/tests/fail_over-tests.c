@@ -164,7 +164,7 @@ test_resolve_service_callback(struct tevent_req *req)
 
     recv_status = fo_resolve_service_recv(req, req, &server);
     talloc_free(req);
-    fail_if(recv_status != task->recv, "%s: Expected return of %d, got %d",
+    fail_if(recv_status != task->recv, "%s: Expected return of %d, got %"PRIu64,
             task->location, task->recv, recv_status);
     if (recv_status != EOK)
         return;
