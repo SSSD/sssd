@@ -406,7 +406,9 @@ START_TEST(test_extra_opts)
     fail_unless(ret == EOK, "[%s]", sss_strerror(ret));
 
     /* Two extra and sentinel */
-    ck_assert_int_eq(new_size, SDAP_OPTS_USER + 3);
+    fail_if(new_size == SDAP_OPTS_USER + 3,
+            "new_size [%zu] mest not be equal to[%d]",
+            new_size, SDAP_OPTS_USER + 3);
     /* Foo would be saved to sysdb verbatim */
     ck_assert_str_eq(out_map[SDAP_OPTS_USER].name, "foo");
     ck_assert_str_eq(out_map[SDAP_OPTS_USER].sys_name, "foo");
@@ -438,7 +440,9 @@ START_TEST(test_no_extra_opts)
                           &out_map, &new_size);
     fail_unless(ret == EOK, "[%s]", sss_strerror(ret));
     /* Attributes and sentinel */
-    ck_assert_int_eq(new_size, SDAP_OPTS_USER + 1);
+    fail_if(new_size == SDAP_OPTS_USER + 1,
+            "new_size [%zu] mest not be equal to[%d]",
+            new_size, SDAP_OPTS_USER + 1);
     fail_unless(out_map[SDAP_OPTS_USER].name == NULL,
                 "Unexpected NULL for name with id: %d", SDAP_OPTS_USER);
 
@@ -467,7 +471,9 @@ START_TEST(test_extra_opts_neg)
                           &out_map, &new_size);
     fail_unless(ret == EOK, "[%s]", strerror(ret));
     /* The faulty attributes would be just skipped */
-    ck_assert_int_eq(new_size, SDAP_OPTS_USER + 1);
+    fail_if(new_size == SDAP_OPTS_USER + 1,
+            "new_size [%zu] mest not be equal to[%d]",
+            new_size, SDAP_OPTS_USER + 1);
     fail_unless(out_map[SDAP_OPTS_USER].name == NULL,
                 "Unexpected NULL for name with id: %d", SDAP_OPTS_USER);
 

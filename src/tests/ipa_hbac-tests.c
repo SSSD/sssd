@@ -75,30 +75,30 @@ static void get_allow_all_rule(TALLOC_CTX *mem_ctx,
      * remote hosts.
      */
     rule = talloc_zero(mem_ctx, struct hbac_rule);
-    fail_if (rule == NULL);
+    fail_if (rule == NULL, "Failed to allocate memory");
 
     rule->enabled = true;
 
     rule->services = talloc_zero(rule, struct hbac_rule_element);
-    fail_if (rule->services == NULL);
+    fail_if (rule->services == NULL, "Failed to allocate memory");
     rule->services->category = HBAC_CATEGORY_ALL;
     rule->services->names = NULL;
     rule->services->groups = NULL;
 
     rule->users = talloc_zero(rule, struct hbac_rule_element);
-    fail_if (rule->users == NULL);
+    fail_if (rule->users == NULL, "Failed to allocate memory");
     rule->users->category = HBAC_CATEGORY_ALL;
     rule->users->names = NULL;
     rule->users->groups = NULL;
 
     rule->targethosts = talloc_zero(rule, struct hbac_rule_element);
-    fail_if (rule->targethosts == NULL);
+    fail_if (rule->targethosts == NULL, "Failed to allocate memory");
     rule->targethosts->category = HBAC_CATEGORY_ALL;
     rule->targethosts->names = NULL;
     rule->targethosts->groups = NULL;
 
     rule->srchosts = talloc_zero(rule, struct hbac_rule_element);
-    fail_if (rule->srchosts == NULL);
+    fail_if (rule->srchosts == NULL, "Failed to allocate memory");
     rule->srchosts->category = HBAC_CATEGORY_ALL;
     rule->srchosts->names = NULL;
     rule->srchosts->groups = NULL;
@@ -112,19 +112,19 @@ static void get_test_user(TALLOC_CTX *mem_ctx,
     struct hbac_request_element *new_user;
 
     new_user = talloc_zero(mem_ctx, struct hbac_request_element);
-    fail_if (new_user == NULL);
+    fail_if (new_user == NULL, "Failed to allocate memory");
 
     new_user->name = talloc_strdup(new_user, HBAC_TEST_USER);
-    fail_if(new_user->name == NULL);
+    fail_if(new_user->name == NULL, "Failed to allocate memory");
 
     new_user->groups = talloc_array(new_user, const char *, 3);
-    fail_if(new_user->groups == NULL);
+    fail_if(new_user->groups == NULL, "Failed to allocate memory");
 
     new_user->groups[0] = talloc_strdup(new_user->groups, HBAC_TEST_GROUP1);
-    fail_if(new_user->groups[0] == NULL);
+    fail_if(new_user->groups[0] == NULL, "Failed to allocate memory");
 
     new_user->groups[1] = talloc_strdup(new_user->groups, HBAC_TEST_GROUP2);
-    fail_if(new_user->groups[1] == NULL);
+    fail_if(new_user->groups[1] == NULL, "Failed to allocate memory");
 
     new_user->groups[2] = NULL;
 
@@ -137,19 +137,19 @@ static void get_test_service(TALLOC_CTX *mem_ctx,
     struct hbac_request_element *new_service;
 
     new_service = talloc_zero(mem_ctx, struct hbac_request_element);
-    fail_if (new_service == NULL);
+    fail_if (new_service == NULL, "Failed to allocate memory");
 
     new_service->name = talloc_strdup(new_service, HBAC_TEST_SERVICE);
-    fail_if(new_service->name == NULL);
+    fail_if(new_service->name == NULL, "Failed to allocate memory");
 
     new_service->groups = talloc_array(new_service, const char *, 3);
-    fail_if(new_service->groups == NULL);
+    fail_if(new_service->groups == NULL, "Failed to allocate memory");
 
     new_service->groups[0] = talloc_strdup(new_service->groups, HBAC_TEST_SERVICEGROUP1);
-    fail_if(new_service->groups[0] == NULL);
+    fail_if(new_service->groups[0] == NULL, "Failed to allocate memory");
 
     new_service->groups[1] = talloc_strdup(new_service->groups, HBAC_TEST_SERVICEGROUP2);
-    fail_if(new_service->groups[1] == NULL);
+    fail_if(new_service->groups[1] == NULL, "Failed to allocate memory");
 
     new_service->groups[2] = NULL;
 
@@ -162,21 +162,21 @@ static void get_test_srchost(TALLOC_CTX *mem_ctx,
     struct hbac_request_element *new_srchost;
 
     new_srchost = talloc_zero(mem_ctx, struct hbac_request_element);
-    fail_if (new_srchost == NULL);
+    fail_if (new_srchost == NULL, "Failed to allocate memory");
 
     new_srchost->name = talloc_strdup(new_srchost, HBAC_TEST_SRCHOST);
-    fail_if(new_srchost->name == NULL);
+    fail_if(new_srchost->name == NULL, "Failed to allocate memory");
 
     new_srchost->groups = talloc_array(new_srchost, const char *, 3);
-    fail_if(new_srchost->groups == NULL);
+    fail_if(new_srchost->groups == NULL, "Failed to allocate memory");
 
     new_srchost->groups[0] = talloc_strdup(new_srchost->groups,
                                            HBAC_TEST_SRCHOSTGROUP1);
-    fail_if(new_srchost->groups[0] == NULL);
+    fail_if(new_srchost->groups[0] == NULL, "Failed to allocate memory");
 
     new_srchost->groups[1] = talloc_strdup(new_srchost->groups,
                                            HBAC_TEST_SRCHOSTGROUP2);
-    fail_if(new_srchost->groups[1] == NULL);
+    fail_if(new_srchost->groups[1] == NULL, "Failed to allocate memory");
 
     new_srchost->groups[2] = NULL;
 
@@ -197,7 +197,7 @@ START_TEST(ipa_hbac_test_allow_all)
 
     /* Create a request */
     eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
-    fail_if (eval_req == NULL);
+    fail_if (eval_req == NULL, "Failed to allocate memory");
 
     get_test_user(eval_req, &eval_req->user);
     get_test_service(eval_req, &eval_req->service);
@@ -205,17 +205,18 @@ START_TEST(ipa_hbac_test_allow_all)
 
     /* Create the rules to evaluate against */
     rules = talloc_array(test_ctx, struct hbac_rule *, 2);
-    fail_if (rules == NULL);
+    fail_if (rules == NULL, "Failed to allocate memory");
 
     get_allow_all_rule(rules, &rules[0]);
     rules[0]->name = talloc_strdup(rules[0], "Allow All");
-    fail_if(rules[0]->name == NULL);
+    fail_if(rules[0]->name == NULL, "Failed to allocate memory");
     rules[1] = NULL;
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -245,7 +246,7 @@ START_TEST(ipa_hbac_test_allow_user)
 
     /* Create a request */
     eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
-    fail_if (eval_req == NULL);
+    fail_if (eval_req == NULL, "Failed to allocate memory");
 
     get_test_user(eval_req, &eval_req->user);
     get_test_service(eval_req, &eval_req->service);
@@ -253,17 +254,17 @@ START_TEST(ipa_hbac_test_allow_user)
 
     /* Create the rules to evaluate against */
     rules = talloc_array(test_ctx, struct hbac_rule *, 2);
-    fail_if (rules == NULL);
+    fail_if (rules == NULL, "Failed to allocate memory");
 
     get_allow_all_rule(rules, &rules[0]);
 
     /* Modify the rule to allow only a specific user */
     rules[0]->name = talloc_strdup(rules[0], "Allow user");
-    fail_if(rules[0]->name == NULL);
+    fail_if(rules[0]->name == NULL, "Failed to allocate memory");
     rules[0]->users->category = HBAC_CATEGORY_NULL;
 
     rules[0]->users->names = talloc_array(rules[0], const char *, 2);
-    fail_if(rules[0]->users->names == NULL);
+    fail_if(rules[0]->users->names == NULL, "Failed to allocate memory");
 
     rules[0]->users->names[0] = HBAC_TEST_USER;
     rules[0]->users->names[1] = NULL;
@@ -272,8 +273,9 @@ START_TEST(ipa_hbac_test_allow_user)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -291,8 +293,9 @@ START_TEST(ipa_hbac_test_allow_user)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -323,7 +326,7 @@ START_TEST(ipa_hbac_test_allow_utf8)
 
     /* Create a request */
     eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
-    fail_if (eval_req == NULL);
+    fail_if (eval_req == NULL, "Failed to allocate memory");
 
     get_test_user(eval_req, &eval_req->user);
     get_test_service(eval_req, &eval_req->service);
@@ -336,17 +339,17 @@ START_TEST(ipa_hbac_test_allow_utf8)
 
     /* Create the rules to evaluate against */
     rules = talloc_array(test_ctx, struct hbac_rule *, 2);
-    fail_if (rules == NULL);
+    fail_if (rules == NULL, "Failed to allocate memory");
 
     get_allow_all_rule(rules, &rules[0]);
 
     rules[0]->name = talloc_strdup(rules[0], "Allow user");
-    fail_if(rules[0]->name == NULL);
+    fail_if(rules[0]->name == NULL, "Failed to allocate memory");
     rules[0]->users->category = HBAC_CATEGORY_NULL;
 
     /* Modify the rule to allow only a specific user */
     rules[0]->users->names = talloc_array(rules[0], const char *, 2);
-    fail_if(rules[0]->users->names == NULL);
+    fail_if(rules[0]->users->names == NULL, "Failed to allocate memory");
 
     rules[0]->users->names[0] = (const char *) &user_utf8_upcase;
     rules[0]->users->names[1] = NULL;
@@ -355,7 +358,7 @@ START_TEST(ipa_hbac_test_allow_utf8)
     rules[0]->services->category = HBAC_CATEGORY_NULL;
 
     rules[0]->services->names = talloc_array(rules[0], const char *, 2);
-    fail_if(rules[0]->services->names == NULL);
+    fail_if(rules[0]->services->names == NULL, "Failed to allocate memory");
 
     rules[0]->services->names[0] = (const char *) &service_utf8_upcase;
     rules[0]->services->names[1] = NULL;
@@ -364,7 +367,7 @@ START_TEST(ipa_hbac_test_allow_utf8)
     rules[0]->srchosts->category = HBAC_CATEGORY_NULL;
 
     rules[0]->srchosts->names = talloc_array(rules[0], const char *, 2);
-    fail_if(rules[0]->services->names == NULL);
+    fail_if(rules[0]->services->names == NULL, "Failed to allocate memory");
 
     rules[0]->srchosts->names[0] = (const char *) &srchost_utf8_upcase;
     rules[0]->srchosts->names[1] = NULL;
@@ -373,8 +376,9 @@ START_TEST(ipa_hbac_test_allow_utf8)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -409,8 +413,9 @@ START_TEST(ipa_hbac_test_allow_utf8)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -441,7 +446,7 @@ START_TEST(ipa_hbac_test_allow_group)
 
     /* Create a request */
     eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
-    fail_if (eval_req == NULL);
+    fail_if (eval_req == NULL, "Failed to allocate memory");
 
     get_test_user(eval_req, &eval_req->user);
     get_test_service(eval_req, &eval_req->service);
@@ -449,18 +454,18 @@ START_TEST(ipa_hbac_test_allow_group)
 
     /* Create the rules to evaluate against */
     rules = talloc_array(test_ctx, struct hbac_rule *, 2);
-    fail_if (rules == NULL);
+    fail_if (rules == NULL, "Failed to allocate memory");
 
     get_allow_all_rule(rules, &rules[0]);
 
     /* Modify the rule to allow only a group of users */
     rules[0]->name = talloc_strdup(rules[0], "Allow group");
-    fail_if(rules[0]->name == NULL);
+    fail_if(rules[0]->name == NULL, "Failed to allocate memory");
     rules[0]->users->category = HBAC_CATEGORY_NULL;
 
     rules[0]->users->names = NULL;
     rules[0]->users->groups = talloc_array(rules[0], const char *, 2);
-    fail_if(rules[0]->users->groups == NULL);
+    fail_if(rules[0]->users->groups == NULL, "Failed to allocate memory");
 
     rules[0]->users->groups[0] = HBAC_TEST_GROUP1;
     rules[0]->users->groups[1] = NULL;
@@ -469,8 +474,9 @@ START_TEST(ipa_hbac_test_allow_group)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -488,8 +494,9 @@ START_TEST(ipa_hbac_test_allow_group)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -520,7 +527,7 @@ START_TEST(ipa_hbac_test_allow_svc)
 
     /* Create a request */
     eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
-    fail_if (eval_req == NULL);
+    fail_if (eval_req == NULL, "Failed to allocate memory");
 
     get_test_user(eval_req, &eval_req->user);
     get_test_service(eval_req, &eval_req->service);
@@ -528,17 +535,17 @@ START_TEST(ipa_hbac_test_allow_svc)
 
     /* Create the rules to evaluate against */
     rules = talloc_array(test_ctx, struct hbac_rule *, 2);
-    fail_if (rules == NULL);
+    fail_if (rules == NULL, "Failed to allocate memory");
 
     get_allow_all_rule(rules, &rules[0]);
 
     /* Modify the rule to allow only a specific service */
     rules[0]->name = talloc_strdup(rules[0], "Allow service");
-    fail_if(rules[0]->name == NULL);
+    fail_if(rules[0]->name == NULL, "Failed to allocate memory");
     rules[0]->services->category = HBAC_CATEGORY_NULL;
 
     rules[0]->services->names = talloc_array(rules[0], const char *, 2);
-    fail_if(rules[0]->services->names == NULL);
+    fail_if(rules[0]->services->names == NULL, "Failed to allocate memory");
 
     rules[0]->services->names[0] = HBAC_TEST_SERVICE;
     rules[0]->services->names[1] = NULL;
@@ -547,8 +554,9 @@ START_TEST(ipa_hbac_test_allow_svc)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -566,8 +574,9 @@ START_TEST(ipa_hbac_test_allow_svc)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -598,7 +607,7 @@ START_TEST(ipa_hbac_test_allow_svcgroup)
 
     /* Create a request */
     eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
-    fail_if (eval_req == NULL);
+    fail_if (eval_req == NULL, "Failed to allocate memory");
 
     get_test_user(eval_req, &eval_req->user);
     get_test_service(eval_req, &eval_req->service);
@@ -606,18 +615,18 @@ START_TEST(ipa_hbac_test_allow_svcgroup)
 
     /* Create the rules to evaluate against */
     rules = talloc_array(test_ctx, struct hbac_rule *, 2);
-    fail_if (rules == NULL);
+    fail_if (rules == NULL, "Failed to allocate memory");
 
     get_allow_all_rule(rules, &rules[0]);
 
     /* Modify the rule to allow only a group of users */
     rules[0]->name = talloc_strdup(rules[0], "Allow servicegroup");
-    fail_if(rules[0]->name == NULL);
+    fail_if(rules[0]->name == NULL, "Failed to allocate memory");
     rules[0]->services->category = HBAC_CATEGORY_NULL;
 
     rules[0]->services->names = NULL;
     rules[0]->services->groups = talloc_array(rules[0], const char *, 2);
-    fail_if(rules[0]->services->groups == NULL);
+    fail_if(rules[0]->services->groups == NULL, "Failed to allocate memory");
 
     rules[0]->services->groups[0] = HBAC_TEST_SERVICEGROUP1;
     rules[0]->services->groups[1] = NULL;
@@ -626,8 +635,9 @@ START_TEST(ipa_hbac_test_allow_svcgroup)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -645,8 +655,9 @@ START_TEST(ipa_hbac_test_allow_svcgroup)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -677,7 +688,7 @@ START_TEST(ipa_hbac_test_allow_srchost)
 
     /* Create a request */
     eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
-    fail_if (eval_req == NULL);
+    fail_if (eval_req == NULL, "Failed to allocate memory");
 
     get_test_user(eval_req, &eval_req->user);
     get_test_service(eval_req, &eval_req->service);
@@ -685,17 +696,17 @@ START_TEST(ipa_hbac_test_allow_srchost)
 
     /* Create the rules to evaluate against */
     rules = talloc_array(test_ctx, struct hbac_rule *, 2);
-    fail_if (rules == NULL);
+    fail_if (rules == NULL, "Failed to allocate memory");
 
     get_allow_all_rule(rules, &rules[0]);
 
     /* Modify the rule to allow only a specific service */
     rules[0]->name = talloc_strdup(rules[0], "Allow srchost");
-    fail_if(rules[0]->name == NULL);
+    fail_if(rules[0]->name == NULL, "Failed to allocate memory");
     rules[0]->srchosts->category = HBAC_CATEGORY_NULL;
 
     rules[0]->srchosts->names = talloc_array(rules[0], const char *, 2);
-    fail_if(rules[0]->srchosts->names == NULL);
+    fail_if(rules[0]->srchosts->names == NULL, "Failed to allocate memory");
 
     rules[0]->srchosts->names[0] = HBAC_TEST_SRCHOST;
     rules[0]->srchosts->names[1] = NULL;
@@ -704,8 +715,9 @@ START_TEST(ipa_hbac_test_allow_srchost)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -723,8 +735,9 @@ START_TEST(ipa_hbac_test_allow_srchost)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -755,7 +768,7 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
 
     /* Create a request */
     eval_req = talloc_zero(test_ctx, struct hbac_eval_req);
-    fail_if (eval_req == NULL);
+    fail_if (eval_req == NULL, "Failed to allocate memory");
 
     get_test_user(eval_req, &eval_req->user);
     get_test_service(eval_req, &eval_req->service);
@@ -763,18 +776,18 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
 
     /* Create the rules to evaluate against */
     rules = talloc_array(test_ctx, struct hbac_rule *, 2);
-    fail_if (rules == NULL);
+    fail_if (rules == NULL, "Failed to allocate memory");
 
     get_allow_all_rule(rules, &rules[0]);
 
     /* Modify the rule to allow only a group of users */
     rules[0]->name = talloc_strdup(rules[0], "Allow srchostgroup");
-    fail_if(rules[0]->name == NULL);
+    fail_if(rules[0]->name == NULL, "Failed to allocate memory");
     rules[0]->srchosts->category = HBAC_CATEGORY_NULL;
 
     rules[0]->srchosts->names = NULL;
     rules[0]->srchosts->groups = talloc_array(rules[0], const char *, 2);
-    fail_if(rules[0]->srchosts->groups == NULL);
+    fail_if(rules[0]->srchosts->groups == NULL, "Failed to allocate memory");
 
     rules[0]->srchosts->groups[0] = HBAC_TEST_SRCHOSTGROUP1;
     rules[0]->srchosts->groups[1] = NULL;
@@ -783,8 +796,9 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -802,8 +816,9 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rules[0], &missing_attrs);
-    fail_unless(is_valid);
-    fail_unless(missing_attrs == 0);
+    fail_unless(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs == 0,
+                "Unexpected missing attributes. Got: %"PRIx32, missing_attrs);
 
     /* Evaluate the rules */
     result = hbac_evaluate(rules, eval_req, &info);
@@ -833,11 +848,15 @@ START_TEST(ipa_hbac_test_incomplete)
 
     /* Validate this rule */
     is_valid = hbac_rule_is_complete(rule, &missing_attrs);
-    fail_if(is_valid);
-    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_USERS);
-    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_SERVICES);
-    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_TARGETHOSTS);
-    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_SOURCEHOSTS);
+    fail_if(is_valid, "hbac_rule_is_complete failed");
+    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_USERS,
+                "missing_attrs failed for HBAC_RULE_ELEMENT_USERS");
+    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_SERVICES,
+                "missing_attrs failed for HBAC_RULE_ELEMENT_SERVICES");
+    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_TARGETHOSTS,
+                "missing_attrs failed for HBAC_RULE_ELEMENT_TARGETHOSTS");
+    fail_unless(missing_attrs | HBAC_RULE_ELEMENT_SOURCEHOSTS,
+                "missing_attrs failed for HBAC_RULE_ELEMENT_SOURCEHOSTS");
 
     talloc_free(test_ctx);
 }
