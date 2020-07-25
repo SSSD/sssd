@@ -697,7 +697,7 @@ START_TEST(idmap_test_sid2bin_sid)
     fail_unless(err == IDMAP_SUCCESS,
                 "Failed to convert SID string to binary sid.");
     fail_unless(length == test_bin_sid_length,
-                "Size of binary SIDs do not match, got [%d], expected [%d]",
+                "Size of binary SIDs do not match, got [%zu], expected [%zu]",
                 length, test_bin_sid_length);
     fail_unless(memcmp(bin_sid, test_bin_sid, test_bin_sid_length) == 0,
                 "Binary SIDs do not match");
@@ -756,7 +756,7 @@ START_TEST(idmap_test_smb_sid2bin_sid)
     fail_unless(err == IDMAP_SUCCESS,
                 "Failed to convert samba dom_sid to binary sid.");
     fail_unless(length == test_bin_sid_length,
-                "Size of binary SIDs do not match, got [%d], expected [%d]",
+                "Size of binary SIDs do not match, got [%zu], expected [%zu]",
                 length, test_bin_sid_length);
     fail_unless(memcmp(bin_sid, test_bin_sid, test_bin_sid_length) == 0,
                 "Binary SIDs do not match.");
