@@ -298,7 +298,7 @@ void setup_talloc_context(void)
     fail_unless(pd != NULL, "Cannot create krb5_ctx structure.");
 
     pd->user = sss_create_internal_fqname(pd, USERNAME, DOMAIN_NAME);
-    fail_unless(pd->user != NULL);
+    fail_unless(pd->user != NULL, "Failed to allocate memory");
     kr->uid = atoi(UID);
     kr->upn = discard_const(PRINCIPAL_NAME);
     pd->cli_pid = atoi(PID);
@@ -372,7 +372,7 @@ START_TEST(test_case_sensitive)
     const char *expected_ci = BASE"_testuser";
 
     kr->pd->user = sss_create_internal_fqname(kr, USERNAME_CASE, DOMAIN_NAME);
-    fail_unless(kr->pd->user != NULL);
+    fail_unless(kr->pd->user != NULL, "Failed to allocate memory");
     ret = dp_opt_set_string(kr->krb5_ctx->opts, KRB5_CCACHEDIR, CCACHE_DIR);
     fail_unless(ret == EOK, "Failed to set Ccache dir");
 
@@ -586,7 +586,8 @@ compare_map_id_name_to_krb_primary(struct map_id_name_to_krb_primary *a,
     errno_t ret;
 
     while (a[i].id_name != NULL && a[i].krb_primary != NULL) {
-        fail_unless(i < len);
+        fail_unless(i < len,
+                    "Index: %d mus =t be lowwer than: %zd", i, len);
         ret = sss_utf8_case_eq((const uint8_t*)a[i].id_name,
                                (const uint8_t*)str[i*2]);
         fail_unless(ret == EOK,
@@ -613,30 +614,52 @@ START_TEST(test_parse_krb5_map_user)
     {
         check_leaks_push(mem_ctx);
         ret = parse_krb5_map_user(mem_ctx, NULL, DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK);
-        fail_unless(name_to_primary[0].id_name == NULL &&
-                    name_to_primary[0].krb_primary == NULL);
+        fail_unless(ret == EOK,
+                    "parse_krb5_map_user failed with error: %d", ret);
+        fail_unless(name_to_primary[0].id_name == NULL,
+                    "id_name must be NULL. Got: %s",
+                    name_to_primary[0].id_name);
+        fail_unless(name_to_primary[0].krb_primary == NULL,
+                    "krb_primary must be NULL. Got: %s",
+                    name_to_primary[0].krb_primary);
         talloc_free(name_to_primary);
 
         ret = parse_krb5_map_user(mem_ctx, "", DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK);
-        fail_unless(name_to_primary[0].id_name == NULL &&
-                    name_to_primary[0].krb_primary == NULL);
+        fail_unless(ret == EOK,
+                    "parse_krb5_map_user failed with error: %d", ret);
+        fail_unless(name_to_primary[0].id_name == NULL,
+                    "id_name must be NULL. Got: %s",
+                    name_to_primary[0].id_name);
+        fail_unless(name_to_primary[0].krb_primary == NULL,
+                    "krb_primary must be NULL. Got: %s",
+                    name_to_primary[0].krb_primary);
         talloc_free(name_to_primary);
 
         ret = parse_krb5_map_user(mem_ctx, ",", DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK);
-        fail_unless(name_to_primary[0].id_name == NULL &&
-                    name_to_primary[0].krb_primary == NULL);
+        fail_unless(ret == EOK,
+                    "parse_krb5_map_user failed with error: %d", ret);
+        fail_unless(name_to_primary[0].id_name == NULL,
+                    "id_name must be NULL. Got: %s",
+                    name_to_primary[0].id_name);
+        fail_unless(name_to_primary[0].krb_primary == NULL,
+                    "krb_primary must be NULL. Got: %s",
+                    name_to_primary[0].krb_primary);
         talloc_free(name_to_primary);
 
         ret = parse_krb5_map_user(mem_ctx, ",,", DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK);
-        fail_unless(name_to_primary[0].id_name == NULL &&
-                    name_to_primary[0].krb_primary == NULL);
+        fail_unless(ret == EOK,
+                    "parse_krb5_map_user failed with error: %d", ret);
+        fail_unless(name_to_primary[0].id_name == NULL,
+                    "id_name must be NULL. Got: %s",
+                    name_to_primary[0].id_name);
+        fail_unless(name_to_primary[0].krb_primary == NULL,
+                    "krb_primary must be NULL. Got: %s",
+                    name_to_primary[0].krb_primary);
+
         talloc_free(name_to_primary);
 
-        fail_unless(check_leaks_pop(mem_ctx));
+        fail_unless(check_leaks_pop(mem_ctx),
+                    "check_leaks_pop failed");
     }
     /* valid input */
     {
@@ -647,46 +670,56 @@ START_TEST(test_parse_krb5_map_user)
                                    "joe@testdomain", "juser@testdomain",
                                    "jdoe@testdomain", "ßlack@testdomain" };
         ret = parse_krb5_map_user(mem_ctx, p, DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK);
+        fail_unless(ret == EOK,
+                    "parse_krb5_map_user failed with error: %d", ret);
         compare_map_id_name_to_krb_primary(name_to_primary, expected,
                                          sizeof(expected)/sizeof(const char*)/2);
         talloc_free(name_to_primary);
 
         ret = parse_krb5_map_user(mem_ctx, p2, DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK);
+        fail_unless(ret == EOK,
+                    "parse_krb5_map_user failed with error: %d", ret);
         compare_map_id_name_to_krb_primary(name_to_primary,  expected,
                                          sizeof(expected)/sizeof(const char*)/2);
         talloc_free(name_to_primary);
-        fail_unless(check_leaks_pop(mem_ctx));
+        fail_unless(check_leaks_pop(mem_ctx),
+                    "check_leaks_pop failed");
     }
     /* invalid input */
     {
         check_leaks_push(mem_ctx);
 
         ret = parse_krb5_map_user(mem_ctx, ":", DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EINVAL);
+        fail_unless(ret == EINVAL,
+                    "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
         ret = parse_krb5_map_user(mem_ctx, "joe:", DOMAIN_NAME,
                                   &name_to_primary);
-        fail_unless(ret == EINVAL);
+        fail_unless(ret == EINVAL,
+                    "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
         ret = parse_krb5_map_user(mem_ctx, ":joe", DOMAIN_NAME,
                                   &name_to_primary);
-        fail_unless(ret == EINVAL);
+        fail_unless(ret == EINVAL,
+                    "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
         ret = parse_krb5_map_user(mem_ctx, "joe:,", DOMAIN_NAME,
                                   &name_to_primary);
-        fail_unless(ret == EINVAL);
+        fail_unless(ret == EINVAL,
+                    "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
         ret = parse_krb5_map_user(mem_ctx, ",joe", DOMAIN_NAME,
                                   &name_to_primary);
-        fail_unless(ret == EINVAL);
+        fail_unless(ret == EINVAL,
+                    "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
         ret = parse_krb5_map_user(mem_ctx, "joe:j:user", DOMAIN_NAME,
                                   &name_to_primary);
-        fail_unless(ret == EINVAL);
+        fail_unless(ret == EINVAL,
+                    "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
-        fail_unless(check_leaks_pop(mem_ctx));
+        fail_unless(check_leaks_pop(mem_ctx),
+                    "check_leaks_pop failed");
     }
 
     talloc_free(mem_ctx);
@@ -695,14 +728,18 @@ END_TEST
 
 START_TEST(test_sss_krb5_realm_has_proxy)
 {
-    fail_unless(sss_krb5_realm_has_proxy(NULL) == false);
+    fail_unless(sss_krb5_realm_has_proxy(NULL) == false,
+                "sss_krb5_realm_has_proxy did not return false");
 
     setenv("KRB5_CONFIG", "/dev/null", 1);
-    fail_unless(sss_krb5_realm_has_proxy("REALM") == false);
+    fail_unless(sss_krb5_realm_has_proxy("REALM") == false,
+                "sss_krb5_realm_has_proxy did not return false");
 
     setenv("KRB5_CONFIG", ABS_SRC_DIR"/src/tests/krb5_proxy_check_test_data.conf", 1);
-    fail_unless(sss_krb5_realm_has_proxy("REALM") == false);
-    fail_unless(sss_krb5_realm_has_proxy("REALM_PROXY") == true);
+    fail_unless(sss_krb5_realm_has_proxy("REALM") == false,
+                "sss_krb5_realm_has_proxy did not return false");
+    fail_unless(sss_krb5_realm_has_proxy("REALM_PROXY") == true,
+                "sss_krb5_realm_has_proxy did not return true");
 }
 END_TEST
 
