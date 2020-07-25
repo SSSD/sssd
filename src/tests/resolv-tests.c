@@ -172,38 +172,58 @@ START_TEST(test_copy_hostent)
     struct ares_addrttl attl[] = { { addr_1, ttl_1 }, { addr_2, ttl_2 } };
 
     ctx = talloc_new(global_talloc_context);
-    fail_if(ctx == NULL);
+    fail_if(ctx == NULL, "Failed to allocate memory");
 
     ck_leaks_push(ctx);
 
     rhe = resolv_copy_hostent_ares(ctx, &he, AF_INET, &attl, 2);
 
-    fail_if(rhe == NULL);
-    fail_if(strcmp(rhe->name, name));
-    fail_if(strcmp(rhe->aliases[0], alias_1));
-    fail_if(strcmp(rhe->aliases[1], alias_2));
-    fail_if(rhe->aliases[2] != NULL);
-    fail_if(rhe->family != AF_INET);
-    fail_if(memcmp(rhe->addr_list[0]->ipaddr, &addr_1, sizeof(addr_1)));
-    fail_if(rhe->addr_list[0]->ttl != ttl_1);
-    fail_if(memcmp(rhe->addr_list[1]->ipaddr, &addr_2, sizeof(addr_2)));
-    fail_if(rhe->addr_list[1]->ttl != ttl_2);
-    fail_if(rhe->addr_list[2] != NULL);
+    fail_if(rhe == NULL, "Failed to allocate memory");
+    fail_if(strcmp(rhe->name, name),
+            "Unexpectag value for name. Got: %s expecting: %s",
+             rhe->name, name);
+    fail_if(strcmp(rhe->aliases[0], alias_1),
+            "Unexpectag value for 1st alias. Got: %s expecting: %s",
+            rhe->aliases[0], alias_1);
+    fail_if(strcmp(rhe->aliases[1], alias_2),
+            "Unexpectag value for 2nd alias. Got: %s expecting: %s",
+            rhe->aliases[1], alias_2);
+    fail_if(rhe->aliases[2] != NULL,
+            "Just 2 aliases are expected. Got: %s", rhe->aliases[2]);
+    ck_assert_int_eq(rhe->family, AF_INET);
+    fail_if(memcmp(rhe->addr_list[0]->ipaddr, &addr_1, sizeof(addr_1)),
+                   "Unexpected binary value for addr_list[0]->ipaddr");
+    ck_assert_int_eq(rhe->addr_list[0]->ttl, ttl_1);
+    fail_if(memcmp(rhe->addr_list[1]->ipaddr, &addr_2, sizeof(addr_2)),
+                   "Unexpected binary value for rhe->addr_list[1]->ipaddr");
+    ck_assert_int_eq(rhe->addr_list[1]->ttl, ttl_2);
+    fail_if(rhe->addr_list[2] != NULL,
+            "Just 2 ip addresses are expected. 3rd has to be NULL");
 
     talloc_zfree(rhe);
 
     rhe = resolv_copy_hostent(ctx, &he);
-    fail_if(rhe == NULL);
-    fail_if(strcmp(rhe->name, name));
-    fail_if(strcmp(rhe->aliases[0], alias_1));
-    fail_if(strcmp(rhe->aliases[1], alias_2));
-    fail_if(rhe->aliases[2] != NULL);
-    fail_if(rhe->family != AF_INET);
-    fail_if(memcmp(rhe->addr_list[0]->ipaddr, &addr_2, sizeof(addr_1)));
-    fail_if(rhe->addr_list[0]->ttl != RESOLV_DEFAULT_TTL);
-    fail_if(memcmp(rhe->addr_list[1]->ipaddr, &addr_1, sizeof(addr_2)));
-    fail_if(rhe->addr_list[1]->ttl != RESOLV_DEFAULT_TTL);
-    fail_if(rhe->addr_list[2] != NULL);
+    fail_if(rhe == NULL, "Failed to allocate memory");
+    fail_if(strcmp(rhe->name, name),
+            "Unexpectag value for name. Got: %s expecting: %s",
+            rhe->name, name);
+    fail_if(strcmp(rhe->aliases[0], alias_1),
+            "Unexpectag value for 1st alias. Got: %s expecting: %s",
+            rhe->aliases[0], alias_1);
+    fail_if(strcmp(rhe->aliases[1], alias_2),
+            "Unexpectag value for 2nd alias. Got: %s expecting: %s",
+            rhe->aliases[1], alias_2);
+    fail_if(rhe->aliases[2] != NULL,
+            "Just 2 aliases are expected. Got: %s", rhe->aliases[2]);
+    ck_assert_int_eq(rhe->family, AF_INET);
+    fail_if(memcmp(rhe->addr_list[0]->ipaddr, &addr_2, sizeof(addr_1)),
+                   "Unexpected binary value for addr_list[0]->ipaddr");
+    ck_assert_int_eq(rhe->addr_list[0]->ttl, RESOLV_DEFAULT_TTL);
+    fail_if(memcmp(rhe->addr_list[1]->ipaddr, &addr_1, sizeof(addr_2)),
+                   "Unexpected binary value for addr_list[1]->ipaddr");
+    ck_assert_int_eq(rhe->addr_list[1]->ttl, RESOLV_DEFAULT_TTL);
+    fail_if(rhe->addr_list[2] != NULL,
+            "Just 2 ip addresses are expected. 3rd has to be NULL");
 
     talloc_free(rhe);
 
@@ -219,36 +239,36 @@ START_TEST(test_address_to_string)
     char *ptr_addr;
 
     ctx = talloc_new(global_talloc_context);
-    fail_if(ctx == NULL);
+    fail_if(ctx == NULL, "Failed to allocate memory");
     ck_leaks_push(ctx);
 
     rhe = test_create_rhostent(ctx, "www.example.com", "1.2.3.4");
-    fail_if(rhe == NULL);
+    fail_if(rhe == NULL, "Failed to allocate memory");
 
     str_addr = resolv_get_string_address_index(ctx, rhe, 0);
-    fail_if(str_addr == NULL);
+    fail_if(str_addr == NULL, "Failed to allocate memory");
     fail_unless(strcmp(str_addr, "1.2.3.4") == 0, "Unexpected address\n");
     talloc_free(str_addr);
 
     ptr_addr = resolv_get_string_ptr_address(ctx, rhe->family,
                                              rhe->addr_list[0]->ipaddr);
-    fail_if(ptr_addr == NULL);
+    fail_if(ptr_addr == NULL, "Failed to allocate memory");
     fail_unless(strcmp(ptr_addr, "4.3.2.1.in-addr.arpa.") == 0, "Unexpected PTR address\n");
     talloc_free(ptr_addr);
 
     talloc_free(rhe);
 
     rhe = test_create_rhostent(ctx, "www6.example.com", "2607:f8b0:400c:c03::6a");
-    fail_if(rhe == NULL);
+    fail_if(rhe == NULL, "Failed to allocate memory");
 
     str_addr = resolv_get_string_address_index(ctx, rhe, 0);
-    fail_if(str_addr == NULL);
+    fail_if(str_addr == NULL, "resolv_get_string_address_index failed");
     fail_unless(strcmp(str_addr, "2607:f8b0:400c:c03::6a") == 0, "Unexpected address\n");
     talloc_free(str_addr);
 
     ptr_addr = resolv_get_string_ptr_address(ctx, rhe->family,
                                              rhe->addr_list[0]->ipaddr);
-    fail_if(ptr_addr == NULL);
+    fail_if(ptr_addr == NULL, "resolv_get_string_ptr_address failed");
     fail_unless(strcmp(ptr_addr,
                        "a.6.0.0.0.0.0.0.0.0.0.0.0.0.0.0.3.0.c.0.c.0.0.4.0.b.8.f.7.0.6.2.ip6.arpa.") == 0, "Unexpected PTR address\n");
     talloc_free(ptr_addr);
@@ -322,7 +342,7 @@ START_TEST(test_resolv_ip_addr)
     }
 
     ck_leaks_pop(test_ctx);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
 
     talloc_zfree(test_ctx);
 }
@@ -392,7 +412,7 @@ START_TEST(test_resolv_localhost)
     }
 
     ck_leaks_pop(test_ctx);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
 
     talloc_zfree(test_ctx);
 }
@@ -451,8 +471,8 @@ START_TEST(test_resolv_negative)
 
     ck_leaks_pop(test_ctx);
 
-    fail_unless(ret != EOK);
-    fail_unless(test_ctx->error == ARES_ENOTFOUND);
+    fail_unless(ret != EOK, "test_loop must failed but got: EOK");
+    ck_assert_int_eq(test_ctx->error, ARES_ENOTFOUND);
     talloc_zfree(test_ctx);
 }
 END_TEST
@@ -556,7 +576,7 @@ START_TEST(test_resolv_internet)
         ret = test_loop(test_ctx);
     }
 
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
     ck_leaks_pop(test_ctx);
     talloc_zfree(test_ctx);
 }
@@ -579,7 +599,7 @@ START_TEST(test_resolv_internet_txt)
 
     tevent_req_set_callback(req, test_internet, test_ctx);
     ret = test_loop(test_ctx);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
 
     ck_leaks_pop(test_ctx);
 
@@ -604,7 +624,7 @@ START_TEST(test_resolv_internet_srv)
 
     tevent_req_set_callback(req, test_internet, test_ctx);
     ret = test_loop(test_ctx);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
 
     ck_leaks_pop(test_ctx);
 
@@ -676,7 +696,7 @@ START_TEST(test_resolv_free_context)
     }
 
     ret = test_loop(test_ctx);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
 
 done:
     talloc_zfree(test_ctx);
@@ -713,7 +733,7 @@ START_TEST(test_resolv_sort_srv_reply)
     /* prepare linked list with reversed values */
     for (i = 0; i<num_replies; i++) {
         r = talloc_zero(test_ctx, struct ares_srv_reply);
-        fail_if(r == NULL);
+        fail_if(r == NULL, "Failed to allocate memory");
         r->priority = num_replies-i;
         r->weight   = i;
 
@@ -728,19 +748,19 @@ START_TEST(test_resolv_sort_srv_reply)
 
     /* do the sort */
     ret = resolv_sort_srv_reply(&replies);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "resolv_sort_srv_reply failed with error: %d", ret);
 
     /* check if the list is sorted */
     prev = NULL;
     for (i = 1, r = replies; r; r=r->next, i++) {
         talloc_zfree(prev);
         prev = r;
-        fail_unless(r->priority == i);
+        ck_assert_int_eq(r->priority, i);
     }
     talloc_zfree(prev);
 
     /* check if the list is complete */
-    fail_unless(i-1 == num_replies);
+    ck_assert_int_eq(i - 1, num_replies);
 
     /* test if the weighting algorithm runs..not much do
      * deterministically test here since it is based on
@@ -748,7 +768,7 @@ START_TEST(test_resolv_sort_srv_reply)
     replies = NULL;
     for (i = 0; i<num_replies; i++) {
         r = talloc_zero(test_ctx, struct ares_srv_reply);
-        fail_if(r == NULL);
+        fail_if(r == NULL, "Failed to allocate memory");
         r->priority = i % 2 + 1;
         r->weight   = i;
 
@@ -763,7 +783,7 @@ START_TEST(test_resolv_sort_srv_reply)
 
     /* do the sort */
     ret = resolv_sort_srv_reply(&replies);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "resolv_sort_srv_reply failed with error: %d", ret);
 
     /* clean up */
     prev = NULL;
@@ -800,7 +820,7 @@ START_TEST(test_resolv_sort_srv_reply_zero_weight)
     /* prepare linked list */
     for (i = 0; i < num_replies; i++) {
         r = talloc_zero(test_ctx, struct ares_srv_reply);
-        fail_if(r == NULL);
+        fail_if(r == NULL, "Failed to allocate memory");
 
         r->priority = 20;
         r->priority = i <= 3 ? 10 : r->priority;
@@ -818,15 +838,17 @@ START_TEST(test_resolv_sort_srv_reply_zero_weight)
 
     /* do the sort */
     ret = resolv_sort_srv_reply(&replies);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "resolv_sort_srv_reply failed with error: %d", ret);
 
     /* check if the list contains all values and is sorted */
     for (i = 0, r = replies; r != NULL; r = r->next, i++) {
         if (r->next != NULL) {
-            fail_unless(r->priority <= r->next->priority);
+            fail_unless(r->priority <= r->next->priority,
+                        "Got unsorted values. %d <= %d",
+                        r->priority, r->next->priority);
         }
     }
-    fail_unless(i == num_replies);
+    ck_assert_int_eq(i, num_replies);
 
     /* clean up */
     prev = NULL;
@@ -889,7 +911,7 @@ START_TEST(test_resolv_free_req)
 
     ret = test_loop(test_ctx);
     ck_leaks_pop(test_ctx);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
 
 done:
     talloc_zfree(test_ctx);
@@ -911,12 +933,12 @@ static void test_timeout(struct tevent_req *req)
     tmp_ctx = talloc_new(test_ctx);
     ck_leaks_push(tmp_ctx);
 
-    fail_unless(test_ctx->tested_function == TESTING_HOSTNAME);
+    ck_assert_int_eq(test_ctx->tested_function, TESTING_HOSTNAME);
     recv_status = resolv_gethostbyname_recv(req, tmp_ctx,
                                             &status, NULL, &rhostent);
     talloc_zfree(req);
-    fail_unless(recv_status == ETIMEDOUT);
-    fail_unless(status == ARES_ETIMEOUT);
+    ck_assert_int_eq(recv_status, ETIMEDOUT);
+    ck_assert_int_eq(status, ARES_ETIMEOUT);
     ck_leaks_pop(tmp_ctx);
     talloc_free(tmp_ctx);
 }
@@ -949,7 +971,7 @@ START_TEST(test_resolv_timeout)
         ret = test_loop(test_ctx);
     }
 
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
     talloc_zfree(test_ctx);
 }
 END_TEST
