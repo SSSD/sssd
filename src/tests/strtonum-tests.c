@@ -38,8 +38,8 @@
 
 #define CHECK_RESULT(expected, actual) \
     do { \
-        fail_unless(actual == expected, "Expected %ld, got %ld", \
-                                        expected, actual); \
+        fail_unless(actual == expected, "Expected %jd, got %jd", \
+                                        (intmax_t)expected, (intmax_t)actual); \
     } while(0)
 
 #define CHECK_ERRNO(expected, actual) \
