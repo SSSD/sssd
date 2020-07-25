@@ -116,24 +116,30 @@ START_TEST(test_fo_new_service)
 
         ck_leaks_push(ctx);
         ret = fo_new_service(ctx->fo_ctx, buf, NULL, &services[i]);
-        fail_if(ret != EOK);
+        fail_if(ret != EOK,
+                "fo_new_service failed with error: %d", ret);
     }
 
     ret = fo_new_service(ctx->fo_ctx, "service_3", NULL, &service);
-    fail_if(ret != EEXIST);
+    fail_if(ret != EEXIST,
+            "fo_new_service must return EEXIST. Got: %d", ret);
 
     for (i = 9; i >= 0; i--) {
         char buf[16];
         sprintf(buf, "service_%d", i);
 
         ret = fo_get_service(ctx->fo_ctx, buf, &service);
-        fail_if(ret != EOK);
-        fail_if(service != services[i]);
+        fail_if(ret != EOK,
+                "fo_get_service failed with error: %d", ret);
+        fail_if(service != services[i],
+                "Unexpected service returned. %p != %p",
+                service, services[i]);
         talloc_free(service);
         ck_leaks_pop(ctx);
 
         ret = fo_get_service(ctx->fo_ctx, buf, &service);
-        fail_if(ret != ENOENT);
+        fail_if(ret != ENOENT,
+                "fo_get_service must return ENOENT. Got: %d", ret);
     }
 
     ck_leaks_pop(ctx);
@@ -162,7 +168,8 @@ test_resolve_service_callback(struct tevent_req *req)
             task->location, task->recv, recv_status);
     if (recv_status != EOK)
         return;
-    fail_if(server == NULL);
+    fail_if(server == NULL,
+            "fo_resolve_service_recv must not return NULL for server");
     port = fo_get_server_port(server);
     fail_if(port != task->port, "%s: Expected port %d, got %d", task->location,
             task->port, port);
@@ -179,7 +186,8 @@ test_resolve_service_callback(struct tevent_req *req)
             char buf[256];
 
             inet_ntop(he->family, he->addr_list[i]->ipaddr, buf, sizeof(buf));
-            fail_if(strcmp(buf, "127.0.0.1") != 0 && strcmp(buf, "::1") != 0);
+            fail_if(strcmp(buf, "127.0.0.1") != 0 && strcmp(buf, "::1") != 0,
+                    "Expecting either '127.0.0.1' or '::1'. Got: %s", buf);
         }
     }
 
@@ -204,7 +212,7 @@ _get_request(struct test_ctx *test_ctx, struct fo_service *service,
     struct task *task;
 
     task = talloc(test_ctx, struct task);
-    fail_if(task == NULL);
+    fail_if(task == NULL, "Failed to allocate memory");
 
     task->test_ctx = test_ctx;
     task->recv = expected_recv;
@@ -228,27 +236,40 @@ START_TEST(test_fo_resolve_service)
 {
     struct test_ctx *ctx;
     struct fo_service *service[3];
+    int ret;
 
     ctx = setup_test();
-    fail_if(ctx == NULL);
+    fail_if(ctx == NULL, "Failed to allocate memory");
 
     /* Add service. */
-    fail_if(fo_new_service(ctx->fo_ctx, "http", NULL, &service[0]) != EOK);
+    ret = fo_new_service(ctx->fo_ctx, "http", NULL, &service[0]);
+    fail_if(ret != EOK, "fo_new_service failed with error: %d", ret);
 
-    fail_if(fo_new_service(ctx->fo_ctx, "ldap", NULL, &service[1]) != EOK);
+    ret = fo_new_service(ctx->fo_ctx, "ldap", NULL, &service[1]);
+    fail_if(ret != EOK, "fo_new_service failed with error: %d", ret);
 
-    fail_if(fo_new_service(ctx->fo_ctx, "ntp", NULL, &service[2]) != EOK);
+    ret = fo_new_service(ctx->fo_ctx, "ntp", NULL, &service[2]);
+    fail_if(ret != EOK, "fo_new_service failed with error: %d", ret);
 
     /* Add servers. */
-    fail_if(fo_add_server(service[0], "localhost", 20, NULL, true) != EOK);
-    fail_if(fo_add_server(service[0], "127.0.0.1", 80, NULL, false) != EOK);
+    ret = fo_add_server(service[0], "localhost", 20, NULL, true);
+    fail_if(ret != EOK, "fo_add_server failed with error: %d", ret);
+    ret = fo_add_server(service[0], "127.0.0.1", 80, NULL, false);
+    fail_if(ret != EOK, "fo_add_server failed with error: %d", ret);
 
-    fail_if(fo_add_server(service[1], "localhost", 30, NULL, false) != EOK);
-    fail_if(fo_add_server(service[1], "127.0.0.1", 389, NULL, true) != EOK);
-    fail_if(fo_add_server(service[1], "127.0.0.1", 389, NULL, true) != EEXIST);
-    fail_if(fo_add_server(service[1], "127.0.0.1", 389, NULL, false) != EEXIST);
+    ret = fo_add_server(service[1], "localhost", 30, NULL, false);
+    fail_if(ret != EOK, "fo_add_server failed with error: %d", ret);
+    ret = fo_add_server(service[1], "127.0.0.1", 389, NULL, true);
+    fail_if(ret != EOK, "fo_add_server failed with error: %d", ret);
+    ret = fo_add_server(service[1], "127.0.0.1", 389, NULL, true);
+    fail_if(ret != EEXIST,
+            "fo_add_server must  fail with EEXIST. Got: %d", ret);
+    ret = fo_add_server(service[1], "127.0.0.1", 389, NULL, false);
+    fail_if(ret != EEXIST,
+            "fo_add_server must  fail with EEXIST. Got: %d", ret);
 
-    fail_if(fo_add_server(service[2], NULL, 123, NULL, true) != EOK);
+    ret = fo_add_server(service[2], NULL, 123, NULL, true);
+    fail_if(ret != EOK, "fo_add_server failed with error: %d", ret);
 
     /* Make requests. */
     get_request(ctx, service[0], EOK, 20, PORT_WORKING, -1);
