@@ -40,10 +40,13 @@ START_TEST(test_nss_init)
     int ret;
 
     ret = nspr_nss_init();
-    fail_if(ret != EOK);
+    fail_if(ret != EOK,
+            "nspr_nss_init failed with error: %d", ret);
+
 
     ret = nspr_nss_cleanup();
-    fail_if(ret != EOK);
+    fail_if(ret != EOK,
+            "nspr_nss_cleanup failed with error: %d", ret);
 }
 END_TEST
 #endif
@@ -67,18 +70,22 @@ START_TEST(test_sss_password_encrypt_decrypt)
 #endif
 
     test_ctx = talloc_new(NULL);
-    fail_if(test_ctx == NULL);
+    fail_if(test_ctx == NULL, "Failed to allocate memory");
     ck_leaks_push(test_ctx);
 
     for (i=0; password[i]; i++) {
         ret = sss_password_encrypt(test_ctx, password[i], strlen(password[i])+1,
                                    AES_256, &obfpwd);
-        fail_if(ret != expected);
+        ck_assert_int_eq(ret, expected);
 
         ret = sss_password_decrypt(test_ctx, obfpwd, &ctpwd);
-        fail_if(ret != expected);
+        ck_assert_int_eq(ret, expected);
 
-        fail_if(ctpwd && strcmp(password[i], ctpwd) != 0);
+        fail_if(ctpwd == NULL,
+                "sss_password_decrypt must not return NULL");
+        fail_if(strcmp(password[i], ctpwd) != 0,
+                "Unexpected decrypted password. Expected: %s got: %s",
+                password[i], ctpwd);
 
         talloc_free(obfpwd);
         talloc_free(ctpwd);
@@ -116,8 +123,10 @@ START_TEST(test_hmac_sha1)
         ret = sss_hmac_sha1((const unsigned char *)keys[i], strlen(keys[i]),
                             (const unsigned char *)message, strlen(message),
                             out);
-        fail_if(ret != expected);
-        fail_if(ret == EOK && memcmp(out, results[i], SSS_SHA1_LENGTH) != 0);
+        ck_assert_int_eq(ret, expected);
+        ck_assert_int_eq(ret, EOK);
+        fail_if(memcmp(out, results[i], SSS_SHA1_LENGTH) != 0,
+                "Unexpected result for index: %d", i);
     }
 }
 END_TEST
@@ -129,11 +138,13 @@ START_TEST(test_base64_encode)
     char *obfpwd = NULL;
 
     test_ctx = talloc_new(NULL);
-    fail_if(test_ctx == NULL);
+    fail_if(test_ctx == NULL, "Failed to allocate memory");
     /* Base64 encode the buffer */
     obfpwd = sss_base64_encode(test_ctx, obfbuf, strlen((const char*)obfbuf));
-    fail_if(obfpwd == NULL);
-    fail_if(strcmp(obfpwd,expected) != 0);
+    fail_if(obfpwd == NULL,
+            "sss_base64_encode must not return NULL");
+    fail_if(strcmp(obfpwd, expected) != 0,
+            "Got: %s expected value: %s", obfpwd, expected);
 
     talloc_free(test_ctx);
 }
@@ -147,12 +158,14 @@ START_TEST(test_base64_decode)
     const unsigned char expected[] = "test";
 
     test_ctx = talloc_new(NULL);
-    fail_if(test_ctx == NULL);
+    fail_if(test_ctx == NULL, "Failed to allocate memory");
     /* Base64 decode the buffer */
     obfbuf = sss_base64_decode(test_ctx, b64encoded, &obflen);
-    fail_if(!obfbuf);
-    fail_if(obflen != strlen((const char*)expected));
-    fail_if(memcmp(obfbuf, expected, obflen) != 0);
+    fail_if(obfbuf == NULL,
+            "sss_base64_decode must not return NULL");
+    ck_assert_int_eq(obflen, strlen((const char*)expected));
+    fail_if(memcmp(obfbuf, expected, obflen) != 0,
+            "Unexpected vale returned after sss_base64_decode");
 
     talloc_free(test_ctx);
 }
@@ -176,14 +189,14 @@ START_TEST(test_sss_encrypt_decrypt)
     int ret;
 
     test_ctx = talloc_new(NULL);
-    fail_if(test_ctx == NULL);
+    fail_if(test_ctx == NULL, "Failed to allocate memory");
 
     ret = sss_encrypt(test_ctx, AES256CBC_HMAC_SHA256, key, key_len,
                       (const uint8_t *)input_text, input_text_len,
                       &cipher_text, &cipher_text_len);
 
-    fail_if(ret != 0);
-    fail_if(cipher_text_len == 0);
+    fail_if(ret != 0, "sss_encrypt failed with error: %d", ret);
+    fail_if(cipher_text_len == 0, "cipher_text_len must not be zero");
 
     ret = memcmp(input_text, cipher_text, input_text_len);
     fail_if(ret == 0, "Input and encrypted text has common prefix");
@@ -191,8 +204,8 @@ START_TEST(test_sss_encrypt_decrypt)
     ret = sss_decrypt(test_ctx, AES256CBC_HMAC_SHA256, key, key_len,
                       cipher_text, cipher_text_len,
                       &plain_text, &plain_text_len);
-    fail_if(ret != 0);
-    fail_if(plain_text_len != input_text_len);
+    fail_if(ret != 0, "sss_decrypt failed with error: %d", ret);
+    ck_assert_int_eq(plain_text_len, input_text_len);
 
     ret = memcmp(plain_text, input_text, input_text_len);
     fail_if(ret != 0, "input text is not the same as de-encrypted text");
@@ -211,21 +224,21 @@ START_TEST(test_s3crypt_sha512)
     const char *expected_hash = "$6$tU67Q/9h3tm5WJ.U$aL9gjCfiSZQewHTI6A4/MHCVWrMCiJZ.gNXEIw6HO39XGbg.s2nTyGlYXeoQyQtDll3XSbIZN41fJEC3v7ELy0";
 
     test_ctx = talloc_new(NULL);
-    fail_if(test_ctx == NULL);
+    fail_if(test_ctx == NULL, "Failed to allocate memory");
 
     ret = s3crypt_gen_salt(test_ctx, &salt);
-    fail_if(ret != 0);
+    fail_if(ret != 0, "s3crypt_gen_salt failed with error: %d", ret);
 
     ret = s3crypt_sha512(test_ctx, password, salt, &userhash);
-    fail_if(ret != 0);
+    fail_if(ret != 0, "s3crypt_sha512 failed with error: %d", ret);
 
     ret = s3crypt_sha512(test_ctx, password, userhash, &comphash);
-    fail_if(ret != 0);
+    fail_if(ret != 0, "s3crypt_sha512 failed with error: %d", ret);
     ck_assert_str_eq(userhash, comphash);
     talloc_free(comphash);
 
     ret = s3crypt_sha512(test_ctx, password, expected_hash, &comphash);
-    fail_if(ret != 0);
+    fail_if(ret != 0, "s3crypt_sha512 failed with error: %d", ret);
     ck_assert_str_eq(expected_hash, comphash);
 
     talloc_free(test_ctx);
