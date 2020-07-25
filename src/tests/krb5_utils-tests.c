@@ -487,8 +487,9 @@ START_TEST(test_NULL)
 
     result = expand_ccname_template(tmp_ctx, kr, test_template, NULL, true, true);
 
-    fail_unless(result == NULL, "Expected NULL as a result for an empty input.",
-                test_template);
+    fail_unless(result == NULL,
+                "Expected NULL as a result for an empty input for "
+                "NULL template");
 }
 END_TEST
 
@@ -599,7 +600,7 @@ compare_map_id_name_to_krb_primary(struct map_id_name_to_krb_primary *a,
                     a[i].krb_primary, str[i*2+1]);
         i++;
     }
-    fail_unless(len == i, "%u != %u", len, i);
+    fail_unless(len == i, "%zu != %u", len, i);
 }
 
 START_TEST(test_parse_krb5_map_user)
