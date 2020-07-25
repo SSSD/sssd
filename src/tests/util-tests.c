@@ -659,7 +659,7 @@ START_TEST(test_atomicio_read_from_file)
 
     fail_unless(ret == 0, "Error %d while reading\n", ret);
     fail_unless(numread == bufsize,
-                "Read %d bytes expected %d\n", numread, bufsize);
+                "Read %zd bytes expected %zd\n", numread, bufsize);
     close(fd);
 }
 END_TEST
@@ -681,7 +681,7 @@ START_TEST(test_atomicio_read_from_small_file)
 
     fail_unless(ret == 0, "Error %d while writing\n", ret);
     fail_unless(numwritten == wsize,
-                "Wrote %d bytes expected %d\n", numwritten, wsize);
+                "Wrote %zd bytes expected %zd\n", numwritten, wsize);
 
     fsync(atio_fd);
     lseek(atio_fd, 0, SEEK_SET);
@@ -692,7 +692,7 @@ START_TEST(test_atomicio_read_from_small_file)
 
     fail_unless(ret == 0, "Error %d while reading\n", ret);
     fail_unless(numread == numwritten,
-                "Read %d bytes expected %d\n", numread, numwritten);
+                "Read %zd bytes expected %zd\n", numread, numwritten);
 }
 END_TEST
 
@@ -714,7 +714,7 @@ START_TEST(test_atomicio_read_from_large_file)
 
     fail_unless(ret == 0, "Error %d while writing\n", ret);
     fail_unless(numwritten == wsize,
-                "Wrote %d bytes expected %d\n", numwritten, wsize);
+                "Wrote %zd bytes expected %zd\n", numwritten, wsize);
 
     fsync(atio_fd);
     lseek(atio_fd, 0, SEEK_SET);
@@ -731,7 +731,7 @@ START_TEST(test_atomicio_read_from_large_file)
 
     fail_unless(ret == 0, "Error %d while reading\n", ret);
     fail_unless(total == numwritten,
-                "Read %d bytes expected %d\n", numread, numwritten);
+                "Read %zd bytes expected %zd\n", numread, numwritten);
 }
 END_TEST
 
@@ -752,7 +752,7 @@ START_TEST(test_atomicio_read_exact_sized_file)
 
     fail_unless(ret == 0, "Error %d while writing\n", ret);
     fail_unless(numwritten == wsize,
-                "Wrote %d bytes expected %d\n", numwritten, wsize);
+                "Wrote %zd bytes expected %zd\n", numwritten, wsize);
 
     fsync(atio_fd);
     lseek(atio_fd, 0, SEEK_SET);
@@ -763,7 +763,7 @@ START_TEST(test_atomicio_read_exact_sized_file)
 
     fail_unless(ret == 0, "Error %d while reading\n", ret);
     fail_unless(numread == numwritten,
-                "Read %d bytes expected %d\n", numread, numwritten);
+                "Read %zd bytes expected %zd\n", numread, numwritten);
 
     fail_unless(rbuf[8] == '\0', "String not NULL terminated?");
     fail_unless(strcmp(wbuf, rbuf) == 0, "Read something else than wrote?");
@@ -794,7 +794,7 @@ START_TEST(test_atomicio_read_from_empty_file)
 
     fail_unless(ret == 0, "Error %d while reading\n", ret);
     fail_unless(numread == 0,
-                "Read %d bytes expected 0\n", numread);
+                "Read %zd bytes expected 0\n", numread);
     close(fd);
 }
 END_TEST
