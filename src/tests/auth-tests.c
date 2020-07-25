@@ -203,7 +203,7 @@ static void do_failed_login_test(uint32_t failed_login_attempts,
 
     fail_unless(delayed_until == expected_delay,
                 "check_failed_login_attempts wrong delay, "
-                "expected [%d], got [%d]",
+                "expected [%ld], got [%ld]",
                 expected_delay, delayed_until);
 
     talloc_free(test_ctx);
