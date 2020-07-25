@@ -75,7 +75,7 @@ START_TEST(resp_str_to_array_test)
                                                                 strerror(ret));
         if (ret == 0) {
             fail_unless(uid_count == s2a_data[c].exp_count,
-                        "Wrong number of values, expected [%d], got [%d].",
+                        "Wrong number of values, expected [%zu], got [%zu].",
                         s2a_data[c].exp_count, uid_count);
             for (d = 0; d < s2a_data[c].exp_count; d++) {
                 fail_unless(uids[d] == s2a_data[c].exp_uids[d],
