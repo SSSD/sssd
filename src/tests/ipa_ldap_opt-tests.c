@@ -171,18 +171,26 @@ END_TEST
 
 static void fail_unless_dp_opt_is_terminator(struct dp_option *o)
 {
-    fail_unless(o->opt_name == NULL);
-    fail_unless(o->type == 0);
-    fail_unless(o->def_val.string == NULL);
-    fail_unless(o->val.string == NULL);
+    fail_unless(o->opt_name == NULL,
+                "Unexpected NULL for opt_name in dp_option");
+    fail_unless(o->type == 0,
+                "Unexpected 0 for type in dp_option");
+    fail_unless(o->def_val.string == NULL,
+                "Unexpected NULL for def_val.string in dp_option");
+    fail_unless(o->val.string == NULL,
+                "Unexpected NULL for val.string in dp_option");
 }
 
 static void fail_unless_sdap_opt_is_terminator(struct sdap_attr_map *m)
 {
-    fail_unless(m->name == NULL);
-    fail_unless(m->def_name == NULL);
-    fail_unless(m->sys_name == NULL);
-    fail_unless(m->opt_name == NULL);
+    fail_unless(m->name == NULL,
+                "Unexpected NULL for name in sdap_attr_map");
+    fail_unless(m->def_name == NULL,
+                "Unexpected NULL for def_name in sdap_attr_map");
+    fail_unless(m->sys_name == NULL,
+                "Unexpected NULL for sys_name in sdap_attr_map");
+    fail_unless(m->opt_name == NULL,
+                "Unexpected NULL for opt_name in sdap_attr_map");
 }
 
 START_TEST(test_dp_opt_sentinel)
@@ -325,37 +333,53 @@ START_TEST(test_copy_sdap_map)
     ret = sdap_copy_map(global_talloc_context,
                         rfc2307_user_map, SDAP_OPTS_USER, &out_map);
     fail_unless(ret == EOK, "[%s]", strerror(ret));
-    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL,
+                "Unexpected NULL for name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL,
+                "Unexpected NULL for def_name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL,
+                "Unexpected NULL for sys_name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL,
+                "Unexpected NULL for opt_name with idx: %d", SDAP_OPTS_USER);
     talloc_free(out_map);
 
     ret = sdap_copy_map(global_talloc_context,
                         rfc2307bis_user_map, SDAP_OPTS_USER, &out_map);
     fail_unless(ret == EOK, "[%s]", strerror(ret));
-    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL,
+                "Unexpected NULL for name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL,
+                "Unexpected NULL for def_name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL,
+                "Unexpected NULL for sys_name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL,
+                "Unexpected NULL for opt_name with idx: %d", SDAP_OPTS_USER);
     talloc_free(out_map);
 
     ret = sdap_copy_map(global_talloc_context,
                         ipa_user_map, SDAP_OPTS_USER, &out_map);
     fail_unless(ret == EOK, "[%s]", strerror(ret));
-    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL,
+                "Unexpected NULL for name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL,
+                "Unexpected NULL for def_name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL,
+                "Unexpected NULL for sys_name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL,
+                "Unexpected NULL for opt_name with idx: %d", SDAP_OPTS_USER);
     talloc_free(out_map);
 
     ret = sdap_copy_map(global_talloc_context,
                         gen_ad2008r2_user_map, SDAP_OPTS_USER, &out_map);
     fail_unless(ret == EOK, "[%s]", strerror(ret));
-    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL);
-    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL,
+                "Unexpected NULL for name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL,
+                "Unexpected NULL for def_name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL,
+                "Unexpected NULL for sys_name with idx: %d", SDAP_OPTS_USER);
+    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL,
+                "Unexpected NULL for opt_name with idx: %d", SDAP_OPTS_USER);
     talloc_free(out_map);
 }
 END_TEST
@@ -382,14 +406,15 @@ START_TEST(test_extra_opts)
     fail_unless(ret == EOK, "[%s]", sss_strerror(ret));
 
     /* Two extra and sentinel */
-    fail_unless(new_size != SDAP_OPTS_USER + 3);
+    ck_assert_int_eq(new_size, SDAP_OPTS_USER + 3);
     /* Foo would be saved to sysdb verbatim */
     ck_assert_str_eq(out_map[SDAP_OPTS_USER].name, "foo");
     ck_assert_str_eq(out_map[SDAP_OPTS_USER].sys_name, "foo");
     /* Bar would be saved to sysdb as baz */
     ck_assert_str_eq(out_map[SDAP_OPTS_USER+1].name, "bar");
     ck_assert_str_eq(out_map[SDAP_OPTS_USER+1].sys_name, "baz");
-    fail_unless(out_map[SDAP_OPTS_USER+2].name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER+2].name == NULL,
+                "Unexpected NULL for name with id: %d", SDAP_OPTS_USER + 2);
 
     talloc_free(out_map);
 }
@@ -413,8 +438,9 @@ START_TEST(test_no_extra_opts)
                           &out_map, &new_size);
     fail_unless(ret == EOK, "[%s]", sss_strerror(ret));
     /* Attributes and sentinel */
-    fail_unless(new_size != SDAP_OPTS_USER + 1);
-    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
+    ck_assert_int_eq(new_size, SDAP_OPTS_USER + 1);
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL,
+                "Unexpected NULL for name with id: %d", SDAP_OPTS_USER);
 
     talloc_free(out_map);
 }
@@ -441,8 +467,9 @@ START_TEST(test_extra_opts_neg)
                           &out_map, &new_size);
     fail_unless(ret == EOK, "[%s]", strerror(ret));
     /* The faulty attributes would be just skipped */
-    fail_unless(new_size != SDAP_OPTS_USER + 1);
-    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
+    ck_assert_int_eq(new_size, SDAP_OPTS_USER + 1);
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL,
+                "Unexpected NULL for name with id: %d", SDAP_OPTS_USER);
 
     talloc_free(out_map);
 }
