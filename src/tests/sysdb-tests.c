@@ -694,13 +694,13 @@ START_TEST (test_sysdb_user_new_id)
     fqname = sss_create_internal_fqname(test_ctx,
                                         username,
                                         test_ctx->domain->name);
-    fail_if(fqname == NULL);
+    fail_if(fqname == NULL, "Failed to allocate memory");
 
     attrs = sysdb_new_attrs(test_ctx);
-    fail_if(attrs == NULL);
+    fail_if(attrs == NULL, "Failed to allocate memory");
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_DESCRIPTION, desc_in);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "Failed to add attribute: " SYSDB_DESCRIPTION);
 
     ret = sysdb_add_user(test_ctx->domain, fqname,
                          1234, 1234, fqname, "/", "/bin/bash",
@@ -713,7 +713,7 @@ START_TEST (test_sysdb_user_new_id)
     fail_if(ret != EOK, "Could not retrieve user %s", fqname);
 
     desc = ldb_msg_find_attr_as_string(msg, SYSDB_DESCRIPTION, NULL);
-    fail_unless(desc != NULL);
+    fail_unless(desc != NULL, "Failed to find attribute: " SYSDB_DESCRIPTION);
     ck_assert_str_eq(desc, desc_in);
 
     ret = sysdb_delete_user(test_ctx->domain, fqname, 0);
@@ -738,7 +738,7 @@ START_TEST (test_sysdb_store_user)
     }
 
     data = test_data_new_user(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_store_user(data);
 
@@ -761,7 +761,7 @@ START_TEST (test_sysdb_store_user_existing)
     }
 
     data = test_data_new_user(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->shell = "/bin/ksh";
 
     ret = test_store_user(data);
@@ -831,7 +831,7 @@ START_TEST (test_sysdb_remove_local_user_by_uid)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->uid = _i;
 
     ret = test_remove_user_by_uid(data);
@@ -855,7 +855,7 @@ START_TEST (test_sysdb_remove_local_group)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_remove_group(data);
 
@@ -878,7 +878,7 @@ START_TEST (test_sysdb_remove_local_group_by_gid)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     null_ctx_get_size(data->ctx);
     ret = test_remove_group_by_gid(data);
@@ -903,7 +903,7 @@ START_TEST (test_sysdb_add_user)
     }
 
     data = test_data_new_user(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_add_user(data);
 
@@ -926,7 +926,7 @@ START_TEST (test_sysdb_add_group)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_add_group(data);
 
@@ -951,7 +951,7 @@ START_TEST (test_sysdb_add_group_with_ghosts)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     for (j = MBO_GROUP_BASE; j < _i; j++) {
         member_fqname = test_asprintf_fqname(data, data->ctx->domain,
@@ -983,7 +983,7 @@ START_TEST (test_sysdb_add_incomplete_group)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_add_incomplete_group(data);
 
@@ -1053,7 +1053,7 @@ START_TEST (test_sysdb_getpwnam)
     }
 
     data = test_data_new_user(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     res = test_getpwnam(data);
     fail_if(res->count != 1,
@@ -1069,7 +1069,6 @@ START_TEST (test_sysdb_getpwnam)
     data->username = test_asprintf_fqname(data, test_ctx->domain,
                                           "TESTUSER%d", _i);
     fail_if(data->username == NULL, "OOM");
-    fail_if(ret != EOK);
 
     res = test_getpwnam(data);
     fail_if(res->count != 0,
@@ -1101,15 +1100,16 @@ START_TEST(test_user_group_by_name)
     test_ctx->domain->mpg_mode = MPG_ENABLED;
 
     data = test_data_new_user(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = sysdb_search_group_by_name(data,
                                      data->ctx->domain,
                                      data->username, /* we're searching for the private group */
                                      NULL,
                                      &msg);
-    fail_if(ret != EOK);
-    fail_if(msg == NULL);
+    fail_if(ret != EOK,
+            "sysdb_search_group_by_name failed with error: %d", ret);
+    fail_if(msg == NULL, "Failed to find group: %s", data->username);
 
     groupname = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
     ck_assert_str_eq(groupname, data->username);
@@ -1131,14 +1131,15 @@ START_TEST(test_user_group_by_name_local)
     }
 
     data = test_data_new_user(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = sysdb_search_group_by_name(data,
                                      data->ctx->domain,
                                      data->username, /* we're searching for the private group */
                                      NULL,
                                      &msg);
-    fail_if(ret != ENOENT);
+    fail_if(ret != ENOENT,
+            "sysdb_search_group_by_name must return ENOENT got: %d", ret);
 }
 END_TEST
 
@@ -1159,7 +1160,7 @@ START_TEST (test_sysdb_getgrnam)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     res = test_getgrnam(data);
     fail_if(res->count != 1,
@@ -1176,7 +1177,6 @@ START_TEST (test_sysdb_getgrnam)
     data->groupname = test_asprintf_fqname(data, test_ctx->domain,
                                           "TESTGROUP%d", _i);
     fail_if(data->groupname == NULL, "OOM");
-    fail_if(ret != EOK);
 
     res = test_getgrnam(data);
     fail_if(res->count != 0,
@@ -1302,7 +1302,7 @@ START_TEST (test_sysdb_getpwuid)
     }
 
     data = test_data_new_user(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = sysdb_getpwuid(test_ctx,
                          test_ctx->domain,
@@ -1397,7 +1397,7 @@ START_TEST (test_sysdb_set_user_attr)
     }
 
     data = test_data_new_user(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrs = sysdb_new_attrs(test_ctx);
     if (ret != EOK) {
@@ -1506,7 +1506,7 @@ START_TEST (test_sysdb_get_user_attr)
     }
 
     data = test_data_new_user(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = sysdb_get_user_attr(test_ctx, test_ctx->domain, data->username, attrs,
                               &res);
@@ -1601,7 +1601,7 @@ START_TEST (test_sysdb_add_nonposix_user)
     fail_if(fq_name == NULL, "Failed to create fq name.");
 
     user_attrs = sysdb_new_attrs(test_ctx);
-    fail_if(user_attrs == NULL);
+    fail_if(user_attrs == NULL, "Failed to allocate memory");
 
     ret = sysdb_attrs_add_bool(user_attrs, SYSDB_POSIX, false);
     fail_if(ret != EOK, "Could not add attribute");
@@ -1691,12 +1691,12 @@ START_TEST (test_sysdb_add_group_member)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->uid = _i - 1000; /* the UID of user to add */
     data->username = test_asprintf_fqname(data, test_ctx->domain,
                                           "testuser%d", data->uid);
-    fail_if(data->username == NULL);
+    fail_if(data->username == NULL, "Failed to allocate memory");
 
     ret = test_add_group_member(data);
 
@@ -1771,12 +1771,12 @@ START_TEST (test_sysdb_remove_group_member)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->uid = _i - 1000; /* the UID of user to remove */
     data->username = test_asprintf_fqname(data, test_ctx->domain,
                                           "testuser%d", data->uid);
-    fail_if(data->username == NULL);
+    fail_if(data->username == NULL, "Failed to allocate memory");
 
     ret = test_remove_group_member(data);
     fail_if(ret != EOK, "Remove group member failed: %d", ret);
@@ -1799,7 +1799,7 @@ START_TEST (test_sysdb_remove_nonexistent_user)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->uid = 12345;
 
     ret = test_remove_user_by_uid(data);
@@ -1823,7 +1823,7 @@ START_TEST (test_sysdb_remove_nonexistent_group)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->gid = 12345;
 
     ret = test_remove_group_by_gid(data);
@@ -1866,7 +1866,7 @@ START_TEST (test_sysdb_store_custom)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->uid = _i;
     data->attrs = sysdb_new_attrs(test_ctx);
@@ -1905,7 +1905,7 @@ START_TEST (test_sysdb_search_custom_by_name)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(test_ctx, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed");
@@ -1958,7 +1958,7 @@ START_TEST (test_sysdb_update_custom)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->uid = 29010;
     data->attrs = sysdb_new_attrs(test_ctx);
@@ -2006,7 +2006,7 @@ START_TEST (test_sysdb_search_custom_update)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(test_ctx, const char *, 3);
     fail_unless(data->attrlist != NULL, "talloc_array failed");
@@ -2074,7 +2074,7 @@ START_TEST (test_sysdb_search_custom)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(test_ctx, const char *, 3);
     fail_unless(data->attrlist != NULL, "talloc_array failed");
@@ -2112,7 +2112,7 @@ START_TEST (test_sysdb_delete_custom)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_delete_custom(data);
 
@@ -2209,7 +2209,7 @@ static void cached_authentication_without_expiration(uid_t uid,
     fail_unless(ret == EOK, "Could not set up the test");
 
     data = test_data_new_user(test_ctx, uid);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     val[0] = "0";
     ret = confdb_add_param(test_ctx->confdb, true, CONFDB_PAM_CONF_ENTRY,
@@ -2257,7 +2257,7 @@ static void cached_authentication_with_expiration(uid_t uid,
     fail_unless(ret == EOK, "Could not set up the test");
 
     data = test_data_new_user(test_ctx, uid);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     val[0] = "1";
     ret = confdb_add_param(test_ctx->confdb, true, CONFDB_PAM_CONF_ENTRY,
@@ -2336,12 +2336,12 @@ START_TEST (test_sysdb_prepare_asq_test_user)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->uid = ASQ_TEST_USER_UID;
     data->username = test_asprintf_fqname(data, test_ctx->domain,
                                           "testuser%u", data->uid);
-    fail_if(data->username == NULL);
+    fail_if(data->username == NULL, "Failed to allocate memory");
 
     ret = test_add_group_member(data);
 
@@ -2369,7 +2369,7 @@ START_TEST (test_sysdb_asq_search)
     }
 
     data = test_data_new_user(test_ctx, ASQ_TEST_USER_UID);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed");
@@ -2428,7 +2428,7 @@ START_TEST (test_sysdb_search_all_users)
     }
 
     data = test_data_new(test_ctx);
-    fail_unless(data != NULL);
+    fail_unless(data != NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed");
@@ -2487,7 +2487,7 @@ START_TEST (test_sysdb_delete_recursive)
     }
 
     data = test_data_new(test_ctx);
-    fail_unless(data != NULL);
+    fail_unless(data != NULL, "Failed to allocate memory");
 
     ret = test_delete_recursive(data);
 
@@ -2553,7 +2553,7 @@ START_TEST (test_sysdb_memberof_store_group)
     }
 
     data = test_data_new_group(test_ctx, MBO_GROUP_BASE + _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     if (_i == 0) {
         data->attrlist = NULL;
@@ -2563,7 +2563,7 @@ START_TEST (test_sysdb_memberof_store_group)
         data->attrlist[0] = test_asprintf_fqname(data, data->ctx->domain,
                                                  "testgroup%d", data->gid - 1);
         data->attrlist[1] = NULL;
-        fail_if(data->attrlist[0] == NULL);
+        fail_if(data->attrlist[0] == NULL, "Failed to allocate memory");
     }
 
     ret = test_memberof_store_group(data);
@@ -2587,7 +2587,7 @@ START_TEST (test_sysdb_memberof_store_group_with_ghosts)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     if (_i == 0 || _i == MBO_GROUP_BASE) {
         data->attrlist = NULL;
@@ -2597,7 +2597,7 @@ START_TEST (test_sysdb_memberof_store_group_with_ghosts)
         data->attrlist[0] = test_asprintf_fqname(data, data->ctx->domain,
                                                  "testgroup%d", data->gid - 1);
         data->attrlist[1] = NULL;
-        fail_if(data->attrlist[0] == NULL);
+        fail_if(data->attrlist[0] == NULL, "Failed to allocate memory");
     }
 
     data->ghostlist = talloc_array(data, char *, 2);
@@ -2605,7 +2605,7 @@ START_TEST (test_sysdb_memberof_store_group_with_ghosts)
     data->ghostlist[0] = test_asprintf_fqname(data, data->ctx->domain,
                                              "testuser%d", data->gid);
     data->ghostlist[1] = NULL;
-    fail_if(data->ghostlist[0] == NULL);
+    fail_if(data->ghostlist[0] == NULL, "Failed to allocate memory");
 
     ret = test_memberof_store_group_with_ghosts(data);
 
@@ -2628,7 +2628,7 @@ START_TEST (test_sysdb_memberof_store_group_with_double_ghosts)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     if (_i == 0) {
         data->attrlist = NULL;
@@ -2673,7 +2673,7 @@ START_TEST (test_sysdb_memberof_mod_add)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ghostname = test_asprintf_fqname(data, test_ctx->domain,
                                      "testghost%d", _i);
@@ -2755,7 +2755,7 @@ START_TEST (test_sysdb_memberof_mod_replace)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     /* The test replaces the testuser%i attribute with testghost%i */
     ghostname_del = test_asprintf_fqname(data, test_ctx->domain,
@@ -2842,7 +2842,7 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
     }
 
     data = test_data_new_group(test_ctx, MBO_GROUP_BASE + 10 - _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     /* The test replaces the attributes (testusera$gid, testuserb$gid) with
      * just testusera$gid. The result should be not only testusera, but also
@@ -3021,7 +3021,7 @@ START_TEST (test_sysdb_memberof_store_user)
     }
 
     data = test_data_new_user(test_ctx, MBO_USER_BASE + _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_store_user(data);
     fail_if(ret != EOK, "Could not store user %s", data->username);
@@ -3043,12 +3043,12 @@ START_TEST (test_sysdb_memberof_add_group_member)
     }
 
     data = test_data_new_group(test_ctx, MBO_GROUP_BASE + _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->uid = MBO_USER_BASE + _i;
     data->username = test_asprintf_fqname(data, test_ctx->domain,
                                           "testuser%d", data->uid);
-    fail_if(data->username == NULL);
+    fail_if(data->username == NULL, "Failed to allocate memory");
 
     ret = test_add_group_member(data);
     fail_if(ret != EOK, "Could not modify group %s", data->groupname);
@@ -3071,7 +3071,7 @@ START_TEST (test_sysdb_memberof_check_memberuid_without_group_5)
     }
 
     data = test_data_new_group(test_ctx, MBO_GROUP_BASE + _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "tallo_array failed.");
@@ -3120,7 +3120,7 @@ START_TEST (test_sysdb_memberof_check_memberuid)
     }
 
     data = test_data_new_group(test_ctx, MBO_GROUP_BASE + _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
@@ -3160,7 +3160,7 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop)
     }
 
     data = test_data_new_group(test_ctx, _i + MBO_GROUP_BASE);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
@@ -3200,7 +3200,7 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop_without_group_5)
     }
 
     data = test_data_new_group(test_ctx, _i + MBO_GROUP_BASE);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "tallo_array failed.");
@@ -3249,7 +3249,7 @@ START_TEST (test_sysdb_memberof_check_nested_ghosts)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
@@ -3284,7 +3284,7 @@ START_TEST (test_sysdb_memberof_check_nested_double_ghosts)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
@@ -3321,7 +3321,7 @@ START_TEST (test_sysdb_memberof_remove_child_group_and_check_ghost)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     delgid = data->gid - 1;
 
     data->attrlist = talloc_array(data, const char *, 2);
@@ -3383,7 +3383,7 @@ START_TEST (test_sysdb_memberof_mod_del)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ghostname = test_asprintf_fqname(data, test_ctx->domain, "testuser%d", _i);
     fail_unless(ghostname != NULL, "Out of memory\n");
@@ -3462,7 +3462,7 @@ START_TEST (test_sysdb_memberof_check_ghost)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
@@ -3499,7 +3499,9 @@ START_TEST (test_sysdb_memberof_check_ghost)
         expected = test_asprintf_fqname(data, test_ctx->domain, "testghost%d", j);
         fail_if(expected == NULL, "OOM\n");
         fail_unless(strcmp(expected,
-                           (const char *) data->msg->elements[0].values[j-MBO_GROUP_BASE].data) == 0);
+                           (const char *) data->msg->elements[0].values[j-MBO_GROUP_BASE].data) == 0,
+                    "Expecting: %s dot: %s", expected,
+                    (const char *) data->msg->elements[0].values[j-MBO_GROUP_BASE].data);
         talloc_free(expected);
     }
 
@@ -3521,10 +3523,10 @@ START_TEST (test_sysdb_memberof_convert_to_real_users)
     }
 
     data = test_data_new_user(test_ctx, _i * 2);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->username = test_asprintf_fqname(data, test_ctx->domain,
                                           "testghost%d", _i);
-    fail_if(data->username == NULL);
+    fail_if(data->username == NULL, "Failed to allocate memory");
 
     ret = test_store_user(data);
     fail_if(ret != EOK, "Cannot add user %s\n", data->username);
@@ -3550,7 +3552,7 @@ START_TEST (test_sysdb_memberof_check_convert)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->attrlist = talloc_array(data, const char *, 3);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
@@ -3613,7 +3615,7 @@ START_TEST (test_sysdb_memberof_ghost_replace)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     /* The test replaces the testghost%i attribute with testuser%i */
     ghostname_del = test_asprintf_fqname(data, test_ctx->domain,
@@ -3687,7 +3689,7 @@ START_TEST (test_sysdb_memberof_ghost_replace_noop)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     /* The test replaces the testghost%i attribute with testuser%i */
     ghostname_del = test_asprintf_fqname(data, test_ctx->domain,
@@ -3757,7 +3759,7 @@ START_TEST (test_sysdb_memberof_user_cleanup)
     }
 
     data = test_data_new_user(test_ctx, _i * 2);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_remove_user_by_uid(data);
 
@@ -3782,7 +3784,7 @@ START_TEST (test_sysdb_set_get_bool)
     }
 
     dn = sysdb_domain_dn(test_ctx, test_ctx->domain);
-    fail_unless(dn != NULL);
+    fail_unless(dn != NULL, "Failed to allocate memory");
 
     /* attribute is not created yet */
     ret = sysdb_get_bool(test_ctx->sysdb, dn, attr_val,
@@ -3794,19 +3796,19 @@ START_TEST (test_sysdb_set_get_bool)
     /* add attribute */
     ret = sysdb_set_bool(test_ctx->sysdb, dn, test_ctx->domain->name,
                          attr_val, true);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "sysdb_set_bool failed with error: %d", ret);
 
     /* successfully obtain attribute */
     ret = sysdb_get_bool(test_ctx->sysdb, dn, attr_val,
                          &value);
     fail_unless(ret == EOK, "sysdb_get_bool failed %d:[%s]",
                 ret, sss_strerror(ret));
-    fail_unless(value == true);
+    fail_unless(value == true, "sysdb_get_bool must return true");
 
     /* use non-existing DN */
     ne_dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb, SYSDB_DOM_BASE,
                         "non-existing domain");
-    fail_unless(ne_dn != NULL);
+    fail_unless(ne_dn != NULL, "Failed to allocate memory");
     ret = sysdb_get_bool(test_ctx->sysdb, ne_dn, attr_val,
                          &value);
     fail_unless(ret == ENOENT,
@@ -3835,7 +3837,7 @@ START_TEST (test_sysdb_set_get_uint)
     }
 
     dn = sysdb_domain_dn(test_ctx, test_ctx->domain);
-    fail_unless(dn != NULL);
+    fail_unless(dn != NULL, "Failed to allocate memory");
 
     /* attribute is not created yet */
     ret = sysdb_get_uint(test_ctx->sysdb, dn, attr_val,
@@ -3847,19 +3849,19 @@ START_TEST (test_sysdb_set_get_uint)
     /* add attribute */
     ret = sysdb_set_uint(test_ctx->sysdb, dn, test_ctx->domain->name,
                          attr_val, 0xCAFEBABE);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "sysdb_set_uint failed with error: %d", ret);
 
     /* successfully obtain attribute */
     ret = sysdb_get_uint(test_ctx->sysdb, dn, attr_val,
                          &value);
     fail_unless(ret == EOK, "sysdb_get_uint failed %d:[%s]",
                 ret, sss_strerror(ret));
-    fail_unless(value == 0xCAFEBABE);
+    ck_assert_int_eq(value, 0xCAFEBABE);
 
     /* use non-existing DN */
     ne_dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb, SYSDB_DOM_BASE,
                         "non-existing domain");
-    fail_unless(ne_dn != NULL);
+    fail_unless(ne_dn != NULL, "Failed to allocate memory");
     ret = sysdb_get_uint(test_ctx->sysdb, ne_dn, attr_val,
                          &value);
     fail_unless(ret == ENOENT,
@@ -4147,22 +4149,24 @@ START_TEST (test_sysdb_update_members)
     fail_if(user_fqname == NULL, "user_fqname returned NULL");
 
     ret = sysdb_initgroups(test_ctx, test_ctx->domain, user_fqname, &res);
-    fail_if(ret != EOK);
-    fail_unless(res->count == 1);   /* only the user itself */
+    fail_if(ret != EOK, "sysdb_initgroups failed with error: %d", ret);
+    ck_assert_int_eq(res->count, 1);   /* only the user itself */
 
     /* Add a user to two groups */
     add_groups = talloc_array(test_ctx, char *, 3);
     add_groups[0] = sss_create_internal_fqname(add_groups, "testgroup28001",
                                                test_ctx->domain->name);
-    fail_if(add_groups[0] == NULL);
+    fail_if(add_groups[0] == NULL, "Failed to create internal fqname for: %s",
+                                   test_ctx->domain->name);
     add_groups[1] = sss_create_internal_fqname(add_groups, "testgroup28002",
                                                test_ctx->domain->name);
-    fail_if(add_groups[1] == NULL);
+    fail_if(add_groups[1] == NULL, "Failed to create internal fqname for: %s"
+                                   test_ctx->domain->name);
     add_groups[2] = NULL;
 
     /* For later check */
     group_fqname = talloc_strdup(test_ctx, add_groups[1]);
-    fail_if(group_fqname == NULL);
+    fail_if(group_fqname == NULL, "Failed to allocate memory");
 
     ret = sysdb_update_members(test_ctx->domain, user_fqname,
                                SYSDB_MEMBER_USER,
@@ -4170,8 +4174,8 @@ START_TEST (test_sysdb_update_members)
     fail_unless(ret == EOK, "Could not add groups");
 
     ret = sysdb_initgroups(test_ctx, test_ctx->domain, user_fqname, &res);
-    fail_if(ret != EOK);
-    fail_unless(res->count == 3);
+    fail_if(ret != EOK, "sysdb_initgroups failed with error: %d", ret);
+    ck_assert_int_eq(res->count, 3);
 
     check_fqname = ldb_msg_find_attr_as_string(res->msgs[1], SYSDB_NAME, NULL);
     ck_assert_str_eq(check_fqname, add_groups[0]);
@@ -4196,8 +4200,8 @@ START_TEST (test_sysdb_update_members)
     fail_unless(ret == EOK, "Group replace failed");
 
     ret = sysdb_initgroups(test_ctx, test_ctx->domain, user_fqname, &res);
-    fail_if(ret != EOK);
-    fail_unless(res->count == 3);
+    fail_if(ret != EOK, "sysdb_initgroups failed with error: %d", ret);
+    ck_assert_int_eq(res->count, 3);
 
     check_fqname = ldb_msg_find_attr_as_string(res->msgs[1], SYSDB_NAME, NULL);
     ck_assert_str_eq(check_fqname, group_fqname);
@@ -4208,8 +4212,8 @@ START_TEST (test_sysdb_update_members)
     talloc_zfree(del_groups);
 
     ret = sysdb_initgroups(test_ctx, test_ctx->domain, user_fqname, &res);
-    fail_if(ret != EOK);
-    fail_unless(res->count == 3);
+    fail_if(ret != EOK, "sysdb_initgroups failed with error: %d", ret);
+    ck_assert_int_eq(res->count, 3);
 
     /* Remove a user from two groups */
     del_groups = talloc_array(test_ctx, char *, 3);
@@ -4224,8 +4228,8 @@ START_TEST (test_sysdb_update_members)
     fail_unless(ret == EOK, "Could not remove groups");
 
     ret = sysdb_initgroups(test_ctx, test_ctx->domain, user_fqname, &res);
-    fail_if(ret != EOK);
-    fail_unless(res->count == 1);   /* only the user itself */
+    fail_if(ret != EOK, "sysdb_initgroups failed with error: %d", ret);
+    ck_assert_int_eq(res->count, 1);   /* only the user itself */
 
     talloc_zfree(test_ctx);
 }
@@ -4248,7 +4252,7 @@ START_TEST (test_sysdb_group_dn_name)
     }
 
     data = test_data_new_group(test_ctx, _i);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     group_dn = sysdb_group_dn(test_ctx, test_ctx->domain, data->groupname);
     fail_if(group_dn == NULL, "OOM");
@@ -4277,7 +4281,7 @@ START_TEST (test_sysdb_add_basic_netgroup)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->uid = _i;         /* This is kinda abuse of uid, though */
     data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
 
@@ -4310,7 +4314,7 @@ START_TEST (test_sysdb_search_netgroup_by_name)
     fail_if(ret != EOK, "Could not find netgroup with name %s", netgrname);
 
     netgroup_dn = sysdb_netgroup_dn(test_ctx, test_ctx->domain, netgrname);
-    fail_if(netgroup_dn == NULL);
+    fail_if(netgroup_dn == NULL, "Failed to allocate memory");
     fail_if(ldb_dn_compare(msg->dn, netgroup_dn) != 0, "Found wrong netgroup!\n");
     talloc_free(test_ctx);
 }
@@ -4330,7 +4334,7 @@ START_TEST (test_sysdb_remove_netgroup_entry)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
 
     ret = test_remove_netgroup_entry(data);
@@ -4354,7 +4358,7 @@ START_TEST (test_sysdb_remove_netgroup_by_name)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
 
     ret = test_remove_netgroup_by_name(data);
@@ -4378,7 +4382,7 @@ START_TEST (test_sysdb_set_netgroup_attr)
     }
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->uid = _i;         /* This is kinda abuse of uid, though */
     data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
 
@@ -4756,10 +4760,10 @@ START_TEST(test_SSS_LDB_SEARCH)
 
     groupname = test_asprintf_fqname(test_ctx, test_ctx->domain,
                                      "test_group");
-    fail_if(groupname == NULL);
+    fail_if(groupname == NULL, "Failed to allocate memory");
     groupname_neg = test_asprintf_fqname(test_ctx, test_ctx->domain,
                                          "non_existing_test_group");
-    fail_if(groupname_neg == NULL);
+    fail_if(groupname_neg == NULL, "Failed to allocate memory");
 
     group_dn = sysdb_group_dn(test_ctx, test_ctx->domain, groupname);
     fail_if(group_dn == NULL, "sysdb_group_dn failed");
@@ -4857,16 +4861,18 @@ void services_check_match(struct sysdb_test_ctx *test_ctx,
                              strerror(ret));
     }
     fail_if(res == NULL, "ENOMEM");
-    fail_if(res->count != 1);
+    ck_assert_int_eq(res->count, 1);
 
     /* Make sure the returned entry matches */
     msg = res->msgs[0];
     ret_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-    fail_if(ret_name == NULL);
-    fail_unless(strcmp(ret_name, primary_name) == 0);
+    fail_if(ret_name == NULL, "Cannot find attribute: " SYSDB_NAME);
+    fail_unless(strcmp(ret_name, primary_name) == 0,
+                "Wrong value returned for attribute: %s. got: %s expected: %s",
+                SYSDB_NAME, ret_name, primary_name);
 
     ret_port = ldb_msg_find_attr_as_int(msg, SYSDB_SVC_PORT, 0);
-    fail_if (ret_port != port);
+    ck_assert_int_eq(ret_port, port);
 
     el = ldb_msg_find_element(msg, SYSDB_NAME_ALIAS);
     for (i = 0; i < el->num_values; i++) {
@@ -4917,27 +4923,27 @@ START_TEST(test_sysdb_add_services)
     fail_if(ret != EOK, "Could not set up the test");
 
     primary_name = talloc_asprintf(test_ctx, "test_service");
-    fail_if(primary_name == NULL);
+    fail_if(primary_name == NULL, "Failed to allocate memory");
 
     aliases = talloc_array(test_ctx, const char *, 3);
-    fail_if(aliases == NULL);
+    fail_if(aliases == NULL, "Failed to allocate memory");
 
     aliases[0] = talloc_asprintf(aliases, "test_service_alias1");
-    fail_if(aliases[0] == NULL);
+    fail_if(aliases[0] == NULL, "Failed to allocate memory");
 
     aliases[1] = talloc_asprintf(aliases, "test_service_alias2");
-    fail_if(aliases[1] == NULL);
+    fail_if(aliases[1] == NULL, "Failed to allocate memory");
 
     aliases[2] = NULL;
 
     protocols = talloc_array(test_ctx, const char *, 3);
-    fail_if(protocols == NULL);
+    fail_if(protocols == NULL, "Failed to allocate memory");
 
     protocols[0] = talloc_asprintf(protocols, "tcp");
-    fail_if(protocols[0] == NULL);
+    fail_if(protocols[0] == NULL, "Failed to allocate memory");
 
     protocols[1] = talloc_asprintf(protocols, "udp");
-    fail_if(protocols[1] == NULL);
+    fail_if(protocols[1] == NULL, "Failed to allocate memory");
 
     protocols[2] = NULL;
 
@@ -4992,24 +4998,24 @@ START_TEST(test_sysdb_store_services)
     fail_if(ret != EOK, "Could not set up the test");
 
     aliases = talloc_array(test_ctx, const char *, 3);
-    fail_if(aliases == NULL);
+    fail_if(aliases == NULL, "Failed to allocate memory");
 
     aliases[0] = talloc_asprintf(aliases, "test_service_alias1");
-    fail_if(aliases[0] == NULL);
+    fail_if(aliases[0] == NULL, "Failed to allocate memory");
 
     aliases[1] = talloc_asprintf(aliases, "test_service_alias2");
-    fail_if(aliases[1] == NULL);
+    fail_if(aliases[1] == NULL, "Failed to allocate memory");
 
     aliases[2] = NULL;
 
     protocols = talloc_array(test_ctx, const char *, 3);
-    fail_if(protocols == NULL);
+    fail_if(protocols == NULL, "Failed to allocate memory");
 
     protocols[0] = talloc_asprintf(protocols, "tcp");
-    fail_if(protocols[0] == NULL);
+    fail_if(protocols[0] == NULL, "Failed to allocate memory");
 
     protocols[1] = talloc_asprintf(protocols, "udp");
-    fail_if(protocols[1] == NULL);
+    fail_if(protocols[1] == NULL, "Failed to allocate memory");
 
     protocols[2] = NULL;
 
@@ -5112,24 +5118,24 @@ START_TEST(test_sysdb_svc_remove_alias)
     fail_if(ret != EOK, "Could not set up the test");
 
     aliases = talloc_array(test_ctx, const char *, 3);
-    fail_if(aliases == NULL);
+    fail_if(aliases == NULL, "Failed to allocate memory");
 
     aliases[0] = talloc_asprintf(aliases, "remove_alias_alias1");
-    fail_if(aliases[0] == NULL);
+    fail_if(aliases[0] == NULL, "Failed to allocate memory");
 
     aliases[1] = talloc_asprintf(aliases, "remove_alias_alias2");
-    fail_if(aliases[1] == NULL);
+    fail_if(aliases[1] == NULL, "Failed to allocate memory");
 
     aliases[2] = NULL;
 
     protocols = talloc_array(test_ctx, const char *, 3);
-    fail_if(protocols == NULL);
+    fail_if(protocols == NULL, "Failed to allocate memory");
 
     protocols[0] = talloc_asprintf(protocols, "tcp");
-    fail_if(protocols[0] == NULL);
+    fail_if(protocols[0] == NULL, "Failed to allocate memory");
 
     protocols[1] = talloc_asprintf(protocols, "udp");
-    fail_if(protocols[1] == NULL);
+    fail_if(protocols[1] == NULL, "Failed to allocate memory");
 
     protocols[2] = NULL;
 
@@ -5154,16 +5160,16 @@ START_TEST(test_sysdb_svc_remove_alias)
 
     /* Now remove an alias */
     dn = sysdb_svc_dn(test_ctx->sysdb, test_ctx, test_ctx->domain->name, primary_name);
-    fail_if (dn == NULL);
+    fail_if (dn == NULL, "Failed to allocate memory");
 
     ret = sysdb_svc_remove_alias(test_ctx->sysdb, dn, aliases[1]);
     fail_if (ret != EOK, "[%s]", strerror(ret));
 
     ret = sysdb_transaction_commit(test_ctx->sysdb);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "sysdb_transaction_commit failed with error: %d", ret);
 
     ret = sysdb_transaction_start(test_ctx->sysdb);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "sysdb_transaction_start failed with error: %d", ret);
 
     /* Set aliases[1] to NULL to perform validation checks */
     aliases[1] = NULL;
@@ -5313,7 +5319,7 @@ START_TEST(test_sysdb_attrs_get_string_array)
     fail_unless(ret == EOK, "sysdb_attrs_get_el_ext failed");
 
     list = sss_ldb_el_to_string_list(tmp_ctx, el);
-    fail_if(list == NULL, ("sss_ldb_el_to_string_list failed\n"));
+    fail_if(list == NULL, "sss_ldb_el_to_string_list failed");
 
     ck_assert_str_eq(list[0], "val1");
     ck_assert_str_eq(list[1], "val2");
@@ -5545,7 +5551,7 @@ START_TEST (test_sysdb_search_return_ENOENT)
     talloc_zfree(res);
 
     data = test_data_new_user(test_ctx, 1234);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->sid_str = "S-5-4-3-2-1";
 
     /* Search user */
@@ -5610,7 +5616,7 @@ START_TEST (test_sysdb_search_return_ENOENT)
     /* Search group */
     talloc_zfree(data);
     data = test_data_new_group(test_ctx, 1234);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->sid_str = "S-5-4-3-2-1";
 
     ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain,
@@ -5748,15 +5754,15 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
     fail_if(ret != EOK, "Could not set up the test");
 
     data = test_data_new(test_ctx);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->gid = 2900;
 
     data->groupname = test_asprintf_fqname(data, test_ctx->domain,
                                            "case_sensitive_group1");
-    fail_if(data->groupname == NULL);
+    fail_if(data->groupname == NULL, "Failed to allocate memory");
 
     data->orig_dn = talloc_asprintf(data, "cn=%s,cn=example,cn=com", data->groupname);
-    fail_if(data->orig_dn == NULL);
+    fail_if(data->orig_dn == NULL, "Failed to allocate memory");
 
     ret = test_add_incomplete_group(data);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
@@ -5766,7 +5772,7 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
     data->gid = 2901;
     data->groupname = test_asprintf_fqname(data, test_ctx->domain,
                                            "case_sensitive_group2");
-    fail_if(data->groupname == NULL);
+    fail_if(data->groupname == NULL, "Failed to allocate memory");
     c = discard_const(data->orig_dn);
     while(*c != '\0') {
         *c = toupper(*c);
@@ -5809,10 +5815,10 @@ START_TEST(test_sysdb_search_groups_by_orig_dn)
     fail_if(ret != EOK, "Could not set up the test");
 
     data = test_data_new_group(test_ctx, 456789);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->orig_dn = talloc_asprintf(data, "cn=%s,cn=example,cn=com", data->groupname);
-    fail_if(data->orig_dn == NULL);
+    fail_if(data->orig_dn == NULL, "Failed to allocate memory");
 
     ret = test_add_incomplete_group(data);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
@@ -5841,10 +5847,10 @@ START_TEST(test_sysdb_search_users_by_orig_dn)
     fail_if(ret != EOK, "Could not set up the test");
 
     data = test_data_new_user(test_ctx, 456789);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->orig_dn = talloc_asprintf(data, "cn=%s,cn=example,cn=com", data->username);
-    fail_if(data->orig_dn == NULL);
+    fail_if(data->orig_dn == NULL, "Failed to allocate memory");
 
     ret = sysdb_attrs_add_string(data->attrs, SYSDB_ORIG_DN, data->orig_dn);
     fail_unless(ret == EOK, "sysdb_attrs_add_string failed with [%d][%s].",
@@ -5875,7 +5881,7 @@ START_TEST(test_sysdb_search_sid_str)
     fail_if(ret != EOK, "Could not set up the test");
 
     data = test_data_new_group(test_ctx, 2902);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->sid_str = "S-1-2-3-4";
 
     ret = test_add_incomplete_group(data);
@@ -5905,9 +5911,8 @@ START_TEST(test_sysdb_search_sid_str)
     talloc_zfree(data);
 
     data = test_data_new_user(test_ctx, 12345);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->sid_str = "S-1-2-3-4-5";
-    fail_if(data->sid_str == NULL);
 
     ret = sysdb_attrs_add_string(data->attrs, SYSDB_SID_STR, data->sid_str);
     fail_unless(ret == EOK, "sysdb_attrs_add_string failed with [%d][%s].",
@@ -5947,7 +5952,7 @@ START_TEST(test_sysdb_search_object_by_id)
 
     /* test user search */
     data = test_data_new_user(test_ctx, id);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_add_user(data);
     fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
@@ -5973,7 +5978,7 @@ START_TEST(test_sysdb_search_object_by_id)
 
     /* test group search */
     data = test_data_new_group(test_ctx, id);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_add_group(data);
     fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
@@ -5999,7 +6004,7 @@ START_TEST(test_sysdb_search_object_by_id)
 
     /* test for bad search filter bug #3283 */
     data = test_data_new_group(test_ctx, id);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = test_add_group(data);
     fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
@@ -6034,14 +6039,16 @@ START_TEST(test_sysdb_search_object_by_id)
 
     data->uid = 4001;
     ret = test_remove_user_by_uid(data);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK,
+                "test_remove_user_by_uid failed with error: %d", ret);
 
     data->uid = 4002;
     ret = test_remove_user_by_uid(data);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK,
+                "test_remove_user_by_uid failed with error: %d", ret);
 
     ret = test_remove_group(data);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK, "test_remove_group failed with error: %d", ret);
 
     talloc_free(test_ctx);
 }
@@ -6060,7 +6067,7 @@ START_TEST(test_sysdb_search_object_by_uuid)
     fail_if(ret != EOK, "Could not set up the test");
 
     data = test_data_new_user(test_ctx, 123456);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     uuid = "11111111-2222-3333-4444-555555555555";
 
@@ -6117,7 +6124,7 @@ START_TEST(test_sysdb_search_object_by_name)
 
     /* test user search */
     data = test_data_new_user(test_ctx, 23456);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->username = user_name;
 
@@ -6145,7 +6152,7 @@ START_TEST(test_sysdb_search_object_by_name)
 
     /* test group search */
     data = test_data_new_group(test_ctx, 23456);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->groupname = group_name;
 
@@ -6173,16 +6180,17 @@ START_TEST(test_sysdb_search_object_by_name)
 
     /* test case insensitive search */
     data = test_data_new_group(test_ctx, 23456);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->groupname = group_name;
     test_ctx->domain->case_sensitive = false;
 
     data->attrs = sysdb_new_attrs(test_ctx);
-    fail_if(data->attrs == NULL);
+    fail_if(data->attrs == NULL, "Failed to allocate memory");
 
     ret = sysdb_attrs_add_lc_name_alias(data->attrs, group_name);
-    fail_unless(ret == EOK);
+    fail_unless(ret == EOK,
+                "sysdb_attrs_add_lc_name_alias failed with error: %d", ret);
 
     ret = test_add_group(data);
     fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
@@ -6225,7 +6233,7 @@ START_TEST(test_sysdb_search_user_by_cert)
     fail_if(ret != EOK, "Could not set up the test");
 
     data = test_data_new_user(test_ctx, 234567);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     val.data = sss_base64_decode(test_ctx, TEST_USER_CERT_DERB64, &val.length);
     fail_unless(val.data != NULL, "sss_base64_decode failed.");
@@ -6257,7 +6265,7 @@ START_TEST(test_sysdb_search_user_by_cert)
 
     /* Add a second user with the same certificate */
     data2 = test_data_new_user(test_ctx, 2345671);
-    fail_if(data2 == NULL);
+    fail_if(data2 == NULL, "Failed to allocate memory");
 
     ret = sysdb_attrs_add_val(data2->attrs, SYSDB_USER_MAPPED_CERT, &val);
     fail_unless(ret == EOK, "sysdb_attrs_add_val failed with [%d][%s].",
@@ -6274,9 +6282,9 @@ START_TEST(test_sysdb_search_user_by_cert)
     fail_unless(res->count == 2, "Unexpected number of results, "
                                  "expected [%u], get [%u].", 2, res->count);
     name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, "");
-    fail_unless(name != NULL);
+    fail_unless(name != NULL, "Failed to find attribute: " SYSDB_NAME);
     name2 = ldb_msg_find_attr_as_string(res->msgs[1], SYSDB_NAME, "");
-    fail_unless(name2 != NULL);
+    fail_unless(name2 != NULL, "Failed to find attribute: " SYSDB_NAME);
     fail_unless(((strcmp(name, data->username) == 0
                         && strcmp(name2, data2->username) == 0)
                     || (strcmp(name, data2->username) == 0
@@ -6342,11 +6350,11 @@ START_TEST(test_sysdb_subdomain_store_user)
                             ret, strerror(ret));
 
     data = test_data_new_user(test_ctx, 12345);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->username = test_asprintf_fqname(data, subdomain, "SubDomUser");
 
     alias = test_asprintf_fqname(data, subdomain, "subdomuser");
-    fail_if(alias == NULL);
+    fail_if(alias == NULL, "Failed to allocate memory");
 
     ret = sysdb_attrs_add_string(data->attrs, SYSDB_NAME_ALIAS, alias);
     fail_unless(ret == EOK, "sysdb_store_user failed.");
@@ -6358,10 +6366,10 @@ START_TEST(test_sysdb_subdomain_store_user)
     fail_unless(ret == EOK, "sysdb_store_user failed.");
 
     base_dn =ldb_dn_new(test_ctx, test_ctx->sysdb->ldb, "cn=sysdb");
-    fail_unless(base_dn != NULL);
+    fail_unless(base_dn != NULL, "Failed to allocate memory");
 
     check_dn = sysdb_user_dn(data, subdomain, data->username);
-    fail_unless(check_dn != NULL);
+    fail_unless(check_dn != NULL, "Failed to allocate memory");
 
     ret = ldb_search(test_ctx->sysdb->ldb, test_ctx, &results, base_dn,
                      LDB_SCOPE_SUBTREE, NULL, "name=%s", data->username);
@@ -6420,11 +6428,11 @@ START_TEST(test_sysdb_subdomain_content_delete)
                             ret, strerror(ret));
 
     data = test_data_new_user(test_ctx, 12345);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->username = test_asprintf_fqname(data, subdomain, "SubDomUser");
 
     alias = test_asprintf_fqname(data, subdomain, "subdomuser");
-    fail_if(alias == NULL);
+    fail_if(alias == NULL, "Failed to allocate memory");
 
     ret = sysdb_attrs_add_string(data->attrs, SYSDB_NAME_ALIAS, alias);
     fail_unless(ret == EOK, "sysdb_store_user failed.");
@@ -6436,10 +6444,10 @@ START_TEST(test_sysdb_subdomain_content_delete)
     fail_unless(ret == EOK, "sysdb_store_user failed.");
 
     base_dn =ldb_dn_new(test_ctx, test_ctx->sysdb->ldb, "cn=sysdb");
-    fail_unless(base_dn != NULL);
+    fail_unless(base_dn != NULL, "Failed to allocate memory");
 
     check_dn = sysdb_user_dn(data, subdomain, data->username);
-    fail_unless(check_dn != NULL);
+    fail_unless(check_dn != NULL, "Failed to allocate memory");
 
     ret = ldb_search(test_ctx->sysdb->ldb, test_ctx, &results, base_dn,
                      LDB_SCOPE_SUBTREE, NULL, "name=%s", data->username);
@@ -6508,10 +6516,10 @@ START_TEST(test_sysdb_subdomain_user_ops)
                             ret, strerror(ret));
 
     data = test_data_new_user(test_ctx, 12345);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     data->username = test_asprintf_fqname(data, subdomain, shortname);
-    fail_if(data->username == NULL);
+    fail_if(data->username == NULL, "Failed to allocate memory");
 
     ret = sysdb_store_user(subdomain, data->username,
                            NULL, data->uid, 0, "Sub Domain User",
@@ -6520,7 +6528,7 @@ START_TEST(test_sysdb_subdomain_user_ops)
     fail_unless(ret == EOK, "sysdb_store_domuser failed.");
 
     check_dn = sysdb_user_dn(data, subdomain, data->username);
-    fail_unless(check_dn != NULL);
+    fail_unless(check_dn != NULL, "Failed to allocate memory");
 
     ret = sysdb_search_user_by_name(test_ctx, subdomain,
                                     data->username, NULL,
@@ -6531,10 +6539,10 @@ START_TEST(test_sysdb_subdomain_user_ops)
                 "Unexpected DN returned");
 
     name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-    fail_if(name == NULL);
+    fail_if(name == NULL, "Failed to find attribute: " SYSDB_NAME);
 
     ret = sss_parse_internal_fqname(data, name, &short_check, &dom_check);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "sss_parse_internal_fqname failed with error: %d", ret);
     ck_assert_str_eq(short_check, shortname);
     ck_assert_str_eq(dom_check, subdomain->name);
 
@@ -6581,11 +6589,11 @@ START_TEST(test_sysdb_subdomain_group_ops)
                             ret, strerror(ret));
 
     data = test_data_new_group(test_ctx, 12345);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
     data->groupname = test_asprintf_fqname(data, subdomain, shortname);
 
     alias = test_asprintf_fqname(data, subdomain, "subdomgroup");
-    fail_if(alias == NULL);
+    fail_if(alias == NULL, "Failed to allocate memory");
 
     ret = sysdb_attrs_add_string(data->attrs, SYSDB_NAME_ALIAS, alias);
     fail_unless(ret == EOK, "sysdb_attrs_add_string failed.");
@@ -6595,7 +6603,7 @@ START_TEST(test_sysdb_subdomain_group_ops)
     fail_unless(ret == EOK, "sysdb_store_group failed.");
 
     check_dn = sysdb_group_dn(data, subdomain, data->groupname);
-    fail_unless(check_dn != NULL);
+    fail_unless(check_dn != NULL, "Failed to allocate memory");
 
     ret = sysdb_search_group_by_name(test_ctx, subdomain, data->groupname, NULL,
                                      &msg);
@@ -6615,10 +6623,10 @@ START_TEST(test_sysdb_subdomain_group_ops)
                 "Unexpected DN returned");
 
     name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-    fail_if(name == NULL);
+    fail_if(name == NULL, "Failed to find attribute: " SYSDB_NAME);
 
     ret = sss_parse_internal_fqname(data, name, &short_check, &dom_check);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "sss_parse_internal_fqname failed with error: %d", ret);
     ck_assert_str_eq(short_check, shortname);
     ck_assert_str_eq(dom_check, subdomain->name);
 
@@ -7190,15 +7198,15 @@ START_TEST(test_gpo_store_retrieve)
 
     ret = sysdb_gpo_get_gpos(test_ctx, test_ctx->domain, &result);
     fail_if(ret != EOK, "GPOs not in cache after store op");
-    fail_if(result == NULL);
-    fail_if(result->count != 1);
+    fail_if(result == NULL, "Could not get GPOs");
+    ck_assert_int_eq(result->count, 1);
 
     result = NULL;
     ret = sysdb_gpo_get_gpo_by_guid(test_ctx, test_ctx->domain,
                                     test_guid, &result);
     fail_if(ret != EOK, "GPO not in cache after store op");
-    fail_if(result == NULL);
-    fail_if(result->count != 1);
+    fail_if(result == NULL, "Could not get GPOs by guid: %s", test_guid);
+    ck_assert_int_eq(result->count, 1);
 
     guid = ldb_msg_find_attr_as_string(result->msgs[0],
                                        SYSDB_GPO_GUID_ATTR, NULL);
@@ -7226,8 +7234,8 @@ START_TEST(test_gpo_replace)
     ret = sysdb_gpo_get_gpo_by_guid(test_ctx, test_ctx->domain,
                                     test_guid, &result);
     fail_if(ret != EOK, "GPO not in cache after store op");
-    fail_if(result == NULL);
-    fail_if(result->count != 1);
+    fail_if(result == NULL, "Could not get GPOs by guid: %s", test_guid);
+    ck_assert_int_eq(result->count, 1);
 
     guid = ldb_msg_find_attr_as_string(result->msgs[0],
                                        SYSDB_GPO_GUID_ATTR, NULL);
@@ -7245,8 +7253,8 @@ START_TEST(test_gpo_replace)
     ret = sysdb_gpo_get_gpo_by_guid(test_ctx, test_ctx->domain,
                                     test_guid, &result);
     fail_if(ret != EOK, "GPO not in cache after modify op");
-    fail_if(result == NULL);
-    fail_if(result->count != 1);
+    fail_if(result == NULL, "Could not get GPOs by guid: %s", test_guid);
+    ck_assert_int_eq(result->count, 1);
 
     guid = ldb_msg_find_attr_as_string(result->msgs[0],
                                        SYSDB_GPO_GUID_ATTR, NULL);
@@ -7299,7 +7307,8 @@ START_TEST(test_gpo_result)
     ret = sysdb_gpo_get_gpo_result_setting(test_ctx, test_ctx->domain,
                                            deny_key, &value);
     ck_assert_int_eq(ret, EOK);
-    fail_unless(value == NULL);
+    fail_unless(value == NULL, "Unexpected value returned for deny key "
+                               "from sysdb_gpo_get_gpo_result_setting");
 
     /* Updating replaces the original value */
     ret = sysdb_gpo_store_gpo_result_setting(test_ctx->domain,
@@ -7319,7 +7328,8 @@ START_TEST(test_gpo_result)
     ret = sysdb_gpo_get_gpo_result_setting(test_ctx, test_ctx->domain,
                                            allow_key, &value);
     ck_assert_int_eq(ret, EOK);
-    fail_unless(value == NULL);
+    fail_unless(value == NULL, "Unexpected value returned for allow key"
+                               "from sysdb_gpo_get_gpo_result_setting" );
 
     /* Delete the result */
     ret = sysdb_gpo_delete_gpo_result_object(test_ctx, test_ctx->domain);
@@ -7400,7 +7410,7 @@ START_TEST(test_sysdb_mark_entry_as_expired_ldb_dn)
 
     /* Add something to database to test against */
     data = test_data_new_user(test_ctx, 2000);
-    fail_if(data == NULL);
+    fail_if(data == NULL, "Failed to allocate memory");
 
     ret = sysdb_transaction_start(test_ctx->sysdb);
     ck_assert_int_eq(ret, EOK);
@@ -7414,7 +7424,7 @@ START_TEST(test_sysdb_mark_entry_as_expired_ldb_dn)
     filter = talloc_asprintf(data,
                              "("SYSDB_UIDNUM"=%llu)",
                              (unsigned long long) data->uid);
-    fail_if(filter == NULL);
+    fail_if(filter == NULL, "Failed to allocate memory");
 
     ret = sysdb_search_users(test_ctx, test_ctx->domain,
                              filter, attrs, &count, &msgs);
@@ -7442,7 +7452,7 @@ START_TEST(test_sysdb_mark_entry_as_expired_ldb_dn)
     filter = talloc_asprintf(data,
                              "("SYSDB_UIDNUM"=%llu)",
                              (unsigned long long) data->uid);
-    fail_if(filter == NULL);
+    fail_if(filter == NULL, "Failed to allocate memory");
 
     ret = sysdb_search_users(test_ctx, test_ctx->domain,
                              filter, attrs, &count, &msgs);
@@ -7493,16 +7503,18 @@ void hosts_check_match(struct sysdb_test_ctx *test_ctx,
                              strerror(ret));
     }
     fail_if(res == NULL, "ENOMEM");
-    fail_if(res->count != 1);
+    ck_assert_int_eq(res->count, 1);
 
     /* Make sure the returned entry matches */
     msg = res->msgs[0];
     ret_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-    fail_if(ret_name == NULL);
-    fail_unless(strcmp(ret_name, primary_name) == 0);
+    fail_if(ret_name == NULL, "Failed to find attribute: " SYSDB_NAME);
+    fail_unless(strcmp(ret_name, primary_name) == 0,
+                "Wrong value returned for attribute: %s. got: %s expected: %s",
+                SYSDB_NAME, ret_name, primary_name);
 
     el = ldb_msg_find_element(msg, SYSDB_IP_HOST_ATTR_ADDRESS);
-    fail_if(el == NULL);
+    fail_if(el == NULL, "Failed to find elemeny: " SYSDB_IP_HOST_ATTR_ADDRESS);
 
     len = talloc_array_length(addresses);
     for (i = 0; i < el->num_values; i++) {
@@ -7511,7 +7523,8 @@ void hosts_check_match(struct sysdb_test_ctx *test_ctx,
             char *canonical_address;
             ret = sss_canonicalize_ip_address(test_ctx, addresses[j],
                                               &canonical_address);
-            fail_if(ret != EOK);
+            fail_if(ret != EOK,
+                     "sss_canonicalize_ip_address failed: %d", ret);
 
             if (strcmp(canonical_address,
                       (const char *)el->values[i].data) == 0) {
@@ -7524,7 +7537,7 @@ void hosts_check_match(struct sysdb_test_ctx *test_ctx,
     }
 
     el = ldb_msg_find_element(msg, SYSDB_NAME_ALIAS);
-    fail_if(el == NULL);
+    fail_if(el == NULL, "Failed to find element: " SYSDB_NAME_ALIAS);
 
     len = talloc_array_length(aliases);
     for (i = 0; i < el->num_values; i++) {
@@ -7563,36 +7576,36 @@ START_TEST(test_sysdb_add_hosts)
     fail_if(ret != EOK, "Could not set up the test");
 
     primary_name = talloc_asprintf(test_ctx, "test.example.org");
-    fail_if(primary_name == NULL);
+    fail_if(primary_name == NULL, "Failed to allocate memory");
 
     aliases = talloc_array(test_ctx, const char *, 3);
-    fail_if(aliases == NULL);
+    fail_if(aliases == NULL, "Failed to allocate memory");
 
     aliases[0] = talloc_asprintf(aliases, "alias1.example.org");
-    fail_if(aliases[0] == NULL);
+    fail_if(aliases[0] == NULL, "Failed to allocate memory");
 
     aliases[1] = talloc_asprintf(aliases, "alias2.example.org");
-    fail_if(aliases[1] == NULL);
+    fail_if(aliases[1] == NULL, "Failed to allocate memory");
 
     aliases[2] = NULL;
 
     addresses = talloc_array(test_ctx, const char *, 6);
-    fail_if(addresses == NULL);
+    fail_if(addresses == NULL, "Failed to allocate memory");
 
     addresses[0] = talloc_asprintf(addresses, "1.1.2.3");
-    fail_if(addresses[0] == NULL);
+    fail_if(addresses[0] == NULL, "Failed to allocate memory");
 
     addresses[1] = talloc_asprintf(addresses, "10.11.22.33");
-    fail_if(addresses[1] == NULL);
+    fail_if(addresses[1] == NULL, "Failed to allocate memory");
 
     addresses[2] = talloc_asprintf(addresses, "100.123.123.123");
-    fail_if(addresses[2] == NULL);
+    fail_if(addresses[2] == NULL, "Failed to allocate memory");
 
     addresses[3] = talloc_asprintf(addresses, "2001:0db8:85a3:0000:0000:8a2e:0370:7334");
-    fail_if(addresses[3] == NULL);
+    fail_if(addresses[3] == NULL, "Failed to allocate memory");
 
     addresses[4] = talloc_asprintf(addresses, "2001:db8:85a3:0:1:8a2e:370:7334");
-    fail_if(addresses[4] == NULL);
+    fail_if(addresses[4] == NULL, "Failed to allocate memory");
 
     addresses[5] = NULL;
 
@@ -7651,19 +7664,24 @@ void ipnetwork_check_match(struct sysdb_test_ctx *test_ctx,
     bool matched;
 
     ret = sss_canonicalize_ip_address(test_ctx, address, &c_addr);
-    fail_if(ret != EOK);
+    fail_if(ret != EOK, "sss_canonicalize_ip_address failed: %d", ret);
 
     ret_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-    fail_if(ret_name == NULL);
-    fail_unless(strcmp(ret_name, primary_name) == 0);
+    fail_if(ret_name == NULL, "Failed to find attribue: " SYSDB_NAME);
+    fail_unless(strcmp(ret_name, primary_name) == 0,
+                "Wrong value returned for attribute: %s. got: %s expected: %s",
+                SYSDB_NAME, ret_name, primary_name);
 
     ret_addr = ldb_msg_find_attr_as_string(msg, SYSDB_IP_NETWORK_ATTR_NUMBER,
                                            NULL);
-    fail_if(ret_addr == NULL);
-    fail_unless(strcmp(ret_addr, c_addr) == 0);
+    fail_if(ret_addr == NULL,
+            "Failed to find attribue: " SYSDB_IP_NETWORK_ATTR_NUMBER);
+    fail_unless(strcmp(ret_addr, c_addr) == 0,
+                "Wrong value returned for attribute: %s. got: %s expected: %s",
+                SYSDB_IP_NETWORK_ATTR_NUMBER, ret_addr, c_addr);
 
     el = ldb_msg_find_element(msg, SYSDB_NAME_ALIAS);
-    fail_if(el == NULL);
+    fail_if(el == NULL, "Failed to find element: " SYSDB_NAME_ALIAS);
 
     len = talloc_array_length(aliases);
     for (i = 0; i < el->num_values; i++) {
@@ -7692,7 +7710,7 @@ void ipnetwork_check_match_name(struct sysdb_test_ctx *test_ctx,
     fail_if(ret != EOK, "sysdb_getipnetworkbyname error [%s]\n",
             strerror(ret));
     fail_if(res == NULL, "ENOMEM");
-    fail_if(res->count != 1);
+    ck_assert_int_eq(res->count, 1);
 
     ipnetwork_check_match(test_ctx, res->msgs[0], primary_name, aliases,
 			  address);
@@ -7712,7 +7730,7 @@ void ipnetwork_check_match_addr(struct sysdb_test_ctx *test_ctx,
     fail_if(ret != EOK, "sysdb_getipnetworkbyaddr error [%s]\n",
             strerror(ret));
     fail_if(res == NULL, "ENOMEM");
-    fail_if(res->count != 1);
+    ck_assert_int_eq(res->count, 1);
 
     ipnetwork_check_match(test_ctx, res->msgs[0], primary_name, aliases,
 			  address);
@@ -7732,21 +7750,21 @@ START_TEST(test_sysdb_add_ipnetworks)
     fail_if(ret != EOK, "Could not set up the test");
 
     primary_name = talloc_asprintf(test_ctx, "network_1");
-    fail_if(primary_name == NULL);
+    fail_if(primary_name == NULL, "Failed to allocate memory");
 
     aliases = talloc_array(test_ctx, const char *, 3);
-    fail_if(aliases == NULL);
+    fail_if(aliases == NULL, "Failed to allocate memory");
 
     aliases[0] = talloc_asprintf(aliases, "network_1_alias_1");
-    fail_if(aliases[0] == NULL);
+    fail_if(aliases[0] == NULL, "Failed to allocate memory");
 
     aliases[1] = talloc_asprintf(aliases, "network_1_alias_2");
-    fail_if(aliases[1] == NULL);
+    fail_if(aliases[1] == NULL, "Failed to allocate memory");
 
     aliases[2] = NULL;
 
     address = talloc_asprintf(test_ctx, "192.168.1.0");
-    fail_if(address == NULL);
+    fail_if(address == NULL, "Failed to allocate memory");
 
     ret = sysdb_transaction_start(test_ctx->sysdb);
     fail_if(ret != EOK, "[%s]", strerror(ret));
