@@ -99,7 +99,7 @@ START_TEST(test_symlink)
 
     ret = snprintf(newpath, newpath_length, "%s%s", filename, SUFFIX);
     fail_unless(ret == newpath_length - 1,
-                "snprintf failed: expected [%d] got [%d]", newpath_length -1,
+                "snprintf failed: expected [%zd] got [%d]", newpath_length - 1,
                                                            ret);
 
     ret = symlink(filename, newpath);
@@ -126,7 +126,7 @@ START_TEST(test_follow_symlink)
 
     ret = snprintf(newpath, newpath_length, "%s%s", filename, SUFFIX);
     fail_unless(ret == newpath_length - 1,
-                "snprintf failed: expected [%d] got [%d]", newpath_length -1,
+                "snprintf failed: expected [%zd] got [%d]", newpath_length - 1,
                                                            ret);
 
     ret = symlink(filename, newpath);
