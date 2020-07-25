@@ -90,29 +90,29 @@ START_TEST(test_refcount_basic)
 
     /* First allocate our global storage place. */
     global = talloc(NULL, struct container);
-    fail_if(global == NULL);
+    fail_if(global == NULL, "Failed to allocate memory");
 
     /* Allocate foo. */
     global->foo = rc_alloc(global, struct foo);
-    fail_if(global->foo == NULL);
+    fail_if(global->foo == NULL, "Failed to allocate memory");
     SET_FILLER(global->foo);
     REF_ASSERT(global->foo, 1);
 
     /* Allocate bar. */
     global->bar = rc_alloc(global, struct bar);
-    fail_if(global->bar == NULL);
+    fail_if(global->bar == NULL, "Failed to allocate memory");
     SET_FILLER(global->bar);
     REF_ASSERT(global->bar, 1);
 
     /* Allocate baz. */
     global->baz = rc_alloc(global, struct baz);
-    fail_if(global->baz == NULL);
+    fail_if(global->baz == NULL, "Failed to allocate memory");
     SET_FILLER(global->baz);
     REF_ASSERT(global->baz, 1);
 
     /* Try multiple attaches. */
     containers = talloc_array(NULL, struct container, 100);
-    fail_if(containers == NULL);
+    fail_if(containers == NULL, "Failed to allocate memory");
     for (i = 0; i < 100; i++) {
         containers[i].foo = rc_reference(containers, struct foo, global->foo);
         containers[i].bar = rc_reference(containers, struct bar, global->bar);
@@ -153,15 +153,17 @@ START_TEST(test_refcount_swap)
 
     /* Allocate. */
     container1->foo = rc_alloc(container1, struct foo);
-    fail_if(container1->foo == NULL);
+    fail_if(container1->foo == NULL, "Failed to allocate memory");
     SET_FILLER(container1->foo);
 
     /* Reference. */
     container2->foo = rc_reference(container2, struct foo, container1->foo);
-    fail_if(container2->foo == NULL);
+    fail_if(container2->foo == NULL, "Failed to allocate memory");
 
     /* Make sure everything is as it should be. */
-    fail_unless(container1->foo == container2->foo);
+    fail_unless(container1->foo == container2->foo,
+                "Values have to be equal. %p == %p",
+                container1->foo, container2->foo);
     REF_ASSERT(container1->foo, 2);
 
     /* Free in reverse order. */
