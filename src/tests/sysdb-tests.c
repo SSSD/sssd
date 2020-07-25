@@ -1031,8 +1031,8 @@ START_TEST (test_sysdb_incomplete_group_rename)
                                      "S-1-5-21-123-456-789-111",
                                      NULL, true, 0);
     fail_unless(ret == ERR_GID_DUPLICATED,
-                "Did not catch a legitimate rename",
-                ret, strerror(ret));
+                "Did not catch a legitimate rename. ret: %d [%s]",
+                ret, sss_strerror(ret));
 }
 END_TEST
 
@@ -1926,7 +1926,7 @@ START_TEST (test_sysdb_search_custom_by_name)
     fail_if(ret != EOK, "Could not search custom object");
 
     fail_unless(data->msgs_count == 1,
-                "Wrong number of objects, expected [1] got [%d]",
+                "Wrong number of objects, expected [1] got [%zd]",
                 data->msgs_count);
     fail_unless(data->msgs[0]->num_elements == 1,
                 "Wrong number of results, expected [1] got [%d]",
@@ -2028,7 +2028,7 @@ START_TEST (test_sysdb_search_custom_update)
     fail_if(ret != EOK, "Could not search custom object");
 
     fail_unless(data->msgs_count == 1,
-                "Wrong number of objects, expected [1] got [%d]",
+                "Wrong number of objects, expected [1] got [%zd]",
                 data->msgs_count);
     fail_unless(data->msgs[0]->num_elements == 2,
                 "Wrong number of results, expected [2] got [%d]",
@@ -2091,7 +2091,7 @@ START_TEST (test_sysdb_search_custom)
     fail_if(ret != EOK, "Could not search custom object");
 
     fail_unless(data->msgs_count == 10,
-                "Wrong number of objects, expected [10] got [%d]",
+                "Wrong number of objects, expected [10] got [%zd]",
                 data->msgs_count);
 
     talloc_free(test_ctx);
@@ -2229,10 +2229,10 @@ static void cached_authentication_without_expiration(uid_t uid,
                                         "return expected result [%d].",
                                         expected_result);
 
-    fail_unless(expire_date == 0, "Wrong expire date, expected [%d], got [%d]",
+    fail_unless(expire_date == 0, "Wrong expire date, expected [%d], got [%ld]",
                                   0, expire_date);
 
-    fail_unless(delayed_until == -1, "Wrong delay, expected [%d], got [%d]",
+    fail_unless(delayed_until == -1, "Wrong delay, expected [%d], got [%ld]",
                                   -1, delayed_until);
 
     talloc_free(test_ctx);
@@ -2292,10 +2292,10 @@ static void cached_authentication_with_expiration(uid_t uid,
                 "result [%d], got [%d].", expected_result, ret);
 
     fail_unless(expire_date == expected_expire_date,
-                "Wrong expire date, expected [%d], got [%d]",
+                "Wrong expire date, expected [%ld], got [%ld]",
                 expected_expire_date, expire_date);
 
-    fail_unless(delayed_until == -1, "Wrong delay, expected [%d], got [%d]",
+    fail_unless(delayed_until == -1, "Wrong delay, expected [%d], got [%ld]",
                                   -1, delayed_until);
 
     talloc_free(test_ctx);
@@ -2386,7 +2386,7 @@ START_TEST (test_sysdb_asq_search)
     fail_if(ret != EOK, "Failed to send ASQ search request.\n");
 
     fail_unless(msgs_count == 10, "wrong number of results, "
-                                  "found [%d] expected [10]", msgs_count);
+                                  "found [%zd] expected [10]", msgs_count);
 
     for (i = 0; i < msgs_count; i++) {
         fail_unless(msgs[i]->num_elements == 1, "wrong number of elements, "
@@ -2403,7 +2403,7 @@ START_TEST (test_sysdb_asq_search)
                             (const char *) msgs[i]->elements[0].values[0].data,
                             msgs[i]->elements[0].values[0].length)  == 0,
                             "wrong value, found [%.*s] expected [%s]",
-                            msgs[i]->elements[0].values[0].length,
+                            (int) msgs[i]->elements[0].values[0].length,
                             msgs[i]->elements[0].values[0].data, gid_str);
     }
 
@@ -2440,7 +2440,7 @@ START_TEST (test_sysdb_search_all_users)
     fail_if(ret != EOK, "Search failed");
 
     fail_unless(data->msgs_count == 10,
-                "wrong number of results, found [%d] expected [10]",
+                "wrong number of results, found [%zd] expected [10]",
                 data->msgs_count);
 
     for (i = 0; i < data->msgs_count; i++) {
@@ -2465,7 +2465,7 @@ START_TEST (test_sysdb_search_all_users)
                             (char *) data->msgs[i]->elements[0].values[0].data,
                             data->msgs[i]->elements[0].values[0].length)  == 0,
                             "wrong value, found [%.*s] expected [%s]",
-                            data->msgs[i]->elements[0].values[0].length,
+                            (int) data->msgs[i]->elements[0].values[0].length,
                             data->msgs[i]->elements[0].values[0].data, uid_str);
     }
 
@@ -2532,8 +2532,8 @@ START_TEST (test_sysdb_attrs_replace_name)
                 "expected [1] got [%d].", el->num_values);
     fail_unless(strncmp("bar", (char *) el->values[0].data,
                         el->values[0].length) == 0,
-                "Wrong value, expected [bar] got [%.*s]", el->values[0].length,
-                                                          el->values[0].data);
+                "Wrong value, expected [bar] got [%.*s]",
+                (int)  el->values[0].length, el->values[0].data);
 
     talloc_free(attrs);
 }
@@ -4160,8 +4160,8 @@ START_TEST (test_sysdb_update_members)
                                    test_ctx->domain->name);
     add_groups[1] = sss_create_internal_fqname(add_groups, "testgroup28002",
                                                test_ctx->domain->name);
-    fail_if(add_groups[1] == NULL, "Failed to create internal fqname for: %s"
-                                   test_ctx->domain->name);
+    fail_if(add_groups[1] == NULL, "Failed to create internal fqname for: %s",
+		                   test_ctx->domain->name);
     add_groups[2] = NULL;
 
     /* For later check */
@@ -4546,7 +4546,7 @@ START_TEST (test_sysdb_netgr_to_entries)
     ret = sysdb_netgr_to_entries(test_ctx, res, &entries, &netgroup_count);
     fail_unless(ret == EOK, "sysdb_netgr_to_entries error [%d][%s]",
                             ret, strerror(ret));
-    fail_unless(netgroup_count == 1, "Received [%d] triples", netgroup_count);
+    fail_unless(netgroup_count == 1, "Received [%zd] triples", netgroup_count);
     bret = sysdb_netgr_ctx_cmp(entries[0], &simple_netgroup);
     fail_unless(bret == true, "Netgroup triples do not match");
 
@@ -4561,7 +4561,7 @@ START_TEST (test_sysdb_netgr_to_entries)
     ret = sysdb_netgr_to_entries(test_ctx, res, &entries, &netgroup_count);
     fail_unless(ret == EOK, "sysdb_netgr_to_entries error [%d][%s]",
                             ret, strerror(ret));
-    fail_unless(netgroup_count == 1, "Received [%d] triples", netgroup_count);
+    fail_unless(netgroup_count == 1, "Received [%zd] triples", netgroup_count);
     bret = sysdb_netgr_ctx_cmp(entries[0], &simple_netgroup);
     fail_unless(bret == true, "Netgroup triples do not match");
 }
@@ -6779,7 +6779,7 @@ START_TEST(test_autofs_retrieve_keys_by_map)
                                       autofsmapname, &count, &entries);
     fail_if(ret != EOK, "Cannot get autofs entries for map %s\n",
             autofsmapname);
-    fail_if(count != expected, "Expected to find %d entries, got %d\n",
+    fail_if(count != expected, "Expected to find %d entries, got %zd\n",
             expected, count);
     talloc_free(test_ctx);
 }
@@ -6844,7 +6844,7 @@ START_TEST(test_autofs_get_duplicate_keys)
     ret = sysdb_search_entry(test_ctx, test_ctx->sysdb, dn, LDB_SCOPE_SUBTREE,
                              filter, attrs, &count, &msgs);
     fail_unless(ret == EOK, "sysdb_search_entry returned [%d]", ret);
-    fail_if(count != expected, "Found %d entries with name %s, expected %d\n",
+    fail_if(count != expected, "Found %zd entries with name %s, expected %d\n",
             count, autofskey, expected);
     talloc_free(test_ctx);
 }
