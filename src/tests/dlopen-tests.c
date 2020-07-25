@@ -194,13 +194,13 @@ static char **get_so_files(size_t *_list_size)
     char **libraries;
 
     n = scandir(LIBPFX, &namelist, file_so_filter, alphasort);
-    fail_unless(n > 0);
+    fail_unless(n > 0, "Failed to scan dirrectory: " LIBPFX);
 
     libraries = calloc(n + 1, sizeof(char *));
 
     for (int i = 0; i < n; ++i) {
         libraries[i] = strdup(namelist[i]->d_name);
-        fail_if(libraries[i] == NULL);
+        fail_if(libraries[i] == NULL, "Failed to allocate memory");
 
         free(namelist[i]);
     }
@@ -250,7 +250,7 @@ START_TEST(test_dlopen_base)
     }
     free(found_libraries);
 
-    fail_if(unchecked_library);
+    fail_if(unchecked_library, "Unchecked library found");
 }
 END_TEST
 
