@@ -31,6 +31,6 @@ void ck_leak_check_setup(void);
 void ck_leak_check_teardown(void);
 
 #define ck_leaks_push(ctx) check_leaks_push(ctx)
-#define ck_leaks_pop(ctx) fail_unless(check_leaks_pop(ctx) == true, check_leaks_err_msg())
+#define ck_leaks_pop(ctx) fail_unless(check_leaks_pop(ctx) == true, "%s", check_leaks_err_msg())
 
 #endif /* __TESTS_COMMON_CHECK_H__ */
