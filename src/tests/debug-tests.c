@@ -55,10 +55,8 @@ START_TEST(test_debug_convert_old_level_old_format)
     for (old_level = 0; old_level < N_ELEMENTS(levels); old_level++) {
         expected_level |= levels[old_level];
 
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL, "Invalid conversion of %d", old_level);
-        fail_unless(debug_convert_old_level(old_level) == expected_level, msg);
-        talloc_free(msg);
+        fail_unless(debug_convert_old_level(old_level) == expected_level,
+                    "Invalid conversion of %d", old_level);
     }
 }
 END_TEST
@@ -343,7 +341,6 @@ START_TEST(test_debug_is_set_single_no_timestamp)
         SSSDBG_TRACE_ALL,
         SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
     debug_timestamps = 0;
     debug_microseconds = 0;
@@ -357,15 +354,13 @@ START_TEST(test_debug_is_set_single_no_timestamp)
         errno = 0;
         result = test_helper_debug_check_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        fail_if(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message don't match", levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        fail_unless(result == EOK,
+                    "Test of level %#.4x failed - message don't match",
+                    levels[i]);
     }
 }
 END_TEST
@@ -387,7 +382,6 @@ START_TEST(test_debug_is_set_single_timestamp)
         SSSDBG_TRACE_ALL,
         SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
     debug_timestamps = 1;
     debug_microseconds = 0;
@@ -402,20 +396,16 @@ START_TEST(test_debug_is_set_single_timestamp)
         errno = 0;
         result = test_helper_debug_check_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        fail_if(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
+        fail_if(result == DEBUG_TEST_NOK_TS,
+                "Test of level %#.4x failed - invalid timestamp", levels[i]);
 
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - invalid timestamp", levels[i]);
-        fail_if(result == DEBUG_TEST_NOK_TS, msg);
-        talloc_free(msg);
-
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message don't match", levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        fail_unless(result == EOK,
+                    "Test of level %#.4x failed - message don't match",
+                    levels[i]);
     }
 }
 END_TEST
@@ -437,7 +427,6 @@ START_TEST(test_debug_is_set_single_timestamp_microseconds)
         SSSDBG_TRACE_ALL,
         SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
     debug_timestamps = 1;
     debug_microseconds = 1;
@@ -452,20 +441,16 @@ START_TEST(test_debug_is_set_single_timestamp_microseconds)
         errno = 0;
         result = test_helper_debug_check_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        fail_if(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
+        fail_if(result == DEBUG_TEST_NOK_TS,
+                "Test of level %#.4x failed - invalid timestamp", levels[i]);
 
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - invalid timestamp", levels[i]);
-        fail_if(result == DEBUG_TEST_NOK_TS, msg);
-        talloc_free(msg);
-
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - message don't match", levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        fail_unless(result == EOK,
+                    "Test of level %#.4x failed - message don't match",
+                    levels[i]);
     }
 }
 END_TEST
@@ -488,7 +473,6 @@ START_TEST(test_debug_is_notset_no_timestamp)
         SSSDBG_TRACE_ALL,
         SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
     debug_timestamps = 0;
     debug_microseconds = 0;
@@ -503,17 +487,13 @@ START_TEST(test_debug_is_notset_no_timestamp)
         errno = 0;
         result = test_helper_debug_is_empty_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        fail_if(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL,
-                              "Test of level %#.4x failed - message has been written",
-                              levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        fail_unless(result == EOK,
+                    "Test of level %#.4x failed - message has been written",
+                    levels[i]);
     }
 }
 END_TEST
@@ -536,7 +516,6 @@ START_TEST(test_debug_is_notset_timestamp)
         SSSDBG_TRACE_ALL,
         SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
     debug_timestamps = 0;
     debug_microseconds = 0;
@@ -551,17 +530,13 @@ START_TEST(test_debug_is_notset_timestamp)
         errno = 0;
         result = test_helper_debug_is_empty_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        fail_if(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL,
-                        "Test of level %#.4x failed - message has been written",
-                        levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        fail_unless(result == EOK,
+                    "Test of level %#.4x failed - message has been written",
+                    levels[i]);
     }
 }
 END_TEST
@@ -584,7 +559,6 @@ START_TEST(test_debug_is_notset_timestamp_microseconds)
         SSSDBG_TRACE_ALL,
         SSSDBG_TRACE_LDB
     };
-    char *error_msg;
 
     debug_timestamps = 0;
     debug_microseconds = 1;
@@ -598,17 +572,13 @@ START_TEST(test_debug_is_notset_timestamp_microseconds)
         errno = 0;
         result = test_helper_debug_is_empty_message(levels[i]);
 
-        if (result == DEBUG_TEST_ERROR) {
-            error_msg = strerror(errno);
-            fail(error_msg);
-        }
+        fail_if(result == DEBUG_TEST_ERROR,
+                "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
+                result, strerror(errno));
 
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL,
-                        "Test of level %#.4x failed - message has been written",
-                        levels[i]);
-        fail_unless(result == EOK, msg);
-        talloc_free(msg);
+        fail_unless(result == EOK,
+                    "Test of level %#.4x failed - message has been written",
+                    levels[i]);
     }
 }
 END_TEST
@@ -635,10 +605,9 @@ START_TEST(test_debug_is_set_true)
 
     for (i = 0; i < N_ELEMENTS(levels); i++) {
         result = DEBUG_IS_SET(levels[i]);
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - result is 0x%.4x", levels[i], result);
-        fail_unless(result > 0, msg);
-        talloc_free(msg);
+        fail_unless(result > 0,
+                    "Test of level %#.4x failed - result is 0x%.4x",
+                    levels[i], result);
     }
 }
 END_TEST
@@ -666,10 +635,9 @@ START_TEST(test_debug_is_set_false)
         debug_level = all_set & ~levels[i];
 
         result = DEBUG_IS_SET(levels[i]);
-        char *msg = NULL;
-        msg = talloc_asprintf(NULL, "Test of level %#.4x failed - result is 0x%.4x", levels[i], result);
-        fail_unless(result == 0, msg);
-        talloc_free(msg);
+        fail_unless(result == 0,
+                    "Test of level %#.4x failed - result is 0x%.4x",
+                    levels[i], result);
     }
 }
 END_TEST
