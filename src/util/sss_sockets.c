@@ -80,6 +80,18 @@ static errno_t set_fd_common_opts(int fd, int timeout)
     int ret;
     struct timeval tv;
     unsigned int milli;
+    int type;
+    socklen_t optlen = sizeof(int);
+
+    /* Get protocol type. */
+    ret = getsockopt(fd, SOL_SOCKET, SO_TYPE, &type, &optlen);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_FUNC_DATA, "Unable to get socket type [%d]: %s.\n",
+              ret, strerror(ret));
+        /* Assume TCP. */
+        type = SOCK_STREAM;
+    }
 
     /* SO_KEEPALIVE and TCP_NODELAY are set by OpenLDAP client libraries but
      * failures are ignored.*/
@@ -91,12 +103,14 @@ static errno_t set_fd_common_opts(int fd, int timeout)
                   strerror(ret));
     }
 
-    ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_FUNC_DATA,
-              "setsockopt TCP_NODELAY failed.[%d][%s].\n", ret,
-                  strerror(ret));
+    if (type == SOCK_STREAM) {
+        ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FUNC_DATA,
+                "setsockopt TCP_NODELAY failed.[%d][%s].\n", ret,
+                    strerror(ret));
+        }
     }
 
     if (timeout > 0) {
@@ -119,14 +133,16 @@ static errno_t set_fd_common_opts(int fd, int timeout)
                   strerror(ret));
         }
 
-        milli = timeout * 1000; /* timeout in milliseconds */
-        ret = setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &milli,
-                         sizeof(milli));
-        if (ret != 0) {
-            ret = errno;
-            DEBUG(SSSDBG_FUNC_DATA,
-                  "setsockopt TCP_USER_TIMEOUT failed.[%d][%s].\n", ret,
-                  strerror(ret));
+        if (type == SOCK_STREAM) {
+            milli = timeout * 1000; /* timeout in milliseconds */
+            ret = setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &milli,
+                            sizeof(milli));
+            if (ret != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_FUNC_DATA,
+                    "setsockopt TCP_USER_TIMEOUT failed.[%d][%s].\n", ret,
+                    strerror(ret));
+            }
         }
     }
 
@@ -271,6 +287,7 @@ static void sssd_async_socket_init_done(struct tevent_req *subreq);
 
 struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,
+                                               bool use_udp,
                                                struct sockaddr_storage *addr,
                                                socklen_t addr_len, int timeout)
 {
@@ -289,7 +306,7 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
     talloc_set_destructor((TALLOC_CTX *)state,
                           sssd_async_socket_state_destructor);
 
-    state->sd = socket(addr->ss_family, SOCK_STREAM, 0);
+    state->sd = socket(addr->ss_family, use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (state->sd == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,

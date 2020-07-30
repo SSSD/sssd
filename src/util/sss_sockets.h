@@ -32,6 +32,7 @@ int sssd_async_connect_recv(struct tevent_req *req);
 
 struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,
+                                               bool use_udp,
                                                struct sockaddr_storage *addr,
                                                socklen_t addr_len, int timeout);
 int sssd_async_socket_init_recv(struct tevent_req *req, int *sd);
