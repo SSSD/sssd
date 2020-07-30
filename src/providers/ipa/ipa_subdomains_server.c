@@ -344,7 +344,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
                                      ad_id_ctx->ad_options->id,
                                      id_ctx->server_mode->hostname,
                                      ad_domain,
-                                     ad_site_override, false);
+                                     ad_site_override);
     if (srv_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
         return ENOMEM;
