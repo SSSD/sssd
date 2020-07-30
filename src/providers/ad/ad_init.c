@@ -189,14 +189,11 @@ static errno_t ad_init_srv_plugin(struct be_ctx *be_ctx,
     const char *ad_site_override;
     bool sites_enabled;
     errno_t ret;
-    bool ad_use_ldaps;
 
     hostname = dp_opt_get_string(ad_options->basic, AD_HOSTNAME);
     ad_domain = dp_opt_get_string(ad_options->basic, AD_DOMAIN);
     ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
     sites_enabled = dp_opt_get_bool(ad_options->basic, AD_ENABLE_DNS_SITES);
-    ad_use_ldaps = dp_opt_get_bool(ad_options->basic, AD_USE_LDAPS);
-
 
     if (!sites_enabled) {
         ret = be_fo_set_dns_srv_lookup_plugin(be_ctx, hostname);
@@ -212,8 +209,7 @@ static errno_t ad_init_srv_plugin(struct be_ctx *be_ctx,
     srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx, be_ctx->be_res,
                                      default_host_dbs, ad_options->id,
                                      hostname, ad_domain,
-                                     ad_site_override,
-                                     ad_use_ldaps);
+                                     ad_site_override);
     if (srv_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
         return ENOMEM;
