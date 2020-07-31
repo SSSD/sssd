@@ -91,7 +91,7 @@ ipa_deskprofile_rule_info_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    ret = sss_filter_sanitize(state, host_dn, &host_dn_clean);
+    ret = sss_filter_sanitize_dn(state, host_dn, &host_dn_clean);
     if (ret != EOK) {
         goto immediate;
     }
