@@ -482,6 +482,26 @@ errno_t sss_filter_sanitize_for_dom(TALLOC_CTX *mem_ctx,
                                     char **sanitized,
                                     char **lc_sanitized);
 
+/* Sanitize an input string (e.g. a DN) for use in
+ * an LDAP/LDB filter
+ *
+ * It is basically the same as sss_filter_sanitize(_ex),
+ * just extra spaces inside DN around '=' and ',' are removed
+ * before sanitizing other characters . According the documentation
+ * spaces in DN are allowed and some ldap servers can return them
+ * in isMemberOf or member attributes.
+ *
+ * (dc = my example, dc = com => dc=my\20example,dc=com)
+ *
+ * Returns a newly-constructed string attached to mem_ctx
+ * It will fail only on an out of memory condition, where it
+ * will return ENOMEM.
+ *
+ */
+errno_t sss_filter_sanitize_dn(TALLOC_CTX *mem_ctx,
+                               const char *input,
+                               char **sanitized);
+
 char *
 sss_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr);
 
