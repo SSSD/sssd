@@ -91,7 +91,7 @@ sdap_get_ad_match_rule_members_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Sanitize it in case we have special characters in DN */
-    ret = sss_filter_sanitize(state, group_dn, &sanitized_group_dn);
+    ret = sss_filter_sanitize_dn(state, group_dn, &sanitized_group_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not sanitize group DN: %s\n",

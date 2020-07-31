@@ -3514,7 +3514,7 @@ errno_t sysdb_search_by_orig_dn(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, member_dn, &sanitized_dn);
+    ret = sss_filter_sanitize_dn(tmp_ctx, member_dn, &sanitized_dn);
     if (ret != EOK) {
         goto done;
     }
