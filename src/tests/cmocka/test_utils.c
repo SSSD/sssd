@@ -1943,6 +1943,73 @@ static void test_sss_get_domain_mappings_content(void **state)
      * capaths might not be as expected. */
 }
 
+
+static void test_sss_filter_sanitize_dn(void **state)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *trimmed;
+    int ret;
+    const char *DN = "cn=user,ou=people,dc=example,dc=com";
+
+    tmp_ctx = talloc_new(NULL);
+    assert_non_null(tmp_ctx);
+
+    /* test that we remove spaces around '=' and ','*/
+    ret = sss_filter_sanitize_dn(tmp_ctx, DN, &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn=user,ou=people,dc=example,dc=com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn= user,ou =people,dc = example,dc  =  com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn=user, ou=people ,dc=example , dc=com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn=user,  ou=people  ,dc=example  ,   dc=com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn= user, ou =people ,dc = example  ,  dc  = com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, " cn=user,ou=people,dc=example,dc=com ", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    ret = sss_filter_sanitize_dn(tmp_ctx, "  cn=user, ou=people, dc=example, dc=com  ", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(DN, trimmed);
+    talloc_free(trimmed);
+
+    /* test that we keep spaces inside a value */
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn = user one, ou=people  branch, dc=example, dc=com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal("cn=user\\20one,ou=people\\20\\20branch,dc=example,dc=com", trimmed);
+    talloc_free(trimmed);
+
+    /* test that we keep escape special chars like () */
+    ret = sss_filter_sanitize_dn(tmp_ctx, "cn = user one, ou=p(e)ople, dc=example, dc=com", &trimmed);
+    assert_int_equal(ret, EOK);
+    assert_string_equal("cn=user\\20one,ou=p\\28e\\29ople,dc=example,dc=com", trimmed);
+    talloc_free(trimmed);
+
+    talloc_free(tmp_ctx);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -2050,6 +2117,9 @@ int main(int argc, const char *argv[])
                                         setup_leak_tests,
                                         teardown_leak_tests),
         cmocka_unit_test_setup_teardown(test_sss_ptr_hash_without_cb,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_filter_sanitize_dn,
                                         setup_leak_tests,
                                         teardown_leak_tests),
     };
