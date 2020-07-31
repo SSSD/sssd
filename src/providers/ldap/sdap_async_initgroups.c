@@ -1647,7 +1647,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
                                attr_filter, &state->attrs, NULL);
     if (ret != EOK) goto done;
 
-    ret = sss_filter_sanitize(state, orig_dn, &clean_orig_dn);
+    ret = sss_filter_sanitize_dn(state, orig_dn, &clean_orig_dn);
     if (ret != EOK) goto done;
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
@@ -2429,7 +2429,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, state->orig_dn, &clean_orig_dn);
+    ret = sss_filter_sanitize_dn(tmp_ctx, state->orig_dn, &clean_orig_dn);
     if (ret != EOK) {
         goto done;
     }

@@ -52,7 +52,7 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
         return ENOMEM;
     }
 
-    ret = sss_filter_sanitize(tmpctx, orig_dn, &sanitized_dn);
+    ret = sss_filter_sanitize_dn(tmpctx, orig_dn, &sanitized_dn);
     if (ret != EOK) {
         ret = ENOMEM;
         goto done;

@@ -375,7 +375,7 @@ static void ipa_get_netgroups_process(struct tevent_req *subreq)
             continue;
         }
 
-        ret = sss_filter_sanitize(state, orig_dn, &dn);
+        ret = sss_filter_sanitize_dn(state, orig_dn, &dn);
         if (ret != EOK) {
             goto done;
         }
