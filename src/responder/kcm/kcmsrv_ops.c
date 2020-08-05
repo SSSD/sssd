@@ -362,11 +362,20 @@ struct kcm_op_initialize_state {
     struct kcm_ccache *new_cc;
     const char *name;
     krb5_principal princ;
+
+    int index;
+    uuid_t *uuid_list;
+    uuid_t current_uuid;
 };
 
 static void kcm_op_initialize_got_byname(struct tevent_req *subreq);
 static void kcm_op_initialize_cc_create_done(struct tevent_req *subreq);
 static void kcm_op_initialize_cc_delete_done(struct tevent_req *subreq);
+static void kcm_op_initialize_remove_existing_ccache(struct tevent_req *req);
+static void kcm_op_initialize_remove_existing_uuid_list_done(struct tevent_req *req);
+static errno_t kcm_op_initialize_remove_existing_ccache_step(struct tevent_req *req);
+static void kcm_op_initialize_remove_existing_ccache_done(struct tevent_req *subreq);
+static void kcm_op_initialize_remove_existing_final_done(struct tevent_req *subreq);
 static void kcm_op_initialize_fill_princ_step(struct tevent_req *req);
 static void kcm_op_initialize_fill_princ_done(struct tevent_req *subreq);
 static void kcm_op_initialize_create_step(struct tevent_req *req);
@@ -454,10 +463,11 @@ static void kcm_op_initialize_got_byname(struct tevent_req *subreq)
     if (state->new_cc != NULL) {
         if (kcm_cc_get_client_principal(state->new_cc) == NULL) {
             /* This is a cache that was pre-created w/o a principal (sshd does this),
-             * let's fill in the principal and set the cache as default if not
+             * let's remove any existing ccache matching this principal,
+             * fill in the principal and set the cache as default if not
              * already
              */
-            kcm_op_initialize_fill_princ_step(req);
+            kcm_op_initialize_remove_existing_ccache(req);
             return;
         }
 
@@ -511,6 +521,168 @@ static void kcm_op_initialize_cc_delete_done(struct tevent_req *subreq)
 
     kcm_op_initialize_create_step(req);
 }
+
+static void kcm_op_initialize_remove_existing_ccache(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct kcm_op_initialize_state *state = tevent_req_data(req,
+                                            struct kcm_op_initialize_state);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking for existing duplicate ccache\n");
+
+    subreq = kcm_ccdb_list_send(state, state->ev,
+                                state->op_ctx->kcm_data->db,
+                                state->op_ctx->client);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, kcm_op_initialize_remove_existing_uuid_list_done, req);
+}
+
+static void kcm_op_initialize_remove_existing_uuid_list_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct kcm_op_initialize_state *state = tevent_req_data(req,
+                                            struct kcm_op_initialize_state);
+    errno_t ret;
+    uuid_t *uuid_list;
+
+    ret = kcm_ccdb_list_recv(subreq, state, &uuid_list);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot list the ccache DB [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (uuid_list == NULL || uuid_is_null(uuid_list[0])) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Nothing to list\n");
+        state->op_ret = ERR_NO_MATCHING_CREDS;
+        tevent_req_done(req);
+        return;
+    }
+
+    state->index = 0;
+    state->uuid_list = uuid_list;
+    uuid_clear(state->current_uuid);
+
+    ret = kcm_op_initialize_remove_existing_ccache_step(req);
+
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EOK && ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    return;
+}
+
+static errno_t kcm_op_initialize_remove_existing_ccache_step(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct kcm_op_initialize_state *state = tevent_req_data(req,
+                                            struct kcm_op_initialize_state);
+
+    uuid_copy(state->current_uuid, state->uuid_list[state->index]);
+
+    if (uuid_is_null(state->current_uuid)) {
+        return EOK;
+    }
+    state->index++;
+
+    kcm_debug_uuid(state->current_uuid);
+
+    subreq = kcm_ccdb_getbyuuid_send(state, state->ev,
+                                     state->op_ctx->kcm_data->db,
+                                     state->op_ctx->client,
+                                     state->current_uuid);
+    if (subreq == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, kcm_op_initialize_remove_existing_ccache_done, req);
+
+    return EAGAIN;
+}
+
+static void kcm_op_initialize_remove_existing_ccache_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct kcm_op_initialize_state *state = tevent_req_data(req,
+                                            struct kcm_op_initialize_state);
+    errno_t ret;
+    struct kcm_ccache *cc;
+    krb5_principal princ;
+
+    ret = kcm_ccdb_getbyuuid_recv(subreq, state, &cc);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get ccache by UUID [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    princ = kcm_cc_get_client_principal(cc);
+    if (princ != NULL) {
+        if (krb5_principal_compare(state->op_ctx->kcm_data->k5c,
+                                   princ, state->princ) == TRUE) {
+
+            char uuid_dbgbuf[UUID_STR_SIZE];
+            uuid_unparse(state->current_uuid, uuid_dbgbuf);
+
+            DEBUG(SSSDBG_TRACE_FUNC, "Removing duplicate ccache with UUID [%s]\n",
+                                     uuid_dbgbuf);
+
+            subreq = kcm_ccdb_delete_cc_send(state,
+                                             state->ev,
+                                             state->op_ctx->kcm_data->db,
+                                             state->op_ctx->client,
+                                             state->current_uuid);
+            if (subreq == NULL) {
+                tevent_req_error(req, ret);
+                return;
+            }
+            tevent_req_set_callback(subreq, kcm_op_initialize_remove_existing_final_done, req);
+            return;
+        }
+    }
+
+    ret = kcm_op_initialize_remove_existing_ccache_step(req);
+    if (ret == EAGAIN) {
+        /* Continue with next UUID */
+        return;
+    } else if (ret == EOK) {
+        kcm_op_initialize_fill_princ_step(req);
+    }
+}
+
+static void kcm_op_initialize_remove_existing_final_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    errno_t ret;
+
+    ret = kcm_ccdb_delete_cc_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot delete ccache from the db [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    kcm_op_initialize_fill_princ_step(req);
+}
+
 
 static void kcm_op_initialize_fill_princ_step(struct tevent_req *req)
 {
