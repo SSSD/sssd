@@ -53,10 +53,10 @@ char * sss_replace_space(TALLOC_CTX *mem_ctx,
     }
 
     if (strchr(orig_name, subst) != NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_FUNC_DATA,
               "Input [%s] already contains replacement character [%c].\n",
               orig_name, subst);
-        sss_log(SSS_LOG_CRIT,
+        sss_log(SSS_LOG_DEBUG,
                 "Name [%s] already contains replacement character [%c]. " \
                 "No replacement will be done.\n",
                 orig_name, subst);
