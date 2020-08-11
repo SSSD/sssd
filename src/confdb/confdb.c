@@ -2457,7 +2457,7 @@ static int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
     int ret;
     char **domlist = NULL;
     char **all_domains = NULL;
-    bool enabled;
+    bool enabled = false;
 
     TALLOC_CTX *tmp_ctx = NULL;
 
