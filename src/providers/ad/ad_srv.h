@@ -53,4 +53,18 @@ char *ad_site_dns_discovery_domain(TALLOC_CTX *mem_ctx,
                                    const char *site,
                                    const char *domain);
 
+struct tevent_req *ad_cldap_ping_send(TALLOC_CTX *mem_ctx,
+                                      struct tevent_context *ev,
+                                      struct sdap_options *opts,
+                                      struct be_resolv_ctx *be_res,
+                                      enum host_database *host_db,
+                                      const char *ad_domain,
+                                      const char *discovery_domain,
+                                      const char *current_site);
+
+errno_t ad_cldap_ping_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
+                           const char **_site,
+                           const char **_forest);
+
 #endif /* __AD_SRV_H__ */
