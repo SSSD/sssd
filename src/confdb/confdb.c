@@ -2537,8 +2537,7 @@ done:
  * @param domain The domain name.
  * @param enabled The output variable; it can not be NULL; if the
  * domain is explicitely enabled, *enabled is equal to 1; if the
- * domain is explicitely disabled, *enabled is equal to 0; any
- * other case, *enabled is -1.
+ * domain is explicitely disabled, *enabled is equal to 0.
  * @param Return EOK if the operation happened properly and *enabled
  * contain the value of the attribute; if no entry found for enabled
  * attribute it returns ENOENT, else an error code.
@@ -2583,6 +2582,8 @@ static int confdb_get_domain_enabled(struct confdb_ctx *cdb,
         *_enabled = false;
         goto done;
     }
+    /* Failed to parse value */
+    ret = EINVAL;
 done:
     talloc_free(tmp_ctx);
     return ret;
