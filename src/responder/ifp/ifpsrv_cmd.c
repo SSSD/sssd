@@ -371,57 +371,98 @@ ifp_get_user_attr_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req)
 }
 
 static errno_t
+ifp_user_get_groups_build_group_list(struct resp_ctx *rctx,
+                                     const char *name,
+                                     const char **groupnames,
+                                     int *gri)
+{
+    struct sized_string *group_name;
+    errno_t ret;
+
+    ret = sized_domain_name(NULL, rctx, name, &group_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Unable to get sized name for %s [%d]: %s\n",
+              name, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    groupnames[*gri] = talloc_strndup(groupnames,
+                                      group_name->str,
+                                      group_name->len);
+    talloc_free(group_name);
+    if (groupnames[*gri] == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "talloc_strndup failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    (*gri)++;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Adding group %s\n", groupnames[*gri]);
+
+done:
+    return ret;
+}
+
+static errno_t
 ifp_user_get_groups_build_reply(TALLOC_CTX *mem_ctx,
                                 struct resp_ctx *rctx,
                                 struct sss_domain_info *domain,
                                 struct ldb_result *res,
                                 const char ***_groupnames)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
     int i, gri, num;
     const char *name;
     const char **groupnames;
-    struct sized_string *group_name;
+    gid_t orig_gid;
+    struct ldb_message *msg = NULL;
+    const char *attrs[] = {SYSDB_NAME, NULL};
     errno_t ret;
 
-    /* one less, the first one is the user entry */
-    num = res->count - 1;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    num = res->count;
     groupnames = talloc_zero_array(mem_ctx, const char *, num + 1);
     if (groupnames == NULL) {
         return ENOMEM;
     }
 
     gri = 0;
-    for (i = 0; i < num; i++) {
+    orig_gid = sss_view_ldb_msg_find_attr_as_uint64(domain,
+                                                res->msgs[0],
+                                                SYSDB_PRIMARY_GROUP_GIDNUM, 0);
+    ret = sysdb_search_group_by_gid(tmp_ctx, domain, orig_gid, attrs, &msg);
+
+    /* If origPrimaryGroupGidNumber exists add it to group list */
+    if(ret == EOK) {
+        name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+
+        if (name != NULL) {
+            ifp_user_get_groups_build_group_list(rctx, name, groupnames, &gri);
+        }
+    }
+
+    /* Start counting from 1 to exclude the user entry */
+    for (i = 1; i < num; i++) {
         name = sss_view_ldb_msg_find_attr_as_string(domain,
-                                                    res->msgs[i + 1],
+                                                    res->msgs[i],
                                                     SYSDB_NAME, NULL);
         if (name == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Skipping a group with no name\n");
             continue;
         }
 
-        ret = sized_domain_name(NULL, rctx, name, &group_name);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Unable to get sized name for %s [%d]: %s\n",
-                  name, ret, sss_strerror(ret));
-            continue;
-        }
-
-        groupnames[gri] = talloc_strndup(groupnames,
-                                         group_name->str, group_name->len);
-        talloc_free(group_name);
-        if (groupnames[gri] == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "talloc_strndup failed\n");
-            continue;
-        }
-        gri++;
-
-        DEBUG(SSSDBG_TRACE_FUNC, "Adding group %s\n", groupnames[i]);
+        ifp_user_get_groups_build_group_list(rctx, name, groupnames, &gri);
     }
 
     *_groupnames = groupnames;
 
+    talloc_free(tmp_ctx);
     return EOK;
 }
 
