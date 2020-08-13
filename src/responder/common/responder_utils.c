@@ -204,12 +204,14 @@ struct resp_resolve_group_names_state {
 
     bool needs_refresh;
     unsigned int group_iter;
+    bool is_original_primary_group_request;
 
     struct ldb_result *initgr_named_res;
 };
 
 static void resp_resolve_group_done(struct tevent_req *subreq);
 static errno_t resp_resolve_group_next(struct tevent_req *req);
+static errno_t resp_resolve_group_trigger_request(struct tevent_req *req, const char *attr_name);
 static errno_t resp_resolve_group_reread_names(struct resp_resolve_group_names_state *state);
 
 struct tevent_req *resp_resolve_group_names_send(TALLOC_CTX *mem_ctx,
@@ -231,6 +233,7 @@ struct tevent_req *resp_resolve_group_names_send(TALLOC_CTX *mem_ctx,
     state->rctx = rctx;
     state->dom = dom;
     state->initgr_res = initgr_res;
+    state->is_original_primary_group_request = true;
 
     ret = resp_resolve_group_next(req);
     if (ret == EOK) {
@@ -275,10 +278,8 @@ resp_resolve_group_needs_refresh(struct resp_resolve_group_names_state *state)
 
 static errno_t resp_resolve_group_next(struct tevent_req *req)
 {
-    struct cache_req_data *data;
-    uint64_t gid;
-    struct tevent_req *subreq;
     struct resp_resolve_group_names_state *state;
+    errno_t ret;
 
     state = tevent_req_data(req, struct resp_resolve_group_names_state);
 
@@ -292,9 +293,39 @@ static errno_t resp_resolve_group_next(struct tevent_req *req)
         return EOK;
     }
 
-    /* Fire a request */
+    if(state->group_iter == 0 &&
+       state->is_original_primary_group_request == true) {
+        ret = resp_resolve_group_trigger_request(req,
+                                                 SYSDB_PRIMARY_GROUP_GIDNUM);
+
+        /* If auto_private_groups is disabled then
+         * resp_resolve_group_trigger_request will return EINVAL, but this
+         * doesn't mean a failure. Thus, the search should continue with the
+         * next element.
+         */
+        if(ret == EINVAL) {
+            state->is_original_primary_group_request = false;
+            return resp_resolve_group_trigger_request(req, SYSDB_GIDNUM);
+        } else {
+            return ret;
+        }
+    } else {
+        return resp_resolve_group_trigger_request(req, SYSDB_GIDNUM);
+    }
+}
+
+static errno_t resp_resolve_group_trigger_request(struct tevent_req *req,
+                                                  const char *attr_name)
+{
+    struct cache_req_data *data;
+    uint64_t gid;
+    struct tevent_req *subreq;
+    struct resp_resolve_group_names_state *state;
+
+    state = tevent_req_data(req, struct resp_resolve_group_names_state);
+
     gid = ldb_msg_find_attr_as_uint64(state->initgr_res->msgs[state->group_iter],
-                                      SYSDB_GIDNUM, 0);
+                                      attr_name, 0);
     if (gid == 0) {
         return EINVAL;
     }
@@ -338,7 +369,12 @@ static void resp_resolve_group_done(struct tevent_req *subreq)
         /* Try to refresh the others on error */
     }
 
-    state->group_iter++;
+    if(state->group_iter == 0 &&
+       state->is_original_primary_group_request == true) {
+        state->is_original_primary_group_request = false;
+    } else {
+        state->group_iter++;
+    }
     state->needs_refresh = true;
 
     ret = resp_resolve_group_next(req);
