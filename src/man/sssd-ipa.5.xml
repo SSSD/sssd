@@ -215,6 +215,21 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>dyndns_auth_ptr (string)</term>
+                    <listitem>
+                        <para>
+                            Whether the nsupdate utility should use GSS-TSIG
+                            authentication for secure PTR updates with the DNS
+                            server, insecure updates can be sent by setting
+                            this option to 'none'.
+                        </para>
+                        <para>
+                            Default: Same as dyndns_auth
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ipa_enable_dns_sites (boolean)</term>
                     <listitem>
                         <para>
