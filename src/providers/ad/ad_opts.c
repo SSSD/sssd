@@ -310,6 +310,7 @@ struct dp_option ad_dyndns_opts[] = {
     { "dyndns_update_ptr", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "dyndns_force_tcp", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "dyndns_auth", DP_OPT_STRING, { "gss-tsig" }, NULL_STRING },
+    { "dyndns_auth_ptr", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };

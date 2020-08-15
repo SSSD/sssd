@@ -39,6 +39,7 @@ enum be_nsupdate_auth {
 struct be_nsupdate_ctx {
     struct dp_option *opts;
     enum be_nsupdate_auth auth_type;
+    enum be_nsupdate_auth auth_ptr_type;
 
     time_t last_refresh;
     bool timer_in_progress;
@@ -56,6 +57,7 @@ enum dp_dyndns_opts {
     DP_OPT_DYNDNS_UPDATE_PTR,
     DP_OPT_DYNDNS_FORCE_TCP,
     DP_OPT_DYNDNS_AUTH,
+    DP_OPT_DYNDNS_AUTH_PTR,
     DP_OPT_DYNDNS_SERVER,
 
     DP_OPT_DYNDNS /* attrs counter */

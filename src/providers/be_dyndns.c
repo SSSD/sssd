@@ -1217,6 +1217,7 @@ static struct dp_option default_dyndns_opts[] = {
     { "dyndns_update_ptr", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
     { "dyndns_force_tcp", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "dyndns_auth", DP_OPT_STRING, { "gss-tsig" }, NULL_STRING },
+    { "dyndns_auth_ptr", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "dyndns_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
 
     DP_OPTION_TERMINATOR
@@ -1251,6 +1252,18 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
         ctx->auth_type = BE_NSUPDATE_AUTH_NONE;
     } else {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown dyndns auth type %s\n", strauth);
+        return EINVAL;
+    }
+
+    strauth = dp_opt_get_string(ctx->opts, DP_OPT_DYNDNS_AUTH_PTR);
+    if (strauth == NULL) {
+        ctx->auth_ptr_type = ctx->auth_type;
+    } else if (strcasecmp(strauth, "gss-tsig") == 0) {
+        ctx->auth_ptr_type = BE_NSUPDATE_AUTH_GSS_TSIG;
+    } else if (strcasecmp(strauth, "none") == 0) {
+        ctx->auth_ptr_type = BE_NSUPDATE_AUTH_NONE;
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown dyndns ptr auth type %s\n", strauth);
         return EINVAL;
     }
 

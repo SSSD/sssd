@@ -59,6 +59,7 @@ struct sdap_dyndns_update_state {
     bool update_ptr;
     bool check_diff;
     enum be_nsupdate_auth auth_type;
+    enum be_nsupdate_auth auth_ptr_type;
     bool fallback_mode;
     char *update_msg;
 };
@@ -89,6 +90,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         struct dp_option *opts,
                         struct sdap_id_ctx *sdap_ctx,
                         enum be_nsupdate_auth auth_type,
+                        enum be_nsupdate_auth auth_ptr_type,
                         const char *ifname,
                         const char *hostname,
                         const char *realm,
@@ -117,6 +119,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->opts = opts;
     state->auth_type = auth_type;
+    state->auth_ptr_type = auth_ptr_type;
 
     /* fallback servername is overridden by user option */
     conf_servername = dp_opt_get_string(opts, DP_OPT_DYNDNS_SERVER);
@@ -432,7 +435,7 @@ sdap_dyndns_update_ptr_step(struct tevent_req *req)
     }
 
     /* Fork a child process to perform the DNS update */
-    subreq = be_nsupdate_send(state, state->ev, state->auth_type,
+    subreq = be_nsupdate_send(state, state->ev, state->auth_ptr_type,
                               state->update_msg,
                               dp_opt_get_bool(state->opts,
                                               DP_OPT_DYNDNS_FORCE_TCP));
