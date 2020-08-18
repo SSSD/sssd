@@ -372,8 +372,8 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
     ocsp_dgst = get_dgst(p11_ctx->cert_verify_opts->ocsp_dgst);
     if (ocsp_dgst == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot determine configured digest function "
-                                 "for OCSP, using default sha256.\n");
-        ocsp_dgst = EVP_sha256();
+                                 "for OCSP, using default sha1.\n");
+        ocsp_dgst = EVP_sha1();
     }
     cid = OCSP_cert_to_id(ocsp_dgst, cert, issuer);
     if (cid == NULL) {

@@ -43,7 +43,7 @@ static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
     cert_verify_opts->ocsp_default_responder = NULL;
     cert_verify_opts->ocsp_default_responder_signing_cert = NULL;
     cert_verify_opts->crl_file = NULL;
-    cert_verify_opts->ocsp_dgst = CKM_SHA256;
+    cert_verify_opts->ocsp_dgst = CKM_SHA_1;
     cert_verify_opts->soft_ocsp = false;
     cert_verify_opts->soft_crl = false;
 
@@ -174,8 +174,8 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
             } else {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Unsupported digest for OCSP [%s], "
-                      "using default sha256.\n", &opts[c][OCSP_DGST_LEN]);
-                cert_verify_opts->ocsp_dgst = CKM_SHA256;
+                      "using default sha1.\n", &opts[c][OCSP_DGST_LEN]);
+                cert_verify_opts->ocsp_dgst = CKM_SHA_1;
             }
 #endif
         } else if (strcasecmp(opts[c], "soft_ocsp") == 0) {
