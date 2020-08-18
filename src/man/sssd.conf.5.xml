@@ -507,7 +507,8 @@
                                           <listitem><para>sha512</para></listitem>
                                         </itemizedlist></para>
                                         <para>
-                                            Default: sha256
+                                            Default: sha1 (to allow compatibility with
+                                            RFC5019-compliant responder)
                                         </para>
                                         <para>(NSS Version) This option is
                                         ignored, because NSS uses sha1
