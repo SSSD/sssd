@@ -443,7 +443,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         }
 
         /* sanitize dn */
-        ret = sss_filter_sanitize(tmpctx, dn, &sanitized_dn);
+        ret = sss_filter_sanitize_dn(tmpctx, dn, &sanitized_dn);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "sss_filter_sanitize failed: %s:[%d]\n",
