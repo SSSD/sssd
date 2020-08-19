@@ -162,7 +162,7 @@ class TestSanityKCM(object):
         ssh = SSHClient(multihost.master[0].sys_hostname,
                         username='foo3', password='Secret123')
 
-        (_, _, exit_status) = ssh.execute_cmd('kdestroy')
+        (_, _, exit_status) = ssh.execute_cmd('kdestroy -A')
         assert exit_status == 0
 
         (_, _, exit_status) = ssh.execute_cmd('kinit foo9',
@@ -171,16 +171,21 @@ class TestSanityKCM(object):
 
         ssh_k_cmd = 'ssh -oStrictHostKeyChecking=no -K -l foo9 ' + \
                     multihost.master[0].sys_hostname + \
-                    ' klist'
+                    ' klist -A'
 
         (stdout, _, exit_status) = ssh.execute_cmd(ssh_k_cmd)
         assert exit_status == 0
 
-        has_cache = False
+        # Re-run klist to generate and initialize a new ccache,
+        # on top of existing ccache
+        (stdout, _, exit_status) = ssh.execute_cmd(ssh_k_cmd)
+        assert exit_status == 0
+
+        ccaches = 0
         for line in stdout.readlines():
             if 'KCM:14583109' in line:
-                has_cache = True
-        assert has_cache is True
+                ccaches += 1
+        assert ccaches is 1
 
     def test_kvno_display(self, multihost, enable_kcm):
         """
