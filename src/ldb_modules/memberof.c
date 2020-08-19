@@ -1364,7 +1364,7 @@ static int memberof_del(struct ldb_module *module, struct ldb_request *req)
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    sret = sss_filter_sanitize(del_ctx, dn, &clean_dn);
+    sret = sss_filter_sanitize_dn(del_ctx, dn, &clean_dn);
     if (sret != 0) {
         talloc_free(ctx);
         return LDB_ERR_OPERATIONS_ERROR;
@@ -1781,7 +1781,7 @@ static int mbof_del_execute_op(struct mbof_del_operation *delop)
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    ret = sss_filter_sanitize(del_ctx, dn, &clean_dn);
+    ret = sss_filter_sanitize_dn(del_ctx, dn, &clean_dn);
     if (ret != 0) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
@@ -3054,7 +3054,7 @@ static int mbof_get_ghost_from_parent(struct mbof_mod_del_op *igh)
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    ret = sss_filter_sanitize(igh, dn, &clean_dn);
+    ret = sss_filter_sanitize_dn(igh, dn, &clean_dn);
     if (ret != 0) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
