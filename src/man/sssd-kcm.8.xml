@@ -68,6 +68,10 @@
             cache, yet share the credential cache between some or no
             containers by bind-mounting the socket.
         </para>
+        <para>
+            The KCM default client idle timeout is 5 minutes, this allows
+            more time for user interaction with command line tools such as kinit.
+        </para>
     </refsect1>
 
     <refsect1 id='usage'>
