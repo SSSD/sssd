@@ -31,6 +31,7 @@
 #include "util/sss_krb5.h"
 
 #define DEFAULT_KCM_FD_LIMIT 2048
+#define DEFAULT_KCM_CLI_IDLE_TIMEOUT 300
 
 #ifndef SSS_KCM_SOCKET_NAME
 #define SSS_KCM_SOCKET_NAME DEFAULT_KCM_SOCKET_PATH
@@ -101,7 +102,7 @@ static int kcm_get_config(struct kcm_ctx *kctx)
     ret = confdb_get_int(kctx->rctx->cdb,
                          kctx->rctx->confdb_service_path,
                          CONFDB_RESPONDER_CLI_IDLE_TIMEOUT,
-                         CONFDB_RESPONDER_CLI_IDLE_DEFAULT_TIMEOUT,
+                         DEFAULT_KCM_CLI_IDLE_TIMEOUT,
                          &kctx->rctx->client_idle_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,

@@ -757,7 +757,7 @@
                             will be adjusted to 10 seconds.
                         </para>
                         <para>
-                            Default: 60
+                            Default: 60, KCM: 300
                         </para>
                     </listitem>
                 </varlistentry>
