@@ -804,7 +804,11 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
                     return kerr;
                 }
             } else if (strcmp(question_list[c],
-                       KRB5_RESPONDER_QUESTION_PKINIT) == 0) {
+                              KRB5_RESPONDER_QUESTION_PKINIT) == 0
+                        && (sss_authtok_get_type(kr->pd->authtok)
+                                               == SSS_AUTHTOK_TYPE_SC_PIN
+                            || sss_authtok_get_type(kr->pd->authtok)
+                                               == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
                 return answer_pkinit(ctx, kr, rctx);
             }
         }
