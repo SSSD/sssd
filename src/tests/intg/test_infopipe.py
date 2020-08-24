@@ -203,6 +203,7 @@ def format_basic_conf(ldap_conn, schema):
         memcache_timeout    = 0
 
         [ifp]
+        debug_level         = 0xffff
         # it need to be executed with valgrind because there is a problem
         # problem with "ifp" + client registration in monitor
         # There is not such problem in 1st test. Just in following tests.
@@ -330,6 +331,28 @@ def simple_rfc2307(request, ldap_conn):
     ent_list.add_group("group1", 181818)
     create_ldap_fixture(request, ldap_conn, ent_list)
     conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def auto_private_groups_rfc2307(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+
+    ent_list.add_group("group1", 2001)
+    ent_list.add_group("single_user_group", 2011, ["user1"])
+    ent_list.add_group("two_user_group", 2012, ["user1"])
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
+        unindent("""
+            [domain/LDAP]
+            auto_private_groups = True
+        """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
@@ -534,6 +557,25 @@ def test_get_user_groups(dbus_system_bus, ldap_conn, sanity_rfc2307):
 
     assert len(res) == 2
     assert sorted(res) == ['single_user_group', 'two_user_group']
+
+
+'''
+Given auto_private_groups is enabled
+When GetUserGroups is called
+Then the origPrimaryGroupGidNumber is returned as part of the group memberships
+'''
+
+
+def test_get_user_groups_given_auto_private_groups_enabled(
+        dbus_system_bus,
+        ldap_conn, auto_private_groups_rfc2307):
+    sssd_obj = dbus_system_bus.get_object('org.freedesktop.sssd.infopipe',
+                                          '/org/freedesktop/sssd/infopipe')
+    sssd_interface = dbus.Interface(sssd_obj, 'org.freedesktop.sssd.infopipe')
+
+    res = sssd_interface.GetUserGroups('user1')
+
+    assert sorted(res) == ['group1', 'single_user_group', 'two_user_group']
 
 
 def get_user_property(dbus_system_bus, username, prop_name):
