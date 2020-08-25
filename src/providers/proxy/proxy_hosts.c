@@ -265,26 +265,26 @@ get_host_by_name_internal(struct proxy_resolver_ctx *ctx,
     }
 
     ret = nss_status_to_errno(status);
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-            "gethostbyname2_r (%s) failed for host [%s]: %d, %s, %s.\n",
-            af == AF_INET ? "AF_INET" : "AF_INET6",
-            search_name, status, strerror(err), hstrerror(h_err));
+    if (ret != EOK) {
+        if (ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "gethostbyname2_r (%s) failed for host [%s]: %d, %s, %s.\n",
+                af == AF_INET ? "AF_INET" : "AF_INET6",
+                search_name, status, strerror(err), hstrerror(h_err));
+        }
+
         goto done;
     }
 
-    if (ret == EOK) {
-        ret = parse_hostent(mem_ctx, result, domain->case_sensitive,
-                            out_name, out_aliases, out_addresses);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Failed to parse hostent [%d]: %s\n",
-                  ret, sss_strerror(ret));
-            goto done;
-        }
+    ret = parse_hostent(mem_ctx, result, domain->case_sensitive,
+                        out_name, out_aliases, out_addresses);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to parse hostent [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
     }
 
-    ret = EOK;
 done:
     talloc_free(tmp_ctx);
 
