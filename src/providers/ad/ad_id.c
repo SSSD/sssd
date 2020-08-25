@@ -1287,6 +1287,12 @@ static errno_t ad_get_account_domain_prepare_search(struct tevent_req *req)
         return EINVAL;
     }
 
+    if (state->search_bases == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to prepare search: missing search_bases\n");
+        return EINVAL;
+    }
+
     switch (state->filter_type) {
     case BE_FILTER_IDNUM:
         break;
