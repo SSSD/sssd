@@ -142,6 +142,17 @@ pam_sss_allow_missing_name:
 	echo "password required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
 	echo "session  required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
 
+pam_sss_domains:
+	$(MKDIR_P) $(PAM_SERVICE_DIR)
+	echo "auth     sufficient       $(DESTDIR)$(pammoddir)/pam_sss.so forward_pass domains=wrong.dom1"  > $(PAM_SERVICE_DIR)/$@
+	echo "auth     sufficient       $(DESTDIR)$(pammoddir)/pam_sss.so forward_pass domains=wrong.dom2"  >> $(PAM_SERVICE_DIR)/$@
+	echo "auth     sufficient       $(DESTDIR)$(pammoddir)/pam_sss.so forward_pass domains=wrong.dom3"  >> $(PAM_SERVICE_DIR)/$@
+	echo "auth     sufficient       $(DESTDIR)$(pammoddir)/pam_sss.so forward_pass domains=krb5_auth"  >> $(PAM_SERVICE_DIR)/$@
+	echo "auth     required         pam_deny.so" >> $(PAM_SERVICE_DIR)/$@
+	echo "account  required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
+	echo "password required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
+	echo "session  required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
+
 CLEANFILES=config.py config.pyc passwd group
 
 clean-local:
@@ -151,7 +162,7 @@ clean-local:
 PAM_CERT_DB_PATH="$(abs_builddir)/../test_CA/SSSD_test_CA.pem"
 SOFTHSM2_CONF="$(abs_builddir)/../test_CA/softhsm2_one.conf"
 
-intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service pam_sss_sc_required pam_sss_try_sc pam_sss_allow_missing_name
+intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service pam_sss_sc_required pam_sss_try_sc pam_sss_allow_missing_name pam_sss_domains
 	pipepath="$(DESTDIR)$(pipepath)"; \
 	if test $${#pipepath} -gt 80; then \
 	    echo "error: Pipe directory path too long," \
