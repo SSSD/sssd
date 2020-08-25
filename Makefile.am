@@ -5490,9 +5490,9 @@ dist_noinst_DATA += \
     contrib/sssd.spec.in \
     BUILD.txt \
     COPYING \
+    src/tests/multihost/README.md \
     src/tests/multihost/conftest.py \
     src/tests/multihost/basic/mhc.yaml \
-    src/tests/multihost/basic/README.md \
     src/tests/multihost/basic/test_basic.py \
     src/tests/multihost/basic/test_config.py \
     src/tests/multihost/basic/test_files.py \
