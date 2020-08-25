@@ -586,12 +586,8 @@ static void ad_cldap_ping_done(struct tevent_req *subreq);
 
 struct tevent_req *ad_cldap_ping_send(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,
-                                      struct sdap_options *opts,
-                                      struct be_resolv_ctx *be_res,
-                                      enum host_database *host_db,
-                                      const char *ad_domain,
-                                      const char *discovery_domain,
-                                      const char *current_site)
+                                      struct ad_srv_plugin_ctx *srv_ctx,
+                                      const char *discovery_domain)
 {
     struct ad_cldap_ping_state *state;
     struct tevent_req *req;
@@ -604,17 +600,30 @@ struct tevent_req *ad_cldap_ping_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    if (!srv_ctx->renew_site) {
+        state->site = srv_ctx->current_site;
+        state->forest = srv_ctx->current_forest;
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "CLDAP ping is not necessary, using site '%s' and forest '%s'\n",
+              state->site != NULL ? state->site : "unknown",
+              state->forest != NULL ? state->forest : "unknown");
+        ret = EOK;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Sending CLDAP ping\n");
+
     state->ev = ev;
-    state->opts = opts;
-    state->be_res = be_res;
-    state->host_db = host_db;
-    state->ad_domain = ad_domain;
+    state->opts = srv_ctx->opts;
+    state->be_res = srv_ctx->be_res;
+    state->host_db = srv_ctx->host_dbs;
+    state->ad_domain = srv_ctx->ad_domain;
     state->discovery_domain = discovery_domain;
 
     /* If possible, lookup the information in the current site first. */
-    if (current_site != NULL) {
+    if (srv_ctx->current_site != NULL) {
         state->all_tried = false;
-        domain = ad_site_dns_discovery_domain(state, current_site,
+        domain = ad_site_dns_discovery_domain(state, srv_ctx->current_site,
                                               discovery_domain);
         if (domain == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!");
@@ -634,7 +643,11 @@ struct tevent_req *ad_cldap_ping_send(TALLOC_CTX *mem_ctx,
     return req;
 
 done:
-    tevent_req_error(req, ret);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
     tevent_req_post(req, ev);
 
     return req;
@@ -705,9 +718,9 @@ static void ad_cldap_ping_done(struct tevent_req *subreq)
 }
 
 errno_t ad_cldap_ping_recv(TALLOC_CTX *mem_ctx,
-                                  struct tevent_req *req,
-                                  const char **_site,
-                                  const char **_forest)
+                           struct tevent_req *req,
+                           const char **_site,
+                           const char **_forest)
 {
     struct ad_cldap_ping_state *state = NULL;
     state = tevent_req_data(req, struct ad_cldap_ping_state);
