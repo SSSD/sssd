@@ -289,6 +289,44 @@ static void run_user_by_id(struct cache_req_test_ctx *test_ctx,
                   cache_refresh_percent, users[0].uid, exp_ret);
 }
 
+static void
+run_user_by_name_with_requested_domains(struct cache_req_test_ctx *test_ctx,
+                                        struct sss_domain_info *domain,
+                                        char **requested_domains,
+                                        int cache_refresh_percent,
+                                        errno_t exp_ret)
+{
+    TALLOC_CTX *req_mem_ctx;
+    struct tevent_req *req;
+    errno_t ret;
+    struct cache_req_data *data;
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    data = cache_req_data_name(req_mem_ctx, CACHE_REQ_USER_BY_NAME,
+                               users[0].short_name);
+    assert_non_null(data);
+
+    cache_req_data_set_requested_domains(data, requested_domains);
+
+    req = cache_req_send(req_mem_ctx, test_ctx->tctx->ev, test_ctx->rctx,
+                         test_ctx->ncache, cache_refresh_percent,
+                         CACHE_REQ_POSIX_DOM,
+                         (domain == NULL ? NULL : domain->name), data);
+    assert_non_null(req);
+    talloc_steal(req, data);
+
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, exp_ret);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    talloc_free(req_mem_ctx);
+}
+
 static void assert_msg_has_shortname(struct cache_req_test_ctx *test_ctx,
                                      struct ldb_message *msg,
                                      const char *check_name)
@@ -939,6 +977,63 @@ void test_user_by_name_missing_notfound(void **state)
     run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
     assert_true(test_ctx->dp_called);
 }
+
+void test_user_by_name_multiple_domains_requested_domains_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    char *requested_domains[2] = { discard_const("responder_cache_req_test_d"),
+                                   NULL};
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    prepare_user(domain, &users[0], 1000, time(NULL));
+
+    /* Mock values. */
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
+
+    /* Test. */
+    run_user_by_name_with_requested_domains(test_ctx, NULL, requested_domains,
+                                            0, ERR_OK);
+    /* The backend will not be called during this test because the user is
+     * already cached in the requested domain. */
+    check_user(test_ctx, &users[0], domain);
+}
+
+void test_user_by_name_multiple_domains_requested_domains_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    char *requested_domains[2] = { discard_const("responder_cache_req_test_a"),
+                                   NULL};
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    prepare_user(domain, &users[0], 1000, time(NULL));
+
+    /* Mock values. */
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
+
+    /* Test. */
+    run_user_by_name_with_requested_domains(test_ctx, NULL, requested_domains,
+                                            0, ENOENT);
+    /* The requested domain is not the domain the user was added to, so we
+     * expect ENOENT and that the backend is called. */
+    assert_true(test_ctx->dp_called);
+}
+
 
 void test_user_by_upn_multiple_domains_found(void **state)
 {
@@ -4127,6 +4222,8 @@ int main(int argc, const char *argv[])
         new_multi_domain_test(user_by_name_multiple_domains_found),
         new_multi_domain_test(user_by_name_multiple_domains_notfound),
         new_multi_domain_test(user_by_name_multiple_domains_parse),
+        new_multi_domain_test(user_by_name_multiple_domains_requested_domains_found),
+        new_multi_domain_test(user_by_name_multiple_domains_requested_domains_notfound),
 
         new_single_domain_test(user_by_upn_cache_valid),
         new_single_domain_test(user_by_upn_cache_expired),
