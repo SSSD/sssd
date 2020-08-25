@@ -116,16 +116,13 @@ static errno_t ad_sort_servers_by_dns(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct ad_srv_plugin_ctx {
-    struct be_ctx *be_ctx;
-    struct be_resolv_ctx *be_res;
-    enum host_database *host_dbs;
-    struct sdap_options *opts;
-    const char *hostname;
-    const char *ad_domain;
-    const char *ad_site_override;
-    const char *current_site;
-};
+static void ad_srv_mark_renew_site(void *pvt)
+{
+    struct ad_srv_plugin_ctx *ctx;
+
+    ctx = talloc_get_type(pvt, struct ad_srv_plugin_ctx);
+    ctx->renew_site = true;
+}
 
 struct ad_srv_plugin_ctx *
 ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
@@ -149,6 +146,7 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
     ctx->be_res = be_res;
     ctx->host_dbs = host_dbs;
     ctx->opts = opts;
+    ctx->renew_site = true;
 
     ctx->hostname = talloc_strdup(ctx, hostname);
     if (ctx->hostname == NULL) {
@@ -181,6 +179,12 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    ret = be_add_offline_cb(ctx, be_ctx, ad_srv_mark_renew_site, ctx, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "be_add_offline_cb failed.\n");
+        goto fail;
+    }
+
     return ctx;
 
 fail:
@@ -190,10 +194,25 @@ fail:
 
 static errno_t
 ad_srv_plugin_ctx_switch_site(struct ad_srv_plugin_ctx *ctx,
-                              const char *new_site)
+                              const char *new_site,
+                              const char *new_forest)
 {
     const char *site;
+    const char *forest;
     errno_t ret;
+
+    /* Switch forest. */
+    if (new_forest != NULL
+        && (ctx->current_forest == NULL
+            || strcmp(ctx->current_forest, new_forest) != 0)) {
+        forest = talloc_strdup(ctx, new_forest);
+        if (forest == NULL) {
+            return ENOMEM;
+        }
+
+        talloc_zfree(ctx->current_forest);
+        ctx->current_forest = forest;
+    }
 
     if (new_site == NULL) {
         return EOK;
@@ -302,12 +321,7 @@ struct tevent_req *ad_srv_plugin_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "About to find domain controllers\n");
-
-    subreq = ad_cldap_ping_send(state, ev, ctx->opts, ctx->be_res,
-                                ctx->host_dbs, ctx->ad_domain,
-                                state->discovery_domain,
-                                state->ctx->current_site);
+    subreq = ad_cldap_ping_send(state, ev, state->ctx, state->discovery_domain);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -363,12 +377,16 @@ static void ad_srv_plugin_ping_done(struct tevent_req *subreq)
         /* Remember current site so it can be used during next lookup so
          * we can contact directory controllers within a known reachable
          * site first. */
-        ret = ad_srv_plugin_ctx_switch_site(state->ctx, state->site);
+        ret = ad_srv_plugin_ctx_switch_site(state->ctx, state->site,
+                                            state->forest);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set site [%d]: %s\n",
                   ret, sss_strerror(ret));
             goto done;
         }
+
+        /* Do not renew the site again unless we go offline. */
+        state->ctx->renew_site = false;
 
         if (strcmp(state->service, "gc") == 0) {
             if (state->forest != NULL) {
