@@ -287,6 +287,15 @@ _nss_sss_getnetbyaddr_r(uint32_t addr, int type,
     size_t ctr = 0;
     socklen_t addrlen;
 
+    if (type == AF_UNSPEC) {
+        char addrbuf[INET_ADDRSTRLEN];
+
+        /* Try to parse to IPv4 */
+        if (inet_ntop(AF_INET, &addr, addrbuf, INET_ADDRSTRLEN)) {
+            type = AF_INET;
+        }
+    }
+
     if (type != AF_INET) {
         *errnop = EAFNOSUPPORT;
         *h_errnop = NETDB_INTERNAL;
