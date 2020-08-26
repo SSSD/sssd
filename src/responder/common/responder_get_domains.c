@@ -684,6 +684,7 @@ struct tevent_req *
 sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
                                struct resp_ctx *rctx,
                                struct sss_domain_info *dom,
+                               bool fast_reply,
                                enum sss_dp_acct_type type,
                                uint32_t opt_id)
 {
@@ -693,6 +694,7 @@ sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
     struct be_conn *be_conn;
     uint32_t entry_type;
     char *filter;
+    uint32_t dp_flags;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sss_dp_get_account_domain_state);
@@ -733,10 +735,12 @@ sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    dp_flags = fast_reply ? DP_FAST_REPLY : 0;
+
     subreq = sbus_call_dp_dp_getAccountDomain_send(state, be_conn->conn,
                                                    be_conn->bus_name,
-                                                   SSS_BUS_PATH, entry_type,
-                                                   filter);
+                                                   SSS_BUS_PATH, dp_flags,
+                                                   entry_type, filter);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;

@@ -246,6 +246,7 @@ _sbus_sss_args_sssd_Responder_NegativeCache_ResetUsers = {
 const struct sbus_method_arguments
 _sbus_sss_args_sssd_dataprovider_getAccountDomain = {
     .input = (const struct sbus_argument[]){
+        {.type = "u", .name = "dp_flags"},
         {.type = "u", .name = "entry_type"},
         {.type = "s", .name = "filter"},
         {NULL}

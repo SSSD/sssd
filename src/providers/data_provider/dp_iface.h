@@ -179,6 +179,7 @@ dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct sbus_request *sbus_req,
                            struct data_provider *provider,
+                           uint32_t dp_flags,
                            uint32_t entry_type,
                            const char *filter);
 
