@@ -304,6 +304,9 @@ get_net_byaddr(struct proxy_resolver_ctx *ctx,
         goto done;
     }
 
+    /* getnetbyaddr_r expects address in host byte order */
+    addrbuf = ntohl(addrbuf);
+
     for (status = NSS_STATUS_TRYAGAIN,
          err = ERANGE, h_err = 0;
          status == NSS_STATUS_TRYAGAIN && err == ERANGE;
