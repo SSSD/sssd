@@ -129,6 +129,7 @@
 #define SYSDB_UPN "userPrincipalName"
 #define SYSDB_CANONICAL_UPN "canonicalUserPrincipalName"
 #define SYSDB_CCACHE_FILE "ccacheFile"
+#define SYSDB_DN_FOR_MEMBER_HASH_TABLE "dnForMemberHashTable"
 
 #define SYSDB_ORIG_DN "originalDN"
 #define SYSDB_ORIG_MODSTAMP "originalModifyTimestamp"

@@ -241,9 +241,12 @@ static errno_t sdap_nested_group_hash_entry(hash_table_t *table,
     const char *name = NULL;
     errno_t ret;
 
-    ret = sysdb_attrs_get_string(entry, SYSDB_ORIG_DN, &name);
+    ret = sysdb_attrs_get_string(entry, SYSDB_DN_FOR_MEMBER_HASH_TABLE, &name);
     if (ret != EOK) {
-        return ret;
+        ret = sysdb_attrs_get_string(entry, SYSDB_ORIG_DN, &name);
+        if (ret != EOK) {
+            return ret;
+        }
     }
 
     return sdap_nested_group_hash_insert(table, name, entry, false, table_name);
@@ -1493,6 +1496,19 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
                 /* user not found, continue */
                 break;
             }
+        }
+
+        /* The original DN of the user object itself might differ from the one
+         * used in the member attribute, e.g. different case. To make sure if
+         * can be found in a hash table when iterating over group members the
+         * DN from the member attribute used for the search as saved as well.
+         */
+        ret = sysdb_attrs_add_string(entry,
+                                     SYSDB_DN_FOR_MEMBER_HASH_TABLE,
+                                     state->current_member->dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+            goto done;
         }
 
         /* save user in hash table */
