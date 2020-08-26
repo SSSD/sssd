@@ -138,6 +138,8 @@ errno_t sbus_connect_private_recv(TALLOC_CTX *mem_ctx,
  * @param use_symlink            If a symlink to @address should be created.
  * @param uid                    Socket owner uid.
  * @param gid                    Socket owner gid.
+ * @param on_conn_cb             On new connection callback function.
+ * @param on_conn_data           Private data passed to the callback.
  *
  * @return New sbus server or NULL on error.
  */
@@ -148,7 +150,9 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
                    bool use_symlink,
                    uint32_t max_connections,
                    uid_t uid,
-                   gid_t gid);
+                   gid_t gid,
+                   sbus_server_on_connection_cb on_conn_cb,
+                   sbus_server_on_connection_data on_conn_data);
 
 /**
  * Create a new sbus server at socket address @address and connect to it.
@@ -162,6 +166,8 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
  * @param use_symlink            If a symlink to @address should be created.
  * @param uid                    Socket owner uid.
  * @param gid                    Socket owner gid.
+ * @param on_conn_cb             On new connection callback function.
+ * @param on_conn_data           Private data passed to the callback.
  *
  * @return Tevent request or NULL on error.
  */
@@ -174,7 +180,9 @@ sbus_server_create_and_connect_send(TALLOC_CTX *mem_ctx,
                                     bool use_symlink,
                                     uint32_t max_connections,
                                     uid_t uid,
-                                    gid_t gid);
+                                    gid_t gid,
+                                    sbus_server_on_connection_cb on_conn_cb,
+                                    sbus_server_on_connection_data on_conn_data);
 
 /**
  * Receive reply from @sbus_server_create_and_connect_send.
@@ -445,5 +453,8 @@ sbus_router_add_node(struct sbus_connection *conn,
 errno_t
 sbus_router_add_node_map(struct sbus_connection *conn,
                          struct sbus_node *map);
+
+/* Get connection name, well known name is preferred. */
+const char * sbus_connection_get_name(struct sbus_connection *conn);
 
 #endif /* _SBUS_H_ */

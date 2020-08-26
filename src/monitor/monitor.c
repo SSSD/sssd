@@ -2008,7 +2008,8 @@ static int monitor_process_init(struct mt_ctx *ctx,
 
     req = sbus_server_create_and_connect_send(ctx, ctx->ev, SSS_BUS_MONITOR,
                                               NULL, SSS_MONITOR_ADDRESS,
-                                              false, 100, ctx->uid, ctx->gid);
+                                              false, 100, ctx->uid, ctx->gid,
+                                              NULL, NULL);
     if (req == NULL) {
         ret = ENOMEM;
         goto done;
