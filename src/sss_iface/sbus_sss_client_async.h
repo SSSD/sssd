@@ -238,6 +238,7 @@ sbus_call_dp_dp_getAccountDomain_send
      struct sbus_connection *conn,
      const char *busname,
      const char *object_path,
+     uint32_t arg_dp_flags,
      uint32_t arg_entry_type,
      const char * arg_filter);
 
