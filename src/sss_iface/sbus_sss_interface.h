@@ -517,23 +517,23 @@
 
 /* Method: sssd.dataprovider.getAccountDomain */
 #define SBUS_METHOD_SYNC_sssd_dataprovider_getAccountDomain(handler, data) ({ \
-    SBUS_CHECK_SYNC((handler), (data), uint32_t, const char *, uint16_t*, uint32_t*, const char **); \
+    SBUS_CHECK_SYNC((handler), (data), uint32_t, uint32_t, const char *, uint16_t*, uint32_t*, const char **); \
     sbus_method_sync("getAccountDomain", \
         &_sbus_sss_args_sssd_dataprovider_getAccountDomain, \
         NULL, \
-        _sbus_sss_invoke_in_us_out_qus_send, \
-        _sbus_sss_key_us_0_1, \
+        _sbus_sss_invoke_in_uus_out_qus_send, \
+        _sbus_sss_key_uus_0_1_2, \
         (handler), (data)); \
 })
 
 #define SBUS_METHOD_ASYNC_sssd_dataprovider_getAccountDomain(handler_send, handler_recv, data) ({ \
-    SBUS_CHECK_SEND((handler_send), (data), uint32_t, const char *); \
+    SBUS_CHECK_SEND((handler_send), (data), uint32_t, uint32_t, const char *); \
     SBUS_CHECK_RECV((handler_recv), uint16_t*, uint32_t*, const char **); \
     sbus_method_async("getAccountDomain", \
         &_sbus_sss_args_sssd_dataprovider_getAccountDomain, \
         NULL, \
-        _sbus_sss_invoke_in_us_out_qus_send, \
-        _sbus_sss_key_us_0_1, \
+        _sbus_sss_invoke_in_uus_out_qus_send, \
+        _sbus_sss_key_uus_0_1_2, \
         (handler_send), (handler_recv), (data)); \
 })
 

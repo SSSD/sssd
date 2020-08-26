@@ -348,6 +348,7 @@ errno_t sss_dp_get_domains_recv(struct tevent_req *req);
 struct tevent_req *sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
                                                   struct resp_ctx *rctx,
                                                   struct sss_domain_info *domain,
+                                                  bool fast_reply,
                                                   enum sss_dp_acct_type type,
                                                   uint32_t opt_id);
 

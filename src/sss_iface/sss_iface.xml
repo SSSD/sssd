@@ -146,8 +146,9 @@
             <arg name="error_message" type="s" direction="out" />
         </method>
         <method name="getAccountDomain">
-            <arg name="entry_type" type="u" direction="in" key="1" />
-            <arg name="filter" type="s" direction="in" key="2" />
+            <arg name="dp_flags" type="u" direction="in" key="1" />
+            <arg name="entry_type" type="u" direction="in" key="2" />
+            <arg name="filter" type="s" direction="in" key="3" />
             <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
             <arg name="domain_name" type="s" direction="out" />

@@ -582,6 +582,55 @@ errno_t _sbus_sss_invoker_write_uss
     return EOK;
 }
 
+errno_t _sbus_sss_invoker_read_uus
+   (TALLOC_CTX *mem_ctx,
+    DBusMessageIter *iter,
+    struct _sbus_sss_invoker_args_uus *args)
+{
+    errno_t ret;
+
+    ret = sbus_iterator_read_u(iter, &args->arg0);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_read_u(iter, &args->arg1);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_read_s(mem_ctx, iter, &args->arg2);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
+errno_t _sbus_sss_invoker_write_uus
+   (DBusMessageIter *iter,
+    struct _sbus_sss_invoker_args_uus *args)
+{
+    errno_t ret;
+
+    ret = sbus_iterator_write_u(iter, args->arg0);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_write_u(iter, args->arg1);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_write_s(iter, args->arg2);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
 errno_t _sbus_sss_invoker_read_uusss
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,

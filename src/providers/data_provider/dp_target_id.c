@@ -691,6 +691,7 @@ dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct sbus_request *sbus_req,
                            struct data_provider *provider,
+                           uint32_t dp_flags,
                            uint32_t entry_type,
                            const char *filter)
 {
@@ -718,7 +719,7 @@ dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = dp_req_send(state, provider, NULL, "AccountDomain", DPT_ID,
-                         DPM_ACCT_DOMAIN_HANDLER, 0, state->data,
+                         DPM_ACCT_DOMAIN_HANDLER, dp_flags, state->data,
                          &state->request_name);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
