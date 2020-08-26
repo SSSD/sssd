@@ -136,6 +136,7 @@ def call_sssd_getnetbyaddr(addrstr):
         addrstr = addrstr.decode('utf-8')
     addr = IPv4Address(addrstr)
     binaddr = unpack('<I', addr.packed)[0]
+    binaddr = socket.ntohl(binaddr)
 
     (res, errno, h_errno, result_p) = getnetbyaddr_r(binaddr, socket.AF_INET,
                                                      result_p, buff,
