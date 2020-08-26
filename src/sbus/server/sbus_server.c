@@ -635,7 +635,9 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
                    bool use_symlink,
                    uint32_t max_connections,
                    uid_t uid,
-                   gid_t gid)
+                   gid_t gid,
+                   sbus_server_on_connection_cb on_conn_cb,
+                   sbus_server_on_connection_data on_conn_data)
 {
     DBusServer *dbus_server;
     struct sbus_server *sbus_server;
@@ -673,6 +675,11 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
     if (sbus_server->on_connection == NULL) {
         ret = ENOMEM;
         goto done;
+    }
+
+    if (on_conn_cb != NULL) {
+        _sbus_server_set_on_connection(sbus_server, "on-connection", on_conn_cb,
+                                       on_conn_data);
     }
 
     sbus_server->names = sss_ptr_hash_create(sbus_server,

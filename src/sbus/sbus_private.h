@@ -190,9 +190,6 @@ void sbus_connection_tevent_disable(struct sbus_connection *conn);
 /* Mark that this connection is currently active (new method call arrived). */
 void sbus_connection_mark_active(struct sbus_connection *conn);
 
-/* Get connection name, well known name is preferred. */
-const char * sbus_connection_get_name(struct sbus_connection *conn);
-
 /* Set connection well known name. */
 errno_t sbus_connection_set_name(struct sbus_connection *conn,
                                  const char *name);

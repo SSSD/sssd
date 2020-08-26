@@ -192,9 +192,9 @@ dp_init_send(TALLOC_CTX *mem_ctx,
     talloc_set_destructor(state->provider, dp_destructor);
 
     subreq = sbus_server_create_and_connect_send(state->provider, ev,
-                                                 state->sbus_name,
-                                                 NULL, sbus_address, true, 1000,
-                                                 uid, gid);
+        state->sbus_name, NULL, sbus_address, true, 1000, uid, gid,
+        (sbus_server_on_connection_cb)dp_client_init,
+        (sbus_server_on_connection_data)state->provider);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
@@ -234,9 +234,6 @@ static void dp_init_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
-
-    sbus_server_set_on_connection(state->provider->sbus_server,
-                                  dp_client_init, state->provider);
 
     /* be_ctx->provider must be accessible from modules and targets */
     state->be_ctx->provider = talloc_steal(state->be_ctx, state->provider);

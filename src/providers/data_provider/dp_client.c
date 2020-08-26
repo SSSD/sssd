@@ -140,15 +140,28 @@ dp_client_handshake_timeout(struct tevent_context *ev,
 {
     struct sbus_connection *conn;
     struct dp_client *dp_cli;
-
-    DEBUG(SSSDBG_OP_FAILURE,
-          "Client timed out before identification [%p]!\n", te);
+    const char *be_name;
+    const char *name;
 
     dp_cli = talloc_get_type(ptr, struct dp_client);
+    conn = dp_cli->conn;
+    be_name = dp_cli->provider->be_ctx->sbus_name;
 
     talloc_set_destructor(dp_cli, NULL);
 
-    conn = dp_cli->conn;
+    name = sbus_connection_get_name(dp_cli->conn);
+    if (name != NULL && strcmp(name, be_name) == 0) {
+        /* This is the data provider connection. Just free the client record
+         * but keep the connection opened. */
+        talloc_zfree(dp_cli);
+        return;
+    }
+
+    DEBUG(SSSDBG_OP_FAILURE,
+          "Client [%s] timed out before identification [%p]!\n",
+          name == NULL ? "unknown" : name, te);
+
+    /* Kill the connection. */
     talloc_zfree(dp_cli);
     talloc_zfree(conn);
 }

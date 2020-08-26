@@ -344,7 +344,9 @@ sbus_server_create_and_connect_send(TALLOC_CTX *mem_ctx,
                                     bool use_symlink,
                                     uint32_t max_connections,
                                     uid_t uid,
-                                    gid_t gid)
+                                    gid_t gid,
+                                    sbus_server_on_connection_cb on_conn_cb,
+                                    sbus_server_on_connection_data on_conn_data)
 {
     struct sbus_server_create_and_connect_state *state;
     struct tevent_req *subreq;
@@ -358,7 +360,8 @@ sbus_server_create_and_connect_send(TALLOC_CTX *mem_ctx,
     }
 
     state->server = sbus_server_create(state, ev, address, use_symlink,
-                                       max_connections, uid, gid);
+                                       max_connections, uid, gid,
+                                       on_conn_cb, on_conn_data);
     if (state->server == NULL) {
         ret = ENOMEM;
         goto done;
