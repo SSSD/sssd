@@ -2313,6 +2313,7 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
     struct ldb_message_element *el;
     const char *username;
     const char *original_dn;
+    const char *hash_key_dn;
     struct sss_domain_info *user_dom;
     struct sdap_domain *sdap_dom;
 
@@ -2411,8 +2412,22 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
                                        SYSDB_MOD_REP);
             if (ret != EOK) goto done;
         } else {
+            /* The DN of the user object and the DN in the member attribute
+             * might differ, e.g. in case. Since we later search the hash with
+             * DNs from the member attribute we should try to use DN from the
+             * member attribute here as well. This should be added earlier in
+             * the SYSDB_DN_FOR_MEMBER_HASH_TABLE attribute. If this does not
+             * exists we fall-back to original_dn which should work in the
+             * most cases as well. */
+            ret = sysdb_attrs_get_string(users[i],
+                                         SYSDB_DN_FOR_MEMBER_HASH_TABLE,
+                                         &hash_key_dn);
+            if (ret != EOK) {
+                hash_key_dn = original_dn;
+            }
+
             key.type = HASH_KEY_STRING;
-            key.str = talloc_steal(ghosts, discard_const(original_dn));
+            key.str = talloc_steal(ghosts, discard_const(hash_key_dn));
             value.type = HASH_VALUE_PTR;
             /* Already qualified from sdap_get_user_primary_name() */
             value.ptr = talloc_steal(ghosts, discard_const(username));

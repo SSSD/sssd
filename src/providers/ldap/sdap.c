@@ -770,6 +770,16 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
+        /* The dereference control seems to return the DN from the dereference
+         * attribute (e.g. member) so we can use it as key for the hash table
+         * later. */
+        ret = sysdb_attrs_add_string(res[mi]->attrs,
+                                     SYSDB_DN_FOR_MEMBER_HASH_TABLE, orig_dn);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+            goto done;
+        }
+
         for (dval = dref->attrVals; dval != NULL; dval = dval->next) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Dereferenced attribute: %s\n", dval->type);
