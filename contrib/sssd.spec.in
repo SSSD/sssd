@@ -113,6 +113,7 @@
     %global with_python2_option --without-python2-bindings
 %else
     %global with_python2 1
+    %global with_python2_option --with-python2-bindings
 %endif
 
 %global enable_systemtap 1
