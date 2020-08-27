@@ -377,10 +377,10 @@ AC_DEFUN([WITH_KRB5_CONF],
 AC_DEFUN([WITH_PYTHON2_BINDINGS],
   [ AC_ARG_WITH([python2-bindings],
                 [AC_HELP_STRING([--with-python2-bindings],
-                                [Whether to build python2 bindings [yes]])
+                                [Whether to build python2 bindings [no]])
                 ],
                 [],
-                [with_python2_bindings=yes]
+                [with_python2_bindings=no]
                )
     if test x"$with_python2_bindings" = xyes; then
         AC_SUBST([HAVE_PYTHON2_BINDINGS], [yes])
