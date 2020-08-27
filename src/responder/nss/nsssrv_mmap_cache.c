@@ -1264,6 +1264,8 @@ static int mc_ctx_destructor(struct sss_mc_ctx *mc_ctx)
     return 0;
 }
 
+#define POSIX_FALLOCATE_ATTEMPTS 3
+
 errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                             uid_t uid, gid_t gid,
                             enum sss_mc_type type, size_t n_elem,
@@ -1343,10 +1345,14 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
         goto done;
     }
 
-    ret = ftruncate(mc_ctx->fd, mc_ctx->mmap_size);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resize file %s: %d(%s)\n",
+    /* Attempt allocation several times, in case of EINTR */
+    for (int i = 0; i < POSIX_FALLOCATE_ATTEMPTS; i++) {
+        ret = posix_fallocate(mc_ctx->fd, 0, mc_ctx->mmap_size);
+        if (ret != EINTR)
+            break;
+    }
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate file %s: %d(%s)\n",
                                     mc_ctx->file, ret, strerror(ret));
         goto done;
     }
