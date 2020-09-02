@@ -141,7 +141,7 @@ fi
 
 PRERELEASE_VERSION=""
 if [ -n "$PRERELEASE" ]; then
-    PRERELEASE_VERSION=.$(date +%Y%m%d.%H%M).git$(git log -1 --pretty=format:%h)
+    PRERELEASE_VERSION=.$(date +%y%m%d.%H%M%S).git$(git log -1 --pretty=format:%h)
 fi
 
 mkdir -p $RPMBUILD/BUILD
