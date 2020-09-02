@@ -303,6 +303,25 @@ def sanity_rfc2307_bis(request, ldap_conn):
     return None
 
 
+@pytest.fixture
+def member_with_different_cases_rfc2307_bis(request, ldap_conn):
+    """
+    Create a group where the user DN values of the RFC2307bis member attribute
+    differ in case from the original DN of the user object.
+    """
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user2", 1002, 2002)
+
+    ent_list.add_group_bis("two_user_group", 2012, ["USER1", "uSeR2"])
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
 def expected_list_to_name_dict(entries):
     return dict((u["name"], u) for u in entries)
 
@@ -392,6 +411,22 @@ def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
         grp.getgrnam("non_existent_group")
     with pytest.raises(KeyError):
         grp.getgrgid(1)
+
+
+def test_member_with_different_cases_rfc2307_bis(
+                                      ldap_conn,
+                                      member_with_different_cases_rfc2307_bis):
+    """
+    Regression test for https://bugzilla.redhat.com/show_bug.cgi?id=1817122
+    Make sure that group members are added properly to the group even if the
+    user DN in the RFC2307bis member attribute differs in case from the
+    original DN of the user object.
+    """
+    group_pattern = expected_list_to_name_dict([
+        dict(name='two_user_group', passwd='*', gid=2012,
+             mem=ent.contains_only("user1", "user2")),
+    ])
+    ent.assert_each_group_by_name(group_pattern)
 
 
 @pytest.fixture
