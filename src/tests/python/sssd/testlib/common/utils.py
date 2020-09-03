@@ -833,6 +833,7 @@ class PkiTools(object):
                                 ' -k %s -w %s' % (nss_dir, ca_p12_path,
                                                   canickname, self.pwdfilepath,
                                                   self.pwdfilepath)
+                _, _, return_code = self.execute(shlex.split(export_ca_p12))
                 server_pkcs12_file = '%s-%s' % (server, 'server.p12')
                 server_p12 = os.path.join(nss_dir, server_pkcs12_file)
                 export_svr_p12 = 'pk12util -d %s -o %s -n %s'\
@@ -841,7 +842,7 @@ class PkiTools(object):
                                                    self.pwdfilepath,
                                                    self.pwdfilepath)
                 _, _, return_code = self.execute(shlex.split(export_svr_p12))
-                return nss_dir
+        return nss_dir
 
 
 class ADOperations(object):
