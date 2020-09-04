@@ -475,54 +475,17 @@ START_TEST(test_size_t_overflow)
 }
 END_TEST
 
-START_TEST(test_utf8_lowercase)
-{
-    const uint8_t munchen_utf8_upcase[] = { 'M', 0xC3, 0x9C, 'N', 'C', 'H', 'E', 'N', 0x0 };
-    const uint8_t munchen_utf8_lowcase[] = { 'm', 0xC3, 0xBC, 'n', 'c', 'h', 'e', 'n', 0x0 };
-    uint8_t *lcase;
-    size_t nlen;
-
-    lcase = sss_utf8_tolower(munchen_utf8_upcase,
-                             strlen((const char *)munchen_utf8_upcase),
-                             &nlen);
-    ck_assert_int_eq(strlen((const char *) munchen_utf8_upcase), nlen); /* This is not true for utf8 strings in general */
-    fail_if(memcmp(lcase, munchen_utf8_lowcase, nlen),
-            "Unexpected binary values");
-    sss_utf8_free(lcase);
-}
-END_TEST
-
-START_TEST(test_utf8_talloc_lowercase)
-{
-    const uint8_t munchen_utf8_upcase[] = { 'M', 0xC3, 0x9C, 'N', 'C', 'H', 'E', 'N', 0x0 };
-    const uint8_t munchen_utf8_lowcase[] = { 'm', 0xC3, 0xBC, 'n', 'c', 'h', 'e', 'n', 0x0 };
-    uint8_t *lcase;
-    size_t nsize;
-
-    TALLOC_CTX *test_ctx;
-    test_ctx = talloc_new(NULL);
-    fail_if(test_ctx == NULL, "Failed to allocate memory");
-
-    lcase = sss_tc_utf8_tolower(test_ctx, munchen_utf8_upcase,
-                                strlen((const char *) munchen_utf8_upcase),
-                                &nsize);
-    fail_if(memcmp(lcase, munchen_utf8_lowcase, nsize),
-            "Unexpected binary values");
-    talloc_free(test_ctx);
-}
-END_TEST
-
 START_TEST(test_utf8_talloc_str_lowercase)
 {
-    const uint8_t munchen_utf8_upcase[] = { 'M', 0xC3, 0x9C, 'N', 'C', 'H', 'E', 'N', 0x0 };
-    const uint8_t munchen_utf8_lowcase[] = { 'm', 0xC3, 0xBC, 'n', 'c', 'h', 'e', 'n', 0x0 };
+    const char munchen_utf8_upcase[] = { 'M', 0xC3, 0x9C, 'N', 'C', 'H', 'E', 'N', 0x0 };
+    const char munchen_utf8_lowcase[] = { 'm', 0xC3, 0xBC, 'n', 'c', 'h', 'e', 'n', 0x0 };
     char *lcase;
 
     TALLOC_CTX *test_ctx;
     test_ctx = talloc_new(NULL);
     fail_if(test_ctx == NULL, "Failed to allocate memory");
 
-    lcase = sss_tc_utf8_str_tolower(test_ctx, (const char *) munchen_utf8_upcase);
+    lcase = sss_tc_utf8_str_tolower(test_ctx, munchen_utf8_upcase);
     fail_if(memcmp(lcase, munchen_utf8_lowcase, strlen(lcase)),
             "Unexpected binary values");
     talloc_free(test_ctx);
@@ -1167,8 +1130,6 @@ Suite *util_suite(void)
     tcase_set_timeout(tc_util, 60);
 
     TCase *tc_utf8 = tcase_create("utf8");
-    tcase_add_test (tc_utf8, test_utf8_lowercase);
-    tcase_add_test (tc_utf8, test_utf8_talloc_lowercase);
     tcase_add_test (tc_utf8, test_utf8_talloc_str_lowercase);
     tcase_add_test (tc_utf8, test_utf8_caseeq);
     tcase_add_test (tc_utf8, test_utf8_check);
