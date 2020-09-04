@@ -36,54 +36,32 @@
 #include "sss_utf8.h"
 
 #ifdef HAVE_LIBUNISTRING
-void sss_utf8_free(void *ptr)
+void sss_utf8_free(char *ptr)
 {
-    return free(ptr);
+    free(ptr);
 }
 #elif defined(HAVE_GLIB2)
-void sss_utf8_free(void *ptr)
+void sss_utf8_free(char *ptr)
 {
-    return g_free(ptr);
+    g_free(ptr);
 }
 #else
 #error No unicode library
 #endif
 
+/* Expects and returns NULL-terminated string;
+ * result must be freed with sss_utf8_free()
+ */
 #ifdef HAVE_LIBUNISTRING
-uint8_t *sss_utf8_tolower(const uint8_t *s, size_t len, size_t *_nlen)
+char *sss_utf8_tolower(const char *s)
 {
     size_t llen;
-    uint8_t *lower;
-
-    lower = u8_tolower(s, len, NULL, NULL, NULL, &llen);
-    if (!lower) return NULL;
-
-    if (_nlen) *_nlen = llen;
-    return lower;
+    return u8_tolower((const uint8_t *)s, strlen(s) + 1, NULL, NULL, NULL, &llen);
 }
 #elif defined(HAVE_GLIB2)
-uint8_t *sss_utf8_tolower(const uint8_t *s, size_t len, size_t *_nlen)
+char *sss_utf8_tolower(const char *s)
 {
-    gchar *glower;
-    size_t nlen;
-    uint8_t *lower;
-
-    glower = g_utf8_strdown((const gchar *) s, len);
-    if (!glower) return NULL;
-
-    /* strlen() is safe here because g_utf8_strdown() always null-terminates */
-    nlen = strlen(glower);
-
-    lower = g_malloc(nlen);
-    if (!lower) {
-        g_free(glower);
-        return NULL;
-    }
-
-    memcpy(lower, glower, nlen);
-    g_free(glower);
-    if (_nlen) *_nlen = nlen;
-    return (uint8_t *) lower;
+    return g_utf8_strdown((const gchar *)s, -1);
 }
 #else
 #error No unicode library
@@ -108,10 +86,6 @@ bool sss_utf8_check(const uint8_t *s, size_t n)
 #error No unicode library
 #endif
 
-/* Returns EOK on match, ENOTUNIQ if comparison succeeds but
- * does not match.
- * May return other errno error codes on failure
- */
 #ifdef HAVE_LIBUNISTRING
 errno_t sss_utf8_case_eq(const uint8_t *s1, const uint8_t *s2)
 {
