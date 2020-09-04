@@ -51,6 +51,7 @@
 #define ONLINE_CB_RETRY 3
 #define ONLINE_CB_RETRY_MAX_DELAY 4
 
+#define OFFLINE_TIMEOUT_DEFAULT 60
 #define OFFLINE_TIMEOUT_MAX_DEFAULT 3600
 
 /* sssd.service */
@@ -100,13 +101,14 @@ static int get_offline_timeout(struct be_ctx *ctx)
     int offline_timeout;
 
     ret = confdb_get_int(ctx->cdb, ctx->conf_path,
-                         CONFDB_DOMAIN_OFFLINE_TIMEOUT, 60,
+                         CONFDB_DOMAIN_OFFLINE_TIMEOUT,
+                         OFFLINE_TIMEOUT_DEFAULT,
                          &offline_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to get offline_timeout from confdb. "
-              "Will use 60 seconds.\n");
-        offline_timeout = 60;
+              "Will use %d seconds.\n", OFFLINE_TIMEOUT_DEFAULT);
+        offline_timeout = OFFLINE_TIMEOUT_DEFAULT;
     }
 
     return offline_timeout;
