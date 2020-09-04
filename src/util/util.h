@@ -525,6 +525,7 @@ char *
 sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s);
 uint8_t *
 sss_tc_utf8_tolower(TALLOC_CTX *mem_ctx, const uint8_t *s, size_t len, size_t *_nlen);
+/* from sss_utf8.c */
 bool sss_string_equal(bool cs, const char *s1, const char *s2);
 
 /* len includes terminating '\0' */
