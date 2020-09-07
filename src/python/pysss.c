@@ -347,7 +347,11 @@ initpysss(void)
     }
 
     Py_INCREF(&pysss_password_type);
-    PyModule_AddObject(m, discard_const_p(char, "password"), (PyObject *)&pysss_password_type);
+    if (PyModule_AddObject(m, discard_const_p(char, "password"),
+                           (PyObject *)&pysss_password_type) == -1) {
+        Py_XDECREF(&pysss_password_type);
+        MODINITERROR(m);
+    }
 
 #ifdef IS_PY3K
     return m;
