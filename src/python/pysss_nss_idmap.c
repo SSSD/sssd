@@ -579,8 +579,9 @@ initpysss_nss_idmap(void)
                             methods,
                             sss_py_const_p(char, "SSSD ID-mapping functions"));
 #endif
-    if (module == NULL)
-        MODINITERROR;
+    if (module == NULL) {
+        MODINITERROR(NULL);
+    }
 
     PyModule_AddIntConstant(module, "ID_NOT_SPECIFIED",
                             SSS_ID_TYPE_NOT_SPECIFIED);

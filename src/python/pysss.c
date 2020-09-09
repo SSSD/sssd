@@ -333,16 +333,18 @@ initpysss(void)
 {
     PyObject *m;
 
-    if (PyType_Ready(&pysss_password_type) < 0)
-        MODINITERROR;
+    if (PyType_Ready(&pysss_password_type) < 0) {
+        MODINITERROR(NULL);
+    }
 
 #ifdef IS_PY3K
     m = PyModule_Create(&pysssdef);
 #else
     m = Py_InitModule(discard_const_p(char, "pysss"), module_methods);
 #endif
-    if (m == NULL)
-        MODINITERROR;
+    if (m == NULL){
+        MODINITERROR(NULL);
+    }
 
     Py_INCREF(&pysss_password_type);
     PyModule_AddObject(m, discard_const_p(char, "password"), (PyObject *)&pysss_password_type);
