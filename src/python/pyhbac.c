@@ -1940,7 +1940,9 @@ initpyhbac(void)
     m = Py_InitModule(sss_py_const_p(char, PYTHON_MODULE_NAME),
                       pyhbac_module_methods);
 #endif
-    if (m == NULL) MODINITERROR;
+    if (m == NULL) {
+        MODINITERROR(NULL);
+    }
 
     /* The HBAC module exception */
     PyExc_HbacError = sss_exception_with_doc(
@@ -1948,43 +1950,73 @@ initpyhbac(void)
                         PyExc_EnvironmentError, NULL);
     Py_INCREF(PyExc_HbacError);
     ret = PyModule_AddObject(m, sss_py_const_p(char, "HbacError"), PyExc_HbacError);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
 
     /* HBAC rule categories */
     ret = PyModule_AddIntMacro(m, HBAC_CATEGORY_NULL);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
     ret = PyModule_AddIntMacro(m, HBAC_CATEGORY_ALL);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
 
     /* HBAC rule elements */
     ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_USERS);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
     ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_SERVICES);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
     ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_TARGETHOSTS);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
     ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_SOURCEHOSTS);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
 
     /* enum hbac_eval_result */
     ret = PyModule_AddIntMacro(m, HBAC_EVAL_ALLOW);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
     ret = PyModule_AddIntMacro(m, HBAC_EVAL_DENY);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
     ret = PyModule_AddIntMacro(m, HBAC_EVAL_ERROR);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
 
     /* enum hbac_error_code */
     ret = PyModule_AddIntMacro(m, HBAC_ERROR_UNKNOWN);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
     ret = PyModule_AddIntMacro(m, HBAC_SUCCESS);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
     ret = PyModule_AddIntMacro(m, HBAC_ERROR_NOT_IMPLEMENTED);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
     ret = PyModule_AddIntMacro(m, HBAC_ERROR_OUT_OF_MEMORY);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
     ret = PyModule_AddIntMacro(m, HBAC_ERROR_UNPARSEABLE_RULE);
-    if (ret == -1) MODINITERROR;
+    if (ret == -1) {
+        MODINITERROR(m);
+    }
 
     TYPE_READY(m, pyhbac_hbacrule_type, "HbacRule");
     TYPE_READY(m, pyhbac_hbacrule_element_type, "HbacRuleElement");

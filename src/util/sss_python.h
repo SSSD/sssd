@@ -16,17 +16,27 @@
 
 #if PY_MAJOR_VERSION >= 3
 #define IS_PY3K
-#define MODINITERROR return NULL
+
+#define MODINITERROR(module) do {                   \
+    Py_XDECREF(module);                             \
+    return NULL;                                    \
+} while(0)
+
 #define PYNUMBER_CHECK(what) PyLong_Check(what)
 #define PYNUMBER_FROMLONG(what) PyLong_FromLong(what)
 #define PYNUMBER_ASLONG(what) PyLong_AsLong(what)
-#else
+#else /* PY_MAJOR_VERSION < 3 */
 #include <bytesobject.h>
-#define MODINITERROR return
+
+#define MODINITERROR(module) do {                   \
+    Py_XDECREF(module);                             \
+    return;                                         \
+} while(0)
+
 #define PYNUMBER_CHECK(what) PyInt_Check(what)
 #define PYNUMBER_FROMLONG(what) PyInt_FromLong(what)
 #define PYNUMBER_ASLONG(what) PyInt_AsLong(what)
-#endif
+#endif /* PY_MAJOR_VERSION < 3 */
 
 /* Exceptions compatibility */
 PyObject *
@@ -36,12 +46,15 @@ sss_exception_with_doc(const char *name, const char *doc, PyObject *base,
 /* Convenience macros */
 #define TYPE_READY(module, type, name) do {         \
     if (PyType_Ready(&type) < 0) {                  \
-        MODINITERROR;                               \
+        MODINITERROR(module);                       \
     }                                               \
     Py_INCREF(&type);                               \
-    PyModule_AddObject(module,                      \
+    if (PyModule_AddObject(module,                  \
                        discard_const_p(char, name), \
-                       (PyObject *) &type);         \
+                       (PyObject *) &type) == -1) { \
+        Py_XDECREF(&type);                          \
+        MODINITERROR(module);                       \
+    }                                               \
 } while(0)                                          \
 
 #define SAFE_SET(old, new) do {         \

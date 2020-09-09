@@ -91,8 +91,9 @@ initpysss_murmur(void)
     m = Py_InitModule3(sss_py_const_p(char, "pysss_murmur"),
                    methods, sss_py_const_p(char, "murmur hash functions"));
 #endif
-    if (m == NULL)
-        MODINITERROR;
+    if (m == NULL) {
+        MODINITERROR(NULL);
+    }
 #ifdef IS_PY3K
     return m;
 #endif
