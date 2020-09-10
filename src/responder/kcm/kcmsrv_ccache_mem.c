@@ -578,7 +578,7 @@ struct tevent_req *ccdb_mem_uuid_by_name_send(TALLOC_CTX *mem_ctx,
 
     ccwrap = memdb_get_by_name(memdb, client, name);
     if (ccwrap == NULL) {
-        ret = ERR_KCM_CC_END;
+        ret = ERR_NO_CREDS;
         goto immediate;
     }
 
