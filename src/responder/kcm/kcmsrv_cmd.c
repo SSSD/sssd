@@ -314,7 +314,7 @@ static void kcm_reply_error(struct cli_ctx *cctx,
     krb5_error_code kerr;
 
     DEBUG(SSSDBG_OP_FAILURE,
-          "KCM operation returs failure [%d]: %s\n",
+          "KCM operation returns failure [%d]: %s\n",
           retcode, sss_strerror(retcode));
     kerr = sss2krb5_error(retcode);
 
