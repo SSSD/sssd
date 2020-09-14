@@ -1468,7 +1468,7 @@ static void kcm_op_get_cache_by_uuid_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get ccahe by UUID [%d]: %s\n",
+              "Cannot get ccache by UUID [%d]: %s\n",
               ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;

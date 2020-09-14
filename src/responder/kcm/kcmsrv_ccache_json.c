@@ -911,7 +911,7 @@ errno_t sec_kv_to_ccache(TALLOC_CTX *mem_ctx,
     ret = sec_value_to_json(sec_value, &root);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot store secret to JSN [%d]: %s\n",
+              "Cannot store secret to JSON [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
