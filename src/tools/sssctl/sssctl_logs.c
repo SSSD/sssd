@@ -254,7 +254,7 @@ errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
         sss_signal(SIGHUP);
     } else {
         PRINT("Truncating log files...\n");
-        ret = sssctl_run_command("truncate --size 0 " LOG_FILES);
+        ret = sssctl_run_command("truncate --no-create --size 0 " LOG_FILES);
         if (ret != EOK) {
             ERROR("Unable to truncate log files\n");
             return ret;
