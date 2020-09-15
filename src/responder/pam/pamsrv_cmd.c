@@ -979,6 +979,7 @@ static void pam_reply(struct pam_auth_req *preq)
     /* If this was a successful login, save the lastLogin time */
     if (pd->cmd == SSS_PAM_AUTHENTICATE &&
         pd->pam_status == PAM_SUCCESS &&
+        preq->domain &&
         preq->domain->cache_credentials &&
         !pd->offline_auth &&
         !pd->last_auth_saved &&
