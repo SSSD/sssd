@@ -151,6 +151,10 @@ bool sec_key_match_uuid(const char *sec_key,
     errno_t ret;
     uuid_t key_uuid;
 
+    /* `key_uuid` is output arg and isn't read in sec_key_get_uuid() but
+     * since libuuid is opaque for cppcheck it generates false positive here
+     */
+    /* cppcheck-suppress uninitvar */
     ret = sec_key_get_uuid(sec_key, key_uuid);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot convert key to UUID\n");
