@@ -2357,10 +2357,10 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
                 }
             } else {
                 ret = prompt_password(pamh, pi, _("Current Password: "));
-                if (ret != PAM_SUCCESS) {
-                    D(("failed to get password from user"));
-                    return ret;
-                }
+            }
+            if (ret != PAM_SUCCESS) {
+                D(("failed to get credentials from user"));
+                return ret;
             }
 
             ret = pam_set_item(pamh, PAM_OLDAUTHTOK, pi->pam_authtok);
