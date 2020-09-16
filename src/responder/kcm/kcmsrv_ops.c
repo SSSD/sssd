@@ -468,6 +468,10 @@ static void kcm_op_initialize_got_byname(struct tevent_req *subreq)
             return;
         }
 
+        /* `uuid` is output arg and isn't read in kcm_cc_get_uuid() but
+         * since libuuid is opaque for cppcheck it generates false positive here
+         */
+        /* cppcheck-suppress uninitvar */
         ret = kcm_cc_get_uuid(state->new_cc, uuid);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -528,6 +532,10 @@ static void kcm_op_initialize_fill_princ_step(struct tevent_req *req)
     }
     mod_ctx->client = state->princ;
 
+    /* `uuid` is output arg and isn't read in kcm_cc_get_uuid() but
+     * since libuuid is opaque for cppcheck it generates false positive here
+     */
+    /* cppcheck-suppress uninitvar */
     ret = kcm_cc_get_uuid(state->new_cc, uuid);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -660,6 +668,10 @@ static void kcm_op_initialize_got_default(struct tevent_req *subreq)
         /* If there was a previous default ccache, switch to the initialized
          * one by default
          */
+        /* `dfl_uuid` is output arg and isn't read in kcm_cc_get_uuid() but
+         * since libuuid is opaque for cppcheck it generates false positive here
+         */
+        /* cppcheck-suppress uninitvar */
         ret = kcm_cc_get_uuid(state->new_cc, dfl_uuid);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -773,6 +785,10 @@ static void kcm_op_destroy_getbyname_done(struct tevent_req *subreq)
                                                 struct kcm_op_common_state);
     uuid_t uuid;
 
+    /* `uuid` is output arg and isn't read in kcm_ccdb_uuid_by_name_recv() but
+     * since libuuid is opaque for cppcheck it generates false positive here
+     */
+    /* cppcheck-suppress uninitvar */
     ret = kcm_ccdb_uuid_by_name_recv(subreq, state, uuid);
     talloc_zfree(subreq);
     if (ret != EOK) {
@@ -910,6 +926,10 @@ static void kcm_op_store_getbyname_done(struct tevent_req *subreq)
                                                 struct kcm_op_store_state);
     uuid_t uuid;
 
+    /* `uuid` is output arg and isn't read in kcm_ccdb_uuid_by_name_recv() but
+     * since libuuid is opaque for cppcheck it generates false positive here
+     */
+    /* cppcheck-suppress uninitvar */
     ret = kcm_ccdb_uuid_by_name_recv(subreq, state, uuid);
     talloc_zfree(subreq);
     if (ret != EOK) {
@@ -2051,6 +2071,10 @@ static void kcm_op_set_kdc_offset_getbyname_done(struct tevent_req *subreq)
     struct kcm_op_set_kdc_offset_state *state = tevent_req_data(req,
                                                 struct kcm_op_set_kdc_offset_state);
 
+    /* `uuid` is output arg and isn't read in kcm_ccdb_uuid_by_name_recv() but
+     * since libuuid is opaque for cppcheck it generates false positive here
+     */
+    /* cppcheck-suppress uninitvar */
     ret = kcm_ccdb_uuid_by_name_recv(subreq, state, uuid);
     talloc_zfree(subreq);
     if (ret != EOK) {
