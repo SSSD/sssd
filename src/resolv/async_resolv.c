@@ -2178,12 +2178,6 @@ static int reply_weight_rearrange(int len,
         return ENOMEM;
     }
 
-    /* This is not security relevant functionality and
-     * it is undesirable to pull unnecessary dependency (util/crypto)
-     * so plain srand() & rand() are used here.
-     */
-    srand(time(NULL) * getpid());
-
     /* promote all servers with weight==0 to the top */
     r = *(start);
     prev = NULL;
@@ -2221,7 +2215,7 @@ static int reply_weight_rearrange(int len,
          * first in the selected order which is greater than or equal to
          * the random number selected.
          */
-        selected = (int)((total + 1) * (rand()/(RAND_MAX + 1.0)));
+        selected = (int)((total + 1) * (sss_rand()/(RAND_MAX + 1.0)));
         for (i = 0, r = *start, prev = NULL; r != NULL; r=r->next, ++i) {
             if (totals[i] >= selected)
                 break;
