@@ -63,7 +63,7 @@ int be_init_failover(struct be_ctx *ctx)
     }
 
     ctx->be_fo = talloc_zero(ctx, struct be_failover_ctx);
-    if (!ctx->be_fo) {
+    if (ctx->be_fo == NULL) {
         return ENOMEM;
     }
 
@@ -884,7 +884,7 @@ errno_t be_res_init(struct be_ctx *ctx)
     }
 
     ctx->be_res = talloc_zero(ctx, struct be_resolv_ctx);
-    if (!ctx->be_res) {
+    if (ctx->be_res == NULL) {
         return ENOMEM;
     }
 
