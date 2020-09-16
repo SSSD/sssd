@@ -501,7 +501,9 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             goto done;
         }
 
-        if (map) {
+        if (ret == ECANCELED) {
+            store = false;
+        } else if (map) {
             for (i = 1; i < attrs_num; i++) {
                 /* check if this attr is valid with the chosen schema */
                 if (!map[i].name) continue;
@@ -523,11 +525,6 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         } else {
             name = base_attr;
             store = true;
-        }
-
-        if (ret == ECANCELED) {
-            ret = EOK;
-            store = false;
         }
 
         if (store) {
