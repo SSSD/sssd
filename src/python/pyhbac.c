@@ -1951,6 +1951,7 @@ initpyhbac(void)
     Py_INCREF(PyExc_HbacError);
     ret = PyModule_AddObject(m, sss_py_const_p(char, "HbacError"), PyExc_HbacError);
     if (ret == -1) {
+        Py_XDECREF(PyExc_HbacError);
         MODINITERROR(m);
     }
 
