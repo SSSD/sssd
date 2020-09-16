@@ -170,7 +170,7 @@ enum sssd_errors {
 #define SSSD_ERR_BASE(err) ((err) & ~ERR_MASK)
 #define SSSD_ERR_IDX(err) ((err) & ERR_MASK)
 #define IS_SSSD_ERROR(err) \
-    ((SSSD_ERR_BASE(err) == ERR_BASE) && ((err) <= ERR_LAST))
+    (((err) > 0) && (SSSD_ERR_BASE(err) == ERR_BASE) && ((err) <= ERR_LAST))
 
 #define ERR_OK      0
 /* Backwards compat */
