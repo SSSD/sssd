@@ -65,6 +65,10 @@
     %global use_systemd 1
 %endif
 
+%if (0%{?fedora} || 0%{?rhel} >= 8)
+    %global enable_files_domain 1
+%endif
+
 # on Fedora and RHEL7 p11_child needs a polkit config snippet to be allowed to
 # talk to pcscd if SSSD runs as unprivileged user
 %if (%{with sssd_user} && (0%{?fedora} || 0%{?rhel} >= 7))
@@ -788,6 +792,9 @@ autoreconf -ivf
     --disable-rpath \
 %if %{with sssd_user}
     --with-sssd-user=sssd \
+%endif
+%if (0%{?enable_files_domain} == 1)
+    --enable-files-domain \
 %endif
     %{with_initscript} \
     %{?with_syslog} \
