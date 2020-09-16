@@ -583,16 +583,32 @@ initpysss_nss_idmap(void)
         MODINITERROR(NULL);
     }
 
-    PyModule_AddIntConstant(module, "ID_NOT_SPECIFIED",
-                            SSS_ID_TYPE_NOT_SPECIFIED);
-    PyModule_AddIntConstant(module, "ID_USER", SSS_ID_TYPE_UID);
-    PyModule_AddIntConstant(module, "ID_GROUP", SSS_ID_TYPE_GID);
-    PyModule_AddIntConstant(module, "ID_BOTH", SSS_ID_TYPE_BOTH);
+    if (PyModule_AddIntConstant(module, "ID_NOT_SPECIFIED",
+                                SSS_ID_TYPE_NOT_SPECIFIED) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddIntConstant(module, "ID_USER", SSS_ID_TYPE_UID) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddIntConstant(module, "ID_GROUP", SSS_ID_TYPE_GID) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddIntConstant(module, "ID_BOTH", SSS_ID_TYPE_BOTH) == -1) {
+        MODINITERROR(module);
+    }
 
-    PyModule_AddStringConstant(module, "SID_KEY", SSS_SID_KEY);
-    PyModule_AddStringConstant(module, "NAME_KEY", SSS_NAME_KEY);
-    PyModule_AddStringConstant(module, "ID_KEY", SSS_ID_KEY);
-    PyModule_AddStringConstant(module, "TYPE_KEY", SSS_TYPE_KEY);
+    if (PyModule_AddStringConstant(module, "SID_KEY", SSS_SID_KEY) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddStringConstant(module, "NAME_KEY", SSS_NAME_KEY) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddStringConstant(module, "ID_KEY", SSS_ID_KEY) == -1) {
+        MODINITERROR(module);
+    }
+    if (PyModule_AddStringConstant(module, "TYPE_KEY", SSS_TYPE_KEY) == -1) {
+        MODINITERROR(module);
+    }
 
 #ifdef IS_PY3K
     return module;
