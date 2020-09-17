@@ -770,6 +770,11 @@ use the KCM: Kerberos credentials cache.
 %setup -q -n %{name}-%{version}
 
 %build
+# make check uses -Wl,-wrap to wrap calls at link time. This is incompatible
+# with LTO. Disable LTO.
+# TODO: disable it only for check if possible
+%define _lto_cflags %{nil}
+
 autoreconf -ivf
 
 %configure \
