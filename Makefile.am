@@ -124,6 +124,8 @@ if HAVE_GCC
                  -std=gnu99
 endif
 
+CMOCKA_CFLAGS = -fno-lto
+
 pkgconfig_DATA =
 
 ACLOCAL_AMFLAGS = -I m4 -I .
@@ -2222,6 +2224,7 @@ libdlopen_test_providers_la_LDFLAGS = \
     -export-dynamic
 
 libsss_nss_idmap_tests_la_SOURCES = $(libsss_nss_idmap_la_SOURCES)
+libsss_nss_idmap_tests_la_CFLAGS = $(CMOCKA_CFLAGS)
 libsss_nss_idmap_tests_la_LIBADD = $(libsss_nss_idmap_la_LIBADD)
 libsss_nss_idmap_tests_la_LDFLAGS = \
     $(libsss_nss_idmap_la_LDFLAGS) \
@@ -2687,7 +2690,8 @@ nss_srv_tests_SOURCES = \
      src/responder/nss/nss_utils.c \
      src/responder/nss/nsssrv_mmap_cache.c
 nss_srv_tests_CFLAGS = \
-    $(AM_CFLAGS)
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS)
 nss_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_ncache_check_user \
     -Wl,-wrap,sss_ncache_check_upn \
@@ -2731,6 +2735,7 @@ pam_srv_tests_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     -I$(abs_builddir)/src \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     $(NULL)
 pam_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_packet_get_body \
@@ -2770,6 +2775,7 @@ ssh_srv_tests_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     -I$(abs_builddir)/src \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     $(NULL)
 ssh_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_packet_get_body \
@@ -2796,7 +2802,8 @@ responder_get_domains_tests_SOURCES = \
      src/tests/cmocka/test_responder_common.c \
      src/tests/cmocka/common_mock_resp.c
 responder_get_domains_tests_CFLAGS = \
-    $(AM_CFLAGS)
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS)
 responder_get_domains_tests_LDFLAGS = \
     -Wl,-wrap,sss_parse_name_for_domains \
     -Wl,-wrap,sss_ncache_reset_repopulate_permanent
@@ -2915,7 +2922,8 @@ test_prompt_config_LDADD = \
 sss_nss_idmap_tests_SOURCES = \
     src/tests/cmocka/sss_nss_idmap-tests.c
 sss_nss_idmap_tests_CFLAGS = \
-    $(AM_CFLAGS)
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS)
 sss_nss_idmap_tests_LDADD = \
     $(CMOCKA_LIBS) \
     libsss_nss_idmap_tests.la \
@@ -2941,6 +2949,7 @@ dyndns_tests_SOURCES = \
      src/providers/data_provider_opts.c
 dyndns_tests_CFLAGS = \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     -DDYNDNS_TIMEOUT=2
 dyndns_tests_LDFLAGS = \
     -Wl,-wrap,execv \
@@ -3013,7 +3022,8 @@ test_ipa_idmap_SOURCES = \
     src/tests/cmocka/test_ipa_idmap.c \
     src/providers/ipa/ipa_idmap.c
 test_ipa_idmap_CFLAGS = \
-    $(AM_CFLAGS)
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS)
 test_ipa_idmap_LDFLAGS = \
     -Wl,-wrap,sysdb_get_ranges
 test_ipa_idmap_LDADD = \
@@ -3169,6 +3179,7 @@ ad_common_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
     $(NDR_KRB5PAC_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     $(NULL)
 ad_common_tests_LDFLAGS = \
     -Wl,-wrap,sdap_set_sasl_options \
@@ -3215,6 +3226,7 @@ sdap_tests_SOURCES = \
     $(NULL)
 sdap_tests_CFLAGS = \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     $(NULL)
 sdap_tests_LDFLAGS = \
     -Wl,-wrap,ldap_set_option \
@@ -3265,6 +3277,7 @@ sss_sifp_tests_SOURCES = \
     src/lib/sifp/sss_sifp.c
 sss_sifp_tests_CFLAGS = \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     -I$(top_srcdir)/src/lib/sifp
 sss_sifp_tests_LDFLAGS = \
     -Wl,-wrap,dbus_bus_get \
@@ -3394,6 +3407,7 @@ test_wbc_calls_SOURCES = \
     $(NULL)
 test_wbc_calls_CFLAGS = \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     $(NULL)
 test_wbc_calls_LDFLAGS = \
     -Wl,-wrap,sss_nss_getnamebysid \
@@ -3480,6 +3494,7 @@ test_child_common_SOURCES = \
     $(NULL)
 test_child_common_CFLAGS = \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     -DCHILD_DIR=\"$(builddir)\" \
     $(NULL)
 test_child_common_LDFLAGS = \
@@ -3500,6 +3515,7 @@ responder_cache_req_tests_SOURCES = \
     $(NULL)
 responder_cache_req_tests_CFLAGS = \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     $(NULL)
 responder_cache_req_tests_LDFLAGS = \
     -Wl,-wrap,sss_dp_get_account_send \
@@ -3522,6 +3538,7 @@ test_resolv_fake_SOURCES = \
     $(NULL)
 test_resolv_fake_CFLAGS = \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     $(NULL)
 test_resolv_fake_LDFLAGS = \
     -Wl,-wrap,ares_query \
@@ -3630,6 +3647,7 @@ test_ipa_subdom_server_SOURCES = \
     $(NULL)
 test_ipa_subdom_server_CFLAGS = \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     -DIPA_TRUST_KEYTAB_DIR=TEST_DIR\"/tp_test_ipa_subdom_server-test_ipa_subdomains_server\" \
     $(NULL)
 test_ipa_subdom_server_LDFLAGS = \
@@ -3713,6 +3731,7 @@ test_data_provider_be_SOURCES = \
     $(NULL)
 test_data_provider_be_CFLAGS = \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     -DUNIT_TESTING \
     $(NULL)
 test_data_provider_be_LDFLAGS = \
@@ -3742,6 +3761,7 @@ test_dp_request_SOURCES = \
     $(NULL)
 test_dp_request_CFLAGS = \
     $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     -DUNIT_TESTING \
     $(NULL)
 test_dp_request_LDFLAGS = \
