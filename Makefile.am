@@ -2182,7 +2182,6 @@ libsss_test_common_la_SOURCES += \
 
 check_LTLIBRARIES += \
     libdlopen_test_providers.la \
-    libsss_nss_idmap_tests.la \
     $(NULL)
 
 if BUILD_SAMBA
@@ -2193,12 +2192,9 @@ check_LTLIBRARIES += \
 endif
 
 # libdlopen_test_providers is a helper library to provide missing symbols for
-# dlopen_tests. It is mainly used for the backend modules but is used as well
-# to provide __wrap_sss_nss_make_request_timeout needed make make dlopen_tests
-# pass for libsss_nss_idmap_tests.
+# dlopen_tests.
 libdlopen_test_providers_la_SOURCES = \
     $(sssd_be_SOURCES) \
-    src/tests/cmocka/wrap_sss_nss_make_request_timeout.c \
     $(NULL)
 libdlopen_test_providers_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2222,18 +2218,6 @@ libdlopen_test_providers_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
     -rpath $(abs_top_builddir) \
     -export-dynamic
-
-libsss_nss_idmap_tests_la_SOURCES = $(libsss_nss_idmap_la_SOURCES)
-libsss_nss_idmap_tests_la_CFLAGS = $(CMOCKA_CFLAGS)
-libsss_nss_idmap_tests_la_LIBADD = $(libsss_nss_idmap_la_LIBADD)
-libsss_nss_idmap_tests_la_LDFLAGS = \
-    $(libsss_nss_idmap_la_LDFLAGS) \
-    -shared \
-    -rpath $(libdir) \
-    -Wl,-wrap,sss_nss_make_request_timeout \
-    -Wl,--version-script,$(srcdir)/src/sss_client/idmap/sss_nss_idmap.unit_tests
-
-dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.unit_tests
 
 libsss_ad_tests_la_SOURCES = $(libsss_ad_la_SOURCES)
 libsss_ad_tests_la_CFLAGS = $(libsss_ad_la_CFLAGS)
@@ -2920,13 +2904,16 @@ test_prompt_config_LDADD = \
     $(NULL)
 
 sss_nss_idmap_tests_SOURCES = \
+    $(libsss_nss_idmap_la_SOURCES) \
     src/tests/cmocka/sss_nss_idmap-tests.c
 sss_nss_idmap_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CMOCKA_CFLAGS)
+sss_nss_idmap_tests_LDFLAGS = \
+    -Wl,-wrap,sss_nss_make_request_timeout
 sss_nss_idmap_tests_LDADD = \
     $(CMOCKA_LIBS) \
-    libsss_nss_idmap_tests.la \
+    $(libsss_nss_idmap_la_LIBADD) \
     $(NULL)
 
 deskprofile_utils_tests_SOURCES = \
