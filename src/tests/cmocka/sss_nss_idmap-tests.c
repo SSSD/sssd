@@ -116,12 +116,12 @@ void test_getsidbyname(void **state)
     sid = NULL;
 
     for (c = 0; d[c].d.repbuf != NULL; c++) {
-        will_return(__wrap_sss_nss_make_request_timeout, &d[0].d);
+        will_return(__wrap_sss_nss_make_request_timeout, &d[c].d);
 
         ret = sss_nss_getsidbyname("test", &sid, &type);
-        assert_int_equal(ret, d[0].ret);
+        assert_int_equal(ret, d[c].ret);
         if (ret == EOK) {
-            assert_string_equal(sid, d[0].str);
+            assert_string_equal(sid, d[c].str);
             assert_int_equal(type, 0);
         }
         free(sid);
