@@ -136,9 +136,6 @@ struct so {
     /* for testing purposes */
     { "libdlopen_test_providers.so", { LIBPFX"libdlopen_test_providers.so",
                                        NULL } },
-    { "libsss_nss_idmap_tests.so", { LIBPFX"libdlopen_test_providers.so",
-                                     LIBPFX"libsss_nss_idmap_tests.so",
-                                     NULL } },
 #ifdef BUILD_SAMBA
     { "libdlopen_test_winbind_idmap.so",
       { LIBPFX"libdlopen_test_winbind_idmap.so", NULL } },
