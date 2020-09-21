@@ -1277,7 +1277,7 @@ fallback_homedir = /home/%u
                 </varlistentry>
 
                 <varlistentry>
-                    <term>pam_response_filter (integer)</term>
+                    <term>pam_response_filter (string)</term>
                     <listitem>
                         <para>
                             A comma separated list of strings which allows to
