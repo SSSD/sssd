@@ -81,7 +81,7 @@ cache_req_autofs_map_by_name_dp_send(TALLOC_CTX *mem_ctx,
 
     return sbus_call_dp_autofs_GetMap_send(mem_ctx, be_conn->conn,
                                            be_conn->bus_name, SSS_BUS_PATH,
-                                           DP_FAST_REPLY, data->name.name);
+                                           0, data->name.name);
 }
 
 bool
