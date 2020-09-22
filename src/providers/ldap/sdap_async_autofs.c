@@ -1349,6 +1349,7 @@ static void sdap_autofs_get_entry_done(struct tevent_req *subreq)
     struct sdap_autofs_get_entry_state *state;
     struct sysdb_attrs **reply;
     size_t reply_count;
+    size_t i;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -1371,16 +1372,32 @@ static void sdap_autofs_get_entry_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = sdap_autofs_save_entry(state->id_ctx->be->domain,
-                                 state->opts,
-                                 reply_count != 0 ? reply[0] : NULL,
-                                 state->mapname,
-                                 state->entryname);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+    /* This will delete the entry if it already exist. */
+    if (reply_count == 0) {
+        ret = sdap_autofs_save_entry(state->id_ctx->be->domain, state->opts,
+                                     NULL, state->mapname, state->entryname);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        goto done;
     }
 
+    /* If other attribute then automountKey is in the distinguished name and
+     * there are multiple entries with different casing then we may get more
+     * then one result. */
+    for (i = 0; i < reply_count; i++) {
+        ret = sdap_autofs_save_entry(state->id_ctx->be->domain, state->opts,
+                                     reply[i], state->mapname,
+                                     state->entryname);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+    }
+
+done:
     tevent_req_done(req);
     return;
 }
