@@ -1117,6 +1117,11 @@ host/*
                             your setup does not in fact require the use
                             of referrals, setting this option to false
                             might bring a noticeable performance improvement.
+                            Setting this option to false is therefore recommended
+                            in case the SSSD LDAP provider is used together with
+                            Microsoft Active Directory as a backend. Even if SSSD
+                            would be able to follow the referral to a different AD
+                            DC no additional data would be available.
                         </para>
                         <para>
                             Default: true
