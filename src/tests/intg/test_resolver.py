@@ -310,7 +310,7 @@ def test_netbyname(add_nets):
 
 
 def test_netbyaddr(add_nets):
-    (res, hres, _) = call_sssd_getnetbyname("10.2.2.1")
+    (res, hres, _) = call_sssd_getnetbyaddr("10.2.2.1")
     assert res == NssReturnCode.NOTFOUND
     assert hres == HostError.HOST_NOT_FOUND
 
