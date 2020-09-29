@@ -27,7 +27,7 @@ import time
 import ldap
 import pytest
 import ent
-
+import socket
 import config
 import ds_openldap
 import ldap_ent
@@ -310,10 +310,18 @@ def test_netbyname(add_nets):
 
 
 def test_netbyaddr(add_nets):
-    (res, hres, _) = call_sssd_getnetbyaddr("10.2.2.1")
+    (res, hres, _) = call_sssd_getnetbyaddr("10.2.2.1", socket.AF_INET)
     assert res == NssReturnCode.NOTFOUND
     assert hres == HostError.HOST_NOT_FOUND
 
-    (res, hres, _) = call_sssd_getnetbyaddr("10.2.2.2")
+    (res, hres, _) = call_sssd_getnetbyaddr("10.2.2.1", socket.AF_UNSPEC)
+    assert res == NssReturnCode.NOTFOUND
+    assert hres == HostError.HOST_NOT_FOUND
+
+    (res, hres, _) = call_sssd_getnetbyaddr("10.2.2.2", socket.AF_INET)
+    assert res == NssReturnCode.SUCCESS
+    assert hres == 0
+
+    (res, hres, _) = call_sssd_getnetbyaddr("10.2.2.2", socket.AF_UNSPEC)
     assert res == NssReturnCode.SUCCESS
     assert hres == 0
