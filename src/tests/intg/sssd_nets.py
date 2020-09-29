@@ -120,7 +120,7 @@ def call_sssd_getnetbyname(name):
     return (res, h_errno, netent_dict)
 
 
-def call_sssd_getnetbyaddr(addrstr):
+def call_sssd_getnetbyaddr(addrstr, af):
     """
     A Python wrapper to retrieve an IP network by address. Returns:
         (res, netent_dict)
@@ -138,7 +138,7 @@ def call_sssd_getnetbyaddr(addrstr):
     binaddr = unpack('<I', addr.packed)[0]
     binaddr = socket.ntohl(binaddr)
 
-    (res, errno, h_errno, result_p) = getnetbyaddr_r(binaddr, socket.AF_INET,
+    (res, errno, h_errno, result_p) = getnetbyaddr_r(binaddr, af,
                                                      result_p, buff,
                                                      IP_NETWORK_BUFLEN)
     if errno != 0:
