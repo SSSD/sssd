@@ -18,13 +18,49 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
+#ifdef HAVE_LIBUNISTRING
+#include <stdlib.h>
+#include <unistr.h>
+#elif defined(HAVE_GLIB2)
+#include <glib.h>
+#endif
+
 #include <talloc.h>
 #include "util/util.h"
-#include "util/sss_utf8.h"
 
-/* from sss_utf8.c */
-void sss_utf8_free(char *ptr);
-char *sss_utf8_tolower(const char *s);
+#ifdef HAVE_LIBUNISTRING
+static void sss_utf8_free(char *ptr)
+{
+    free(ptr);
+}
+#elif defined(HAVE_GLIB2)
+static void sss_utf8_free(char *ptr)
+{
+    g_free(ptr);
+}
+#else
+#error No unicode library
+#endif
+
+/* Expects and returns NULL-terminated string;
+ * result must be freed with sss_utf8_free()
+ */
+#ifdef HAVE_LIBUNISTRING
+static char *sss_utf8_tolower(const char *s)
+{
+    size_t llen;
+    return u8_tolower((const uint8_t *)s, strlen(s) + 1, NULL, NULL, NULL, &llen);
+}
+#elif defined(HAVE_GLIB2)
+static char *sss_utf8_tolower(const char *s)
+{
+    return g_utf8_strdown((const gchar *)s, -1);
+}
+#else
+#error No unicode library
+#endif
 
 char *sss_tc_utf8_str_tolower(TALLOC_CTX *mem_ctx, const char *s)
 {

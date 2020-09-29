@@ -36,38 +36,6 @@
 #include "sss_utf8.h"
 
 #ifdef HAVE_LIBUNISTRING
-void sss_utf8_free(char *ptr)
-{
-    free(ptr);
-}
-#elif defined(HAVE_GLIB2)
-void sss_utf8_free(char *ptr)
-{
-    g_free(ptr);
-}
-#else
-#error No unicode library
-#endif
-
-/* Expects and returns NULL-terminated string;
- * result must be freed with sss_utf8_free()
- */
-#ifdef HAVE_LIBUNISTRING
-char *sss_utf8_tolower(const char *s)
-{
-    size_t llen;
-    return u8_tolower((const uint8_t *)s, strlen(s) + 1, NULL, NULL, NULL, &llen);
-}
-#elif defined(HAVE_GLIB2)
-char *sss_utf8_tolower(const char *s)
-{
-    return g_utf8_strdown((const gchar *)s, -1);
-}
-#else
-#error No unicode library
-#endif
-
-#ifdef HAVE_LIBUNISTRING
 bool sss_utf8_check(const uint8_t *s, size_t n)
 {
     if (u8_check(s, n) == NULL) {
