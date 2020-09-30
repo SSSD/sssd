@@ -138,13 +138,17 @@ extern int dbus_activated;
     \
     if (tevent_req_is_error(req, &TRROEstate, &TRROEuint64)) { \
         TRROEerr = (errno_t)TRROEuint64; \
-        if (TRROEstate == TEVENT_REQ_USER_ERROR) { \
-            if (TRROEerr == 0) { \
+        switch (TRROEstate) { \
+            case TEVENT_REQ_USER_ERROR:  \
+                if (TRROEerr == 0) { \
+                    return ERR_INTERNAL; \
+                } \
+                return TRROEerr; \
+            case TEVENT_REQ_TIMED_OUT: \
+                return ETIMEDOUT; \
+            default: \
                 return ERR_INTERNAL; \
-            } \
-            return TRROEerr; \
         } \
-        return ERR_INTERNAL; \
     } \
 } while (0)
 
