@@ -3947,6 +3947,7 @@ test_kcm_json_LDADD = \
     $(NULL)
 
 test_kcm_queue_SOURCES = \
+    $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_kcm_queue.c \
     src/responder/kcm/kcmsrv_op_queue.c \
     $(NULL)
@@ -3954,10 +3955,13 @@ test_kcm_queue_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 test_kcm_queue_LDADD = \
+    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 endif # BUILD_KCM

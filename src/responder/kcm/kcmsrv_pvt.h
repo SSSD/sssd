@@ -88,7 +88,8 @@ krb5_error_code sss2krb5_error(errno_t err);
  */
 struct kcm_ops_queue_entry;
 
-struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx);
+struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx,
+                                               struct kcm_ctx *kctx);
 
 struct tevent_req *kcm_op_queue_send(TALLOC_CTX *mem_ctx,
                                      struct tevent_context *ev,
