@@ -1941,7 +1941,7 @@ static void pam_check_user_search_next(struct tevent_req *req)
     talloc_zfree(req);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "Cache lookup failed, trying to get fresh "
-                                 "data from the backened.\n");
+                                 "data from the backend.\n");
     }
 
     DEBUG(SSSDBG_TRACE_ALL, "PAM initgroups scheme [%s].\n",
