@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "util/util_creds.h"
 #include "tests/cmocka/common_mock.h"
+#include "tests/cmocka/common_mock_resp.h"
 #include "responder/kcm/kcmsrv_pvt.h"
 
 #define INVALID_ID      -1
@@ -34,8 +35,21 @@
 #define FAST_REQ_DELAY  1
 #define SLOW_REQ_DELAY  2
 
+/* register_cli_protocol_version is required in test since it links with
+ * responder_common.c module
+ */
+struct cli_protocol_version *register_cli_protocol_version(void)
+{
+    static struct cli_protocol_version responder_test_cli_protocol_version[] = {
+        { 0, NULL, NULL }
+    };
+
+    return responder_test_cli_protocol_version;
+}
+
 struct timed_request_state {
     struct tevent_context *ev;
+    struct resp_ctx *rctx;
     struct kcm_ops_queue_ctx *qctx;
     struct cli_creds *client;
     int delay;
@@ -52,6 +66,7 @@ static void timed_request_done(struct tevent_context *ev,
 
 static struct tevent_req *timed_request_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
+                                             struct resp_ctx *rctx,
                                              struct kcm_ops_queue_ctx *qctx,
                                              struct cli_creds *client,
                                              int delay,
@@ -66,6 +81,7 @@ static struct tevent_req *timed_request_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
     state->ev = ev;
+    state->rctx = rctx;
     state->qctx = qctx;
     state->client = client;
     state->delay = delay;
@@ -131,7 +147,9 @@ static errno_t timed_request_recv(struct tevent_req *req,
 }
 
 struct test_ctx {
+    struct resp_ctx *rctx;
     struct kcm_ops_queue_ctx *qctx;
+    struct kcm_ctx *kctx;
     struct tevent_context *ev;
 
     int *req_ids;
@@ -141,6 +159,22 @@ struct test_ctx {
     bool done;
     errno_t error;
 };
+
+struct kcm_ctx *
+mock_kctx(TALLOC_CTX *mem_ctx,
+          struct resp_ctx *rctx)
+{
+    struct kcm_ctx *kctx;
+
+    kctx = talloc_zero(mem_ctx, struct kcm_ctx);
+    if (!kctx) {
+        return NULL;
+    }
+
+    kctx->rctx = rctx;
+
+    return kctx;
+}
 
 static int setup_kcm_queue(void **state)
 {
@@ -152,7 +186,13 @@ static int setup_kcm_queue(void **state)
     tctx->ev = tevent_context_init(tctx);
     assert_non_null(tctx->ev);
 
-    tctx->qctx = kcm_ops_queue_create(tctx);
+    tctx->rctx = mock_rctx(tctx, tctx->ev, NULL, NULL);
+    assert_non_null(tctx->rctx);
+
+    tctx->kctx = mock_kctx(tctx, tctx->rctx);
+    assert_non_null(tctx->kctx);
+
+    tctx->qctx = kcm_ops_queue_create(tctx->kctx, tctx->kctx);
     assert_non_null(tctx->qctx);
 
     *state = tctx;
@@ -210,6 +250,7 @@ static void test_kcm_queue_single(void **state)
 
     req = timed_request_send(test_ctx,
                              test_ctx->ev,
+                             test_ctx->rctx,
                              test_ctx->qctx,
                              &client, 1, 0);
     assert_non_null(req);
@@ -242,6 +283,7 @@ static void test_kcm_queue_multi_same_id(void **state)
 
     req = timed_request_send(test_ctx,
                              test_ctx->ev,
+                             test_ctx->rctx,
                              test_ctx->qctx,
                              &client,
                              SLOW_REQ_DELAY,
@@ -251,6 +293,7 @@ static void test_kcm_queue_multi_same_id(void **state)
 
     req = timed_request_send(test_ctx,
                              test_ctx->ev,
+                             test_ctx->rctx,
                              test_ctx->qctx,
                              &client,
                              FAST_REQ_DELAY,
@@ -287,6 +330,7 @@ static void test_kcm_queue_multi_different_id(void **state)
 
     req = timed_request_send(test_ctx,
                              test_ctx->ev,
+                             test_ctx->rctx,
                              test_ctx->qctx,
                              &client,
                              SLOW_REQ_DELAY,
@@ -299,6 +343,7 @@ static void test_kcm_queue_multi_different_id(void **state)
 
     req = timed_request_send(test_ctx,
                              test_ctx->ev,
+                             test_ctx->rctx,
                              test_ctx->qctx,
                              &client,
                              FAST_REQ_DELAY,

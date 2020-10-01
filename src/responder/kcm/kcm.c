@@ -147,7 +147,7 @@ static int kcm_get_config(struct kcm_ctx *kctx)
         }
     }
 
-    kctx->qctx = kcm_ops_queue_create(kctx);
+    kctx->qctx = kcm_ops_queue_create(kctx, kctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot create KCM request queue [%d]: %s\n",

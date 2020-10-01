@@ -43,6 +43,8 @@ struct kcm_ops_queue {
 };
 
 struct kcm_ops_queue_ctx {
+    struct kcm_ctx *kctx;
+
     /* UID:kcm_ops_queue */
     hash_table_t *wait_queue_hash;
 };
@@ -55,7 +57,8 @@ struct kcm_ops_queue_ctx {
  * linked list of kcm_ops_queue_entry structures * which primarily hold the
  * tevent request being queued.
  */
-struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx)
+struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx,
+                                               struct kcm_ctx *kctx)
 {
     errno_t ret;
     struct kcm_ops_queue_ctx *queue_ctx;
@@ -74,6 +77,8 @@ struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx)
         talloc_free(queue_ctx);
         return NULL;
     }
+
+    queue_ctx->kctx = kctx;
 
     return queue_ctx;
 }
@@ -117,9 +122,15 @@ static int kcm_op_queue_entry_destructor(struct kcm_ops_queue_entry *entry)
 {
     struct kcm_ops_queue_entry *next_entry;
     struct tevent_immediate *imm;
+    bool terminating;
+
+    terminating = entry->queue->qctx->kctx->rctx->shutting_down;
 
     if (entry == NULL) {
         return 1;
+    /* Prevent use-after-free of req when shutting down with non-empty queue */
+    } else if (terminating) {
+        return 0;
     }
 
     /* Take the next entry from the queue */
