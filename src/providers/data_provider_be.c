@@ -690,8 +690,6 @@ int main(int argc, const char *argv[])
     uid_t uid;
     gid_t gid;
 
-    sleep(5);
-
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
