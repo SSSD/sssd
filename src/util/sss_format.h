@@ -27,6 +27,8 @@
 #ifndef __SSS_FORMAT_H__
 #define __SSS_FORMAT_H__
 
+#include "config.h"
+
 #include <inttypes.h>
 
 /* key_serial_t is defined in keyutils.h as typedef int32_t */
