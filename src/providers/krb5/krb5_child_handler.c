@@ -633,6 +633,33 @@ int handle_child_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static const char *krb5_child_response_type_to_str(int32_t type)
+{
+    switch (type) {
+    case SSS_PAM_ENV_ITEM:
+        return "Env variable to be set with pam_putenv(3)";
+    case SSS_PAM_USER_INFO:
+        return "Message to be displayed to the user";
+    case SSS_OTP:
+        return "Authtok was a OTP";
+    case SSS_PAM_TEXT_MSG:
+        return "Plain text message to be displayed to the user";
+    case SSS_PAM_OTP_INFO:
+        return "OTP info";
+    case SSS_PASSWORD_PROMPTING:
+        return "Password prompting is possible";
+    case SSS_CERT_AUTH_PROMPTING:
+        return "Certificate based authentication is available";
+    case SSS_KRB5_INFO_TGT_LIFETIME:
+        return "TGT lifetime info";
+    case SSS_KRB5_INFO_UPN:
+        return "UPN info";
+    }
+
+    DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected response type %d\n", type);
+    return "-unexpected-";
+}
+
 errno_t
 parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
                           struct pam_data *pd, int pwd_exp_warning,
@@ -685,8 +712,11 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
         SAFEALIGN_COPY_INT32(&msg_type, buf+p, &p);
         SAFEALIGN_COPY_INT32(&msg_len, buf+p, &p);
 
-        DEBUG(SSSDBG_TRACE_LIBS, "child response [%d][%d][%d].\n",
-              msg_status, msg_type, msg_len);
+        DEBUG(SSSDBG_TRACE_LIBS, "child response: "
+              "status code: %d (%s), msg type: %d (%s), len: %d\n",
+              msg_status, sss_strerror(msg_status),
+              msg_type, krb5_child_response_type_to_str(msg_type),
+              msg_len);
 
         if (msg_len > len - p) {
             DEBUG(SSSDBG_CRIT_FAILURE, "message format error [%d] > [%zu].\n",
