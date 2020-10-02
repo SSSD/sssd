@@ -25,6 +25,29 @@ struct sss_auth_token {
     size_t length;
 };
 
+const char *sss_authtok_type_to_str(enum sss_authtok_type type)
+{
+    switch (type) {
+    case SSS_AUTHTOK_TYPE_EMPTY:
+        return "No authentication token available";
+    case SSS_AUTHTOK_TYPE_PASSWORD:
+        return "Password";
+    case SSS_AUTHTOK_TYPE_CCFILE:
+        return "Path to a Kerberos credential cache file";
+    case SSS_AUTHTOK_TYPE_2FA:
+        return "Two factors";
+    case SSS_AUTHTOK_TYPE_SC_PIN:
+        return "Smart Card PIN";
+    case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+        return "Smart Card PIN will be entered at the card reader";
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
+        return "Two factors in a single string";
+    }
+
+    DEBUG(SSSDBG_MINOR_FAILURE, "Unknown authtok type %d\n", type);
+    return "-unknown-";
+}
+
 enum sss_authtok_type sss_authtok_get_type(struct sss_auth_token *tok)
 {
     return tok->type;

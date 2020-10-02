@@ -29,6 +29,15 @@
 struct sss_auth_token;
 
 /**
+ * @brief Converts token type to string for debugging purposes.
+ *
+ * @param type   Tonen type
+ *
+ * @return       Token type string representation
+ */
+const char *sss_authtok_type_to_str(enum sss_authtok_type type);
+
+/**
  * @brief Returns the token type
  *
  * @param tok    A pointer to an sss_auth_token
