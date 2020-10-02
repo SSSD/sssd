@@ -1290,13 +1290,13 @@ static errno_t add_ticket_times_and_upn_to_response(struct krb5_req *kr)
     ret = pam_add_response(kr->pd, SSS_KRB5_INFO_TGT_LIFETIME,
                            4*sizeof(int64_t), (uint8_t *) t);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "pack_response_packet failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
         goto done;
     }
 
     kerr = krb5_unparse_name_ext(kr->ctx, kr->creds->client, &upn, &upn_len);
     if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "krb5_unparse_name failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_unparse_name_ext failed.\n");
         goto done;
     }
 
@@ -1304,7 +1304,7 @@ static errno_t add_ticket_times_and_upn_to_response(struct krb5_req *kr)
                            (uint8_t *) upn);
     krb5_free_unparsed_name(kr->ctx, upn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "pack_response_packet failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
         goto done;
     }
 
@@ -2031,7 +2031,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
                                        user_resp);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
-                          "pack_response_packet failed.\n");
+                          "pam_add_response failed.\n");
                 }
             }
         }
