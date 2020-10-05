@@ -2398,6 +2398,27 @@ static errno_t unpack_authtok(struct sss_auth_token *tok,
     return ret;
 }
 
+static const char *krb5_child_command_to_str(int cmd)
+{
+    switch (cmd) {
+    case SSS_PAM_AUTHENTICATE:
+        return "auth";
+    case SSS_PAM_CHAUTHTOK:
+        return "password change";
+    case SSS_PAM_CHAUTHTOK_PRELIM:
+        return "password change checks";
+    case SSS_PAM_ACCT_MGMT:
+        return "account management";
+    case SSS_CMD_RENEW:
+        return "ticket renewal";
+    case SSS_PAM_PREAUTH:
+        return "pre-auth";
+    }
+
+    DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected command %d\n", cmd);
+    return "-unexpected-";
+}
+
 static errno_t unpack_buffer(uint8_t *buf, size_t size,
                              struct krb5_req *kr, uint32_t *offline)
 {
@@ -2440,10 +2461,11 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     p += len;
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          "cmd [%d] uid [%llu] gid [%llu] validate [%s] "
+          "cmd [%d (%s)] uid [%llu] gid [%llu] validate [%s] "
            "enterprise principal [%s] offline [%s] UPN [%s]\n",
-           pd->cmd, (unsigned long long) kr->uid,
-           (unsigned long long) kr->gid, kr->validate ? "true" : "false",
+           pd->cmd, krb5_child_command_to_str(pd->cmd),
+           (unsigned long long) kr->uid, (unsigned long long) kr->gid,
+           kr->validate ? "true" : "false",
            kr->use_enterprise_princ ? "true" : "false",
            *offline ? "true" : "false", kr->upn ? kr->upn : "none");
 
@@ -3374,6 +3396,8 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Will perform %s\n", krb5_child_command_to_str(kr->pd->cmd));
     switch(kr->pd->cmd) {
     case SSS_PAM_AUTHENTICATE:
         /* If we are offline, we need to create an empty ccache file */
@@ -3386,15 +3410,12 @@ int main(int argc, const char *argv[])
         }
         break;
     case SSS_PAM_CHAUTHTOK:
-        DEBUG(SSSDBG_TRACE_FUNC, "Will perform password change\n");
         ret = changepw_child(kr, false);
         break;
     case SSS_PAM_CHAUTHTOK_PRELIM:
-        DEBUG(SSSDBG_TRACE_FUNC, "Will perform password change checks\n");
         ret = changepw_child(kr, true);
         break;
     case SSS_PAM_ACCT_MGMT:
-        DEBUG(SSSDBG_TRACE_FUNC, "Will perform account management\n");
         ret = kuserok_child(kr);
         break;
     case SSS_CMD_RENEW:
@@ -3403,11 +3424,9 @@ int main(int argc, const char *argv[])
             ret = KRB5_KDC_UNREACH;
             goto done;
         }
-        DEBUG(SSSDBG_TRACE_FUNC, "Will perform ticket renewal\n");
         ret = renew_tgt_child(kr);
         break;
     case SSS_PAM_PREAUTH:
-        DEBUG(SSSDBG_TRACE_FUNC, "Will perform pre-auth\n");
         ret = tgt_req_child(kr);
         break;
     default:
