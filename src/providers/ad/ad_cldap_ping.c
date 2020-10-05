@@ -601,8 +601,16 @@ struct tevent_req *ad_cldap_ping_send(TALLOC_CTX *mem_ctx,
     }
 
     if (!srv_ctx->renew_site) {
-        state->site = srv_ctx->current_site;
-        state->forest = srv_ctx->current_forest;
+        state->site = talloc_strdup(state, srv_ctx->current_site);
+        state->forest = talloc_strdup(state, srv_ctx->current_forest);
+        if ((srv_ctx->current_site != NULL && state->site == NULL)
+                || (srv_ctx->current_forest != NULL && state->forest == NULL)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to copy current site or forest name.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
         DEBUG(SSSDBG_TRACE_FUNC,
               "CLDAP ping is not necessary, using site '%s' and forest '%s'\n",
               state->site != NULL ? state->site : "unknown",
