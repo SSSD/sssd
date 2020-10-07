@@ -21,6 +21,7 @@
 #include "util/cert.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/child_common.h"
+#include "lib/certmap/sss_certmap.h"
 
 struct cert_to_ssh_key_state {
     struct tevent_context *ev;
