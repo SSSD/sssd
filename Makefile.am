@@ -1008,7 +1008,6 @@ libsss_cert_la_LIBADD = \
     libsss_crypt.la \
     libsss_child.la \
     libsss_debug.la \
-    libsss_certmap.la \
     $(NULL)
 libsss_cert_la_LDFLAGS = \
     -avoid-version \
@@ -2777,6 +2776,7 @@ ssh_srv_tests_LDADD = \
     libsss_test_common.la \
     libsss_iface.la \
     libsss_sbus.la \
+    libsss_certmap.la \
     $(NULL)
 
 EXTRA_responder_get_domains_tests_DEPENDENCIES = \
@@ -3710,6 +3710,7 @@ test_cert_utils_LDADD = \
     libsss_test_common.la \
     libsss_cert.la \
     libsss_crypt.la \
+    libsss_certmap.la \
     $(NULL)
 
 test_data_provider_be_SOURCES = \
@@ -4391,6 +4392,7 @@ libsss_files_la_LIBADD = \
     $(LDB_LIBS) \
     $(PAM_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_certmap.la \
     $(NULL)
 libsss_files_la_LDFLAGS = \
     -avoid-version \
