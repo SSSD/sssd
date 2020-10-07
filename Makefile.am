@@ -3693,6 +3693,7 @@ test_krb5_wait_queue_LDADD = \
 test_cert_utils_SOURCES = \
     src/tests/cmocka/test_cert_utils.c \
     src/responder/ssh/ssh_cert_to_ssh_key.c \
+    src/util/cert_derb64_to_ldap_filter.c \
     $(NULL)
 test_cert_utils_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4250,6 +4251,7 @@ libsss_ldap_common_la_SOURCES = \
     src/util/user_info_msg.c \
     src/util/sss_sockets.c \
     src/util/sss_ldap.c \
+    src/util/cert_derb64_to_ldap_filter.c \
     $(NULL)
 libsss_ldap_common_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4378,6 +4380,7 @@ libsss_files_la_SOURCES = \
     src/providers/files/files_certmap.c \
     src/providers/files/files_ops.c \
     src/util/inotify.c \
+    src/util/cert_derb64_to_ldap_filter.c \
     $(NULL)
 libsss_files_la_CFLAGS = \
     $(AM_CFLAGS) \
