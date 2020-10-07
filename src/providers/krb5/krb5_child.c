@@ -1406,6 +1406,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
 
 
     krb5_verify_init_creds_opt_init(&opt);
+    krb5_verify_init_creds_opt_set_ap_req_nofail(&opt, TRUE);
     kerr = krb5_verify_init_creds(kr->ctx, kr->creds, validation_princ, keytab,
                                   &validation_ccache, &opt);
 
