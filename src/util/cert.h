@@ -21,7 +21,6 @@
 #include <talloc.h>
 
 #include "util/util.h"
-#include "lib/certmap/sss_certmap.h"
 
 #ifndef __CERT_H__
 #define __CERT_H__
@@ -37,12 +36,6 @@ errno_t sss_cert_derb64_to_pem(TALLOC_CTX *mem_ctx, const char *derb64,
 
 errno_t sss_cert_pem_to_derb64(TALLOC_CTX *mem_ctx, const char *pem,
                                char **derb64);
-
-errno_t sss_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx, const char *derb64,
-                                       const char *attr_name,
-                                       struct sss_certmap_ctx *certmap_ctx,
-                                       struct sss_domain_info *dom,
-                                       char **ldap_filter);
 
 errno_t bin_to_ldap_filter_value(TALLOC_CTX *mem_ctx,
                                  const uint8_t *blob, size_t blob_size,

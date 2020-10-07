@@ -765,6 +765,15 @@ int sss_create_dir(const char *parent_dir_path,
 int selinux_file_context(const char *dst_name);
 int reset_selinux_file_context(void);
 
+/* from cert_derb64_to_ldap_filter.c */
+struct sss_certmap_ctx;
+errno_t sss_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx, const char *derb64,
+                                       const char *attr_name,
+                                       struct sss_certmap_ctx *certmap_ctx,
+                                       struct sss_domain_info *dom,
+                                       char **ldap_filter);
+
+
 /* from util_preauth.c */
 errno_t create_preauth_indicator(void);
 
