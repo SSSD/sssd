@@ -138,6 +138,24 @@ static void test_sysdb_attrs_add_base64_blob(void **state)
     assert_memory_equal(el->values[0].data, zero, 3);
 }
 
+void test_sysdb_cert_derb64_to_ldap_filter(void **state)
+{
+    int ret;
+    char *filter;
+
+    ret = sysdb_cert_derb64_to_ldap_filter(NULL, NULL, NULL, NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sysdb_cert_derb64_to_ldap_filter(NULL, "AAECAwQFBgcICQ==", "attrName",
+                                           &filter);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(filter,
+                        "(attrName=\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09)");
+
+    talloc_free(filter);
+}
+
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -152,6 +170,7 @@ int main(int argc, const char *argv[])
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_sysdb_handle_original_uuid),
         cmocka_unit_test(test_sysdb_attrs_add_base64_blob),
+        cmocka_unit_test(test_sysdb_cert_derb64_to_ldap_filter),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
