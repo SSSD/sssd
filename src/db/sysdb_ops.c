@@ -5265,6 +5265,43 @@ errno_t sysdb_search_object_by_uuid(TALLOC_CTX *mem_ctx,
                                            uuid_str, attrs, true, res);
 }
 
+errno_t sysdb_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx,
+                                         const char *derb64,
+                                         const char *attr_name,
+                                         char **ldap_filter)
+{
+    int ret;
+    unsigned char *der;
+    size_t der_size;
+    char *val;
+
+    if (derb64 == NULL || attr_name == NULL) {
+        return EINVAL;
+    }
+
+    der = sss_base64_decode(mem_ctx, derb64, &der_size);
+    if (der == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
+        return EINVAL;
+    }
+
+    ret = bin_to_ldap_filter_value(mem_ctx, der, der_size, &val);
+    talloc_free(der);
+    if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "bin_to_ldap_filter_value failed.\n");
+            return ret;
+    }
+
+    *ldap_filter = talloc_asprintf(mem_ctx, "(%s=%s)", attr_name, val);
+    talloc_free(val);
+    if (*ldap_filter == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            return ENOMEM;
+    }
+
+    return EOK;
+}
+
 errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
                                     struct sss_domain_info *domain,
                                     const char *cert,
@@ -5275,8 +5312,9 @@ errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
     char *user_filter = NULL;
     char *filter = NULL;
 
-    ret = sss_cert_derb64_to_ldap_filter(mem_ctx, cert, SYSDB_USER_MAPPED_CERT,
-                                         NULL, NULL, &user_filter);
+    ret = sysdb_cert_derb64_to_ldap_filter(mem_ctx, cert,
+                                           SYSDB_USER_MAPPED_CERT,
+                                           &user_filter);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_cert_derb64_to_ldap_filter failed.\n");
         return ret;

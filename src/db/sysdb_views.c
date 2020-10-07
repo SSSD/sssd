@@ -1030,8 +1030,8 @@ errno_t sysdb_search_override_by_cert(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_cert_derb64_to_ldap_filter(tmp_ctx, cert, SYSDB_USER_CERT, NULL,
-                                         NULL, &cert_filter);
+    ret = sysdb_cert_derb64_to_ldap_filter(tmp_ctx, cert, SYSDB_USER_CERT,
+                                           &cert_filter);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_cert_derb64_to_ldap_filter failed.\n");

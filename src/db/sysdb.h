@@ -1521,6 +1521,11 @@ errno_t sysdb_handle_original_uuid(const char *orig_name,
                                    struct sysdb_attrs *dest_attrs,
                                    const char *dest_name);
 
+errno_t sysdb_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx,
+                                         const char *derb64,
+                                         const char *attr_name,
+                                         char **ldap_filter);
+
 /* define old name for backward compatibility */
 #define sysdb_error_to_errno(ldberr) sss_ldb_error_to_errno(ldberr)
 
