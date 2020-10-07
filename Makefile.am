@@ -963,7 +963,6 @@ SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
 
 SSS_CERT_SOURCES = \
     src/util/cert/cert_common.c \
-    src/util/cert/cert_common_p11_child.c \
     src/util/cert/libcrypto/cert.c \
     $(NULL)
 SSS_CERT_CFLAGS = \
@@ -1647,6 +1646,7 @@ sssd_ssh_SOURCES = \
     src/responder/ssh/ssh_known_hosts.c \
     src/responder/ssh/ssh_protocol.c \
     src/responder/ssh/ssh_reply.c \
+    src/responder/ssh/ssh_cert_to_ssh_key.c \
     $(SSSD_RESPONDER_OBJ) \
     $(NULL)
 sssd_ssh_LDADD = \
@@ -2753,7 +2753,7 @@ ssh_srv_tests_SOURCES = \
     src/responder/ssh/ssh_known_hosts.c \
     src/responder/ssh/ssh_protocol.c \
     src/responder/ssh/ssh_reply.c \
-    src/util/cert/cert_common_p11_child.c \
+    src/responder/ssh/ssh_cert_to_ssh_key.c \
     $(NULL)
 ssh_srv_tests_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
@@ -3692,7 +3692,7 @@ test_krb5_wait_queue_LDADD = \
 
 test_cert_utils_SOURCES = \
     src/tests/cmocka/test_cert_utils.c \
-    src/util/cert/cert_common_p11_child.c \
+    src/responder/ssh/ssh_cert_to_ssh_key.c \
     $(NULL)
 test_cert_utils_CFLAGS = \
     $(AM_CFLAGS) \
