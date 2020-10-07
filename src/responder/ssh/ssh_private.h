@@ -86,4 +86,15 @@ ssh_update_known_hosts_file(struct sss_domain_info *domains,
                             bool hash_known_hosts,
                             int known_hosts_timeout);
 
+struct tevent_req *cert_to_ssh_key_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        const char *logfile, time_t timeout,
+                                        const char *ca_db,
+                                        struct sss_certmap_ctx *sss_certmap_ctx,
+                                        size_t cert_count,
+                                        struct ldb_val *bin_certs,
+                                        const char *verify_opts);
+
+errno_t cert_to_ssh_key_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                             struct ldb_val **keys, size_t *valid_keys);
 #endif /* _SSHSRV_PRIVATE_H_ */

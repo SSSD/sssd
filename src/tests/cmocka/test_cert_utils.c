@@ -31,6 +31,7 @@
 #include "util/cert.h"
 #include "tests/cmocka/common_mock.h"
 #include "util/crypto/sss_crypto.h"
+#include "responder/ssh/ssh_private.h"
 
 #ifdef HAVE_TEST_CA
 #include "tests/test_CA/SSSD_test_cert_pubsshkey_0001.h"
