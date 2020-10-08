@@ -302,6 +302,25 @@ void sss_packet_get_body(struct sss_packet *packet, uint8_t **body, size_t *blen
     *blen = sss_packet_get_len(packet) - SSS_NSS_HEADER_SIZE;
 }
 
+errno_t sss_packet_set_body(struct sss_packet *packet,
+                            uint8_t *body,
+                            size_t blen)
+{
+    uint8_t *pbody;
+    size_t plen;
+    errno_t ret;
+
+    ret = sss_packet_grow(packet, blen);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    sss_packet_get_body(packet, &pbody, &plen);
+    memcpy(pbody, body, blen);
+
+    return EOK;
+}
+
 void sss_packet_set_error(struct sss_packet *packet, int error)
 {
     SAFEALIGN_SETMEM_UINT32(packet->buffer + SSS_PACKET_ERR_OFFSET, error,

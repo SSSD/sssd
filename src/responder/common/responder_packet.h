@@ -42,4 +42,9 @@ uint32_t sss_packet_get_status(struct sss_packet *packet);
 void sss_packet_get_body(struct sss_packet *packet, uint8_t **body, size_t *blen);
 void sss_packet_set_error(struct sss_packet *packet, int error);
 
+/* Grow packet and set its body. */
+errno_t sss_packet_set_body(struct sss_packet *packet,
+                            uint8_t *body,
+                            size_t blen);
+
 #endif /* __SSSSRV_PACKET_H__ */
