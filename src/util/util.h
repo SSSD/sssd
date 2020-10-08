@@ -75,6 +75,10 @@
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #endif
 
+#ifndef ALLPERMS
+#define ALLPERMS (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)/* 07777 */
+#endif
+
 #define SSSD_MAIN_OPTS SSSD_DEBUG_OPTS
 
 #define SSSD_SERVER_OPTS(uid, gid) \
