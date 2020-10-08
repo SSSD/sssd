@@ -425,6 +425,12 @@ struct sss_domain_info {
     /* Do not use the _output_fqnames property directly in new code, but rather
      * use sss_domain_info_{get,set}_output_fqnames(). */
     bool output_fqnames;
+
+    /* Hostname associated with this domain. */
+    const char *hostname;
+
+    /* Keytab used by this domain. */
+    const char *krb5_keytab;
 };
 
 /**

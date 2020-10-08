@@ -871,6 +871,35 @@ done:
     return ret;
 }
 
+static char *confdb_get_domain_hostname(TALLOC_CTX *mem_ctx,
+                                        struct ldb_result *res,
+                                        const char *provider)
+{
+    char sys[HOST_NAME_MAX + 1] = {'\0'};
+    const char *opt = NULL;
+    int ret;
+
+    if (strcasecmp(provider, "ad") == 0) {
+        opt = ldb_msg_find_attr_as_string(res->msgs[0], "ad_hostname", NULL);
+    } else if (strcasecmp(provider, "ipa") == 0) {
+        opt = ldb_msg_find_attr_as_string(res->msgs[0], "ipa_hostname", NULL);
+    }
+
+    if (opt != NULL) {
+        return talloc_strdup(mem_ctx, opt);
+    }
+
+    ret = gethostname(sys, sizeof(sys));
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get hostname [%d]: %s\n", ret,
+              sss_strerror(ret));
+        return NULL;
+    }
+
+    return talloc_strdup(mem_ctx, sys);
+}
+
 static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                       TALLOC_CTX *mem_ctx,
                                       const char *name,
@@ -1534,6 +1563,22 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
               "init_cached_auth_timeout failed: %s:[%d].\n",
               sss_strerror(ret), ret);
         goto done;
+    }
+
+    domain->hostname = confdb_get_domain_hostname(domain, res, domain->provider);
+    if (domain->hostname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain hostname\n");
+        goto done;
+    }
+
+    domain->krb5_keytab = NULL;
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], "krb5_keytab", NULL);
+    if (tmp != NULL) {
+        domain->krb5_keytab = talloc_strdup(domain, tmp);
+        if (domain->krb5_keytab == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain keytab!\n");
+            goto done;
+        }
     }
 
     domain->has_views = false;

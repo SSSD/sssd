@@ -125,6 +125,18 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
         }
     }
 
+    dom->hostname = talloc_strdup(dom, parent->hostname);
+    if (dom->hostname == NULL && parent->hostname != NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy hostname.\n");
+        goto fail;
+    }
+
+    dom->krb5_keytab = talloc_strdup(dom, parent->krb5_keytab);
+    if (dom->krb5_keytab == NULL && parent->krb5_keytab != NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy krb5_keytab.\n");
+        goto fail;
+    }
+
     dom->enumerate = enumerate;
     dom->fqnames = true;
     dom->mpg_mode = mpg_mode;
