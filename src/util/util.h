@@ -565,7 +565,11 @@ struct sss_domain_info *get_domains_head(struct sss_domain_info *domain);
 
 #define SSS_GND_DESCEND 0x01
 #define SSS_GND_INCLUDE_DISABLED 0x02
+/* Descend to sub-domains of current domain but do not go to next parent */
+#define SSS_GND_SUBDOMAINS 0x04
 #define SSS_GND_ALL_DOMAINS (SSS_GND_DESCEND | SSS_GND_INCLUDE_DISABLED)
+#define SSS_GND_ALL_SUBDOMAINS (SSS_GND_SUBDOMAINS | SSS_GND_INCLUDE_DISABLED)
+
 struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
                                         uint32_t gnd_flags);
 struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
