@@ -877,6 +877,37 @@ static void test_get_next_domain_flags(void **state)
 
     dom = get_next_domain(dom, gnd_flags);
     assert_null(dom);
+
+    /* Descend only to subdomains */
+    gnd_flags = SSS_GND_SUBDOMAINS | SSS_GND_INCLUDE_DISABLED;
+
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub1a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+
+    dom = find_domain_by_name_ex(test_ctx->dom_list, "dom2", true,
+                                 SSS_GND_ALL_DOMAINS);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "dom2");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2b");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+
+    /* Expect NULL if the domain has no sub-domains */
+    test_ctx->dom_list->subdomains = NULL;
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_null(dom);
 }
 
 struct name_init_test_ctx {
