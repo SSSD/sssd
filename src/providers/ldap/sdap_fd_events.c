@@ -23,6 +23,7 @@
 */
 
 #include "util/util.h"
+#include "util/sss_sockets.h"
 #include "providers/ldap/sdap_async_private.h"
 
 struct sdap_fd_events {
@@ -88,6 +89,7 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
 {
     int ret;
     ber_socket_t ber_fd;
+    struct timeval *tv = NULL;
     struct fd_event_item *fd_event_item;
     struct ldap_cb_data *cb_data = talloc_get_type(ctx->lc_arg,
                                                    struct ldap_cb_data);
@@ -103,6 +105,27 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
     if (ret == -1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ber_sockbuf_ctrl failed.\n");
         return EINVAL;
+    }
+
+     /* (ld == NULL) means call flow is sdap_sys_connect_done() ->
+      * sdap_call_conn_cb() and this is "regular" socket that was already setup
+      * in sssd_async_socket_init_send().
+      * Otherwise this is socket open by libldap during referral chasing and it
+      * requires setting up.
+      */
+    if (ld != NULL) {
+        ret = ldap_get_option(ld, LDAP_OPT_NETWORK_TIMEOUT, &tv);
+        if ((ret == LDAP_OPT_SUCCESS) && (tv != NULL)) {
+            ret = set_fd_common_opts(ber_fd, tv->tv_sec);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE, "set_fd_common_opts() failed\n");
+            }
+            free(tv);
+            tv = NULL;
+        } else if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "ldap_get_option(LDAP_OPT_NETWORK_TIMEOUT) failed\n");
+        }
     }
 
     if (DEBUG_IS_SET(SSSDBG_TRACE_LIBS)) {
