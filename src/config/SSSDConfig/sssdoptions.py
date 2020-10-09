@@ -104,6 +104,7 @@ class SSSDOptions(object):
         'p11_wait_for_card_timeout': _('Additional timeout to wait for a card if requested'),
         'p11_uri': _('PKCS#11 URI to restrict the selection of devices for Smartcard authentication'),
         'pam_initgroups_scheme' : _('When shall the PAM responder force an initgroups request'),
+        'pam_gssapi_services' : _('List of PAM services that are allowed to authenticate with GSSAPI.'),
 
         # [sudo]
         'sudo_timed': _('Whether to evaluate the time-based attributes in sudo rules'),

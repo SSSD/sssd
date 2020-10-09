@@ -327,6 +327,27 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    ret = confdb_get_string(pctx->rctx->cdb, pctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_GSSAPI_SERVICES, "-", &tmpstr);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to determine gssapi services.\n");
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found value [%s] for option [%s].\n", tmpstr,
+                                 CONFDB_PAM_GSSAPI_SERVICES);
+
+    if (tmpstr != NULL) {
+        ret = split_on_separator(pctx, tmpstr, ',', true, true,
+                                 &pctx->gssapi_services, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "split_on_separator() failed [%d]: [%s].\n", ret,
+                  sss_strerror(ret));
+            goto done;
+        }
+    }
+
     /* The responder is initialized. Now tell it to the monitor. */
     ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_PAM,
                                    SSS_PAM_SBUS_SERVICE_NAME,

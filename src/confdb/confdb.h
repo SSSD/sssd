@@ -144,6 +144,7 @@
 #define CONFDB_PAM_P11_ALLOWED_SERVICES "pam_p11_allowed_services"
 #define CONFDB_PAM_P11_URI "p11_uri"
 #define CONFDB_PAM_INITGROUPS_SCHEME "pam_initgroups_scheme"
+#define CONFDB_PAM_GSSAPI_SERVICES "pam_gssapi_services"
 
 /* SUDO */
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"
@@ -431,6 +432,9 @@ struct sss_domain_info {
 
     /* Keytab used by this domain. */
     const char *krb5_keytab;
+
+    /* List of PAM services that are allowed to authenticate with GSSAPI. */
+    char **gssapi_services;
 };
 
 /**
