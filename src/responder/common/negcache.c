@@ -971,6 +971,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
     char *name = NULL;
     struct sss_domain_info *dom = NULL;
     struct sss_domain_info *domain_list = rctx->domains;
+    struct sss_domain_info *ddom;
     char *domainname = NULL;
     char *conf_path = NULL;
     TALLOC_CTX *tmpctx = talloc_new(NULL);
@@ -1013,39 +1014,44 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
 
-            if (domainname && strcmp(domainname, dom->name)) {
-                DEBUG(SSSDBG_TRACE_FUNC,
-                      "Mismatch between domain name (%s) and name "
-                          "set in FQN  (%s), assuming %s is UPN\n",
-                          dom->name, domainname, filter_list[i]);
-                ret = sss_ncache_set_upn(ncache, true, dom, filter_list[i]);
+            /* Check domain and its sub-domains */
+            for (ddom = dom; ddom != NULL;
+                        ddom = get_next_domain(ddom, SSS_GND_ALL_SUBDOMAINS)) {
+
+                if (domainname && strcmp(domainname, ddom->name)) {
+                    DEBUG(SSSDBG_TRACE_FUNC,
+                          "Mismatch between domain name (%s) and name "
+                              "set in FQN  (%s), assuming %s is UPN\n",
+                              ddom->name, domainname, filter_list[i]);
+                    ret = sss_ncache_set_upn(ncache, true, ddom, filter_list[i]);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "sss_ncache_set_upn failed (%d [%s]), ignored\n",
+                              ret, sss_strerror(ret));
+                    }
+                    continue;
+                }
+
+                fqname = sss_create_internal_fqname(tmpctx, name, ddom->name);
+                if (fqname == NULL) {
+                    continue;
+                }
+
+                ret = sss_ncache_set_upn(ncache, true, ddom, fqname);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "sss_ncache_set_upn failed (%d [%s]), ignored\n",
                           ret, sss_strerror(ret));
                 }
-                continue;
-            }
-
-            fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
-            if (fqname == NULL) {
-                continue;
-            }
-
-            ret = sss_ncache_set_upn(ncache, true, dom, fqname);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "sss_ncache_set_upn failed (%d [%s]), ignored\n",
-                      ret, sss_strerror(ret));
-            }
-            ret = sss_ncache_set_user(ncache, true, dom, fqname);
-            talloc_zfree(fqname);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to store permanent user filter for [%s]"
-                          " (%d [%s])\n", filter_list[i],
-                          ret, sss_strerror(ret));
-                continue;
+                ret = sss_ncache_set_user(ncache, true, ddom, fqname);
+                talloc_zfree(fqname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Failed to store permanent user filter for [%s]"
+                              " (%d [%s])\n", filter_list[i],
+                              ret, sss_strerror(ret));
+                    continue;
+                }
             }
         }
     }
@@ -1161,27 +1167,32 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
 
-            if (domainname && strcmp(domainname, dom->name)) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Mismatch between domain name (%s) and name "
-                          "set in FQN  (%s), skipping group %s\n",
-                          dom->name, domainname, name);
-                continue;
-            }
+            /* Check domain and its sub-domains */
+            for (ddom = dom;
+                        ddom != NULL && (ddom == dom || ddom->parent != NULL);
+                        ddom = get_next_domain(ddom, SSS_GND_ALL_DOMAINS)) {
+                if (domainname && strcmp(domainname, ddom->name)) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Mismatch between domain name (%s) and name "
+                              "set in FQN  (%s), skipping group %s\n",
+                              ddom->name, domainname, name);
+                    continue;
+                }
 
-            fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
-            if (fqname == NULL) {
-                continue;
-            }
+                fqname = sss_create_internal_fqname(tmpctx, name, ddom->name);
+                if (fqname == NULL) {
+                    continue;
+                }
 
-            ret = sss_ncache_set_group(ncache, true, dom, fqname);
-            talloc_zfree(fqname);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to store permanent group filter for [%s]"
-                          " (%d [%s])\n", filter_list[i],
-                          ret, strerror(ret));
-                continue;
+                ret = sss_ncache_set_group(ncache, true, ddom, fqname);
+                talloc_zfree(fqname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Failed to store permanent group filter for [%s]"
+                              " (%d [%s])\n", filter_list[i],
+                              ret, strerror(ret));
+                    continue;
+                }
             }
         }
     }
