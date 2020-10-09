@@ -1581,6 +1581,18 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_PAM_GSSAPI_SERVICES,
+                                      "-");
+    if (tmp != NULL) {
+        ret = split_on_separator(domain, tmp, ',', true, true,
+                                 &domain->gssapi_services, NULL);
+        if (ret != 0) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Cannot parse %s\n", CONFDB_PAM_GSSAPI_SERVICES);
+            goto done;
+        }
+    }
+
     domain->has_views = false;
     domain->view_name = NULL;
 

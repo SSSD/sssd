@@ -1706,6 +1706,35 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pam_gssapi_services</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of PAM services that are
+                            allowed to try GSSAPI authentication using
+                            pam_sss_gss.so module.
+                        </para>
+                        <para>
+                            To disable GSSAPI authentication, set this option
+                            to <quote>-</quote> (dash).
+                        </para>
+                        <para>
+                            Note: This option can also be set per-domain which
+                            overwrites the value in [pam] section. It can also
+                            be set for trusted domain which overwrites the value
+                            in the domain section.
+                        </para>
+                        <para>
+                            Example:
+                            <programlisting>
+pam_gssapi_services = sudo, sudo-i
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: - (GSSAPI authentication is disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 
@@ -3780,6 +3809,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
             <para>ad_backup_server,</para>
             <para>ad_site,</para>
             <para>use_fully_qualified_names</para>
+            <para>pam_gssapi_services</para>
         <para>
             For more details about these options see their individual description
             in the manual page.
