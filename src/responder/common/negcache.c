@@ -998,13 +998,13 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
 
         for (i = 0; (filter_list && filter_list[i]); i++) {
             ret = sss_parse_name_for_domains(tmpctx, domain_list,
-                                             rctx->default_domain,
+                                             NULL,
                                              filter_list[i],
                                              &domainname, &name);
             if (ret == EAGAIN) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      "cannot add [%s] to negcache because the required or "
-                      "default domain are not known yet\n", filter_list[i]);
+                      "Can add [%s] only as UPN to negcache because the "
+                      "required domain is not known yet\n", filter_list[i]);
             } else if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Invalid name in filterUsers list: [%s] (%d)\n",
@@ -1064,12 +1064,12 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
 
     for (i = 0; (filter_list && filter_list[i]); i++) {
         ret = sss_parse_name_for_domains(tmpctx, domain_list,
-                                         rctx->default_domain, filter_list[i],
+                                         NULL, filter_list[i],
                                          &domainname, &name);
         if (ret == EAGAIN) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot add [%s] to negcache because the required or "
-                  "default domain are not known yet\n", filter_list[i]);
+                  "Can add [%s] only as UPN to negcache because the "
+                  "required domain is not known yet\n", filter_list[i]);
         } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Invalid name in filterUsers list: [%s] (%d)\n",
@@ -1156,9 +1156,12 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         if (ret != EOK) goto done;
 
         for (i = 0; (filter_list && filter_list[i]); i++) {
-            ret = sss_parse_name(tmpctx, dom->names, filter_list[i],
-                                 &domainname, &name);
+            ret = sss_parse_name_for_domains(tmpctx, domain_list,
+                                             NULL, filter_list[i],
+                                             &domainname, &name);
             if (ret != EOK) {
+                /* Groups do not have UPNs, so domain names, if present,
+                 * must be known */
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Invalid name in filterGroups list: [%s] (%d)\n",
                          filter_list[i], ret);
@@ -1205,13 +1208,11 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
 
     for (i = 0; (filter_list && filter_list[i]); i++) {
         ret = sss_parse_name_for_domains(tmpctx, domain_list,
-                                         rctx->default_domain, filter_list[i],
+                                         NULL, filter_list[i],
                                          &domainname, &name);
-        if (ret == EAGAIN) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot add [%s] to negcache because the required or "
-                  "default domain are not known yet\n", filter_list[i]);
-        } else if (ret != EOK) {
+        if (ret != EOK) {
+            /* Groups do not have UPNs, so domain names, if present,
+             * must be known */
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Invalid name in filterGroups list: [%s] (%d)\n",
                      filter_list[i], ret);
