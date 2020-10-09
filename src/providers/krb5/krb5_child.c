@@ -853,7 +853,7 @@ static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
             }
         }
 
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot handle password prompts.\n");
+        DEBUG(SSSDBG_FUNC_DATA, "Prompter interface isn't used for password prompts by SSSD.\n");
         return KRB5_LIBOS_CANTREADPWD;
     }
 
