@@ -22,6 +22,8 @@
 #ifndef __SSS_SOCKETS_H__
 #define __SSS_SOCKETS_H__
 
+errno_t set_fd_common_opts(int fd, int timeout);
+
 struct tevent_req *sssd_async_connect_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            int fd,

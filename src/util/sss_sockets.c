@@ -74,7 +74,7 @@ static errno_t set_fcntl_flags(int fd, int fd_flags, int fl_flags)
     return EOK;
 }
 
-static errno_t set_fd_common_opts(int fd, int timeout)
+errno_t set_fd_common_opts(int fd, int timeout)
 {
     int dummy = 1;
     int ret;
