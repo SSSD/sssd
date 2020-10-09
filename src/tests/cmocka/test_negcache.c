@@ -933,7 +933,9 @@ static void test_sss_ncache_reset_prepopulate(void **state)
  *
  * The result should of course be independent of the present domains. To
  * verify this the domains are added one after the other and the negative
- * cache is repopulated each time.
+ * cache is repopulated each time. The result should be also independent of
+ * the setting of default_domain_suffix option which is tested by
+ * test_sss_ncache_short_name_in_domain_with_prefix.
  *
  * With the given domains, users and group we have to following expectations:
  *  - the short name entry will be added to the domain and all sub-domains as
@@ -1081,7 +1083,8 @@ static void expect_no_entries_in_dom(struct sss_nc_ctx *ncache,
     assert_int_equal(ret, ENOENT);
 }
 
-static void test_sss_ncache_short_name_in_domain(void **state)
+static void run_sss_ncache_short_name_in_domain(void **state,
+                                                bool use_default_domain_prefix)
 {
     int ret;
     struct test_state *ts;
@@ -1131,6 +1134,9 @@ static void test_sss_ncache_short_name_in_domain(void **state)
     ncache = ts->ctx;
     ts->rctx = mock_rctx(ts, ev, dom, ts->nctx);
     assert_non_null(ts->rctx);
+    if (use_default_domain_prefix) {
+        ts->rctx->default_domain = discard_const(TEST_DOM_NAME);
+    }
     ts->rctx->cdb = tc->confdb;
 
     ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &dom->names);
@@ -1171,6 +1177,16 @@ static void test_sss_ncache_short_name_in_domain(void **state)
     expect_in_parent(ncache, dom);
     expect_in_subdomain(ncache, sub_dom);
     expect_no_entries_in_dom(ncache, dom2);
+}
+
+static void test_sss_ncache_short_name_in_domain(void **state)
+{
+    run_sss_ncache_short_name_in_domain(state, false);
+}
+
+static void test_sss_ncache_short_name_in_domain_with_prefix(void **state)
+{
+    run_sss_ncache_short_name_in_domain(state, true);
 }
 
 static void test_sss_ncache_reset(void **state)
@@ -1336,6 +1352,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sss_ncache_reset_prepopulate,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_short_name_in_domain,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_short_name_in_domain_with_prefix,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_reset,
                                         setup, teardown),
