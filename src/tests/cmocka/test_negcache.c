@@ -119,6 +119,8 @@ static int setup(void **state)
     int ret;
     struct test_state *ts;
 
+    test_dom_suite_setup(TESTS_PATH);
+
     ts = talloc(NULL, struct test_state);
     assert_non_null(ts);
 
@@ -133,6 +135,7 @@ static int setup(void **state)
 static int teardown(void **state)
 {
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     talloc_free(ts);
     return 0;
 }
@@ -921,6 +924,255 @@ static void test_sss_ncache_reset_prepopulate(void **state)
     assert_int_equal(ret, EEXIST);
 }
 
+/* The main purpose of test_sss_ncache_short_name_in_domain is to test that
+ * short names in the filter_users or filter_groups options in a [domain/...]
+ * section are properly added to the related sub-domains as well (if there are
+ * any) and not added to domains from other [domain/...] sections. For
+ * completeness entries with fully-qualified names of the parent and the
+ * sub-domain and the generic UPN are added as well.
+ *
+ * The result should of course be independent of the present domains. To
+ * verify this the domains are added one after the other and the negative
+ * cache is repopulated each time.
+ *
+ * With the given domains, users and group we have to following expectations:
+ *  - the short name entry will be added to the domain and all sub-domains as
+ *    name and as upn by expanding it to a fully-qualified name with the
+ *    domain name or sub-domain name respectively
+ *  - the fully-qualified name from the parent domain is added as name and upn
+ *    to the parent domain and as upn to all sub-domains
+ *  - the fully-qualified name from the sub-domain is added as name to the
+ *    sub-domain and as upn to the parent and all sub-domains
+ *  - the generic upn is nowhere added as name and as upn to the parent and all
+ *    sub-domains
+ *  - none of the names is added to a different parent domain
+ *
+ * The following table should illustrated the expectations:
+ *
+ * user (name):
+ *                 | shortuser | parentu@TEST_DOM_NAME | subdomu@subTEST_DOM_NAME | upn@upn.dom
+ *-----------------+-----------+-----------------------+--------------------------+------------
+ * TEST_DOM_NAME   |  PRESENT  |  PRESENT              |  MISSING                 |  MISSING
+ * subTEST_DOM_NAME|  PRESENT  |  MISSING              |  PRESENT                 |  MISSING
+ * TEST_DOM_NAME2  |  MISSING  |  MISSING              |  MISSING                 |  MISSING
+ *
+ * user (upn):
+ *                 | shortuser | parentu@TEST_DOM_NAME | subdomu@subTEST_DOM_NAME | upn@upn.dom
+ *-----------------+-----------+-----------------------+--------------------------+------------
+ * TEST_DOM_NAME   |  PRESENT  |  PRESENT              |  PRESENT                 |  PRESENT
+ * subTEST_DOM_NAME|  PRESENT  |  PRESENT              |  PRESENT                 |  PRESENT
+ * TEST_DOM_NAME2  |  MISSING  |  MISSING              |  MISSING                 |  MISSING
+ *
+ *
+ *
+ * groups:
+ *                 | shortgroup | parentg@TEST_DOM_NAME | subdomg@subTEST_DOM_NAME
+ *-----------------+------------+-----------------------+-------------------------
+ * TEST_DOM_NAME   |  PRESENT   |  PRESENT              |  MISSING
+ * subTEST_DOM_NAME|  PRESENT   |  MISSING              |  PRESENT
+ * TEST_DOM_NAME2  |  MISSING   |  MISSING              |  MISSING
+ *
+ *
+ * The following expect_*() implement checks for the expextations:
+ */
+
+static void expect_in_parent(struct sss_nc_ctx *ncache,
+                             struct sss_domain_info *dom)
+{
+    int ret;
+
+    ret = check_user_in_ncache(ncache, dom, "shortuser");
+    assert_int_equal(ret, EEXIST);
+    ret = sss_ncache_check_upn(ncache, dom, "shortuser@"TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_user_in_ncache(ncache, dom, "parentu");
+    assert_int_equal(ret, EEXIST);
+    ret = sss_ncache_check_upn(ncache, dom, "parentu@"TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_user_in_ncache(ncache, dom, "subdomu");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_upn(ncache, dom, "subdomu@sub"TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_user_in_ncache(ncache, dom, "upn");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_upn(ncache, dom, "upn@upn.dom");
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_group_in_ncache(ncache, dom, "shortgroup");
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_group_in_ncache(ncache, dom, "parentg");
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_group_in_ncache(ncache, dom, "subdomg");
+    assert_int_equal(ret, ENOENT);
+}
+
+static void expect_in_subdomain(struct sss_nc_ctx *ncache,
+                                struct sss_domain_info *sub_dom)
+{
+    int ret;
+
+    ret = check_user_in_ncache(ncache, sub_dom, "shortuser");
+    assert_int_equal(ret, EEXIST);
+    ret = sss_ncache_check_upn(ncache, sub_dom, "shortuser@sub"TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_user_in_ncache(ncache, sub_dom, "subdomu");
+    assert_int_equal(ret, EEXIST);
+    ret = sss_ncache_check_upn(ncache, sub_dom, "subdomu@sub"TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_user_in_ncache(ncache, sub_dom, "upn");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_upn(ncache, sub_dom, "upn@upn.dom");
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_user_in_ncache(ncache, sub_dom, "parentu");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_upn(ncache, sub_dom, "parentu@"TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+
+    ret = check_group_in_ncache(ncache, sub_dom, "shortgroup");
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_group_in_ncache(ncache, sub_dom, "parentg");
+    assert_int_equal(ret, ENOENT);
+
+    ret = check_group_in_ncache(ncache, sub_dom, "subdomg");
+    assert_int_equal(ret, EEXIST);
+}
+static void expect_no_entries_in_dom(struct sss_nc_ctx *ncache,
+                                     struct sss_domain_info *dom2)
+{
+    int ret;
+
+    ret = check_user_in_ncache(ncache, dom2, "shortuser");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_upn(ncache, dom2, "shortuser"TEST_DOM_NAME);
+    assert_int_equal(ret, ENOENT);
+
+    ret = check_user_in_ncache(ncache, dom2, "parentu");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_upn(ncache, dom2, "parentu@"TEST_DOM_NAME);
+    assert_int_equal(ret, ENOENT);
+
+    ret = check_user_in_ncache(ncache, dom2, "subdomu");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_upn(ncache, dom2, "subdomu@sub"TEST_DOM_NAME);
+    assert_int_equal(ret, ENOENT);
+
+    ret = check_user_in_ncache(ncache, dom2, "upn");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_upn(ncache, dom2, "upn@upn.dom");
+    assert_int_equal(ret, ENOENT);
+
+    ret = check_group_in_ncache(ncache, dom2, "shortgroup");
+    assert_int_equal(ret, ENOENT);
+
+    ret = check_group_in_ncache(ncache, dom2, "parentg");
+    assert_int_equal(ret, ENOENT);
+
+    ret = check_group_in_ncache(ncache, dom2, "subdomg");
+    assert_int_equal(ret, ENOENT);
+}
+
+static void test_sss_ncache_short_name_in_domain(void **state)
+{
+    int ret;
+    struct test_state *ts;
+    struct tevent_context *ev;
+    struct sss_nc_ctx *ncache;
+    struct sss_test_ctx *tc;
+    struct sss_domain_info *dom;
+    struct sss_domain_info *dom2;
+    struct sss_domain_info *sub_dom;
+
+    struct sss_test_conf_param params[] = {
+        { "filter_users", "shortuser, parentu@"TEST_DOM_NAME", "
+          "subdomu@sub"TEST_DOM_NAME", upn@upn.dom" },
+        { "filter_groups", "shortgroup, parentg@"TEST_DOM_NAME", "
+          "subdomg@sub"TEST_DOM_NAME },
+        { NULL, NULL },
+    };
+
+    const char *nss_filter_users[] = { params[0].value, NULL};
+    const char *nss_filter_groups[] = { params[1].value, NULL};
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    dom = talloc_zero(ts, struct sss_domain_info);
+    assert_non_null(dom);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
+    sss_domain_set_state(dom, DOM_ACTIVE);
+
+    ts->nctx = mock_nctx(ts);
+    assert_non_null(ts->nctx);
+
+    tc = create_dom_test_ctx(ts, TESTS_PATH, TEST_CONF_DB,
+                             TEST_DOM_NAME, TEST_ID_PROVIDER, params);
+    assert_non_null(tc);
+
+    ret = confdb_add_param(tc->confdb, true, "config/domain/"TEST_DOM_NAME,
+                           "filter_users", nss_filter_users);
+    assert_int_equal(ret, EOK);
+
+    ret = confdb_add_param(tc->confdb, true, "config/domain"TEST_DOM_NAME,
+                           "filter_groups", nss_filter_groups);
+    assert_int_equal(ret, EOK);
+
+    ncache = ts->ctx;
+    ts->rctx = mock_rctx(ts, ev, dom, ts->nctx);
+    assert_non_null(ts->rctx);
+    ts->rctx->cdb = tc->confdb;
+
+    ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &dom->names);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
+    assert_int_equal(ret, EOK);
+
+    /* Add another domain */
+    dom2 = talloc_zero(ts, struct sss_domain_info);
+    assert_non_null(dom2);
+    dom2->name = discard_const_p(char, TEST_DOM_NAME"2");
+    sss_domain_set_state(dom2, DOM_ACTIVE);
+    dom->next = dom2;
+    dom2->names = dom->names;
+
+    expect_in_parent(ncache, dom);
+    expect_no_entries_in_dom(ncache, dom2);
+
+    ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
+    assert_int_equal(ret, EOK);
+
+    expect_in_parent(ncache, dom);
+    expect_no_entries_in_dom(ncache, dom2);
+
+    /* Add a sub domain */
+    sub_dom = talloc_zero(ts, struct sss_domain_info);
+    assert_non_null(sub_dom);
+    sub_dom->name = discard_const_p(char, "sub"TEST_DOM_NAME);
+    sss_domain_set_state(sub_dom, DOM_ACTIVE);
+    sub_dom->parent = dom;
+    dom->subdomains = sub_dom;
+    sub_dom->names = dom->names;
+
+    ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
+    assert_int_equal(ret, EOK);
+
+    expect_in_parent(ncache, dom);
+    expect_in_subdomain(ncache, sub_dom);
+    expect_no_entries_in_dom(ncache, dom2);
+}
+
 static void test_sss_ncache_reset(void **state)
 {
     errno_t ret;
@@ -1082,6 +1334,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sss_ncache_default_domain_suffix,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_reset_prepopulate,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_short_name_in_domain,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_reset,
                                         setup, teardown),
