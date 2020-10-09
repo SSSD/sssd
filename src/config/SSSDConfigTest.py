@@ -653,7 +653,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'full_name_format',
             're_expression',
             'cached_auth_timeout',
-            'auto_private_groups']
+            'auto_private_groups',
+            'pam_gssapi_services']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -1030,7 +1031,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'full_name_format',
             're_expression',
             'cached_auth_timeout',
-            'auto_private_groups']
+            'auto_private_groups',
+            'pam_gssapi_services']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")

@@ -62,6 +62,9 @@ struct pam_ctx {
     int num_prompting_config_sections;
 
     enum pam_initgroups_scheme initgroups_scheme;
+
+    /* List of PAM services that are allowed to authenticate with GSSAPI. */
+    char **gssapi_services;
 };
 
 struct pam_auth_req {
