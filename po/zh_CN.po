@@ -9,15 +9,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2020-03-17 13:40+0100\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2020-10-12 12:09+0200\n"
 "PO-Revision-Date: 2020-05-18 01:08+0000\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/projects/p/sssd/"
 "language/zh_CN/)\n"
 "Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Zanata 4.6.2\n"
 
@@ -79,12 +79,12 @@ msgid "Timeout for messages sent over the SBUS"
 msgstr "通过 SBUS 发送的消息超时"
 
 #: src/config/SSSDConfig/__init__.py.in:60
-#: src/config/SSSDConfig/__init__.py.in:198
+#: src/config/SSSDConfig/__init__.py.in:200
 msgid "Regex to parse username and domain"
 msgstr "正则表达式解析用户名和域"
 
 #: src/config/SSSDConfig/__init__.py.in:61
-#: src/config/SSSDConfig/__init__.py.in:197
+#: src/config/SSSDConfig/__init__.py.in:199
 msgid "Printf-compatible format for displaying fully-qualified names"
 msgstr "兼容 Printf 的格式用于显示完全限定名称"
 
@@ -207,7 +207,8 @@ msgstr "离线时允许多少次失败的登录尝试"
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
-msgstr "当达到 offline_failed_login_attempts 之后多长时间要拒绝登录（以分钟为单位）"
+msgstr ""
+"当达到 offline_failed_login_attempts 之后多长时间要拒绝登录（以分钟为单位）"
 
 #: src/config/SSSDConfig/__init__.py.in:94
 msgid "What kind of messages are displayed to the user during authentication"
@@ -283,7 +284,8 @@ msgstr "在 known_hosts 文件中是否对主机名和地址进行哈希处理"
 msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
-msgstr "当请求了它的主机密钥后，将主机保留在 known_hosts 文件中的时间（以秒为单位）"
+msgstr ""
+"当请求了它的主机密钥后，将主机保留在 known_hosts 文件中的时间（以秒为单位）"
 
 #: src/config/SSSDConfig/__init__.py.in:119
 msgid "Path to storage of trusted CA certificates"
@@ -351,19 +353,16 @@ msgstr "与请求一起转发到 Custodia 服务器的标头列表"
 
 #: src/config/SSSDConfig/__init__.py.in:141
 msgid ""
-"The username to use when authenticating to a Custodia server using "
-"basic_auth"
+"The username to use when authenticating to a Custodia server using basic_auth"
 msgstr "当向使用 basic_auth 的 Custodia 服务器进行身份验证时使用的用户名"
 
 #: src/config/SSSDConfig/__init__.py.in:142
 msgid ""
-"The password to use when authenticating to a Custodia server using "
-"basic_auth"
+"The password to use when authenticating to a Custodia server using basic_auth"
 msgstr "当向使用 basic_auth 的 Custodia 服务器进行身份验证时使用的密码"
 
 #: src/config/SSSDConfig/__init__.py.in:143
-msgid ""
-"If true peer's certificate is verified if proxy_url uses https protocol"
+msgid "If true peer's certificate is verified if proxy_url uses https protocol"
 msgstr "如果 proxy_url 使用 https 协议，是否验证真实的对等方的证书"
 
 #: src/config/SSSDConfig/__init__.py.in:144
@@ -457,12 +456,12 @@ msgid "Don't include group members in group lookups"
 msgstr "在组查询中不包括的组成员"
 
 #: src/config/SSSDConfig/__init__.py.in:170
-#: src/config/SSSDConfig/__init__.py.in:177
-#: src/config/SSSDConfig/__init__.py.in:178
 #: src/config/SSSDConfig/__init__.py.in:179
 #: src/config/SSSDConfig/__init__.py.in:180
 #: src/config/SSSDConfig/__init__.py.in:181
 #: src/config/SSSDConfig/__init__.py.in:182
+#: src/config/SSSDConfig/__init__.py.in:183
+#: src/config/SSSDConfig/__init__.py.in:184
 msgid "Entry cache timeout length (seconds)"
 msgstr "输入缓存超时时间（秒）"
 
@@ -476,1109 +475,1122 @@ msgid "How long to keep cached entries after last successful login (days)"
 msgstr "上次成功登录后保留缓存条目的时间（天）"
 
 #: src/config/SSSDConfig/__init__.py.in:173
+msgid ""
+"How long should SSSD talk to single DNS server before trying next server "
+"(miliseconds)"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:174
+msgid "How long should keep trying to resolve single DNS query (seconds)"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:175
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr "解析服务器时等待 DNS 回复的时间（秒）"
 
-#: src/config/SSSDConfig/__init__.py.in:174
+#: src/config/SSSDConfig/__init__.py.in:176
 msgid "The domain part of service discovery DNS query"
 msgstr "服务发现 DNS 查询的域部分"
 
-#: src/config/SSSDConfig/__init__.py.in:175
+#: src/config/SSSDConfig/__init__.py.in:177
 msgid "Override GID value from the identity provider with this value"
 msgstr "使用此值覆盖来自身份提供者的 GID 值"
 
-#: src/config/SSSDConfig/__init__.py.in:176
+#: src/config/SSSDConfig/__init__.py.in:178
 msgid "Treat usernames as case sensitive"
 msgstr "用户名区分大小写"
 
-#: src/config/SSSDConfig/__init__.py.in:183
+#: src/config/SSSDConfig/__init__.py.in:185
 msgid "How often should expired entries be refreshed in background"
 msgstr "过期条目应在后台刷新的频率"
 
-#: src/config/SSSDConfig/__init__.py.in:184
+#: src/config/SSSDConfig/__init__.py.in:186
 msgid "Whether to automatically update the client's DNS entry"
 msgstr "是否自动更新客户端的 DNS 条目"
 
-#: src/config/SSSDConfig/__init__.py.in:185
-#: src/config/SSSDConfig/__init__.py.in:207
+#: src/config/SSSDConfig/__init__.py.in:187
+#: src/config/SSSDConfig/__init__.py.in:209
 msgid "The TTL to apply to the client's DNS entry after updating it"
 msgstr "更新后应用于客户端 DNS 条目的TTL"
 
-#: src/config/SSSDConfig/__init__.py.in:186
-#: src/config/SSSDConfig/__init__.py.in:208
+#: src/config/SSSDConfig/__init__.py.in:188
+#: src/config/SSSDConfig/__init__.py.in:210
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr "应该用于动态 DNS 更新的接口的 IP 地址"
 
-#: src/config/SSSDConfig/__init__.py.in:187
+#: src/config/SSSDConfig/__init__.py.in:189
 msgid "How often to periodically update the client's DNS entry"
 msgstr "定期更新客户端的 DNS 条目的频率"
 
-#: src/config/SSSDConfig/__init__.py.in:188
+#: src/config/SSSDConfig/__init__.py.in:190
 msgid "Whether the provider should explicitly update the PTR record as well"
 msgstr "提供者是否应该明确更新 PTR 记录"
 
-#: src/config/SSSDConfig/__init__.py.in:189
+#: src/config/SSSDConfig/__init__.py.in:191
 msgid "Whether the nsupdate utility should default to using TCP"
 msgstr "nsupdate 实用程序是否应默认使用 TCP"
 
-#: src/config/SSSDConfig/__init__.py.in:190
+#: src/config/SSSDConfig/__init__.py.in:192
 msgid "What kind of authentication should be used to perform the DNS update"
 msgstr "在执行 DNS 更新时应该使用哪种身份验证"
 
-#: src/config/SSSDConfig/__init__.py.in:191
+#: src/config/SSSDConfig/__init__.py.in:193
 msgid "Override the DNS server used to perform the DNS update"
 msgstr "覆盖用于执行 DNS 更新的 DNS 服务器"
 
-#: src/config/SSSDConfig/__init__.py.in:192
+#: src/config/SSSDConfig/__init__.py.in:194
 msgid "Control enumeration of trusted domains"
 msgstr "信任域的控制枚举"
 
-#: src/config/SSSDConfig/__init__.py.in:193
+#: src/config/SSSDConfig/__init__.py.in:195
 msgid "How often should subdomains list be refreshed"
 msgstr "子域列表应该多久刷新一次"
 
-#: src/config/SSSDConfig/__init__.py.in:194
+#: src/config/SSSDConfig/__init__.py.in:196
 msgid "List of options that should be inherited into a subdomain"
 msgstr "应该被继承到子域中的选项列表"
 
-#: src/config/SSSDConfig/__init__.py.in:195
+#: src/config/SSSDConfig/__init__.py.in:197
 msgid "Default subdomain homedir value"
 msgstr "默认子域 homedir 值"
 
-#: src/config/SSSDConfig/__init__.py.in:196
+#: src/config/SSSDConfig/__init__.py.in:198
 msgid "How long can cached credentials be used for cached authentication"
 msgstr "可以使用缓存凭证用于缓存身份验证的时间"
 
-#: src/config/SSSDConfig/__init__.py.in:199
+#: src/config/SSSDConfig/__init__.py.in:201
 msgid "Whether to automatically create private groups for users"
 msgstr "是否自动为用户创建私人组"
 
-#: src/config/SSSDConfig/__init__.py.in:202
+#: src/config/SSSDConfig/__init__.py.in:204
 msgid "IPA domain"
 msgstr "IPA 域"
 
-#: src/config/SSSDConfig/__init__.py.in:203
+#: src/config/SSSDConfig/__init__.py.in:205
 msgid "IPA server address"
 msgstr "IPA 服务器地址"
 
-#: src/config/SSSDConfig/__init__.py.in:204
+#: src/config/SSSDConfig/__init__.py.in:206
 msgid "Address of backup IPA server"
 msgstr "IPA 备份服务器地址"
 
-#: src/config/SSSDConfig/__init__.py.in:205
+#: src/config/SSSDConfig/__init__.py.in:207
 msgid "IPA client hostname"
 msgstr "IPA 客户端主机名"
 
-#: src/config/SSSDConfig/__init__.py.in:206
+#: src/config/SSSDConfig/__init__.py.in:208
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr "是否在 FreeIPA 中自动更新客户端的 DNS 条目"
 
-#: src/config/SSSDConfig/__init__.py.in:209
+#: src/config/SSSDConfig/__init__.py.in:211
 msgid "Search base for HBAC related objects"
 msgstr "HBAC 相关对象的搜索基础"
 
-#: src/config/SSSDConfig/__init__.py.in:210
+#: src/config/SSSDConfig/__init__.py.in:212
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr "针对 IPA 服务器查找 HBAC 规则之间的时间间隔"
 
-#: src/config/SSSDConfig/__init__.py.in:211
+#: src/config/SSSDConfig/__init__.py.in:213
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
 msgstr "针对 IPA 服务器查找 SELinux 映射之间的时间间隔"
 
-#: src/config/SSSDConfig/__init__.py.in:212
+#: src/config/SSSDConfig/__init__.py.in:214
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr "如果设置为 false，PAM 提供的主机参数将被忽略"
 
-#: src/config/SSSDConfig/__init__.py.in:213
+#: src/config/SSSDConfig/__init__.py.in:215
 msgid "The automounter location this IPA client is using"
 msgstr "此 IPA 客户端使用的自动挂载器的位置"
 
-#: src/config/SSSDConfig/__init__.py.in:214
+#: src/config/SSSDConfig/__init__.py.in:216
 msgid "Search base for object containing info about IPA domain"
 msgstr "搜索包含有关 IPA 域信息的对象的搜索基础"
 
-#: src/config/SSSDConfig/__init__.py.in:215
+#: src/config/SSSDConfig/__init__.py.in:217
 msgid "Search base for objects containing info about ID ranges"
 msgstr "搜索包含有关 ID 范围信息的对象的搜索基础"
 
-#: src/config/SSSDConfig/__init__.py.in:216
-#: src/config/SSSDConfig/__init__.py.in:234
+#: src/config/SSSDConfig/__init__.py.in:218
+#: src/config/SSSDConfig/__init__.py.in:236
 msgid "Enable DNS sites - location based service discovery"
 msgstr "启用 DNS 站点 - 基于位置的服务发现"
 
-#: src/config/SSSDConfig/__init__.py.in:217
+#: src/config/SSSDConfig/__init__.py.in:219
 msgid "Search base for view containers"
 msgstr "查看容器的搜索基础"
 
-#: src/config/SSSDConfig/__init__.py.in:218
+#: src/config/SSSDConfig/__init__.py.in:220
 msgid "Objectclass for view containers"
 msgstr "查看容器的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:219
+#: src/config/SSSDConfig/__init__.py.in:221
 msgid "Attribute with the name of the view"
 msgstr "具有视图名称的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:220
+#: src/config/SSSDConfig/__init__.py.in:222
 msgid "Objectclass for override objects"
 msgstr "覆盖对象的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:221
+#: src/config/SSSDConfig/__init__.py.in:223
 msgid "Attribute with the reference to the original object"
 msgstr "带有到原始对象参考的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:222
+#: src/config/SSSDConfig/__init__.py.in:224
 msgid "Objectclass for user override objects"
 msgstr "用户覆盖对象的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:223
+#: src/config/SSSDConfig/__init__.py.in:225
 msgid "Objectclass for group override objects"
 msgstr "组覆盖对象的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:224
+#: src/config/SSSDConfig/__init__.py.in:226
 msgid "Search base for Desktop Profile related objects"
 msgstr "Desktop Profile 相关对象的搜索基础"
 
-#: src/config/SSSDConfig/__init__.py.in:225
+#: src/config/SSSDConfig/__init__.py.in:227
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
 msgstr "针对 IPA 服务器查找 Desktop Profile 规则之间的时间间隔"
 
-#: src/config/SSSDConfig/__init__.py.in:226
+#: src/config/SSSDConfig/__init__.py.in:228
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
-msgstr "当最后一个请求未找到任何规则时，针对 IPA 服务器的Desktop Profiles 规则查找之间的时间间隔（以分钟为单位）"
+msgstr ""
+"当最后一个请求未找到任何规则时，针对 IPA 服务器的Desktop Profiles 规则查找之"
+"间的时间间隔（以分钟为单位）"
 
-#: src/config/SSSDConfig/__init__.py.in:229
+#: src/config/SSSDConfig/__init__.py.in:231
 msgid "Active Directory domain"
 msgstr "活动目录域"
 
-#: src/config/SSSDConfig/__init__.py.in:230
+#: src/config/SSSDConfig/__init__.py.in:232
 msgid "Enabled Active Directory domains"
 msgstr "启用活动目录域"
 
-#: src/config/SSSDConfig/__init__.py.in:231
+#: src/config/SSSDConfig/__init__.py.in:233
 msgid "Active Directory server address"
 msgstr "没动目录服务器地址"
 
-#: src/config/SSSDConfig/__init__.py.in:232
+#: src/config/SSSDConfig/__init__.py.in:234
 msgid "Active Directory backup server address"
 msgstr "没动目录备份服务器地址"
 
-#: src/config/SSSDConfig/__init__.py.in:233
+#: src/config/SSSDConfig/__init__.py.in:235
 msgid "Active Directory client hostname"
 msgstr "活动目录客户端主机名"
 
-#: src/config/SSSDConfig/__init__.py.in:235
-#: src/config/SSSDConfig/__init__.py.in:424
+#: src/config/SSSDConfig/__init__.py.in:237
+#: src/config/SSSDConfig/__init__.py.in:427
 msgid "LDAP filter to determine access privileges"
 msgstr "用于决定访问权限 的 LDAP 过滤器"
 
-#: src/config/SSSDConfig/__init__.py.in:236
+#: src/config/SSSDConfig/__init__.py.in:238
 msgid "Whether to use the Global Catalog for lookups"
 msgstr "是否使用 Global Catalog 进行查找"
 
-#: src/config/SSSDConfig/__init__.py.in:237
+#: src/config/SSSDConfig/__init__.py.in:239
 msgid "Operation mode for GPO-based access control"
 msgstr "基于 GPO 的访问控制的操作模式"
 
-#: src/config/SSSDConfig/__init__.py.in:238
+#: src/config/SSSDConfig/__init__.py.in:240
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
 msgstr "针对 IPA 服务器查找 GPO 策略文件之间的时间间隔"
 
-#: src/config/SSSDConfig/__init__.py.in:239
+#: src/config/SSSDConfig/__init__.py.in:241
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr "映射到 GPO (Deny)InteractiveLogonRight 策略设置的 PAM 服务名称"
 
-#: src/config/SSSDConfig/__init__.py.in:240
+#: src/config/SSSDConfig/__init__.py.in:242
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr "映射到 GPO (Deny)RemoteInteractiveLogonRight 策略设置的 PAM 服务名称"
 
-#: src/config/SSSDConfig/__init__.py.in:241
+#: src/config/SSSDConfig/__init__.py.in:243
 msgid ""
-"PAM service names that map to the GPO (Deny)NetworkLogonRight policy "
-"settings"
+"PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr "映射到 GPO (Deny)NetworkLogonRight 策略设置的 PAM 服务名称"
 
-#: src/config/SSSDConfig/__init__.py.in:242
+#: src/config/SSSDConfig/__init__.py.in:244
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr "映射到 GPO (Deny)BatchLogonRight 策略设置的 PAM 服务名称"
 
-#: src/config/SSSDConfig/__init__.py.in:243
+#: src/config/SSSDConfig/__init__.py.in:245
 msgid ""
-"PAM service names that map to the GPO (Deny)ServiceLogonRight policy "
-"settings"
+"PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr "映射到 GPO (Deny)ServiceLogonRight 策略设置的 PAM 服务名称"
 
-#: src/config/SSSDConfig/__init__.py.in:244
+#: src/config/SSSDConfig/__init__.py.in:246
 msgid "PAM service names for which GPO-based access is always granted"
 msgstr "基于 GPO 的访问始终会被授予的 PAM 服务名称"
 
-#: src/config/SSSDConfig/__init__.py.in:245
+#: src/config/SSSDConfig/__init__.py.in:247
 msgid "PAM service names for which GPO-based access is always denied"
 msgstr "基于 GPO 的访问始终会被拒绝的 PAM 服务名称"
 
-#: src/config/SSSDConfig/__init__.py.in:246
+#: src/config/SSSDConfig/__init__.py.in:248
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
 msgstr "用于未映射的 PAM 服务名称的默认登录权（或允许/拒绝）"
 
-#: src/config/SSSDConfig/__init__.py.in:247
+#: src/config/SSSDConfig/__init__.py.in:249
 msgid "a particular site to be used by the client"
 msgstr "客户要使用的特定站点"
 
-#: src/config/SSSDConfig/__init__.py.in:248
+#: src/config/SSSDConfig/__init__.py.in:250
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
 msgstr "机器帐户密码需要续订的最长期限（天）"
 
-#: src/config/SSSDConfig/__init__.py.in:249
+#: src/config/SSSDConfig/__init__.py.in:251
 msgid "Option for tuning the machine account renewal task"
 msgstr "用于调整机器帐户续订任务的选项"
 
-#: src/config/SSSDConfig/__init__.py.in:250
+#: src/config/SSSDConfig/__init__.py.in:252
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
 msgstr "将 LDAPS 端口用于 LDAP 和 Global Catalog 请求"
 
 #: src/config/SSSDConfig/__init__.py.in:253
-#: src/config/SSSDConfig/__init__.py.in:254
+msgid "Do not filter domain local groups from other domains"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:256
+#: src/config/SSSDConfig/__init__.py.in:257
 msgid "Kerberos server address"
 msgstr "Kerberos 服务器地址"
 
-#: src/config/SSSDConfig/__init__.py.in:255
+#: src/config/SSSDConfig/__init__.py.in:258
 msgid "Kerberos backup server address"
 msgstr "Kerberos 备份服务器地址"
 
-#: src/config/SSSDConfig/__init__.py.in:256
+#: src/config/SSSDConfig/__init__.py.in:259
 msgid "Kerberos realm"
 msgstr "Kerberos realm"
 
-#: src/config/SSSDConfig/__init__.py.in:257
+#: src/config/SSSDConfig/__init__.py.in:260
 msgid "Authentication timeout"
 msgstr "验证超时"
 
-#: src/config/SSSDConfig/__init__.py.in:258
+#: src/config/SSSDConfig/__init__.py.in:261
 msgid "Whether to create kdcinfo files"
 msgstr "是否创建 kdcinfo 文件"
 
-#: src/config/SSSDConfig/__init__.py.in:259
+#: src/config/SSSDConfig/__init__.py.in:262
 msgid "Where to drop krb5 config snippets"
 msgstr "在哪里放置 krb5 配置片段"
 
-#: src/config/SSSDConfig/__init__.py.in:262
+#: src/config/SSSDConfig/__init__.py.in:265
 msgid "Directory to store credential caches"
 msgstr "存储凭证缓存的目录"
 
-#: src/config/SSSDConfig/__init__.py.in:263
+#: src/config/SSSDConfig/__init__.py.in:266
 msgid "Location of the user's credential cache"
 msgstr "用户凭证缓存的位置"
 
-#: src/config/SSSDConfig/__init__.py.in:264
+#: src/config/SSSDConfig/__init__.py.in:267
 msgid "Location of the keytab to validate credentials"
 msgstr "用于验证凭据的密钥表的位置"
 
-#: src/config/SSSDConfig/__init__.py.in:265
+#: src/config/SSSDConfig/__init__.py.in:268
 msgid "Enable credential validation"
 msgstr "启用凭证验证"
 
-#: src/config/SSSDConfig/__init__.py.in:266
+#: src/config/SSSDConfig/__init__.py.in:269
 msgid "Store password if offline for later online authentication"
 msgstr "离线时存储密码，以便以后进行在线身份验证"
 
-#: src/config/SSSDConfig/__init__.py.in:267
+#: src/config/SSSDConfig/__init__.py.in:270
 msgid "Renewable lifetime of the TGT"
 msgstr "TGT 的可更新寿命"
 
-#: src/config/SSSDConfig/__init__.py.in:268
+#: src/config/SSSDConfig/__init__.py.in:271
 msgid "Lifetime of the TGT"
 msgstr "TGT 的寿命"
 
-#: src/config/SSSDConfig/__init__.py.in:269
+#: src/config/SSSDConfig/__init__.py.in:272
 msgid "Time between two checks for renewal"
 msgstr "两次更新检查之间的间隔时间"
 
-#: src/config/SSSDConfig/__init__.py.in:270
+#: src/config/SSSDConfig/__init__.py.in:273
 msgid "Enables FAST"
 msgstr "启用 FAST"
 
-#: src/config/SSSDConfig/__init__.py.in:271
+#: src/config/SSSDConfig/__init__.py.in:274
 msgid "Selects the principal to use for FAST"
 msgstr "选择用于 FAST 的主体"
 
-#: src/config/SSSDConfig/__init__.py.in:272
+#: src/config/SSSDConfig/__init__.py.in:275
 msgid "Enables principal canonicalization"
 msgstr "启用主体规范化"
 
-#: src/config/SSSDConfig/__init__.py.in:273
+#: src/config/SSSDConfig/__init__.py.in:276
 msgid "Enables enterprise principals"
 msgstr "启用企业主体"
 
-#: src/config/SSSDConfig/__init__.py.in:274
+#: src/config/SSSDConfig/__init__.py.in:277
 msgid "A mapping from user names to Kerberos principal names"
 msgstr "从用户名到 Kerberos 主体名称的映射"
 
-#: src/config/SSSDConfig/__init__.py.in:277
-#: src/config/SSSDConfig/__init__.py.in:278
+#: src/config/SSSDConfig/__init__.py.in:280
+#: src/config/SSSDConfig/__init__.py.in:281
 msgid "Server where the change password service is running if not on the KDC"
 msgstr "如果不在 KDC 上，运行更改密码服务的服务器"
 
-#: src/config/SSSDConfig/__init__.py.in:281
+#: src/config/SSSDConfig/__init__.py.in:284
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri，LDAP 服务器的 URI"
 
-#: src/config/SSSDConfig/__init__.py.in:282
+#: src/config/SSSDConfig/__init__.py.in:285
 msgid "ldap_backup_uri, The URI of the LDAP server"
 msgstr "ldap_backup_uri，LDAP 服务器的 URI"
 
-#: src/config/SSSDConfig/__init__.py.in:283
+#: src/config/SSSDConfig/__init__.py.in:286
 msgid "The default base DN"
 msgstr "默认基本 DN"
 
-#: src/config/SSSDConfig/__init__.py.in:284
+#: src/config/SSSDConfig/__init__.py.in:287
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "LDAP 服务器上使用的 Schema Type，rfc2307"
 
-#: src/config/SSSDConfig/__init__.py.in:285
+#: src/config/SSSDConfig/__init__.py.in:288
 msgid "Mode used to change user password"
 msgstr "用来修改用户密码的模式"
 
-#: src/config/SSSDConfig/__init__.py.in:286
+#: src/config/SSSDConfig/__init__.py.in:289
 msgid "The default bind DN"
 msgstr "默认绑定 DN"
 
-#: src/config/SSSDConfig/__init__.py.in:287
+#: src/config/SSSDConfig/__init__.py.in:290
 msgid "The type of the authentication token of the default bind DN"
 msgstr "默认绑定 DN 的身份验证令牌的类型"
 
-#: src/config/SSSDConfig/__init__.py.in:288
+#: src/config/SSSDConfig/__init__.py.in:291
 msgid "The authentication token of the default bind DN"
 msgstr "默认绑定 DN 的身份验证令牌"
 
-#: src/config/SSSDConfig/__init__.py.in:289
+#: src/config/SSSDConfig/__init__.py.in:292
 msgid "Length of time to attempt connection"
 msgstr "尝试连接的时间长度"
 
-#: src/config/SSSDConfig/__init__.py.in:290
+#: src/config/SSSDConfig/__init__.py.in:293
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "尝试同步 LDAP 操作的时间长度"
 
-#: src/config/SSSDConfig/__init__.py.in:291
+#: src/config/SSSDConfig/__init__.py.in:294
 msgid "Length of time between attempts to reconnect while offline"
 msgstr "离线时尝试重新连接的时间间隔"
 
-#: src/config/SSSDConfig/__init__.py.in:292
+#: src/config/SSSDConfig/__init__.py.in:295
 msgid "Use only the upper case for realm names"
 msgstr "realm 名称仅使用大写字母"
 
-#: src/config/SSSDConfig/__init__.py.in:293
+#: src/config/SSSDConfig/__init__.py.in:296
 msgid "File that contains CA certificates"
 msgstr "包含 CA 证书的文件"
 
-#: src/config/SSSDConfig/__init__.py.in:294
+#: src/config/SSSDConfig/__init__.py.in:297
 msgid "Path to CA certificate directory"
 msgstr "CA 证书目录的路径"
 
-#: src/config/SSSDConfig/__init__.py.in:295
+#: src/config/SSSDConfig/__init__.py.in:298
 msgid "File that contains the client certificate"
 msgstr "包含客户端 CA 证书的文件"
 
-#: src/config/SSSDConfig/__init__.py.in:296
+#: src/config/SSSDConfig/__init__.py.in:299
 msgid "File that contains the client key"
 msgstr "包含客户端密钥的文件"
 
-#: src/config/SSSDConfig/__init__.py.in:297
+#: src/config/SSSDConfig/__init__.py.in:300
 msgid "List of possible ciphers suites"
 msgstr "可能的加密套件列表"
 
-#: src/config/SSSDConfig/__init__.py.in:298
+#: src/config/SSSDConfig/__init__.py.in:301
 msgid "Require TLS certificate verification"
 msgstr "调整 TLS 证书验证"
 
-#: src/config/SSSDConfig/__init__.py.in:299
+#: src/config/SSSDConfig/__init__.py.in:302
 msgid "Specify the sasl mechanism to use"
 msgstr "指定要使用的 sasl 机制"
 
-#: src/config/SSSDConfig/__init__.py.in:300
+#: src/config/SSSDConfig/__init__.py.in:303
 msgid "Specify the sasl authorization id to use"
 msgstr "指定要使用的 sasl 授权 ID"
 
-#: src/config/SSSDConfig/__init__.py.in:301
+#: src/config/SSSDConfig/__init__.py.in:304
 msgid "Specify the sasl authorization realm to use"
 msgstr "指定要使用的 sasl 授权 realm"
 
-#: src/config/SSSDConfig/__init__.py.in:302
+#: src/config/SSSDConfig/__init__.py.in:305
 msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr "为 LDAP sasl 授权指定最小的 SSF"
 
-#: src/config/SSSDConfig/__init__.py.in:303
+#: src/config/SSSDConfig/__init__.py.in:306
 msgid "Specify the maximal SSF for LDAP sasl authorization"
 msgstr "为 LDAP sasl 授权指定最大的 SSF"
 
-#: src/config/SSSDConfig/__init__.py.in:304
+#: src/config/SSSDConfig/__init__.py.in:307
 msgid "Kerberos service keytab"
 msgstr "Kerberos服务密钥表"
 
-#: src/config/SSSDConfig/__init__.py.in:305
+#: src/config/SSSDConfig/__init__.py.in:308
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "使用 Kerberos 身份验证进行 LDAP 连接"
 
-#: src/config/SSSDConfig/__init__.py.in:306
+#: src/config/SSSDConfig/__init__.py.in:309
 msgid "Follow LDAP referrals"
 msgstr "遵循 LDAP 引用"
 
-#: src/config/SSSDConfig/__init__.py.in:307
+#: src/config/SSSDConfig/__init__.py.in:310
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "TGT 的 LDAP 连接生命周期"
 
-#: src/config/SSSDConfig/__init__.py.in:308
+#: src/config/SSSDConfig/__init__.py.in:311
 msgid "How to dereference aliases"
 msgstr "如何取消引用别名"
 
-#: src/config/SSSDConfig/__init__.py.in:309
+#: src/config/SSSDConfig/__init__.py.in:312
 msgid "Service name for DNS service lookups"
 msgstr "DNS 服务查找的服务名称"
 
-#: src/config/SSSDConfig/__init__.py.in:310
+#: src/config/SSSDConfig/__init__.py.in:313
 msgid "The number of records to retrieve in a single LDAP query"
 msgstr "单个 LDAP 查询中要检索的记录数"
 
-#: src/config/SSSDConfig/__init__.py.in:311
+#: src/config/SSSDConfig/__init__.py.in:314
 msgid "The number of members that must be missing to trigger a full deref"
 msgstr "触发完全取消引用请最少需要缺少的成员数"
 
-#: src/config/SSSDConfig/__init__.py.in:312
+#: src/config/SSSDConfig/__init__.py.in:315
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr "在 SASL绑定期间，LDAP 库是否应执行反向查找以规范化主机名"
 
-#: src/config/SSSDConfig/__init__.py.in:314
+#: src/config/SSSDConfig/__init__.py.in:317
 msgid "entryUSN attribute"
 msgstr "entryUSN 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:315
+#: src/config/SSSDConfig/__init__.py.in:318
 msgid "lastUSN attribute"
 msgstr "lastUSN 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:317
-msgid ""
-"How long to retain a connection to the LDAP server before disconnecting"
+#: src/config/SSSDConfig/__init__.py.in:320
+msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr "断开连接前与 LDAP 服务器保持连接的时间"
 
-#: src/config/SSSDConfig/__init__.py.in:319
+#: src/config/SSSDConfig/__init__.py.in:322
 msgid "Disable the LDAP paging control"
 msgstr "禁用 LDAP 分页控制"
 
-#: src/config/SSSDConfig/__init__.py.in:320
+#: src/config/SSSDConfig/__init__.py.in:323
 msgid "Disable Active Directory range retrieval"
 msgstr "禁用 Active Directory 范围检索"
 
-#: src/config/SSSDConfig/__init__.py.in:323
+#: src/config/SSSDConfig/__init__.py.in:326
 msgid "Length of time to wait for a search request"
 msgstr "等待搜索请求的时间长度"
 
-#: src/config/SSSDConfig/__init__.py.in:324
+#: src/config/SSSDConfig/__init__.py.in:327
 msgid "Length of time to wait for a enumeration request"
 msgstr "等待枚举请求的时间长度"
 
-#: src/config/SSSDConfig/__init__.py.in:325
+#: src/config/SSSDConfig/__init__.py.in:328
 msgid "Length of time between enumeration updates"
 msgstr "枚举更新之间的时间长度"
 
-#: src/config/SSSDConfig/__init__.py.in:326
+#: src/config/SSSDConfig/__init__.py.in:329
 msgid "Length of time between cache cleanups"
 msgstr "两次缓存清除之间的时间长度"
 
-#: src/config/SSSDConfig/__init__.py.in:327
+#: src/config/SSSDConfig/__init__.py.in:330
 msgid "Require TLS for ID lookups"
 msgstr "需要 TLS 进行 ID 查找"
 
-#: src/config/SSSDConfig/__init__.py.in:328
+#: src/config/SSSDConfig/__init__.py.in:331
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
 msgstr "使用 objectSID 的 ID 映射而不是预设的 ID"
 
-#: src/config/SSSDConfig/__init__.py.in:329
+#: src/config/SSSDConfig/__init__.py.in:332
 msgid "Base DN for user lookups"
 msgstr "用户查找的基本 DN"
 
-#: src/config/SSSDConfig/__init__.py.in:330
+#: src/config/SSSDConfig/__init__.py.in:333
 msgid "Scope of user lookups"
 msgstr "用户查找范围"
 
-#: src/config/SSSDConfig/__init__.py.in:331
+#: src/config/SSSDConfig/__init__.py.in:334
 msgid "Filter for user lookups"
 msgstr "用户查找过滤"
 
-#: src/config/SSSDConfig/__init__.py.in:332
+#: src/config/SSSDConfig/__init__.py.in:335
 msgid "Objectclass for users"
 msgstr "用户的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:333
+#: src/config/SSSDConfig/__init__.py.in:336
 msgid "Username attribute"
 msgstr "用户名属性"
 
-#: src/config/SSSDConfig/__init__.py.in:335
+#: src/config/SSSDConfig/__init__.py.in:338
 msgid "UID attribute"
 msgstr "UID 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:336
+#: src/config/SSSDConfig/__init__.py.in:339
 msgid "Primary GID attribute"
 msgstr "主 GID 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:337
+#: src/config/SSSDConfig/__init__.py.in:340
 msgid "GECOS attribute"
 msgstr "GECOS 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:338
+#: src/config/SSSDConfig/__init__.py.in:341
 msgid "Home directory attribute"
 msgstr "家目录属性"
 
-#: src/config/SSSDConfig/__init__.py.in:339
+#: src/config/SSSDConfig/__init__.py.in:342
 msgid "Shell attribute"
 msgstr "Shell 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:340
+#: src/config/SSSDConfig/__init__.py.in:343
 msgid "UUID attribute"
 msgstr "UUID 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:341
-#: src/config/SSSDConfig/__init__.py.in:383
+#: src/config/SSSDConfig/__init__.py.in:344
+#: src/config/SSSDConfig/__init__.py.in:386
 msgid "objectSID attribute"
 msgstr "objectSID 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:342
+#: src/config/SSSDConfig/__init__.py.in:345
 msgid "Active Directory primary group attribute for ID-mapping"
 msgstr "用于 ID 映射的活动目录的主组属性"
 
-#: src/config/SSSDConfig/__init__.py.in:343
+#: src/config/SSSDConfig/__init__.py.in:346
 msgid "User principal attribute (for Kerberos)"
 msgstr "用户主体属性（用于 Kerberos）"
 
-#: src/config/SSSDConfig/__init__.py.in:344
+#: src/config/SSSDConfig/__init__.py.in:347
 msgid "Full Name"
 msgstr "全称"
 
-#: src/config/SSSDConfig/__init__.py.in:345
+#: src/config/SSSDConfig/__init__.py.in:348
 msgid "memberOf attribute"
 msgstr "memberOf 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:346
+#: src/config/SSSDConfig/__init__.py.in:349
 msgid "Modification time attribute"
 msgstr "修改时间属性"
 
-#: src/config/SSSDConfig/__init__.py.in:348
+#: src/config/SSSDConfig/__init__.py.in:351
 msgid "shadowLastChange attribute"
 msgstr "shadowLastChange 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:349
+#: src/config/SSSDConfig/__init__.py.in:352
 msgid "shadowMin attribute"
 msgstr "shadowMin 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:350
+#: src/config/SSSDConfig/__init__.py.in:353
 msgid "shadowMax attribute"
 msgstr "shadowMax 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:351
+#: src/config/SSSDConfig/__init__.py.in:354
 msgid "shadowWarning attribute"
 msgstr "shadowWarning 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:352
+#: src/config/SSSDConfig/__init__.py.in:355
 msgid "shadowInactive attribute"
 msgstr "shadowInactive 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:353
+#: src/config/SSSDConfig/__init__.py.in:356
 msgid "shadowExpire attribute"
 msgstr "shadowExpire 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:354
+#: src/config/SSSDConfig/__init__.py.in:357
 msgid "shadowFlag attribute"
 msgstr "shadowFlag 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:355
+#: src/config/SSSDConfig/__init__.py.in:358
 msgid "Attribute listing authorized PAM services"
 msgstr "列出授权的 PAM 服务的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:356
+#: src/config/SSSDConfig/__init__.py.in:359
 msgid "Attribute listing authorized server hosts"
 msgstr "列出授权的服务器主机的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:357
+#: src/config/SSSDConfig/__init__.py.in:360
 msgid "Attribute listing authorized server rhosts"
 msgstr "列出授权的服务器 rhost 的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:358
+#: src/config/SSSDConfig/__init__.py.in:361
 msgid "krbLastPwdChange attribute"
 msgstr "krbLastPwdChange 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:359
+#: src/config/SSSDConfig/__init__.py.in:362
 msgid "krbPasswordExpiration attribute"
 msgstr "krbPasswordExpiration 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:360
+#: src/config/SSSDConfig/__init__.py.in:363
 msgid "Attribute indicating that server side password policies are active"
 msgstr "用来指示服务器端密码策略处于活动状态的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:361
+#: src/config/SSSDConfig/__init__.py.in:364
 msgid "accountExpires attribute of AD"
 msgstr "AD 的 accountExpires 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:362
+#: src/config/SSSDConfig/__init__.py.in:365
 msgid "userAccountControl attribute of AD"
 msgstr "AD 的 userAccountControl 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:363
+#: src/config/SSSDConfig/__init__.py.in:366
 msgid "nsAccountLock attribute"
 msgstr "nsAccountLock 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:364
+#: src/config/SSSDConfig/__init__.py.in:367
 msgid "loginDisabled attribute of NDS"
 msgstr "NDS 的 loginDisabled 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:365
+#: src/config/SSSDConfig/__init__.py.in:368
 msgid "loginExpirationTime attribute of NDS"
 msgstr "NDS 的 loginExpirationTime 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:366
+#: src/config/SSSDConfig/__init__.py.in:369
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr "NDS 的 loginAllowedTimeMap 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:367
+#: src/config/SSSDConfig/__init__.py.in:370
 msgid "SSH public key attribute"
 msgstr "SSH 公钥属性"
 
-#: src/config/SSSDConfig/__init__.py.in:368
+#: src/config/SSSDConfig/__init__.py.in:371
 msgid "attribute listing allowed authentication types for a user"
 msgstr "列出用户允许的身份验证类型的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:369
+#: src/config/SSSDConfig/__init__.py.in:372
 msgid "attribute containing the X509 certificate of the user"
 msgstr "包含用户的 X509 证书的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:370
+#: src/config/SSSDConfig/__init__.py.in:373
 msgid "attribute containing the email address of the user"
 msgstr "包含用户电子邮件地址的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:372
+#: src/config/SSSDConfig/__init__.py.in:375
 msgid "A list of extra attributes to download along with the user entry"
 msgstr "要与用户条目一起下载的其他属性的列表"
 
-#: src/config/SSSDConfig/__init__.py.in:374
+#: src/config/SSSDConfig/__init__.py.in:377
 msgid "Base DN for group lookups"
 msgstr "组查找的基本 DN"
 
-#: src/config/SSSDConfig/__init__.py.in:377
+#: src/config/SSSDConfig/__init__.py.in:380
 msgid "Objectclass for groups"
 msgstr "组的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:378
+#: src/config/SSSDConfig/__init__.py.in:381
 msgid "Group name"
 msgstr "组名称"
 
-#: src/config/SSSDConfig/__init__.py.in:379
+#: src/config/SSSDConfig/__init__.py.in:382
 msgid "Group password"
 msgstr "组密码"
 
-#: src/config/SSSDConfig/__init__.py.in:380
+#: src/config/SSSDConfig/__init__.py.in:383
 msgid "GID attribute"
 msgstr "GID 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:381
+#: src/config/SSSDConfig/__init__.py.in:384
 msgid "Group member attribute"
 msgstr "组成员属性"
 
-#: src/config/SSSDConfig/__init__.py.in:382
+#: src/config/SSSDConfig/__init__.py.in:385
 msgid "Group UUID attribute"
 msgstr "组 UUID 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:384
+#: src/config/SSSDConfig/__init__.py.in:387
 msgid "Modification time attribute for groups"
 msgstr "组的修改时间属性"
 
-#: src/config/SSSDConfig/__init__.py.in:385
+#: src/config/SSSDConfig/__init__.py.in:388
 msgid "Type of the group and other flags"
 msgstr "组的类型和其他标志"
 
-#: src/config/SSSDConfig/__init__.py.in:386
+#: src/config/SSSDConfig/__init__.py.in:389
 msgid "The LDAP group external member attribute"
 msgstr "LDAP 组外部成员属性"
 
-#: src/config/SSSDConfig/__init__.py.in:388
+#: src/config/SSSDConfig/__init__.py.in:391
 msgid "Maximum nesting level SSSD will follow"
 msgstr "将遵循的最大嵌套级别 SSSD"
 
-#: src/config/SSSDConfig/__init__.py.in:390
+#: src/config/SSSDConfig/__init__.py.in:393
 msgid "Base DN for netgroup lookups"
 msgstr "netgroup 查找的基本 DN"
 
-#: src/config/SSSDConfig/__init__.py.in:391
+#: src/config/SSSDConfig/__init__.py.in:394
 msgid "Objectclass for netgroups"
 msgstr "netgroup 的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:392
+#: src/config/SSSDConfig/__init__.py.in:395
 msgid "Netgroup name"
 msgstr "Netgroup 名"
 
-#: src/config/SSSDConfig/__init__.py.in:393
+#: src/config/SSSDConfig/__init__.py.in:396
 msgid "Netgroups members attribute"
 msgstr "Netgroups 成员属性"
 
-#: src/config/SSSDConfig/__init__.py.in:394
+#: src/config/SSSDConfig/__init__.py.in:397
 msgid "Netgroup triple attribute"
 msgstr "Netgroup triple 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:395
+#: src/config/SSSDConfig/__init__.py.in:398
 msgid "Modification time attribute for netgroups"
 msgstr "netgroup 的修改时间属性"
 
-#: src/config/SSSDConfig/__init__.py.in:397
+#: src/config/SSSDConfig/__init__.py.in:400
 msgid "Base DN for service lookups"
 msgstr "服务查找的基本 DN"
 
-#: src/config/SSSDConfig/__init__.py.in:398
+#: src/config/SSSDConfig/__init__.py.in:401
 msgid "Objectclass for services"
 msgstr "服务的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:399
+#: src/config/SSSDConfig/__init__.py.in:402
 msgid "Service name attribute"
 msgstr "服务名属性"
 
-#: src/config/SSSDConfig/__init__.py.in:400
+#: src/config/SSSDConfig/__init__.py.in:403
 msgid "Service port attribute"
 msgstr "服务端口属性"
 
-#: src/config/SSSDConfig/__init__.py.in:401
+#: src/config/SSSDConfig/__init__.py.in:404
 msgid "Service protocol attribute"
 msgstr "服务协议属性"
 
-#: src/config/SSSDConfig/__init__.py.in:404
+#: src/config/SSSDConfig/__init__.py.in:407
 msgid "Lower bound for ID-mapping"
 msgstr "ID 映射的下限"
 
-#: src/config/SSSDConfig/__init__.py.in:405
+#: src/config/SSSDConfig/__init__.py.in:408
 msgid "Upper bound for ID-mapping"
 msgstr "ID 映射的上限"
 
-#: src/config/SSSDConfig/__init__.py.in:406
+#: src/config/SSSDConfig/__init__.py.in:409
 msgid "Number of IDs for each slice when ID-mapping"
 msgstr "ID 映射时每个片的 ID 数"
 
-#: src/config/SSSDConfig/__init__.py.in:407
+#: src/config/SSSDConfig/__init__.py.in:410
 msgid "Use autorid-compatible algorithm for ID-mapping"
 msgstr "使用与 autorid 兼容的算法进行 ID 映射"
 
-#: src/config/SSSDConfig/__init__.py.in:408
+#: src/config/SSSDConfig/__init__.py.in:411
 msgid "Name of the default domain for ID-mapping"
 msgstr "用于 ID 映射的默认域的名称"
 
-#: src/config/SSSDConfig/__init__.py.in:409
+#: src/config/SSSDConfig/__init__.py.in:412
 msgid "SID of the default domain for ID-mapping"
 msgstr "用于 ID 映射的默认域的 SID"
 
-#: src/config/SSSDConfig/__init__.py.in:410
+#: src/config/SSSDConfig/__init__.py.in:413
 msgid "Number of secondary slices"
 msgstr "次要切片数"
 
-#: src/config/SSSDConfig/__init__.py.in:412
+#: src/config/SSSDConfig/__init__.py.in:415
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
 msgstr "使用 LDAP_MATCHING_RULE_IN_CHAIN 进行组查找"
 
-#: src/config/SSSDConfig/__init__.py.in:413
+#: src/config/SSSDConfig/__init__.py.in:416
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr "使用 LDAP_MATCHING_RULE_IN_CHAIN 进行 initgroup 查找"
 
-#: src/config/SSSDConfig/__init__.py.in:414
+#: src/config/SSSDConfig/__init__.py.in:417
 msgid "Whether to use Token-Groups"
 msgstr "是否使用令牌组"
 
-#: src/config/SSSDConfig/__init__.py.in:415
+#: src/config/SSSDConfig/__init__.py.in:418
 msgid "Set lower boundary for allowed IDs from the LDAP server"
 msgstr "设置 LDAP 服务器允许的 ID 的下边界"
 
-#: src/config/SSSDConfig/__init__.py.in:416
+#: src/config/SSSDConfig/__init__.py.in:419
 msgid "Set upper boundary for allowed IDs from the LDAP server"
 msgstr "设置 LDAP 服务器允许的 ID 的上边界"
 
-#: src/config/SSSDConfig/__init__.py.in:417
+#: src/config/SSSDConfig/__init__.py.in:420
 msgid "DN for ppolicy queries"
 msgstr "ppolicy 查询的 DN"
 
-#: src/config/SSSDConfig/__init__.py.in:418
+#: src/config/SSSDConfig/__init__.py.in:421
 msgid "How many maximum entries to fetch during a wildcard request"
 msgstr "在通配符请求期间要提取多少个最大条目"
 
-#: src/config/SSSDConfig/__init__.py.in:421
+#: src/config/SSSDConfig/__init__.py.in:424
 msgid "Policy to evaluate the password expiration"
 msgstr "评估密码有效期的策略"
 
-#: src/config/SSSDConfig/__init__.py.in:425
+#: src/config/SSSDConfig/__init__.py.in:428
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr "应使用哪些属性来评估帐户是否过期"
 
-#: src/config/SSSDConfig/__init__.py.in:426
+#: src/config/SSSDConfig/__init__.py.in:429
 msgid "Which rules should be used to evaluate access control"
 msgstr "应该使用哪些规则来评估访问控制"
 
-#: src/config/SSSDConfig/__init__.py.in:429
+#: src/config/SSSDConfig/__init__.py.in:432
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr "允许更改密码的 LDAP 服务器的 URI"
 
-#: src/config/SSSDConfig/__init__.py.in:430
+#: src/config/SSSDConfig/__init__.py.in:433
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr "允许更改密码的备份 LDAP 服务器的 URI"
 
-#: src/config/SSSDConfig/__init__.py.in:431
+#: src/config/SSSDConfig/__init__.py.in:434
 msgid "DNS service name for LDAP password change server"
 msgstr "LDAP 密码更改服务器的 DNS 服务名称"
 
-#: src/config/SSSDConfig/__init__.py.in:432
+#: src/config/SSSDConfig/__init__.py.in:435
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
 msgstr "更改密码后是否更新 ldap_user_shadow_last_change 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:435
+#: src/config/SSSDConfig/__init__.py.in:438
 msgid "Base DN for sudo rules lookups"
 msgstr "sudo 规则查找的基本DN"
 
-#: src/config/SSSDConfig/__init__.py.in:436
+#: src/config/SSSDConfig/__init__.py.in:439
 msgid "Automatic full refresh period"
 msgstr "自动完整刷新周期"
 
-#: src/config/SSSDConfig/__init__.py.in:437
+#: src/config/SSSDConfig/__init__.py.in:440
 msgid "Automatic smart refresh period"
 msgstr "自动智能刷新周期"
 
-#: src/config/SSSDConfig/__init__.py.in:438
+#: src/config/SSSDConfig/__init__.py.in:441
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr "是否按主机名，IP地址和网络过滤规则"
 
-#: src/config/SSSDConfig/__init__.py.in:439
+#: src/config/SSSDConfig/__init__.py.in:442
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
 msgstr "本机的主机名和/或限定域名，用于过滤 sudo 规则"
 
-#: src/config/SSSDConfig/__init__.py.in:440
+#: src/config/SSSDConfig/__init__.py.in:443
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr "IPv4 或 IPv6 地址或本机器的网络，用于过滤 sudo 规则"
 
-#: src/config/SSSDConfig/__init__.py.in:441
+#: src/config/SSSDConfig/__init__.py.in:444
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr "是否在主机属性中包含带有 netgroup 的规则"
 
-#: src/config/SSSDConfig/__init__.py.in:442
+#: src/config/SSSDConfig/__init__.py.in:445
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr "是否在主机属性中包含带有正则表达式的规则"
 
-#: src/config/SSSDConfig/__init__.py.in:443
+#: src/config/SSSDConfig/__init__.py.in:446
 msgid "Object class for sudo rules"
 msgstr "sudo 规则的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:444
+#: src/config/SSSDConfig/__init__.py.in:447
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr "用作 sudo 规则的对象类的属性名称"
 
-#: src/config/SSSDConfig/__init__.py.in:445
+#: src/config/SSSDConfig/__init__.py.in:448
 msgid "Sudo rule name"
 msgstr "sudo 规则名"
 
-#: src/config/SSSDConfig/__init__.py.in:446
+#: src/config/SSSDConfig/__init__.py.in:449
 msgid "Sudo rule command attribute"
 msgstr "sudo 规则命令属性"
 
-#: src/config/SSSDConfig/__init__.py.in:447
+#: src/config/SSSDConfig/__init__.py.in:450
 msgid "Sudo rule host attribute"
 msgstr "sudo 规则主机属性"
 
-#: src/config/SSSDConfig/__init__.py.in:448
+#: src/config/SSSDConfig/__init__.py.in:451
 msgid "Sudo rule user attribute"
 msgstr "sudo 规则用户属性"
 
-#: src/config/SSSDConfig/__init__.py.in:449
+#: src/config/SSSDConfig/__init__.py.in:452
 msgid "Sudo rule option attribute"
 msgstr "sudo 规则选项属性"
 
-#: src/config/SSSDConfig/__init__.py.in:450
+#: src/config/SSSDConfig/__init__.py.in:453
 msgid "Sudo rule runas attribute"
 msgstr "sudo 规则 runas 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:451
+#: src/config/SSSDConfig/__init__.py.in:454
 msgid "Sudo rule runasuser attribute"
 msgstr "sudo 规则 runasuser 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:452
+#: src/config/SSSDConfig/__init__.py.in:455
 msgid "Sudo rule runasgroup attribute"
 msgstr "sudo 规则 runasgroup 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:453
+#: src/config/SSSDConfig/__init__.py.in:456
 msgid "Sudo rule notbefore attribute"
 msgstr "sudo 规则 notbefore 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:454
+#: src/config/SSSDConfig/__init__.py.in:457
 msgid "Sudo rule notafter attribute"
 msgstr "sudo 规则 notafter 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:455
+#: src/config/SSSDConfig/__init__.py.in:458
 msgid "Sudo rule order attribute"
 msgstr "sudo 规则顺序属性"
 
-#: src/config/SSSDConfig/__init__.py.in:458
+#: src/config/SSSDConfig/__init__.py.in:461
 msgid "Object class for automounter maps"
 msgstr "自动挂载器映射的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:459
+#: src/config/SSSDConfig/__init__.py.in:462
 msgid "Automounter map name attribute"
 msgstr "自动挂载器映射名称属性"
 
-#: src/config/SSSDConfig/__init__.py.in:460
+#: src/config/SSSDConfig/__init__.py.in:463
 msgid "Object class for automounter map entries"
 msgstr "自动挂载器映射条目的对象类"
 
-#: src/config/SSSDConfig/__init__.py.in:461
+#: src/config/SSSDConfig/__init__.py.in:464
 msgid "Automounter map entry key attribute"
 msgstr "自动挂载器映射条目键的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:462
+#: src/config/SSSDConfig/__init__.py.in:465
 msgid "Automounter map entry value attribute"
 msgstr "自动挂载器映射条目值的属性"
 
-#: src/config/SSSDConfig/__init__.py.in:463
+#: src/config/SSSDConfig/__init__.py.in:466
 msgid "Base DN for automounter map lookups"
 msgstr "自动挂载程序映射查找的基本 DN"
 
-#: src/config/SSSDConfig/__init__.py.in:466
+#: src/config/SSSDConfig/__init__.py.in:469
 msgid "Comma separated list of allowed users"
 msgstr "以逗号分隔的允许的用户列表"
 
-#: src/config/SSSDConfig/__init__.py.in:467
+#: src/config/SSSDConfig/__init__.py.in:470
 msgid "Comma separated list of prohibited users"
 msgstr "以逗号分隔的不允许的用户列表"
 
-#: src/config/SSSDConfig/__init__.py.in:470
+#: src/config/SSSDConfig/__init__.py.in:473
 msgid "Default shell, /bin/bash"
 msgstr "默认 shell、/bin/bash"
 
-#: src/config/SSSDConfig/__init__.py.in:471
+#: src/config/SSSDConfig/__init__.py.in:474
 msgid "Base for home directories"
 msgstr "家目录的基础"
 
-#: src/config/SSSDConfig/__init__.py.in:474
+#: src/config/SSSDConfig/__init__.py.in:477
 msgid "The number of preforked proxy children."
 msgstr "预分支代理子代的数量。"
 
-#: src/config/SSSDConfig/__init__.py.in:477
+#: src/config/SSSDConfig/__init__.py.in:480
 msgid "The name of the NSS library to use"
 msgstr "使用的 NSS 库的名称"
 
-#: src/config/SSSDConfig/__init__.py.in:478
+#: src/config/SSSDConfig/__init__.py.in:481
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr "如果可能，是否从缓存中查找规范的组名"
 
-#: src/config/SSSDConfig/__init__.py.in:481
+#: src/config/SSSDConfig/__init__.py.in:484
 msgid "PAM stack to use"
 msgstr "使用的 PAM 堆栈"
 
-#: src/config/SSSDConfig/__init__.py.in:484
+#: src/config/SSSDConfig/__init__.py.in:487
 msgid "Path of passwd file sources."
 msgstr "passwd 文件源的路径。"
 
-#: src/config/SSSDConfig/__init__.py.in:485
+#: src/config/SSSDConfig/__init__.py.in:488
 msgid "Path of group file sources."
 msgstr "group 文件源的路径。"
 
-#: src/monitor/monitor.c:2452
+#: src/monitor/monitor.c:2492
 msgid "Become a daemon (default)"
 msgstr "成为守护进程（默认）"
 
-#: src/monitor/monitor.c:2454
+#: src/monitor/monitor.c:2494
 msgid "Run interactive (not a daemon)"
 msgstr "交互式运行（不是守护程序）"
 
-#: src/monitor/monitor.c:2457
+#: src/monitor/monitor.c:2497
 msgid "Disable netlink interface"
 msgstr "禁用 netlink 接口"
 
-#: src/monitor/monitor.c:2459 src/tools/sssctl/sssctl_logs.c:311
+#: src/monitor/monitor.c:2499 src/tools/sssctl/sssctl_logs.c:311
 msgid "Specify a non-default config file"
 msgstr "指定一个非默认的配置文件"
 
-#: src/monitor/monitor.c:2461
+#: src/monitor/monitor.c:2501
 msgid "Refresh the configuration database, then exit"
 msgstr "刷新配置数据库，然后退出"
 
-#: src/monitor/monitor.c:2464
+#: src/monitor/monitor.c:2504
 msgid "Print version number and exit"
 msgstr "显示版本号并退出"
 
-#: src/monitor/monitor.c:2630
+#: src/monitor/monitor.c:2670
 msgid "SSSD is already running\n"
 msgstr "SSSD 已运行\n"
 
-#: src/providers/krb5/krb5_child.c:3229 src/providers/ldap/ldap_child.c:605
+#: src/providers/krb5/krb5_child.c:3236 src/providers/ldap/ldap_child.c:619
 msgid "Debug level"
 msgstr "调试级别"
 
-#: src/providers/krb5/krb5_child.c:3231 src/providers/ldap/ldap_child.c:607
+#: src/providers/krb5/krb5_child.c:3238 src/providers/ldap/ldap_child.c:621
 msgid "Add debug timestamps"
 msgstr "添加调试时间戳"
 
-#: src/providers/krb5/krb5_child.c:3233 src/providers/ldap/ldap_child.c:609
+#: src/providers/krb5/krb5_child.c:3240 src/providers/ldap/ldap_child.c:623
 msgid "Show timestamps with microseconds"
 msgstr "显示时间戳（以微秒为单位）"
 
-#: src/providers/krb5/krb5_child.c:3235 src/providers/ldap/ldap_child.c:611
+#: src/providers/krb5/krb5_child.c:3242 src/providers/ldap/ldap_child.c:625
 msgid "An open file descriptor for the debug logs"
 msgstr "调试日志的打开文件描述符"
 
-#: src/providers/krb5/krb5_child.c:3238 src/providers/ldap/ldap_child.c:613
+#: src/providers/krb5/krb5_child.c:3245 src/providers/ldap/ldap_child.c:627
 msgid "Send the debug output to stderr directly."
 msgstr "将调试直接输出到 stderr。"
 
-#: src/providers/krb5/krb5_child.c:3241
+#: src/providers/krb5/krb5_child.c:3248
 msgid "The user to create FAST ccache as"
 msgstr "用户创建 FAST 缓存为"
 
-#: src/providers/krb5/krb5_child.c:3243
+#: src/providers/krb5/krb5_child.c:3250
 msgid "The group to create FAST ccache as"
 msgstr "组创建 FAST 缓存为"
 
-#: src/providers/krb5/krb5_child.c:3245
+#: src/providers/krb5/krb5_child.c:3252
 msgid "Kerberos realm to use"
 msgstr "使用的 kerberos realm"
 
-#: src/providers/krb5/krb5_child.c:3247
+#: src/providers/krb5/krb5_child.c:3254
 msgid "Requested lifetime of the ticket"
 msgstr "要求的票证寿命"
 
-#: src/providers/krb5/krb5_child.c:3249
+#: src/providers/krb5/krb5_child.c:3256
 msgid "Requested renewable lifetime of the ticket"
 msgstr "要求的可续约票证寿命"
 
-#: src/providers/krb5/krb5_child.c:3251
+#: src/providers/krb5/krb5_child.c:3258
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST 选项（'never'、'try'、'demand'）"
 
-#: src/providers/krb5/krb5_child.c:3254
+#: src/providers/krb5/krb5_child.c:3261
 msgid "Specifies the server principal to use for FAST"
 msgstr "指定用于 FAST 的服务器主体"
 
-#: src/providers/krb5/krb5_child.c:3256
+#: src/providers/krb5/krb5_child.c:3263
 msgid "Requests canonicalization of the principal name"
 msgstr "要求规范化主体名称"
 
-#: src/providers/krb5/krb5_child.c:3258
+#: src/providers/krb5/krb5_child.c:3265
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "使用自定义版本的 krb5_get_init_creds_password"
 
@@ -1614,88 +1626,88 @@ msgstr "查找错误说明时出现意外错误"
 msgid "Permission denied. "
 msgstr "权限被拒绝。"
 
-#: src/sss_client/pam_sss.c:77 src/sss_client/pam_sss.c:785
-#: src/sss_client/pam_sss.c:796
+#: src/sss_client/pam_sss.c:77 src/sss_client/pam_sss.c:787
+#: src/sss_client/pam_sss.c:798
 msgid "Server message: "
 msgstr "服务器消息： "
 
-#: src/sss_client/pam_sss.c:303
+#: src/sss_client/pam_sss.c:305
 msgid "Passwords do not match"
 msgstr "密码不匹配"
 
-#: src/sss_client/pam_sss.c:491
+#: src/sss_client/pam_sss.c:493
 msgid "Password reset by root is not supported."
 msgstr "不支持通过 root 重置密码。"
 
-#: src/sss_client/pam_sss.c:532
+#: src/sss_client/pam_sss.c:534
 msgid "Authenticated with cached credentials"
 msgstr "通过缓存的凭据进行身份验证"
 
-#: src/sss_client/pam_sss.c:533
+#: src/sss_client/pam_sss.c:535
 msgid ", your cached password will expire at: "
 msgstr "，您缓存的密码将过期于： "
 
-#: src/sss_client/pam_sss.c:563
+#: src/sss_client/pam_sss.c:565
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "您的密码已过期。您有 %1$d 剩余宽限登陆。"
 
-#: src/sss_client/pam_sss.c:609
+#: src/sss_client/pam_sss.c:611
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "您的密码将于 %1$d %2$s 过期。"
 
-#: src/sss_client/pam_sss.c:658
+#: src/sss_client/pam_sss.c:660
 msgid "Authentication is denied until: "
 msgstr "身份验证被拒绝，直到： "
 
-#: src/sss_client/pam_sss.c:679
+#: src/sss_client/pam_sss.c:681
 msgid "System is offline, password change not possible"
 msgstr "系统离线，无法更改密码"
 
-#: src/sss_client/pam_sss.c:694
+#: src/sss_client/pam_sss.c:696
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr "更改 OTP 密码后，您需要注销并重新登录以获得票证"
 
-#: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
+#: src/sss_client/pam_sss.c:784 src/sss_client/pam_sss.c:797
 msgid "Password change failed. "
 msgstr "更改密码失败。"
 
-#: src/sss_client/pam_sss.c:1972
+#: src/sss_client/pam_sss.c:1979
 msgid "New Password: "
 msgstr "新密码："
 
-#: src/sss_client/pam_sss.c:1973
+#: src/sss_client/pam_sss.c:1980
 msgid "Reenter new Password: "
 msgstr "重新输入新密码："
 
-#: src/sss_client/pam_sss.c:2130 src/sss_client/pam_sss.c:2133
+#: src/sss_client/pam_sss.c:2137 src/sss_client/pam_sss.c:2140
 msgid "First Factor: "
 msgstr "第一因素： "
 
-#: src/sss_client/pam_sss.c:2131 src/sss_client/pam_sss.c:2294
+#: src/sss_client/pam_sss.c:2138 src/sss_client/pam_sss.c:2304
 msgid "Second Factor (optional): "
 msgstr "第二因素（可选）： "
 
-#: src/sss_client/pam_sss.c:2134 src/sss_client/pam_sss.c:2297
+#: src/sss_client/pam_sss.c:2141 src/sss_client/pam_sss.c:2307
 msgid "Second Factor: "
 msgstr "第二因素： "
 
-#: src/sss_client/pam_sss.c:2149
+#: src/sss_client/pam_sss.c:2159
 msgid "Password: "
 msgstr "密码："
 
-#: src/sss_client/pam_sss.c:2293 src/sss_client/pam_sss.c:2296
+#: src/sss_client/pam_sss.c:2303 src/sss_client/pam_sss.c:2306
 msgid "First Factor (Current Password): "
 msgstr "第一因素（当前密码）： "
 
-#: src/sss_client/pam_sss.c:2300
+#: src/sss_client/pam_sss.c:2310
 msgid "Current Password: "
 msgstr "当前密码："
 
-#: src/sss_client/pam_sss.c:2628
+#: src/sss_client/pam_sss.c:2638
 msgid "Password expired. Change your password now."
 msgstr "密码已过期。立即更改密码。"
 
@@ -1925,8 +1937,8 @@ msgstr "NSS 请求失败（%1$d）。条目可能保留在内存缓存中。\n"
 
 #: src/tools/sss_groupdel.c:132
 msgid ""
-"No such group in local domain. Removing groups only allowed in local domain."
-"\n"
+"No such group in local domain. Removing groups only allowed in local "
+"domain.\n"
 msgstr "本地域中没有这样的组。只在本地域中允许删除组。\n"
 
 #: src/tools/sss_groupdel.c:137
@@ -2000,16 +2012,20 @@ msgstr "%1$sMember 用户："
 
 #: src/tools/sss_groupshow.c:627
 #, c-format
-msgid "\n"
+msgid ""
+"\n"
 "%1$sIs a member of: "
-msgstr "\n"
+msgstr ""
+"\n"
 "%1$sIs 一个成员："
 
 #: src/tools/sss_groupshow.c:634
 #, c-format
-msgid "\n"
+msgid ""
+"\n"
 "%1$sMember groups: "
-msgstr "\n"
+msgstr ""
+"\n"
 "%1$sMember 组："
 
 #: src/tools/sss_groupshow.c:670
@@ -2022,8 +2038,8 @@ msgstr "指定显示的组\n"
 
 #: src/tools/sss_groupshow.c:744
 msgid ""
-"No such group in local domain. Printing groups only allowed in local domain."
-"\n"
+"No such group in local domain. Printing groups only allowed in local "
+"domain.\n"
 msgstr "本地域中没有这样的组。只在本地域中允许打印组。\n"
 
 #: src/tools/sss_groupshow.c:749
@@ -2127,7 +2143,9 @@ msgstr "删除一个属性/值对。格式为 attrname=value。"
 msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
-msgstr "将属性设置为名称/值对。格式为 attrname=value。对于多值属性，替换值的命令已存在。"
+msgstr ""
+"将属性设置为名称/值对。格式为 attrname=value。对于多值属性，替换值的命令已存"
+"在。"
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
@@ -2249,7 +2267,9 @@ msgstr "请选择至少一个对象以使其无效\n"
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
 "use fully qualified name instead of --domain/-d parameter.\n"
-msgstr "无法打开域 %1$s 。如果域是子域（受信任的域），请使用完全限定名而不是 --domain/-d 参数。\n"
+msgstr ""
+"无法打开域 %1$s 。如果域是子域（受信任的域），请使用完全限定名而不是 --"
+"domain/-d 参数。\n"
 
 #: src/tools/sss_cache.c:892
 msgid "Could not open available domains\n"
@@ -2597,7 +2617,8 @@ msgid ""
 "Check that SSSD is running and the InfoPipe responder is enabled. Make sure "
 "'ifp' is listed in the 'services' option in sssd.conf.\n"
 msgstr ""
-"检查 SSSD 是否正在运行，并且 InfoPipe 响应器已启用。确保 sssd.conf 的 'services' 选项中列出了 'ifp'。\n"
+"检查 SSSD 是否正在运行，并且 InfoPipe 响应器已启用。确保 sssd.conf 的 "
+"'services' 选项中列出了 'ifp'。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:91
 #, c-format
@@ -2671,9 +2692,11 @@ msgstr " - 家目录 : %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:179
 #, c-format
-msgid " - shell: %s\n"
+msgid ""
+" - shell: %s\n"
 "\n"
-msgstr " - shell: %s\n"
+msgstr ""
+" - shell: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:211
@@ -2690,11 +2713,13 @@ msgstr "指定用户名。"
 
 #: src/tools/sssctl/sssctl_user_checks.c:226
 #, c-format
-msgid "user: %s\n"
+msgid ""
+"user: %s\n"
 "action: %s\n"
 "service: %s\n"
 "\n"
-msgstr "用户：%s\n"
+msgstr ""
+"用户：%s\n"
 "操作：%s\n"
 "服务：%s\n"
 "\n"
@@ -2716,9 +2741,11 @@ msgstr "pam_start 失败：%s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:249
 #, c-format
-msgid "testing pam_authenticate\n"
+msgid ""
+"testing pam_authenticate\n"
 "\n"
-msgstr "testing pam_authenticate\n"
+msgstr ""
+"testing pam_authenticate\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:253
@@ -2728,79 +2755,101 @@ msgstr "pam_get_item 失败：%s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:257
 #, c-format
-msgid "pam_authenticate for user [%s]: %s\n"
+msgid ""
+"pam_authenticate for user [%s]: %s\n"
 "\n"
-msgstr "pam_authenticate 用户 [%s]: %s\n"
+msgstr ""
+"pam_authenticate 用户 [%s]: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:260
 #, c-format
-msgid "testing pam_chauthtok\n"
+msgid ""
+"testing pam_chauthtok\n"
 "\n"
-msgstr "testing pam_chauthtok\n"
+msgstr ""
+"testing pam_chauthtok\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:262
 #, c-format
-msgid "pam_chauthtok: %s\n"
+msgid ""
+"pam_chauthtok: %s\n"
 "\n"
-msgstr "pam_chauthtok: %s\n"
+msgstr ""
+"pam_chauthtok: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:264
 #, c-format
-msgid "testing pam_acct_mgmt\n"
+msgid ""
+"testing pam_acct_mgmt\n"
 "\n"
-msgstr "测试 pam_acct_mgmt\n"
+msgstr ""
+"测试 pam_acct_mgmt\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:266
 #, c-format
-msgid "pam_acct_mgmt: %s\n"
+msgid ""
+"pam_acct_mgmt: %s\n"
 "\n"
-msgstr "pam_acct_mgmt: %s\n"
+msgstr ""
+"pam_acct_mgmt: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:268
 #, c-format
-msgid "testing pam_setcred\n"
+msgid ""
+"testing pam_setcred\n"
 "\n"
-msgstr "测试 pam_setcred\n"
+msgstr ""
+"测试 pam_setcred\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:270
 #, c-format
-msgid "pam_setcred: [%s]\n"
+msgid ""
+"pam_setcred: [%s]\n"
 "\n"
-msgstr "pam_setcred: [%s]\n"
+msgstr ""
+"pam_setcred: [%s]\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:272
 #, c-format
-msgid "testing pam_open_session\n"
+msgid ""
+"testing pam_open_session\n"
 "\n"
-msgstr "测试 pam_open_session\n"
+msgstr ""
+"测试 pam_open_session\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:274
 #, c-format
-msgid "pam_open_session: %s\n"
+msgid ""
+"pam_open_session: %s\n"
 "\n"
-msgstr "pam_open_session: %s\n"
+msgstr ""
+"pam_open_session: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
-msgid "testing pam_close_session\n"
+msgid ""
+"testing pam_close_session\n"
 "\n"
-msgstr "testing pam_close_session\n"
+msgstr ""
+"testing pam_close_session\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:278
 #, c-format
-msgid "pam_close_session: %s\n"
+msgid ""
+"pam_close_session: %s\n"
 "\n"
-msgstr "pam_close_session: %s\n"
+msgstr ""
+"pam_close_session: %s\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:281
