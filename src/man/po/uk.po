@@ -16,15 +16,17 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2020-05-19 12:09+0200\n"
-"PO-Revision-Date: 2020-05-27 02:01-0400\n"
-"Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
-"Language-Team: Ukrainian (http://www.transifex.com/projects/p/sssd/language/uk/)\n"
+"PO-Revision-Date: 2020-08-14 18:29+0000\n"
+"Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
+"Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-manpage-master/uk/>\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Zanata 4.6.2\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.1.1\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -1381,9 +1383,9 @@ msgstr ""
 "За допомогою цього параметра можна визначити максимальну кількість "
 "дескрипторів файлів, які одночасно може бути відкрито цим процесом SSSD. У "
 "системах, де SSSD надано можливості CAP_SYS_RESOURCE, цей параметр "
-"використовуватиметься незалежно від інших параметрів системи. У системах без"
-" цієї можливості, кількість дескрипторів визначатиметься найменшим зі "
-"значень цього параметра і обмеженням \"hard\" у  limits.conf."
+"використовуватиметься незалежно від інших параметрів системи. У системах без "
+"цієї можливості, кількість дескрипторів визначатиметься найменшим зі значень "
+"цього параметра і обмеженням \"hard\" у limits.conf."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -13840,7 +13842,7 @@ msgid ""
 "the network\"."
 msgstr ""
 "Зауваження: у редакторі керування правилами щодо груп це значення "
-"називається  «Відкрити доступ до цього комп’ютера із мережі» («Access this "
+"називається «Відкрити доступ до цього комп’ютера із мережі» («Access this "
 "computer from the network») і «Заборонити доступ до цього комп’ютера із "
 "мережі» (Deny access to this computer from the network»)."
 
@@ -14265,10 +14267,10 @@ msgid ""
 "first time after startup."
 msgstr ""
 "Цей параметр має використовуватися лише для перевірки завдання із оновлення "
-"облікових записів комп'ютерів. Параметру слід передати  цілих числа, "
+"облікових записів комп'ютерів. Параметру слід передати цілих числа, "
 "відокремлених двокрапкою («:»). Перше ціле число визначає інтервал у "
-"секундах між послідовними повторними виконаннями завдання з оновлення. Друге"
-" — визначає початковий час очікування на перший запуск завдання."
+"секундах між послідовними повторними виконаннями завдання з оновлення. Друге "
+"— визначає початковий час очікування на перший запуск завдання."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -14666,7 +14668,7 @@ msgstr ""
 "Найбільшою складністю під час розробки підтримки sudo у SSSD було "
 "забезпечення роботи sudo з SSSD так, щоб для користувача джерело даних "
 "надавало дані у один спосіб та з тією самою швидкістю, що і sudo, надаючи "
-"при цьому  якомога свіжіший набір правил. Щоб виконати ці умови, SSSD "
+"при цьому якомога свіжіший набір правил. Щоб виконати ці умови, SSSD "
 "використовує оновлення трьох типів. Будемо називати ці тип повним "
 "оновленням, інтелектуальним оновленням та оновленням правил."
 
@@ -21193,9 +21195,9 @@ msgid ""
 "</citerefentry> counterpart (date of the last password change)."
 msgstr ""
 "У разі використання ldap_pwd_policy=shadow цей параметр містить назву "
-"атрибута LDAP, який є відповідником параметра  <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> (дати останньої зміни пароля)."
+"атрибута LDAP, який є відповідником параметра <citerefentry> "
+"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> (дати останньої зміни пароля)."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -21219,9 +21221,9 @@ msgid ""
 "</citerefentry> counterpart (minimum password age)."
 msgstr ""
 "У разі використання ldap_pwd_policy=shadow цей параметр містить назву "
-"атрибута LDAP, який є відповідником параметра  <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> (мінімального віку пароля)."
+"атрибута LDAP, який є відповідником параметра <citerefentry> "
+"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> (мінімального віку пароля)."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -21245,9 +21247,9 @@ msgid ""
 "</citerefentry> counterpart (maximum password age)."
 msgstr ""
 "У разі використання ldap_pwd_policy=shadow цей параметр містить назву "
-"атрибута LDAP, який є відповідником параметра  <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> (максимального віку пароля)."
+"атрибута LDAP, який є відповідником параметра <citerefentry> "
+"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> (максимального віку пароля)."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -21271,9 +21273,9 @@ msgid ""
 "</citerefentry> counterpart (password warning period)."
 msgstr ""
 "У разі використання ldap_pwd_policy=shadow цей параметр містить назву "
-"атрибута LDAP, який є відповідником параметра  <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> (проміжку попередження щодо пароля)."
+"атрибута LDAP, який є відповідником параметра <citerefentry> "
+"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> (проміжку попередження щодо пароля)."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -21297,9 +21299,9 @@ msgid ""
 "</citerefentry> counterpart (password inactivity period)."
 msgstr ""
 "У разі використання ldap_pwd_policy=shadow цей параметр містить назву "
-"атрибута LDAP, який є відповідником параметра  <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> (тривалості періоду невикористання пароля)."
+"атрибута LDAP, який є відповідником параметра <citerefentry> "
+"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> (тривалості періоду невикористання пароля)."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -21325,9 +21327,9 @@ msgid ""
 msgstr ""
 "У разі використання ldap_pwd_policy=shadow або "
 "ldap_account_expire_policy=shadow цей параметр містить назву атрибута LDAP, "
-"який є відповідником параметра  <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry> (дати завершення строку дії пароля)."
+"який є відповідником параметра <citerefentry> <refentrytitle>shadow</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> (дати завершення "
+"строку дії пароля)."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
