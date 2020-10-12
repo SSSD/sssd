@@ -117,6 +117,23 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>
+                        dns_resolver_perform_dns_search
+                    </term>
+                    <listitem>
+                        <para>
+                            The dns_resolver_perform_dns_search specifies whether
+                            the DNS resolver uses DNS search during the name
+                            resolution. Setting this option to True can slow
+                            down the resolution in case that some DNS names
+                            are not resolvable.
+                        </para>
+                        <para>
+                            Default: True
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
         <para>
