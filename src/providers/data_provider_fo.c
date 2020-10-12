@@ -836,7 +836,7 @@ static struct dp_option dp_res_default_opts[] = {
     { "dns_resolver_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "dns_resolver_op_timeout", DP_OPT_NUMBER, { .number = 3 }, NULL_NUMBER },
     { "dns_resolver_server_timeout", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER },
-    { "dns_resolver_perform_dns_search", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "dns_resolver_perform_dns_search", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "dns_discovery_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };

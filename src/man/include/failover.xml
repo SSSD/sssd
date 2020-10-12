@@ -130,7 +130,7 @@
                             are not resolvable.
                         </para>
                         <para>
-                            Default: True
+                            Default: False
                         </para>
                     </listitem>
                 </varlistentry>
