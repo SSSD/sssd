@@ -1072,7 +1072,7 @@ static void kcm_op_get_principal_getbyname_done(struct tevent_req *subreq)
 }
 
 /* (name) -> (uuid, ...) */
-static void kcm_op_get_cred_uuid_getbyname_done(struct tevent_req *subreq);
+static void kcm_op_get_cred_uuid_list_getbyname_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 kcm_op_get_cred_uuid_list_send(TALLOC_CTX *mem_ctx,
@@ -1106,7 +1106,7 @@ kcm_op_get_cred_uuid_list_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto immediate;
     }
-    tevent_req_set_callback(subreq, kcm_op_get_cred_uuid_getbyname_done, req);
+    tevent_req_set_callback(subreq, kcm_op_get_cred_uuid_list_getbyname_done, req);
     return req;
 
 immediate:
@@ -1115,7 +1115,7 @@ immediate:
     return req;
 }
 
-static void kcm_op_get_cred_uuid_getbyname_done(struct tevent_req *subreq)
+static void kcm_op_get_cred_uuid_list_getbyname_done(struct tevent_req *subreq)
 {
     errno_t ret;
     struct kcm_ccache *cc;
