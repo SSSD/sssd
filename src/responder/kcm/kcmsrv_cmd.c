@@ -373,13 +373,16 @@ static errno_t kcm_cmd_dispatch(struct kcm_ctx *kctx,
 {
     struct tevent_req *req;
     struct cli_ctx *cctx;
+    struct kcm_conn_data *conn_data;
 
     cctx = req_ctx->cctx;
+    conn_data = talloc_get_type(cctx->state_ctx, struct kcm_conn_data);
 
     req = kcm_cmd_send(req_ctx,
                        cctx->ev,
                        kctx->qctx,
                        req_ctx->kctx->kcm_data,
+                       conn_data,
                        req_ctx->cctx->creds,
                        &req_ctx->op_io.request,
                        req_ctx->op_io.op);
@@ -492,7 +495,7 @@ static void kcm_recv(struct cli_ctx *cctx)
     int ret;
 
     kctx = talloc_get_type(cctx->rctx->pvt_ctx, struct kcm_ctx);
-    req = talloc_get_type(cctx->state_ctx, struct kcm_req_ctx);
+    req = talloc_get_type(cctx->protocol_ctx, struct kcm_req_ctx);
     if (req == NULL) {
         /* A new request comes in, setup data structures. */
         req = kcm_new_req(cctx, kctx);
@@ -503,7 +506,17 @@ static void kcm_recv(struct cli_ctx *cctx)
             return;
         }
 
-        cctx->state_ctx = req;
+        cctx->protocol_ctx = req;
+    }
+
+    /* Shared data between requests that originates in the same connection. */
+    if (cctx->state_ctx == NULL) {
+        cctx->state_ctx = talloc_zero(cctx, struct kcm_conn_data);
+        if (cctx->state_ctx == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set up client state\n");
+            talloc_free(cctx);
+            return;
+        }
     }
 
     ret = kcm_recv_data(req, cctx->cfd, &req->reqbuf);
@@ -558,7 +571,7 @@ static int kcm_send_data(struct cli_ctx *cctx)
     struct kcm_req_ctx *req;
     errno_t ret;
 
-    req = talloc_get_type(cctx->state_ctx, struct kcm_req_ctx);
+    req = talloc_get_type(cctx->protocol_ctx, struct kcm_req_ctx);
 
     ret = kcm_write_iovec(cctx->cfd, &req->repbuf.v_len);
     if (ret != EOK) {
@@ -604,7 +617,7 @@ static void kcm_send(struct cli_ctx *cctx)
     DEBUG(SSSDBG_TRACE_INTERNAL, "All data sent!\n");
     TEVENT_FD_NOT_WRITEABLE(cctx->cfde);
     TEVENT_FD_READABLE(cctx->cfde);
-    talloc_zfree(cctx->state_ctx);
+    talloc_zfree(cctx->protocol_ctx);
     return;
 }
 
