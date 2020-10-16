@@ -38,6 +38,7 @@
 
 struct kcm_op_ctx {
     struct kcm_resp_ctx *kcm_data;
+    struct kcm_conn_data *conn_data;
     struct cli_creds *client;
 
     struct sss_iobuf *input;
@@ -86,6 +87,7 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
                                 struct tevent_context *ev,
                                 struct kcm_ops_queue_ctx *qctx,
                                 struct kcm_resp_ctx *kcm_data,
+                                struct kcm_conn_data *conn_data,
                                 struct cli_creds *client,
                                 struct kcm_data *input,
                                 struct kcm_op *op)
@@ -135,6 +137,7 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
     }
 
     state->op_ctx->kcm_data = kcm_data;
+    state->op_ctx->conn_data = conn_data;
     state->op_ctx->client = client;
 
     state->op_ctx->input = sss_iobuf_init_readonly(state->op_ctx,
