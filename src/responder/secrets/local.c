@@ -168,7 +168,7 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         }
         if (ret) goto done;
 
-        ret = sss_sec_put(ssec_req, secret);
+        ret = sss_sec_put(ssec_req, secret, SSS_SEC_MASTERKEY);
         if (ret) goto done;
         break;
 
