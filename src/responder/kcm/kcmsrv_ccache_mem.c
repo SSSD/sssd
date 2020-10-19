@@ -49,24 +49,6 @@ struct ccdb_mem {
     unsigned int nextid;
 };
 
-/* In order to provide a consistent interface, we need to let the caller
- * of getbyXXX own the ccache, therefore the memory back end returns a shallow
- * copy of the ccache
- */
-static struct kcm_ccache *kcm_ccache_dup(TALLOC_CTX *mem_ctx,
-                                         struct kcm_ccache *in)
-{
-    struct kcm_ccache *out;
-
-    out = talloc_zero(mem_ctx, struct kcm_ccache);
-    if (out == NULL) {
-        return NULL;
-    }
-    memcpy(out, in, sizeof(struct kcm_ccache));
-
-    return out;
-}
-
 static struct ccache_mem_wrap *memdb_get_by_uuid(struct ccdb_mem *memdb,
                                                  struct cli_creds *client,
                                                  uuid_t uuid)
@@ -417,7 +399,11 @@ static struct tevent_req *ccdb_mem_getbyuuid_send(TALLOC_CTX *mem_ctx,
 
     ccwrap = memdb_get_by_uuid(memdb, client, uuid);
     if (ccwrap != NULL) {
-        state->cc = kcm_ccache_dup(state, ccwrap->cc);
+        /* In order to provide a consistent interface, we need to let the caller
+         * of getbyXXX own the ccache, therefore the memory back end returns a shallow
+         * copy of the ccache
+         */
+        state->cc = kcm_cc_dup(state, ccwrap->cc);
         if (state->cc == NULL) {
             ret = ENOMEM;
             goto immediate;
@@ -470,7 +456,11 @@ static struct tevent_req *ccdb_mem_getbyname_send(TALLOC_CTX *mem_ctx,
 
     ccwrap = memdb_get_by_name(memdb, client, name);
     if (ccwrap != NULL) {
-        state->cc = kcm_ccache_dup(state, ccwrap->cc);
+        /* In order to provide a consistent interface, we need to let the caller
+         * of getbyXXX own the ccache, therefore the memory back end returns a shallow
+         * copy of the ccache
+         */
+        state->cc = kcm_cc_dup(state, ccwrap->cc);
         if (state->cc == NULL) {
             ret = ENOMEM;
             goto immediate;

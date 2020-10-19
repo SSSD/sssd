@@ -28,6 +28,9 @@
 #include "responder/kcm/kcmsrv_ccache_pvt.h"
 #include "responder/kcm/kcmsrv_ccache_be.h"
 
+static struct kcm_cred *kcm_cred_dup(TALLOC_CTX *mem_ctx,
+                                     struct kcm_cred *crd);
+
 static int kcm_cc_destructor(struct kcm_ccache *cc)
 {
     if (cc == NULL) {
@@ -92,6 +95,33 @@ done:
         talloc_free(cc);
     }
     return ret;
+}
+
+struct kcm_ccache *kcm_cc_dup(TALLOC_CTX *mem_ctx,
+                              const struct kcm_ccache *cc)
+{
+    struct kcm_ccache *dup;
+    struct kcm_cred *crd_dup;
+    struct kcm_cred *crd;
+
+    dup = talloc_zero(mem_ctx, struct kcm_ccache);
+    if (dup == NULL) {
+        return NULL;
+    }
+    memcpy(dup, cc, sizeof(struct kcm_ccache));
+
+    dup->creds = NULL;
+    DLIST_FOR_EACH(crd, cc->creds) {
+        crd_dup = kcm_cred_dup(dup, crd);
+        if (crd_dup == NULL) {
+            talloc_free(dup);
+            return NULL;
+        }
+
+        DLIST_ADD(dup->creds, crd_dup);
+    }
+
+    return dup;
 }
 
 const char *kcm_cc_get_name(struct kcm_ccache *cc)
@@ -202,6 +232,22 @@ struct kcm_cred *kcm_cred_new(TALLOC_CTX *mem_ctx,
     uuid_copy(kcreds->uuid, uuid);
     kcreds->cred_blob = talloc_steal(kcreds, cred_blob);
     return kcreds;
+}
+
+static struct kcm_cred *kcm_cred_dup(TALLOC_CTX *mem_ctx,
+                                     struct kcm_cred *crd)
+{
+    struct kcm_cred *dup;
+
+    dup = talloc_zero(mem_ctx, struct kcm_cred);
+    if (dup == NULL) {
+        return NULL;
+    }
+
+    uuid_copy(dup->uuid, crd->uuid);
+    dup->cred_blob = crd->cred_blob;
+
+    return dup;
 }
 
 /* Add a cred to ccache */
