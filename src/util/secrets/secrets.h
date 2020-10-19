@@ -43,6 +43,13 @@
 #define DEFAULT_SEC_KCM_MAX_UID_SECRETS  64
 #define DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE 65536
 
+enum sss_sec_enctype {
+    SSS_SEC_PLAINTEXT,
+    SSS_SEC_MASTERKEY,
+    SSS_SEC_BASE64,
+    SSS_SEC_ENCTYPE_SENTINEL
+};
+
 struct sss_sec_ctx;
 
 struct sss_sec_req;
@@ -91,10 +98,12 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
                     char **_secret);
 
 errno_t sss_sec_put(struct sss_sec_req *req,
-                    const char *secret);
+                    const char *secret,
+                    enum sss_sec_enctype enctype);
 
 errno_t sss_sec_update(struct sss_sec_req *req,
-                       const char *secret);
+                       const char *secret,
+                       enum sss_sec_enctype enctype);
 
 errno_t sss_sec_create_container(struct sss_sec_req *req);
 

@@ -63,19 +63,53 @@ static struct sss_sec_quota default_kcm_quota = {
     .containers_nest_level = DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
 };
 
+static const char *sss_sec_enctype_to_str(enum sss_sec_enctype enctype)
+{
+    switch (enctype) {
+    case SSS_SEC_PLAINTEXT:
+        return "plaintext";
+    case SSS_SEC_MASTERKEY:
+        return "masterkey";
+    case SSS_SEC_BASE64:
+        return "base64";
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: unknown encryption type %d\n",
+                enctype);
+        return "unknown";
+    }
+}
+
+static enum sss_sec_enctype sss_sec_str_to_enctype(const char *str)
+{
+    if (strcmp("plaintext", str) == 0) {
+        return SSS_SEC_PLAINTEXT;
+    }
+
+    if (strcmp("masterkey", str) == 0) {
+        return SSS_SEC_MASTERKEY;
+    }
+
+    if (strcmp("base64", str) == 0) {
+        return SSS_SEC_BASE64;
+    }
+
+    return SSS_SEC_ENCTYPE_SENTINEL;
+}
+
 static int local_decrypt(struct sss_sec_ctx *sctx, TALLOC_CTX *mem_ctx,
-                         const char *secret, const char *enctype,
+                         const char *secret, enum sss_sec_enctype enctype,
                          char **plain_secret)
 {
+    struct sss_sec_data _secret;
+    size_t outlen;
     char *output;
+    int ret;
 
-    if (enctype && strcmp(enctype, "masterkey") == 0) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Decrypting with masterkey\n");
-
-        struct sss_sec_data _secret;
-        size_t outlen;
-        int ret;
-
+    switch (enctype) {
+    case SSS_SEC_PLAINTEXT:
+        output = talloc_strdup(mem_ctx, secret);
+        break;
+    case SSS_SEC_MASTERKEY:
         _secret.data = (char *)sss_base64_decode(mem_ctx, secret,
                                                  &_secret.length);
         if (!_secret.data) {
@@ -83,6 +117,7 @@ static int local_decrypt(struct sss_sec_ctx *sctx, TALLOC_CTX *mem_ctx,
             return EINVAL;
         }
 
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Decrypting with masterkey\n");
         ret = sss_decrypt(mem_ctx, AES256CBC_HMAC_SHA256,
                           (uint8_t *)sctx->master_key.data,
                           sctx->master_key.length,
@@ -102,10 +137,17 @@ static int local_decrypt(struct sss_sec_ctx *sctx, TALLOC_CTX *mem_ctx,
             talloc_free(output);
             return EIO;
         }
-    } else {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Unexpected enctype (not 'masterkey')\n");
-        output = talloc_strdup(mem_ctx, secret);
-        if (!output) return ENOMEM;
+        break;
+    case SSS_SEC_BASE64:
+        output = (char *)sss_base64_decode(mem_ctx, secret, &_secret.length);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown encryption type '%d'\n", enctype);
+        return EINVAL;
+    }
+
+    if (output == NULL) {
+        return ENOMEM;
     }
 
     *plain_secret = output;
@@ -113,38 +155,45 @@ static int local_decrypt(struct sss_sec_ctx *sctx, TALLOC_CTX *mem_ctx,
 }
 
 static int local_encrypt(struct sss_sec_ctx *sec_ctx, TALLOC_CTX *mem_ctx,
-                         const char *secret, const char *enctype,
+                         const char *secret, enum sss_sec_enctype enctype,
                          char **ciphertext)
 {
     struct sss_sec_data _secret;
     char *output;
     int ret;
 
-    if (enctype == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No encryption type\n");
+    switch (enctype) {
+    case SSS_SEC_PLAINTEXT:
+        output = talloc_strdup(mem_ctx, secret);
+        break;
+    case SSS_SEC_MASTERKEY:
+        ret = sss_encrypt(mem_ctx, AES256CBC_HMAC_SHA256,
+                          (uint8_t *)sec_ctx->master_key.data,
+                           sec_ctx->master_key.length,
+                          (const uint8_t *)secret, strlen(secret) + 1,
+                          (uint8_t **)&_secret.data, &_secret.length);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "sss_encrypt failed [%d]: %s\n", ret, sss_strerror(ret));
+            return ret;
+        }
+
+        output = sss_base64_encode(mem_ctx, (uint8_t *)_secret.data,
+                                   _secret.length);
+        talloc_free(_secret.data);
+        break;
+    case SSS_SEC_BASE64:
+        output = (char *)sss_base64_encode(mem_ctx, (const uint8_t *)secret,
+                                           strlen(secret) + 1);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown encryption type '%d'\n", enctype);
         return EINVAL;
     }
 
-    if (strcmp(enctype, "masterkey") != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown encryption type '%s'\n", enctype);
-        return EINVAL;
+    if (output == NULL) {
+        return ENOMEM;
     }
-
-    ret = sss_encrypt(mem_ctx, AES256CBC_HMAC_SHA256,
-                      (uint8_t *)sec_ctx->master_key.data,
-                      sec_ctx->master_key.length,
-                      (const uint8_t *)secret, strlen(secret) + 1,
-                      (uint8_t **)&_secret.data, &_secret.length);
-    if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sss_encrypt failed [%d]: %s\n", ret, sss_strerror(ret));
-        return ret;
-    }
-
-    output = sss_base64_encode(mem_ctx,
-                               (uint8_t *)_secret.data, _secret.length);
-    talloc_free(_secret.data);
-    if (!output) return ENOMEM;
 
     *ciphertext = output;
     return EOK;
@@ -958,6 +1007,7 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     const char *attr_secret;
     const char *attr_enctype;
+    enum sss_sec_enctype enctype;
     int ret;
 
     if (req == NULL || _secret == NULL) {
@@ -1006,10 +1056,15 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
     attr_enctype = ldb_msg_find_attr_as_string(res->msgs[0], "enctype", NULL);
 
     if (attr_enctype) {
-        ret = local_decrypt(req->sctx, mem_ctx, attr_secret, attr_enctype, _secret);
+        enctype = sss_sec_str_to_enctype(attr_enctype);
+        ret = local_decrypt(req->sctx, mem_ctx, attr_secret, enctype, _secret);
         if (ret) goto done;
     } else {
         *_secret = talloc_strdup(mem_ctx, attr_secret);
+        if (*_secret == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
     ret = EOK;
 
@@ -1019,10 +1074,10 @@ done:
 }
 
 errno_t sss_sec_put(struct sss_sec_req *req,
-                    const char *secret)
+                    const char *secret,
+                    enum sss_sec_enctype enctype)
 {
     struct ldb_message *msg;
-    const char *enctype = "masterkey";
     char *enc_secret;
     int ret;
 
@@ -1087,7 +1142,7 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_string(msg, "enctype", enctype);
+    ret = ldb_msg_add_string(msg, "enctype", sss_sec_enctype_to_str(enctype));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding enctype [%d]: %s\n",
@@ -1132,10 +1187,10 @@ done:
 }
 
 errno_t sss_sec_update(struct sss_sec_req *req,
-                       const char *secret)
+                       const char *secret,
+                       enum sss_sec_enctype enctype)
 {
     struct ldb_message *msg;
-    const char *enctype = "masterkey";
     char *enc_secret;
     int ret;
 
@@ -1189,6 +1244,22 @@ errno_t sss_sec_update(struct sss_sec_req *req,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "local_encrypt failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "enctype", LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_msg_add_empty failed: [%s]\n", ldb_strerror(ret));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "enctype", sss_sec_enctype_to_str(enctype));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_msg_add_string failed adding enctype [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
