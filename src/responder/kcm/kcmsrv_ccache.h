@@ -73,6 +73,13 @@ errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
                    struct kcm_ccache **_cc);
 
 /*
+ * Duplicate the ccache. Only ccache and credentials are duplicated,
+ * but their data are a shallow copy.
+ */
+struct kcm_ccache *kcm_cc_dup(TALLOC_CTX *mem_ctx,
+                              const struct kcm_ccache *cc);
+
+/*
  * Returns true if a client can access a ccache.
  *
  * Note that root can access any ccache */
