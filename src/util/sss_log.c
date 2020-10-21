@@ -107,7 +107,7 @@ static void sss_log_internal(int priority, int facility, const char *format,
                     "SSSD_DOMAIN=%s", domain,
                     "PRIORITY=%i", syslog_priority,
                     "SYSLOG_FACILITY=%i", LOG_FAC(facility),
-                    "SYSLOG_IDENTIFIER=%s", debug_prg_name,
+                    "SYSLOG_IDENTIFIER=sssd[%s]", debug_prg_name,
                     NULL);
 
     free(message);
@@ -118,15 +118,9 @@ static void sss_log_internal(int priority, int facility, const char *format,
 static void sss_log_internal(int priority, int facility, const char *format,
                             va_list ap)
 {
-    int syslog_priority;
+    int syslog_priority = sss_to_syslog(priority);
 
-    syslog_priority = sss_to_syslog(priority);
-
-    openlog(debug_prg_name, 0, facility);
-
-    vsyslog(syslog_priority, format, ap);
-
-    closelog();
+    vsyslog(facility|syslog_priority, format, ap);
 }
 
 #endif /* WITH_JOURNALD */
