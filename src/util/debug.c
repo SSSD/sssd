@@ -201,7 +201,7 @@ static void debug_printf(const char *format, ...)
 }
 
 #ifdef WITH_JOURNALD
-errno_t journal_send(const char *file,
+static errno_t journal_send(const char *file,
         long line,
         const char *function,
         int level,
