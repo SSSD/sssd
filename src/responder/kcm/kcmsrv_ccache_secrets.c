@@ -195,7 +195,7 @@ static errno_t kcm_ccache_to_sec_kv(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = kcm_ccache_to_sec_input(mem_ctx, cc, client, &payload);
+    ret = kcm_ccache_to_sec_input_json(mem_ctx, cc, client, &payload);
     if (ret != EOK) {
         goto done;
     }
@@ -489,11 +489,8 @@ static void sec_get_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = sec_kv_to_ccache(state,
-                           state->sec_key,
-                           sec_value,
-                           state->client,
-                           &state->cc);
+    ret = sec_kv_to_ccache_json(state, state->sec_key, sec_value, state->client,
+                                &state->cc);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot convert JSON keyval to ccache blob [%d]: %s\n",

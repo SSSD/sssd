@@ -460,10 +460,10 @@ static errno_t ccache_to_sec_val(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-errno_t kcm_ccache_to_sec_input(TALLOC_CTX *mem_ctx,
-                                struct kcm_ccache *cc,
-                                struct cli_creds *client,
-                                struct sss_iobuf **_payload)
+errno_t kcm_ccache_to_sec_input_json(TALLOC_CTX *mem_ctx,
+                                     struct kcm_ccache *cc,
+                                     struct cli_creds *client,
+                                     struct sss_iobuf **_payload)
 {
     errno_t ret;
     const char *value;
@@ -897,11 +897,11 @@ static errno_t sec_json_value_to_ccache(struct kcm_ccache *cc,
  * sec_key is a concatenation of the ccache's UUID and name
  * sec_value is the JSON dump of the ccache contents
  */
-errno_t sec_kv_to_ccache(TALLOC_CTX *mem_ctx,
-                         const char *sec_key,
-                         const char *sec_value,
-                         struct cli_creds *client,
-                         struct kcm_ccache **_cc)
+errno_t sec_kv_to_ccache_json(TALLOC_CTX *mem_ctx,
+                              const char *sec_key,
+                              const char *sec_value,
+                              struct cli_creds *client,
+                              struct kcm_ccache **_cc)
 {
     errno_t ret;
     json_t *root = NULL;
