@@ -311,7 +311,7 @@ endif   # HAVE_INOTIFY
 
 if BUILD_KCM
 non_interactive_cmocka_based_tests += \
-	test_kcm_json \
+	test_kcm_marshalling \
 	test_kcm_queue \
         $(NULL)
 endif   # BUILD_KCM
@@ -3927,18 +3927,18 @@ test_sssd_krb5_locator_plugin_LDADD = \
     $(NULL)
 
 if BUILD_KCM
-test_kcm_json_SOURCES = \
-    src/tests/cmocka/test_kcm_json_marshalling.c \
+test_kcm_marshalling_SOURCES = \
+    src/tests/cmocka/test_kcm_marshalling.c \
     src/responder/kcm/kcmsrv_ccache_json.c \
     src/responder/kcm/kcmsrv_ccache.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
     $(NULL)
-test_kcm_json_CFLAGS = \
+test_kcm_marshalling_CFLAGS = \
     $(AM_CFLAGS) \
     $(UUID_CFLAGS) \
     $(NULL)
-test_kcm_json_LDADD = \
+test_kcm_marshalling_LDADD = \
     $(JANSSON_LIBS) \
     $(UUID_LIBS) \
     $(KRB5_LIBS) \

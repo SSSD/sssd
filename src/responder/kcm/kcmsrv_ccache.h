@@ -333,16 +333,16 @@ const char *sec_key_create(TALLOC_CTX *mem_ctx,
  * sec_key is a concatenation of the ccache's UUID and name
  * sec_value is the JSON dump of the ccache contents
  */
-errno_t sec_kv_to_ccache(TALLOC_CTX *mem_ctx,
-                         const char *sec_key,
-                         const char *sec_value,
-                         struct cli_creds *client,
-                         struct kcm_ccache **_cc);
+errno_t sec_kv_to_ccache_json(TALLOC_CTX *mem_ctx,
+                              const char *sec_key,
+                              const char *sec_value,
+                              struct cli_creds *client,
+                              struct kcm_ccache **_cc);
 
 /* Convert a kcm_ccache to a key-value pair to be stored in secrets */
-errno_t kcm_ccache_to_sec_input(TALLOC_CTX *mem_ctx,
-                                struct kcm_ccache *cc,
-                                struct cli_creds *client,
-                                struct sss_iobuf **_payload);
+errno_t kcm_ccache_to_sec_input_json(TALLOC_CTX *mem_ctx,
+                                     struct kcm_ccache *cc,
+                                     struct cli_creds *client,
+                                     struct sss_iobuf **_payload);
 
 #endif /* _KCMSRV_CCACHE_H_ */

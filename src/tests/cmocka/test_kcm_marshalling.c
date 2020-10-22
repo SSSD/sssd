@@ -154,7 +154,7 @@ static void assert_cc_equal(struct kcm_ccache *cc1,
     assert_cc_offset_equal(cc1, cc2);
 }
 
-static void test_kcm_ccache_marshall_unmarshall(void **state)
+static void test_kcm_ccache_marshall_unmarshall_json(void **state)
 {
     struct kcm_marshalling_test_ctx *test_ctx = talloc_get_type(*state,
                                         struct kcm_marshalling_test_ctx);
@@ -182,10 +182,7 @@ static void test_kcm_ccache_marshall_unmarshall(void **state)
                      &cc);
     assert_int_equal(ret, EOK);
 
-    ret = kcm_ccache_to_sec_input(test_ctx,
-                                  cc,
-                                  &owner,
-                                  &payload);
+    ret = kcm_ccache_to_sec_input_json(test_ctx, cc, &owner, &payload);
     assert_int_equal(ret, EOK);
 
     data = sss_iobuf_get_data(payload);
@@ -196,25 +193,19 @@ static void test_kcm_ccache_marshall_unmarshall(void **state)
     key = sec_key_create(test_ctx, name, uuid);
     assert_non_null(key);
 
-    ret = sec_kv_to_ccache(test_ctx,
-                           key,
-                           (const char *) data,
-                           &owner,
-                           &cc2);
+    ret = sec_kv_to_ccache_json(test_ctx, key, (const char *)data, &owner,
+                                &cc2);
     assert_int_equal(ret, EOK);
 
     assert_cc_equal(cc, cc2);
 
     /* This key is exactly one byte shorter than it should be */
-    ret = sec_kv_to_ccache(test_ctx,
-                           TEST_UUID_STR"-",
-                           (const char *) data,
-                           &owner,
-                           &cc2);
+    ret = sec_kv_to_ccache_json(test_ctx, TEST_UUID_STR "-", (const char *)data,
+                                &owner, &cc2);
     assert_int_equal(ret, EINVAL);
 }
 
-static void test_kcm_ccache_no_princ(void **state)
+static void test_kcm_ccache_no_princ_json(void **state)
 {
     struct kcm_marshalling_test_ctx *test_ctx = talloc_get_type(*state,
                                         struct kcm_marshalling_test_ctx);
@@ -246,10 +237,7 @@ static void test_kcm_ccache_no_princ(void **state)
     princ = kcm_cc_get_client_principal(cc);
     assert_null(princ);
 
-    ret = kcm_ccache_to_sec_input(test_ctx,
-                                  cc,
-                                  &owner,
-                                  &payload);
+    ret = kcm_ccache_to_sec_input_json(test_ctx, cc, &owner, &payload);
     assert_int_equal(ret, EOK);
 
     data = sss_iobuf_get_data(payload);
@@ -260,11 +248,8 @@ static void test_kcm_ccache_no_princ(void **state)
     key = sec_key_create(test_ctx, name, uuid);
     assert_non_null(key);
 
-    ret = sec_kv_to_ccache(test_ctx,
-                           key,
-                           (const char *) data,
-                           &owner,
-                           &cc2);
+    ret = sec_kv_to_ccache_json(test_ctx, key, (const char *)data, &owner,
+                                &cc2);
     assert_int_equal(ret, EOK);
 
     assert_cc_equal(cc, cc2);
@@ -340,10 +325,10 @@ int main(int argc, const char *argv[])
     };
 
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup_teardown(test_kcm_ccache_marshall_unmarshall,
+        cmocka_unit_test_setup_teardown(test_kcm_ccache_marshall_unmarshall_json,
                                         setup_kcm_marshalling,
                                         teardown_kcm_marshalling),
-        cmocka_unit_test_setup_teardown(test_kcm_ccache_no_princ,
+        cmocka_unit_test_setup_teardown(test_kcm_ccache_no_princ_json,
                                         setup_kcm_marshalling,
                                         teardown_kcm_marshalling),
         cmocka_unit_test(test_sec_key_get_uuid),
