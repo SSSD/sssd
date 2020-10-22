@@ -438,7 +438,8 @@ def run_quota_test(cli, max_secrets, max_payload_size):
     KILOBYTE = 1024
     kb_payload_size = max_payload_size * KILOBYTE
 
-    sec_value = "x" * kb_payload_size
+    # Adjust payload size to hold terminal zero byte.
+    sec_value = "x" * (kb_payload_size - 1)
 
     cli.set_secret("foo", sec_value)
 

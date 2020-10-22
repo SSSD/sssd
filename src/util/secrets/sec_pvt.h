@@ -33,7 +33,7 @@
 #define SSS_SEC_KCM_BASEPATH        "/kcm/"
 
 struct sss_sec_data {
-    char *data;
+    uint8_t *data;
     size_t length;
 };
 

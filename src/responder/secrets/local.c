@@ -134,7 +134,7 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        ret = sss_sec_get(state, ssec_req, &secret, NULL);
+        ret = sss_sec_get(state, ssec_req, (uint8_t**)&secret, NULL, NULL);
         if (ret) goto done;
 
         if (body_is_json) {
@@ -168,7 +168,8 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         }
         if (ret) goto done;
 
-        ret = sss_sec_put(ssec_req, secret, SSS_SEC_MASTERKEY, "simple");
+        ret = sss_sec_put(ssec_req, (uint8_t *)secret, strlen(secret) + 1,
+                          SSS_SEC_MASTERKEY, "simple");
         if (ret) goto done;
         break;
 
