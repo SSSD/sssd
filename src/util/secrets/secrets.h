@@ -95,16 +95,19 @@ errno_t sss_sec_list(TALLOC_CTX *mem_ctx,
 
 errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
                     struct sss_sec_req *req,
-                    char **_secret,
+                    uint8_t **_secret,
+                    size_t *_secret_len,
                     char **_datatype);
 
 errno_t sss_sec_put(struct sss_sec_req *req,
-                    const char *secret,
+                    uint8_t *secret,
+                    size_t secret_len,
                     enum sss_sec_enctype enctype,
                     const char *datatype);
 
 errno_t sss_sec_update(struct sss_sec_req *req,
-                       const char *secret,
+                       uint8_t *secret,
+                       size_t secret_len,
                        enum sss_sec_enctype enctype,
                        const char *datatype);
 

@@ -49,7 +49,7 @@ static errno_t sec_get(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sss_sec_get(tmp_ctx, req, &secret, NULL);
+    ret = sss_sec_get(tmp_ctx, req, (uint8_t **)&secret, NULL, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot retrieve the secret [%d]: %s\n", ret, sss_strerror(ret));
@@ -77,7 +77,7 @@ static errno_t sec_put(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
 
-    ret = sss_sec_put(req, (const char *)sss_iobuf_get_data(buf),
+    ret = sss_sec_put(req, sss_iobuf_get_data(buf), sss_iobuf_get_size(buf),
                       SSS_SEC_PLAINTEXT, "simple");
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -93,7 +93,7 @@ static errno_t sec_update(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
 
-    ret = sss_sec_update(req, (const char *)sss_iobuf_get_data(buf),
+    ret = sss_sec_update(req, sss_iobuf_get_data(buf), sss_iobuf_get_size(buf),
                          SSS_SEC_PLAINTEXT, "simple");
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -700,7 +700,7 @@ static struct tevent_req *ccdb_secdb_set_default_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    ret = sss_sec_get(state, sreq, &cur_default, NULL);
+    ret = sss_sec_get(state, sreq, (uint8_t**)&cur_default, NULL, NULL);
     if (ret == ENOENT) {
         ret = sec_put(state, sreq, iobuf);
     } else if (ret == EOK) {
