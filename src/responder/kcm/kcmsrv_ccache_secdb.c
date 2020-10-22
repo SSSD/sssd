@@ -160,7 +160,7 @@ static errno_t kcm_ccache_to_secdb_kv(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = kcm_ccache_to_sec_input(mem_ctx, cc, client, &payload);
+    ret = kcm_ccache_to_sec_input_json(mem_ctx, cc, client, &payload);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot convert ccache to a secret [%d][%s]\n", ret, sss_strerror(ret));
@@ -454,11 +454,9 @@ static errno_t secdb_get_cc(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sec_kv_to_ccache(tmp_ctx,
-                           secdb_key,
-                           (const char *) sss_iobuf_get_data(ccbuf),
-                           client,
-                           &cc);
+    ret = sec_kv_to_ccache_json(tmp_ctx, secdb_key,
+                                (const char *)sss_iobuf_get_data(ccbuf),
+                                client, &cc);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot convert JSON keyval to ccache blob [%d]: %s\n",
@@ -1251,7 +1249,7 @@ static struct tevent_req *ccdb_secdb_mod_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    ret = kcm_ccache_to_sec_input(state, cc, client, &payload);
+    ret = kcm_ccache_to_sec_input_json(state, cc, client, &payload);
     if (ret != EOK) {
         goto immediate;
     }
@@ -1327,7 +1325,7 @@ static struct tevent_req *ccdb_secdb_store_cred_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    ret = kcm_ccache_to_sec_input(state, cc, client, &payload);
+    ret = kcm_ccache_to_sec_input_json(state, cc, client, &payload);
     if (ret != EOK) {
         goto immediate;
     }
