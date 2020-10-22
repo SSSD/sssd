@@ -1000,14 +1000,18 @@ done:
 
 errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
                     struct sss_sec_req *req,
-                    char **_secret)
+                    char **_secret,
+                    char **_datatype)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *attrs[] = { "secret", "enctype", NULL };
+    static const char *attrs[] = { "secret", "enctype", "type", NULL };
     struct ldb_result *res;
     const char *attr_secret;
     const char *attr_enctype;
+    const char *attr_datatype;
     enum sss_sec_enctype enctype;
+    char *datatype;
+    char *secret;
     int ret;
 
     if (req == NULL || _secret == NULL) {
@@ -1057,15 +1061,30 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
 
     if (attr_enctype) {
         enctype = sss_sec_str_to_enctype(attr_enctype);
-        ret = local_decrypt(req->sctx, mem_ctx, attr_secret, enctype, _secret);
+        ret = local_decrypt(req->sctx, tmp_ctx, attr_secret, enctype, &secret);
         if (ret) goto done;
     } else {
-        *_secret = talloc_strdup(mem_ctx, attr_secret);
-        if (*_secret == NULL) {
+        secret = talloc_strdup(tmp_ctx, attr_secret);
+        if (secret == NULL) {
             ret = ENOMEM;
             goto done;
         }
     }
+
+    if (_datatype != NULL) {
+        attr_datatype = ldb_msg_find_attr_as_string(res->msgs[0], "type",
+                                                    "simple");
+        datatype = talloc_strdup(tmp_ctx, attr_datatype);
+        if (datatype == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        *_datatype = talloc_steal(mem_ctx, datatype);
+    }
+
+    *_secret = talloc_steal(mem_ctx, secret);
+
     ret = EOK;
 
 done:
@@ -1075,7 +1094,8 @@ done:
 
 errno_t sss_sec_put(struct sss_sec_req *req,
                     const char *secret,
-                    enum sss_sec_enctype enctype)
+                    enum sss_sec_enctype enctype,
+                    const char *datatype)
 {
     struct ldb_message *msg;
     char *enc_secret;
@@ -1134,11 +1154,11 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_string(msg, "type", "simple");
+    ret = ldb_msg_add_string(msg, "type", datatype);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "ldb_msg_add_string failed adding type:simple [%d]: %s\n",
-              ret, sss_strerror(ret));
+              "ldb_msg_add_string failed adding type:%s [%d]: %s\n",
+              datatype, ret, sss_strerror(ret));
         goto done;
     }
 
@@ -1188,7 +1208,8 @@ done:
 
 errno_t sss_sec_update(struct sss_sec_req *req,
                        const char *secret,
-                       enum sss_sec_enctype enctype)
+                       enum sss_sec_enctype enctype,
+                       const char *datatype)
 {
     struct ldb_message *msg;
     char *enc_secret;
@@ -1260,6 +1281,22 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding enctype [%d]: %s\n",
               ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "type", LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_msg_add_empty failed: [%s]\n", ldb_strerror(ret));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "type", datatype);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_msg_add_string failed adding type:%s [%d]: %s\n",
+              datatype, ret, sss_strerror(ret));
         goto done;
     }
 
