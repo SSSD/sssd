@@ -66,6 +66,30 @@ struct sss_iobuf *sss_iobuf_init_readonly(TALLOC_CTX *mem_ctx,
     return iobuf;
 }
 
+struct sss_iobuf *sss_iobuf_init_steal(TALLOC_CTX *mem_ctx,
+                                       uint8_t *data,
+                                       size_t size)
+{
+    struct sss_iobuf *iobuf;
+
+    iobuf = talloc_zero(mem_ctx, struct sss_iobuf);
+    if (iobuf == NULL) {
+        return NULL;
+    }
+
+    iobuf->data = talloc_steal(iobuf, data);
+    iobuf->size = size;
+    iobuf->capacity = size;
+    iobuf->dp = 0;
+
+    return iobuf;
+}
+
+void sss_iobuf_cursor_reset(struct sss_iobuf *iobuf)
+{
+    iobuf->dp = 0;
+}
+
 size_t sss_iobuf_get_len(struct sss_iobuf *iobuf)
 {
     if (iobuf == NULL) {
@@ -223,6 +247,109 @@ errno_t sss_iobuf_write_len(struct sss_iobuf *iobuf,
     return EOK;
 }
 
+errno_t sss_iobuf_read_varlen(TALLOC_CTX *mem_ctx,
+                              struct sss_iobuf *iobuf,
+                              uint8_t **_out,
+                              size_t *_len)
+{
+    uint8_t *out;
+    uint32_t len;
+    size_t slen;
+    errno_t ret;
+
+    if (iobuf == NULL || _out == NULL || _len == NULL) {
+        return EINVAL;
+    }
+
+    ret = sss_iobuf_read_uint32(iobuf, &len);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (len == 0) {
+        *_out = NULL;
+        *_len = 0;
+        return EOK;
+    }
+
+    out = talloc_array(mem_ctx, uint8_t, len);
+    if (out == NULL) {
+        return ENOMEM;
+    }
+
+    slen = len;
+    ret = sss_iobuf_read_len(iobuf, slen, out);
+    if (ret != EOK) {
+        talloc_free(out);
+        return ret;
+    }
+
+    *_out = out;
+    *_len = slen;
+
+    return EOK;
+}
+
+errno_t sss_iobuf_write_varlen(struct sss_iobuf *iobuf,
+                               uint8_t *data,
+                               size_t len)
+{
+    errno_t ret;
+
+    if (iobuf == NULL || (data == NULL && len != 0)) {
+        return EINVAL;
+    }
+
+    ret = sss_iobuf_write_uint32(iobuf, len);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (len == 0) {
+        return EOK;
+    }
+
+    return sss_iobuf_write_len(iobuf, data, len);
+}
+
+errno_t sss_iobuf_read_iobuf(TALLOC_CTX *mem_ctx,
+                             struct sss_iobuf *iobuf,
+                             struct sss_iobuf **_out)
+{
+    struct sss_iobuf *out;
+    uint8_t *data;
+    size_t len;
+    errno_t ret;
+
+    ret = sss_iobuf_read_varlen(NULL, iobuf, &data, &len);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    out = sss_iobuf_init_steal(mem_ctx, data, len);
+    if (out == NULL) {
+        return ENOMEM;
+    }
+
+    *_out = out;
+
+    return EOK;
+}
+
+errno_t sss_iobuf_write_iobuf(struct sss_iobuf *iobuf,
+                              struct sss_iobuf *data)
+{
+    return sss_iobuf_write_varlen(iobuf, data->data, data->size);
+}
+
+errno_t sss_iobuf_read_uint8(struct sss_iobuf *iobuf,
+                             uint8_t *_val)
+{
+    SAFEALIGN_COPY_UINT8_CHECK(_val, iobuf_ptr(iobuf),
+                               iobuf->capacity, &iobuf->dp);
+    return EOK;
+}
+
 errno_t sss_iobuf_read_uint32(struct sss_iobuf *iobuf,
                               uint32_t *_val)
 {
@@ -236,6 +363,20 @@ errno_t sss_iobuf_read_int32(struct sss_iobuf *iobuf,
 {
     SAFEALIGN_COPY_INT32_CHECK(_val, iobuf_ptr(iobuf),
                                iobuf->capacity, &iobuf->dp);
+    return EOK;
+}
+
+errno_t sss_iobuf_write_uint8(struct sss_iobuf *iobuf,
+                              uint8_t val)
+{
+    errno_t ret;
+
+    ret = ensure_bytes(iobuf, sizeof(uint8_t));
+    if (ret != EOK) {
+        return ret;
+    }
+
+    SAFEALIGN_SETMEM_UINT8(iobuf_ptr(iobuf), val, &iobuf->dp);
     return EOK;
 }
 
