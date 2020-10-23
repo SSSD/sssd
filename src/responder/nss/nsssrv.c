@@ -58,21 +58,21 @@ nss_clear_memcache(TALLOC_CTX *mem_ctx,
     int memcache_timeout;
     errno_t ret;
 
-    ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
-    if (ret != 0) {
+    if (access(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, F_OK) < 0) {
         ret = errno;
         if (ret == ENOENT) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   "CLEAR_MC_FLAG not found. Nothing to do.\n");
             return ret;
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unlink file: %s.\n",
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to check existence of "CLEAR_MC_FLAG": %s.\n",
                   strerror(ret));
             return ret;
         }
     }
 
-    /* CLEAR_MC_FLAG removed successfully. Clearing memory caches. */
+    /* CLEAR_MC_FLAG found. Clearing memory caches. */
 
     ret = confdb_get_int(nctx->rctx->cdb,
                          CONFDB_NSS_CONF_ENTRY,
@@ -81,7 +81,7 @@ nss_clear_memcache(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unable to get memory cache entry timeout.\n");
-        return ret;
+        goto done;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Clearing memory caches.\n");
@@ -92,7 +92,7 @@ nss_clear_memcache(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "passwd mmap cache invalidation failed\n");
-        return ret;
+        goto done;
     }
 
     ret = sss_mmap_cache_reinit(nctx, nctx->mc_uid, nctx->mc_gid,
@@ -102,7 +102,7 @@ nss_clear_memcache(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "group mmap cache invalidation failed\n");
-        return ret;
+        goto done;
     }
 
     ret = sss_mmap_cache_reinit(nctx, nctx->mc_uid, nctx->mc_gid,
@@ -112,10 +112,16 @@ nss_clear_memcache(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "initgroups mmap cache invalidation failed\n");
-        return ret;
+        goto done;
     }
 
-    return EOK;
+done:
+    if (unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG) != 0) {
+        if (errno != ENOENT)
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unlink file: %s.\n",
+                  strerror(errno));
+    }
+    return ret;
 }
 
 static errno_t
