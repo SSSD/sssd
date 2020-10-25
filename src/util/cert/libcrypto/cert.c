@@ -340,7 +340,8 @@ static errno_t rsa_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
     /* Adding missing 00 which AFAIK is added to make sure
      * the bigint is handled as positive number */
     /* TODO: make a better check if 00 must be added or not, e.g. ... & 0x80)
-     */
+     * We have a problem here, the exponent should also be padded of it ends with 0x80
+    */
     SAFEALIGN_SET_UINT32(&buf[c], htobe32(modulus_len + 1), &c);
     SAFEALIGN_SETMEM_VALUE(&buf[c], '\0', unsigned char, &c);
     safealign_memcpy(&buf[c], modulus, modulus_len, &c);
