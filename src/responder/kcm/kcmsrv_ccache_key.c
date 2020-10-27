@@ -75,12 +75,12 @@ errno_t sec_key_parse(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    strncpy(uuid_str, sec_key, sizeof(uuid_str)-1);
+    strncpy(uuid_str, sec_key, sizeof(uuid_str) - 1);
     if (sec_key[UUID_STR_SIZE - 1] != SEC_KEY_SEPARATOR) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Key doesn't contain the separator\n");
         return EINVAL;
     }
-    uuid_str[UUID_STR_SIZE-1] = '\0';
+    uuid_str[UUID_STR_SIZE - 1] = '\0';
 
     *_name = talloc_strdup(mem_ctx, sec_key + UUID_STR_SIZE);
     if (*_name == NULL) {
@@ -100,8 +100,8 @@ errno_t sec_key_get_uuid(const char *sec_key,
         return EINVAL;
     }
 
-    strncpy(uuid_str, sec_key, UUID_STR_SIZE-1);
-    uuid_str[UUID_STR_SIZE-1] = '\0';
+    strncpy(uuid_str, sec_key, UUID_STR_SIZE - 1);
+    uuid_str[UUID_STR_SIZE - 1] = '\0';
     uuid_parse(uuid_str, uuid);
     return EOK;
 }
