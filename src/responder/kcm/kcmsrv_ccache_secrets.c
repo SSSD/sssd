@@ -195,7 +195,7 @@ static errno_t kcm_ccache_to_sec_kv(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = kcm_ccache_to_sec_input_json(mem_ctx, cc, client, &payload);
+    ret = kcm_ccache_to_sec_input_json(mem_ctx, cc, &payload);
     if (ret != EOK) {
         goto done;
     }

@@ -310,6 +310,12 @@ class TestSanityKCM(object):
         set_param(multihost, 'kcm', 'max_ccache_size', '1')
         self._restart_kcm(multihost)
 
-        with pytest.raises(paramiko.ssh_exception.AuthenticationException):
-            ssh_foo3 = SSHClient(multihost.master[0].sys_hostname,
-                                 username='foo3', password='Secret123')
+        # We use kinit to exceed the maximum ccache size as it creates payload
+        # of 1280 bytes by acquiring tgt and also some control credentials.
+        # SSH authentication is not sufficient as it stores only tgt.
+        ssh_foo3 = SSHClient(multihost.master[0].sys_hostname,
+                             username='foo3', password='Secret123')
+        (_, _, exit_status) = ssh_foo3.execute_cmd(
+            'kinit foo3@EXAMPLE.TEST', 'Secret123'
+        )
+        assert exit_status != 0

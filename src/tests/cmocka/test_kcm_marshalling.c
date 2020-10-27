@@ -182,7 +182,7 @@ static void test_kcm_ccache_marshall_unmarshall_json(void **state)
                      &cc);
     assert_int_equal(ret, EOK);
 
-    ret = kcm_ccache_to_sec_input_json(test_ctx, cc, &owner, &payload);
+    ret = kcm_ccache_to_sec_input_json(test_ctx, cc, &payload);
     assert_int_equal(ret, EOK);
 
     data = sss_iobuf_get_data(payload);
@@ -237,7 +237,7 @@ static void test_kcm_ccache_no_princ_json(void **state)
     princ = kcm_cc_get_client_principal(cc);
     assert_null(princ);
 
-    ret = kcm_ccache_to_sec_input_json(test_ctx, cc, &owner, &payload);
+    ret = kcm_ccache_to_sec_input_json(test_ctx, cc, &payload);
     assert_int_equal(ret, EOK);
 
     data = sss_iobuf_get_data(payload);
@@ -250,6 +250,108 @@ static void test_kcm_ccache_no_princ_json(void **state)
 
     ret = sec_kv_to_ccache_json(test_ctx, key, (const char *)data, &owner,
                                 &cc2);
+    assert_int_equal(ret, EOK);
+
+    assert_cc_equal(cc, cc2);
+}
+
+static void test_kcm_ccache_marshall_unmarshall_binary(void **state)
+{
+    struct kcm_marshalling_test_ctx *test_ctx = talloc_get_type(*state,
+                                        struct kcm_marshalling_test_ctx);
+    errno_t ret;
+    struct cli_creds owner;
+    struct kcm_ccache *cc;
+    struct kcm_ccache *cc2;
+    struct sss_iobuf *payload;
+    const char *name;
+    const char *key;
+    uint8_t *data;
+    uuid_t uuid;
+
+    owner.ucred.uid = getuid();
+    owner.ucred.gid = getuid();
+
+    name = talloc_asprintf(test_ctx, "%"SPRIuid, getuid());
+    assert_non_null(name);
+
+    ret = kcm_cc_new(test_ctx,
+                     test_ctx->kctx,
+                     &owner,
+                     name,
+                     test_ctx->princ,
+                     &cc);
+    assert_int_equal(ret, EOK);
+
+    ret = kcm_ccache_to_sec_input_binary(test_ctx, cc, &payload);
+    assert_int_equal(ret, EOK);
+
+    data = sss_iobuf_get_data(payload);
+    assert_non_null(data);
+
+    ret = kcm_cc_get_uuid(cc, uuid);
+    assert_int_equal(ret, EOK);
+    key = sec_key_create(test_ctx, name, uuid);
+    assert_non_null(key);
+
+    sss_iobuf_cursor_reset(payload);
+    ret = sec_kv_to_ccache_binary(test_ctx, key, payload, &owner, &cc2);
+    assert_int_equal(ret, EOK);
+
+    assert_cc_equal(cc, cc2);
+
+    /* This key is exactly one byte shorter than it should be */
+    sss_iobuf_cursor_reset(payload);
+    ret = sec_kv_to_ccache_binary(test_ctx, TEST_UUID_STR "-", payload, &owner,
+                                  &cc2);
+    assert_int_equal(ret, EINVAL);
+}
+
+static void test_kcm_ccache_no_princ_binary(void **state)
+{
+    struct kcm_marshalling_test_ctx *test_ctx = talloc_get_type(*state,
+                                        struct kcm_marshalling_test_ctx);
+    errno_t ret;
+    struct cli_creds owner;
+    const char *name;
+    struct kcm_ccache *cc;
+    krb5_principal princ;
+    struct kcm_ccache *cc2;
+    struct sss_iobuf *payload;
+    const char *key;
+    uint8_t *data;
+    uuid_t uuid;
+
+    owner.ucred.uid = getuid();
+    owner.ucred.gid = getuid();
+
+    name = talloc_asprintf(test_ctx, "%"SPRIuid, getuid());
+    assert_non_null(name);
+
+    ret = kcm_cc_new(test_ctx,
+                     test_ctx->kctx,
+                     &owner,
+                     name,
+                     NULL,
+                     &cc);
+    assert_int_equal(ret, EOK);
+
+    princ = kcm_cc_get_client_principal(cc);
+    assert_null(princ);
+
+    ret = kcm_ccache_to_sec_input_binary(test_ctx, cc, &payload);
+    assert_int_equal(ret, EOK);
+
+    data = sss_iobuf_get_data(payload);
+    assert_non_null(data);
+
+    ret = kcm_cc_get_uuid(cc, uuid);
+    assert_int_equal(ret, EOK);
+    key = sec_key_create(test_ctx, name, uuid);
+    assert_non_null(key);
+
+    sss_iobuf_cursor_reset(payload);
+    ret = sec_kv_to_ccache_binary(test_ctx, key, payload, &owner, &cc2);
     assert_int_equal(ret, EOK);
 
     assert_cc_equal(cc, cc2);
@@ -325,6 +427,12 @@ int main(int argc, const char *argv[])
     };
 
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_kcm_ccache_marshall_unmarshall_binary,
+                                        setup_kcm_marshalling,
+                                        teardown_kcm_marshalling),
+        cmocka_unit_test_setup_teardown(test_kcm_ccache_no_princ_binary,
+                                        setup_kcm_marshalling,
+                                        teardown_kcm_marshalling),
         cmocka_unit_test_setup_teardown(test_kcm_ccache_marshall_unmarshall_json,
                                         setup_kcm_marshalling,
                                         teardown_kcm_marshalling),
