@@ -37,12 +37,6 @@
  */
 #define KS_JSON_VERSION     1
 
-/*
- * The secrets store is a key-value store at heart. We store the UUID
- * and the name in the key to allow easy lookups be either key
- */
-#define SEC_KEY_SEPARATOR   '-'
-
 /* Compat definition of json_array_foreach for older systems */
 #ifndef json_array_foreach
 #define json_array_foreach(array, idx, value) \
@@ -50,119 +44,6 @@
             idx < json_array_size(array) && (value = json_array_get(array, idx)); \
             idx++)
 #endif
-
-const char *sec_key_create(TALLOC_CTX *mem_ctx,
-                           const char *name,
-                           uuid_t uuid)
-{
-    char uuid_str[UUID_STR_SIZE];
-
-    uuid_unparse(uuid, uuid_str);
-    return talloc_asprintf(mem_ctx,
-                           "%s%c%s", uuid_str, SEC_KEY_SEPARATOR, name);
-}
-
-static bool sec_key_valid(const char *sec_key)
-{
-    if (sec_key == NULL) {
-        return false;
-    }
-
-    if (strlen(sec_key) < UUID_STR_SIZE + 1) {
-        /* One char for separator (at UUID_STR_SIZE, because strlen doesn't
-         * include the '\0', but UUID_STR_SIZE does) and at least one for
-         * the name */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Key %s is too short\n", sec_key);
-        return false;
-    }
-
-    if (sec_key[UUID_STR_SIZE - 1] != SEC_KEY_SEPARATOR) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Key doesn't contain the separator\n");
-        return false;
-    }
-
-    return true;
-}
-
-static errno_t sec_key_parse(TALLOC_CTX *mem_ctx,
-                             const char *sec_key,
-                             const char **_name,
-                             uuid_t uuid)
-{
-    char uuid_str[UUID_STR_SIZE];
-
-    if (!sec_key_valid(sec_key)) {
-        return EINVAL;
-    }
-
-    strncpy(uuid_str, sec_key, sizeof(uuid_str)-1);
-    if (sec_key[UUID_STR_SIZE - 1] != SEC_KEY_SEPARATOR) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Key doesn't contain the separator\n");
-        return EINVAL;
-    }
-    uuid_str[UUID_STR_SIZE-1] = '\0';
-
-    *_name = talloc_strdup(mem_ctx, sec_key + UUID_STR_SIZE);
-    if (*_name == NULL) {
-        return ENOMEM;
-    }
-    uuid_parse(uuid_str, uuid);
-
-    return EOK;
-}
-
-errno_t sec_key_get_uuid(const char *sec_key,
-                         uuid_t uuid)
-{
-    char uuid_str[UUID_STR_SIZE];
-
-    if (!sec_key_valid(sec_key)) {
-        return EINVAL;
-    }
-
-    strncpy(uuid_str, sec_key, UUID_STR_SIZE-1);
-    uuid_str[UUID_STR_SIZE-1] = '\0';
-    uuid_parse(uuid_str, uuid);
-    return EOK;
-}
-
-const char *sec_key_get_name(const char *sec_key)
-{
-    if (!sec_key_valid(sec_key)) {
-        return NULL;
-    }
-
-    return sec_key + UUID_STR_SIZE;
-}
-
-bool sec_key_match_name(const char *sec_key,
-                        const char *name)
-{
-    if (!sec_key_valid(sec_key) || name == NULL) {
-        return false;
-    }
-
-    return strcmp(sec_key + UUID_STR_SIZE, name) == 0;
-}
-
-bool sec_key_match_uuid(const char *sec_key,
-                        uuid_t uuid)
-{
-    errno_t ret;
-    uuid_t key_uuid;
-
-    /* `key_uuid` is output arg and isn't read in sec_key_get_uuid() but
-     * since libuuid is opaque for cppcheck it generates false positive here
-     */
-    /* cppcheck-suppress uninitvar */
-    ret = sec_key_get_uuid(sec_key, key_uuid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot convert key to UUID\n");
-        return false;
-    }
-
-    return uuid_compare(key_uuid, uuid) == 0;
-}
 
 /*
  * Creates an array of principal elements that will be used later
@@ -928,16 +809,9 @@ errno_t sec_kv_to_ccache_json(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* We rely on sssd-secrets only searching the user's subtree so we
-     * set the ownership to the client
-     */
-    cc->owner.uid = cli_creds_get_uid(client);
-    cc->owner.gid = cli_creds_get_gid(client);
-
-    ret = sec_key_parse(cc, sec_key, &cc->name, cc->uuid);
+    ret = kcm_cc_set_header(cc, sec_key, client);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannt parse secret key [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot store ccache header [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }

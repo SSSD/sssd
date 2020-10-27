@@ -213,6 +213,26 @@ errno_t kcm_cc_store_creds(struct kcm_ccache *cc,
     return EOK;
 }
 
+errno_t kcm_cc_set_header(struct kcm_ccache *cc,
+                          const char *sec_key,
+                          struct cli_creds *client)
+{
+    errno_t ret;
+
+    ret = sec_key_parse(cc, sec_key, &cc->name, cc->uuid);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* We rely on sssd-secrets only searching the user's subtree so we
+     * set the ownership to the client
+     */
+    cc->owner.uid = cli_creds_get_uid(client);
+    cc->owner.gid = cli_creds_get_gid(client);
+
+    return EOK;
+}
+
 errno_t kcm_cred_get_uuid(struct kcm_cred *crd, uuid_t _uuid)
 {
     if (crd == NULL) {
