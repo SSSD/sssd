@@ -1186,7 +1186,6 @@ static struct tevent_req *ccdb_secdb_create_send(TALLOC_CTX *mem_ctx,
 
     ret = sec_put(state, ccache_req, ccache_payload);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to add the payload\n");
         goto immediate;
     }
 
