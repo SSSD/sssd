@@ -100,6 +100,11 @@ struct kcm_cred *kcm_cred_new(TALLOC_CTX *mem_ctx,
 errno_t kcm_cc_store_creds(struct kcm_ccache *cc,
                            struct kcm_cred *crd);
 
+/* Set cc header information from sec key and client */
+errno_t kcm_cc_set_header(struct kcm_ccache *cc,
+                          const char *sec_key,
+                          struct cli_creds *client);
+
 errno_t kcm_cred_get_uuid(struct kcm_cred *crd, uuid_t uuid);
 
 /*
@@ -319,6 +324,11 @@ bool sec_key_match_name(const char *sec_key,
 
 bool sec_key_match_uuid(const char *sec_key,
                         uuid_t uuid);
+
+errno_t sec_key_parse(TALLOC_CTX *mem_ctx,
+                      const char *sec_key,
+                      const char **_name,
+                      uuid_t uuid);
 
 const char *sec_key_get_name(const char *sec_key);
 
