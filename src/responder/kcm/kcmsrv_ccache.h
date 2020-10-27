@@ -352,7 +352,21 @@ errno_t sec_kv_to_ccache_json(TALLOC_CTX *mem_ctx,
 /* Convert a kcm_ccache to a key-value pair to be stored in secrets */
 errno_t kcm_ccache_to_sec_input_json(TALLOC_CTX *mem_ctx,
                                      struct kcm_ccache *cc,
-                                     struct cli_creds *client,
                                      struct sss_iobuf **_payload);
+
+/*
+ * sec_key is a concatenation of the ccache's UUID and name
+ * sec_value is the binary representation of ccache.
+ */
+errno_t sec_kv_to_ccache_binary(TALLOC_CTX *mem_ctx,
+                                const char *sec_key,
+                                struct sss_iobuf *sec_value,
+                                struct cli_creds *client,
+                                struct kcm_ccache **_cc);
+
+/* Convert a kcm_ccache to its binary representation. */
+errno_t kcm_ccache_to_sec_input_binary(TALLOC_CTX *mem_ctx,
+                                       struct kcm_ccache *cc,
+                                       struct sss_iobuf **_payload);
 
 #endif /* _KCMSRV_CCACHE_H_ */

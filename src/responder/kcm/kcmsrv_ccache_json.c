@@ -343,7 +343,6 @@ static errno_t ccache_to_sec_val(TALLOC_CTX *mem_ctx,
 
 errno_t kcm_ccache_to_sec_input_json(TALLOC_CTX *mem_ctx,
                                      struct kcm_ccache *cc,
-                                     struct cli_creds *client,
                                      struct sss_iobuf **_payload)
 {
     errno_t ret;

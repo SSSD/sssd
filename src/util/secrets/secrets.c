@@ -36,7 +36,7 @@
 #define SECRETS_BASEDN  "cn=secrets"
 #define KCM_BASEDN      "cn=kcm"
 
-#define LOCAL_SIMPLE_FILTER "(type=simple)"
+#define LOCAL_SIMPLE_FILTER "(|(type=simple)(type=binary))"
 #define LOCAL_CONTAINER_FILTER "(type=container)"
 
 typedef int (*url_mapper_fn)(TALLOC_CTX *mem_ctx,
