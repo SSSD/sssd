@@ -341,7 +341,6 @@ sbus_server_create_and_connect_send(TALLOC_CTX *mem_ctx,
                                     const char *dbus_name,
                                     time_t *last_activity_time,
                                     const char *address,
-                                    bool use_symlink,
                                     uint32_t max_connections,
                                     uid_t uid,
                                     gid_t gid,
@@ -359,7 +358,7 @@ sbus_server_create_and_connect_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->server = sbus_server_create(state, ev, address, use_symlink,
+    state->server = sbus_server_create(state, ev, address,
                                        max_connections, uid, gid,
                                        on_conn_cb, on_conn_data);
     if (state->server == NULL) {

@@ -135,7 +135,6 @@ errno_t sbus_connect_private_recv(TALLOC_CTX *mem_ctx,
  * @param mem_ctx                Memory context.
  * @param ev                     Tevent context.
  * @param address                Socket address.
- * @param use_symlink            If a symlink to @address should be created.
  * @param uid                    Socket owner uid.
  * @param gid                    Socket owner gid.
  * @param on_conn_cb             On new connection callback function.
@@ -147,7 +146,6 @@ struct sbus_server *
 sbus_server_create(TALLOC_CTX *mem_ctx,
                    struct tevent_context *ev,
                    const char *address,
-                   bool use_symlink,
                    uint32_t max_connections,
                    uid_t uid,
                    gid_t gid,
@@ -163,7 +161,6 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
  * @param last_activity_time     Pointer to a time that is updated each time
  *                               an event occurs on connection.
  * @param address                Socket address.
- * @param use_symlink            If a symlink to @address should be created.
  * @param uid                    Socket owner uid.
  * @param gid                    Socket owner gid.
  * @param on_conn_cb             On new connection callback function.
@@ -177,7 +174,6 @@ sbus_server_create_and_connect_send(TALLOC_CTX *mem_ctx,
                                     const char *dbus_name,
                                     time_t *last_activity_time,
                                     const char *address,
-                                    bool use_symlink,
                                     uint32_t max_connections,
                                     uid_t uid,
                                     gid_t gid,

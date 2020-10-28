@@ -113,7 +113,6 @@ struct sbus_connection {
 struct sbus_server {
     struct tevent_context *ev;
     DBusServer *server;
-    const char *symlink;
     struct sbus_watch *watch_ctx;
     struct sbus_router *router;
     dbus_int32_t data_slot;
