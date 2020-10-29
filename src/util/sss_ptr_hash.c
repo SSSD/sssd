@@ -54,6 +54,7 @@ struct sss_ptr_hash_value {
     hash_table_t *table;
     const char *key;
     void *payload;
+    bool delete_in_progress;
 };
 
 static int
@@ -61,12 +62,22 @@ sss_ptr_hash_value_destructor(struct sss_ptr_hash_value *value)
 {
     hash_key_t table_key;
 
+    /* Do not call hash_delete() if we got here from hash delete callback when
+     * the callback calls talloc_free(payload) which frees the value. This
+     * should not happen since talloc will avoid circular free but let's be
+     * over protective here. */
+    if (value->delete_in_progress) {
+        return 0;
+    }
+
+    value->delete_in_progress = true;
     if (value->table && value->key) {
         table_key.type = HASH_KEY_STRING;
         table_key.str = discard_const_p(char, value->key);
         if (hash_delete(value->table, &table_key) != HASH_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "failed to delete entry with key '%s'\n", value->key);
+            value->delete_in_progress = false;
         }
     }
 
@@ -127,6 +138,15 @@ sss_ptr_hash_delete_cb(hash_entry_t *item,
     callback_entry.key = item->key;
     callback_entry.value.type = HASH_VALUE_PTR;
     callback_entry.value.ptr = value->payload;
+
+    /* Delete the value in case this callback has been called directly
+     * from dhash (overwriting existing entry) instead of hash_delete()
+     * in value's destructor. */
+    if (!value->delete_in_progress) {
+        talloc_set_destructor(value, NULL);
+        talloc_free(value);
+    }
+
     /* Even if execution is already in the context of
      * talloc_free(payload) -> talloc_free(value) -> ...
      * there still might be legitimate reasons to execute callback.
