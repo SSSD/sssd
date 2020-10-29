@@ -91,6 +91,45 @@ void test_sss_ptr_hash_with_free_cb(void **state)
     assert_int_equal(free_counter, MAX_ENTRIES_AMOUNT*2);
 }
 
+void test_sss_ptr_hash_overwrite_with_free_cb(void **state)
+{
+    hash_table_t *table;
+    int free_counter = 0;
+    unsigned long count;
+    char *payload;
+    char *value;
+    errno_t ret;
+
+    table = sss_ptr_hash_create(global_talloc_context,
+                                free_payload_cb,
+                                &free_counter);
+    assert_non_null(table);
+
+    payload = talloc_strdup(table, "test_value1");
+    assert_non_null(payload);
+    talloc_set_name_const(payload, "char");
+    ret = sss_ptr_hash_add_or_override(table, "test", payload, char);
+    assert_int_equal(ret, 0);
+    count = hash_count(table);
+    assert_int_equal(count, 1);
+    value = sss_ptr_hash_lookup(table, "test", char);
+    assert_ptr_equal(value, payload);
+
+
+    payload = talloc_strdup(table, "test_value2");
+    assert_non_null(payload);
+    talloc_set_name_const(payload, "char");
+    ret = sss_ptr_hash_add_or_override(table, "test", payload, char);
+    assert_int_equal(ret, 0);
+    count = hash_count(table);
+    assert_int_equal(count, 1);
+    value = sss_ptr_hash_lookup(table, "test", char);
+    assert_ptr_equal(value, payload);
+
+    talloc_free(table);
+    assert_int_equal(free_counter, 2);
+}
+
 struct table_wrapper
 {
     hash_table_t **table;

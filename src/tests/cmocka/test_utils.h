@@ -35,6 +35,7 @@ void test_concatenate_string_array(void **state);
 
 /* from src/tests/cmocka/test_sss_ptr_hash.c */
 void test_sss_ptr_hash_with_free_cb(void **state);
+void test_sss_ptr_hash_overwrite_with_free_cb(void **state);
 void test_sss_ptr_hash_with_lookup_cb(void **state);
 void test_sss_ptr_hash_without_cb(void **state);
 
