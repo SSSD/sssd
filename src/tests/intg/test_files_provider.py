@@ -27,6 +27,7 @@ import pwd
 import grp
 import pytest
 import tempfile
+import re
 
 import ent
 import sssd_id
@@ -1269,3 +1270,25 @@ def test_files_with_override_shell(add_user_with_canary,
     res, user = sssd_getpwnam_sync(USER1["name"])
     assert res == NssReturnCode.SUCCESS
     assert user["shell"] == USER1["shell"]
+
+
+def test_check_only_one_socket_file(files_domain_only):
+    """
+    Given id_provider is files.
+    When socket files are checked.
+    Then only one socket file is found for the file provider.
+    """
+    socket_path = os.path.join(config.PIPE_PATH, "private")
+    list_path = os.listdir(socket_path)
+
+    match_count = 0
+    match_list = []
+    pattern = '^sbus-dp_files[.]?[0-9]*'
+
+    for file in list_path:
+        if re.match(pattern, file):
+            match_count += 1
+            match_list.append(file)
+
+    assert match_count == 1
+    assert match_list[0] == "sbus-dp_files"

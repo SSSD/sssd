@@ -89,6 +89,7 @@ config.py: config.py.m4
 	   -D "runstatedir=\`$(runstatedir)'" \
 	   -D "abs_builddir=\`$(abs_builddir)'" \
 	   -D "session_recording_shell=\`$(session_recording_shell)'" \
+	   -D "pipepath=\`$(pipepath)'" \
 	   -D "py2execdir=\`$(py2execdir)'" \
 	   -D "py3execdir=\`$(py3execdir)'" \
 	   -D "python2dir=\`$(python2dir)'" \
