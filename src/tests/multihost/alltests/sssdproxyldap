@@ -1,0 +1,4 @@
+auth    required pam_ldap.so
+account required pam_ldap.so
+password required pam_ldap.so
+session required pam_ldap.so
