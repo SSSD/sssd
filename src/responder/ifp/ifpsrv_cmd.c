@@ -128,6 +128,7 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq)
         tevent_req_error(req, ERR_INTERNAL);
         return;
     }
+    fqdn = talloc_steal(state, fqdn);
 
     if (state->search_type == SSS_DP_USER) {
         /* throw away the result and perform attr search */
