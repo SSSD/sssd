@@ -399,14 +399,14 @@ static int local_check_max_payload_size(struct sss_sec_req *req,
         return EOK;
     }
 
-    max_payload_size = req->quota->max_payload_size * 1024; /* kb */
+    max_payload_size = req->quota->max_payload_size * 1024; /* KiB */
     if (payload_size > max_payload_size) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Secrets' payload size [%d kb (%d)] exceeds the maximum allowed "
-              "payload size [%d kb (%d)]\n",
-              payload_size * 1024, /* kb */
+              "Secrets' payload size [%d KiB (%d B)] exceeds the maximum "
+              "allowed payload size [%d KiB (%d B)]\n",
+              payload_size / 1024, /* KiB */
               payload_size,
-              req->quota->max_payload_size, /* kb */
+              req->quota->max_payload_size, /* KiB */
               max_payload_size);
 
         return ERR_SEC_PAYLOAD_SIZE_IS_TOO_LARGE;
