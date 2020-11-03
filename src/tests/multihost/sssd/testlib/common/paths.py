@@ -1,0 +1,30 @@
+"""Constants related to file location and log location"""
+
+SSSD_DEFAULT_CONF = '/etc/sssd/sssd.conf'
+KRB_DEFAULT_CONF = '/etc/krb5.conf'
+RESOLVE_DEFAULT_CONF = '/etc/resolv.conf'
+SMB_DEFAULT_CONF = '/etc/samba/smb.conf'
+JOURNALD_DEFAULT_CONF = '/etc/systemd/journald.conf'
+NSSWITCH_DEFAULT_CONF = '/etc/nsswitch.conf'
+SYSCONFIG_SSSD = '/etc/sysconfig/sssd'
+NSLCD_DEFAULT_CONF = '/etc/nslcd.conf'
+PAM_LDAP_CONF = '/etc/pam_ldap.conf'
+SYSCONFIG_NETWORK = '/etc/sysconfig/network'
+NFS_EXPORT_FILE = '/etc/exports'
+KRB_KDC_DATA_DIR = '/var/kerberos/krb5kdc'
+KRB_DEFAULT_KEYTAB = '/etc/krb5.keytab'
+KRB_ADMIN_KEYTAB = '%s/kadm5.keytab' % (KRB_KDC_DATA_DIR)
+KRB_ACL_FILE = '%s/kadm5.acl' % (KRB_KDC_DATA_DIR)
+KRB_KDC_CONF = '%s/kdc.conf' % (KRB_KDC_DATA_DIR)
+KRB_LOG_FILE = '/var/log/krb5kdc.log'
+KRB_ADMIN_LOG = '/var/log/kadmind.log'
+SSSD_DB_CACHE_DIR = '/var/lib/sss/db'
+SSSD_MC_CACHE_DIR = '/var/lib/sss/mc'
+SSSD_CONFIG_LDB = '%s/config.ldb' % (SSSD_DB_CACHE_DIR)
+SSSD_LDB = '%s/sssd.ldb' % (SSSD_DB_CACHE_DIR)
+SSSD_PROXY_LDAP = '/etc/pam.d/sssdproxyldap'
+LDAP_CONF = '/etc/openldap/ldap.conf'
+ETC_HOSTS = '/etc/hosts'
+SSSD_LOG_DIR = '/var/log/sssd'
+SECURE_LOG_DIR = '/var/log/secure'
+SMB_LOG_DIR = '/var/log/samba'
