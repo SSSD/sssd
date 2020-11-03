@@ -71,7 +71,7 @@ disable=R0201,R0903,E1123,W0621,E1121
 [REPORTS]
 
 # Set the output format. Available formats are text, parseable, colorized, msvs
-# (visual studio) and html. You can also give a reporter class, e.g.
+# (visual studio) and html. You can also give a reporter class, eg
 # mypackage.mymodule.MyReporterClass.
 output-format=text
 
@@ -120,7 +120,7 @@ generated-members=
 
 [BASIC]
 
-# List of built-in function names that should not be used, separated by a comma
+# List of builtins function names that should not be used, separated by a comma
 bad-functions=map,filter,input
 
 # Good variable names which should always be accepted, separated by a comma
@@ -242,8 +242,8 @@ init-import=no
 # not used).
 dummy-variables-rgx=_$|dummy
 
-# List of additional names supposed to be defined in built-ins. Remember that
-# you should avoid to define new built-ins when possible.
+# List of additional names supposed to be defined in builtins. Remember that
+# you should avoid to define new builtins when possible.
 additional-builtins=
 
 # List of strings which can identify a callback function by name. A callback
@@ -357,7 +357,7 @@ min-public-methods=2
 # Maximum number of public methods for a class (see R0904).
 max-public-methods=20
 
-# Maximum number of Boolean expressions in an if statement
+# Maximum number of boolean expressions in a if statement
 max-bool-expr=5
 
 

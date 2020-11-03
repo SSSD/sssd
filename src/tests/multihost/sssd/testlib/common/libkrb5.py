@@ -103,6 +103,13 @@ class krb5srv(object):
             self.multihost.log.info("created REALM %s" % (self.krb_realm))
 
         try:
+            self.add_principal(p_type='admin',
+                               password=self.admin_password,
+                               service='root')
+        except subprocess.CalledProcessError:
+            raise
+
+        try:
             self.add_principal(p_type=None, service='host',
                                service_name=self.multihost.sys_hostname)
         except subprocess.CalledProcessError:
@@ -147,7 +154,8 @@ class krb5srv(object):
                       p_type='user',
                       password=None,
                       service=None,
-                      service_name=None):
+                      service_name=None,
+                      etype=None):
         """ Add server/user principals to Kerberos server
             :param str principal: principal name (foobar)
             :param str p_type: principal type (user/admin/None)
@@ -161,13 +169,18 @@ class krb5srv(object):
         if service is None:
             service = 'host'
 
-        if p_type == 'user':
+        if p_type is 'user':
             add_principal = "add_principal -clearpolicy"\
                             " -pw %s %s@%s" % (password, principal,
                                                self.krb_realm)
+            if etype:
+                add_principal = "add_principal -clearpolicy"\
+                                " -e %s -pw %s %s@%s" % (etype, password,
+                                                         principal,
+                                                         self.krb_realm)
             kadmin_local_cmd = ['kadmin.local', '-r',
                                 self.krb_realm, '-q', add_principal]
-        elif p_type == 'admin':
+        elif p_type is 'admin':
             add_principal = "add_principal -clearpolicy"\
                             " -pw %s %s/%s" % (password, service, 'admin')
             kadmin_local_cmd = ['kadmin.local', '-r', self.krb_realm,
@@ -177,6 +190,60 @@ class krb5srv(object):
                             " -randkey %s/%s" % (service, service_name)
             kadmin_local_cmd = ['kadmin.local', '-r', self.krb_realm,
                                 '-q', add_principal]
+        try:
+            self.multihost.run_command(kadmin_local_cmd)
+        except subprocess.CalledProcessError:
+            raise
+        else:
+            return True
+
+    def delete_principal(self, principal):
+        """ Delete kerberos principal
+        :param str principal: principal name (foobar)
+        :return bool: True if principal is deleted
+        :Exception: Raise subprocess.CalledProcessError
+        """
+        del_principal = "delete_principal -force principal"
+        kadmin_local_cmd = ['kadmin.local', '-r',
+                            self.krb_realm, '-q', del_principal]
+        try:
+            self.multihost.run_command(kadmin_local_cmd)
+        except subprocess.CalledProcessError:
+            raise
+        else:
+            return True
+
+    def add_remove_keytab(self, comp_principal=None,
+                          location=None,
+                          operation=None):
+        """ Add or Remove keytab  to Kerberos principal
+            :param str com_principal: complete comp_principal
+             example(abc@EXAMPLE.COM)
+            :param str location: location of keytab file with
+             .keytab extension ('/etc/krb5.keytab)
+            :param str operation: Value must add or remove
+            :return bool: True if keytab is added
+            :Exception: Raise subprocess.CalledProcessError
+        """
+
+        if operation == 'add':
+            ops = 'ktadd'
+
+        elif operation == 'remove':
+            ops = 'ktremove'
+
+        else:
+            return False
+
+        if location is None:
+            location = '/etc/krb5.keytab'
+
+        add_keytab = "%s -k "\
+            "%s %s@%s" % (ops, location, comp_principal,
+                          self.krb_realm)
+        kadmin_local_cmd = ['kadmin.local', '-r',
+                            self.krb_realm, '-q', add_keytab]
+
         try:
             self.multihost.run_command(kadmin_local_cmd)
         except subprocess.CalledProcessError:

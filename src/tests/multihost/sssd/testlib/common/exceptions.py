@@ -60,3 +60,8 @@ class SSSDException(StandardException):
     """
      Override StandardException, This exception is to be used for SSSD Errors
     """
+
+class SSHLoginException(StandardException):
+    """
+    Override StandardException, This exception is to be used for SSH Login Errors
+    """
