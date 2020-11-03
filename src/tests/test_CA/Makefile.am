@@ -6,6 +6,7 @@ dist_noinst_DATA = \
     SSSD_test_cert_0003.config \
     SSSD_test_cert_0004.config \
     SSSD_test_cert_0005.config \
+    SSSD_test_cert_0006.config \
     SSSD_test_cert_key_0001.pem \
     SSSD_test_cert_key_0002.pem \
     SSSD_test_cert_key_0003.pem \
@@ -25,7 +26,7 @@ pubkeys = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .pub,$(ids)))
 pubkeys_h = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .h,$(ids)))
 pkcs12 = $(addprefix SSSD_test_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 
-extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens softhsm2_ocsp
+extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens softhsm2_ocsp softhsm2_2certs_same_id
 if HAVE_FAKETIME
 extra += SSSD_test_CA_expired_crl.pem
 endif
@@ -41,6 +42,14 @@ $(pwdfile):
 SSSD_test_CA.pem: $(openssl_ca_key) $(openssl_ca_config) serial
 	$(OPENSSL) req -batch -config ${openssl_ca_config} -x509 -new -nodes -key $< -sha256 -days 1024 -set_serial 0 -extensions v3_ca -out $@
 
+# SSSD_test_cert_0006 should use the same key as SSSD_test_cert_0001
+.INTERMEDIATE: SSSD_test_cert_req_0006.pem
+SSSD_test_cert_req_0006.pem: $(srcdir)/SSSD_test_cert_key_0001.pem $(srcdir)/SSSD_test_cert_0006.config
+	if [ $(shell grep -c req_exts $(srcdir)/SSSD_test_cert_0006.config) -eq 0 ]; then \
+		$(OPENSSL) req -new -nodes -key $< -config $(srcdir)/SSSD_test_cert_0006.config -out $@ ; \
+	else \
+		$(OPENSSL) req -new -nodes -key $< -reqexts req_exts -config $(srcdir)/SSSD_test_cert_0006.config -out $@ ; \
+	fi
 
 SSSD_test_cert_req_%.pem: $(srcdir)/SSSD_test_cert_key_%.pem $(srcdir)/SSSD_test_cert_%.config
 	if [ $(shell grep -c req_exts $(srcdir)/SSSD_test_cert_$*.config) -eq 0 ]; then \
@@ -51,6 +60,9 @@ SSSD_test_cert_req_%.pem: $(srcdir)/SSSD_test_cert_key_%.pem $(srcdir)/SSSD_test
 
 SSSD_test_cert_x509_%.pem: SSSD_test_cert_req_%.pem $(openssl_ca_config) SSSD_test_CA.pem
 	$(OPENSSL) ca -config ${openssl_ca_config} -batch -notext -keyfile $(openssl_ca_key) -in $< -days 200 -extensions usr_cert -out $@
+
+SSSD_test_cert_pkcs12_0006.pem: SSSD_test_cert_x509_0006.pem $(srcdir)/SSSD_test_cert_key_0001.pem $(pwdfile)
+	$(OPENSSL) pkcs12 -export -in SSSD_test_cert_x509_0006.pem -inkey $(srcdir)/SSSD_test_cert_key_0001.pem -nodes -passout file:$(pwdfile) -out $@
 
 SSSD_test_cert_pkcs12_%.pem: SSSD_test_cert_x509_%.pem $(srcdir)/SSSD_test_cert_key_%.pem $(pwdfile)
 	$(OPENSSL) pkcs12 -export -in SSSD_test_cert_x509_$*.pem -inkey $(srcdir)/SSSD_test_cert_key_$*.pem -nodes -passout file:$(pwdfile) -out $@
@@ -127,6 +139,18 @@ softhsm2_ocsp: softhsm2_ocsp.conf SSSD_test_cert_x509_0005.pem
 
 softhsm2_ocsp.conf:
 	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_ocsp" > $@
+	@echo "objectstore.backend = file" >> $@
+	@echo "slots.removable = true" >> $@
+
+softhsm2_2certs_same_id: softhsm2_2certs_same_id.conf SSSD_test_cert_x509_0001.pem SSSD_test_cert_x509_0006.pem
+	mkdir $@
+	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token" --pin 123456 --so-pin 123456 --free
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0006.pem --login  --label 'SSSD test cert 0006' --id '11111111'
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0001.pem --login  --label 'SSSD test cert 0001' --id '11111111'
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --load-privkey=$(srcdir)/SSSD_test_cert_key_0001.pem --login  --label 'SSSD test cert 0001' --id '11111111'
+
+softhsm2_2certs_same_id.conf:
+	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_2certs_same_id" > $@
 	@echo "objectstore.backend = file" >> $@
 	@echo "slots.removable = true" >> $@
 

@@ -40,12 +40,14 @@
 #include "tests/test_CA/SSSD_test_cert_x509_0001.h"
 #include "tests/test_CA/SSSD_test_cert_x509_0002.h"
 #include "tests/test_CA/SSSD_test_cert_x509_0005.h"
+#include "tests/test_CA/SSSD_test_cert_x509_0006.h"
 
 #include "tests/test_ECC_CA/SSSD_test_ECC_cert_x509_0001.h"
 #else
 #define SSSD_TEST_CERT_0001 ""
 #define SSSD_TEST_CERT_0002 ""
 #define SSSD_TEST_CERT_0005 ""
+#define SSSD_TEST_CERT_0006 ""
 
 #define SSSD_TEST_ECC_CERT_0001 ""
 #endif
@@ -1091,6 +1093,13 @@ static int test_pam_creds_insufficient_check(uint32_t status,
     assert_int_equal(val, 0);
 
     return EOK;
+}
+
+static int test_pam_auth_err_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    /* PAM_AUTH_ERR is returned for different types of error, we use different
+     * names for the check functions to make the purpose more clear. */
+    return test_pam_wrong_pw_offline_auth_check(status, body, blen);
 }
 
 static int test_pam_user_unknown_check(uint32_t status,
@@ -2500,6 +2509,107 @@ void test_pam_cert_auth_2certs_one_mapping(void **state)
     assert_int_equal(ret, EOK);
 }
 
+/* The following three tests cover a use case where multiple certificates are
+ * using the same key-pair. According to PKCS#11 specs "The CKA_ID field is
+ * intended to distinguish among multiple keys. In the case of public and
+ * private keys, this field assists in handling multiple keys held by the same
+ * subject; the key identifier for a public key and its corresponding private
+ * key should be the same. The key identifier should also be the same as for
+ * the corresponding certificate, if one exists. Cryptoki does not enforce
+ * these associations, however." As a result certificates sharing the same
+ * key-pair will have the same id on the Smartcard. This means a second
+ * parameter is needed to distinguish them. We use the label here.
+ *
+ * The first test makes sure authentication fails is the label is missing, the
+ * second and third test make sure that each certificate can be selected with
+ * the proper label. */
+void test_pam_cert_auth_2certs_same_id_no_label(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_2certs_same_id.conf"));
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", "SSSD Test Token",
+                        TEST_MODULE_NAME,
+                        "11111111",
+                        NULL, NULL,
+                        NULL, SSSD_TEST_CERT_0001);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+    set_cmd_cb(test_pam_auth_err_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_cert_auth_2certs_same_id_with_label_1(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_2certs_same_id.conf"));
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", "SSSD Test Token",
+                        TEST_MODULE_NAME,
+                        "11111111",
+                        "SSSD test cert 0001", NULL,
+                        test_lookup_by_cert_double_cb, SSSD_TEST_CERT_0001);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+    set_cmd_cb(test_pam_simple_check_success);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_cert_auth_2certs_same_id_with_label_6(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_2certs_same_id.conf"));
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", "SSSD Test Token",
+                        TEST_MODULE_NAME,
+                        "11111111",
+                        "SSSD test cert 0006", NULL,
+                        test_lookup_by_cert_double_cb, SSSD_TEST_CERT_0006);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+    set_cmd_cb(test_pam_simple_check_success);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void test_pam_cert_preauth_uri_token1(void **state)
 {
     int ret;
@@ -3178,6 +3288,12 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_2certs_two_mappings,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth_2certs_one_mapping,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth_2certs_same_id_no_label,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth_2certs_same_id_with_label_1,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth_2certs_same_id_with_label_6,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth_no_logon_name,
                                         pam_test_setup, pam_test_teardown),
