@@ -79,7 +79,23 @@ class QeHost(QeBaseHost):
             str: System hostname
         """
         cmd = self.run_command(['hostname'], raiseonerr=False)
-        return cmd.stdout_text.strip()
+        output = cmd.stdout_text.strip()
+        if '\n' in output:
+            ret = output.split('\n')
+            name = (ret[len(ret) - 1])
+            return name
+        else:
+            return cmd.stdout_text.strip()
+
+    @property
+    def fips(self):
+        """ Check if system is fips enabled """
+        fips_check_cmd = "fips-mode-setup --is-enabled"
+        cmd = self.run_command(fips_check_cmd, raiseonerr=False)
+        if cmd.returncode == 0:
+            return True
+        else:
+            return False
 
     @property
     def distro(self):
@@ -96,9 +112,22 @@ class QeHost(QeBaseHost):
             distro = cmd.stdout_text.strip()
         return distro
 
+    def package_mgmt(self, package, action='install'):
+        """ Install packages
+            : param str package: Package name or list of packages
+            : param str acation: Install/uninstall/update
+            : return str: Return code of the yum remove command
+        """
+        if 'Fedora' in self.distro or '8.' in self.distro:
+            pkg_cmd = 'dnf'
+        else:
+            pkg_cmd = 'yum'
+        pkg_install_cmd = '%s -y %s %s' % (pkg_cmd, action, package)
+        cmd = self.run_command(pkg_install_cmd, raiseonerr=False)
+        return bool(cmd.returncode == 0)
+
     def service_sssd(self, action):
         """ Start/stop/restart sssd service based on RHEL Version
-
             :param str action: Action to be performed (start/stop/restart)
             :return: str Return code of the systemctl/service command
             :Exception Raises exception
@@ -154,8 +183,8 @@ class QeHost(QeBaseHost):
             :return str: Returncode of the dnf command
             :Exception: None
         """
-        cmd = self.run_command(['dnf', '-y', 'install', package],
-                               raiseonerr=False)
+        install = 'dnf install -y --setopt=strict=0 %s' % package
+        cmd = self.run_command(install, raiseonerr=False)
         return cmd.returncode
 
     def yum_uninstall(self, package):
@@ -199,6 +228,13 @@ class QeWinHost(QeBaseHost, pytest_multihost.host.WinHost):
         return cmd.stdout_text.strip()
 
     @property
+    def sys_hostname(self):
+        """ Return FQDN """
+        hostname = 'hostname -f'
+        cmd = self.run_command(hostname, set_env=False, raiseonerr=False)
+        return cmd.stdout_text.strip().lower()
+
+    @property
     def realm(self):
         """ Return AD Realm """
         cmd = self.run_command(['domainname'], set_env=False, raiseonerr=False)
@@ -213,6 +249,13 @@ class QeWinHost(QeBaseHost, pytest_multihost.host.WinHost):
         list1 = map(str, domain_list)
         domain_base_dn = ','.join(list1)
         return domain_base_dn
+
+    @property
+    def netbiosname(self):
+        """ Return netbios name """
+        cmd = "powershell.exe -inputformat none -noprofile "\
+              "'(Get-ADDomain -Current LocalComputer)'.NetBIOSName"
+        return self.run_command(cmd).stdout_text
 
     def _get_client_dn_entry(self, client):
         """ Return DN entry of client computer in AD """
@@ -306,6 +349,8 @@ def create_testdir(session_multihost, request):
     config_dir_cmd = "mkdir -p %s" % (session_multihost.config.test_dir)
     env_file_cmd = "touch %s/env.sh" % (session_multihost.config.test_dir)
     rm_config_cmd = "rm -rf %s" % (session_multihost.config.test_dir)
+    bkup_resolv_conf = 'cp -a /etc/resolv.conf /etc/resolv.conf.orig'
+    restore_resolv_conf = 'cp -a /etc/resolv.conf.orig /etc/resolv.conf'
 
     for i in range(len(session_multihost.atomic)):
         session_multihost.atomic[i].run_command(config_dir_cmd)
@@ -314,10 +359,12 @@ def create_testdir(session_multihost, request):
     for i in range(len(session_multihost.client)):
         session_multihost.client[i].run_command(config_dir_cmd)
         session_multihost.client[i].run_command(env_file_cmd)
+        session_multihost.client[i].run_command(bkup_resolv_conf)
 
     for i in range(len(session_multihost.master)):
         session_multihost.master[i].run_command(config_dir_cmd)
         session_multihost.master[i].run_command(env_file_cmd)
+        session_multihost.master[i].run_command(bkup_resolv_conf)
 
     for i in range(len(session_multihost.others)):
         session_multihost.others[i].run_command(config_dir_cmd)
@@ -328,15 +375,16 @@ def create_testdir(session_multihost, request):
         session_multihost.replica[i].run_command(env_file_cmd)
 
     def remove_test_dir():
-
         for i in range(len(session_multihost.atomic)):
             session_multihost.atomic[i].run_command(rm_config_cmd)
 
         for i in range(len(session_multihost.client)):
             session_multihost.client[i].run_command(rm_config_cmd)
+            session_multihost.client[i].run_command(restore_resolv_conf)
 
         for i in range(len(session_multihost.master)):
             session_multihost.master[i].run_command(rm_config_cmd)
+            session_multihost.master[i].run_command(restore_resolv_conf)
 
         for i in range(len(session_multihost.others)):
             session_multihost.others[i].run_command(rm_config_cmd)

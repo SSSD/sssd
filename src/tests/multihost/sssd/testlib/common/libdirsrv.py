@@ -74,12 +74,12 @@ class DirSrv(object):
         config.set('slapd', 'suffix', self.dsinstance_suffix)
         config.set('slapd', 'root_dn', self.dsrootdn)
         config.set('slapd', 'root_password', self.dsrootdn_pwd)
+        config.set('slapd', 'sample_entries', "yes")
         config.set('slapd', 'self_sign_cert', False)
         config.add_section('backend-userRoot')
         config.set('backend-userRoot', 'create_suffix_entry', 'True')
         config.set('backend-userRoot', 'sample_entries', '001003006')
         config.set('backend-userRoot', 'suffix', self.dsinstance_suffix)
-
         (ds_config, ds_config_file_path) = tempfile.mkstemp(suffix='cfg')
         os.close(ds_config)
         with open(ds_config_file_path, "w") as outfile:
@@ -133,6 +133,7 @@ class DirSrv(object):
     def _copy_pkcs12(self, ssl_dir):
         """ Copy the pkcs12 files from ssl_dir to
         DS instance directory """
+
         server_p12 = '%s-server.p12' % self.multihost.sys_hostname
         nss_db_files = ['ca.p12', 'pin.txt', 'pwfile', server_p12]
         for db_file in nss_db_files:
@@ -204,11 +205,11 @@ class DirSrv(object):
         ca_p12 = os.path.join(self.dsinst_path, 'ca.p12')
         server_p12_name = '%s-%s' % (self.multihost.sys_hostname, 'server.p12')
         server_p12 = os.path.join(self.dsinst_path, server_p12_name)
-        # create directory to copy ca cert
+        # recreate the database
         certutil_cmd = 'certutil -T -d %s -f %s' % (self.dsinst_path, pwfile)
         self.multihost.run_command(certutil_cmd)
         create_cert_dir = 'mkdir -p /etc/openldap/cacerts'
-        # recreate the database
+        # create directory to copy ca cert
         self.multihost.run_command(create_cert_dir)
         if not canick:
             canick = "ExampleCA"
@@ -225,8 +226,8 @@ class DirSrv(object):
             ssl_dir, 'cacert.pem'), cacert_file_path)
         if client_host:
             client_host.run_command(create_cert_dir)
-            client_host.transport.put_file(
-                os.path.join(ssl_dir, 'cacert.pem'), cacert_file_path)
+            client_host.transport.put_file(os.path.join(
+                ssl_dir, 'cacert.pem'), cacert_file_path)
         try:
             self._set_dsperms(target_pin_file)
         except DirSrvException:
@@ -238,6 +239,27 @@ class DirSrv(object):
             raise DirSrvException('Failed to start DS Instance')
         else:
             self.multihost.log.info('DS instance started successfully')
+
+    def enable_anonymous_search(self, binduri):
+        """Enable anonymous search access to basedn
+        Args:
+            binduri (str): LDAP uri to bind with
+        Returns:
+            boold: True if ACI is added
+        Exceptions:
+            LdapException
+        """
+        ldap_obj = LdapOperations(uri=binduri, binddn=self.dsrootdn, bindpw=self.dsrootdn_pwd)
+        # Enable Anonymous access aci
+        allow_anonymous = "(targetattr!=\"userPassword || aci\")" \
+                          "(version 3.0; acl \"Enable anonymous access\"; allow " \
+                          "(read, search, compare) userdn=\"ldap:///anyone\";)"
+        add_aci = [(ldap.MOD_ADD, 'aci', [allow_anonymous.encode('utf-8')])]
+        (ret, return_value) = ldap_obj.modify_ldap(self.dsinstance_suffix, add_aci)
+        if not return_value:
+            raise LdapException("Failed to enable anonymous access aci")
+        else:
+            print("Enabled Anonymous access aci to %s" % self.dsinstance_suffix)
 
     def enable_ssl(self, binduri, tls_port):
         """sets TLS Port and enabled TLS on Directory Server.
@@ -293,31 +315,6 @@ class DirSrv(object):
         else:
             print('Enabled nsslapd-securePort=%r' % tls_port)
 
-    def enable_anonymous_search(self, binduri):
-        """Enable anonymous search access to basedn
-        Args:
-            binduri (str): LDAP uri to bind with
-        Returns:
-            boold: True if ACI is added
-        Exceptions:
-            LdapException
-        """
-        ldap_obj = LdapOperations(
-            uri=binduri, binddn=self.dsrootdn, bindpw=self.dsrootdn_pwd)
-        # Enable Anonymous access aci
-        allow_anonymous = "(targetattr!=\"userPassword || aci\")" \
-                          "(version 3.0; acl \"Enable anonymous " \
-                          "access\"; allow " \
-                          "(read, search, compare) userdn=\"ldap:///anyone\";)"
-        add_aci = [(ldap.MOD_ADD, 'aci', [allow_anonymous.encode('utf-8')])]
-        (ret, return_value) = ldap_obj.modify_ldap(
-            self.dsinstance_suffix, add_aci)
-        if not return_value:
-            raise LdapException("Failed to enable anonymous access aci")
-        else:
-            print("Enabled Anonymous access "
-                  "aci to %s" % self.dsinstance_suffix)
-
 
 class DirSrvWrap(object):
     """This is a wrapper class for DirSrv.
@@ -327,8 +324,8 @@ class DirSrvWrap(object):
     LDAP and TLS ports, specifies default suffix.
     """
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, multihost_obj,
-                 client_obj=None, ssl=None, ssldb=None, canick=None):
+    def __init__(self, multihost_obj, client_obj=None,
+                 ssl=None, ssldb=None, canick=None):
         """
         Create a DirSrv object for a specific Host. Specify the ports,
         instance details to the Dirsrv object
@@ -508,7 +505,7 @@ class DirSrvWrap(object):
                            root_dn_pwd=None,
                            ldap_port=None,
                            tls_port=None):
-        """Create Directory server instance.
+        """Create Directory Server Instance.
 
         Args:
             inst_name (str): Instance Name
@@ -543,8 +540,7 @@ class DirSrvWrap(object):
             except subprocess.CalledProcessError:
                 raise DirSrvException('Failed to setup Directory server')
             self.dirsrv_info[self.ds_instance_name] = self.dirsrv_obj.__dict__
-            ldap_uri = 'ldap://%s:%r' % (self.ds_instance_host,
-                                         self.ds_ldap_port)
+            ldap_uri = 'ldap://%s:%r' % (self.ds_instance_host, self.ds_ldap_port)
             try:
                 self.dirsrv_obj.enable_anonymous_search(ldap_uri)
             except LdapException:
@@ -633,8 +629,7 @@ class DirSrvWrap(object):
             try:
                 self.dirsrv_obj.remove_ds(inst_name)
             except subprocess.CalledProcessError:
-                raise DirSrvException('Failed to '
-                                      'remove %s instance', inst_name)
+                raise DirSrvException('Failed to remove %s instance', inst_name)
             else:
                 del self.ds_used_ports[instance_name]
                 return True
