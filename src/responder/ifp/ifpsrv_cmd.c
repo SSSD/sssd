@@ -124,6 +124,7 @@ ifp_user_get_attr_unpack_msg(struct ifp_attr_req *attr_req)
     if (attr_req->attrs == NULL) {
         return ENOMEM;
     }
+    fqdn = talloc_steal(state, fqdn);
 
     ai = 0;
     for (i = 0; i < nattrs; i++) {
