@@ -20,6 +20,7 @@
 
 #include <errno.h>
 #include <stdlib.h>
+#include <stdatomic.h>
 
 #include "sss_client/autofs/sss_autofs_private.h"
 #include "sss_client/sss_cli.h"
@@ -32,6 +33,32 @@
 
 /* How many entries shall _sss_getautomntent_r retrieve at once */
 #define GETAUTOMNTENT_MAX_ENTRIES   512
+
+static atomic_uint _protocol = 0;
+
+unsigned int _sss_auto_protocol_version(unsigned int requested)
+{
+    switch (requested) {
+    case 0:
+        /* EHOSTDOWN will be translated to ENOENT */
+        _protocol = 0;
+        return 0;
+    default:
+        /* There is no other protocol version at this point. */
+        _protocol = 1;
+        return 1;
+    }
+}
+
+/* Returns correct errno based on autofs version expectations. */
+static errno_t errnop_to_errno(int errnop)
+{
+    if (errnop == EHOSTDOWN && _protocol == 0) {
+        return ENOENT;
+    }
+
+    return errnop;
+}
 
 struct automtent {
     char *mapname;
@@ -93,7 +120,7 @@ _sss_setautomntent(const char *mapname, void **context)
                                   &repbuf, &replen, &errnop);
     if (ret != SSS_STATUS_SUCCESS) {
         free(name);
-        ret = errnop;
+        ret = errnop_to_errno(errnop);
         goto out;
     }
 
@@ -310,7 +337,7 @@ _sss_getautomntent_r(char **key, char **value, void *context)
                                   &repbuf, &replen, &errnop);
     free(data);
     if (ret != SSS_STATUS_SUCCESS) {
-        ret = errnop;
+        ret = errnop_to_errno(errnop);
         goto out;
     }
 
@@ -408,7 +435,7 @@ _sss_getautomntbyname_r(const char *key, char **value, void *context)
                                   &repbuf, &replen, &errnop);
     free(data);
     if (ret != SSS_STATUS_SUCCESS) {
-        ret = errnop;
+        ret = errnop_to_errno(errnop);
         goto out;
     }
 
@@ -467,7 +494,7 @@ _sss_endautomntent(void **context)
     ret = sss_autofs_make_request(SSS_AUTOFS_ENDAUTOMNTENT,
                                   NULL, NULL, NULL, &errnop);
     if (ret != SSS_STATUS_SUCCESS) {
-        ret = errnop;
+        ret = errnop_to_errno(errnop);
         goto out;
     }
 

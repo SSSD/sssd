@@ -22,6 +22,11 @@
 #include "util/util.h"
 
 /**
+ * Choose an autofs protocol version to be used between autofs and sss_autofs.
+ */
+unsigned int _sss_auto_protocol_version(unsigned int requested);
+
+/**
  * Selects a map for processing.
  */
 errno_t _sss_setautomntent(const char *mapname, void **context);
