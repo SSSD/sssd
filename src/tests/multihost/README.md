@@ -45,5 +45,5 @@ Note: You can skip this step if you use machines from sssd-test-suite.
 ## Run the tests
 
 ```
-pytest-3 -s --multihost-config=src/tests/multihost/basic/mhc.yaml src/tests/multihost
+pytest-3 -s --multihost-config=src/tests/multihost/basic/mhc.yaml src/tests/multihost/basic
 ```

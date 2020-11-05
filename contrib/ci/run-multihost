@@ -52,4 +52,4 @@ echo "Installing python requirements"
 sudo pip3 install -r $DIR/requirements.txt &> multihost-pip.log
 
 echo "Running tests"
-pytest-3 -s --multihost-config=$DIR/basic/mhc.yaml $DIR &> multihost-pytest.log
+pytest-3 -s --multihost-config=$DIR/basic/mhc.yaml $DIR/basic &> multihost-pytest.log
