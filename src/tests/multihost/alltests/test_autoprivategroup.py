@@ -60,4 +60,3 @@ class TestAutoPrivateGroups(object):
         cmd = multihost.client[0].run_command(lkup, raiseonerr=False)
         output = cmd.stdout_text.split(':')
         assert int(output[2]) != int(output[3])
-

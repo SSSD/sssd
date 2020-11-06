@@ -379,7 +379,7 @@ class TestMultiDomain(object):
         assert cmd.returncode != 0
         print(cmd.stderr_text.strip().split('\n'))
         assert err_str in cmd.stderr_text.strip().split('\n')
-    
+
     @pytest.mark.tier2
     def test_0018_filesfiles(self, multihost, multidomain_sssd):
         """

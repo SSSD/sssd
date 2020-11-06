@@ -18,7 +18,7 @@ class TestSSHkeys(object):
     @pytest.mark.tier1
     @pytest.mark.fips
     def test_0001_bz1137013(self, multihost, create_ssh_keys):
-        """ @Title: ssh_authorizedkeys: OpenSSH LPK support 
+        """ @Title: ssh_authorizedkeys: OpenSSH LPK support
         by default bz1137013 """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()

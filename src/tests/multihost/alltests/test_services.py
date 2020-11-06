@@ -135,7 +135,3 @@ class TestServices(object):
         group_restore = "cp -vf /etc/group_bkp /etc/group"
         multihost.client[0].run_command(group_restore, raiseonerr=False)
         assert status == "PASS"
-
-
-
-

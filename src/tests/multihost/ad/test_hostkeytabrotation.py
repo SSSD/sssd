@@ -114,7 +114,7 @@ class TestHostKeytabRotation(object):
             multihost.client[0].run_command(['klist'])
         except subprocess.CalledProcessError:
             pytest.fail("klist failed")
-            
+
         ldap_cmd = "ldapsearch -H ldap://%s -Y GSSAPI -N -b %s "\
                    "'(&(objectclass=User) (sAMAccountName=Administrator))'" % (
                        ad_hostname, users_dn_entry)

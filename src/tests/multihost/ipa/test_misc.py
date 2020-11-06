@@ -6,6 +6,7 @@ from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.exceptions import SSSDException
 import re
 
+
 @pytest.mark.tier1
 class Testipabz(object):
     """ IPA BZ Automations """
@@ -59,11 +60,15 @@ class Testipabz(object):
         https://bugzilla.redhat.com/show_bug.cgi?id=1796989
         """
         tools = sssdTools(multihost.client[0])
-        setup_automount = "ipa-client-automount --location default -U --server %s" % multihost.master[0].sys_hostname
-        uninstall_automount = "ipa-client-automount --uninstall -U --server %s" % multihost.master[0].sys_hostname
+        setup_automount = "ipa-client-automount --location default -U " \
+                          "--server %s" % multihost.master[0].sys_hostname
+        uninstall_automount = "ipa-client-automount --uninstall -U " \
+                              "--server %s" % multihost.master[0].sys_hostname
         for i in range(5):
-            cmd1 = multihost.client[0].run_command(setup_automount, raiseonerr=False)
+            cmd1 = multihost.client[0].run_command(setup_automount,
+                                                   raiseonerr=False)
             time.sleep(5)
-            cmd2 = multihost.client[0].run_command(uninstall_automount, raiseonerr=False)
+            cmd2 = multihost.client[0].run_command(uninstall_automount,
+                                                   raiseonerr=False)
             assert cmd1.returncode == 0
             assert cmd2.returncode == 0
