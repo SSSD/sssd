@@ -147,7 +147,8 @@ class Testipahbac(object):
         assert STATUS == 'PASS'
 
     def test_auto_private_group(self, multihost):
-        """@Title: hbac: Verify hbac rule associated with User private Groups """
+        """@Title: hbac: Verify hbac rule associated with
+        User private Groups """
         ipa_server = ipaTools(multihost.master[0])
         sssd_client = sssdTools(multihost.client[0])
         domain_name = '%s/%s' % ('domain',

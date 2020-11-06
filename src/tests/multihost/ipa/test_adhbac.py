@@ -6,6 +6,7 @@ from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.exceptions import SSSDException
 
+
 @pytest.mark.usefixtures('disable_allow_all_hbac',
                          'create_ad_users',
                          'create_ad_groups')
@@ -44,7 +45,7 @@ class TestADTrustHbac(object):
                                               'idm_posix_group1')
         except SSSDException:
             status = 'FAIL'
-        ipa_server_tools.add_hbac_rule('ad_test1', 'idm_posix_group1' ,
+        ipa_server_tools.add_hbac_rule('ad_test1', 'idm_posix_group1',
                                        client_host, 'sshd', group=True)
         sssctl_cmd = 'sssctl user-checks -s sshd %s' % aduser
         test_pam = re.compile(r'%s' % 'pam_acct_mgmt: Success')
@@ -95,7 +96,7 @@ class TestADTrustHbac(object):
                                               'idm_posix_group2')
         except SSSDException:
             status = 'FAIL'
-        ipa_server_tools.add_hbac_rule('ad_test2', 'idm_posix_group2' ,
+        ipa_server_tools.add_hbac_rule('ad_test2', 'idm_posix_group2',
                                        client_host, 'sshd', group=True)
         diallowed_user = '%s@%s' % (aduser, ad_domain_name)
         sssctl_cmd = 'sssctl user-checks -s sshd %s' % diallowed_user
@@ -113,7 +114,6 @@ class TestADTrustHbac(object):
         ipa_client.clear_sssd_cache()
         ipa_server.clear_sssd_cache()
         assert status == 'PASS'
-
 
     def test_multiple_ad_groups(self, multihost):
         """
@@ -147,7 +147,7 @@ class TestADTrustHbac(object):
             except SSSDException:
                 status = 'FAIL'
             try:
-                ipa_server_tools.group_add_member(ext_group,posix_group)
+                ipa_server_tools.group_add_member(ext_group, posix_group)
             except SSSDException:
                 status = 'FAIL'
 
@@ -172,7 +172,6 @@ class TestADTrustHbac(object):
         ipa_client.clear_sssd_cache()
         ipa_server.clear_sssd_cache()
         assert status == 'PASS'
-
 
     def test_hbac_nested_group(self, multihost):
         """
@@ -205,7 +204,7 @@ class TestADTrustHbac(object):
                                               'idm_posix_group5')
         except SSSDException:
             status = 'FAIL'
-        ipa_server_tools.add_hbac_rule('ad_test5', 'idm_posix_group5' ,
+        ipa_server_tools.add_hbac_rule('ad_test5', 'idm_posix_group5',
                                        client_host, 'sshd', group=True)
         sssctl_cmd = 'sssctl user-checks -s sshd %s' % aduser
         test_pam = re.compile(r'%s' % 'pam_acct_mgmt: Success')

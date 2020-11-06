@@ -218,7 +218,6 @@ class sssdTools(object):
         self.multihost.run_command(set_perms, raiseonerr=False)
         os.unlink(tmpconf.name)
 
-
     def get_domain_section_name(self):
         """ Get Domain section """
         tmpconf = tempfile.NamedTemporaryFile(suffix='sssd.conf', delete=False)
@@ -550,14 +549,14 @@ class sssdTools(object):
         expect_script += 'exit $result_code\n'
         print(expect_script)
         randtag = ''.join(random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
-                      for _ in range(10))
+                          for _ in range(10))
         exp_file = "/tmp/qe_pytest_expect_file" + randtag
         self.multihost.put_file_contents(exp_file, expect_script)
         print(("remote side expect script filename: %s") % exp_file)
 
         # Next run expect
         cmd = self.multihost.run_command(['expect', '-f', exp_file],
-                               raiseonerr=False)
+                                         raiseonerr=False)
         print("----expect output start----")
         print(cmd.stdout_text)
         print(cmd.stderr_text)
@@ -601,8 +600,10 @@ class sssdTools(object):
             krb5config.set("libdefaults", "rdns", "false")
             krb5config.set("libdefaults", "pkinit_anchors",
                            "FILE:/etc/pki/tls/certs/ca-bundle.crt")
-            krb5config.set("libdefaults", "spake_preauth_groups", "edwards25519")
-            krb5config.set("libdefaults", "default_ccache_name", "KEYRING:persistent:%{uid}")
+            krb5config.set("libdefaults", "spake_preauth_groups",
+                           "edwards25519")
+            krb5config.set("libdefaults", "default_ccache_name",
+                           "KEYRING:persistent:%{uid}")
             krb5config.add_section("realms")
             krb5config.set("realms", "%s" % realm.upper(), realm_def)
             krb5config.add_section("domain_realm")

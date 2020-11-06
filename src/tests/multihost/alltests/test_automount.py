@@ -267,7 +267,8 @@ class Testautofsresponder(object):
     @pytest.mark.tier2
     def test_007_1206221(self, multihost, set_dslimits, indirect_nismaps):
         """
-        @Title: automount: sssd should not always read entire autofs map from ldap
+        @Title: automount: sssd should not always read
+        entire autofs map from ldap
         setup:
         1. Add Indirect map auto.idmtest which has mount point keys
            from foo1 to foo20 pointing to /projects/foo1 to /projects/foo20
@@ -294,7 +295,8 @@ class Testautofsresponder(object):
     def test_008_wildcardsearch(self, multihost, indirect_nismaps,
                                 set_ldap_uri):
         """
-        @Title: automount: sssd should not use wildcard search to fetch map keys
+        @Title: automount: sssd should not use wildcard
+        search to fetch map keys
         setup:
         1. Add Indirect map auto.idmtest which has mount point keys
            from foo1 to foo20 pointing to /projects/foo1 to /projects/foo20
@@ -304,8 +306,8 @@ class Testautofsresponder(object):
         ldap_host = multihost.master[0].sys_hostname
         tcpdump_cmd = 'tcpdump -s0 host %s -w %s' % (ldap_host, auto_pcapfile)
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
-        #pid_cmd = 'pidof tcpdump'
-        #pid = multihost.client[0].run_command(pid_cmd, raiseonerr=False)
+        # pid_cmd = 'pidof tcpdump'
+        # pid = multihost.client[0].run_command(pid_cmd, raiseonerr=False)
         for service in ['sssd', 'autofs']:
             restart = 'systemctl restart %s' % service
             cmd = multihost.client[0].run_command(restart, raiseonerr=False)

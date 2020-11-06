@@ -5,6 +5,7 @@ import time
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.exceptions import SSSDException
 
+
 @pytest.mark.usefixtures('setup_ipa_client')
 @pytest.mark.trust
 class TestADTrust(object):
@@ -16,7 +17,6 @@ class TestADTrust(object):
         cmd = multihost.master[0].run_command(domain_list, raiseonerr=False)
         mylist = cmd.stdout_text.split()
         assert ad_domain_name in mylist
-
 
     def test_ipaserver_sss_cache_user(self, multihost):
         """ @Title: Verify AD user is cached on IPA server
@@ -48,7 +48,7 @@ class TestADTrust(object):
         multihost.master[0].run_command(create_view)
         ad_domain_name = multihost.ad[0].domainname
         ad_grp = 'Domain Users@%s' % ad_domain_name
-        cmd  = 'ipa idoverridegroup-add foo_bar "%s" --gid=40000000' % (ad_grp)
+        cmd = 'ipa idoverridegroup-add foo_bar "%s" --gid=40000000' % (ad_grp)
         multihost.master[0].run_command(cmd, raiseonerr=False)
         # apply the view on client
         client_hostname = multihost.client[0].sys_hostname
@@ -65,7 +65,6 @@ class TestADTrust(object):
         multihost.master[0].run_command(delete_id_view)
         client.clear_sssd_cache()
         assert group in cmd.stdout_text
-
 
     def test_honour_idoverride(self, multihost, create_aduser_group):
         """
@@ -84,9 +83,9 @@ class TestADTrust(object):
         current_gid = cmd.stdout_text.strip()
         create_view = 'ipa idview-add madrid_trust_view'
         multihost.master[0].run_command(create_view)
-        cmd  = 'ipa idoverrideuser-add madrid_trust_view '\
-               '%s --uid=50001 --gidnumber=50000 '\
-               '--home=/home/%s' % (ad_user_fqdn, aduser)
+        cmd = 'ipa idoverrideuser-add madrid_trust_view '\
+              '%s --uid=50001 --gidnumber=50000 '\
+              '--home=/home/%s' % (ad_user_fqdn, aduser)
         multihost.master[0].run_command(cmd, raiseonerr=False)
         # apply the view on client
         apply_view = "ipa idview-apply madrid_trust_view "\

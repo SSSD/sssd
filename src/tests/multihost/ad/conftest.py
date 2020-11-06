@@ -464,6 +464,7 @@ def enable_ad_sudoschema(session_multihost):
                  ' -c dc=X %s' % basedn
         session_multihost.ad[0].run_command(ldifde, raiseonerr=False)
 
+
 @pytest.fixture(scope="class")
 def create_ad_sudousers(session_multihost, request):
     """ create Ad sudo users and groups """

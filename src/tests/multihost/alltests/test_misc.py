@@ -21,7 +21,7 @@ class TestMisc(object):
     """
     @pytest.mark.tier1
     def test_0001_ldapcachepurgetimeout(self,
-                                 multihost, backupsssdconf):
+                                        multihost, backupsssdconf):
         """
         @Title: ldap_purge_cache_timeout validates most of
         the entries once the cleanup task kicks in.
@@ -87,7 +87,7 @@ class TestMisc(object):
         try:
             multihost.client[0].run_command(kill_sssd_be, raiseonerr=False)
         except subprocess.CalledProcessError:
-          pytest.fail("Unable to kill the sssd_be process")
+            pytest.fail("Unable to kill the sssd_be process")
         time.sleep(3)
         log_file = '/var/log/sssd/sssd_nss.log'
         log_str = multihost.client[0].get_file_contents(log_file)
@@ -102,7 +102,7 @@ class TestMisc(object):
 
     @pytest.mark.tier1
     def test_0003_sssd_crashes_after_update(self, multihost,
-                                                backupsssdconf):
+                                            backupsssdconf):
         """
         :Title: misc: sssd crashes after last update to
         sssd-common-1.16.4-37.el7_8.1
@@ -122,12 +122,14 @@ class TestMisc(object):
         client = pexpect_ssh(multihost.client[0].sys_hostname, user,
                              'Secret1234', debug=False)
         with pytest.raises(SSHLoginException):
-            client.login(login_timeout=10, sync_multiplier=1, auto_prompt_reset=False)
+            client.login(login_timeout=10,
+                         sync_multiplier=1, auto_prompt_reset=False)
         time.sleep(2)
         client = pexpect_ssh(multihost.client[0].sys_hostname, user,
                              'Secret123', debug=False)
         try:
-            client.login(login_timeout=30, sync_multiplier=5, auto_prompt_reset=False)
+            client.login(login_timeout=30,
+                         sync_multiplier=5, auto_prompt_reset=False)
         except SSHLoginException:
             pytest.fail("%s failed to login" % user)
         else:
@@ -137,12 +139,14 @@ class TestMisc(object):
             client = pexpect_ssh(multihost.client[0].sys_hostname, user,
                                  'Secret1234', debug=False)
             with pytest.raises(SSHLoginException):
-                client.login(login_timeout=10, sync_multiplier=1, auto_prompt_reset=False)
+                client.login(login_timeout=10,
+                             sync_multiplier=1, auto_prompt_reset=False)
         time.sleep(2)
         client = pexpect_ssh(multihost.client[0].sys_hostname, user,
                              'Secret123', debug=False)
         try:
-            client.login(login_timeout=30, sync_multiplier=5, auto_prompt_reset=False)
+            client.login(login_timeout=30,
+                         sync_multiplier=5, auto_prompt_reset=False)
         except SSHLoginException:
             pytest.fail("%s failed to login" % user)
         else:

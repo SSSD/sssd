@@ -204,9 +204,12 @@ class TestBugzillaAutomation(object):
         client.realm_join(domainname, password)
         multihost.client[0].run_command("service sssd restart")
         multihost.client[0].run_command("yum install -y gdb")
-        multihost.client[0].run_command("gdb -quiet authselect -ex 'set breakpoint pending on'"
-                                        " -ex 'b src/lib/files/system.c:428' -ex 'run select "
-                                        "sssd --force' -ex 'shell sleep 1' -ex 'detach' -ex 'quit'")
+        multihost.client[0].run_command("gdb -quiet authselect -ex "
+                                        "'set breakpoint pending on' -ex "
+                                        "'b src/lib/files/system.c:428' -ex "
+                                        "'run select sssd --force' -ex "
+                                        "'shell sleep 1' -ex 'detach' -ex "
+                                        "'quit'")
         cmd_check = multihost.client[0].run_command("authselect check")
         client.realm_leave(domainname)
         if "Current configuration is valid." in cmd_check.stdout_text:
@@ -545,11 +548,11 @@ class TestBugzillaAutomation(object):
         dom_section = 'domain/%s' % domain_sec_name
         sssd_params = {'domains': 'files, %s' % domain_sec_name}
         client.sssd_conf('sssd', sssd_params)
-        domain_params = {'entry_cache_timeout':'5400',
+        domain_params = {'entry_cache_timeout': '5400',
                          'refresh_expired_interval': '4000'}
         client.sssd_conf(dom_section, domain_params)
         file_section = 'domain/files'
-        file_params = {'id_provider':'files'}
+        file_params = {'id_provider': 'files'}
         client.sssd_conf(file_section, file_params)
         client.clear_sssd_cache()
         journalctl = 'journalctl -x -n 150 --no-pager'
@@ -560,12 +563,11 @@ class TestBugzillaAutomation(object):
         multihost.client[0].run_command(restore)
         remove_backup_file = 'rm -f /etc/sssd/sssd.conf.orig'
         multihost.client[0].run_command(remove_backup_file)
-        assert result == None
+        assert result is None
 
     @pytest.mark.tier1
     def test_0014_user_filtering(self, multihost,
-                            adjoin,
-                            create_aduser_group):
+                                 adjoin, create_aduser_group):
         """
         @Title: SSSD user filtering is failing
         after files provider rebuilds cache
@@ -598,7 +600,7 @@ class TestBugzillaAutomation(object):
         domain_section = 'domain/{}'.format(domainname)
         userlist = 'root, aduser1'
         params = {'filter_users': 'root, %s' % aduser1,
-                 'filter_groups': 'root'}
+                  'filter_groups': 'root'}
         client.sssd_conf('nss', params)
         client.remove_sss_cache('/var/lib/sss/db')
         client.remove_sss_cache('/var/log/sssd')
@@ -620,9 +622,8 @@ class TestBugzillaAutomation(object):
 
     @pytest.mark.tier1
     def test_0016_forceLDAPS(self, multihost,
-                            adjoin,
-                            fetch_ca_cert,
-                            create_aduser_group):
+                             adjoin, fetch_ca_cert,
+                             create_aduser_group):
         """
         @Title: Force LDAPS over 636 with AD Access Provider
         Bz: 1762415
@@ -661,9 +662,9 @@ class TestBugzillaAutomation(object):
         cmd = 'systemctl start firewalld'
         multihost.client[0].run_command(cmd, raiseonerr=True)
         fw_add1 = 'firewall-cmd --permanent --direct --add-rule ipv4 '\
-              'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP'
+                  'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP'
         fw_add2 = 'firewall-cmd --permanent --direct --add-rule ipv4 '\
-               'filter OUTPUT 1 -j ACCEPT'
+                  'filter OUTPUT 1 -j ACCEPT'
         multihost.client[0].run_command(fw_add1, raiseonerr=True)
         multihost.client[0].run_command(fw_add2, raiseonerr=True)
         fw_rld = 'firewall-cmd --reload'
@@ -680,9 +681,9 @@ class TestBugzillaAutomation(object):
         lkup = 'getent passwd %s@%s' % (aduser, domainname)
         cmd4 = multihost.client[0].run_command(lkup, raiseonerr=False)
         fw_r1 = 'firewall-cmd --permanent --direct --remove-rule ipv4 '\
-              'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP'
+                'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP'
         fw_r2 = 'firewall-cmd --permanent --direct --remove-rule ipv4 '\
-               'filter OUTPUT 1 -j ACCEPT'
+                'filter OUTPUT 1 -j ACCEPT'
         multihost.client[0].run_command(fw_r1, raiseonerr=True)
         multihost.client[0].run_command(fw_r2, raiseonerr=True)
         multihost.client[0].run_command(fw_rld, raiseonerr=True)
@@ -696,7 +697,6 @@ class TestBugzillaAutomation(object):
         client.sssd_conf(domain_section, sssd_params, action='delete')
         multihost.client[0].service_sssd('start')
         assert cmd4.returncode == 0
-
 
     @pytest.mark.tier2
     def test_0017_gssspnego_adjoin(self, multihost):
@@ -724,7 +724,8 @@ class TestBugzillaAutomation(object):
             status = 'FAIL'
             print("Joining to %s failed" % ad_domain)
         multihost.client[0].run_command(pkill, raiseonerr=False)
-        bindRequest = "tshark -r %s -V -2 -R 'ldap.mechanism == GSS-SPNEGO'" % pcapfile
+        bindRequest = "tshark -r %s -V -2 -R " \
+                      "'ldap.mechanism == GSS-SPNEGO'" % pcapfile
         valid_etypes = 'etype: eTYPE-AES256-CTS-HMAC-SHA1-96'
         check_str = re.compile(r'%s' % valid_etypes)
         cmd = multihost.client[0].run_command(bindRequest, raiseonerr=False)

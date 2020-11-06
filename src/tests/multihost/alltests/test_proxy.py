@@ -42,11 +42,14 @@ class TestsssdProxy(object):
                          'cache_credentials': 'True',
                          'krb5_validate': 'True'}
         tools.sssd_conf('domain/%s' % domain_name, domain_params)
-        del_domain_params = {'ldap_uri': 'ldaps:%s' % (multihost.master[0].run_command),
-                             'ldap_tls_cacert': '/etc/openldap/cacerts/cacert.pem',
+        del_domain_params = {'ldap_uri': 'ldaps:%s' %
+                             (multihost.master[0].run_command),
+                             'ldap_tls_cacert':
+                             '/etc/openldap/cacerts/cacert.pem',
                              'ldap_search_base': ds_suffix,
                              'use_fully_qualified_names': 'True'}
-        tools.sssd_conf('domain/%s' % domain_name, del_domain_params, action='delete')
+        tools.sssd_conf('domain/%s' % domain_name,
+                        del_domain_params, action='delete')
         cat = 'cat /etc/sssd/sssd.conf'
         multihost.client[0].run_command(cat)
         multihost.client[0].service_sssd('start')

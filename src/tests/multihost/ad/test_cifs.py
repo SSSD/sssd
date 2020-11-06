@@ -212,10 +212,10 @@ class Testcifs(object):
             assert cmd.returncode == 0
             readfile1 = "cat %s" % (allgroup_file)
             cmd = multihost.client[0].run_command(readfile1, raiseonerr=False)
-            assert 'testwrite1'in cmd.stdout_text
+            assert 'testwrite1' in cmd.stdout_text
             readfile2 = "cat %s" % (adgroup_file)
             cmd = multihost.client[0].run_command(readfile2, raiseonerr=False)
-            assert 'testwrite1'in cmd.stdout_text
+            assert 'testwrite1' in cmd.stdout_text
 
     def test_0007_readfromserver(self, multihost, cifsmount):
         """@Title: verify files modified on client
@@ -240,7 +240,7 @@ class Testcifs(object):
             assert cmd.returncode == 0
             readfile1 = "cat %s" % (allgroup_file)
             cmd = multihost.master[0].run_command(readfile1, raiseonerr=False)
-            assert 'testwrite1'in cmd.stdout_text
+            assert 'testwrite1' in cmd.stdout_text
             readfile2 = "cat %s" % (adgroup_file)
             cmd = multihost.master[0].run_command(readfile2, raiseonerr=False)
-            assert 'testwrite1'in cmd.stdout_text
+            assert 'testwrite1' in cmd.stdout_text
