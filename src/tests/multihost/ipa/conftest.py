@@ -46,6 +46,7 @@ def hbac_sshd_rule(session_multihost, request):
         ipa_server_tools.del_hbac_rule('test1')
     request.addfinalizer(delete_hbac_rule)
 
+
 @pytest.fixture(scope="function")
 def create_aduser_group(session_multihost, request):
     """ create AD user group """
@@ -62,6 +63,7 @@ def create_aduser_group(session_multihost, request):
 
     request.addfinalizer(remove_ad_user_group)
     return (ad_user, ad_group)
+
 
 # ====================  Class Scoped Fixtures ================
 @pytest.fixture(scope="class")
@@ -178,6 +180,7 @@ def create_ad_groups(session_multihost, request):
         del_cmd = 'powershell -inputformat none -noprofile ./remove-groups.ps1'
         session_multihost.ad[0].run_command(del_cmd, raiseonerr=False)
     request.addfinalizer(remove_ad_groups)
+
 
 # ====================  Session Scoped Fixtures ================
 

@@ -150,7 +150,7 @@ def enable_sss_sudo_nsswitch(session_multihost, request):
 
     def restore_nsswitch():
         """ Restore nsswitch.conf """
-        if 'Fedora' or '8.'in distro:
+        if 'Fedora' or '8.' in distro:
             cmd = 'authselect select sssd'
             session_multihost.client[0].run_command(cmd)
         else:
@@ -1226,6 +1226,7 @@ def enable_sssd_hostmap(session_multihost, request):
         remove_bkup = 'rm -f %s_bkup' % nsswitch_file
         session_multihost.client[0].run_command(remove_bkup)
     request.addfinalizer(restore_nsswitch)
+
 
 @pytest.fixture(scope='class')
 def add_host_entry(session_multihost, request):

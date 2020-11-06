@@ -451,12 +451,12 @@ class TestConfigValidation(object):
         # Automation of BZ1856861
         tools = sssdTools(multihost.client[0])
         section1 = "prompting/2fa/sshd"
-        domain_params1 = {'first_prompt' : 'Enter OTP Token Value:',
-                         'single_prompt' : 'single_prompt'}
+        domain_params1 = {'first_prompt': 'Enter OTP Token Value:',
+                          'single_prompt': 'single_prompt'}
         section2 = "prompting/2fa"
-        domain_params2 = {'single_prompt' : 'True',
-                          'first_prompt' : 'Prompt1',
-                          'second_prompt' : 'Prompt2'}
+        domain_params2 = {'single_prompt': 'True',
+                          'first_prompt': 'Prompt1',
+                          'second_prompt': 'Prompt2'}
         tools.sssd_conf(section1, domain_params1)
         tools.sssd_conf(section2, domain_params2)
         multihost.client[0].service_sssd('restart')
@@ -475,7 +475,7 @@ class TestConfigValidation(object):
         tools = sssdTools(multihost.client[0])
         section1 = "domain/td5f4f77.com/two5f4f77.td5f4f77.com"
         section2 = "domain/td5f4f77.com/one5f4f77.td5f4f77.com"
-        param = {'auto_private_groups' : 'True'}
+        param = {'auto_private_groups': 'True'}
         tools.sssd_conf(section1, param)
         tools.sssd_conf(section2, param)
         multihost.client[0].service_sssd('restart')
@@ -540,7 +540,7 @@ class TestConfigValidation(object):
         multihost.client[0].run_command(cp_cmd, raiseonerr=False)
         sssctl_cmd = 'sssctl config-check -c /tmp/test/sssd.conf'
         sssctl_check = multihost.client[0].run_command(sssctl_cmd,
-                                                   raiseonerr=False)
+                                                       raiseonerr=False)
         result = sssctl_check.stdout_text.strip()
         rm_dir = 'rm -rf /tmp/test'
         multihost.client[0].run_command(rm_dir, raiseonerr=False)
@@ -565,11 +565,11 @@ class TestConfigValidation(object):
         multihost.client[0].run_command(cp_cmd, raiseonerr=False)
         sssctl_cmd = 'sssctl config-check -c /tmp/test/sssd.conf'
         sssctl_check = multihost.client[0].run_command(sssctl_cmd,
-                                                   raiseonerr=False)
+                                                       raiseonerr=False)
         result = sssctl_check.stdout_text.strip()
         rm_dir = 'rm -rf /tmp/test'
         multihost.client[0].run_command(rm_dir, raiseonerr=False)
-        assert not "Directory /tmp/test/conf.d does not exist" in result \
+        assert "Directory /tmp/test/conf.d does not exist" not in result \
                and sssctl_check.returncode == 1
 
     @pytest.mark.tier1
@@ -581,7 +581,7 @@ class TestConfigValidation(object):
         sssctl_cmd = 'sssctl config-check -c /tmp/test/sssd.conf -s ' \
                      '/tmp/does/not/exists'
         sssctl_check = multihost.client[0].run_command(sssctl_cmd,
-                                                   raiseonerr=False)
+                                                       raiseonerr=False)
         result = sssctl_check.stdout_text.strip()
         assert "Directory /tmp/does/not/exists does not exist" in result \
                and sssctl_check.returncode == 1

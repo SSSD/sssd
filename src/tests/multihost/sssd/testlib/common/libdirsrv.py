@@ -249,17 +249,21 @@ class DirSrv(object):
         Exceptions:
             LdapException
         """
-        ldap_obj = LdapOperations(uri=binduri, binddn=self.dsrootdn, bindpw=self.dsrootdn_pwd)
+        ldap_obj = LdapOperations(uri=binduri, binddn=self.dsrootdn,
+                                  bindpw=self.dsrootdn_pwd)
         # Enable Anonymous access aci
         allow_anonymous = "(targetattr!=\"userPassword || aci\")" \
-                          "(version 3.0; acl \"Enable anonymous access\"; allow " \
-                          "(read, search, compare) userdn=\"ldap:///anyone\";)"
+                          "(version 3.0; acl \"Enable anonymous access\";" \
+                          "allow (read, search, compare)" \
+                          "userdn=\"ldap:///anyone\";)"
         add_aci = [(ldap.MOD_ADD, 'aci', [allow_anonymous.encode('utf-8')])]
-        (ret, return_value) = ldap_obj.modify_ldap(self.dsinstance_suffix, add_aci)
+        (ret, return_value) = ldap_obj.modify_ldap(self.dsinstance_suffix,
+                                                   add_aci)
         if not return_value:
             raise LdapException("Failed to enable anonymous access aci")
         else:
-            print("Enabled Anonymous access aci to %s" % self.dsinstance_suffix)
+            print("Enabled Anonymous access aci to %s" %
+                  self.dsinstance_suffix)
 
     def enable_ssl(self, binduri, tls_port):
         """sets TLS Port and enabled TLS on Directory Server.
@@ -540,7 +544,8 @@ class DirSrvWrap(object):
             except subprocess.CalledProcessError:
                 raise DirSrvException('Failed to setup Directory server')
             self.dirsrv_info[self.ds_instance_name] = self.dirsrv_obj.__dict__
-            ldap_uri = 'ldap://%s:%r' % (self.ds_instance_host, self.ds_ldap_port)
+            ldap_uri = 'ldap://%s:%r' % (self.ds_instance_host,
+                                         self.ds_ldap_port)
             try:
                 self.dirsrv_obj.enable_anonymous_search(ldap_uri)
             except LdapException:
@@ -629,7 +634,8 @@ class DirSrvWrap(object):
             try:
                 self.dirsrv_obj.remove_ds(inst_name)
             except subprocess.CalledProcessError:
-                raise DirSrvException('Failed to remove %s instance', inst_name)
+                raise DirSrvException('Failed to remove %s instance',
+                                      inst_name)
             else:
                 del self.ds_used_ports[instance_name]
                 return True

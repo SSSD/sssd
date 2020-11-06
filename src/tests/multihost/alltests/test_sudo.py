@@ -68,9 +68,9 @@ class TestSudo(object):
         rm_pcap_file = 'rm -f %s' % sudo_pcapfile
         multihost.client[0].run_command(rm_pcap_file)
 
-
     @pytest.mark.tier2
-    def test_timed_sudoers_entry(self, multihost, backupsssdconf, timed_sudoers):
+    def test_timed_sudoers_entry(self,
+                                 multihost, backupsssdconf, timed_sudoers):
         """
         @Title: sudo: sssd accepts timed entries without minutes and or
         seconds to attribute
@@ -82,8 +82,7 @@ class TestSudo(object):
         sudo_base = 'ou=sudoers,dc=example,dc=test'
         sudo_uri = "ldap://%s" % multihost.master[0].sys_hostname
         params = {'ldap_sudo_search_base': sudo_base,
-                         'ldap_uri':sudo_uri,
-                         'sudo_provider': "ldap"}
+                  'ldap_uri': sudo_uri, 'sudo_provider': "ldap"}
         domain_section = 'domain/%s' % ds_instance_name
         tools.sssd_conf(domain_section, params, action='update')
         section = "sssd"
@@ -92,20 +91,20 @@ class TestSudo(object):
         start = multihost.client[0].service_sssd('start')
         try:
             ssh = SSHClient(multihost.client[0].sys_hostname,
-                          username='foo1@example.test', password='Secret123')
+                            username='foo1@example.test', password='Secret123')
         except paramiko.ssh_exception.AuthenticationException:
             pytest.fail("%s failed to login" % 'foo1')
         else:
-            print("Executing %s command as %s user" \
-               % ('sudo -l', 'foo1@example.test'))
-            (std_out,_, exit_status) = ssh.execute_cmd('id')
+            print("Executing %s command as %s user"
+                  % ('sudo -l', 'foo1@example.test'))
+            (std_out, _, exit_status) = ssh.execute_cmd('id')
             for line in std_out.readlines():
-               print(line)
-            (std_out,_, exit_status) = ssh.execute_cmd('sudo -l')
+                print(line)
+            (std_out, _, exit_status) = ssh.execute_cmd('sudo -l')
             for line in std_out.readlines():
                 if 'NOPASSWD' in line:
                     evar = list(line.strip().split()[1].split('=')[1])[10:14]
-                    assert  evar == list('0000')
+                    assert evar == list('0000')
             if exit_status != 0:
                 journalctl_cmd = 'journalctl -x -n 100 --no-pager'
                 multihost.master[0].run_command(journalctl_cmd)

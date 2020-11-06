@@ -125,7 +125,8 @@ class Testkrbfips(object):
         client = sssdTools(multihost.client[0])
         domain_name = client.get_domain_section_name()
         del_params = {'ldap_sasl_mech': 'GSSAPI'}
-        client.sssd_conf('domain/%s' % domain_name, del_params, action='delete')
+        client.sssd_conf('domain/%s' % domain_name,
+                         del_params, action='delete')
         domain_params = {'ldap_sasl_mech': 'GSS-SPNEGO'}
         client.sssd_conf('domain/example1', domain_params)
         client.clear_sssd_cache()

@@ -95,6 +95,7 @@ class TestNetgroup(object):
         """
         :Title: netgroup: background refresh task does not refresh
         updated netgroup entries
+
         @Bugzilla:
         https://bugzilla.redhat.com/show_bug.cgi?id=1779486 (RHEL8.2)
         https://bugzilla.redhat.com/show_bug.cgi?id=1822461 (RHEL7.8)
@@ -126,5 +127,6 @@ class TestNetgroup(object):
                                                        ds_instance_name)
         cmd = multihost.client[0].run_command(ldb_cmd)
         new_entry = "netgroupTriple: (%s,foo1,%s)" % (shortname, ds_suffix)
-        tools.sssd_conf('domain/%s' % ds_instance_name, domain_params, action='delete')
+        tools.sssd_conf('domain/%s' % ds_instance_name,
+                        domain_params, action='delete')
         assert new_entry in cmd.stdout_text.strip().split('\n')

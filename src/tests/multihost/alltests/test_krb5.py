@@ -39,18 +39,21 @@ class TestKrbWithLogin(object):
         multihost.client[0].service_sssd('start')
         user = 'user5000'
         client_hostname = multihost.client[0].sys_hostname
-        multihost.client[0].run_command("touch /home/user5000/.k5login")
-        multihost.client[0].run_command(f'chown {user}:{user} /home/user5000/.k5login')
-        multihost.client[0].run_command("chmod 664 /home/user5000/.k5login")
+        multihost.client[0].run_command("touch /home/{user}/.k5login")
+        multihost.client[0].run_command(f'chown {user} /home/{user}/.k5login')
+        multihost.client[0].run_command(f'chgrp {user} /home/{user}/.k5login')
+        multihost.client[0].run_command(f'chmod 664 /home/{user}/.k5login')
         multihost.client[0].service_sssd('restart')
         client = pexpect_ssh(client_hostname, user, 'Secret123', debug=False)
         with pytest.raises(Exception):
-            client.login(login_timeout=10, sync_multiplier=1, auto_prompt_reset=False)
-        multihost.client[0].run_command("rm -vf /home/user5000/.k5login")
+            client.login(login_timeout=10, sync_multiplier=1,
+                         auto_prompt_reset=False)
+        multihost.client[0].run_command(f'rm -vf /home/{user}/.k5login')
         multihost.client[0].service_sssd('restart')
         client = pexpect_ssh(client_hostname, user, 'Secret123', debug=False)
         try:
-            client.login(login_timeout=30, sync_multiplier=5, auto_prompt_reset=False)
+            client.login(login_timeout=30, sync_multiplier=5,
+                         auto_prompt_reset=False)
         except SSHLoginException:
             pytest.fail("%s failed to login" % user)
         else:

@@ -6,6 +6,7 @@ from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name
 import time
 
+
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
 @pytest.mark.ldapextraattrs
 class TestLdapExtraAttrs(object):
