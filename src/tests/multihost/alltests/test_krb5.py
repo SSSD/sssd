@@ -39,7 +39,7 @@ class TestKrbWithLogin(object):
         multihost.client[0].service_sssd('start')
         user = 'user5000'
         client_hostname = multihost.client[0].sys_hostname
-        multihost.client[0].run_command("touch /home/{user}/.k5login")
+        multihost.client[0].run_command(f'touch /home/{user}/.k5login')
         multihost.client[0].run_command(f'chown {user} /home/{user}/.k5login')
         multihost.client[0].run_command(f'chgrp {user} /home/{user}/.k5login')
         multihost.client[0].run_command(f'chmod 664 /home/{user}/.k5login')
