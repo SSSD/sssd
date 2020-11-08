@@ -1141,7 +1141,7 @@ def enable_ssh_schema(session_multihost, request):
     """ Enable OpenSSH lpk  schema in directory server """
     cwd = os.path.dirname(os.path.abspath(__file__))
     split_cwd = cwd.split('/')
-    idx = split_cwd.index('pytest')
+    idx = split_cwd.index('multihost')
     path_list = split_cwd[:idx + 1]
     sssd_qe_path = '/'.join(path_list)
     data_path = "%s/data" % sssd_qe_path

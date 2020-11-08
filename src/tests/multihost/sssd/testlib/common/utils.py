@@ -850,7 +850,7 @@ class LdapOperations(object):
            :return tupele: "Success", return_value
            :Exception: ldap exception
         """
-        ret = self.conn.delete(ldap_dn)
+        ret = self.conn.delete_s(ldap_dn)
         return "Success", ret
 
     def search(self, basedn, criteria, attributes, scope=ldap.SCOPE_SUBTREE):
