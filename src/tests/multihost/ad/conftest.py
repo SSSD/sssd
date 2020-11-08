@@ -53,7 +53,7 @@ def run_powershell_script(session_multihost, request):
     """ Run Powershell script """
     cwd = os.path.dirname(os.path.abspath(__file__))
     split_cwd = cwd.split('/')
-    idx = split_cwd.index('pytest')
+    idx = split_cwd.index('multihost')
     path_list = split_cwd[:idx + 1]
     sssd_qe_path = '/'.join(path_list)
     data_path = "%s/data" % sssd_qe_path
@@ -451,7 +451,7 @@ def enable_ad_sudoschema(session_multihost):
     else:
         cwd = os.path.dirname(os.path.abspath(__file__))
         split_cwd = cwd.split('/')
-        idx = split_cwd.index('pytest')
+        idx = split_cwd.index('multihost')
         path_list = split_cwd[:idx + 1]
         sssd_qe_path = '/'.join(path_list)
         data_path = "%s/data" % sssd_qe_path
