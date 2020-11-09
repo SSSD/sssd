@@ -35,7 +35,7 @@ Following are the pytest markers used
 * tier2: tier2 test cases
 * tier3: tier3 test cases
 
-  
+
 
 Test systems and roles
 ======================
@@ -43,7 +43,7 @@ Test systems and roles
 
   **master:** System under master role is used to configure
   ldap, kerberos and nfs server
-  
+
   **client:** system under client role is configured sssd client
 
 To run all the tests maximum of 3 systems are required of which 2 systems
@@ -65,7 +65,7 @@ sample multihost configuration
              role: master
            - name: vm-10-0-154-51.hosted.upshift.rdu2.redhat.com
              external_hostname: vm-10-0-154-51.hosted.upshift.rdu2.redhat.com
-             role: master   
+             role: master
 
 Purpose of pytest fixture
 ========================
@@ -131,7 +131,7 @@ we have following function scope fixtures in conftest.py
      Enable multiple sssd responders in sssd section of sssd.conf
      Enable **'nss, pam, sudo, autofs, ssh, pac, ifp'** responders
      in sssd.conf
-     
+
 
 *scope='class'
 ==============
@@ -181,13 +181,13 @@ We have following class scope fixtures in conftest.py
         ldap_tls_cacert = /etc/openldap/cacerts/cacert.pem
         use_fully_qualified_names = True
         debug_level = 9
-        
+
 * setup_sssd_krb
     Calls **setup_sssd** fixture and modifies sssd.conf
     to use auth_provider as krb5
 
     .. code-block:: python
-                
+
         [sssd]
         config_file_version = 2
         services = nss, pam, example1
@@ -202,16 +202,16 @@ We have following class scope fixtures in conftest.py
         debug_level = 9
         krb5_realm = EXAMPLE.TEST
         krb5_server = <kerberos-server-hostname>
-        
-       
+
+
 * create_host_keytab
     Creates host keytab file on client system.
 * setup_sssd_gssapi
     Calls **setup_sssd**, **setup_ds_sasl**, **create_host_keytab**
     fixtures and configures sssd.conf on client system with
-    
+
     .. code-block:: python
-                    
+
        auth_provider = krb5
        ldap_sasl_mech = GSSAPI
        krb5_realm = EXAMPLE.TEST
@@ -239,13 +239,13 @@ We have following class scope fixtures in conftest.py
     Enable autofs responder on sssd.conf
 * default_sssd
     Setup default sssd.conf as shown below:
-    
+
     .. code-block:: python
-                    
+
        [sssd]
        config_file_version = 2
        services = nss, pam
-    
+
 * krb_connection_timeout
     Creates host keytab for client.
     Note: This fixture will be replaced in future
@@ -256,14 +256,14 @@ We have following class scope fixtures in conftest.py
 * setup_sshd_authorized_keys
     Configuring OpenSSH to Use SSSD for User Key. i.e
     edits /etc/ssh/sshd_config file and sets up
-    
+
     .. code-block:: python
-                    
+
        AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
        AuthorizedKeysCommandUser nobody
-       
+
 * enable_ssh_responder
-    Enable ssh responder in sssd.conf 
+    Enable ssh responder in sssd.conf
 
 *scope='session'
 =======================

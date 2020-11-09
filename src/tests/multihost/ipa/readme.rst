@@ -1,4 +1,4 @@
-IPA Provider 
+IPA Provider
 ============
 
 This directory contains test automation related to IPA Provider
@@ -26,7 +26,7 @@ Test systems and roles
   <https://gitlab.cee.redhat.com/identity-management/idm-ci/blob/master/playbooks/prep/ipa-adtrust-install.yaml>`_
   `Setup AD-Trust
   <https://gitlab.cee.redhat.com/sssd/sssd-qe/-/blob/RHEL8.4/playbooks/ad-trust.yaml>`_
-  
+
   **client:** system under client role is configured IPA Client
 
   **ad:** Windows Active Directory Domain Controller
@@ -61,8 +61,8 @@ Below is the sample multihost configuration
              role: ad
              username: Administrator
              host_type: 'windows'
-             
-         
+
+
 Purpose of pytest fixture
 ========================
 The purpose of test fixtures is to provide a fixed baseline
@@ -117,14 +117,14 @@ We have following class scope fixtures in conftest.py
     function enables the hbac rule.
 * multihost
     This fixture converts the session scoped multihost plugin/module/ to class
-    scoped to be used in test case functions 
+    scoped to be used in test case functions
 * create_ad_users
     Creates AD Users defined in users.csv. These users are created using
     powershell script *add-users.ps1* and teardown function calls
     *remove_users.ps1* which will delete these users from AD.
     The fixture first copies the *users.csv*, *add-users.ps1* ,
     *remove-users.ps1* to AD and executes the powershell scripts.
-    
+
 *scope='session'
 =======================
 Run once per session
@@ -134,4 +134,4 @@ We have following session scope fixtures in conftest.py
 * setup_ipa_client
     Configures the client to be ipa client to the ipa server. The teardown
     function runs *ipa-client-install --uninstall -U*.
-    
+

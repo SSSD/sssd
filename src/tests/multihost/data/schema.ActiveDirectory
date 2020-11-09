@@ -3,7 +3,7 @@
 #
 # To extend your Active Directory schema, run one of the following command
 # on your Windows DC (default port - Active Directory):
-# 
+#
 #  ldifde -i -f schema.ActiveDirectory -c "CN=Schema,CN=Configuration,DC=X" #schemaNamingContext
 #
 # or on your Windows DC if using another port (with Active Directory LightWeight Directory Services / ADAM-Active Directory Application Mode)
@@ -11,7 +11,7 @@
 #
 #  ldifde -i -f schema.ActiveDirectory -t 50000 -c "CN=Schema,CN=Configuration,DC=X" #schemaNamingContext
 #
-# or 
+# or
 #
 #  ldifde -i -f schema.ActiveDirectory -s server:port -c "CN=Schema,CN=Configuration,DC=X" #schemaNamingContext
 #
