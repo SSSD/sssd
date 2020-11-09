@@ -130,3 +130,4 @@ function
   ``ltestgoup<randomnumber>``
 
 * add_principals: Add ``HTTP`` and ``NFS`` service principals in Windows AD
+
