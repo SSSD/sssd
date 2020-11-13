@@ -128,6 +128,7 @@ struct cert_auth_info {
     char *key_id;
     char *prompt_str;
     char *pam_cert_user;
+    char *choice_list_id;
     struct cert_auth_info *prev;
     struct cert_auth_info *next;
 };
@@ -141,6 +142,7 @@ static void free_cai(struct cert_auth_info *cai)
         free(cai->module_name);
         free(cai->key_id);
         free(cai->prompt_str);
+        free(cai->choice_list_id);
         free(cai);
     }
 }
@@ -1698,7 +1700,15 @@ static int prompt_multi_cert_gdm(pam_handle_t *pamh, struct pam_items *pi)
             ret = ENOMEM;
             goto done;
         }
-        request->list.items[c].key = cai->key_id;
+        free(cai->choice_list_id);
+        ret = asprintf(&cai->choice_list_id, "%zu", c);
+        if (ret == -1) {
+            cai->choice_list_id = NULL;
+            ret = ENOMEM;
+            goto done;
+        }
+
+        request->list.items[c].key = cai->choice_list_id;
         request->list.items[c++].text = prompt;
     }
 
@@ -1719,7 +1729,7 @@ static int prompt_multi_cert_gdm(pam_handle_t *pamh, struct pam_items *pi)
     }
 
     DLIST_FOR_EACH(cai, pi->cert_list) {
-        if (strcmp(response->key, cai->key_id) == 0) {
+        if (strcmp(response->key, cai->choice_list_id) == 0) {
             pam_info(pamh, "Certificate ‘%s’ selected", cai->key_id);
             pi->selected_cert = cai;
             ret = 0;
