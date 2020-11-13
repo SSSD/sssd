@@ -39,6 +39,9 @@
  * @param[in]  key_id      Key ID of the certificate
  * @param[in]  key_id_len  Length of the key id of the certificate, if 0
  *                         strlen() will be called internally
+ * @param[in]  label       Label of the certificate
+ * @param[in]  label_len   Length of the label of the certificate, if 0
+ *                         strlen() will be called internally
  * @param[in]  buf         memory buffer of size buf_len, may be NULL
  * @param[in]  buf_len     size of memory buffer buf
  *
@@ -53,6 +56,7 @@ errno_t sss_auth_pack_sc_blob(const char *pin, size_t pin_len,
                               const char *token_name, size_t token_name_len,
                               const char *module_name, size_t module_name_len,
                               const char *key_id, size_t key_id_len,
+                              const char *label, size_t label_len,
                               uint8_t *buf, size_t buf_len,
                               size_t *_sc_blob_len);
 /**
@@ -112,6 +116,10 @@ errno_t sss_auth_unpack_2fa_blob(TALLOC_CTX *mem_ctx,
  * @param[out] _token_name_len   Length of the token name
  * @param[out] _module_name      Name of PKCS#11 module, null terminated
  * @param[out] _module_name_len  Length of the module name
+ * @param[out] _key_id           Key ID of the certificate, null terminated
+ * @param[out] _key_id_len       Length of the key ID
+ * @param[out] _labe l           Label of the certificate, null terminated
+ * @param[out] _label_len        Length of the label
  *
  * @return     EOK       on success
  *             EINVAL    if input data is not consistent
@@ -122,7 +130,8 @@ errno_t sss_auth_unpack_sc_blob(TALLOC_CTX *mem_ctx,
                                  char **pin, size_t *_pin_len,
                                  char **token_name, size_t *_token_name_len,
                                  char **module_name, size_t *_module_name_len,
-                                 char **key_id, size_t *_key_id_len);
+                                 char **key_id, size_t *_key_id_len,
+                                 char **label, size_t *_label_len);
 
 /**
  * @brief Return a pointer to the PIN string in the memory buffer

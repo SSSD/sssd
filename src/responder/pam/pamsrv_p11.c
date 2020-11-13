@@ -727,6 +727,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     const char *module_name = NULL;
     const char *token_name = NULL;
     const char *key_id = NULL;
+    const char *label = NULL;
 
     req = tevent_req_create(mem_ctx, &state, struct pam_check_cert_state);
     if (req == NULL) {
@@ -766,7 +767,8 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_PIN
             || sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
         ret = sss_authtok_get_sc(pd->authtok, NULL, NULL, &token_name, NULL,
-                                 &module_name, NULL, &key_id, NULL);
+                                 &module_name, NULL, &key_id, NULL,
+                                 &label, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc failed.\n");
             goto done;
@@ -783,6 +785,10 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         if (key_id != NULL && *key_id != '\0') {
             extra_args[arg_c++] = key_id;
             extra_args[arg_c++] = "--key_id";
+        }
+        if (label != NULL && *label != '\0') {
+            extra_args[arg_c++] = label;
+            extra_args[arg_c++] = "--label";
         }
     }
 

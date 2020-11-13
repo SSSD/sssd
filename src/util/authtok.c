@@ -503,7 +503,8 @@ errno_t sss_authtok_set_sc(struct sss_auth_token *tok,
                            const char *pin, size_t pin_len,
                            const char *token_name, size_t token_name_len,
                            const char *module_name, size_t module_name_len,
-                           const char *key_id, size_t key_id_len)
+                           const char *key_id, size_t key_id_len,
+                           const char *label, size_t label_len)
 {
     int ret;
     size_t needed_size;
@@ -518,7 +519,7 @@ errno_t sss_authtok_set_sc(struct sss_auth_token *tok,
 
     ret = sss_auth_pack_sc_blob(pin, pin_len, token_name, token_name_len,
                                 module_name, module_name_len,
-                                key_id, key_id_len, NULL, 0,
+                                key_id, key_id_len, label, label_len, NULL, 0,
                                 &needed_size);
     if (ret != EAGAIN) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_auth_pack_sc_blob failed.\n");
@@ -533,7 +534,7 @@ errno_t sss_authtok_set_sc(struct sss_auth_token *tok,
 
     ret = sss_auth_pack_sc_blob(pin, pin_len, token_name, token_name_len,
                                 module_name, module_name_len,
-                                key_id, key_id_len, tok->data,
+                                key_id, key_id_len, label, label_len, tok->data,
                                 needed_size, &needed_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_auth_pack_sc_blob failed.\n");
@@ -560,6 +561,8 @@ errno_t sss_authtok_set_sc_from_blob(struct sss_auth_token *tok,
     size_t module_name_len;
     char *key_id = NULL;
     size_t key_id_len;
+    char *label = NULL;
+    size_t label_len;
     TALLOC_CTX *tmp_ctx;
 
     if (tok == NULL) {
@@ -579,7 +582,7 @@ errno_t sss_authtok_set_sc_from_blob(struct sss_auth_token *tok,
     ret = sss_auth_unpack_sc_blob(tmp_ctx, data, len, &pin, &pin_len,
                                   &token_name, &token_name_len,
                                   &module_name, &module_name_len,
-                                  &key_id, &key_id_len);
+                                  &key_id, &key_id_len, &label, &label_len);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_auth_unpack_sc_blob failed.\n");
         goto done;
@@ -588,7 +591,7 @@ errno_t sss_authtok_set_sc_from_blob(struct sss_auth_token *tok,
     ret = sss_authtok_set_sc(tok, SSS_AUTHTOK_TYPE_SC_PIN, pin, pin_len,
                              token_name, token_name_len,
                              module_name, module_name_len,
-                             key_id, key_id_len);
+                             key_id, key_id_len, label, label_len);
 
 done:
     talloc_free(tmp_ctx);
@@ -607,7 +610,7 @@ errno_t sss_authtok_set_sc_pin(struct sss_auth_token *tok, const char *pin,
     }
 
     return sss_authtok_set_sc(tok, SSS_AUTHTOK_TYPE_SC_PIN, pin, len,
-                              NULL, 0, NULL, 0, NULL, 0);
+                              NULL, 0, NULL, 0, NULL, 0, NULL, 0);
 }
 
 errno_t sss_authtok_get_sc_pin(struct sss_auth_token *tok, const char **_pin,
@@ -625,7 +628,8 @@ errno_t sss_authtok_get_sc_pin(struct sss_auth_token *tok, const char **_pin,
         return ENOENT;
     case SSS_AUTHTOK_TYPE_SC_PIN:
         ret = sss_authtok_get_sc(tok, &pin, &pin_len,
-                                 NULL, NULL, NULL, NULL, NULL, NULL);
+                                 NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc failed.\n");
             return ret;
@@ -663,13 +667,15 @@ errno_t sss_auth_unpack_sc_blob(TALLOC_CTX *mem_ctx,
                                  char **pin, size_t *_pin_len,
                                  char **token_name, size_t *_token_name_len,
                                  char **module_name, size_t *_module_name_len,
-                                 char **key_id, size_t *_key_id_len)
+                                 char **key_id, size_t *_key_id_len,
+                                 char **label, size_t *_label_len)
 {
     size_t c;
     uint32_t pin_len;
     uint32_t token_name_len;
     uint32_t module_name_len;
     uint32_t key_id_len;
+    uint32_t label_len;
 
     c = 0;
 
@@ -678,14 +684,16 @@ errno_t sss_auth_unpack_sc_blob(TALLOC_CTX *mem_ctx,
         token_name_len = 0;
         module_name_len = 0;
         key_id_len = 0;
+        label_len = 0;
     } else if (blob_len > 0
                 && strnlen((const char *) blob, blob_len) == blob_len - 1) {
         pin_len = blob_len;
         token_name_len = 0;
         module_name_len = 0;
         key_id_len = 0;
+        label_len = 0;
     } else {
-        if (blob_len < 4 * sizeof(uint32_t)) {
+        if (blob_len < 5 * sizeof(uint32_t)) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Blob too small.\n");
             return EINVAL;
         }
@@ -694,9 +702,11 @@ errno_t sss_auth_unpack_sc_blob(TALLOC_CTX *mem_ctx,
         SAFEALIGN_COPY_UINT32(&token_name_len, blob + c, &c);
         SAFEALIGN_COPY_UINT32(&module_name_len, blob + c, &c);
         SAFEALIGN_COPY_UINT32(&key_id_len, blob + c, &c);
+        SAFEALIGN_COPY_UINT32(&label_len, blob + c, &c);
 
-        if (blob_len != 4 * sizeof(uint32_t) + pin_len + token_name_len
-                                             + module_name_len + key_id_len) {
+        if (blob_len != 5 * sizeof(uint32_t) + pin_len + token_name_len
+                                             + module_name_len + key_id_len
+                                             + label_len) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Blob size mismatch.\n");
             return EINVAL;
         }
@@ -756,6 +766,25 @@ errno_t sss_auth_unpack_sc_blob(TALLOC_CTX *mem_ctx,
         *key_id = NULL;
     }
 
+    if (label_len != 0) {
+        *label = talloc_strndup(mem_ctx,
+                                      (const char *) blob + c + pin_len
+                                                              + token_name_len
+                                                              + module_name_len
+                                                              + key_id_len,
+                                      label_len);
+        if (*label == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            talloc_free(*pin);
+            talloc_free(*token_name);
+            talloc_free(*module_name);
+            talloc_free(*key_id);
+            return ENOMEM;
+        }
+    } else {
+        *label = NULL;
+    }
+
     /* Re-calculate length for the case where \0 was missing in the blob */
     if (_pin_len != NULL) {
         *_pin_len = (*pin == NULL) ? 0 : strlen(*pin);
@@ -771,6 +800,10 @@ errno_t sss_auth_unpack_sc_blob(TALLOC_CTX *mem_ctx,
         *_key_id_len = (*key_id == NULL) ? 0 : strlen(*key_id);
     }
 
+    if (_label_len != NULL) {
+        *_label_len = (*label == NULL) ? 0 : strlen(*label);
+    }
+
     return EOK;
 }
 
@@ -778,13 +811,15 @@ errno_t sss_authtok_get_sc(struct sss_auth_token *tok,
                            const char **_pin, size_t *_pin_len,
                            const char **_token_name, size_t *_token_name_len,
                            const char **_module_name, size_t *_module_name_len,
-                           const char **_key_id, size_t *_key_id_len)
+                           const char **_key_id, size_t *_key_id_len,
+                           const char **_label, size_t *_label_len)
 {
     size_t c = 0;
     size_t pin_len;
     size_t token_name_len;
     size_t module_name_len;
     size_t key_id_len;
+    size_t label_len;
     uint32_t tmp_uint32_t;
 
     if (!tok) {
@@ -796,7 +831,7 @@ errno_t sss_authtok_get_sc(struct sss_auth_token *tok,
         return (tok->type == SSS_AUTHTOK_TYPE_EMPTY) ? ENOENT : EACCES;
     }
 
-    if (tok->length < 4 * sizeof(uint32_t)) {
+    if (tok->length < 5 * sizeof(uint32_t)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Blob too small.\n");
         return EINVAL;
     }
@@ -809,9 +844,12 @@ errno_t sss_authtok_get_sc(struct sss_auth_token *tok,
     module_name_len = tmp_uint32_t -1;
     SAFEALIGN_COPY_UINT32(&tmp_uint32_t, tok->data + c, &c);
     key_id_len = tmp_uint32_t -1;
+    SAFEALIGN_COPY_UINT32(&tmp_uint32_t, tok->data + c, &c);
+    label_len = tmp_uint32_t -1;
 
-    if (tok->length != 4 * sizeof(uint32_t) +  4 + pin_len + token_name_len
-                                         + module_name_len + key_id_len) {
+    if (tok->length != 5 * sizeof(uint32_t) +  5 + pin_len + token_name_len
+                                         + module_name_len + key_id_len
+                                         + label_len) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Blob size mismatch.\n");
         return EINVAL;
     }
@@ -844,6 +882,15 @@ errno_t sss_authtok_get_sc(struct sss_auth_token *tok,
     }
     if (_key_id_len != NULL) {
         *_key_id_len = key_id_len;
+    }
+
+    if (_label != NULL) {
+        *_label = (const char *) tok->data + c + pin_len + 1
+                               + token_name_len + 1 + module_name_len + 1
+                               + key_id_len + 1;
+    }
+    if (_label_len != NULL) {
+        *_label_len = label_len;
     }
 
     return EOK;

@@ -451,25 +451,27 @@ void test_sss_authtok_sc_blobs(void **state)
     size_t module_name_len;
     const char *key_id;
     size_t key_id_len;
+    const char *label;
+    size_t label_len;
 
     ts = talloc_get_type_abort(*state, struct test_state);
 
     ret = sss_auth_pack_sc_blob("abc", 0, "defg", 0, "hijkl", 0, "mnopqr", 0,
-                                NULL, 0, &needed_size);
+                                "stuvw", 0, NULL, 0, &needed_size);
     assert_int_equal(ret, EAGAIN);
 
     buf = talloc_size(ts, needed_size);
     assert_non_null(buf);
 
     ret = sss_auth_pack_sc_blob("abc", 0, "defg", 0, "hijkl", 0, "mnopqr", 0,
-                                buf, needed_size, &needed_size);
+                                "stuvw", 0, buf, needed_size, &needed_size);
     assert_int_equal(ret, EOK);
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-    assert_memory_equal(buf, "\4\0\0\0\5\0\0\0\6\0\0\0\7\0\0\0abc\0defg\0hijkl\0mnopqr\0",
+    assert_memory_equal(buf, "\4\0\0\0\5\0\0\0\6\0\0\0\7\0\0\0\6\0\0\0abc\0defg\0hijkl\0mnopqr\0stuvw\0",
                         needed_size);
 #else
-    assert_memory_equal(buf, "\0\0\0\4\0\0\0\5\0\0\0\6\0\0\0\7abc\0defg\0hijkl\0mnopqr\0",
+    assert_memory_equal(buf, "\0\0\0\4\0\0\0\5\0\0\0\6\0\0\0\7\0\0\0\6abc\0defg\0hijkl\0mnopqr\0stuvw\0",
                         needed_size);
 #endif
 
@@ -485,7 +487,8 @@ void test_sss_authtok_sc_blobs(void **state)
     ret = sss_authtok_get_sc(ts->authtoken, &pin, &pin_len,
                              &token_name, &token_name_len,
                              &module_name, &module_name_len,
-                             &key_id, &key_id_len);
+                             &key_id, &key_id_len,
+                             &label, &label_len);
     assert_int_equal(ret, EOK);
     assert_int_equal(pin_len, 3);
     assert_string_equal(pin, "abc");
@@ -495,11 +498,14 @@ void test_sss_authtok_sc_blobs(void **state)
     assert_string_equal(module_name, "hijkl");
     assert_int_equal(key_id_len, 6);
     assert_string_equal(key_id, "mnopqr");
+    assert_int_equal(label_len, 5);
+    assert_string_equal(label, "stuvw");
 
     ret = sss_authtok_get_sc(ts->authtoken, NULL, NULL,
                              &token_name, &token_name_len,
                              &module_name, &module_name_len,
-                             &key_id, &key_id_len);
+                             &key_id, &key_id_len,
+                             &label, &label_len);
     assert_int_equal(ret, EOK);
     assert_int_equal(token_name_len, 4);
     assert_string_equal(token_name, "defg");
@@ -507,15 +513,19 @@ void test_sss_authtok_sc_blobs(void **state)
     assert_string_equal(module_name, "hijkl");
     assert_int_equal(key_id_len, 6);
     assert_string_equal(key_id, "mnopqr");
+    assert_int_equal(label_len, 5);
+    assert_string_equal(label, "stuvw");
 
     ret = sss_authtok_get_sc(ts->authtoken, NULL, NULL,
                              &token_name, NULL,
                              &module_name, NULL,
-                             &key_id, NULL);
+                             &key_id, NULL,
+                             &label, NULL);
     assert_int_equal(ret, EOK);
     assert_string_equal(token_name, "defg");
     assert_string_equal(module_name, "hijkl");
     assert_string_equal(key_id, "mnopqr");
+    assert_string_equal(label, "stuvw");
 
     sss_authtok_set_empty(ts->authtoken);
     talloc_free(buf);
@@ -608,14 +618,14 @@ void test_sss_authtok_sc_pin(void **state)
     assert_int_equal(sss_authtok_get_type(ts->authtoken),
                      SSS_AUTHTOK_TYPE_SC_PIN);
     size = sss_authtok_get_size(ts->authtoken);
-    assert_int_equal(size, 28);
+    assert_int_equal(size, 33);
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     assert_memory_equal(sss_authtok_get_data(ts->authtoken),
-                        "\11\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345678\0\0\0\0",
+                        "\11\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345678\0\0\0\0\0",
                         size);
 #else
     assert_memory_equal(sss_authtok_get_data(ts->authtoken),
-                        "\0\0\0\11\0\0\0\1\0\0\0\1\0\0\0\1" "12345678\0\0\0\0",
+                        "\0\0\0\11\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0\1" "12345678\0\0\0\0\0",
                         size);
 #endif
 
@@ -624,14 +634,14 @@ void test_sss_authtok_sc_pin(void **state)
     assert_int_equal(sss_authtok_get_type(ts->authtoken),
                      SSS_AUTHTOK_TYPE_SC_PIN);
     size = sss_authtok_get_size(ts->authtoken);
-    assert_int_equal(size, 25);
+    assert_int_equal(size, 30);
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     assert_memory_equal(sss_authtok_get_data(ts->authtoken),
-                        "\6\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345\0\0\0\0",
+                        "\6\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345\0\0\0\0\0",
                         size);
 #else
     assert_memory_equal(sss_authtok_get_data(ts->authtoken),
-                        "\0\0\0\6\0\0\0\1\0\0\0\1\0\0\0\1" "12345\0\0\0\0",
+                        "\0\0\0\6\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0\1" "12345\0\0\0\0\0",
                         size);
 #endif
 

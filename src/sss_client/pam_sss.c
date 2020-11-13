@@ -126,6 +126,7 @@ struct cert_auth_info {
     char *token_name;
     char *module_name;
     char *key_id;
+    char *label;
     char *prompt_str;
     char *pam_cert_user;
     char *choice_list_id;
@@ -1962,6 +1963,7 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
         ret = sss_auth_pack_sc_blob(answer, 0, cai->token_name, 0,
                                     cai->module_name, 0,
                                     cai->key_id, 0,
+                                    cai->label, 0,
                                     NULL, 0, &needed_size);
         if (ret != EAGAIN) {
             D(("sss_auth_pack_sc_blob failed."));
@@ -1979,6 +1981,7 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
         ret = sss_auth_pack_sc_blob(answer, 0, cai->token_name, 0,
                                     cai->module_name, 0,
                                     cai->key_id, 0,
+                                    cai->label, 0,
                                     (uint8_t *) pi->pam_authtok, needed_size,
                                     &needed_size);
         if (ret != EOK) {
