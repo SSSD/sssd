@@ -60,7 +60,8 @@ static int do_work(TALLOC_CTX *mem_ctx, enum op_mode mode, const char *ca_db,
                    bool wait_for_card,
                    const char *cert_b64, const char *pin,
                    const char *module_name, const char *token_name,
-                   const char *key_id, const char *uri, char **multi)
+                   const char *key_id, const char *label, const char *uri,
+                   char **multi)
 {
     int ret;
     struct p11_ctx *p11_ctx;
@@ -91,7 +92,7 @@ static int do_work(TALLOC_CTX *mem_ctx, enum op_mode mode, const char *ca_db,
         }
     } else {
         ret = do_card(mem_ctx, p11_ctx, mode, pin,
-                      module_name, token_name, key_id, uri, multi);
+                      module_name, token_name, key_id, label, uri, multi);
     }
 
 done:
@@ -158,6 +159,7 @@ int main(int argc, const char *argv[])
     char *module_name = NULL;
     char *token_name = NULL;
     char *key_id = NULL;
+    char *label = NULL;
     char *cert_b64 = NULL;
     bool wait_for_card = false;
     char *uri = NULL;
@@ -194,6 +196,8 @@ int main(int argc, const char *argv[])
          _("Token name for authentication"), NULL},
         {"key_id", 0, POPT_ARG_STRING, &key_id, 0,
          _("Key ID for authentication"), NULL},
+        {"label", 0, POPT_ARG_STRING, &label, 0,
+         _("Label for authentication"), NULL},
         {"certificate", 0, POPT_ARG_STRING, &cert_b64, 0,
          _("certificate to verify, base64 encoded"), NULL},
         {"uri", 0, POPT_ARG_STRING, &uri, 0,
@@ -340,6 +344,7 @@ int main(int argc, const char *argv[])
     }
     talloc_steal(main_ctx, debug_prg_name);
 
+    /* We do not require the label, but it is recommended */
     if (mode == OP_AUTH && (module_name == NULL || token_name == NULL
                                 || key_id == NULL)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -369,7 +374,8 @@ int main(int argc, const char *argv[])
     }
 
     ret = do_work(main_ctx, mode, ca_db, cert_verify_opts, wait_for_card,
-                  cert_b64, pin, module_name, token_name, key_id, uri, &multi);
+                  cert_b64, pin, module_name, token_name, key_id, label, uri,
+                  &multi);
     if (ret != 0) {
         DEBUG(SSSDBG_OP_FAILURE, "do_work failed.\n");
         goto fail;

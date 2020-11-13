@@ -1258,7 +1258,7 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
                     || sss_authtok_get_type(pd->authtok)
                                                == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
             ret = sss_authtok_get_sc(pd->authtok, NULL, NULL, NULL, NULL, NULL,
-                                     NULL, &key_id, NULL);
+                                     NULL, &key_id, NULL, NULL, NULL);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc failed.\n");
                 goto done;
@@ -2274,7 +2274,8 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                                  SSS_AUTHTOK_TYPE_SC_PIN, NULL, 0,
                                  sss_cai_get_token_name(preq->current_cert), 0,
                                  sss_cai_get_module_name(preq->current_cert), 0,
-                                 sss_cai_get_key_id(preq->current_cert), 0);
+                                 sss_cai_get_key_id(preq->current_cert), 0,
+                                 sss_cai_get_label(preq->current_cert), 0);
                         if (ret != EOK) {
                             DEBUG(SSSDBG_OP_FAILURE,
                                   "sss_authtok_set_sc failed, Smartcard "
