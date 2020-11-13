@@ -296,6 +296,10 @@ void sss_authtok_set_sc_keypad(struct sss_auth_token *tok);
  *                        terminated string containing the PKCS#11 key id
  * @param key_id_len      The length of the key id string, if set to 0 it will be
  *                        calculated
+ * @param label           A pointer to a const char *, that will point to a null
+ *                        terminated string containing the PKCS#11 label
+ * @param label_len       The length of the label string, if set to 0 it will be
+ *                        calculated
  *
  * @return       EOK on success
  *               EINVAL unexpected or inval input
@@ -306,7 +310,8 @@ errno_t sss_authtok_set_sc(struct sss_auth_token *tok,
                            const char *pin, size_t pin_len,
                            const char *token_name, size_t token_name_len,
                            const char *module_name, size_t module_name_len,
-                           const char *key_id, size_t key_id_len);
+                           const char *key_id, size_t key_id_len,
+                           const char *label, size_t label_len);
 /**
  * @brief Set a Smart Card authentication data, replacing any previous data
  *
@@ -342,6 +347,10 @@ errno_t sss_authtok_set_sc_from_blob(struct sss_auth_token *tok,
  *                              a null terminated string holding the PKCS#11
  *                              key id, may not be modified or freed
  * @param[out] _key_id_len      Length of the PKCS#11 key id
+ * @param[out] _label           A pointer to a const char *, that will point to
+ *                              a null terminated string holding the PKCS#11
+ *                              label, may not be modified or freed
+ * @param[out] _label_len       Length of the PKCS#11 label
  *
  * Any of the output pointers may be NULL if the caller does not need the
  * specific item.
@@ -356,7 +365,8 @@ errno_t sss_authtok_get_sc(struct sss_auth_token *tok,
                            const char **_pin, size_t *_pin_len,
                            const char **_token_name, size_t *_token_name_len,
                            const char **_module_name, size_t *_module_name_len,
-                           const char **_key_id, size_t *_key_id_len);
+                           const char **_key_id, size_t *_key_id_len,
+                           const char **_label, size_t *_label_len);
 
 
 /**

@@ -714,7 +714,7 @@ static krb5_error_code answer_pkinit(krb5_context ctx,
         kerr = sss_authtok_get_sc(kr->pd->authtok, &pin, NULL,
                                  &token_name, NULL,
                                  &module_name, NULL,
-                                 NULL, NULL);
+                                 NULL, NULL, NULL, NULL);
         if (kerr != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sss_authtok_get_sc failed.\n");
@@ -1226,11 +1226,12 @@ static errno_t get_pkinit_identity(TALLOC_CTX *mem_ctx,
     const char *token_name;
     const char *module_name;
     const char *key_id;
+    const char *label;
 
     ret = sss_authtok_get_sc(authtok, NULL, NULL,
                              &token_name, NULL,
                              &module_name, NULL,
-                             &key_id, NULL);
+                             &key_id, NULL, &label, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc failed.\n");
         return ret;
@@ -1260,6 +1261,15 @@ static errno_t get_pkinit_identity(TALLOC_CTX *mem_ctx,
 
     if (key_id != NULL && *key_id != '\0') {
         identity = talloc_asprintf_append(identity, ":certid=%s", key_id);
+        if (identity == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "talloc_asprintf_append failed.\n");
+            return ENOMEM;
+        }
+    }
+
+    if (label != NULL && *label != '\0') {
+        identity = talloc_asprintf_append(identity, ":certlabel=%s", label);
         if (identity == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "talloc_asprintf_append failed.\n");

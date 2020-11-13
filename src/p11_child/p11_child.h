@@ -68,7 +68,8 @@ bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64);
 errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
-                const char *key_id_in, const char *uri, char **_multi);
+                const char *key_id_in, const char *label,
+                const char *uri, char **_multi);
 
 errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                                struct cert_verify_opts **cert_verify_opts);
