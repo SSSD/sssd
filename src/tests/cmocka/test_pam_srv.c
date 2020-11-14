@@ -62,13 +62,16 @@
 #define TEST_TOKEN_NAME "SSSD Test Token"
 #define TEST_TOKEN2_NAME "SSSD Test Token Number 2"
 #define TEST_KEY_ID "C554C9F82C2A9D58B70921C143304153A8A42F17"
+#define TEST_LABEL "SSSD test cert 0001"
 #define TEST_MODULE_NAME SOFTHSM2_PATH
 #define TEST_PROMPT "SSSD test cert 0001\nCN=SSSD test cert 0001,OU=SSSD test,O=SSSD"
 #define TEST2_PROMPT "SSSD test cert 0002\nCN=SSSD test cert 0002,OU=SSSD test,O=SSSD"
 #define TEST5_PROMPT "SSSD test cert 0005\nCN=SSSD test cert 0005,OU=SSSD test,O=SSSD"
 
 #define TEST2_KEY_ID "5405842D56CF31F0BB025A695C5F3E907051C5B9"
+#define TEST2_LABEL "SSSD test cert 0002"
 #define TEST5_KEY_ID "1195833C424AB00297F582FC43FFFFAB47A64CC9"
+#define TEST5_LABEL "SSSD test cert 0005"
 
 static char CACHED_AUTH_TIMEOUT_STR[] = "4";
 static const int CACHED_AUTH_TIMEOUT = 4;
@@ -673,6 +676,7 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
                                 + sizeof(TEST_TOKEN_NAME)
                                 + sizeof(TEST_MODULE_NAME)
                                 + sizeof(TEST_KEY_ID)
+                                + sizeof(TEST_LABEL)
                                 + sizeof(TEST_PROMPT)
                                 + sizeof("pamuser")));
 
@@ -691,6 +695,10 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
     assert_int_equal(*(body + rp + sizeof(TEST_KEY_ID) - 1), 0);
     assert_string_equal(body + rp, TEST_KEY_ID);
     rp += sizeof(TEST_KEY_ID);
+
+    assert_int_equal(*(body + rp + sizeof(TEST_LABEL) - 1), 0);
+    assert_string_equal(body + rp, TEST_LABEL);
+    rp += sizeof(TEST_LABEL);
 
     assert_int_equal(*(body + rp + sizeof(TEST_PROMPT) - 1), 0);
     assert_string_equal(body + rp, TEST_PROMPT);
@@ -740,6 +748,7 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
                                     TEST_TOKEN_NAME,
                                     TEST_MODULE_NAME,
                                     TEST_KEY_ID,
+                                    TEST_LABEL,
                                     TEST_PROMPT,
                                     NULL,
                                     NULL };
@@ -749,6 +758,7 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
                                      TEST_TOKEN_NAME,
                                      TEST_MODULE_NAME,
                                      TEST2_KEY_ID,
+                                     TEST2_LABEL,
                                      TEST2_PROMPT,
                                      NULL,
                                      NULL };
@@ -756,10 +766,10 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
     assert_int_equal(status, 0);
 
     check_strings[0] = name;
-    check_strings[5] = nss_name;
+    check_strings[6] = nss_name;
     check_len = check_string_array_len(check_strings);
     check2_strings[0] = name;
-    check2_strings[5] = nss_name;
+    check2_strings[6] = nss_name;
     check2_len = check_string_array_len(check2_strings);
 
 
@@ -843,6 +853,7 @@ static int test_pam_cert2_token2_check_ex(uint32_t status, uint8_t *body,
                                      TEST_TOKEN2_NAME,
                                      TEST_MODULE_NAME,
                                      TEST2_KEY_ID,
+                                     TEST2_LABEL,
                                      TEST2_PROMPT,
                                      NULL,
                                      NULL };
@@ -850,7 +861,7 @@ static int test_pam_cert2_token2_check_ex(uint32_t status, uint8_t *body,
     assert_int_equal(status, 0);
 
     check2_strings[0] = name;
-    check2_strings[5] = nss_name;
+    check2_strings[6] = nss_name;
     check2_len = check_string_array_len(check2_strings);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
@@ -895,7 +906,7 @@ static int test_pam_cert_X_token_X_check_ex(uint32_t status, uint8_t *body,
     assert_int_equal(status, 0);
 
     check_strings[0] = name;
-    check_strings[5] = nss_name;
+    check_strings[6] = nss_name;
     check_len = check_string_array_len(check_strings);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
@@ -946,6 +957,7 @@ static int test_pam_cert5_check(uint32_t status, uint8_t *body, size_t blen)
                                      TEST_TOKEN_NAME,
                                      TEST_MODULE_NAME,
                                      TEST5_KEY_ID,
+                                     TEST5_LABEL,
                                      TEST5_PROMPT,
                                      NULL,
                                      NULL };

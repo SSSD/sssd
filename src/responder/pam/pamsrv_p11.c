@@ -1086,11 +1086,13 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     const char *token_name;
     const char *module_name;
     const char *key_id;
+    const char *label;
     char *prompt;
     size_t user_len;
     size_t token_len;
     size_t module_len;
     size_t key_id_len;
+    size_t label_len;
     size_t prompt_len;
     size_t nss_name_len;
     const char *username = "";
@@ -1113,16 +1115,18 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     token_name = sss_cai_get_token_name(cert_info);
     module_name = sss_cai_get_module_name(cert_info);
     key_id = sss_cai_get_key_id(cert_info);
+    label = sss_cai_get_label(cert_info);
 
     user_len = strlen(username) + 1;
     token_len = strlen(token_name) + 1;
     module_len = strlen(module_name) + 1;
     key_id_len = strlen(key_id) + 1;
+    label_len = strlen(label) + 1;
     prompt_len = strlen(prompt) + 1;
     nss_name_len = strlen(nss_username) +1;
 
-    msg_len = user_len + token_len + module_len + key_id_len + prompt_len
-                       + nss_name_len;
+    msg_len = user_len + token_len + module_len + key_id_len + label_len
+                       + prompt_len + nss_name_len;
 
     msg = talloc_zero_size(mem_ctx, msg_len);
     if (msg == NULL) {
@@ -1136,8 +1140,11 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     memcpy(msg + user_len + token_len, module_name, module_len);
     memcpy(msg + user_len + token_len + module_len, key_id, key_id_len);
     memcpy(msg + user_len + token_len + module_len + key_id_len,
+           label, label_len);
+    memcpy(msg + user_len + token_len + module_len + key_id_len + label_len,
            prompt, prompt_len);
-    memcpy(msg + user_len + token_len + module_len + key_id_len + prompt_len,
+    memcpy(msg + user_len + token_len + module_len + key_id_len + label_len
+               + prompt_len,
            nss_username, nss_name_len);
     talloc_free(prompt);
 
