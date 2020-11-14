@@ -142,6 +142,7 @@ static void free_cai(struct cert_auth_info *cai)
         free(cai->token_name);
         free(cai->module_name);
         free(cai->key_id);
+        free(cai->label);
         free(cai->prompt_str);
         free(cai->choice_list_id);
         free(cai);
@@ -930,6 +931,20 @@ static int parse_cert_info(struct pam_items *pi, uint8_t *buf, size_t len,
     }
 
     offset += strlen(cai->key_id) + 1;
+    if (offset >= len) {
+        D(("Cert message size mismatch"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    cai->label = strdup((char *) &buf[*p + offset]);
+    if (cai->label == NULL) {
+        D(("strdup failed"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    offset += strlen(cai->label) + 1;
     if (offset >= len) {
         D(("Cert message size mismatch"));
         ret = EINVAL;
