@@ -1384,9 +1384,17 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
 
     if (ret == EOK && is_ts_ldb_dn(entry_dn)) {
         tret = sysdb_set_ts_entry_attr(sysdb, entry_dn, attrs, mod_op);
+        if (tret == ENOENT && mod_op == SYSDB_MOD_REP) {
+            /* Update failed because TS does non exist. Create missing TS */
+            tret = sysdb_set_ts_entry_attr(sysdb, entry_dn, attrs,
+                                           SYSDB_MOD_ADD);
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "The TS value for %s does not exist, trying to create it\n",
+                  ldb_dn_get_linearized(entry_dn));
+        }
         if (tret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                "Cannot set ts attrs for %s\n", ldb_dn_get_linearized(entry_dn));
+                "Cannot set TS attrs for %s\n", ldb_dn_get_linearized(entry_dn));
             /* Not fatal */
         } else {
             state_mask |= SSS_SYSDB_TS_CACHE;
