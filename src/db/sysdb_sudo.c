@@ -480,7 +480,8 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
                     sss_get_cased_name(sysdb_groupnames, groupname,
                                        domain->case_sensitive);
                 if (sysdb_groupnames[num_groups] == NULL) {
-                    DEBUG(SSSDBG_MINOR_FAILURE, "Cannot strdup %s\n", groupname);
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "sss_get_cased_name() failed for '%s'\n", groupname);
                     continue;
                 }
                 num_groups++;
