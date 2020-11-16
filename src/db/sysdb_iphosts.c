@@ -222,14 +222,14 @@ sysdb_store_host(struct sss_domain_info *domain,
                  * sort it out.
                  */
                 for (j = 0; j < res->count; j++) {
-                    DEBUG(SSSDBG_TRACE_FUNC,
+                    DEBUG(SSSDBG_CRIT_FAILURE,
                           "Corrupt cache entry [%s] detected. Deleting\n",
                            ldb_dn_canonical_string(tmp_ctx,
                                                    res->msgs[j]->dn));
 
                     ret = sysdb_delete_entry(sysdb, res->msgs[j]->dn, true);
                     if (ret != EOK) {
-                        DEBUG(SSSDBG_MINOR_FAILURE,
+                        DEBUG(SSSDBG_OP_FAILURE,
                               "Could not delete corrupt cache entry [%s]\n",
                                ldb_dn_canonical_string(tmp_ctx,
                                                        res->msgs[j]->dn));
@@ -262,7 +262,7 @@ sysdb_store_host(struct sss_domain_info *domain,
 
                     ret = sysdb_delete_entry(sysdb, res->msgs[0]->dn, true);
                     if (ret != EOK) {
-                        DEBUG(SSSDBG_MINOR_FAILURE,
+                        DEBUG(SSSDBG_OP_FAILURE,
                               "Could not delete cache entry [%s]\n",
                                ldb_dn_canonical_string(tmp_ctx,
                                                        res->msgs[0]->dn));
@@ -298,7 +298,7 @@ sysdb_store_host(struct sss_domain_info *domain,
 
                 ret = sysdb_delete_entry(sysdb, res->msgs[i]->dn, true);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_MINOR_FAILURE,
+                    DEBUG(SSSDBG_OP_FAILURE,
                           "Could not delete corrupt cache entry [%s]\n",
                            ldb_dn_canonical_string(tmp_ctx,
                                                    res->msgs[i]->dn));
@@ -318,7 +318,7 @@ sysdb_store_host(struct sss_domain_info *domain,
                     /* Delete the entry from the previous pass */
                     ret = sysdb_delete_entry(sysdb, update_dn, true);
                     if (ret != EOK) {
-                        DEBUG(SSSDBG_MINOR_FAILURE,
+                        DEBUG(SSSDBG_OP_FAILURE,
                               "Could not delete cache entry [%s]\n",
                                ldb_dn_canonical_string(tmp_ctx,
                                                        update_dn));
