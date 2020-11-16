@@ -1489,7 +1489,7 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
          * decide which name is correct.
          */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot save entry. Unable to determine groupname\n");
+              "Can't match the name to the RDN\n");
         ret = EINVAL;
         goto done;
     }
