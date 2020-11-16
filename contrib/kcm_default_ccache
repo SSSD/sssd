@@ -3,7 +3,7 @@
 # On Fedora/RHEL/CentOS, this is /etc/krb5.conf.d/
 #
 # To enable the KCM credential cache enable the KCM socket and the service:
-#   systemctl enable sssd-secrets.socket sssd-kcm.socket
+#   systemctl enable sssd-kcm.socket
 #   systemctl start sssd-kcm.socket
 #
 # To disable the KCM credential cache, comment out the following lines.
