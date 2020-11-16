@@ -243,14 +243,14 @@ sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
               "Error looking up autofs map [%s]\n", safe_map_name);
         goto done;
     } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, "No such map\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "No such map [%s]\n", safe_map_name);
         *_map = NULL;
         goto done;
     }
 
     if (count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "More than one map named %s\n", safe_map_name);
+              "More than one map named [%s]\n", safe_map_name);
         goto done;
     }
 
