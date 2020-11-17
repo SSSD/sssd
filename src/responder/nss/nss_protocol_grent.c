@@ -326,6 +326,34 @@ done:
     return EOK;
 }
 
+static bool is_group_filtered(struct sss_nc_ctx *ncache,
+                              struct sss_domain_info *domain,
+                              const char *grp_name, gid_t gid)
+{
+    int ret;
+
+    if (grp_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Group with gid [%"SPRIgid"] has no name, this should never "
+              "happen, trying to continue without.\n", gid);
+    } else {
+        ret = sss_ncache_check_group(ncache, domain, grp_name);
+        if (ret == EEXIST) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Group [%s] is filtered out! "
+                                     "(negative cache)", grp_name);
+            return true;
+        }
+    }
+    ret = sss_ncache_check_gid(ncache, domain, gid);
+    if (ret == EEXIST) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Group [%"SPRIgid"] is filtered out! "
+                                 "(negative cache)", gid);
+        return true;
+    }
+
+    return false;
+}
+
 errno_t
 nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
                          struct nss_cmd_ctx *cmd_ctx,
@@ -344,6 +372,7 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
     size_t body_len;
     size_t rp;
     gid_t gid;
+    const char *grp_name;
     gid_t orig_gid;
     errno_t ret;
     int i;
@@ -392,6 +421,8 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
         gid = sss_view_ldb_msg_find_attr_as_uint64(domain, msg, SYSDB_GIDNUM,
                                                    0);
         posix = ldb_msg_find_attr_as_string(msg, SYSDB_POSIX, NULL);
+        grp_name = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_NAME,
+                                                        NULL);
 
         if (gid == 0) {
             if (posix != NULL && strcmp(posix, "FALSE") == 0) {
@@ -402,6 +433,10 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
                       "Skipping.\n", ldb_dn_get_linearized(msg->dn));
                 continue;
             }
+        }
+
+        if (is_group_filtered(nss_ctx->rctx->ncache, domain, grp_name, gid)) {
+            continue;
         }
 
         SAFEALIGN_COPY_UINT32(&body[rp], &gid, &rp);

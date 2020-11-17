@@ -1190,6 +1190,18 @@ def test_nss_filters(ldap_conn, sanity_nss_filter):
     with pytest.raises(KeyError):
         grp.getgrgid(14)
 
+    # test initgroups - user1 is member of group_two_one_user_groups (2019)
+    # which is filtered out
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user1", 2001)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    user_with_group_ids = [2001, 2012, 2015, 2017, 2018]
+    assert sorted(gids) == sorted(user_with_group_ids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(user_with_group_ids)])
+        )
+
 
 @pytest.fixture
 def sanity_nss_filter_cached(request, ldap_conn):
