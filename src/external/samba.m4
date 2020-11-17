@@ -126,7 +126,9 @@ int main(void)
     samba_minor_version=`printf '#include <samba/version.h>\nSAMBA_VERSION_MINOR' | $CPP $SMBCLIENT_CFLAGS -P -`
     samba_release_version=`printf '#include <samba/version.h>\nSAMBA_VERSION_RELEASE' | $CPP $SMBCLIENT_CFLAGS -P -`
     AC_MSG_NOTICE([Samba version: $samba_major_version $samba_minor_version $samba_release_version])
-    if test $samba_major_version -ge 4 -a $samba_minor_version -ge 8 ; then
+    if ([[ $samba_major_version -gt 4 ]]) ||
+       ([[ $samba_major_version -eq 4 ]] && [[ $samba_minor_version -ge 8 ]]) ||
+       ([[ $samba_major_version -eq 4 ]] && [[ $samba_minor_version -eq 7 ]] && [[ $samba_release_version -ge 4 ]]); then
         AC_DEFINE_UNQUOTED(SMB_IDMAP_DOMAIN_HAS_DOM_SID, 1,
                            [Samba's struct idmap_domain has dom_sid member])
         AC_MSG_NOTICE([Samba's struct idmap_domain has dom_sid member])
