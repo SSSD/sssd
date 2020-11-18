@@ -157,7 +157,7 @@ static int sysdb_delete_cache_entry(struct ldb_context *ldb,
         /* fall through */
         SSS_ATTRIBUTE_FALLTHROUGH;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "LDB Error: %s(%d)\nError Message: [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "LDB Error: %s (%d); error message: [%s]\n",
                   ldb_strerror(ret), ret, ldb_errstring(ldb));
         return sysdb_error_to_errno(ret);
     }
@@ -3420,7 +3420,7 @@ int sysdb_search_custom(TALLOC_CTX *mem_ctx,
         goto done;
     }
     if (!ldb_dn_validate(basedn)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create DN.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Syntactically invalid subtree DN.\n");
         ret = EINVAL;
         goto done;
     }
@@ -3463,7 +3463,7 @@ int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
     if (!ldb_dn_validate(basedn)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create DN.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Syntactically invalid DN.\n");
         ret = EINVAL;
         goto done;
     }
@@ -3545,7 +3545,7 @@ errno_t sysdb_search_by_orig_dn(TALLOC_CTX *mem_ctx,
     default:
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Trying to perform a search by orig_dn using a "
-              "non-supported type\n");
+              "non-supported type %d\n", type);
         ret = EINVAL;
         goto done;
     }
@@ -3690,8 +3690,9 @@ int sysdb_delete_custom(struct sss_domain_info *domain,
         break;
 
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "LDB Error: %s(%d)\nError Message: [%s]\n",
-                  ldb_strerror(ret), ret, ldb_errstring(domain->sysdb->ldb));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "ldb_delete failed: %s (%d); error Message: [%s]\n",
+              ldb_strerror(ret), ret, ldb_errstring(domain->sysdb->ldb));
         ret = sysdb_error_to_errno(ret);
         break;
     }
