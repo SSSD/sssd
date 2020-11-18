@@ -125,7 +125,7 @@ static errno_t p11c_recv_data(TALLOC_CTX *mem_ctx, int fd, char **pin)
 
     str = talloc_strndup(mem_ctx, (char *) buf, len);
     if (str == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strndup failed.\n");
         return ENOMEM;
     }
 
