@@ -2393,7 +2393,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
     } else if (mtype == SYSDB_MEMBER_GROUP) {
         dn = sysdb_group_strdn(tmp_ctx, dom->name, name);
     } else {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown member type\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown member type %d\n", mtype);
         ret = EINVAL;
         goto done;
     }
@@ -2453,13 +2453,14 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
         tmp_str = ldb_msg_find_attr_as_string(direct_sysdb_groups[i],
                                                 SYSDB_NAME, NULL);
         if (!tmp_str) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "A group with no name?\n");
             /* This should never happen, but if it does, just continue */
             continue;
         }
 
         direct_parents[pi] = talloc_strdup(direct_parents, tmp_str);
         if (!direct_parents[pi]) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "A group with no name?\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
             ret = EIO;
             goto done;
         }
@@ -2537,7 +2538,8 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
 
     cname = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
     if (!cname) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "A user with no name?\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "User '%s' without a name?\n", name_or_upn_or_sid);
         ret = ENOENT;
         goto done;
     }
