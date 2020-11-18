@@ -556,12 +556,12 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
         if (ret == ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Object to override does not exists.\n");
         } else {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_entry failed.\n");
         }
         goto done;
     }
     if (count != 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Base searched returned more than one object.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Base search returned more than one object.\n");
         ret = EINVAL;
         goto done;
     }
@@ -660,7 +660,7 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
                                      SYSDB_OVERRIDE_GROUP_CLASS);
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected object type.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected object type %d.\n", type);
             ret = EINVAL;
             goto done;
         }
