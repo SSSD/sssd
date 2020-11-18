@@ -1072,15 +1072,14 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     }
 
     if (!service->gc->uri) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to append to URI\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "NULL GC URI\n");
         ret = ENOMEM;
         goto done;
     }
     DEBUG(SSSDBG_CONF_SETTINGS, "Constructed GC uri '%s'\n", service->gc->uri);
 
     if (service->gc->sockaddr == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-                "resolv_get_sockaddr_address failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "NULL GC sockaddr\n");
         ret = EIO;
         goto done;
     }
@@ -1100,7 +1099,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
 done:
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Error: [%s]\n", strerror(ret));
+              "Error: %d [%s]\n", ret, strerror(ret));
     }
     talloc_free(tmp_ctx);
     return;

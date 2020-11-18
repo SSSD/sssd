@@ -63,7 +63,7 @@ errno_t ad_dyndns_init(struct be_ctx *be_ctx,
      */
     ret = ad_get_dyndns_options(be_ctx, ad_opts);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set AD options\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not get AD dyndns options\n");
         return ret;
     }
 
@@ -209,8 +209,8 @@ static void ad_dyndns_update_connect_done(struct tevent_req *subreq)
 
     ret = ldap_url_parse(ctx->service->sdap->uri, &lud);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to parse ldap URI (%s)!\n", ctx->service->sdap->uri);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse ldap URI '%s': %d\n",
+              ctx->service->sdap->uri, ret);
         ret = EINVAL;
         goto done;
     }
