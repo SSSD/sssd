@@ -234,7 +234,7 @@ errno_t sysdb_delete_usermaps(struct sss_domain_info *domain)
     ret = sysdb_delete_recursive(sysdb, dn, true);
     talloc_free(dn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_delete_recursive failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_delete_recursive failed.\n");
         return ret;
     }
 
