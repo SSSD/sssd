@@ -125,7 +125,8 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
         base_dn = sysdb_netgroup_base_dn(mem_ctx, domain);
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Uknown or unsupported refresh type\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Uknown or unsupported refresh type %d\n", type);
         return ERR_INTERNAL;
         break;
     }

@@ -629,7 +629,7 @@ static void dp_initialized(struct tevent_req *req)
 
     ret = be_register_monitor_iface(be_ctx->mon_conn, be_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register monitor interface "
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register monitor interface "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }

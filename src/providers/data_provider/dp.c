@@ -109,7 +109,7 @@ dp_init_interface(struct data_provider *provider)
 
     ret = sbus_connection_add_path_map(provider->sbus_conn, paths);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add paths [%d]: %s\n",
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to add paths [%d]: %s\n",
               ret, sss_strerror(ret));
     }
 
@@ -196,7 +196,7 @@ dp_init_send(TALLOC_CTX *mem_ctx,
         (sbus_server_on_connection_cb)dp_client_init,
         (sbus_server_on_connection_data)state->provider);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
         goto done;
     }

@@ -42,13 +42,13 @@ static errno_t dp_sudo_parse_message(TALLOC_CTX *mem_ctx,
 
     ret = sbus_iterator_read_u(read_iter, &dp_flags);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse the message (flags)!\n");
         return ret;
     }
 
     ret = sbus_iterator_read_u(read_iter, &sudo_type);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse the message (type)!\n");
         return ret;
     }
 
@@ -66,13 +66,15 @@ static errno_t dp_sudo_parse_message(TALLOC_CTX *mem_ctx,
         /* read rules_num */
         ret = sbus_iterator_read_u(read_iter, &num_rules);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to parse the message (num rules)!\n");
             return ret;
         }
 
         ret = sbus_iterator_read_as(mem_ctx, read_iter, &rules);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to parse the message (rules)!\n");
             return ret;
         }
         break;
