@@ -251,7 +251,7 @@ static void be_ptask_schedule(struct be_ptask *task,
     task->timer = tevent_add_timer(task->ev, task, tv, be_ptask_execute, task);
     if (task->timer == NULL) {
         /* nothing we can do about it */
-        DEBUG(SSSDBG_CRIT_FAILURE, "FATAL: Unable to schedule task [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to schedule task [%s]\n",
                                     task->name);
         be_ptask_disable(task);
     }
