@@ -299,7 +299,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
 
     subdom_conf_path = subdomain_create_conf_path(id_ctx, subdom);
     if (subdom_conf_path == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "subdom_conf_path failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "subdomain_create_conf_path failed\n");
         return ENOMEM;
     }
 

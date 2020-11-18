@@ -467,7 +467,7 @@ ad_cldap_ping_domain_send(TALLOC_CTX *mem_ctx,
     domains[0] = discovery_domain;
     domains[1] = NULL;
     if (domains[0] == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bad argument (discovery_domain)");
         ret = ENOMEM;
         goto done;
     }

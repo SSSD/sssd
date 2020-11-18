@@ -171,14 +171,14 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
+              "pipe (from) failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
+              "pipe (to) failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
 
@@ -354,7 +354,8 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
     }
 
     if (opt_list_size != 2) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Wrong number of renewal options.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Wrong number of renewal options %d\n",
+              opt_list_size);
         ret = EINVAL;
         goto done;
     }

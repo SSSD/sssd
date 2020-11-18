@@ -671,7 +671,9 @@ ad_gpo_ace_includes_client_sid(const char *user_sid,
 
     err = sss_idmap_sid_to_smb_sid(idmap_ctx, user_sid, &user_dom_sid);
     if (err != IDMAP_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize idmap context.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sss_idmap_sid_to_smb_sid() failed for user_sid '%s': %d\n",
+              user_sid, err);
         return EFAULT;
     }
 
@@ -684,7 +686,9 @@ ad_gpo_ace_includes_client_sid(const char *user_sid,
 
     err = sss_idmap_sid_to_smb_sid(idmap_ctx, host_sid, &host_dom_sid);
     if (err != IDMAP_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize idmap context.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sss_idmap_sid_to_smb_sid() failed for host_sid '%s': %d\n",
+              host_sid, err);
         return EFAULT;
     }
 
@@ -698,7 +702,9 @@ ad_gpo_ace_includes_client_sid(const char *user_sid,
     for (i = 0; i < group_size; i++) {
         err = sss_idmap_sid_to_smb_sid(idmap_ctx, group_sids[i], &group_dom_sid);
         if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize idmap context.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sss_idmap_sid_to_smb_sid() failed for group_sid '%s': %d\n",
+              group_sids[i], err);
             return EFAULT;
         }
         included = ad_gpo_dom_sid_equal(&ace_dom_sid, group_dom_sid);
@@ -4777,14 +4783,14 @@ gpo_fork_child(struct tevent_req *req)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, strerror(errno));
+              "pipe (from) failed [%d][%s].\n", errno, strerror(errno));
         goto fail;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, strerror(errno));
+              "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
         goto fail;
     }
 
