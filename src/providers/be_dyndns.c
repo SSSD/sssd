@@ -1111,7 +1111,8 @@ be_nsupdate_args(TALLOC_CTX *mem_ctx,
         argc++;
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown nsupdate auth type\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unknown nsupdate auth type %d\n", auth_type);
         goto fail;
     }
 

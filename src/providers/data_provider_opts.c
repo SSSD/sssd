@@ -233,7 +233,7 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
             }
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to retrieve value for option (%s)\n",
+                      "Failed to copy value for option (%s)\n",
                        opts[i].opt_name);
                 goto done;
             }
@@ -249,7 +249,7 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
             }
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to retrieve value for option (%s)\n",
+                      "Failed to copy value for option (%s)\n",
                       opts[i].opt_name);
                 goto done;
             }
@@ -265,7 +265,7 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
             }
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to retrieve value for option (%s)\n",
+                      "Failed to copy value for option (%s)\n",
                        opts[i].opt_name);
                 goto done;
             }

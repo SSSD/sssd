@@ -651,7 +651,7 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
         srvaddr = fo_get_server_hostent(state->srv);
         if (!srvaddr) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "FATAL: No hostent available for server (%s)\n",
+                  "No hostent available for server (%s)\n",
                   fo_get_server_str_name(state->srv));
             return EFAULT;
         }
