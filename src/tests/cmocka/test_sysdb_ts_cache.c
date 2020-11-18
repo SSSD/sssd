@@ -1606,6 +1606,107 @@ static void test_sysdb_search_with_ts(void **state)
     talloc_free(res);
 }
 
+static void test_sysdb_user_missing_ts(void **state)
+{
+    int ret;
+    struct sysdb_ts_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                               struct sysdb_ts_test_ctx);
+    struct ldb_result *res = NULL;
+    struct sysdb_attrs *attrs = NULL;
+
+    /* Nothing must be stored in either cache at the beginning of the test */
+    res = sysdb_getpwnam_res(test_ctx, test_ctx->tctx->dom, TEST_USER_NAME);
+    assert_int_equal(res->count, 0);
+    talloc_free(res);
+
+    /* add user to cache */
+    attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
+    assert_non_null(attrs);
+    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME, NULL,
+                           TEST_USER_UID, TEST_USER_GID, TEST_USER_NAME,
+                           "/home/"TEST_USER_NAME, "/bin/bash", NULL,
+                           attrs, NULL, TEST_CACHE_TIMEOUT,
+                           TEST_NOW_1);
+    assert_int_equal(ret, EOK);
+    talloc_zfree(attrs);
+
+    /* remove timestamp */
+    struct ldb_dn *userdn = sysdb_user_dn(test_ctx, test_ctx->tctx->dom, TEST_USER_NAME);
+    ret = ldb_delete(test_ctx->tctx->dom->sysdb->ldb_ts, userdn);
+    assert_int_equal(ret, EOK);
+
+    /* update user */
+    attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_2);
+    assert_non_null(attrs);
+    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME, NULL,
+                           TEST_USER_UID, TEST_USER_GID, TEST_USER_NAME,
+                           "/home/"TEST_USER_NAME, "/bin/bash", NULL,
+                           attrs, NULL, TEST_CACHE_TIMEOUT,
+                           TEST_NOW_2);
+    assert_int_equal(ret, EOK);
+    talloc_zfree(attrs);
+
+    /* check that ts is back */
+    SSS_LDB_SEARCH(ret, test_ctx->tctx->dom->sysdb->ldb_ts, test_ctx, &res, userdn,
+                   LDB_SCOPE_BASE, NULL, NULL);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    talloc_zfree(res);
+    talloc_zfree(userdn);
+}
+
+static void test_sysdb_group_missing_ts(void **state)
+{
+    int ret;
+    struct sysdb_ts_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                               struct sysdb_ts_test_ctx);
+    struct ldb_result *res = NULL;
+    struct sysdb_attrs *group_attrs = NULL;
+    struct ldb_dn *groupdn = NULL;
+
+    /* Nothing must be stored in either cache at the beginning of the test */
+    res = sysdb_getgrnam_res(test_ctx, test_ctx->tctx->dom, TEST_GROUP_NAME);
+    assert_int_equal(res->count, 0);
+    talloc_free(res);
+
+    /* add group to cache */
+    group_attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
+    assert_non_null(group_attrs);
+    ret = sysdb_store_group(test_ctx->tctx->dom,
+                            TEST_GROUP_NAME,
+                            TEST_GROUP_GID,
+                            group_attrs,
+                            TEST_CACHE_TIMEOUT,
+                            TEST_NOW_1);
+    assert_int_equal(ret, EOK);
+    talloc_zfree(group_attrs);
+
+    /* remove timestamp */
+    groupdn = sysdb_group_dn(test_ctx, test_ctx->tctx->dom, TEST_GROUP_NAME);
+    ret = ldb_delete(test_ctx->tctx->dom->sysdb->ldb_ts, groupdn);
+    assert_int_equal(ret, EOK);
+
+    /* update group */
+    group_attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_2);
+    assert_non_null(group_attrs);
+    ret = sysdb_store_group(test_ctx->tctx->dom,
+                            TEST_GROUP_NAME,
+                            TEST_GROUP_GID,
+                            group_attrs,
+                            TEST_CACHE_TIMEOUT,
+                            TEST_NOW_2);
+    assert_int_equal(ret, EOK);
+    talloc_zfree(group_attrs);
+
+    /* check that ts is back */
+    SSS_LDB_SEARCH(ret, test_ctx->tctx->dom->sysdb->ldb_ts, test_ctx, &res, groupdn,
+                   LDB_SCOPE_BASE, NULL, NULL);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    talloc_zfree(res);
+    talloc_zfree(groupdn);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -1658,6 +1759,12 @@ int main(int argc, const char *argv[])
                                         test_sysdb_ts_setup,
                                         test_sysdb_ts_teardown),
         cmocka_unit_test_setup_teardown(test_sysdb_search_with_ts,
+                                        test_sysdb_ts_setup,
+                                        test_sysdb_ts_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_user_missing_ts,
+                                        test_sysdb_ts_setup,
+                                        test_sysdb_ts_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_group_missing_ts,
                                         test_sysdb_ts_setup,
                                         test_sysdb_ts_teardown),
     };
