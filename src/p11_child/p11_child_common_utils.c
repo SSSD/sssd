@@ -107,6 +107,9 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                   "Found 'no_verification' option, "
                   "disabling verification completely. "
                   "This should not be used in production.\n");
+            sss_log(SSS_LOG_CRIT,
+                    "Smart card certificate verification disabled completely. "
+                    "This should not be used in production.");
             cert_verify_opts->do_verification = false;
         } else if (strncasecmp(opts[c], OCSP_DEFAUL_RESPONDER,
                                OCSP_DEFAUL_RESPONDER_LEN) == 0) {

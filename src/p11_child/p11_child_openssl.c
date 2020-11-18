@@ -226,7 +226,7 @@ static char *get_issuer_subject_str(TALLOC_CTX *mem_ctx, X509 *cert)
 
     bio_mem = BIO_new(BIO_s_mem());
     if (bio_mem == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "BIO_new failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "BIO_new failed.\n");
         return NULL;
     }
 
@@ -591,7 +591,7 @@ errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
     ret = SSL_library_init();
 #endif
     if (ret != 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize OpenSSL.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to initialize OpenSSL.\n");
         return EIO;
     }
 
