@@ -2455,7 +2455,7 @@ int sysdb_upgrade_19(struct sysdb_ctx *sysdb, const char **ver)
 
     ret = add_object_category(sysdb->ldb, ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "add_object_category failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "add_object_category failed: %d\n", ret);
         goto done;
     }
 
