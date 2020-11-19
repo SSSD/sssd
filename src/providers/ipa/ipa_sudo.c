@@ -223,7 +223,7 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
                        ipa_sudorule_map, IPA_OPTS_SUDORULE,
                        &sudo_ctx->sudorule_map);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map (rule) "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
@@ -232,7 +232,7 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
                        ipa_sudocmdgroup_map, IPA_OPTS_SUDOCMDGROUP,
                        &sudo_ctx->sudocmdgroup_map);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map (cmdgroup) "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
@@ -241,7 +241,7 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
                        ipa_sudocmd_map, IPA_OPTS_SUDOCMD,
                        &sudo_ctx->sudocmd_map);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map (cmd) "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
@@ -250,16 +250,16 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
                          CONFDB_SUDO_THRESHOLD, CONFDB_DEFAULT_SUDO_THRESHOLD,
                          &sudo_ctx->sudocmd_threshold);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not parse sudo search base\n");
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not get sudo threshold\n");
+        goto done;
     }
 
     ret = sdap_parse_search_base(sudo_ctx, sudo_ctx->sdap_opts->basic,
                                  SDAP_SUDO_SEARCH_BASE,
                                  &sudo_ctx->sudo_sb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not parse sudo search base\n");
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not parse sudo search base\n");
+        goto done;
     }
 
     ret = ipa_sudo_ptask_setup(be_ctx, sudo_ctx);

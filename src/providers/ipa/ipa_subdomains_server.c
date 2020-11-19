@@ -513,7 +513,7 @@ static void ipa_getkeytab_exec(const char *ccache,
 
     gkt_env[0] = talloc_asprintf(NULL, "KRB5CCNAME=%s", ccache);
     if (gkt_env[0] == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to format KRB5CCNAME\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to format KRB5CCNAME\n");
         exit(1);
     }
 
@@ -522,7 +522,7 @@ static void ipa_getkeytab_exec(const char *ccache,
     ret = unlink(keytab_path);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to unlink the temporary ccname [%d][%s]\n",
               ret, sss_strerror(ret));
         exit(1);
@@ -533,12 +533,12 @@ static void ipa_getkeytab_exec(const char *ccache,
                  "-r", "-s", server, "-p", principal, "-k", keytab_path, NULL,
                  gkt_env);
 
-    DEBUG(SSSDBG_CRIT_FAILURE,
+    DEBUG(SSSDBG_FATAL_FAILURE,
           "execle returned %d, this shouldn't happen!\n", ret);
 
     /* The child should never end up here */
     ret = errno;
-    DEBUG(SSSDBG_CRIT_FAILURE,
+    DEBUG(SSSDBG_FATAL_FAILURE,
           "execle failed [%d][%s].\n", ret, sss_strerror(ret));
     exit(1);
 }
@@ -748,7 +748,8 @@ static errno_t ipa_server_trusted_dom_setup_1way(struct tevent_req *req)
 
     state->new_keytab = talloc_asprintf(state, "%sXXXXXX", state->keytab);
     if (state->new_keytab == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set up ipa_get_keytab\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot set up ipa_get_keytab. talloc_asprintf() failed\n");
         return ENOMEM;
     }
 

@@ -124,7 +124,7 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
     if (strcasecmp("cn", account_comp_name) != 0) {
         /* The third component name is not "cn" */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Expected cn in second component, got %s\n", account_comp_name);
+              "Expected cn in third component, got %s\n", account_comp_name);
         ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
@@ -135,7 +135,7 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
                     account_comp_val->length) != 0) {
         /* The third component value is not "accounts" */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Expected cn accounts second component, got %s\n",
+              "Expected accounts third component, got %s\n",
               (const char *) account_comp_val->data);
         ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;

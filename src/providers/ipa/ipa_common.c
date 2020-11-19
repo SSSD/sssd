@@ -781,8 +781,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                                     dp_opt_get_string(ipa_opts->auth,
                                                       KRB5_REALM));
         if (value == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set %s!\n",
-                     ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name);
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
             ret = ENOMEM;
             goto done;
         }
@@ -851,7 +850,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     srvaddr = fo_get_server_hostent(server);
     if (!srvaddr) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "FATAL: No hostent available for server (%s)\n",
+              "No hostent available for server (%s)\n",
                   fo_get_server_str_name(server));
         talloc_free(tmp_ctx);
         return;

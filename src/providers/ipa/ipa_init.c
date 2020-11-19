@@ -317,10 +317,10 @@ static errno_t ipa_init_client_mode(struct be_ctx *be_ctx,
     ret = sysdb_get_view_name(ipa_id_ctx, be_ctx->domain->sysdb,
                               &ipa_id_ctx->view_name);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find view name in the cache. "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot find view name in the cache. "
               "Will do online lookup later.\n");
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_view_name() failed [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_get_view_name() failed [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }
