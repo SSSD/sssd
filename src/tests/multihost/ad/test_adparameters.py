@@ -7,6 +7,7 @@ import paramiko
 import re
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.utils import SSHClient
+from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 
 
 @pytest.mark.adparameters
@@ -746,4 +747,39 @@ class TestBugzillaAutomation(object):
         multihost.client[0].run_command(realm_leave)
         remove_pcap = 'rm -f %s' % pcapfile
         multihost.client[0].run_command(remove_pcap)
+        assert status == 'PASS'
+
+    @pytest.mark.tier1
+    def test_0018_bz1734040(self, multihost, adjoin):
+        """
+        @Title: ad_parameters: sssd crash in ad_get_account_domain_search
+        """
+        # Automation of bug
+        # https://bugzilla.redhat.com/show_bug.cgi?id=1734040
+        adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0])
+        domain_name = client.get_domain_section_name()
+        client.backup_sssd_conf()
+        client.remove_sss_cache('/var/log/sssd')
+        sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
+        sssdcfg = re.sub(b'ad_domain = %s' % domain_name.encode('utf-8'),
+                         b'ad_domain = example.com \ndebug_level = 9', sssdcfg)
+        multihost.client[0].put_file_contents(SSSD_DEFAULT_CONF, sssdcfg)
+        client.clear_sssd_cache()
+        cmd = multihost.client[0].run_command('getent passwd 0',
+                                              raiseonerr=True)
+        if cmd.returncode != 0:
+            status = 'FAIL'
+        else:
+            status = 'PASS'
+        time.sleep(10)
+        domain_log = '/var/log/sssd/sssd_%s.log' % domain_name
+        log = multihost.client[0].get_file_contents(domain_log).decode('utf-8')
+        msg = 'Flags\s.0x0001.'
+        find = re.compile(r'%s' % msg)
+        if not find.search(log):
+            status = 'FAIL'
+        else:
+            status = 'PASS'
+        client.restore_sssd_conf()
         assert status == 'PASS'
