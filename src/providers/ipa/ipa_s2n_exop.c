@@ -2224,7 +2224,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected request type.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unexpected request type %d.\n", state->request_type);
         ret = EINVAL;
         goto done;
     }

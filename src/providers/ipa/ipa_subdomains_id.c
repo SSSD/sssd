@@ -1309,7 +1309,7 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
 
         state->object_sid = talloc_strdup(state, sid);
         if (state->object_sid == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto fail;
         }
@@ -1521,7 +1521,7 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
 
         state->ar->filter_value = talloc_strdup(state->ar, obj_name);
         if (state->ar->filter_value == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
             return ENOMEM;
         }
         state->ar->filter_type = BE_FILTER_NAME;

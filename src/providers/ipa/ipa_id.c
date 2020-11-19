@@ -266,7 +266,7 @@ ipa_initgr_get_overrides_send(TALLOC_CTX *memctx,
     }
     state->groups_id_attr = talloc_strdup(state, groups_id_attr);
     if (state->groups_id_attr == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
         ret = ENOMEM;
         goto done;
     }

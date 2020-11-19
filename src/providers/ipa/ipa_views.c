@@ -232,7 +232,7 @@ static errno_t get_dp_id_data_for_xyz(TALLOC_CTX *mem_ctx, const char *val,
     ar->filter_value = talloc_strdup(ar, val);
     ar->domain = talloc_strdup(ar, domain_name);
     if (ar->filter_value == NULL || ar->domain == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
         talloc_free(ar);
         return ENOMEM;
     }
@@ -471,7 +471,7 @@ static void ipa_get_ad_override_done(struct tevent_req *subreq)
 
     ret = ipa_get_ad_override_qualify_name(state);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot qualify object name\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot qualify object name\n");
         goto fail;
     }
 

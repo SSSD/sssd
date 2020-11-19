@@ -671,7 +671,7 @@ static void ipa_pam_access_handler_done(struct tevent_req *subreq)
     talloc_free(subreq);
 
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No HBAC rules find, denying access\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "No HBAC rules found, denying access\n");
         state->pd->pam_status = PAM_PERM_DENIED;
         goto done;
     } else if (ret != EOK) {
