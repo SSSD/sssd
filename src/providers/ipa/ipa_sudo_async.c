@@ -520,7 +520,7 @@ ipa_sudo_fetch_addtl_cmdgroups_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, "Received %zu additional command groups\n",
+    DEBUG(SSSDBG_FUNC_DATA, "Received %zu additional command groups\n",
           num_attrs);
 
     ret = ipa_sudo_filter_rules_bycmdgroups(state, state->domain, attrs,
@@ -609,7 +609,7 @@ ipa_sudo_fetch_rules_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, "Received %zu sudo rules\n", num_attrs);
+    DEBUG(SSSDBG_FUNC_DATA, "Received %zu sudo rules\n", num_attrs);
 
     ret = ipa_sudo_conv_rules(state->conv, attrs, num_attrs);
     if (ret != EOK) {
@@ -689,7 +689,7 @@ ipa_sudo_fetch_cmdgroups_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, "Received %zu sudo command groups\n",
+    DEBUG(SSSDBG_FUNC_DATA, "Received %zu sudo command groups\n",
           num_attrs);
 
     ret = ipa_sudo_conv_cmdgroups(state->conv, attrs, num_attrs);
@@ -769,7 +769,7 @@ ipa_sudo_fetch_cmds_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, "Received %zu sudo commands\n", num_attrs);
+    DEBUG(SSSDBG_FUNC_DATA, "Received %zu sudo commands\n", num_attrs);
 
     ret = ipa_sudo_conv_cmds(state->conv, attrs, num_attrs);
     if (ret != EOK) {
@@ -1109,7 +1109,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(state->sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
 

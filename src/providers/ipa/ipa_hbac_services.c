@@ -487,7 +487,7 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
             /* Original DN matched a single service. Get the service name */
             name = ldb_msg_find_attr_as_string(msgs[0], IPA_CN, NULL);
             if (name == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Attribute is missing!\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "Attribute IPA_CN is missing!\n");
                 ret = EFAULT;
                 goto done;
             }
@@ -523,7 +523,7 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 /* Original DN matched a single group. Get the groupname */
                 name = ldb_msg_find_attr_as_string(msgs[0], IPA_CN, NULL);
                 if (name == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "Attribute is missing!\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Attribute IPA_CN is missing!\n");
                     ret = EFAULT;
                     goto done;
                 }

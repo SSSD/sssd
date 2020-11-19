@@ -801,7 +801,7 @@ convert_host(TALLOC_CTX *mem_ctx,
         *skip_entry = true;
         return NULL;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
               value, ret, sss_strerror(ret));
         return NULL;
     }
@@ -841,7 +841,7 @@ convert_user(TALLOC_CTX *mem_ctx,
         *skip_entry = true;
         return NULL;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
               value, ret, sss_strerror(ret));
         return NULL;
     }
@@ -904,7 +904,7 @@ convert_group(TALLOC_CTX *mem_ctx,
         *skip_entry = true;
         return NULL;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
               value, ret, sss_strerror(ret));
         return NULL;
     }

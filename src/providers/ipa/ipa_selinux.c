@@ -681,7 +681,7 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, sss_strerror(errno));
+              "pipe (from) failed [%d][%s].\n", errno, sss_strerror(errno));
         return ret;
     }
 
@@ -689,7 +689,7 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, sss_strerror(errno));
+              "pipe (to) failed [%d][%s].\n", errno, sss_strerror(errno));
         return ret;
     }
 

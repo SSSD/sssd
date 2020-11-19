@@ -570,7 +570,7 @@ ipa_pam_session_handler_done(struct tevent_req *subreq)
     talloc_free(subreq);
 
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_IMPORTANT_INFO, "No Desktop Profile rules found\n");
+        DEBUG(SSSDBG_FUNC_DATA, "No Desktop Profile rules found\n");
         if (!state->session_ctx->no_rules_found) {
             state->session_ctx->no_rules_found = true;
             state->session_ctx->last_request = time(NULL);
