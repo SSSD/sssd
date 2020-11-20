@@ -258,7 +258,7 @@ static void sss_krb5_expire_callback_func(krb5_context context, void *data,
 
     blob = talloc_array(kr->pd, uint32_t, 2);
     if (blob == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_size failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
         return;
     }
 
@@ -525,7 +525,8 @@ static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
                                      out_token, out_pin);
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported authtok type.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unsupported authtok type %d\n", sss_authtok_get_type(auth_tok));
     }
 
     return EINVAL;
@@ -1087,7 +1088,7 @@ static errno_t pack_response_packet(TALLOC_CTX *mem_ctx, errno_t error,
 
     buf = talloc_array(mem_ctx, uint8_t, size);
     if (!buf) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Insufficient memory to create message.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed\n");
         return ENOMEM;
     }
 
@@ -1958,13 +1959,12 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
                                           &msg_len, &msg);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "pack_user_info_chpass_error failed.\n");
+                  "pack_user_info_chpass_error failed [%d]\n", ret);
         } else {
             ret = pam_add_response(kr->pd, SSS_PAM_USER_INFO, msg_len,
                                    msg);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "pam_add_response failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
             }
         }
         return kerr;
@@ -2036,13 +2036,12 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
                                               &user_resp_len, &user_resp);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "pack_user_info_chpass_error failed.\n");
+                      "pack_user_info_chpass_error failed [%d]\n", ret);
             } else {
                 ret = pam_add_response(kr->pd, SSS_PAM_USER_INFO, user_resp_len,
                                        user_resp);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "pam_add_response failed.\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
                 }
             }
         }
@@ -2448,7 +2447,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 
     pd = create_pam_data(kr);
     if (pd == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "create_pam_data failed.\n");
         return ENOMEM;
     }
     kr->pd = pd;
@@ -3110,7 +3109,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 
     kr->creds = calloc(1, sizeof(krb5_creds));
     if (kr->creds == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "calloc failed.\n");
         return ENOMEM;
     }
 
@@ -3345,7 +3344,7 @@ int main(int argc, const char *argv[])
 
     kr = talloc_zero(NULL, struct krb5_req);
     if (kr == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -3403,7 +3402,7 @@ int main(int argc, const char *argv[])
 
     ret = k5c_setup(kr, offline);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_child_setup failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_setup failed.\n");
         goto done;
     }
 

@@ -173,7 +173,7 @@ static errno_t authenticate_stored_users(
         ret = hash_lookup(uid_table, &key, &value);
 
         if (ret == HASH_SUCCESS) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "User [%s] is still logged in, "
+            DEBUG(SSSDBG_FUNC_DATA, "User [%s] is still logged in, "
                       "trying online authentication.\n", pd->user);
 
             auth_data = talloc_zero(deferred_auth_ctx->be_ctx,
@@ -193,7 +193,7 @@ static errno_t authenticate_stored_users(
                 }
             }
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, "User [%s] is not logged in anymore, "
+            DEBUG(SSSDBG_FUNC_DATA, "User [%s] is not logged in anymore, "
                       "discarding online authentication.\n", pd->user);
             talloc_free(pd);
         }

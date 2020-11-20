@@ -499,7 +499,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                 /* handle empty password gracefully */
                 if (authtok_type == SSS_AUTHTOK_TYPE_EMPTY) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Illegal zero-length authtok for user [%s]\n",
+                          "Illegal empty authtok for user [%s]\n",
                            pd->user);
                     state->pam_status = PAM_AUTH_ERR;
                     state->dp_err = DP_ERR_OK;
@@ -854,7 +854,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
             ret = EOK;
             goto done;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected PAM task\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected PAM task %d\n", pd->cmd);
             ret = EINVAL;
             goto done;
         }

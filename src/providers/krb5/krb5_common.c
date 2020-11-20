@@ -793,7 +793,7 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
 
     krb5_service = talloc_get_type(private_data, struct krb5_service);
     if (!krb5_service) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "FATAL: Bad private_data\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bad private_data\n");
         return;
     }
 
@@ -1110,7 +1110,7 @@ void remove_krb5_info_files_callback(void *pvt)
                                               ctx->kdc_service_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "be_fo_run_callbacks_at_next_request failed, "
+              "be_fo_run_callbacks_at_next_request(kdc_service_name) failed, "
                   "krb5 info files will not be removed, because "
                   "it is unclear if they will be recreated properly.\n");
         return;
@@ -1120,7 +1120,7 @@ void remove_krb5_info_files_callback(void *pvt)
                                             ctx->kpasswd_service_name);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "be_fo_run_callbacks_at_next_request failed, "
+                  "be_fo_run_callbacks_at_next_request(kpasswd_service_name) failed, "
                       "krb5 info files will not be removed, because "
                       "it is unclear if they will be recreated properly.\n");
             return;

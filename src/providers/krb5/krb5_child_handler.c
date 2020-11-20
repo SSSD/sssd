@@ -449,14 +449,14 @@ static errno_t fork_child(struct tevent_req *req)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, strerror(errno));
+              "pipe (from) failed [%d][%s].\n", errno, strerror(errno));
         goto fail;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", errno, strerror(errno));
+              "pipe (to) failed [%d][%s].\n", errno, strerror(errno));
         goto fail;
     }
 

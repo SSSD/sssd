@@ -405,7 +405,7 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
 
     base_dn = sysdb_user_base_dn(tmp_ctx, renew_tgt_ctx->be_ctx->domain);
     if (base_dn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_base_dn failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_base_dn failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -440,7 +440,7 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
 
         ret = sss_parse_internal_fqname(tmp_ctx, user_name, NULL, &user_dom);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
+            DEBUG(SSSDBG_CRIT_FAILURE,
                   "Cannot parse internal fqname [%d]: %s\n",
                   ret, sss_strerror(ret));
             goto done;
