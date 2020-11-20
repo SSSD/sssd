@@ -345,7 +345,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
                                          add_groups, ldap_groups,
                                          ldap_groups_count);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Adding incomplete users failed\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Adding incomplete groups failed\n");
             goto done;
         }
     }

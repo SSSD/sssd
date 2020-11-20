@@ -720,7 +720,7 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
                                       dp_opt_get_int(state->opts->basic,
                                                      SDAP_SEARCH_TIMEOUT));
     if (!subreq) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_get_automntmap_send failed\n");
         ret = ENOMEM;
         goto fail;
     }

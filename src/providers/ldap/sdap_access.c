@@ -317,7 +317,8 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
 
         default:
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Unexpected access rule type. Access denied.\n");
+                  "Unexpected access rule type %d. Access denied.\n",
+                  state->access_ctx->access_rule[state->current_rule]);
             ret = ERR_ACCESS_DENIED;
         }
 
@@ -1220,13 +1221,13 @@ static errno_t sdap_save_user_cache_bool(struct sss_domain_info *domain,
     attrs = sysdb_new_attrs(NULL);
     if (attrs == NULL) {
         ret = ENOMEM;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not create attrs\n");
         goto done;
     }
 
     ret = sysdb_attrs_add_bool(attrs, attr_name, value);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attr value\n");
         goto done;
     }
 
@@ -1787,7 +1788,7 @@ errno_t sdap_access_ppolicy_step(struct tevent_req *req)
                                    false);
 
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_access_ppolicy_send failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_get_generic_send failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -1913,7 +1914,7 @@ static void sdap_access_ppolicy_step_done(struct tevent_req *subreq)
             ret = sdap_access_decide_offline(state->cached_access);
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sdap_get_generic_send() returned error [%d][%s]\n",
+                  "sdap_id_op_done() returned error [%d][%s]\n",
                   ret, sss_strerror(ret));
         }
 

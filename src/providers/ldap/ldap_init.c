@@ -43,8 +43,8 @@ struct ldap_init_ctx {
 };
 
 /* Please use this only for short lists */
-errno_t check_order_list_for_duplicates(char **list,
-                                        bool case_sensitive)
+static errno_t check_order_list_for_duplicates(char **list,
+                                               bool case_sensitive)
 {
     size_t c;
     size_t d;

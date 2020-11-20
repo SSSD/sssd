@@ -408,14 +408,15 @@ int ldap_get_options(TALLOC_CTX *memctx,
         sss_erase_talloc_mem_securely(cleartext);
         talloc_free(cleartext);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_string failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_blob(authtok) failed.\n");
             goto done;
         }
 
         ret = dp_opt_set_string(opts->basic, SDAP_DEFAULT_AUTHTOK_TYPE,
                                 "password");
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_string failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "dp_opt_set_string(authtok_type) failed.\n");
             goto done;
         }
     }
@@ -629,7 +630,8 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
             default_entry_map = rfc2307bis_autofs_entry_map;
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown LDAP schema!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unknown LDAP schema %d!\n", opts->schema_type);
             return EINVAL;
     }
 

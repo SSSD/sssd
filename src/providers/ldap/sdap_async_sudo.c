@@ -111,7 +111,7 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, "Received %zu sudo rules\n",
+    DEBUG(SSSDBG_FUNC_DATA, "Received %zu sudo rules\n",
           state->num_rules);
 
     tevent_req_done(req);
@@ -665,7 +665,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(state->sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
 

@@ -223,7 +223,7 @@ static int lc_verify_keytab_ex(const char *principal,
             /* This should never happen. The API docs for this function
              * specify only success for this function
              */
-            DEBUG(SSSDBG_CRIT_FAILURE,"Could not free keytab entry contents\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not free keytab entry contents\n");
             /* This is non-fatal, so we'll continue here */
         }
 

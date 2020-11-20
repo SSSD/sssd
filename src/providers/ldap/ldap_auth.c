@@ -64,7 +64,7 @@ static errno_t add_expired_warning(struct pam_data *pd, long exp_time)
 
     data = talloc_array(pd, uint32_t, 2);
     if (data == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_size failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
     }
 
@@ -249,7 +249,8 @@ errno_t check_pwexpire_policy(enum pwexpire pw_expire_type,
         ret = EOK;
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown password expiration type.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unknown password expiration type %d.\n", pw_expire_type);
         ret = EINVAL;
     }
 
@@ -1355,9 +1356,10 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
         case PWEXPIRE_NONE:
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown password expiration type.\n");
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unknown password expiration type %d.\n", pw_expire_type);
+            state->pd->pam_status = PAM_SYSTEM_ERR;
+            goto done;
         }
     }
 

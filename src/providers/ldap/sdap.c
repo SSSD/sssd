@@ -371,7 +371,7 @@ int sdap_get_map(TALLOC_CTX *memctx,
 
         if (map[i].def_name && !map[i].name) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to retrieve value for %s\n", map[i].opt_name);
+                  "Failed to process value for %s\n", map[i].opt_name);
             talloc_zfree(map);
             return EINVAL;
         }
@@ -532,7 +532,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             if (!vals) {
                 ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
                 if (lerrno != LDAP_SUCCESS) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "LDAP Library error: %d(%s)\n",
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "ldap_get_values_len() failed: %d(%s)\n",
                           lerrno, sss_ldap_err2string(lerrno));
                     ret = EIO;
                     goto done;
@@ -613,7 +614,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
     ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (lerrno) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "LDAP Library error: %d(%s)\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_get_option() failed: %d(%s)\n",
               lerrno, sss_ldap_err2string(lerrno));
         ret = EIO;
         goto done;
@@ -884,7 +885,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
             ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_HARD;
         }
         else {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown value for tls_reqcert.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unknown value for tls_reqcert '%s'.\n", tls_opt);
             return EINVAL;
         }
         /* LDAP_OPT_X_TLS_REQUIRE_CERT has to be set as a global option,
@@ -893,7 +895,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
                               &ldap_opt_x_tls_require_cert);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(req_cert) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -903,7 +906,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(cacertfile) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -913,7 +917,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTDIR, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(cacertdir) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -923,7 +928,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CERTFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(certfile) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -933,7 +939,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_KEYFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(keyfile) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -943,7 +950,8 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CIPHER_SUITE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
+                  "ldap_set_option(cipher) failed: %s\n",
+                  sss_ldap_err2string(ret));
             return EIO;
         }
     }

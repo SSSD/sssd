@@ -95,14 +95,14 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
+              "pipe(from) failed [%d][%s].\n", ret, strerror(ret));
         goto fail;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", ret, strerror(ret));
+              "pipe(to) failed [%d][%s].\n", ret, strerror(ret));
         goto fail;
     }
 
@@ -332,7 +332,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
 
     ret = set_tgt_child_timeout(req, ev, timeout);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "activate_child_timeout_handler failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "set_tgt_child_timeout failed.\n");
         goto fail;
     }
 
