@@ -78,7 +78,8 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
     }
 
     if (pd->cmd != SSS_PAM_ACCT_MGMT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected pam task.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unexpected pam task %d.\n", pd->cmd);
         ret = EINVAL;
         goto done;
     }
