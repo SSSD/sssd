@@ -694,10 +694,10 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
                               LDAP_OPT_RESULT_CODE, &ldap_err);
         if (ret != LDAP_OPT_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "ldap_bind failed (couldn't get ldap error)\n");
+                  "ldap_sasl_bind failed (couldn't get ldap error)\n");
             ret = LDAP_LOCAL_ERROR;
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, "ldap_bind failed (%d)[%s]\n",
+            DEBUG(SSSDBG_CRIT_FAILURE, "ldap_sasl_bind failed (%d)[%s]\n",
                       ldap_err, sss_ldap_err2string(ldap_err));
             ret = ldap_err;
         }
@@ -988,7 +988,7 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
                                        (*sdap_sasl_interact), state);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "ldap_sasl_bind failed (%d)[%s]\n",
+              "ldap_sasl_interactive_bind_s failed (%d)[%s]\n",
                ret, sss_ldap_err2string(ret));
 
         optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,

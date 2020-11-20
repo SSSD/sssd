@@ -749,7 +749,7 @@ sdap_modify_send(TALLOC_CTX *mem_ctx,
 
     ret = ldap_modify_ext(state->sh->ldap, dn, mods, NULL, NULL, &msgid);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to send operation!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_modify_ext() failed [%d]\n", ret);
         goto done;
     }
 
@@ -2120,7 +2120,7 @@ static int sdap_x_deref_create_control(struct sdap_handle *sh,
 
     ret = ldap_create_deref_control_value(sh->ldap, ds, &derefval);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_ldap_control_create failed: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_create_deref_control_value failed: %s\n",
                   ldap_err2string(ret));
         return ret;
     }
@@ -2129,7 +2129,7 @@ static int sdap_x_deref_create_control(struct sdap_handle *sh,
                               1, &derefval, 1, ctrl);
     ldap_memfree(derefval.bv_val);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_ldap_control_create failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_control_create failed %d\n", ret);
         return ret;
     }
 
@@ -2875,7 +2875,8 @@ static void sdap_deref_search_done(struct tevent_req *subreq)
                 &state->reply_count, &state->reply);
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown deref method\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unknown deref method %d\n", state->deref_type);
         tevent_req_error(req, EINVAL);
         return;
     }
