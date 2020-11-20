@@ -563,7 +563,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
                    "is enabled.\n");
         } else {
             /* be is going offline as there is no more servers to try */
-            DEBUG(SSSDBG_CRIT_FAILURE,
+            DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to connect, going offline (%d [%s])\n",
                    ret, strerror(ret));
             is_offline = true;
