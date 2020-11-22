@@ -221,6 +221,7 @@ static errno_t merge_res_sysdb_attrs(TALLOC_CTX *mem_ctx,
                                      const char *attrs[])
 {
     errno_t ret;
+    size_t ts_cache_res_count = 0;
     struct ldb_result *ts_cache_res = NULL;
 
     if (ts_res == NULL || ctx->ldb_ts == NULL) {
@@ -231,7 +232,6 @@ static errno_t merge_res_sysdb_attrs(TALLOC_CTX *mem_ctx,
     if (ts_cache_res == NULL) {
         return ENOMEM;
     }
-    ts_cache_res->count = ts_res->count;
     ts_cache_res->msgs = talloc_zero_array(ts_cache_res,
                                            struct ldb_message *,
                                            ts_res->count);
@@ -244,15 +244,18 @@ static errno_t merge_res_sysdb_attrs(TALLOC_CTX *mem_ctx,
         ret = merge_msg_sysdb_attrs(ts_cache_res->msgs,
                                     ctx,
                                     ts_res->msgs[c],
-                                    &ts_cache_res->msgs[c], attrs);
-        if (ret != EOK) {
+                                    &ts_cache_res->msgs[ts_cache_res_count],
+                                    attrs);
+        if ((ret != EOK) || (ts_cache_res->msgs[ts_cache_res_count] == NULL)) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Cannot merge sysdb cache values for %s\n",
                   ldb_dn_get_linearized(ts_res->msgs[c]->dn));
-            /* non-fatal, we just get only the non-timestamp attrs */
+            /* non-fatal, just skip */
             continue;
         }
+        ts_cache_res_count += 1;
     }
+    ts_cache_res->count = ts_cache_res_count;
 
     *_ts_cache_res = ts_cache_res;
     return EOK;
