@@ -122,14 +122,11 @@ static int kcm_op_queue_entry_destructor(struct kcm_ops_queue_entry *entry)
 {
     struct kcm_ops_queue_entry *next_entry;
     struct tevent_immediate *imm;
-    bool terminating;
-
-    terminating = entry->queue->qctx->kctx->rctx->shutting_down;
 
     if (entry == NULL) {
         return 1;
     /* Prevent use-after-free of req when shutting down with non-empty queue */
-    } else if (terminating) {
+    } else if (entry->queue->qctx->kctx->rctx->shutting_down) {
         return 0;
     }
 
