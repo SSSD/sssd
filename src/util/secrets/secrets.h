@@ -46,7 +46,6 @@
 enum sss_sec_enctype {
     SSS_SEC_PLAINTEXT,
     SSS_SEC_MASTERKEY,
-    SSS_SEC_BASE64,
     SSS_SEC_ENCTYPE_SENTINEL
 };
 

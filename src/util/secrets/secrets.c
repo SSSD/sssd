@@ -75,8 +75,6 @@ static const char *sss_sec_enctype_to_str(enum sss_sec_enctype enctype)
         return "plaintext";
     case SSS_SEC_MASTERKEY:
         return "masterkey";
-    case SSS_SEC_BASE64:
-        return "base64";
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Bug: unknown encryption type %d\n",
                 enctype);
@@ -92,10 +90,6 @@ static enum sss_sec_enctype sss_sec_str_to_enctype(const char *str)
 
     if (strcmp("masterkey", str) == 0) {
         return SSS_SEC_MASTERKEY;
-    }
-
-    if (strcmp("base64", str) == 0) {
-        return SSS_SEC_BASE64;
     }
 
     return SSS_SEC_ENCTYPE_SENTINEL;
@@ -140,10 +134,6 @@ static int local_decrypt(struct sss_sec_ctx *sctx,
                   "sss_decrypt failed [%d]: %s\n", ret, sss_strerror(ret));
             return ret;
         }
-        break;
-    case SSS_SEC_BASE64:
-        output = (uint8_t *)sss_base64_decode(mem_ctx, (const char *)secret,
-                                              &output_len);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unknown encryption type '%d'\n", enctype);
@@ -195,11 +185,6 @@ static int local_encrypt(struct sss_sec_ctx *sec_ctx,
         output = (uint8_t*)b64;
         output_len = strlen(b64) + 1;
         talloc_free(_secret.data);
-        break;
-    case SSS_SEC_BASE64:
-        b64 = sss_base64_encode(mem_ctx, secret, secret_len);
-        output = (uint8_t*)b64;
-        output_len = strlen(b64) + 1;
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unknown encryption type '%d'\n", enctype);
