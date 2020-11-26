@@ -42,6 +42,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 AM_CONDITIONAL([HAVE_GCC], [test "$ac_cv_prog_gcc" = yes])
 
 AC_CHECK_HEADERS(stdint.h dlfcn.h)
+AC_CHECK_HEADERS([stdatomic.h],,AC_MSG_ERROR([C11 atomic types are not supported]))
 AC_CONFIG_HEADER(config.h)
 
 AC_CHECK_TYPES([errno_t], [], [], [[#include <errno.h>]])
