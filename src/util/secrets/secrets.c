@@ -1071,17 +1071,12 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    attr_enctype = ldb_msg_find_attr_as_string(res->msgs[0], "enctype", NULL);
-
-    if (attr_enctype) {
-        enctype = sss_sec_str_to_enctype(attr_enctype);
-        ret = local_decrypt(req->sctx, tmp_ctx, attr_secret->data,
-                            attr_secret->length, enctype, &secret, &secret_len);
-        if (ret) goto done;
-    } else {
-        secret = talloc_steal(tmp_ctx, attr_secret->data);
-        secret_len = attr_secret->length;
-    }
+    attr_enctype = ldb_msg_find_attr_as_string(res->msgs[0], "enctype",
+                                               "plaintext");
+    enctype = sss_sec_str_to_enctype(attr_enctype);
+    ret = local_decrypt(req->sctx, tmp_ctx, attr_secret->data,
+                        attr_secret->length, enctype, &secret, &secret_len);
+    if (ret) goto done;
 
     if (_datatype != NULL) {
         attr_datatype = ldb_msg_find_attr_as_string(res->msgs[0], "type",
