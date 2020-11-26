@@ -39,6 +39,11 @@
 #define LOCAL_SIMPLE_FILTER "(|(type=simple)(type=binary))"
 #define LOCAL_CONTAINER_FILTER "(type=container)"
 
+#define SEC_ATTR_SECRET  "secret"
+#define SEC_ATTR_ENCTYPE "enctype"
+#define SEC_ATTR_TYPE    "type"
+#define SEC_ATTR_CTIME   "creationTime"
+
 typedef int (*url_mapper_fn)(TALLOC_CTX *mem_ctx,
                              const char *url,
                              uid_t client,
@@ -465,7 +470,7 @@ static int local_db_create(struct sss_sec_req *req)
     ret = local_db_check_containers_nest_level(req, msg->dn);
     if (ret != EOK) goto done;
 
-    ret = ldb_msg_add_string(msg, "type", "container");
+    ret = ldb_msg_add_string(msg, SEC_ATTR_TYPE, "container");
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding type:container [%d]: %s\n",
@@ -473,7 +478,7 @@ static int local_db_create(struct sss_sec_req *req)
         goto done;
     }
 
-    ret = ldb_msg_add_fmt(msg, "creationTime", "%lu", time(NULL));
+    ret = ldb_msg_add_fmt(msg, SEC_ATTR_CTIME, "%lu", time(NULL));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding creationTime [%d]: %s\n",
@@ -953,7 +958,7 @@ errno_t sss_sec_list(TALLOC_CTX *mem_ctx,
                      size_t *_num_keys)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *attrs[] = { "secret", NULL };
+    static const char *attrs[] = { SEC_ATTR_SECRET, NULL };
     struct ldb_result *res;
     char **keys;
     int ret;
@@ -1017,7 +1022,8 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
                     char **_datatype)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *attrs[] = { "secret", "enctype", "type", NULL };
+    static const char *attrs[] = { SEC_ATTR_SECRET, SEC_ATTR_ENCTYPE,
+                                   SEC_ATTR_TYPE, NULL };
     struct ldb_result *res;
     const struct ldb_val *attr_secret;
     const char *attr_enctype;
@@ -1064,14 +1070,14 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    attr_secret = ldb_msg_find_ldb_val(res->msgs[0], "secret");
+    attr_secret = ldb_msg_find_ldb_val(res->msgs[0], SEC_ATTR_SECRET);
     if (!attr_secret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "The 'secret' attribute is missing\n");
         ret = ENOENT;
         goto done;
     }
 
-    attr_enctype = ldb_msg_find_attr_as_string(res->msgs[0], "enctype",
+    attr_enctype = ldb_msg_find_attr_as_string(res->msgs[0], SEC_ATTR_ENCTYPE,
                                                "plaintext");
     enctype = sss_sec_str_to_enctype(attr_enctype);
     ret = local_decrypt(req->sctx, tmp_ctx, attr_secret->data,
@@ -1079,7 +1085,7 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
     if (ret) goto done;
 
     if (_datatype != NULL) {
-        attr_datatype = ldb_msg_find_attr_as_string(res->msgs[0], "type",
+        attr_datatype = ldb_msg_find_attr_as_string(res->msgs[0], SEC_ATTR_TYPE,
                                                     "simple");
         datatype = talloc_strdup(tmp_ctx, attr_datatype);
         if (datatype == NULL) {
@@ -1167,7 +1173,7 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_string(msg, "type", datatype);
+    ret = ldb_msg_add_string(msg, SEC_ATTR_TYPE, datatype);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding type:%s [%d]: %s\n",
@@ -1175,7 +1181,8 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_string(msg, "enctype", sss_sec_enctype_to_str(enctype));
+    ret = ldb_msg_add_string(msg, SEC_ATTR_ENCTYPE,
+                             sss_sec_enctype_to_str(enctype));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding enctype [%d]: %s\n",
@@ -1183,7 +1190,7 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_value(msg, "secret", &enc_secret, NULL);
+    ret = ldb_msg_add_value(msg, SEC_ATTR_SECRET, &enc_secret, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding secret [%d]: %s\n",
@@ -1191,7 +1198,7 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_fmt(msg, "creationTime", "%lu", time(NULL));
+    ret = ldb_msg_add_fmt(msg, SEC_ATTR_CTIME, "%lu", time(NULL));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding creationTime [%d]: %s\n",
@@ -1283,7 +1290,7 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_empty(msg, "enctype", LDB_FLAG_MOD_REPLACE, NULL);
+    ret = ldb_msg_add_empty(msg, SEC_ATTR_ENCTYPE, LDB_FLAG_MOD_REPLACE, NULL);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "ldb_msg_add_empty failed: [%s]\n", ldb_strerror(ret));
@@ -1291,7 +1298,8 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_string(msg, "enctype", sss_sec_enctype_to_str(enctype));
+    ret = ldb_msg_add_string(msg, SEC_ATTR_ENCTYPE,
+                             sss_sec_enctype_to_str(enctype));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding enctype [%d]: %s\n",
@@ -1299,7 +1307,7 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_empty(msg, "type", LDB_FLAG_MOD_REPLACE, NULL);
+    ret = ldb_msg_add_empty(msg, SEC_ATTR_TYPE, LDB_FLAG_MOD_REPLACE, NULL);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "ldb_msg_add_empty failed: [%s]\n", ldb_strerror(ret));
@@ -1307,7 +1315,7 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_string(msg, "type", datatype);
+    ret = ldb_msg_add_string(msg, SEC_ATTR_TYPE, datatype);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding type:%s [%d]: %s\n",
@@ -1316,7 +1324,7 @@ errno_t sss_sec_update(struct sss_sec_req *req,
     }
 
     /* FIXME - should we have a lastUpdate timestamp? */
-    ret = ldb_msg_add_empty(msg, "secret", LDB_FLAG_MOD_REPLACE, NULL);
+    ret = ldb_msg_add_empty(msg, SEC_ATTR_SECRET, LDB_FLAG_MOD_REPLACE, NULL);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "ldb_msg_add_empty failed: [%s]\n", ldb_strerror(ret));
@@ -1324,7 +1332,7 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_value(msg, "secret", &enc_secret, NULL);
+    ret = ldb_msg_add_value(msg, SEC_ATTR_SECRET, &enc_secret, NULL);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "ldb_msg_add_string failed: [%s]\n", ldb_strerror(ret));
