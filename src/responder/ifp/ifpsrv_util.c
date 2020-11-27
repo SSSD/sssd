@@ -341,7 +341,7 @@ immediately:
     list_ctx->paths = talloc_realloc(list_ctx, list_ctx->paths, const char *,
                                      list_ctx->paths_max + 1);
     if (list_ctx->paths == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_realloc() failed\n");
         ret = ENOMEM;
         goto done;
     }
