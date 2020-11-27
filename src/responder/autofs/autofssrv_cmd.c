@@ -477,7 +477,7 @@ sss_autofs_cmd_setautomntent(struct cli_ctx *cli_ctx)
                                             autofs_ctx->rctx->ncache, 0, NULL,
                                             cmd_ctx->mapname);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_autofs_map_by_name_send failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -685,7 +685,7 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *cli_ctx)
 
     req = autofs_setent_send(cli_ctx, cli_ctx->ev, autofs_ctx, cmd_ctx->mapname);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "autofs_setent_send failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -886,7 +886,7 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *cli_ctx)
                                               cmd_ctx->mapname,
                                               cmd_ctx->keyname);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_autofs_entry_by_name_send failed\n");
         ret = ENOMEM;
         goto done;
     }
