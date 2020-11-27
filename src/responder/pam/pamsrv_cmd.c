@@ -138,7 +138,7 @@ static void inform_user(struct pam_data* pd, const char *pam_message)
     ret = pack_user_info_msg(pd, pam_message, &msg_len, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pack_user_info_account_expired failed.\n");
+              "pack_user_info_msg failed.\n");
     } else {
         ret = pam_add_response(pd, SSS_PAM_USER_INFO, msg_len, msg);
         if (ret != EOK) {
