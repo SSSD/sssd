@@ -768,7 +768,7 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
                              binary, extra_argv, extra_args_only,
                              &argv);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "prepare_child_argv.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "prepare_child_argv() failed.\n");
         exit(EXIT_FAILURE);
     }
 
