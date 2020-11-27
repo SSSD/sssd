@@ -116,7 +116,7 @@ proxy_client_init(struct sbus_connection *conn,
 
     ret = sbus_connection_add_path_map(conn, paths);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add paths [%d]: %s\n",
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to add paths [%d]: %s\n",
               ret, sss_strerror(ret));
     }
 

@@ -68,7 +68,7 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct proxy_child_ctx);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not send PAM request to child\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -391,7 +391,7 @@ static void proxy_child_init_done(struct tevent_req *subreq) {
      */
     sig_ctx = talloc_zero(child_ctx->auth_ctx, struct proxy_child_sig_ctx);
     if(sig_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_signal failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -753,7 +753,7 @@ proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
         pd->pam_status = PAM_SUCCESS;
         goto immediately;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported PAM task.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported PAM task %d\n", pd->cmd);
         pd->pam_status = PAM_MODULE_UNKNOWN;
         goto immediately;
     }
