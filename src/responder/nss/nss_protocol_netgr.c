@@ -159,7 +159,7 @@ nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
             ret = nss_protocol_fill_netgr_member(packet, entry, &rp);
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected value type!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected value type %d!\n", entry->type);
             ret = ERR_INTERNAL;
             break;
         }

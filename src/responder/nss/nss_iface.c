@@ -67,7 +67,7 @@ nss_update_initgr_memcache(struct nss_ctx *nctx,
     ret = sysdb_initgroups(tmp_ctx, dom, fq_name, &res);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to make request to our cache! [%d][%s]\n",
+              "sysdb_initgroups() failed [%d][%s]\n",
               ret, strerror(ret));
         goto done;
     }
@@ -234,7 +234,7 @@ nss_register_backend_iface(struct sbus_connection *conn,
 
     ret = sbus_connection_add_path(conn, SSS_BUS_PATH, &iface);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register service interface"
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register service interface"
               "[%d]: %s\n", ret, sss_strerror(ret));
     }
 
