@@ -270,7 +270,7 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
                 }
                 break;
             default:
-                DEBUG(SSSDBG_CRIT_FAILURE, "unknown PAM call\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "unknown PAM call %d\n", pd->cmd);
                 pam_status=PAM_ABORT;
         }
 
@@ -383,13 +383,13 @@ proxy_cli_init(struct pc_ctx *ctx)
     ret = sss_iface_connect_address(ctx, ctx->ev, sbus_cliname, sbus_address,
                                     NULL, &ctx->conn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to %s\n", sbus_address);
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to connect to %s\n", sbus_address);
         goto done;
     }
 
     ret = sbus_connection_add_path_map(ctx->conn, paths);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add paths [%d]: %s\n",
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to add paths [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
@@ -580,7 +580,7 @@ int main(int argc, const char *argv[])
         return 3;
     }
 
-    DEBUG(SSSDBG_CRIT_FAILURE,
+    DEBUG(SSSDBG_IMPORTANT_INFO,
           "Proxy child for domain [%s] started!\n", domain);
 
     /* loop on main */

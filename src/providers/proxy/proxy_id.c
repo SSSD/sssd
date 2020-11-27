@@ -170,7 +170,7 @@ handle_getpw_result(enum nss_status status, struct passwd *pwd,
     switch (status) {
     case NSS_STATUS_NOTFOUND:
 
-        DEBUG(SSSDBG_MINOR_FAILURE, "User not found.\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "User not found.\n");
         *del_user = true;
         break;
 
@@ -979,9 +979,7 @@ static int get_gr_name(struct proxy_id_ctx *ctx,
     grp = talloc(tmpctx, struct group);
     if (!grp) {
         ret = ENOMEM;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "proxy -> getgrnam_r failed for '%s': [%d] %s\n",
-              i_name, ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc() failed\n");
         goto done;
     }
 
