@@ -177,7 +177,7 @@ add_timeout_timer(struct tevent_context *ev, struct resolv_ctx *ctx)
     ctx->timeout_watcher = tevent_add_timer(ev, ctx, tv, check_fd_timeouts,
                                             ctx);
     if (ctx->timeout_watcher == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer() failed\n");
     }
 }
 
