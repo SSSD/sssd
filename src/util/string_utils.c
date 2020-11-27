@@ -90,7 +90,7 @@ errno_t guid_blob_to_string_buf(const uint8_t *blob, char *str_buf,
     int ret;
 
     if (blob == NULL || str_buf == NULL || buf_size < GUID_STR_BUF_SIZE) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Buffer too small.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Buffer too small.\n");
         return EINVAL;
     }
 

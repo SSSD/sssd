@@ -374,7 +374,7 @@ static void te_server_hup(struct tevent_context *ev,
     struct logrotate_ctx *lctx =
             talloc_get_type(private_data, struct logrotate_ctx);
 
-    DEBUG(SSSDBG_CRIT_FAILURE, "Received SIGHUP. Rotating logfiles.\n");
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Received SIGHUP. Rotating logfiles.\n");
 
     ret = server_common_rotate_logs(lctx->confdb, lctx->confdb_path);
     if (ret != EOK) {
