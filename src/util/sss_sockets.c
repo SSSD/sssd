@@ -322,7 +322,7 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
 
     ret = set_fcntl_flags(state->sd, FD_CLOEXEC, O_NONBLOCK);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "settting fd flags failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "setting fd flags failed.\n");
         goto fail;
     }
 
