@@ -347,7 +347,7 @@ nss_register_service_iface(struct nss_ctx *nss_ctx,
 
     ret = sbus_connection_add_path(rctx->mon_conn, SSS_BUS_PATH, &iface_svc);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register service interface"
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register service interface"
               "[%d]: %s\n", ret, sss_strerror(ret));
     }
 
