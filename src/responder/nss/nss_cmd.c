@@ -121,7 +121,7 @@ static errno_t nss_getby_name(struct cli_ctx *cli_ctx,
     subreq = nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,
                                  data, memcache, rawname, 0);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "nss_get_object_send() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -187,7 +187,7 @@ static errno_t nss_getby_id(struct cli_ctx *cli_ctx,
     subreq = nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,
                                  data, memcache, NULL, id);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "nss_get_object_send() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -240,7 +240,7 @@ static errno_t nss_getby_svc(struct cli_ctx *cli_ctx,
     subreq = nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,
                                  data, SSS_MC_NONE, NULL, 0);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "nss_get_object_send() failed\n");
         return ENOMEM;
     }
 
@@ -376,7 +376,7 @@ static errno_t nss_getby_cert(struct cli_ctx *cli_ctx,
     subreq = nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,
                                  data, SSS_MC_NONE, NULL, 0);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "nss_get_object_send() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -433,7 +433,7 @@ static errno_t nss_getby_sid(struct cli_ctx *cli_ctx,
     subreq = nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,
                                  data, SSS_MC_NONE, NULL, 0);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "nss_get_object_send() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -488,7 +488,7 @@ static errno_t nss_getby_addr(struct cli_ctx *cli_ctx,
     subreq = nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,
                                  data, memcache, NULL, 0);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "nss_get_object_send() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -640,7 +640,7 @@ static errno_t nss_setent(struct cli_ctx *cli_ctx,
 
     subreq = nss_setent_send(cli_ctx, cli_ctx->ev, cli_ctx, type, enum_ctx);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "nss_setent_send() failed\n");
         return ENOMEM;
     }
 
@@ -697,7 +697,7 @@ static errno_t nss_getent(struct cli_ctx *cli_ctx,
 
     subreq = nss_setent_send(cli_ctx, cli_ctx->ev, cli_ctx, type, enum_ctx);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create setent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "nss_setent_send() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -829,7 +829,7 @@ static errno_t sss_nss_setnetgrent(struct cli_ctx *cli_ctx,
     subreq = nss_setnetgrent_send(cli_ctx, cli_ctx->ev, cli_ctx, type,
                                   nss_ctx->netgrent, state_ctx->netgroup);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "nss_setnetgrent_send() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -904,7 +904,7 @@ static errno_t nss_getnetgrent(struct cli_ctx *cli_ctx,
                                   cmd_ctx->nss_ctx->netgrent,
                                   cmd_ctx->state_ctx->netgroup);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "nss_setnetgrent_send() failed\n");
         return ENOMEM;
     }
 
