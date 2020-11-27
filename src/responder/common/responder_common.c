@@ -116,7 +116,7 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     if (ret != EOK) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "getsock failed [%d][%s].\n", ret, strerror(ret));
+              "getsockopt failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
     if (client_cred_len != sizeof(struct ucred)) {
@@ -805,7 +805,7 @@ sss_dp_on_reconnect(struct sbus_connection *conn,
                                             SSS_BUS_PATH,
                                             be_conn->cli_name);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sbus_call_dp_client_Register_send() failed\n");
         return;
     }
 
