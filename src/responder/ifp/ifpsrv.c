@@ -67,7 +67,7 @@ sysbus_init(TALLOC_CTX *mem_ctx,
     sysbus = sbus_connect_system(mem_ctx, ev, dbus_name,
                                  &ifp_ctx->rctx->last_request_time);
     if (sysbus == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to system bus!\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to connect to system bus!\n");
         return ERR_NO_SYSBUS;
     }
 
@@ -75,13 +75,13 @@ sysbus_init(TALLOC_CTX *mem_ctx,
 
     ret = ifp_register_sbus_interface(sysbus, ifp_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not register interfaces\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not register interfaces\n");
         goto done;
     }
 
     ret = ifp_register_nodes(ifp_ctx, sysbus);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not register nodes factories\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not register nodes factories\n");
         goto done;
     }
 
@@ -148,7 +148,7 @@ ifp_register_service_iface(struct ifp_ctx *ifp_ctx,
 
     ret = sbus_connection_add_path(rctx->mon_conn, SSS_BUS_PATH, &iface_svc);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register service interface"
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register service interface"
               "[%d]: %s\n", ret, sss_strerror(ret));
     }
 
