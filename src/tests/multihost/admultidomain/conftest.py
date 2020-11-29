@@ -6,18 +6,16 @@ import time
 import pytest
 import os
 import posixpath
-from sssd.testlib.common.paths import SSSD_DEFAULT_CONF, NSSWITCH_DEFAULT_CONF
-from sssd.testlib.common.qe_class import session_multihost
+from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 from sssd.testlib.common.exceptions import SSSDException
 from sssd.testlib.common.samba import sambaTools
-from sssd.testlib.common.utils import ADOperations
 from sssd.testlib.common.utils import sssdTools
 
 
 def pytest_configure():
     """ Namespace hook, Adds below dict to pytest namespace """
     pytest.num_masters = 0
-    pytest.num_ad = 2
+    pytest.num_ad = 3
     pytest.num_atomic = 0
     pytest.num_replicas = 0
     pytest.num_clients = 1
@@ -185,36 +183,6 @@ def backupsssdconf(session_multihost, request):
     request.addfinalizer(restoresssdconf)
 
 
-@pytest.fixture(scope='function')
-def create_site(session_multihost, request):
-    ad2_hostname = session_multihost.ad[1].hostname
-    ad2_shostname = ad2_hostname.strip().split('.')[0]
-    site = "Raleigh"
-
-    cmd_create_site = "powershell.exe -inputformat none -noprofile " \
-                      "'(New-ADReplicationSite -Name \"%s\" " \
-                      "-Confirm:$false)'" % site
-    cmd_move_ad2 = "powershell.exe -inputformat none -noprofile " \
-                   "'(Move-ADDirectoryServer -Identity \"%s\" -Site \"%s\" " \
-                   "-Confirm:$false)'" % (ad2_shostname, site)
-
-    session_multihost.ad[0].run_command(cmd_create_site)
-    session_multihost.ad[0].run_command(cmd_move_ad2)
-
-    def teardown_site():
-        cmd_move_ad2back = "powershell.exe -inputformat none -noprofile " \
-                           "'(Move-ADDirectoryServer -Identity \"%s\" " \
-                           "-Site \"Default-First-Site-Name\" " \
-                           "-Confirm:$false)'" % ad2_shostname
-        cmd_remove_site2 = "powershell.exe -inputformat none -noprofile " \
-                           "'(Remove-ADReplicationSite \"%s\" " \
-                           "-Confirm:$false)'" % site
-        session_multihost.ad[0].run_command(cmd_move_ad2back)
-        session_multihost.ad[0].run_command(cmd_remove_site2)
-
-    request.addfinalizer(teardown_site)
-
-
 # ############## class scoped Fixtures ##############################
 
 
@@ -237,6 +205,7 @@ def clear_sssd_cache(session_multihost):
     """ Clear sssd cache """
     client = sssdTools(session_multihost.client[0])
     client.clear_sssd_cache()
+
 
 @pytest.fixture(scope="class")
 def joinad(session_multihost, request):
@@ -279,7 +248,7 @@ def joinad(session_multihost, request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_session(request, session_multihost):
+def setup_session(session_multihost, request):
     """ Setup Session """
     client = sssdTools(session_multihost.client[0])
     realm = session_multihost.ad[0].realm

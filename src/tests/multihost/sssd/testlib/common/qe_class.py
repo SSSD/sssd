@@ -54,6 +54,13 @@ class QeConfig(pytest_multihost.config.Config):
             log.addHandler(handler)
         return log
 
+    def filter(self, descriptions):
+        """
+            Override default behavior to not filter hosts, so that it can work
+                with dynamic topologies.
+        """
+        return
+
 
 class QeBaseHost(pytest_multihost.host.BaseHost):
     """QeBaseHost subclass of multihost plugin BaseHost class."""
@@ -290,7 +297,6 @@ class QeDomain(pytest_multihost.config.Domain):
         self.hosts = []
 
     host_classes = {'default': QeHost, 'windows': QeWinHost}
-
 
 @pytest.fixture(scope="session", autouse=True)
 def session_multihost(request):
