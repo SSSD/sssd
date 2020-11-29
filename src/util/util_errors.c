@@ -165,6 +165,7 @@ errno_t sss_ldb_error_to_errno(int ldberr)
     case LDB_ERR_OPERATIONS_ERROR:
         return EIO;
     case LDB_ERR_NO_SUCH_OBJECT:
+    case LDB_ERR_NO_SUCH_ATTRIBUTE:
         return ENOENT;
     case LDB_ERR_BUSY:
         return EBUSY;
@@ -174,7 +175,7 @@ errno_t sss_ldb_error_to_errno(int ldberr)
     case LDB_ERR_INVALID_ATTRIBUTE_SYNTAX:
         return EINVAL;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_MINOR_FAILURE,
               "LDB returned unexpected error: [%i]\n",
               ldberr);
         return EFAULT;
