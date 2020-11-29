@@ -4942,9 +4942,15 @@ static errno_t sysdb_update_members_ex(struct sss_domain_info *domain,
             ret = sysdb_remove_group_member(domain, del_groups[i],
                                             member, type, is_dn);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Could not remove member [%s] from group [%s]. "
-                          "Skipping\n", member, del_groups[i]);
+                if (ret != ENOENT) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Could not remove member [%s] from group [%s]. "
+                              "Skipping\n", member, del_groups[i]);
+                } else {
+                    DEBUG(SSSDBG_FUNC_DATA,
+                          "No member [%s] in group [%s]. "
+                              "Skipping\n", member, del_groups[i]);
+                }
                 /* Continue on, we should try to finish the rest */
             }
         }
