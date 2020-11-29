@@ -116,8 +116,8 @@ sss_iface_connect_address(TALLOC_CTX *mem_ctx,
 
     conn = sbus_connect_private(mem_ctx, ev, address,
                                 conn_name, last_request_time);
-    if (conn == NULL) {
-        return ENOMEM;
+    if (conn == NULL) { /* most probably sbus_dbus_connect_address() failed */
+        return EFAULT;
     }
 
     *_conn = conn;
