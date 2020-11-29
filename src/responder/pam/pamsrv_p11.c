@@ -425,7 +425,7 @@ bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd)
         }
     }
     if (pctx->smartcard_services[c] == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_CONF_SETTINGS,
               "Smartcard authentication for service [%s] not supported.\n",
               pd->service);
         return false;
