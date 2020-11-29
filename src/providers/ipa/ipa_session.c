@@ -668,7 +668,7 @@ ipa_pam_session_handler_get_deskprofile_user_info(TALLOC_CTX *mem_ctx,
 
     if (res->count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "sysdb_getpwnam() got more users than expected. "
+              "sysdb_getpwnam() returned unexpected amount of users. "
               "Expected [%d], got [%d]\n", 1, res->count);
         ret = EINVAL;
         goto done;
