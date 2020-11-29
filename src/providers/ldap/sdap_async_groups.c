@@ -2249,7 +2249,7 @@ static void sdap_nested_done(struct tevent_req *subreq)
 
     if (hash_count(state->missing_external) == 0) {
         /* No external members. Processing complete */
-        DEBUG(SSSDBG_TRACE_INTERNAL, "No external members, done");
+        DEBUG(SSSDBG_TRACE_INTERNAL, "No external members, done\n");
         tevent_req_done(req);
         return;
     }
