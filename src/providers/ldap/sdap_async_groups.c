@@ -1270,7 +1270,7 @@ sdap_process_group_send(TALLOC_CTX *memctx,
 
     /* Group without members */
     if (el->num_values == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "No Members. Done!\n");
+        DEBUG(SSSDBG_FUNC_DATA, "No Members. Done!\n");
         ret = EOK;
         goto done;
     }
