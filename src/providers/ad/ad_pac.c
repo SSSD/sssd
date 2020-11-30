@@ -120,7 +120,11 @@ errno_t check_if_pac_is_available(TALLOC_CTX *mem_ctx,
 
     ret = find_user_entry(mem_ctx, dom, ar, &msg);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "find_user_entry failed.\n");
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_FUNC_DATA, "find_user_entry didn't find user entry.\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "find_user_entry failed.\n");
+        }
         return ret;
     }
 
