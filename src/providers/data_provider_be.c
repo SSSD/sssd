@@ -407,7 +407,7 @@ static void check_if_online(struct be_ctx *be_ctx, int delay)
                                   check_if_online_delayed, be_ctx);
 
     if (time_event == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_CRIT_FAILURE,
               "Scheduling check_if_online_delayed failed.\n");
         goto failed;
     }
@@ -420,7 +420,6 @@ static void check_if_online(struct be_ctx *be_ctx, int delay)
 
 failed:
     be_ctx->check_online_ref_count--;
-    DEBUG(SSSDBG_CRIT_FAILURE, "Failed to run a check_online test.\n");
 
     if (be_ctx->check_online_ref_count == 0) {
         reset_fo(be_ctx);
