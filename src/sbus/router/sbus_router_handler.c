@@ -239,7 +239,8 @@ sbus_signal_handler(struct sbus_connection *conn,
     list = sbus_router_listeners_lookup(router->listeners, meta->interface,
                                         meta->member);
     if (list == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "We do not listen to this signal!\n");
+        /* Most probably not fully initialized yet */
+        DEBUG(SSSDBG_FUNC_DATA, "We do not listen to this signal!\n");
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
 
