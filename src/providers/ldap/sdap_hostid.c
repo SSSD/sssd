@@ -166,7 +166,7 @@ hosts_get_done(struct tevent_req *subreq)
     }
 
     if (state->count == 0) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_FUNC_DATA,
               "No host with name [%s] found.\n", state->name);
 
         ret = sysdb_delete_ssh_host(state->domain, state->name);
