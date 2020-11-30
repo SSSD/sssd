@@ -395,7 +395,7 @@ static errno_t refresh_override_attrs(struct files_id_ctx *id_ctx,
                              override_attrs, &count, &msgs);
     if (ret != EOK) {
         if (ret == ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, "No overrides, nothing to do.\n");
+            DEBUG(SSSDBG_TRACE_FUNC, "No overrides, nothing to do.\n");
             ret = EOK;
         } else {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed.\n");
