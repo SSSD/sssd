@@ -630,7 +630,7 @@ static void sss_parse_inp_done(struct tevent_req *subreq)
                                      state->rawinp,
                                      &state->domname, &state->name);
     if (ret == EAGAIN && state->domname != NULL && state->name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_FUNC_DATA,
               "Unknown domain in [%s]\n", state->rawinp);
         state->error = ERR_DOMAIN_NOT_FOUND;
     } else if (ret != EOK) {
