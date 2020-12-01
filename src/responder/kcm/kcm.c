@@ -25,7 +25,9 @@
 
 #include "responder/kcm/kcmsrv_ccache.h"
 #include "responder/kcm/kcmsrv_pvt.h"
+#include "responder/kcm/kcm_renew.h"
 #include "responder/common/responder.h"
+#include "providers/krb5/krb5_common.h"
 #include "util/util.h"
 #include "util/sss_krb5.h"
 
@@ -46,6 +48,43 @@ static int kcm_responder_ctx_destructor(void *ptr)
     rctx->shutting_down = true;
 
     return 0;
+}
+
+static errno_t kcm_renewals_init(struct tevent_context *ev,
+                                 struct resp_ctx *rctx,
+                                 struct kcm_ctx *kctx,
+                                 struct krb5_ctx *krb5_ctx,
+                                 time_t renew_intv,
+                                 bool *_renewal_enabled)
+{
+#ifndef HAVE_KCM_RENEWAL
+    return EOK;
+#else
+    errno_t ret;
+
+    ret = kcm_get_renewal_config(kctx, &krb5_ctx, &renew_intv);
+    if (ret == ENOTSUP) {
+        DEBUG(SSSDBG_TRACE_FUNC, "TGT Renewals support disabled\n");
+        return EOK;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to read TGT renewal configuration [%d]: %s\n",
+                                    ret, sss_strerror(ret));
+        return ret;
+    }
+
+    if (renew_intv > 0) {
+        *_renewal_enabled = true;
+
+        ret = kcm_renewals_setup(rctx, krb5_ctx, ev, kctx->kcm_data->db, renew_intv);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Unable to setup TGT renewals [%d]: %s\n", ret, sss_strerror(ret));
+            return ret;
+        }
+    }
+
+    return EOK;
+#endif
 }
 
 static errno_t kcm_get_ccdb_be(struct kcm_ctx *kctx)
@@ -210,6 +249,8 @@ static int kcm_process_init(TALLOC_CTX *mem_ctx,
 {
     struct resp_ctx *rctx;
     struct kcm_ctx *kctx;
+    struct krb5_ctx *krb5_ctx = NULL;
+    time_t renew_intv = 0;
     int ret;
 
     rctx = talloc_zero(mem_ctx, struct resp_ctx);
@@ -251,6 +292,13 @@ static int kcm_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE,
               "fatal error initializing responder data\n");
         ret = EIO;
+        goto fail;
+    }
+
+    ret = kcm_renewals_init(ev, rctx, kctx, krb5_ctx, renew_intv);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize TGT Renewals [%d]: %s\n",
+                                    ret, sss_strerror(ret));
         goto fail;
     }
 

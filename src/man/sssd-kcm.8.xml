@@ -162,6 +162,42 @@ systemctl restart sssd-kcm.service
         </para>
     </refsect1>
 
+    <refsect1 id='renewals'>
+        <title>RENEWALS</title>
+        <para>
+            The sssd-kcm service can be configured to attempt TGT
+            renewal for renewable TGTs stored in the KCM ccache.
+            Renewals are only attempted when half of the ticket
+            lifetime has been reached. KCM Renewals are configured
+            when the following options are set in the [kcm] section:
+            <programlisting>
+tgt_renewal = true
+krb5_renew_interval = 60m
+            </programlisting>
+        </para>
+        <para>
+            SSSD can also inherit krb5 options for renewals from an existing
+            domain.
+        </para>
+            <programlisting>
+tgt_renewal = true
+tgt_renewal_inherit = domain-name
+            </programlisting>
+        <para>
+            The following krb5 options can be configured in the
+            [kcm] section to control renewal behavior, these
+            options are described in detail below
+            <programlisting>
+krb5_renew_interval
+krb5_renew_lifetime
+krb5_lifetime
+krb5_validate
+krb5_canonicalize
+krb5_auth_timeout
+            </programlisting>
+        </para>
+    </refsect1>
+
     <refsect1 id='options'>
         <title>CONFIGURATION OPTIONS</title>
         <para>
@@ -249,7 +285,31 @@ systemctl restart sssd-kcm.service
                     </para>
                 </listitem>
             </varlistentry>
+            <varlistentry condition="enable_kcm_renewal">
+                <term>tgt_renewal (bool)</term>
+                <listitem>
+                    <para>
+                        Enables TGT renewals functionality.
+                    </para>
+                    <para>
+                        Default: False (Automatic renewals disabled)
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="enable_kcm_renewal">
+                <term>tgt_renewal_inherit (string)</term>
+                <listitem>
+                    <para>
+                        Domain to inherit krb5_* options from, for use with TGT
+                        renewals.
+                    </para>
+                    <para>
+                        Default: NULL
+                    </para>
+                </listitem>
+            </varlistentry>
         </variablelist>
+        <xi:include condition="enable_kcm_renewal" xmlns:xi="http://www.w3.org/2001/XInclude" href="include/krb5_options.xml" />
     </refsect1>
 
     <refsect1 id='see_also'>
