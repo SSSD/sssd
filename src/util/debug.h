@@ -91,8 +91,8 @@ int get_fd_from_debug_file(void);
 /* enables all debug levels;
    0x0800 isn't used for historical reasons: 0x1FFF0 - 0x0800 = 0x1F7F0
 */
-#define SSSDBG_MASK_ALL       0x1F7F0
-#define SSSDBG_DEFAULT        SSSDBG_FATAL_FAILURE
+#define SSSDBG_MASK_ALL  0x1F7F0
+#define SSSDBG_DEFAULT   (SSSDBG_FATAL_FAILURE|SSSDBG_CRIT_FAILURE|SSSDBG_OP_FAILURE)
 
 #define SSSDBG_TIMESTAMP_UNRESOLVED   -1
 #define SSSDBG_TIMESTAMP_DEFAULT       1
