@@ -289,6 +289,14 @@
 #define CONFDB_KCM_MAX_CCACHES "max_ccaches"
 #define CONFDB_KCM_MAX_UID_CCACHES "max_uid_ccaches"
 #define CONFDB_KCM_MAX_CCACHE_SIZE "max_ccache_size"
+#define CONFDB_KCM_TGT_RENEWAL "tgt_renewal"
+#define CONFDB_KCM_TGT_RENEWAL_INHERIT "tgt_renewal_inherit"
+#define CONFDB_KCM_KRB5_LIFETIME "krb5_lifetime"
+#define CONFDB_KCM_KRB5_RENEWABLE_LIFETIME "krb5_renewable_lifetime"
+#define CONFDB_KCM_KRB5_RENEW_INTERVAL "krb5_renew_interval"
+#define CONFDB_KCM_KRB5_VALIDATE "krb5_validate"
+#define CONFDB_KCM_KRB5_CANONICALIZE "krb5_canonicalize"
+#define CONFDB_KCM_KRB5_AUTH_TIMEOUT "krb5_auth_timeout"
 
 /* Certificate mapping rules */
 #define CONFDB_CERTMAP_BASEDN "cn=certmap,cn=config"
