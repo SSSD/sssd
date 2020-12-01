@@ -678,6 +678,8 @@ int server_setup(const char *name, int flags,
             return ret;
         }
     }
+    DEBUG(SSSDBG_IMPORTANT_INFO,
+          "Starting with debug level = %#.4x\n", debug_level);
 
     /* Setup the internal watchdog */
     ret = confdb_get_int(ctx->confdb_ctx, conf_entry,

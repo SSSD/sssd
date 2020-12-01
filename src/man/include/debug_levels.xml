@@ -100,6 +100,7 @@
         introduced in 1.7.0.
     </para>
     <para>
-        <emphasis>Default</emphasis>: 0
+        <emphasis>Default</emphasis>: 0x0070 (i.e. fatal, critical and serious
+        failures; corresponds to setting 2 in decimal notation)
     </para>
 </listitem>
