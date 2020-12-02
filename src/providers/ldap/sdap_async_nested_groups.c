@@ -808,21 +808,21 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = sss_hash_create(state->group_ctx, 32, &state->group_ctx->users);
+    ret = sss_hash_create(state->group_ctx, 0, &state->group_ctx->users);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
                                     ret, strerror(ret));
         goto immediately;
     }
 
-    ret = sss_hash_create(state->group_ctx, 32, &state->group_ctx->groups);
+    ret = sss_hash_create(state->group_ctx, 0, &state->group_ctx->groups);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
                                     ret, strerror(ret));
         goto immediately;
     }
 
-    ret = sss_hash_create(state->group_ctx, 32,
+    ret = sss_hash_create(state->group_ctx, 0,
                           &state->group_ctx->missing_external);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",

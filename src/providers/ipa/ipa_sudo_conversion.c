@@ -368,21 +368,21 @@ ipa_sudo_conv_init(TALLOC_CTX *mem_ctx,
     conv->map_host = map_host;
     conv->map_hostgroup = map_hostgroup;
 
-    ret = sss_hash_create(conv, 20, &conv->rules);
+    ret = sss_hash_create(conv, 0, &conv->rules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
 
-    ret = sss_hash_create(conv, 20, &conv->cmdgroups);
+    ret = sss_hash_create(conv, 0, &conv->cmdgroups);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
 
-    ret = sss_hash_create(conv, 20, &conv->cmds);
+    ret = sss_hash_create(conv, 0, &conv->cmds);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
               ret, sss_strerror(ret));

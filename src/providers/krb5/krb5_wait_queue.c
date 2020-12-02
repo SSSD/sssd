@@ -29,8 +29,6 @@
 
 #include "src/providers/krb5/krb5_auth.h"
 
-#define INIT_HASH_SIZE 5
-
 struct queue_entry {
     struct queue_entry *prev;
     struct queue_entry *next;
@@ -109,7 +107,7 @@ static errno_t add_to_wait_queue(struct be_ctx *be_ctx,
     struct queue_entry *queue_entry;
 
     if (krb5_ctx->wait_queue_hash == NULL) {
-        ret = sss_hash_create_ex(krb5_ctx, INIT_HASH_SIZE,
+        ret = sss_hash_create_ex(krb5_ctx, 0,
                                  &krb5_ctx->wait_queue_hash, 0, 0, 0, 0,
                                  wait_queue_del_cb, NULL);
         if (ret != EOK) {

@@ -49,7 +49,7 @@ errno_t sbus_iterator_read_ifp_extra(TALLOC_CTX *mem_ctx,
     int hret;
     int i;
 
-    ret = sss_hash_create(mem_ctx, 10, &table);
+    ret = sss_hash_create(mem_ctx, 0, &table);
     if (ret != EOK) {
         return ret;
     }
