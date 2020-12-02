@@ -294,7 +294,7 @@ static errno_t ad_init_gpo(struct ad_access_ctx *access_ctx)
     access_ctx->gpo_cache_timeout = gpo_cache_timeout;
 
     /* GPO logon maps */
-    ret = sss_hash_create(access_ctx, 10, &access_ctx->gpo_map_options_table);
+    ret = sss_hash_create(access_ctx, 0, &access_ctx->gpo_map_options_table);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not create gpo_map_options "
               "hash table [%d]: %s\n", ret, sss_strerror(ret));

@@ -72,7 +72,7 @@ errno_t sss_sigchld_init(TALLOC_CTX *mem_ctx,
     }
     sigchld_ctx->ev = ev;
 
-    ret = sss_hash_create(sigchld_ctx, 10, &sigchld_ctx->children);
+    ret = sss_hash_create(sigchld_ctx, 0, &sigchld_ctx->children);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "fatal error initializing children hash table: [%s]\n",

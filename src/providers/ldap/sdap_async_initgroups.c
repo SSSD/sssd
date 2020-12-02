@@ -1632,7 +1632,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
         goto done;
     }
 
-    ret = sss_hash_create(state, 32, &state->group_hash);
+    ret = sss_hash_create(state, 0, &state->group_hash);
     if (ret != EOK) {
         talloc_free(req);
         return NULL;

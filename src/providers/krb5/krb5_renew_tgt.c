@@ -29,8 +29,6 @@
 #include "providers/krb5/krb5_utils.h"
 #include "providers/krb5/krb5_ccache.h"
 
-#define INITIAL_TGT_TABLE_SIZE 10
-
 struct renew_tgt_ctx {
     hash_table_t *tgt_table;
     struct be_ctx *be_ctx;
@@ -484,7 +482,7 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
-    ret = sss_hash_create_ex(krb5_ctx->renew_tgt_ctx, INITIAL_TGT_TABLE_SIZE,
+    ret = sss_hash_create_ex(krb5_ctx->renew_tgt_ctx, 0,
                              &krb5_ctx->renew_tgt_ctx->tgt_table, 0, 0, 0, 0,
                              renew_del_cb, NULL);
     if (ret != EOK) {

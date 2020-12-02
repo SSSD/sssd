@@ -45,7 +45,6 @@
 #include <systemd/sd-login.h>
 #endif
 
-#define INITIAL_TABLE_SIZE 64
 #define PATHLEN (NAME_MAX + 14)
 #define BUFSIZE 4096
 
@@ -304,7 +303,7 @@ errno_t get_uid_table(TALLOC_CTX *mem_ctx, hash_table_t **table)
 #ifdef __linux__
     int ret;
 
-    ret = hash_create_ex(INITIAL_TABLE_SIZE, table, 0, 0, 0, 0,
+    ret = hash_create_ex(0, table, 0, 0, 0, 0,
                          hash_talloc, hash_talloc_free, mem_ctx,
                          NULL, NULL);
     if (ret != HASH_SUCCESS) {

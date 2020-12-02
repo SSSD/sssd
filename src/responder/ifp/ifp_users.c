@@ -1575,7 +1575,7 @@ ifp_users_user_get_extra_attributes(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_hash_create(tmp_ctx, 10, &table);
+    ret = sss_hash_create(tmp_ctx, 0, &table);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table!\n");
         goto done;

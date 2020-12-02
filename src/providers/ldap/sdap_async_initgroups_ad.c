@@ -1210,7 +1210,7 @@ sdap_ad_get_domain_local_groups_send(TALLOC_CTX *mem_ctx,
     state->groups = groups;
     state->num_groups = num_groups;
 
-    ret = sss_hash_create(state, 32, &state->group_hash);
+    ret = sss_hash_create(state, 0, &state->group_hash);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
         goto fail;

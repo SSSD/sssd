@@ -814,7 +814,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
             goto done;
         }
 
-        ret = sss_hash_create(state, 32, &entry_hash);
+        ret = sss_hash_create(state, 0, &entry_hash);
         if (ret) {
             goto done;
         }

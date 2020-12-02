@@ -33,8 +33,6 @@
 #include "util/util.h"
 #include "util/find_uid.h"
 
-#define INITIAL_USER_TABLE_SIZE 10
-
 struct deferred_auth_ctx {
     hash_table_t *user_table;
     struct be_ctx *be_ctx;
@@ -355,7 +353,7 @@ errno_t init_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
         return ENOMEM;
     }
 
-    ret = hash_create_ex(INITIAL_USER_TABLE_SIZE,
+    ret = hash_create_ex(0,
                          &krb5_ctx->deferred_auth_ctx->user_table,
                          0, 0, 0, 0, hash_talloc, hash_talloc_free,
                          krb5_ctx->deferred_auth_ctx,

@@ -234,7 +234,7 @@ errno_t diff_string_lists(TALLOC_CTX *memctx,
         list2 = _list2;
     }
 
-    error = hash_create(10, &table, NULL, NULL);
+    error = hash_create(0, &table, NULL, NULL);
     if (error != HASH_SUCCESS) {
         talloc_free(tmp_ctx);
         return EIO;
