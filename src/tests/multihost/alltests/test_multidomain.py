@@ -537,3 +537,158 @@ class TestMultiDomain(object):
                     print("end time = ", endtime)
                     timer.append(endtime - starttime)
             print(timer)
+
+    @pytest.mark.tier2
+    def test_0024_bz1884196(self, multihost, multidomain_sssd):
+        """
+        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check
+        lookup of user when enabled option is True in both ldap domain
+
+        @Bugzilla:
+        https://bugzilla.redhat.com/show_bug.cgi?id=1884196
+
+        multidomain_sssd(domains='ldap_ldap')
+        """
+        multidomain_sssd(domains='ldap_ldap')
+        tools = sssdTools(multihost.client[0])
+        ldap_params1 = {'enabled': 'True'}
+        tools.sssd_conf('domain/ldap1', ldap_params1)
+        ldap_params2 = {'enabled': 'False'}
+        tools.sssd_conf('domain/ldap2', ldap_params2)
+        tools.clear_sssd_cache()
+        multihost.client[0].service_sssd('restart')
+        for idx in range(10):
+            user1 = 'puser%d@ldap%d' % (idx, 1)
+            lookup_u1 = 'getent passwd %s' % user1
+            cmd1 = multihost.client[0].run_command(lookup_u1)
+            if cmd1.returncode == 0:
+                status = 'PASS'
+            else:
+                status = 'FAIL'
+        for idm in range(10):
+            user2 = 'quser%d@ldap%d' % (idm, 2)
+            try:
+                lookup_u2 = 'getent passwd %s' % user2
+                cmd2 = multihost.client[0].run_command(lookup_u2)
+                print(cmd2.returncode)
+                cmd2.returncode == 0
+                status = 'FAIL'
+            except Exception:
+                status = 'PASS'
+        assert status == 'PASS'
+
+    @pytest.mark.tier2
+    def test_0025_bz1884196(self, multihost, multidomain_sssd):
+        """
+        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check user
+        when domains parameter has single domain but enabled True in both ldap
+        domain
+
+        @Bugzilla:
+        https://bugzilla.redhat.com/show_bug.cgi?id=1884196
+
+        multidomain_sssd(domains='ldap_ldap')
+        """
+        multidomain_sssd(domains='ldap_ldap')
+        tools = sssdTools(multihost.client[0])
+        domain_params = {'domains': 'ldap1'}
+        tools = sssdTools(multihost.client[0])
+        tools.sssd_conf('sssd', domain_params, action='update')
+        ldap_params1 = {'enabled': 'True'}
+        tools.sssd_conf('domain/ldap1', ldap_params1)
+        ldap_params2 = {'enabled': 'True'}
+        tools.sssd_conf('domain/ldap2', ldap_params2)
+        tools.clear_sssd_cache()
+        multihost.client[0].service_sssd('restart')
+        suffix = ['p', 'q']
+        for domain in range(2):
+            for idx in range(10):
+                user1 = '%suser%d@ldap%d' % (suffix[domain], idx, domain + 1)
+                lookup_u1 = 'getent passwd %s' % user1
+                cmd1 = multihost.client[0].run_command(lookup_u1)
+                if cmd1.returncode == 0:
+                    status = 'PASS'
+                else:
+                    status = 'FAIL'
+        assert status == 'PASS'
+
+    @pytest.mark.tier2
+    def test_0026_bz1884196(self, multihost, multidomain_sssd):
+        """
+        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check
+        enabled option with snippet file
+
+        @Bugzilla:
+        https://bugzilla.redhat.com/show_bug.cgi?id=1884196
+
+        multidomain_sssd(domains='ldap_ldap')
+        """
+        multidomain_sssd(domains='ldap_ldap')
+        tools = sssdTools(multihost.client[0])
+        domain_params = {'domains': ''}
+        tools = sssdTools(multihost.client[0])
+        tools.sssd_conf('sssd', domain_params, action='update')
+        ldap_params1 = {'enabled': 'True'}
+        tools.sssd_conf('domain/ldap1', ldap_params1)
+        ldap_params2 = {'enabled': 'False'}
+        tools.sssd_conf('domain/ldap2', ldap_params2)
+        file_content = "[domain/ldap2]\nenabled = True"
+        snippet_file = "/etc/sssd/conf.d/01_snippet.conf"
+        multihost.client[0].put_file_contents(snippet_file, file_content)
+        cmd_chmod = 'chmod 600 %s' % snippet_file
+        multihost.client[0].run_command(cmd_chmod, raiseonerr=False)
+        tools.clear_sssd_cache()
+        multihost.client[0].service_sssd('restart')
+        suffix = ['p', 'q']
+        for domain in range(2):
+            for idx in range(10):
+                user1 = '%suser%d@ldap%d' % (suffix[domain], idx, domain + 1)
+                lookup_u1 = 'getent passwd %s' % user1
+                cmd1 = multihost.client[0].run_command(lookup_u1)
+                if cmd1.returncode == 0:
+                    status = 'PASS'
+                else:
+                    status = 'FAIL'
+        delete_snip = '/etc/sssd/conf.d/01_snippet.conf'
+        multihost.client[0].run_command(delete_snip, raiseonerr=False)
+        assert status == 'PASS'
+
+    @pytest.mark.tier2
+    def test_0027_bz1884196(self, multihost, multidomain_sssd):
+        """
+        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check
+        enabled option with snippet file and empty value of domains
+        parameter in sssd section
+
+        @Bugzilla:
+        https://bugzilla.redhat.com/show_bug.cgi?id=1884196
+
+        multidomain_sssd(domains='ldap_ldap')
+        """
+        multidomain_sssd(domains='ldap_ldap')
+        tools = sssdTools(multihost.client[0])
+        domain_params = {'domains': ''}
+        tools = sssdTools(multihost.client[0])
+        tools.sssd_conf('sssd', domain_params, action='update')
+        ldap_params1 = {'enabled': 'True'}
+        tools.sssd_conf('domain/ldap1', ldap_params1)
+        file_content = "[domain/ldap2]\nenabled = True"
+        snippet_file = "/etc/sssd/conf.d/01_snippet.conf"
+        multihost.client[0].put_file_contents(snippet_file, file_content)
+        cmd_chmod = 'chmod 600 %s' % snippet_file
+        multihost.client[0].run_command(cmd_chmod, raiseonerr=False)
+        tools.clear_sssd_cache()
+        multihost.client[0].service_sssd('restart')
+        suffix = ['p', 'q']
+        for domain in range(2):
+            for idx in range(10):
+                user1 = '%suser%d@ldap%d' % (suffix[domain], idx, domain + 1)
+                lookup_u1 = 'getent passwd %s' % user1
+                cmd1 = multihost.client[0].run_command(lookup_u1)
+                if cmd1.returncode == 0:
+                    status = 'PASS'
+                else:
+                    status = 'FAIL'
+        delete_snip = '/etc/sssd/conf.d/01_snippet.conf'
+        multihost.client[0].run_command(delete_snip, raiseonerr=False)
+        assert status == 'PASS'
