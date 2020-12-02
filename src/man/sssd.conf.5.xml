@@ -739,12 +739,12 @@
                              offline_timeout + random_offset
                         </para>
                         <para>
-                            The random offset can increment up to 30 seconds.
+                            The random offset value is from 0 to 30.
                             After each unsuccessful attempt to go online,
                             the new interval is recalculated by the following:
                         </para>
                         <para>
-                            new_interval = old_interval*2 + random_offset
+                            new_interval = (old_interval * 2) + random_offset
                         </para>
                         <para>
                             Note that the maximum length of each interval
@@ -768,6 +768,16 @@
                         </para>
                         <para>
                             A value of 0 disables the incrementing behaviour.
+                        </para>
+                        <para>
+                            The value of this parameter should be set in correlation
+                            to offline_timeout parameter value.
+                        </para>
+                        <para>
+                            With offline_timeout set to 60 (default value) there is no point
+                            in setting offlinet_timeout_max to less than 120 as it will
+                            saturate instantly. General rule here should be to set
+                            offline_timeout_max to at least 4 times offline_timeout.
                         </para>
                         <para>
                             Although a value between 0 and offline_timeout may be
