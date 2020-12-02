@@ -18,13 +18,17 @@ class ipaTools(object):
     def install_common_pkgs(self):
         """ Install common required packages """
         pkgs = 'ldb-tools tcpdump wireshark-cli expect'
+        if '8.' in self.multihost.distro:
+            enable_idm1 = "dnf -y module reset idm"
+            self.multihost.run_command(enable_idm1)
+            enable_idm2 = "dnf -y module enable idm:DL1"
+            self.multihost.run_command(enable_idm2)
+            enable_idm3 = "dnf -y module install idm:DL1/client"
+            self.multihost.run_command(enable_idm3)
+        if 'Fedora' in self.multihost.distro:
+            client_pkgs = ' freeipa-client'
+            pkgs = pkgs + client_pkgs
         self.multihost.package_mgmt(pkgs, action='install')
-        enable_idm1 = "dnf -y module reset idm"
-        self.multihost.run_command(enable_idm1)
-        enable_idm2 = "dnf -y module enable idm:DL1"
-        self.multihost.run_command(enable_idm2)
-        enable_idm3 = "dnf -y module install idm:DL1/client"
-        self.multihost.run_command(enable_idm3)
 
     def setup_chrony(self, ntp_server='pool.ntp.org'):
         """ Setup chrony
