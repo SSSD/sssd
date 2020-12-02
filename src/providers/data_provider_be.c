@@ -51,6 +51,7 @@
 #define ONLINE_CB_RETRY 3
 #define ONLINE_CB_RETRY_MAX_DELAY 4
 
+#define OFFLINE_TIMEOUT_RANDOM_OFFSET 30
 #define OFFLINE_TIMEOUT_DEFAULT 60
 #define OFFLINE_TIMEOUT_MAX_DEFAULT 3600
 
@@ -152,9 +153,13 @@ void be_mark_offline(struct be_ctx *ctx)
         offline_timeout = get_offline_timeout(ctx);
         offline_timeout_max = get_offline_timeout_max(ctx);
 
-        ret = be_ptask_create_sync(ctx, ctx,
-                                   offline_timeout, offline_timeout,
-                                   offline_timeout, 30, offline_timeout,
+        ret = be_ptask_create_sync(ctx,
+                                   ctx,
+                                   offline_timeout,
+                                   offline_timeout,
+                                   offline_timeout,
+                                   OFFLINE_TIMEOUT_RANDOM_OFFSET,
+                                   offline_timeout,
                                    offline_timeout_max,
                                    try_to_go_online,
                                    ctx, "Check if online (periodic)",
