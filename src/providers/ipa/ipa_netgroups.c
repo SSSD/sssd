@@ -224,11 +224,11 @@ struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sss_hash_create(state, 32, &state->new_netgroups);
+    ret = sss_hash_create(state, 0, &state->new_netgroups);
     if (ret != EOK) goto done;
-    ret = sss_hash_create(state, 32, &state->new_users);
+    ret = sss_hash_create(state, 0, &state->new_users);
     if (ret != EOK) goto done;
-    ret = sss_hash_create(state, 32, &state->new_hosts);
+    ret = sss_hash_create(state, 0, &state->new_hosts);
     if (ret != EOK) goto done;
 
 

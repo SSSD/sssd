@@ -401,7 +401,7 @@ sss_sifp_parse_array(sss_sifp_ctx *ctx,
             goto done;
         }
 
-        hret = hash_create_ex(10, &(attr->data.str_dict), 0, 0, 0, 0,
+        hret = hash_create_ex(0, &(attr->data.str_dict), 0, 0, 0, 0,
                               ctx->alloc_fn, ctx->free_fn, ctx->alloc_pvt,
                               hash_delete_cb, ctx);
         if (hret != HASH_SUCCESS) {

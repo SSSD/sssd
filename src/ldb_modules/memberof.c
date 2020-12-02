@@ -4248,7 +4248,7 @@ static int mbof_member_update(struct mbof_rcmp_context *ctx,
     key.str = discard_const(ldb_dn_get_linearized(parent->dn));
 
     if (!mem->memberofs) {
-        ret = hash_create_ex(32, &mem->memberofs, 0, 0, 0, 0,
+        ret = hash_create_ex(0, &mem->memberofs, 0, 0, 0, 0,
                              hash_alloc, hash_free, mem, NULL, NULL);
         if (ret != HASH_SUCCESS) {
             return LDB_ERR_OPERATIONS_ERROR;

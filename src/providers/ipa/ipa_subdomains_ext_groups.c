@@ -121,7 +121,7 @@ static errno_t process_ext_groups(TALLOC_CTX *mem_ctx, size_t reply_count,
                     }
                 }
             } else if (ret == HASH_ERROR_KEY_NOT_FOUND) {
-                ret = sss_hash_create(ext_group_hash, 5, &m_hash);
+                ret = sss_hash_create(ext_group_hash, 0, &m_hash);
                 if (ret != HASH_SUCCESS) {
                     DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
                     goto done;
@@ -208,7 +208,7 @@ static errno_t find_ipa_ext_memberships(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_hash_create(tmp_ctx, 10, &group_hash);
+    ret = sss_hash_create(tmp_ctx, 0, &group_hash);
     if (ret != HASH_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
         goto done;
