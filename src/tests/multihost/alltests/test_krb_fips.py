@@ -6,7 +6,8 @@ import pytest
 import ldap
 from constants import ds_instance_name, ds_suffix, krb_realm
 from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.utils import sssdTools, LdapOperations
+from sssd.testlib.common.utils import sssdTools, \
+    LdapOperations, SSHClient
 from sssd.testlib.common.exceptions import SSHLoginException
 from sssd.testlib.common.exceptions import SSSDException
 from sssd.testlib.common.libkrb5 import krb5srv
@@ -68,6 +69,38 @@ class Testkrbfips(object):
             pytest.fail("%s failed to login" % user)
         else:
             client.logout()
+
+    @pytest.mark.tier1_2
+    def test_kcm_not_store_tgt(self, multihost, backupsssdconf):
+        """
+        :Title: sssd-kcm does not store TGT with ssh
+        login using GSSAPI
+        @bugzilla:
+        https://bugzilla.redhat.com/show_bug.cgi?id=1722842
+        """
+        client = sssdTools(multihost.client[0])
+        domain_params = {'debug_level': '10',
+                         'ccache_storage': 'memory'}
+        client.sssd_conf('kcm', domain_params)
+        multihost.client[0].service_sssd('restart')
+        multihost.client[0].run_command("systemctl "
+                                        "restart sssd-kcm")
+        ssh = SSHClient(multihost.client[0].sys_hostname,
+                        username='foo3', password='Secret123')
+        (_, _, exit_status) = ssh.execute_cmd('kdestroy')
+        assert exit_status == 0
+        (_, _, exit_status) = ssh.execute_cmd('kinit foo3',
+                                              stdin='Secret123')
+        assert exit_status == 0
+        ssh_k_cmd = 'ssh -oStrictHostKeyChecking=no -K -l foo3 ' \
+                    + multihost.client[0].sys_hostname + ' klist'
+        (stdout, _, exit_status) = ssh.execute_cmd(ssh_k_cmd)
+        ssh.close()
+        assert exit_status == 0
+        for line in stdout.readlines():
+            if 'KCM:14583103' in line:
+                has_cache = True
+        assert has_cache is True
 
     def test_child_logs_after_receiving_hup(self, multihost):
         """
