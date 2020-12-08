@@ -649,7 +649,7 @@ class TestMultiDomain(object):
                     status = 'PASS'
                 else:
                     status = 'FAIL'
-        delete_snip = '/etc/sssd/conf.d/01_snippet.conf'
+        delete_snip = 'rm -f /etc/sssd/conf.d/01_snippet.conf'
         multihost.client[0].run_command(delete_snip, raiseonerr=False)
         assert status == 'PASS'
 
@@ -689,6 +689,6 @@ class TestMultiDomain(object):
                     status = 'PASS'
                 else:
                     status = 'FAIL'
-        delete_snip = '/etc/sssd/conf.d/01_snippet.conf'
+        delete_snip = 'rm -f /etc/sssd/conf.d/01_snippet.conf'
         multihost.client[0].run_command(delete_snip, raiseonerr=False)
         assert status == 'PASS'
