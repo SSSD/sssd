@@ -59,6 +59,16 @@ static errno_t sec_get(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (strcmp(datatype, "simple") == 0) {
+        /* The secret is stored in b64 encoding, we need to decode it first. */
+        data = sss_base64_decode(tmp_ctx, (const char*)data, &len);
+        if (data == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot decode secret from base64\n");
+            ret = EIO;
+            goto done;
+        }
+    }
+
     buf = sss_iobuf_init_steal(tmp_ctx, data, len);
     if (buf == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot init the iobuf\n");
