@@ -1593,6 +1593,16 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_PAM_GSSAPI_CHECK_UPN,
+                                      NULL);
+    if (tmp != NULL) {
+        domain->gssapi_check_upn = talloc_strdup(domain, tmp);
+        if (domain->gssapi_check_upn == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     domain->has_views = false;
     domain->view_name = NULL;
 

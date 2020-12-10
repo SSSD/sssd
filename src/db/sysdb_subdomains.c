@@ -254,6 +254,18 @@ check_subdom_config_file(struct confdb_ctx *confdb,
         goto done;
     }
 
+    /* allow to set pam_gssapi_check_upn */
+    ret = confdb_get_string(confdb, subdomain, sd_conf_path,
+                            CONFDB_PAM_GSSAPI_CHECK_UPN,
+                            subdomain->parent->gssapi_check_upn,
+                            &subdomain->gssapi_check_upn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to get %s option for the subdomain: %s\n",
+              CONFDB_PAM_GSSAPI_CHECK_UPN, subdomain->name);
+        goto done;
+    }
+
     ret = EOK;
 done:
     talloc_free(tmp_ctx);

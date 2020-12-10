@@ -348,6 +348,15 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    ret = confdb_get_bool(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                          CONFDB_PAM_GSSAPI_CHECK_UPN, true,
+                          &pctx->gssapi_check_upn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to read %s [%d]: %s\n",
+              CONFDB_PAM_GSSAPI_CHECK_UPN, ret, sss_strerror(ret));
+        goto done;
+    }
+
     /* The responder is initialized. Now tell it to the monitor. */
     ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_PAM,
                                    SSS_PAM_SBUS_SERVICE_NAME,
