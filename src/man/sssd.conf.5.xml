@@ -1735,6 +1735,31 @@ pam_gssapi_services = sudo, sudo-i
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pam_gssapi_check_upn</term>
+                    <listitem>
+                        <para>
+                            If True, SSSD will require that the Kerberos user
+                            principal that successfully authenticated through
+                            GSSAPI can be associated with the user who is being
+                            authenticated. Authentication will fail if the check
+                            fails.
+                        </para>
+                        <para>
+                            If False, every user that is able to obtained
+                            required service ticket will be authenticated.
+                        </para>
+                        <para>
+                            Note: This option can also be set per-domain which
+                            overwrites the value in [pam] section. It can also
+                            be set for trusted domain which overwrites the value
+                            in the domain section.
+                        </para>
+                        <para>
+                            Default: True
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 
@@ -3810,6 +3835,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
             <para>ad_site,</para>
             <para>use_fully_qualified_names</para>
             <para>pam_gssapi_services</para>
+            <para>pam_gssapi_check_upn</para>
         <para>
             For more details about these options see their individual description
             in the manual page.
