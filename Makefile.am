@@ -95,6 +95,15 @@ if HAVE_SYSTEMD_UNIT
 ifp_exec_cmd = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --dbus-activated
 ifp_systemdservice = SystemdService=sssd-ifp.service
 ifp_restart = Restart=on-failure
+# If sssd is configured with --enable-files-domain, the service is
+# able to start even without a configuration file.  Otherwise, sssd
+# requires a configuration file (either /etc/sssd/sssd.conf, or some
+# snippet under /etc/sssd/sssd.conf.d/) to be present.
+if ADD_FILES_DOMAIN
+condconfigexists =
+else
+condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectoryNotEmpty=\|/etc/sssd/conf.d/
+endif
 else
 ifp_exec_cmd = $(sssdlibexecdir)/sss_signal
 ifp_systemdservice =
@@ -5111,7 +5120,8 @@ edit_cmd = $(SED) \
         -e 's|@libexecdir[@]|$(libexecdir)|g' \
         -e 's|@pipepath[@]|$(pipepath)|g' \
         -e 's|@prefix[@]|$(prefix)|g' \
-        -e 's|@SSSD_USER[@]|$(SSSD_USER)|g'
+        -e 's|@SSSD_USER[@]|$(SSSD_USER)|g' \
+        -e 's|@condconfigexists[@]|$(condconfigexists)|g'
 
 replace_script = \
     @rm -f $@ $@.tmp; \
