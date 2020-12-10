@@ -278,6 +278,19 @@ cache_req_user_by_name_attrs_send(TALLOC_CTX *mem_ctx,
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
+cache_req_user_by_upn_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct resp_ctx *rctx,
+                           struct sss_nc_ctx *ncache,
+                           int cache_refresh_percent,
+                           enum cache_req_dom_type req_dom_type,
+                           const char *domain,
+                           const char *upn);
+
+#define cache_req_user_by_upn_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result);
+
+struct tevent_req *
 cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
                           struct resp_ctx *rctx,
