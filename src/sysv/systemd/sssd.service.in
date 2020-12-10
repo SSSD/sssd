@@ -3,6 +3,7 @@ Description=System Security Services Daemon
 # SSSD must be running before we permit user sessions
 Before=systemd-user-sessions.service nss-user-lookup.target
 Wants=nss-user-lookup.target
+@condconfigexists@
 
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
