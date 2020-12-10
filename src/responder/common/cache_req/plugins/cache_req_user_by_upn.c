@@ -133,3 +133,26 @@ const struct cache_req_plugin cache_req_user_by_upn = {
     .dp_get_domain_send_fn = NULL,
     .dp_get_domain_recv_fn = NULL,
 };
+
+struct tevent_req *
+cache_req_user_by_upn_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct resp_ctx *rctx,
+                           struct sss_nc_ctx *ncache,
+                           int cache_refresh_percent,
+                           enum cache_req_dom_type req_dom_type,
+                           const char *domain,
+                           const char *upn)
+{
+    struct cache_req_data *data;
+
+    data = cache_req_data_name(mem_ctx, CACHE_REQ_USER_BY_UPN, upn);
+    if (data == NULL) {
+        return NULL;
+    }
+
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
+                                         cache_refresh_percent,
+                                         req_dom_type, domain,
+                                         data);
+}
