@@ -220,7 +220,6 @@ static int parse_krb5_get_eku_value(TALLOC_CTX *mem_ctx,
 
     for (c = 0; eku_list[c] != NULL; c++) {
         for (k = 0; sss_ext_key_usage[k].name != NULL; k++) {
-CM_DEBUG(ctx, "[%s][%s].", eku_list[c], sss_ext_key_usage[k].name);
             if (strcasecmp(eku_list[c], sss_ext_key_usage[k].name) == 0) {
                 comp->eku_oid_list[e] = talloc_strdup(comp->eku_oid_list,
                                                       sss_ext_key_usage[k].oid);
