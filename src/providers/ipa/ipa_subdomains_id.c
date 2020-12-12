@@ -1027,6 +1027,9 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     const char *homedir = NULL;
     struct ldb_message_element *msg_el = NULL;
     size_t c;
+    const char *category = NULL;
+    size_t length = 0;
+    bool user_class = true;
 
     msg_el = ldb_msg_find_element(msg, SYSDB_OBJECTCATEGORY);
     if (msg_el == NULL) {
@@ -1039,12 +1042,15 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
      * case of a MPG group lookup if SYSDB_OBJECTCATEGORY is SYSDB_GROUP_CLASS.
      */
     for (c = 0; c < msg_el->num_values; c++) {
-        if (strncmp(SYSDB_USER_CLASS, (const char *)msg_el->values[c].data,
-                    msg_el->values[c].length) == 0
-                || (sss_domain_is_mpg(dom)
-                    && strncmp(SYSDB_GROUP_CLASS,
-                               (const char *)msg_el->values[c].data,
-                               msg_el->values[c].length) == 0)) {
+        category = (const char *)msg_el->values[c].data;
+        length = msg_el->values[c].length;
+        if (strncmp(SYSDB_USER_CLASS, category, length) == 0) {
+            user_class = true;
+            break;
+        }
+        if (sss_domain_is_mpg(dom)
+               && strncmp(SYSDB_GROUP_CLASS, category, length) == 0) {
+            user_class = false;
             break;
         }
     }
@@ -1064,8 +1070,12 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
 
     uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
     if (uid == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "UID for user [%s] is not known.\n",
-                                  fqname);
+        if (user_class) {
+            DEBUG(SSSDBG_OP_FAILURE, "UID for user [%s] is unknown\n", fqname);
+        } else {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "No UID for object [%s], perhaps mpg\n", fqname);
+        }
         ret = ENOENT;
         goto done;
     }
