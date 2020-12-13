@@ -39,6 +39,7 @@
 #define BE_REQ_USER_AND_GROUP 0x0012
 #define BE_REQ_BY_UUID        0x0013
 #define BE_REQ_BY_CERT        0x0014
+#define BE_REQ__LAST          BE_REQ_BY_CERT /* must be equal to max REQ number */
 #define BE_REQ_TYPE_MASK      0x00FF
 
 /**
