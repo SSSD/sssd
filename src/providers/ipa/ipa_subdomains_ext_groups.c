@@ -840,7 +840,8 @@ static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
         }
 
         if (missing_groups) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "There are unresolved external group "
+            /* this might be HBAC or sudo rule */
+            DEBUG(SSSDBG_FUNC_DATA, "There are unresolved external group "
                                        "memberships even after all groups "
                                        "have been looked up on the LDAP "
                                        "server.\n");
