@@ -2523,8 +2523,13 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
         }
         if (ret != EOK) {
             /* User cannot be found in cache */
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot find user [%s] in cache\n",
-                                     name_or_upn_or_sid);
+            if (ret != ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to find user [%s] in cache: %d\n",
+                                         name_or_upn_or_sid, ret);
+            } else {
+                DEBUG(SSSDBG_TRACE_FUNC, "User [%s] is missing in cache\n",
+                                         name_or_upn_or_sid);
+            }
             goto done;
         }
     } else if (res->count == 1) {
