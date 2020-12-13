@@ -4928,9 +4928,15 @@ static errno_t sysdb_update_members_ex(struct sss_domain_info *domain,
             ret = sysdb_add_group_member(domain, add_groups[i],
                                          member, type, is_dn);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Could not add member [%s] to group [%s]. "
-                          "Skipping.\n", member, add_groups[i]);
+                if (ret != EEXIST) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Could not add member [%s] to group [%s]. "
+                              "Skipping.\n", member, add_groups[i]);
+                } else {
+                    DEBUG(SSSDBG_FUNC_DATA,
+                          "Group [%s] already has member [%s]. Skipping.\n",
+                          add_groups[i], member);
+                }
                 /* Continue on, we should try to finish the rest */
             }
         }
