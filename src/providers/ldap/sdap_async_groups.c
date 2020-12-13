@@ -978,7 +978,12 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
         ret = sysdb_remove_attrs(group_dom, group_name, SYSDB_MEMBER_GROUP,
                                  discard_const(remove_attrs));
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_remove_attrs failed.\n");
+            if (ret != ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_remove_attrs failed.\n");
+            } else {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "sysdb_remove_attrs failed for missing entry\n");
+            }
             goto fail;
         }
     } else {
@@ -1014,7 +1019,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     return EOK;
 
 fail:
-    DEBUG(SSSDBG_OP_FAILURE,
+    DEBUG(SSSDBG_MINOR_FAILURE,
            "Failed to save members of group %s\n", group_name);
     return ret;
 }
@@ -1130,8 +1135,13 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
             if (ret) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Failed to store group %d members.\n", i);
+                if (ret != ENOENT) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Failed to store group %d members: %d\n", i, ret);
+                } else {
+                    DEBUG(SSSDBG_FUNC_DATA,
+                          "Can't save members of missing group %d\n", i);
+                }
             } else {
                 DEBUG(SSSDBG_TRACE_ALL, "Group %d members processed!\n", i);
             }
