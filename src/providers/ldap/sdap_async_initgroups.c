@@ -1043,6 +1043,10 @@ static void sdap_initgr_nested_search(struct tevent_req *subreq)
         state->groups[state->groups_cur] = talloc_steal(state->groups,
                                                         groups[0]);
         state->groups_cur++;
+    } else if (count == 0) {
+        /* this might be HBAC or sudo rule */
+        DEBUG(SSSDBG_FUNC_DATA, "Object %s not found. Skipping\n",
+              state->group_dns[state->cur]);
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
               "Search for group %s, returned %zu results. Skipping\n",
