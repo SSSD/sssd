@@ -506,7 +506,13 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
             break;
         default:
             ret = EINVAL;
-            DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain request type.\n");
+            if (state->entry_type > BE_REQ__LAST) {
+                DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain request type %d.\n",
+                      state->entry_type);
+            } else {
+                DEBUG(SSSDBG_TRACE_FUNC, "Unhandled sub-domain request type %d.\n",
+                      state->entry_type);
+            }
     }
     if (ret != EOK) goto fail;
 
