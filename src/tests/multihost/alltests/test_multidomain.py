@@ -542,7 +542,8 @@ class TestMultiDomain(object):
     def test_0024_bz1884196(self, multihost, multidomain_sssd):
         """
         @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check
-        lookup of user when enabled option is True in both ldap domain
+        lookup of user when enabled option is True in ldap1 domain
+        and False in second ldap2 domain
 
         @Bugzilla:
         https://bugzilla.redhat.com/show_bug.cgi?id=1884196
