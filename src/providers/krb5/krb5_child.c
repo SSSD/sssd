@@ -973,8 +973,13 @@ static krb5_error_code create_ccache(char *ccname, krb5_creds *creds)
     bool switch_to_cc = false;
 #endif
 
-    /* Set a restrictive umask, just in case we end up creating any file */
-    umask(SSS_DFL_UMASK);
+    /* Set a restrictive umask, just in case we end up creating any file or a
+     * directory. */
+    if (strncmp(ccname, "DIR:", 4) == 0) {
+        umask(SSS_DFL_X_UMASK);
+    } else {
+        umask(SSS_DFL_UMASK);
+    }
 
     /* we create a new context here as the main process one may have been
      * opened as root and contain possibly references (even open handles?)
