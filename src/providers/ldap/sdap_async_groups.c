@@ -883,10 +883,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     const char *check_name;
 
     if (dom->ignore_group_members) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Group members are ignored, nothing to do. If you see this " \
-              "message it might indicate an error in the group processing " \
-              "logic.\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Group members are ignored, nothing to do.\n");
         return EOK;
     }
 
