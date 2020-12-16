@@ -19,7 +19,11 @@ AC_DEFUN([AM_CHECK_TEST_CA],
         fi
     fi
 
-    for p in /usr/lib64/pkcs11/libsofthsm2.so /usr/lib/pkcs11/libsofthsm2.so /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so; do
+    for p in "$(eval echo ${libdir})"/softhsm/libsofthsm2.so \
+             "$(eval echo ${libdir})"/pkcs11/libsofthsm2.so \
+             /usr/lib*/pkcs11/libsofthsm2.so \
+             /usr/lib/*-linux-gnu*/softhsm/libsofthsm2.so \
+             /usr/lib/softhsm/libsofthsm2.so; do
         if test -f "${p}"; then
             SOFTHSM2_PATH="${p}"
             break;
