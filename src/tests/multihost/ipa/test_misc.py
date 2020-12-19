@@ -8,6 +8,7 @@
 
 import pytest
 import time
+from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.exceptions import SSSDException
 import re
@@ -133,3 +134,49 @@ class Testipabz(object):
                                                        str(gid_start+4),
                                                        str(gid_start+5)]), \
             "The unexpected gid found in the id output!"
+
+    def test_asymmetric_auth_for_nsupdate(self, multihost,
+                                          create_reverse_zone):
+        """
+        @Title: Support asymmetric auth for nsupdate
+        @Bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1884301
+        """
+        client = sssdTools(multihost.client[0])
+        client_hostname = multihost.client[0].sys_hostname
+        server_hostname = multihost.master[0].sys_hostname
+        client_l = client_hostname.split('.', 1)
+        client_hostname_short = client_l[0]
+        client_ip = multihost.client[0].ip
+        subnet = client_ip.split('.', 3)
+        del subnet[-1]
+        subnet.reverse()
+        zone = '.'.join(subnet) + '.in-addr.arpa.'
+
+        domain_name = client.get_domain_section_name()
+        client.sssd_conf(
+            'domain/%s' % domain_name,
+            {'dyndns_force_tcp': 'true',
+             'dyndns_update': 'true',
+             'dyndns_update_ptr': 'true',
+             'dyndns_refresh_interval': '5',
+             'dyndns_auth_ptr': 'None',
+             'dyndns_server': '%s' % server_hostname})
+        cmd_del_record = 'ipa dnsrecord-del %s %s --del-all' % \
+                         (domain_name, client_hostname_short)
+        multihost.master[0].run_command(cmd_del_record, raiseonerr=False)
+
+        client.remove_sss_cache('/var/lib/sss/db')
+        multihost.client[0].service_sssd('restart')
+        time.sleep(10)
+
+        cmd_check_arecord = 'nslookup %s' % client_hostname
+        cmd_check_ptrrecord = 'nslookup %s' % client_ip
+
+        rc_arecord = multihost.client[0].run_command(cmd_check_arecord,
+                                            raiseonerr=False)
+        rc_ptrrecord = multihost.client[0].run_command(cmd_check_ptrrecord,
+                                                        raiseonerr=False)
+        assert rc_arecord.returncode == 0
+        assert client_ip in rc_arecord.stdout_text
+        assert rc_ptrrecord.returncode == 0
+        assert client_hostname in rc_ptrrecord.stdout_text

@@ -61,7 +61,38 @@ def create_aduser_group(session_multihost, request):
         ad.delete_ad_user_group(ad_user)
 
     request.addfinalizer(remove_ad_user_group)
-    return (ad_user, ad_group)
+    return ad_user, ad_group
+
+
+@pytest.fixture(scope="function")
+def create_reverse_zone(session_multihost, request):
+    """ Creates reverse zone """
+    client_ip = session_multihost.client[0].ip
+    subnet = client_ip.split(".", 3)
+    del subnet[-1]
+    subnet.reverse()
+    zone = '.'.join(subnet) + '.in-addr.arpa.'
+    policy = 'grant * tcp-self * PTR'
+
+    cmd_createzone = 'ipa dnszone-add %s ' \
+                     '--dynamic-update=true ' \
+                     '--allow-sync-ptr=true ' \
+                     '--skip-overlap-check ' \
+                     '--forward-policy=none' % zone
+    cmd_modifyzone = 'ipa dnszone-mod %s ' \
+                     '--update-policy=\'%s;\'' % (zone, policy)
+    session_multihost.master[0].run_command(cmd_createzone,
+                                            raiseonerr=False)
+    session_multihost.master[0].run_command(cmd_modifyzone,
+                                            raiseonerr=False)
+
+    def remove_reverse_zone():
+        """  removes reverse zone """
+        cmd_removezone = 'ipa dnszone-del %s' % zone
+        session_multihost.master[0].run_command(cmd_removezone,
+                                                raiseonerr=False)
+
+    request.addfinalizer(remove_reverse_zone)
 
 
 @pytest.fixture(scope="function")
@@ -147,7 +178,7 @@ def default_ipa_users(session_multihost, request):
                      'loginname': 'foobar%d' % i,
                      'default_password': 'RedHat@123',
                      'reset_password': 'Secret123'}
-        useradd = "echo '%s' | ipa user-add --first %s "\
+        useradd = "echo '%s' | ipa user-add --first %s " \
                   " --last %s --password %s" % (user_info['default_password'],
                                                 user_info['firstname'],
                                                 user_info['lastname'],
@@ -162,6 +193,7 @@ def default_ipa_users(session_multihost, request):
             user = 'foobar%d' % i
             cmd = 'ipa user-del foobar%d' % i
             session_multihost.master[0].run_command(cmd)
+
     request.addfinalizer(remove_ipa_users)
 
 
@@ -193,6 +225,7 @@ def disable_allow_all_hbac(session_multihost, request):
             session_multihost.master[0].run_command(allow_all)
         except CalledProcessError:
             pytest.fail("Failed to enable allow_all rule")
+
     request.addfinalizer(allow_all_hbac)
 
 
@@ -226,6 +259,7 @@ def create_ad_users(session_multihost, request):
         """ Remove AD users """
         del_cmd = 'powershell -inputformat none -noprofile ./remove-users.ps1'
         session_multihost.ad[0].run_command(del_cmd, raiseonerr=False)
+
     request.addfinalizer(remove_users)
 
 
@@ -247,6 +281,7 @@ def create_ad_groups(session_multihost, request):
         """ Remove AD Groups """
         del_cmd = 'powershell -inputformat none -noprofile ./remove-groups.ps1'
         session_multihost.ad[0].run_command(del_cmd, raiseonerr=False)
+
     request.addfinalizer(remove_ad_groups)
 
 
