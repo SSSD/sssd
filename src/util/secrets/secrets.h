@@ -80,6 +80,11 @@ errno_t sss_sec_init(TALLOC_CTX *mem_ctx,
                      struct sss_sec_hive_config **config_list,
                      struct sss_sec_ctx **_sec_ctx);
 
+errno_t sss_sec_init_with_path(TALLOC_CTX *mem_ctx,
+                               struct sss_sec_hive_config **config_list,
+                               const char *dbpath,
+                               struct sss_sec_ctx **_sec_ctx);
+
 errno_t sss_sec_new_req(TALLOC_CTX *mem_ctx,
                         struct sss_sec_ctx *sec_ctx,
                         const char *url,
