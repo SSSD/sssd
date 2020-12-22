@@ -25,6 +25,7 @@ import socket
 import time
 import signal
 import sys
+from datetime import datetime
 from requests import HTTPError
 
 import kdc
@@ -33,8 +34,14 @@ import config
 from util import unindent
 from test_secrets import create_sssd_secrets_fixture
 from secrets import SecretsLocalClient
+from intg.files_ops import passwd_ops_setup
 
 MAX_SECRETS = 10
+
+USER1 = dict(name='user1', passwd='x', uid=1000, gid=1000,
+             gecos='User for tests',
+             dir='/home/user1',
+             shell='/bin/bash')
 
 
 class KcmTestEnv(object):
@@ -138,6 +145,30 @@ def create_sssd_conf(kcm_path, ccache_storage, max_secrets=MAX_SECRETS):
     """).format(**locals())
 
 
+def create_sssd_conf_renewals(kcm_path, ccache_storage, renew_lifetime,
+                              lifetime, renew_interval,
+                              max_secrets=MAX_SECRETS):
+    return unindent("""\
+        [sssd]
+        domains = files
+        services = nss
+
+        [domain/files]
+        id_provider = files
+
+        [kcm]
+        socket_path = {kcm_path}
+        ccache_storage = {ccache_storage}
+        tgt_renewal = true
+        krb5_renewable_lifetime = {renew_lifetime}
+        krb5_lifetime = {lifetime}
+        krb5_renew_interval = {renew_interval}
+
+        [secrets]
+        max_secrets = {max_secrets}
+    """).format(**locals())
+
+
 def common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf):
     kcm_socket_include = unindent("""
     [libdefaults]
@@ -197,6 +228,18 @@ def setup_for_kcm_secdb(request, kdc_instance):
     """
     kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
     sssd_conf = create_sssd_conf(kcm_path, "secdb")
+    return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
+
+
+@pytest.fixture
+def setup_for_kcm_renewals_secdb(passwd_ops_setup, request, kdc_instance):
+    """
+    Set up the KCM renewals backed by libsss_secrets
+    """
+    kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
+    sssd_conf = create_sssd_conf_renewals(kcm_path, "secdb",
+                                          "10d", "60s", "10s")
+    passwd_ops_setup.useradd(**USER1)
     return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
 
 
@@ -585,3 +628,38 @@ def test_kcm_secrets_quota(setup_for_kcm_sec,
     princ = "%s%d" % ("kcmtest", MAX_SECRETS)
     out, _, _ = testenv.k5util.kinit(princ, princ)
     assert out != 0
+
+
+def test_kcm_renewals(setup_for_kcm_renewals_secdb):
+    """
+    Test that basic KCM renewal works
+    """
+    testenv = setup_for_kcm_renewals_secdb
+    testenv.k5kdc.add_principal("user1", "Secret123")
+
+    ok = testenv.k5util.has_principal("user1@KCMTEST")
+    assert ok is False
+    nprincs = testenv.k5util.num_princs()
+    assert nprincs == 0
+
+    # Renewal is only performed after half of lifetime exceeded,
+    # see kcm_renew_all_tgts()
+    options = ["-r", "15s", "-l", "15s"]
+    out, _, _ = testenv.k5util.kinit("user1", "Secret123", options)
+    assert out == 0
+    nprincs = testenv.k5util.num_princs()
+    assert nprincs == 1
+
+    timestr_fmt = "%m/%d/%y %H:%M:%S"
+    initial_times = testenv.k5util.list_times()
+
+    # Wait for renewal to trigger once, after renew interval
+    time.sleep(15)
+
+    renewed_times = testenv.k5util.list_times()
+
+    init_times = initial_times.split()[0] + ' ' + initial_times.split()[1]
+    renew_times = renewed_times.split()[0] + ' ' + renewed_times.split()[1]
+    dt_init = datetime.strptime(init_times, timestr_fmt)
+    dt_renew = datetime.strptime(renew_times, timestr_fmt)
+    assert dt_renew > dt_init
