@@ -145,6 +145,8 @@ class KDC(object):
                 kadmind_port = {self.kadmin_port}
                 database_name = {database_path}
                 key_stash_file = {key_stash}
+                max_life = 7d
+                max_renewable_life = 14d
                 acl_file = {self.acl_file}
             }}
 
