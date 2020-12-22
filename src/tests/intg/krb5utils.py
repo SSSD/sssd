@@ -58,8 +58,10 @@ class Krb5Utils(object):
         out, err = cmd.communicate(stdin)
         return cmd.returncode, out.decode('utf-8'), err.decode('utf-8')
 
-    def kinit(self, principal, password, env=None):
+    def kinit(self, principal, password, options=None, env=None):
         args = ["kinit", principal]
+        if options:
+            args.extend(options)
         return self._run_in_env(args, password.encode('utf-8'), env)
 
     def kvno(self, principal, env=None):
@@ -114,6 +116,17 @@ class Krb5Utils(object):
             raise Exception("Not enough output from klist -l")
 
         return [ln for ln in outlines[2:] if len(ln) > 0]
+
+    def list_times(self, env=None):
+        p = self.spawn_in_env(['klist', '-A'])
+        output = p.stdout.read().splitlines()
+        for line in output:
+            if not line:
+                continue
+
+            line_str = line.decode("utf-8")
+            if line_str[0].isdigit():
+                return line_str
 
     def has_principal(self, exp_principal, exp_cache=None, env=None):
         try:
