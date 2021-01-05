@@ -271,12 +271,12 @@ class TestKrbLdapConnectionTimeout(object):
 
         def find_local_port():
             nsreport = multihost.client[0].run_command(
-                ["netstat", "-antp"], log_stdout=False).stdout_text
+                ["ss", "-ant"], log_stdout=False).stdout_text
             lines = nsreport.splitlines()
             lines1 = []
 
             for i in lines:
-                if i.find('389') != -1 and i.find('ESTABLISHED') != -1:
+                if i.find('389') != -1 and i.find('ESTAB') != -1:
                     lines1.append(i)
             del lines
 
