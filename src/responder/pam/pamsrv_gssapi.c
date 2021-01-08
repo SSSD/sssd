@@ -713,7 +713,8 @@ pam_cmd_gssapi_sec_ctx(struct cli_ctx *cli_ctx)
     DEBUG(SSSDBG_TRACE_FUNC, "Checking that target user matches UPN\n");
 
     req = cache_req_user_by_upn_send(cli_ctx, cli_ctx->ev, cli_ctx->rctx,
-                                     cli_ctx->rctx->ncache, 0, DOM_TYPE_POSIX,
+                                     cli_ctx->rctx->ncache, 0,
+                                     CACHE_REQ_POSIX_DOM,
                                      domain->name, state->authenticated_upn);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
