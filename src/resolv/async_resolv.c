@@ -937,7 +937,7 @@ static int
 resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
                                int status, unsigned char *abuf, int alen)
 {
-    struct hostent *hostent;
+    struct hostent *hostent = NULL;
     int naddrttls;
     errno_t ret;
     void *addr = NULL;
@@ -977,7 +977,7 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
             goto fail;
     }
 
-    if (hostent != NULL) {
+    if ((hostent != NULL) && (status == ARES_SUCCESS)) {
         state->rhostent = resolv_copy_hostent_ares(state, hostent,
                                                    state->family,
                                                    addr, naddrttls);
@@ -994,6 +994,10 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
             talloc_zfree(state->rhostent);
             return ENOENT;
         }
+    } else if (status != ARES_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to parse reply: %d\n", status);
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "NULL parse result!\n");
     }
 
     talloc_free(addr);
