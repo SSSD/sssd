@@ -1862,7 +1862,8 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     struct pam_response *resp = NULL;
     struct cert_auth_info *cai = pi->selected_cert;
     struct cert_auth_info empty_cai = { NULL, NULL, discard_const("Smartcard"),
-                                        NULL, NULL, NULL, NULL, NULL, NULL };
+                                        NULL, NULL, NULL, NULL, NULL, NULL,
+                                        NULL, NULL };
 
     if (cai == NULL && SERVICE_IS_GDM_SMARTCARD(pi)) {
         cai = &empty_cai;
