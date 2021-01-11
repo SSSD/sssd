@@ -101,10 +101,11 @@ void
 sbus_senders_delete(hash_table_t *table,
                     const char *name)
 {
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Removing identity of sender [%s]\n",
-          name);
-
-    sss_ptr_hash_delete(table, name, true);
+    if (sss_ptr_hash_has_key(table, name)) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Removing identity of sender [%s]\n",
+              name);
+        sss_ptr_hash_delete(table, name, true);
+    }
 }
 
 errno_t
