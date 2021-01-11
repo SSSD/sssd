@@ -1582,7 +1582,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_PAM_GSSAPI_SERVICES,
-                                      "-");
+                                      NULL);
     if (tmp != NULL) {
         ret = split_on_separator(domain, tmp, ',', true, true,
                                  &domain->gssapi_services, NULL);
