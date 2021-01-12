@@ -117,17 +117,13 @@ int simple_access_obtain_filter_lists(struct simple_ctx *ctx)
         const char *name;
         const char *option;
         char **orig_list;
-        char ***ctx_list;
+        char **ctx_list;
     } lists[] = {{"Allow users", CONFDB_SIMPLE_ALLOW_USERS, NULL, NULL},
                  {"Deny users", CONFDB_SIMPLE_DENY_USERS, NULL, NULL},
                  {"Allow groups", CONFDB_SIMPLE_ALLOW_GROUPS, NULL, NULL},
                  {"Deny groups", CONFDB_SIMPLE_DENY_GROUPS, NULL, NULL},
                  {NULL, NULL, NULL, NULL}};
 
-    lists[0].ctx_list = &ctx->allow_users;
-    lists[1].ctx_list = &ctx->deny_users;
-    lists[2].ctx_list = &ctx->allow_groups;
-    lists[3].ctx_list = &ctx->deny_groups;
 
     ret = sysdb_master_domain_update(bectx->domain);
     if (ret != EOK) {
@@ -141,7 +137,6 @@ int simple_access_obtain_filter_lists(struct simple_ctx *ctx)
                                         lists[i].option, &lists[i].orig_list);
         if (ret == ENOENT) {
             DEBUG(SSSDBG_FUNC_DATA, "%s list is empty.\n", lists[i].name);
-            *lists[i].ctx_list = NULL;
             continue;
         } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "confdb_get_string_as_list failed.\n");
@@ -149,13 +144,26 @@ int simple_access_obtain_filter_lists(struct simple_ctx *ctx)
         }
 
         ret = simple_access_parse_names(ctx, bectx, lists[i].orig_list,
-                                        lists[i].ctx_list);
+                                        &lists[i].ctx_list);
+        talloc_free(lists[i].orig_list);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse %s list [%d]: %s\n",
                                         lists[i].name, ret, sss_strerror(ret));
             goto failed;
         }
     }
+
+    talloc_free(ctx->allow_users);
+    ctx->allow_users = talloc_steal(ctx, lists[0].ctx_list);
+
+    talloc_free(ctx->deny_users);
+    ctx->deny_users = talloc_steal(ctx, lists[1].ctx_list);
+
+    talloc_free(ctx->allow_groups);
+    ctx->allow_groups = talloc_steal(ctx, lists[2].ctx_list);
+
+    talloc_free(ctx->deny_groups);
+    ctx->deny_groups = talloc_steal(ctx, lists[3].ctx_list);
 
     if (!ctx->allow_users &&
             !ctx->allow_groups &&
@@ -165,9 +173,15 @@ int simple_access_obtain_filter_lists(struct simple_ctx *ctx)
               "No rules supplied for simple access provider. "
                "Access will be granted for all users.\n");
     }
+
+
     return EOK;
 
 failed:
+    for (i = 0; lists[i].name != NULL; i++) {
+        talloc_free(lists[i].ctx_list);
+    }
+
     return ret;
 }
 
