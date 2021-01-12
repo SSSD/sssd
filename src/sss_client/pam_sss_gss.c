@@ -195,6 +195,8 @@ static errno_t sssd_gssapi_init_send(pam_handle_t *pamh,
     struct sss_cli_req_data req_data;
     size_t service_len;
     size_t user_len;
+    size_t reply_len;
+    uint8_t *reply = NULL;
     uint8_t *data;
     errno_t ret;
     int ret_errno;
@@ -217,7 +219,7 @@ static errno_t sssd_gssapi_init_send(pam_handle_t *pamh,
 
     req_data.data = data;
 
-    ret = sss_pam_make_request(SSS_GSSAPI_INIT, &req_data, _reply, _reply_len,
+    ret = sss_pam_make_request(SSS_GSSAPI_INIT, &req_data, &reply, &reply_len,
                                &ret_errno);
     free(data);
     if (ret != PAM_SUCCESS) {
@@ -231,6 +233,16 @@ static errno_t sssd_gssapi_init_send(pam_handle_t *pamh,
               pam_strerror(pamh, ret), strerror(ret_errno));
 
         return (ret_errno != EOK) ? ret_errno : EIO;
+    }
+
+    if (ret_errno == EOK) {
+        *_reply = reply;
+        *_reply_len = reply_len;
+    } else {
+        /* We got PAM_SUCCESS therefore the communication with SSSD was
+         * successful and we have received a reply buffer. We just don't care
+         * about it, we are only interested in the error code. */
+        free(reply);
     }
 
     return ret_errno;
@@ -257,7 +269,8 @@ static errno_t sssd_gssapi_init_recv(uint8_t *reply,
     target = malloc(reply_len * sizeof(char));
     upn = malloc(reply_len * sizeof(char));
     if (username == NULL || domain == NULL || target == NULL || upn == NULL) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     buf = (const char*)reply;
@@ -311,8 +324,8 @@ static errno_t sssd_gssapi_init(pam_handle_t *pamh,
                                 char **_target,
                                 char **_upn)
 {
-    size_t reply_len;
-    uint8_t *reply;
+    size_t reply_len = 0;
+    uint8_t *reply = NULL;
     errno_t ret;
 
     ret = sssd_gssapi_init_send(pamh, pam_service, pam_user, &reply,
@@ -549,6 +562,7 @@ int pam_sm_authenticate(pam_handle_t *pamh,
 
 done:
     sss_pam_close_fd();
+    free(username);
     free(domain);
     free(target);
     free(upn);
