@@ -13,7 +13,7 @@ from constants import ds_instance_name
 class TestSudo(object):
     """ Sudo test suite """
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_bz1294670(self, multihost, backupsssdconf, localusers):
         """
         @Title: sudo: Local users with local sudo rules causes LDAP queries

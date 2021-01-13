@@ -13,7 +13,7 @@ from constants import ds_instance_name
 @pytest.mark.sssctl
 class Testsssctl(object):
     """ This is test case class for sssctl suite """
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0001_bz1638295(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
@@ -37,7 +37,7 @@ class Testsssctl(object):
             result = find.search(cmd.stdout_text)
             assert result is not None
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0002_bz1638295(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
@@ -61,7 +61,7 @@ class Testsssctl(object):
             result = find.search(cmd.stdout_text)
             assert result is not None
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0003_bz1638295(self, multihost, localusers, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
@@ -85,7 +85,7 @@ class Testsssctl(object):
             result = find.search(cmd.stdout_text)
             assert result is not None
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0004_bz1638295(self, multihost, localusers, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
@@ -110,7 +110,7 @@ class Testsssctl(object):
             result = find.search(cmd.stdout_text)
             assert result is not None
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0005_bz1638295(self, multihost, localusers, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
@@ -131,7 +131,7 @@ class Testsssctl(object):
         result = find.search(cmd.stderr_text)
         assert result is not None
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0006_bz1638295(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
@@ -155,7 +155,7 @@ class Testsssctl(object):
             result = find.search(cmd.stdout_text)
             assert result is not None
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0007_bz1638295(self, multihost, localusers, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
@@ -179,7 +179,7 @@ class Testsssctl(object):
             result = find.search(cmd.stdout_text)
             assert result is not None
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0008_bz1761047(self, multihost):
         """
         @Title: sssctl: Null dereference in
@@ -208,7 +208,7 @@ class Testsssctl(object):
         tools.sssd_conf("domain/proxy", proxy_params, 'delete')
         multihost.client[0].run_command(cat, raiseonerr=False)
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0009_bz1751691(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: sssctl: sssctl domain-list command displays
@@ -230,7 +230,7 @@ class Testsssctl(object):
                 result = find.search(cmd.stdout_text)
                 assert result is not None
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0010_bz1628122(self, multihost):
         """
         @Title: sssctl: Printing incorrect information
@@ -261,7 +261,7 @@ class Testsssctl(object):
             else:
                 assert False, 'domain status conflict'
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0011_bz1406678(self, multihost):
         """
         @Title: sssctl: sssd started before network
