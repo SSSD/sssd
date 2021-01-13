@@ -11,7 +11,7 @@ class Testsssctl(object):
     """
     This is test case class for sssctl suite
     """
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0001_bz1640576(self, multihost, localusers):
         """
         @Title: IDM-SSSD-TC: sssctl: sssctl reports incorrect
@@ -33,7 +33,7 @@ class Testsssctl(object):
             cmd = multihost.client[0].run_command(sssctl_cmd, raiseonerr=False)
             assert 'Cache entry expiration time: Never' in cmd.stdout_text
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0002_bz1599207(self, multihost, backupsssdconf, localusers):
         """
         @Title: IDM-SSSD-TC: sssctl: sssd tools do not handle the implicit
