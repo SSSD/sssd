@@ -7,11 +7,13 @@ dist_noinst_DATA = \
     SSSD_test_cert_0004.config \
     SSSD_test_cert_0005.config \
     SSSD_test_cert_0006.config \
+    SSSD_test_cert_0007.config \
     SSSD_test_cert_key_0001.pem \
     SSSD_test_cert_key_0002.pem \
     SSSD_test_cert_key_0003.pem \
     SSSD_test_cert_key_0004.pem \
     SSSD_test_cert_key_0005.pem \
+    SSSD_test_cert_key_0007.pem \
     $(NULL)
 
 openssl_ca_config = $(srcdir)/SSSD_test_CA.config
@@ -51,6 +53,15 @@ SSSD_test_cert_req_0006.pem: $(srcdir)/SSSD_test_cert_key_0001.pem $(srcdir)/SSS
 		$(OPENSSL) req -new -nodes -key $< -reqexts req_exts -config $(srcdir)/SSSD_test_cert_0006.config -out $@ ; \
 	fi
 
+# SSSD_test_cert_0007 should produce a rsassapss signed cert with nondefault settings seen by some 3rd party CA:s
+.INTERMEDIATE: SSSD_test_cert_req_0007.pem
+SSSD_test_cert_req_0007.pem: $(srcdir)/SSSD_test_cert_key_0007.pem $(srcdir)/SSSD_test_cert_0007.config
+	if [ $(shell grep -c req_exts $(srcdir)/SSSD_test_cert_0007.config) -eq 0 ]; then \
+		$(OPENSSL) req -new -key $< -config $(srcdir)/SSSD_test_cert_0007.config  -sigopt rsa_padding_mode\:pss -sha256 -sigopt rsa_pss_saltlen\:20 -out $@ ;  \
+	else \
+		$(OPENSSL) req -new -key $< -reqexts req_exts -config $(srcdir)/SSSD_test_cert_0007.config  -sigopt rsa_padding_mode\:pss -sha256 -sigopt rsa_pss_saltlen\:20 -out $@ ; \
+	fi
+
 SSSD_test_cert_req_%.pem: $(srcdir)/SSSD_test_cert_key_%.pem $(srcdir)/SSSD_test_cert_%.config
 	if [ $(shell grep -c req_exts $(srcdir)/SSSD_test_cert_$*.config) -eq 0 ]; then \
 		$(OPENSSL) req -new -nodes -key $< -config $(srcdir)/SSSD_test_cert_$*.config -out $@ ; \
@@ -63,6 +74,9 @@ SSSD_test_cert_x509_%.pem: SSSD_test_cert_req_%.pem $(openssl_ca_config) SSSD_te
 
 SSSD_test_cert_pkcs12_0006.pem: SSSD_test_cert_x509_0006.pem $(srcdir)/SSSD_test_cert_key_0001.pem $(pwdfile)
 	$(OPENSSL) pkcs12 -export -in SSSD_test_cert_x509_0006.pem -inkey $(srcdir)/SSSD_test_cert_key_0001.pem -nodes -passout file:$(pwdfile) -out $@
+
+SSSD_test_cert_x509_0007.pem: SSSD_test_cert_req_0007.pem $(openssl_ca_config) SSSD_test_CA.pem
+	$(OPENSSL) ca -config ${openssl_ca_config} -batch -notext -keyfile $(openssl_ca_key) -in $< -days 200 -extensions usr_cert  -sigopt rsa_padding_mode\:pss -sigopt rsa_pss_saltlen\:20 -out $@
 
 SSSD_test_cert_pkcs12_%.pem: SSSD_test_cert_x509_%.pem $(srcdir)/SSSD_test_cert_key_%.pem $(pwdfile)
 	$(OPENSSL) pkcs12 -export -in SSSD_test_cert_x509_$*.pem -inkey $(srcdir)/SSSD_test_cert_key_$*.pem -nodes -passout file:$(pwdfile) -out $@
