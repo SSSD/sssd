@@ -92,7 +92,15 @@ bool
 cache_req_autofs_entry_by_name_dp_recv(struct tevent_req *subreq,
                                        struct cache_req *cr)
 {
-    return sbus_call_dp_autofs_GetEntry_recv(subreq) == EOK;
+    errno_t ret;
+
+    ret = sbus_call_dp_autofs_GetEntry_recv(subreq);
+
+    if (ret == ERR_MISSING_DP_TARGET) {
+        ret = EOK;
+    }
+
+    return ret == EOK;
 }
 
 const struct cache_req_plugin cache_req_autofs_entry_by_name = {
