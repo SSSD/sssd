@@ -1418,6 +1418,21 @@ class ADOperations(object):
             return False
         return True
 
+    def create_ad_nonposix_group(self, groupname):
+        """ Create AD Group without UNIX Attributes
+
+        :param str groupname: Windows AD Group name
+        :Return bool : True if a nonposix AD group was created
+        :Exceptions: None
+        """
+        group_dn = "CN=%s,%s" % (groupname, self.ad_users_dn_entry)
+        cmd = self.ad_host.run_command(['dsadd.exe', 'group', group_dn])
+        ad_conn_inst = self.ad_conn()
+        if cmd.returncode == 0:
+            return True
+        else:
+            return False
+
     def delete_ad_user_group(self, user_group):
         """ Delete AD user
 
