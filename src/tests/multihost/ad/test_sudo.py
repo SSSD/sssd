@@ -103,6 +103,51 @@ class TestSudo(object):
                     result.append(line.strip('(root) NOPASSWD: '))
                     assert '/usr/bin/less\n' in result
 
+    def test_003_support_non_posix_group_in_sudorule(self, multihost):
+        """
+        @Title: IDM-SSSD-TC: ad_provider: ad_sudo: support non-posix
+        groups in sudo rules
+        @Bugzilla:
+        https://bugzilla.redhat.com/show_bug.cgi?id=1826272
+
+        @setup:
+        1. Create a non-posix group in the AD and add an AD-user as a
+           members to it
+        2. Add a sudo rule in the /etc/sudoers file for this user with
+           '%:<group_name>'
+        3. List the sudo commands allowed for the user
+        4. Disable ldap_id_mapping on client
+
+        @expectedResuls:
+        1. Verify sudo_userx can fetch the sudo rule and run
+        the required command  as sudo
+        """
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        domain_name = multihost.ad[0].domainname
+        ad_user = 'sudo_user1'
+        domain_section = 'domain/%s' % (domain_name)
+        params = {'ldap_id_mapping': 'false'}
+        client.sssd_conf(domain_section, params)
+        multihost.client[0].service_sssd('restart')
+        time.sleep(5)
+        try:
+            ssh = SSHClient(multihost.client[0].sys_hostname,
+                            username=ad_user, password='Secret123')
+
+        except paramiko.ssh_exception.AuthenticationException:
+            pytest.fail('%s failed to login' % ad_user)
+        else:
+            (stdout, _, exit_status) = ssh.execute_cmd('sudo -l')
+            assert exit_status == 0
+            result = []
+            for line in stdout.readlines():
+                if 'NOPASSWD' in line:
+                    line.strip()
+                    result.append(line.strip('(root) NOPASSWD: '))
+        params = {'ldap_id_mapping': 'false'}
+        client.sssd_conf(domain_section, params, action='delete')
+        assert '/usr/bin/head\n' in result
+
     @classmethod
     def class_teardown(cls, multihost):
         """ Remove sudo provider from Domain section """
