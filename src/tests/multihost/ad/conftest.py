@@ -475,6 +475,12 @@ def create_ad_sudousers(session_multihost, request):
         ad.delete_ad_user_group(ad_group)
         ad.delete_ad_user_group(ad_user)
         ad.create_ad_unix_user_group(ad_user, ad_group)
+    ad_user1 = 'sudo_user1'
+    ad_group2 = 'sudo_group2'
+    ad.create_ad_unix_user_group(ad_user1, ad_group2)
+    ad_group1 = 'sudo_groupx'
+    ad.create_ad_nonposix_group(ad_group1)
+    ad.add_user_member_of_group(ad_group1, ad_user1)
 
     def remove_ad_sudousers():
         """ Remove AD sudo users and groups """
@@ -483,6 +489,8 @@ def create_ad_sudousers(session_multihost, request):
             ad_group = 'sudo_idmgroup%d' % idx
             ad.delete_ad_user_group(ad_group)
             ad.delete_ad_user_group(ad_user)
+        for object in [ad_group1, ad_group2, ad_user1]:
+            ad.delete_ad_user_group(object)
     request.addfinalizer(remove_ad_sudousers)
 
 
@@ -523,6 +531,21 @@ def sudorules(session_multihost, request):
           ",cn=Users,%s -w %s -H ldap://%s" % (sudo_ou, basedn,
                                                ad_password, ad_ip)
     session_multihost.client[0].run_command(cmd, raiseonerr=False)
+    sudo_cmd = '/usr/bin/head'
+    rule_dn = 'cn=%%head_nonposix_rule,%s' % (sudo_ou)
+    sudo_identity = '%%sudo_groupx@%s' % (realm)
+    sudo_options = ["!requiretty", "!authenticate"]
+    try:
+        win_ldap.add_sudo_rule(rule_dn, 'ALL',
+                               sudo_cmd, sudo_identity,
+                               sudo_options)
+    except LdapException:
+        pytest.fail("Failed to add sudo rule %s" % rule_dn)
+    user = '%sudo_groupx'
+    extra_sudo_user = [(ldap.MOD_ADD, 'sudoUser',
+                        user.encode('utf-8'))]
+    (ret, _) = win_ldap.modify_ldap(rule_dn, extra_sudo_user)
+    assert ret == 'Success'
 
     def delete_sudorule():
         """ Delete sudo rule """
@@ -531,6 +554,9 @@ def sudorules(session_multihost, request):
                 rule_dn = 'cn=less_%s_rule%d,%s' % (item, idx, sudo_ou)
                 (ret, _) = win_ldap.del_dn(rule_dn)
                 assert ret == 'Success'
+        rule_dn = 'cn=%%head_nonposix_rule,%s' % (sudo_ou)
+        (ret, _) = win_ldap.del_dn(rule_dn)
+        assert ret == 'Success'
         session_multihost.ad[0].run_command(remove_sudo)
     request.addfinalizer(delete_sudorule)
 
