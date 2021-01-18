@@ -38,6 +38,8 @@
 #include "tests/test_CA/SSSD_test_cert_x509_0001.h"
 #include "tests/test_CA/SSSD_test_cert_pubsshkey_0002.h"
 #include "tests/test_CA/SSSD_test_cert_x509_0002.h"
+#include "tests/test_CA/SSSD_test_cert_pubsshkey_0007.h"
+#include "tests/test_CA/SSSD_test_cert_x509_0007.h"
 #include "tests/test_ECC_CA/SSSD_test_ECC_cert_pubsshkey_0001.h"
 #include "tests/test_ECC_CA/SSSD_test_ECC_cert_x509_0001.h"
 #else
@@ -45,6 +47,8 @@
 #define SSSD_TEST_CERT_SSH_KEY_0001 ""
 #define SSSD_TEST_CERT_0002 ""
 #define SSSD_TEST_CERT_SSH_KEY_0002 ""
+#define SSSD_TEST_CERT_0007 ""
+#define SSSD_TEST_CERT_SSH_KEY_0007 ""
 #define SSSD_TEST_ECC_CERT_0001 ""
 #define SSSD_TEST_ECC_CERT_SSH_KEY_0001 ""
 #endif
@@ -344,6 +348,64 @@ void test_sss_cert_derb64_to_ldap_filter(void **state)
                         "(attrName=\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09)");
 
     talloc_free(filter);
+}
+
+void test_pss_cert_to_ssh_key_done(struct tevent_req *req)
+{
+    int ret;
+    struct test_state *ts = tevent_req_callback_data(req, struct test_state);
+    struct ldb_val *keys;
+    uint8_t *exp_key;
+    size_t exp_key_size;
+    size_t valid_keys;
+
+    assert_non_null(ts);
+    ts->done = true;
+
+    ret = cert_to_ssh_key_recv(req, ts, &keys, &valid_keys);
+    talloc_free(req);
+    assert_int_equal(ret, 0);
+    assert_non_null(keys[0].data);
+    assert_int_equal(valid_keys, 1);
+
+    exp_key = sss_base64_decode(ts, SSSD_TEST_CERT_SSH_KEY_0007, &exp_key_size);
+    assert_non_null(exp_key);
+    assert_int_equal(keys[0].length, exp_key_size);
+    assert_memory_equal(keys[0].data, exp_key, exp_key_size);
+
+    talloc_free(exp_key);
+    talloc_free(keys);
+}
+
+void test_pss_cert_to_ssh_key_send(void **state)
+{
+    struct tevent_context *ev;
+    struct tevent_req *req;
+    struct ldb_val val[1];
+
+    struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    assert_non_null(ts);
+    ts->done = false;
+
+    val[0].data = sss_base64_decode(ts, SSSD_TEST_CERT_0007, &val[0].length);
+    assert_non_null(val[0].data);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    req = cert_to_ssh_key_send(ts, ev, NULL, P11_CHILD_TIMEOUT,
+                            ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
+                            NULL, 1, &val[0], NULL);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, test_pss_cert_to_ssh_key_done, ts);
+
+    while (!ts->done) {
+        tevent_loop_once(ev);
+    }
+
+    talloc_free(val[0].data);
+    talloc_free(ev);
 }
 
 void test_cert_to_ssh_key_done(struct tevent_req *req)
@@ -795,6 +857,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_cert_to_ssh_2keys_invalid_send,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_ec_cert_to_ssh_key_send,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_pss_cert_to_ssh_key_send,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_cert_to_ssh_2keys_with_certmap_send,
                                         setup, teardown),
