@@ -28,7 +28,7 @@ pubkeys = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .pub,$(ids)))
 pubkeys_h = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .h,$(ids)))
 pkcs12 = $(addprefix SSSD_test_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 
-extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens softhsm2_ocsp softhsm2_2certs_same_id
+extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens softhsm2_ocsp softhsm2_2certs_same_id softhsm2_pss_one
 if HAVE_FAKETIME
 extra += SSSD_test_CA_expired_crl.pem
 endif
@@ -165,6 +165,17 @@ softhsm2_2certs_same_id: softhsm2_2certs_same_id.conf SSSD_test_cert_x509_0001.p
 
 softhsm2_2certs_same_id.conf:
 	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_2certs_same_id" > $@
+	@echo "objectstore.backend = file" >> $@
+	@echo "slots.removable = true" >> $@
+
+softhsm2_pss_one: softhsm2_pss_one.conf
+	mkdir $@
+	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token" --pin 123456 --so-pin 123456 --free
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0007.pem --login  --label 'SSSD test cert 0007 /oddchar' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --load-privkey=$(srcdir)/SSSD_test_cert_key_0007.pem --login  --label 'SSSD test cert 0007 /oddchar' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
+
+softhsm2_pss_one.conf:
+	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_pss_one" > $@
 	@echo "objectstore.backend = file" >> $@
 	@echo "slots.removable = true" >> $@
 
