@@ -266,7 +266,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
-    ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL);
+    ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL, NULL, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "schedule_get_domains_tasks failed.\n");

@@ -265,7 +265,7 @@ void test_schedule_get_domains_task(void **state)
     ret = schedule_get_domains_task(dummy_ncache_ptr,
                                     parse_inp_ctx->rctx->ev,
                                     parse_inp_ctx->rctx,
-                                    dummy_ncache_ptr);
+                                    dummy_ncache_ptr, NULL, NULL);
     assert_int_equal(ret, EOK);
 
     ret = test_ev_loop(parse_inp_ctx->tctx);
