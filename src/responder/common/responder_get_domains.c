@@ -430,6 +430,8 @@ static errno_t check_last_request(struct resp_ctx *rctx, const char *hint)
 struct get_domains_state {
     struct resp_ctx *rctx;
     struct sss_nc_ctx *optional_ncache;
+    get_domains_callback_fn_t *callback;
+    void *callback_pvt;
 };
 
 static void get_domains_at_startup_done(struct tevent_req *req)
@@ -462,6 +464,10 @@ static void get_domains_at_startup_done(struct tevent_req *req)
         }
     }
 
+    if (state->callback != NULL) {
+        state->callback(state->callback_pvt);
+    }
+
     talloc_free(state);
     return;
 }
@@ -489,7 +495,9 @@ static void get_domains_at_startup(struct tevent_context *ev,
 errno_t schedule_get_domains_task(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
                                   struct resp_ctx *rctx,
-                                  struct sss_nc_ctx *optional_ncache)
+                                  struct sss_nc_ctx *optional_ncache,
+                                  get_domains_callback_fn_t *callback,
+                                  void *callback_pvt)
 {
     struct tevent_immediate *imm;
     struct get_domains_state *state;
@@ -500,6 +508,8 @@ errno_t schedule_get_domains_task(TALLOC_CTX *mem_ctx,
     }
     state->rctx = rctx;
     state->optional_ncache = optional_ncache;
+    state->callback = callback;
+    state->callback_pvt = callback_pvt;
 
     imm = tevent_create_immediate(mem_ctx);
     if (imm == NULL) {
