@@ -154,6 +154,18 @@ static errno_t get_app_services(struct pam_ctx *pctx)
     return EOK;
 }
 
+static void pam_get_domains_callback(void *pvt)
+{
+    struct pam_ctx *pctx;
+    int ret;
+
+    pctx = talloc_get_type(pvt, struct pam_ctx);
+    ret = p11_refresh_certmap_ctx(pctx, pctx->rctx->domains);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_refresh_certmap_ctx failed.\n");
+    }
+}
+
 static int pam_process_init(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct confdb_ctx *cdb,
@@ -247,7 +259,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     responder_set_fd_limit(fd_limit);
 
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, pctx->rctx->ncache,
-                                    NULL, NULL);
+                                    pam_get_domains_callback, pctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
         goto done;
