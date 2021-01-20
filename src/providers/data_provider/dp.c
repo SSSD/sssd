@@ -134,7 +134,6 @@ static int dp_destructor(struct data_provider *provider)
 struct dp_init_state {
     struct be_ctx *be_ctx;
     struct data_provider *provider;
-    char *sbus_name;
 };
 
 static void dp_init_done(struct tevent_req *subreq);
@@ -144,7 +143,8 @@ dp_init_send(TALLOC_CTX *mem_ctx,
              struct tevent_context *ev,
              struct be_ctx *be_ctx,
              uid_t uid,
-             gid_t gid)
+             gid_t gid,
+             const char *sbus_name)
 {
     struct dp_init_state *state;
     struct tevent_req *subreq;
@@ -177,13 +177,6 @@ dp_init_send(TALLOC_CTX *mem_ctx,
     state->provider->gid = gid;
     state->provider->be_ctx = be_ctx;
 
-    state->sbus_name = sss_iface_domain_bus(state, be_ctx->domain);
-    if (state->sbus_name == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not get sbus backend name.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
     /* Initialize data provider bus. Data provider can receive client
      * registration and other D-Bus methods. However no data provider
      * request will be executed as long as the modules and targets
@@ -192,7 +185,7 @@ dp_init_send(TALLOC_CTX *mem_ctx,
     talloc_set_destructor(state->provider, dp_destructor);
 
     subreq = sbus_server_create_and_connect_send(state->provider, ev,
-        state->sbus_name, NULL, sbus_address, true, 1000, uid, gid,
+        sbus_name, NULL, sbus_address, true, 1000, uid, gid,
         (sbus_server_on_connection_cb)dp_client_init,
         (sbus_server_on_connection_data)state->provider);
     if (subreq == NULL) {
@@ -270,15 +263,9 @@ done:
 }
 
 errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
-                     struct tevent_req *req,
-                     const char **_sbus_name)
+                     struct tevent_req *req)
 {
-    struct dp_init_state *state;
-    state = tevent_req_data(req, struct dp_init_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *_sbus_name = talloc_steal(mem_ctx, state->sbus_name);
 
     return EOK;
 }
