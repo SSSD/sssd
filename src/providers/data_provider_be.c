@@ -565,7 +565,15 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    req = dp_init_send(be_ctx, be_ctx->ev, be_ctx, be_ctx->uid, be_ctx->gid);
+    be_ctx->sbus_name = sss_iface_domain_bus(be_ctx, be_ctx->domain);
+    if (be_ctx->sbus_name == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not get sbus backend name.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    req = dp_init_send(be_ctx, be_ctx->ev, be_ctx, be_ctx->uid, be_ctx->gid,
+                       be_ctx->sbus_name);
     if (req == NULL) {
         ret = ENOMEM;
         goto done;
@@ -612,7 +620,7 @@ static void dp_initialized(struct tevent_req *req)
 
     be_ctx = tevent_req_callback_data(req, struct be_ctx);
 
-    ret = dp_init_recv(be_ctx, req, &be_ctx->sbus_name);
+    ret = dp_init_recv(be_ctx, req);
     talloc_zfree(req);
     if (ret !=  EOK) {
         goto done;

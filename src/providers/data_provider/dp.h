@@ -122,11 +122,11 @@ dp_init_send(TALLOC_CTX *mem_ctx,
              struct tevent_context *ev,
              struct be_ctx *be_ctx,
              uid_t uid,
-             gid_t gid);
+             gid_t gid,
+             const char *sbus_name);
 
 errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
-                     struct tevent_req *req,
-                     const char **_sbus_name);
+                     struct tevent_req *req);
 
 bool _dp_target_enabled(struct data_provider *provider,
                         const char *module_name,
