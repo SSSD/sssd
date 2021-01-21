@@ -44,6 +44,12 @@
             <emphasis>sss_override</emphasis> prints message when a restart is
             required.
         </para>
+        <para>
+            <emphasis>NOTE:</emphasis> The options provided in this man page
+            only work with <quote>ldap</quote> and <quote>AD</quote> <quote>
+            id_provider</quote>. IPA overrides can be managed centrally
+            on the IPA server.
+        </para>
     </refsect1>
 
     <refsect1 id='commands'>
