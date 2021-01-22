@@ -731,6 +731,10 @@ int main(int argc, const char *argv[])
             poptPrintUsage(pc, stderr, 0);
             return 1;
     }
+    if (!is_valid_domain_name(be_domain)) {
+        fprintf(stderr, "\nInvalid --domain option.\n\n");
+        return 1;
+    }
 
     poptFreeContext(pc);
 

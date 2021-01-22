@@ -250,8 +250,9 @@
                                 must be configured or SSSD won't start.
                                 This parameter describes the list of domains
                                 in the order you want them to be queried.
-                                A domain name should only consist of alphanumeric
-                                ASCII characters, dashes, dots and underscores.
+                                A domain name is recommended to contain only
+                                alphanumeric ASCII characters, dashes, dots
+                                and underscores. '/' character is forbidden.
                             </para>
                         </listitem>
                     </varlistentry>

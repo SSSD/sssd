@@ -815,6 +815,11 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
     }
 
     for (c = 0; domain_names[c] != NULL; c++) {
+        if (!is_valid_domain_name(domain_names[c])) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Skipping invalid domain name '%s'\n", domain_names[c]);
+            continue;
+        }
         conf_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL,
                                     domain_names[c]);
         if (conf_path == NULL) {
