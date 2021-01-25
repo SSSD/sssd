@@ -1,7 +1,5 @@
 # SSSD SPEC file for Fedora 34+ and RHEL-9+
 
-%global rhel7_minor %(%{__grep} -o "7.[0-9]*" /etc/redhat-release |%{__sed} -s 's/7.//')
-
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python3_sitearch}/.*\.so$
 
@@ -10,24 +8,9 @@
 
 %define _hardened_build 1
 
-    %global enable_polkit_rules_option --disable-polkit-rules-path
-
 # Determine the location of the LDB modules directory
 %global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
 %global ldb_version 1.2.0
-
-    %global with_cifs_utils_plugin 1
-
-%global enable_systemtap 1
-    %global enable_systemtap_opt --enable-systemtap
-
-    %global with_kcm 1
-
-    %global with_gdm_pam_extensions 1
-
-%if (0%{?fedora} > 28) || (0%{?rhel} > 7)
-    %global use_openssl 1
-%endif
 
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
@@ -126,12 +109,10 @@ BuildRequires: libuuid-devel
 BuildRequires: jansson-devel
 BuildRequires: libcurl-devel
 BuildRequires: gdm-pam-extensions-devel
-%if (0%{?use_openssl} == 1)
 BuildRequires: p11-kit-devel
 BuildRequires: openssl-devel
 BuildRequires: gnutls-utils
 BuildRequires: softhsm >= 2.1.0
-%endif
 BuildRequires: openssl
 BuildRequires: openssh
 BuildRequires: nss-tools
@@ -515,14 +496,11 @@ autoreconf -ivf
     --with-initscript=systemd \
     --with-syslog=journald \
     --without-python2-bindings \
-%if (0%{?use_openssl} == 1)
     --with-crypto=libcrypto \
-%endif
     --enable-sss-default-nss-plugin \
     --enable-files-domain \
     --enable-gss-spnego-for-zero-maxssf \
-    %{?with_cifs_utils_plugin_option} \
-    %{?enable_systemtap_opt}
+    --enable-systemtap
 
 %make_build all docs runstatedir=%{_rundir}
 
@@ -726,9 +704,7 @@ done
 %attr(750,root,root) %dir %{_var}/log/%{name}
 %attr(700,root,root) %dir %{_sysconfdir}/sssd
 %attr(711,root,root) %dir %{_sysconfdir}/sssd/conf.d
-%if (0%{?use_openssl} == 1)
 %attr(711,root,root) %dir %{_sysconfdir}/sssd/pki
-%endif
 %ghost %attr(0600,root,root) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %dir %{_sysconfdir}/logrotate.d
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
