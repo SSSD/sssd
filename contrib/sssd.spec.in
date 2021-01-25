@@ -486,7 +486,6 @@ autoreconf -ivf
     --disable-rpath \
     --with-initscript=systemd \
     --with-syslog=journald \
-    --without-python2-bindings \
     --enable-sss-default-nss-plugin \
     --enable-files-domain \
     --enable-gss-spnego-for-zero-maxssf \
