@@ -67,7 +67,6 @@ BuildRequires: dbus-devel
 BuildRequires: dbus-libs
 BuildRequires: openldap-devel
 BuildRequires: pam-devel
-BuildRequires: nss-devel
 BuildRequires: nspr-devel
 BuildRequires: pcre-devel
 BuildRequires: libxslt
@@ -112,7 +111,6 @@ BuildRequires: gnutls-utils
 BuildRequires: softhsm >= 2.1.0
 BuildRequires: openssl
 BuildRequires: openssh
-BuildRequires: nss-tools
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -489,7 +487,6 @@ autoreconf -ivf
     --with-initscript=systemd \
     --with-syslog=journald \
     --without-python2-bindings \
-    --with-crypto=libcrypto \
     --enable-sss-default-nss-plugin \
     --enable-files-domain \
     --enable-gss-spnego-for-zero-maxssf \
