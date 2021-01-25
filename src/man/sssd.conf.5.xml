@@ -3336,9 +3336,20 @@ pam_gssapi_services = sudo, sudo-i
                                         protocol names) are still lowercased in
                                         the output.
                                     </para>
+                                    <para>
+                                        If you want to set this value for
+                                        trusted domain with IPA provider, you
+                                        need to set it on both the client and
+                                        SSSD on the server.
+                                    </para>
                                 </listitem>
                             </varlistentry>
                         </variablelist>
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: True (False for AD provider)
