@@ -939,6 +939,12 @@ convert_runasextusergroup(TALLOC_CTX *mem_ctx,
                           const char *value,
                           bool *skip_entry)
 {
+    if (value == NULL)
+        return NULL;
+
+    if (value[0] == '%')
+        return talloc_strdup(mem_ctx, value);
+
     return talloc_asprintf(mem_ctx, "%%%s", value);
 }
 
