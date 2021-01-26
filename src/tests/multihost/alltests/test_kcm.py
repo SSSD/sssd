@@ -88,3 +88,35 @@ class TestKcm(object):
                                                    f"ldap_search_ext with' "
                                                    f"{log_location}")
         assert 'modifyTimestamp>=' not in grep_cmd.stdout_text
+
+    @pytest.mark.no_tier
+    def test_kcm_check_socket_path(self, multihost, backupsssdconf):
+        """
+        :title: kcm: Test socket path when sssd-kcm is activated by systemd
+        :id: 6425bf2c-d07e-4d65-b15d-946141422f96
+        :ticket: https://github.com/SSSD/sssd/issues/5406
+        """
+        # Start from a known-good state after removing log file and adding a
+        # new socket path
+        domain_log = '/var/log/sssd/sssd_kcm.log'
+        multihost.client[0].service_sssd('stop')
+        multihost.client[0].run_command("systemctl stop sssd-kcm")
+        client = sssdTools(multihost.client[0])
+        client.remove_sss_cache(domain_log)
+        socket_path = "/some_path/kcm.socket"
+        domain_section = "kcm"
+        sssd_params = {'socket_path': '%s' % (socket_path)}
+        client.sssd_conf(domain_section, sssd_params)
+        multihost.client[0].service_sssd('start')
+        multihost.client[0].run_command("systemctl start sssd-kcm")
+        # Give sssd some time to load
+        time.sleep(2)
+
+        # Check log file for the expected warning message
+        log = multihost.client[0].get_file_contents(domain_log).decode('utf-8')
+        msg = "Warning: socket path defined in systemd unit "\
+              "\([a-zA-Z0-9\/._-]) and sssd.conf \(%s\) don't "\
+              "match" % (socket_path)
+        find = re.compile(r'%s' % msg)
+
+        assert find.search(log)
