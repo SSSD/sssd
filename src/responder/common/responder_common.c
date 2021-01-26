@@ -1001,6 +1001,8 @@ int activate_unix_sockets(struct resp_ctx *rctx,
                           connection_setup_t conn_setup)
 {
     int ret;
+    struct sockaddr_un sockaddr;
+    socklen_t sockaddr_len = sizeof(sockaddr);
 
 #ifdef HAVE_SYSTEMD
     if (rctx->lfd == -1 && rctx->priv_lfd == -1) {
@@ -1030,6 +1032,15 @@ int activate_unix_sockets(struct resp_ctx *rctx,
                       "Activated socket is not a UNIX listening socket\n");
                 ret = EIO;
                 goto done;
+            }
+
+            ret = getsockname(rctx->lfd, (struct sockaddr *) &sockaddr, &sockaddr_len);
+            if (ret == EOK) {
+                if (memcmp(rctx->sock_name, sockaddr.sun_path, strlen(rctx->sock_name)) != 0) {
+                    DEBUG(SSSDBG_CONF_SETTINGS,
+                          "Warning: socket path defined in systemd unit (%s) and sssd.conf (%s) don't match\n",
+                          sockaddr.sun_path, rctx->sock_name);
+                }
             }
 
             ret = sss_fd_nonblocking(rctx->lfd);
