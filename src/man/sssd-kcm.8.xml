@@ -203,6 +203,13 @@ systemctl restart sssd-kcm.service
                     <para>
                         Default: <replaceable>/var/run/.heim_org.h5l.kcm-socket</replaceable>
                     </para>
+                    <para>
+                        <phrase condition="have_systemd">
+                            Note: on platforms where systemd is supported, the
+                            socket path is overwritten by the one defined in
+                            the sssd-kcm.socket unit file.
+                        </phrase>
+                    </para>
                 </listitem>
             </varlistentry>
             <varlistentry>
