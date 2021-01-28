@@ -74,6 +74,7 @@ BuildRequires: gcc
 BuildRequires: gdm-pam-extensions-devel
 BuildRequires: gettext-devel
 BuildRequires: glib2-devel
+# required for p11_child smartcard tests
 BuildRequires: gnutls-utils
 BuildRequires: jansson-devel
 BuildRequires: keyutils-libs-devel
@@ -108,8 +109,10 @@ BuildRequires: pkgconfig
 BuildRequires: popt-devel
 BuildRequires: python3-devel
 BuildRequires: samba-devel
+# required for idmap_sss.so
 BuildRequires: samba-winbind
 BuildRequires: selinux-policy-targeted
+# required for p11_child smartcard tests
 BuildRequires: softhsm >= 2.1.0
 BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
