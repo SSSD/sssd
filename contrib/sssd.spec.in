@@ -9,6 +9,8 @@
 %global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
 %global ldb_version 1.2.0
 
+%global samba_package_version %(rpm -q samba-devel --queryformat %{version}-%{release})
+
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
 Release: 0@PRERELEASE_VERSION@%{?dist}
@@ -35,6 +37,7 @@ Requires: sssd-ad = %{version}-%{release}
 Recommends: sssd-proxy = %{version}-%{release}
 Suggests: python3-sssdconfig = %{version}-%{release}
 Suggests: sssd-dbus = %{version}-%{release}
+Recommends: logrotate
 
 %global servicename sssd
 %global sssdstatedir %{_localstatedir}/lib/sss
@@ -96,7 +99,7 @@ BuildRequires: systemd-devel
 BuildRequires: systemd
 BuildRequires: cifs-utils-devel
 BuildRequires: libnfsidmap-devel
-BuildRequires: samba4-devel
+BuildRequires: samba-devel
 BuildRequires: libsmbclient-devel
 BuildRequires: samba-winbind
 BuildRequires: systemtap-sdt-devel
@@ -150,6 +153,8 @@ sub-packages such as sssd-ldap.
 %package client
 Summary: SSSD Client libraries for NSS and PAM
 License: LGPLv3+
+Requires: libsss_nss_idmap = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 Requires(post): /sbin/ldconfig
 Requires(post):  /usr/sbin/alternatives
 Requires(preun): /usr/sbin/alternatives
@@ -178,6 +183,7 @@ A utility library to allow communication between Autofs and SSSD
 Summary: Userspace tools for use with the SSSD
 License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
+Requires: libsss_simpleifp = %{version}-%{release}
 # required by sss_obfuscate
 Requires: python3-sss = %{version}-%{release}
 Requires: python3-sssdconfig = %{version}-%{release}
@@ -230,6 +236,7 @@ License: GPLv3+
 Conflicts: sssd < 1.10.0-8.beta2
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 
 %description ldap
 Provides the LDAP back end that the SSSD can utilize to fetch identity data
@@ -261,6 +268,7 @@ against a Kerberos server.
 Summary: Common files needed for supporting PAC processing
 License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 
 %description common-pac
 Provides common files needed by SSSD providers such as IPA and Active Directory
@@ -270,11 +278,13 @@ for handling Kerberos PACs.
 Summary: The IPA back end of the SSSD
 License: GPLv3+
 Conflicts: sssd < 1.10.0-8.beta2
+Requires: samba-client-libs >= %{samba_package_version}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: libipa_hbac%{?_isa} = %{version}-%{release}
 Recommends: bind-utils
 Requires: sssd-common-pac = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 
 %description ipa
 Provides the IPA back end that the SSSD can utilize to fetch identity data
@@ -284,9 +294,11 @@ from and authenticate against an IPA server.
 Summary: The AD back end of the SSSD
 License: GPLv3+
 Conflicts: sssd < 1.10.0-8.beta2
+Requires: samba-client-libs >= %{samba_package_version}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: sssd-common-pac = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 Recommends: bind-utils
 Recommends: adcli
 Suggests: sssd-winbind-idmap = %{version}-%{release}
@@ -400,6 +412,8 @@ Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
 %package winbind-idmap
 Summary: SSSD's idmap_sss Backend for Winbind
 License: GPLv3+ and LGPLv3+
+Requires: libsss_nss_idmap = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 Conflicts: sssd-common < %{version}-%{release}
 
 %description winbind-idmap
@@ -700,13 +714,11 @@ done
 %dir %{_sysconfdir}/rwtab.d
 %config(noreplace) %{_sysconfdir}/rwtab.d/sssd
 %dir %{_datadir}/sssd
-%{_sysconfdir}/pam.d/sssd-shadowutils
+%config(noreplace) %{_sysconfdir}/pam.d/sssd-shadowutils
 %dir %{_libdir}/%{name}/conf
 %{_libdir}/%{name}/conf/sssd.conf
 
 %{_datadir}/sssd/cfg_rules.ini
-%{_datadir}/sssd/sssd.api.conf
-%{_datadir}/sssd/sssd.api.d
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %{_mandir}/man5/sssd.conf.5*
@@ -831,6 +843,9 @@ done
 %{python3_sitelib}/SSSDConfig/*.py*
 %dir %{python3_sitelib}/SSSDConfig/__pycache__
 %{python3_sitelib}/SSSDConfig/__pycache__/*.py*
+%dir %{_datadir}/sssd
+%{_datadir}/sssd/sssd.api.conf
+%{_datadir}/sssd/sssd.api.d
 
 %files -n python3-sss
 %{python3_sitearch}/pysss.so
