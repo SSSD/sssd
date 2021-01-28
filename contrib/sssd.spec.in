@@ -1,5 +1,12 @@
 # SSSD SPEC file for Fedora 34+ and RHEL-9+
 
+# define SSSD user
+%if 0%{?rhel}
+%global sssd_user sssd
+%else
+%global sssd_user root
+%endif
+
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python3_sitearch}/.*\.so$
 
@@ -140,7 +147,9 @@ Recommends: libsss_autofs%{?_isa} = %{version}-%{release}
 Recommends: sssd-nfs-idmap = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
+%if 0%{?rhel}
 Requires(pre): shadow-utils
+%endif
 %{?systemd_requires}
 
 ### Provides ###
@@ -252,7 +261,6 @@ License: GPLv3+
 Conflicts: sssd < 1.10.0-8.beta2
 Requires: cyrus-sasl-gssapi%{?_isa}
 Requires: sssd-common = %{version}-%{release}
-Requires(pre): shadow-utils
 
 %description krb5-common
 Provides helper processes that the LDAP and Kerberos back ends can use for
@@ -291,7 +299,6 @@ Requires: libsss_certmap = %{version}-%{release}
 Recommends: bind-utils
 Requires: sssd-common-pac = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
-Requires(pre): shadow-utils
 
 %description ipa
 Provides the IPA back end that the SSSD can utilize to fetch identity data
@@ -320,7 +327,6 @@ Summary: The proxy back end of the SSSD
 License: GPLv3+
 Conflicts: sssd < 1.10.0-8.beta2
 Requires: sssd-common = %{version}-%{release}
-Requires(pre): shadow-utils
 
 %description proxy
 Provides the proxy back end which can be used to wrap an existing NSS and/or
@@ -526,6 +532,7 @@ autoreconf -ivf
     --enable-files-domain \
     --enable-gss-spnego-for-zero-maxssf \
     --enable-systemtap \
+    --with-sssd-user=%{sssd_user} \
 %if 0%{?fedora}
     --disable-polkit-rules-path \
 %endif
@@ -719,20 +726,20 @@ done
 
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
-%attr(700,root,root) %dir %{dbpath}
-%attr(775,root,root) %dir %{mcpath}
+%attr(700,%{sssd_user},%{sssd_user}) %dir %{dbpath}
+%attr(775,%{sssd_user},%{sssd_user}) %dir %{mcpath}
 %attr(700,root,root) %dir %{secdbpath}
 %attr(751,root,root) %dir %{deskprofilepath}
-%ghost %attr(0664,root,root) %verify(not md5 size mtime) %{mcpath}/passwd
-%ghost %attr(0664,root,root) %verify(not md5 size mtime) %{mcpath}/group
-%ghost %attr(0664,root,root) %verify(not md5 size mtime) %{mcpath}/initgroups
-%attr(755,root,root) %dir %{pipepath}
-%attr(700,root,root) %dir %{pipepath}/private
-%attr(755,root,root) %dir %{pubconfpath}
-%attr(755,root,root) %dir %{gpocachepath}
-%attr(750,root,root) %dir %{_var}/log/%{name}
-%attr(700,root,root) %dir %{_sysconfdir}/sssd
-%attr(711,root,root) %dir %{_sysconfdir}/sssd/conf.d
+%ghost %attr(0664,%{sssd_user},%{sssd_user}) %verify(not md5 size mtime) %{mcpath}/passwd
+%ghost %attr(0664,%{sssd_user},%{sssd_user}) %verify(not md5 size mtime) %{mcpath}/group
+%ghost %attr(0664,%{sssd_user},%{sssd_user}) %verify(not md5 size mtime) %{mcpath}/initgroups
+%attr(755,%{sssd_user},%{sssd_user}) %dir %{pipepath}
+%attr(750,%{sssd_user},root) %dir %{pipepath}/private
+%attr(755,%{sssd_user},%{sssd_user}) %dir %{pubconfpath}
+%attr(755,%{sssd_user},%{sssd_user}) %dir %{gpocachepath}
+%attr(750,%{sssd_user},%{sssd_user}) %dir %{_var}/log/%{name}
+%attr(700,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd
+%attr(711,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd/conf.d
 %attr(711,root,root) %dir %{_sysconfdir}/sssd/pki
 %ghost %attr(0600,root,root) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %dir %{_sysconfdir}/logrotate.d
@@ -778,9 +785,9 @@ done
 
 %files krb5-common
 %license COPYING
-%attr(755,root,root) %dir %{pubconfpath}/krb5.include.d
-%{_libexecdir}/%{servicename}/ldap_child
-%{_libexecdir}/%{servicename}/krb5_child
+%attr(755,%{sssd_user},%{sssd_user}) %dir %{pubconfpath}/krb5.include.d
+%attr(4750,root,%{sssd_user}) %{_libexecdir}/%{servicename}/ldap_child
+%attr(4750,root,%{sssd_user}) %{_libexecdir}/%{servicename}/krb5_child
 
 %files krb5 -f sssd_krb5.lang
 %license COPYING
@@ -793,9 +800,9 @@ done
 
 %files ipa -f sssd_ipa.lang
 %license COPYING
-%attr(700,root,root) %dir %{keytabdir}
+%attr(700,%{sssd_user},%{sssd_user}) %dir %{keytabdir}
 %{_libdir}/%{name}/libsss_ipa.so
-%{_libexecdir}/%{servicename}/selinux_child
+%attr(4750,root,%{sssd_user}) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 
 %files ad -f sssd_ad.lang
@@ -806,7 +813,7 @@ done
 
 %files proxy
 %license COPYING
-%{_libexecdir}/%{servicename}/proxy_child
+%attr(4750,root,%{sssd_user}) %{_libexecdir}/%{servicename}/proxy_child
 %{_libdir}/%{name}/libsss_proxy.so
 
 %files dbus -f sssd_dbus.lang
@@ -948,6 +955,12 @@ done
 %{_unitdir}/sssd-kcm.service
 %{_mandir}/man8/sssd-kcm.8*
 %{_libdir}/%{name}/libsss_secrets.so
+
+%if 0%{?rhel}
+%pre common
+getent group sssd >/dev/null || groupadd -r sssd
+getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "User for sssd" sssd
+%endif
 
 %post common
 %systemd_post sssd.service
