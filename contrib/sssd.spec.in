@@ -184,7 +184,6 @@ A utility library to allow communication between Autofs and SSSD
 Summary: Userspace tools for use with the SSSD
 License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
-Requires: libsss_simpleifp = %{version}-%{release}
 # required by sss_obfuscate
 Requires: python3-sss = %{version}-%{release}
 Requires: python3-sssdconfig = %{version}-%{release}
