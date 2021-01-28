@@ -135,9 +135,6 @@ the existing back ends.
 %package common
 Summary: Common files for the SSSD
 License: GPLv3+
-# Conflicts
-Conflicts: selinux-policy < 3.10.0-46
-Conflicts: sssd < 1.10.0-8%{?dist}.beta2
 # Requires
 # due to ABI changes in 1.1.30/1.2.0
 Requires: libldb >= %{ldb_version}
@@ -245,7 +242,6 @@ Provides python3 module for calculating the murmur hash version 3
 %package ldap
 Summary: The LDAP back end of the SSSD
 License: GPLv3+
-Conflicts: sssd < 1.10.0-8.beta2
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
@@ -258,7 +254,6 @@ from and authenticate against an LDAP server.
 %package krb5-common
 Summary: SSSD helpers needed for Kerberos and GSSAPI authentication
 License: GPLv3+
-Conflicts: sssd < 1.10.0-8.beta2
 Requires: cyrus-sasl-gssapi%{?_isa}
 Requires: sssd-common = %{version}-%{release}
 
@@ -269,7 +264,6 @@ Kerberos user or host authentication.
 %package krb5
 Summary: The Kerberos authentication back end for the SSSD
 License: GPLv3+
-Conflicts: sssd < 1.10.0-8.beta2
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 
@@ -290,7 +284,6 @@ for handling Kerberos PACs.
 %package ipa
 Summary: The IPA back end of the SSSD
 License: GPLv3+
-Conflicts: sssd < 1.10.0-8.beta2
 Requires: samba-client-libs >= %{samba_package_version}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
@@ -307,7 +300,6 @@ from and authenticate against an IPA server.
 %package ad
 Summary: The AD back end of the SSSD
 License: GPLv3+
-Conflicts: sssd < 1.10.0-8.beta2
 Requires: samba-client-libs >= %{samba_package_version}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
@@ -325,7 +317,6 @@ identity data from and authenticate against an Active Directory server.
 %package proxy
 Summary: The proxy back end of the SSSD
 License: GPLv3+
-Conflicts: sssd < 1.10.0-8.beta2
 Requires: sssd-common = %{version}-%{release}
 
 %description proxy
