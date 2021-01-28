@@ -71,13 +71,10 @@ BuildRequires: libtevent-devel
 BuildRequires: libtdb-devel
 BuildRequires: libldb-devel >= %{ldb_version}
 BuildRequires: libdhash-devel >= 0.4.2
-BuildRequires: libcollection-devel
 BuildRequires: libini_config-devel >= 1.1
 BuildRequires: dbus-devel
-BuildRequires: dbus-libs
 BuildRequires: openldap-devel
 BuildRequires: pam-devel
-BuildRequires: nspr-devel
 BuildRequires: pcre-devel
 BuildRequires: libxslt
 BuildRequires: libxml2
@@ -103,23 +100,19 @@ BuildRequires: nss_wrapper
 BuildRequires: pam_wrapper
 BuildRequires: libnl3-devel
 BuildRequires: systemd-devel
-BuildRequires: systemd
 BuildRequires: cifs-utils-devel
 BuildRequires: libnfsidmap-devel
 BuildRequires: samba-devel
 BuildRequires: libsmbclient-devel
 BuildRequires: samba-winbind
 BuildRequires: systemtap-sdt-devel
-BuildRequires: http-parser-devel
 BuildRequires: libuuid-devel
 BuildRequires: jansson-devel
-BuildRequires: libcurl-devel
 BuildRequires: gdm-pam-extensions-devel
 BuildRequires: p11-kit-devel
 BuildRequires: openssl-devel
 BuildRequires: gnutls-utils
 BuildRequires: softhsm >= 2.1.0
-BuildRequires: openssl
 BuildRequires: openssh
 
 %description
