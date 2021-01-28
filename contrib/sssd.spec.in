@@ -35,7 +35,7 @@ Requires: sssd-krb5 = %{version}-%{release}
 Requires: sssd-ipa = %{version}-%{release}
 Requires: sssd-ad = %{version}-%{release}
 Recommends: sssd-proxy = %{version}-%{release}
-Suggests: python3-sssdconfig = %{version}-%{release}
+Requires: python3-sssdconfig = %{version}-%{release}
 Suggests: sssd-dbus = %{version}-%{release}
 Recommends: logrotate
 
@@ -139,6 +139,8 @@ Recommends: libsss_sudo = %{version}-%{release}
 Recommends: libsss_autofs%{?_isa} = %{version}-%{release}
 Recommends: sssd-nfs-idmap = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
+Requires: libsss_certmap = %{version}-%{release}
+Requires(pre): shadow-utils
 %{?systemd_requires}
 
 ### Provides ###
@@ -187,6 +189,7 @@ Requires: libsss_simpleifp = %{version}-%{release}
 # required by sss_obfuscate
 Requires: python3-sss = %{version}-%{release}
 Requires: python3-sssdconfig = %{version}-%{release}
+Requires: libsss_certmap = %{version}-%{release}
 Recommends: sssd-dbus
 
 %description tools
@@ -237,6 +240,7 @@ Conflicts: sssd < 1.10.0-8.beta2
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
+Requires: libsss_certmap = %{version}-%{release}
 
 %description ldap
 Provides the LDAP back end that the SSSD can utilize to fetch identity data
@@ -248,6 +252,7 @@ License: GPLv3+
 Conflicts: sssd < 1.10.0-8.beta2
 Requires: cyrus-sasl-gssapi%{?_isa}
 Requires: sssd-common = %{version}-%{release}
+Requires(pre): shadow-utils
 
 %description krb5-common
 Provides helper processes that the LDAP and Kerberos back ends can use for
@@ -282,9 +287,11 @@ Requires: samba-client-libs >= %{samba_package_version}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: libipa_hbac%{?_isa} = %{version}-%{release}
+Requires: libsss_certmap = %{version}-%{release}
 Recommends: bind-utils
 Requires: sssd-common-pac = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
+Requires(pre): shadow-utils
 
 %description ipa
 Provides the IPA back end that the SSSD can utilize to fetch identity data
@@ -299,6 +306,7 @@ Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: sssd-common-pac = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
+Requires: libsss_certmap = %{version}-%{release}
 Recommends: bind-utils
 Recommends: adcli
 Suggests: sssd-winbind-idmap = %{version}-%{release}
@@ -312,6 +320,7 @@ Summary: The proxy back end of the SSSD
 License: GPLv3+
 Conflicts: sssd < 1.10.0-8.beta2
 Requires: sssd-common = %{version}-%{release}
+Requires(pre): shadow-utils
 
 %description proxy
 Provides the proxy back end which can be used to wrap an existing NSS and/or
@@ -391,6 +400,19 @@ Requires: sssd-common = %{version}-%{release}
 %description dbus
 Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
 the information from the SSSD to be transmitted over the system bus.
+
+%if 0%{?rhel}
+%package polkit-rules
+Summary: Rules for polkit integration for SSSD
+Group: Applications/System
+License: GPLv3+
+Requires: polkit >= 0.106
+Requires: sssd-common = %{version}-%{release}
+
+%description polkit-rules
+Provides rules for polkit integration with SSSD. This is required
+for smartcard support.
+%endif
 
 %package -n libsss_simpleifp
 Summary: The SSSD D-Bus responder helper library
@@ -503,7 +525,11 @@ autoreconf -ivf
     --enable-sss-default-nss-plugin \
     --enable-files-domain \
     --enable-gss-spnego-for-zero-maxssf \
-    --enable-systemtap
+    --enable-systemtap \
+%if 0%{?fedora}
+    --disable-polkit-rules-path \
+%endif
+    %{nil}
 
 %make_build all docs runstatedir=%{_rundir}
 
@@ -739,6 +765,10 @@ done
 %{_datadir}/systemtap/tapset/sssd_functions.stp
 %{_mandir}/man5/sssd-systemtap.5*
 
+%if 0%{?rhel}
+%files polkit-rules
+%{_datadir}/polkit-1/rules.d/*
+%endif
 
 %files ldap -f sssd_ldap.lang
 %license COPYING
