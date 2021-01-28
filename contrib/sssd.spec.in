@@ -36,15 +36,15 @@ Source0: %{url}/archive/%{version}/%{name}-%{version}.tar.gz
 
 ### Dependencies ###
 
-Requires: sssd-common = %{version}-%{release}
-Requires: sssd-ldap = %{version}-%{release}
-Requires: sssd-krb5 = %{version}-%{release}
-Requires: sssd-ipa = %{version}-%{release}
-Requires: sssd-ad = %{version}-%{release}
-Recommends: sssd-proxy = %{version}-%{release}
 Requires: python3-sssdconfig = %{version}-%{release}
-Suggests: sssd-dbus = %{version}-%{release}
+Requires: sssd-ad = %{version}-%{release}
+Requires: sssd-common = %{version}-%{release}
+Requires: sssd-ipa = %{version}-%{release}
+Requires: sssd-krb5 = %{version}-%{release}
+Requires: sssd-ldap = %{version}-%{release}
+Recommends: sssd-proxy = %{version}-%{release}
 Recommends: logrotate
+Suggests: sssd-dbus = %{version}-%{release}
 
 %global servicename sssd
 %global sssdstatedir %{_localstatedir}/lib/sss
@@ -59,61 +59,61 @@ Recommends: logrotate
 
 ### Build Dependencies ###
 
-BuildRequires: make
 BuildRequires: autoconf
 BuildRequires: automake
-BuildRequires: libtool
-BuildRequires: m4
+BuildRequires: bind-utils
+BuildRequires: c-ares-devel
+BuildRequires: check-devel
+BuildRequires: cifs-utils-devel
+BuildRequires: dbus-devel
+BuildRequires: diffstat
+BuildRequires: docbook-style-xsl
+BuildRequires: doxygen
+BuildRequires: findutils
 BuildRequires: gcc
-BuildRequires: popt-devel
-BuildRequires: libtalloc-devel
-BuildRequires: libtevent-devel
-BuildRequires: libtdb-devel
-BuildRequires: libldb-devel >= %{ldb_version}
+BuildRequires: gdm-pam-extensions-devel
+BuildRequires: gettext-devel
+BuildRequires: glib2-devel
+BuildRequires: gnutls-utils
+BuildRequires: jansson-devel
+BuildRequires: keyutils-libs-devel
+BuildRequires: krb5-devel
+BuildRequires: libcmocka-devel >= 1.0.0
 BuildRequires: libdhash-devel >= 0.4.2
 BuildRequires: libini_config-devel >= 1.1
-BuildRequires: dbus-devel
-BuildRequires: openldap-devel
-BuildRequires: pam-devel
-BuildRequires: pcre-devel
-BuildRequires: libxslt
-BuildRequires: libxml2
-BuildRequires: docbook-style-xsl
-BuildRequires: krb5-devel
-BuildRequires: c-ares-devel
-BuildRequires: python3-devel
-BuildRequires: check-devel
-BuildRequires: doxygen
+BuildRequires: libldb-devel >= %{ldb_version}
+BuildRequires: libnfsidmap-devel
+BuildRequires: libnl3-devel
 BuildRequires: libselinux-devel
 BuildRequires: libsemanage-devel
-BuildRequires: bind-utils
-BuildRequires: keyutils-libs-devel
-BuildRequires: gettext-devel
-BuildRequires: pkgconfig
-BuildRequires: diffstat
-BuildRequires: findutils
-BuildRequires: glib2-devel
-BuildRequires: selinux-policy-targeted
-BuildRequires: libcmocka-devel >= 1.0.0
-BuildRequires: uid_wrapper
-BuildRequires: nss_wrapper
-BuildRequires: pam_wrapper
-BuildRequires: libnl3-devel
-BuildRequires: systemd-devel
-BuildRequires: cifs-utils-devel
-BuildRequires: libnfsidmap-devel
-BuildRequires: samba-devel
 BuildRequires: libsmbclient-devel
-BuildRequires: samba-winbind
-BuildRequires: systemtap-sdt-devel
+BuildRequires: libtalloc-devel
+BuildRequires: libtdb-devel
+BuildRequires: libtevent-devel
+BuildRequires: libtool
 BuildRequires: libuuid-devel
-BuildRequires: jansson-devel
-BuildRequires: gdm-pam-extensions-devel
-BuildRequires: p11-kit-devel
-BuildRequires: openssl-devel
-BuildRequires: gnutls-utils
-BuildRequires: softhsm >= 2.1.0
+BuildRequires: libxml2
+BuildRequires: libxslt
+BuildRequires: m4
+BuildRequires: make
+BuildRequires: nss_wrapper
+BuildRequires: openldap-devel
 BuildRequires: openssh
+BuildRequires: openssl-devel
+BuildRequires: p11-kit-devel
+BuildRequires: pam_wrapper
+BuildRequires: pam-devel
+BuildRequires: pcre-devel
+BuildRequires: pkgconfig
+BuildRequires: popt-devel
+BuildRequires: python3-devel
+BuildRequires: samba-devel
+BuildRequires: samba-winbind
+BuildRequires: selinux-policy-targeted
+BuildRequires: softhsm >= 2.1.0
+BuildRequires: systemd-devel
+BuildRequires: systemtap-sdt-devel
+BuildRequires: uid_wrapper
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -495,27 +495,27 @@ done
 autoreconf -ivf
 
 %configure \
-    --with-test-dir=/dev/shm \
-    --with-db-path=%{dbpath} \
-    --with-mcache-path=%{mcpath} \
-    --with-pipe-path=%{pipepath} \
-    --with-pubconf-path=%{pubconfpath} \
-    --with-gpo-cache-path=%{gpocachepath} \
-    --with-init-dir=%{_initrddir} \
-    --with-krb5-rcache-dir=%{_localstatedir}/cache/krb5rcache \
-    --with-pid-path=%{_rundir} \
-    --enable-nsslibdir=%{_libdir} \
-    --enable-pammoddir=%{_libdir}/security \
-    --enable-nfsidmaplibdir=%{_libdir}/libnfsidmap \
-    --disable-static \
     --disable-rpath \
-    --with-initscript=systemd \
-    --with-syslog=journald \
-    --enable-sss-default-nss-plugin \
+    --disable-static \
     --enable-files-domain \
     --enable-gss-spnego-for-zero-maxssf \
+    --enable-nfsidmaplibdir=%{_libdir}/libnfsidmap \
+    --enable-nsslibdir=%{_libdir} \
+    --enable-pammoddir=%{_libdir}/security \
+    --enable-sss-default-nss-plugin \
     --enable-systemtap \
+    --with-db-path=%{dbpath} \
+    --with-gpo-cache-path=%{gpocachepath} \
+    --with-init-dir=%{_initrddir} \
+    --with-initscript=systemd \
+    --with-krb5-rcache-dir=%{_localstatedir}/cache/krb5rcache \
+    --with-mcache-path=%{mcpath} \
+    --with-pid-path=%{_rundir} \
+    --with-pipe-path=%{pipepath} \
+    --with-pubconf-path=%{pubconfpath} \
     --with-sssd-user=%{sssd_user} \
+    --with-syslog=journald \
+    --with-test-dir=/dev/shm \
 %if 0%{?fedora}
     --disable-polkit-rules-path \
 %endif
