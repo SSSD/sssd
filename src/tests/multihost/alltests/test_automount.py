@@ -342,3 +342,73 @@ class Testautofsresponder(object):
         # delete the pcap file
         del_pcap = 'rm -f %s' % auto_pcapfile
         multihost.client[0].run_command(del_pcap)
+
+    @pytest.mark.parametrize('add_nisobject', ['/export'], indirect=True)
+    @pytest.mark.tier1_2
+    def test_009_fetch_maps_coming_online_from_offline(self, multihost,
+                                                       add_nisobject):
+        """
+        :title: fetch autofs map after coming online from offline
+        :id: b9da6e0e-3d8b-4465-b435-338708d0d51e
+        :bugzilla:
+          https://bugzilla.redhat.com/show_bug.cgi?id=1113639
+        :customerscenario: True
+        :steps:
+          1. firewall block 389 and 636
+          2. stop sssd, autofs.
+          3. remove sssd cache
+          4. edit and specify autofs_provider
+          5. Start sssd
+          6. remove firewall rule
+          7. start autofs
+        :expectedresults:
+          1. port 389 and 636 should not allow any traffic
+          2. sssd and autofs services should stop
+          3. sssd cache should be deleted successfully
+          4. edit should be successfully loaded in sssd.conf
+          5. sssd should come online within 60 seconds
+          6. port 389 and 636 should allow traffic through them
+          7. autofs should start successfully
+        """
+        multihost.master[0].run_command(['touch', '/export/nfs-test'])
+        client = sssdTools(multihost.client[0])
+        domain_name = client.get_domain_section_name()
+        for service in ['sssd', 'autofs']:
+            client.service_ctrl("stop", service)
+        cmd = 'dnf install -y firewalld'
+        multihost.client[0].run_command(cmd, raiseonerr=True)
+        client.service_ctrl("start", "firewalld")
+        fw_add0 = 'firewall-cmd --permanent --direct --add-rule ipv4 '\
+                  'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP'
+        fw_add1 = 'firewall-cmd --permanent --direct --add-rule ipv4 '\
+                  'filter OUTPUT 1 -p tcp -m tcp --dport=636 -j DROP'
+        fw_add2 = 'firewall-cmd --permanent --direct --add-rule ipv4 '\
+                  'filter OUTPUT 2 -j ACCEPT'
+        multihost.client[0].run_command(fw_add0, raiseonerr=True)
+        multihost.client[0].run_command(fw_add1, raiseonerr=True)
+        multihost.client[0].run_command(fw_add2, raiseonerr=True)
+        fw_rld = 'firewall-cmd --reload'
+        multihost.client[0].run_command(fw_rld, raiseonerr=True)
+        client.clear_sssd_cache()
+        time.sleep(5)
+        cmd = 'sssctl domain-status %s' % domain_name
+        multihost.client[0].run_command(cmd, raiseonerr=True)
+        find = re.compile(r'Online status: Offline')
+        result = find.search(cmd.stdout_text)
+        assert result is not None
+        fw_r0 = 'firewall-cmd --permanent --direct --remove-rule ipv4 '\
+                'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP'
+        fw_r1 = 'firewall-cmd --permanent --direct --remove-rule ipv4 '\
+                'filter OUTPUT 1 -p tcp -m tcp --dport=636 -j DROP'
+        fw_r2 = 'firewall-cmd --permanent --direct --remove-rule ipv4 '\
+                'filter OUTPUT 2 -j ACCEPT'
+        multihost.client[0].run_command(fw_r0, raiseonerr=True)
+        multihost.client[0].run_command(fw_r1, raiseonerr=True)
+        multihost.client[0].run_command(fw_r2, raiseonerr=True)
+        multihost.client[0].run_command(fw_rld, raiseonerr=True)
+        client.service_ctrl("stop", "firewalld")
+        time.sleep(60)
+        cmd2 = client.service_ctrl("start", "autofs")
+        cmd = 'dnf remove -y firewalld'
+        multihost.client[0].run_command(cmd, raiseonerr=True)
+        assert cmd2 == 0
