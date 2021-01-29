@@ -326,6 +326,7 @@ if BUILD_KCM
 non_interactive_cmocka_based_tests += \
 	test_kcm_marshalling \
 	test_kcm_queue \
+	test_kcm_renewals \
         $(NULL)
 endif   # BUILD_KCM
 
@@ -3930,6 +3931,40 @@ test_kcm_queue_LDADD = \
     libsss_iface.la \
     libsss_sbus.la \
     $(NULL)
+
+test_kcm_renewals_SOURCES = \
+	$(TEST_MOCK_RESP_OBJ) \
+	src/tests/cmocka/test_kcm_renewals.c \
+	src/responder/kcm/kcm_renew.c \
+	src/responder/kcm/kcmsrv_ccache.c \
+	src/responder/kcm/kcmsrv_ccache_key.c \
+	src/responder/kcm/kcmsrv_ccache_binary.c \
+	src/responder/kcm/kcmsrv_ccache_json.c \
+	src/util/sss_krb5.c \
+	src/util/sss_iobuf.c \
+	src/util/secrets/secrets.c \
+	src/util/secrets/config.c \
+	src/providers/krb5/krb5_child_handler.c \
+	src/providers/data_provider_opts.c \
+	$(NULL)
+test_kcm_renewals_CFLAGS = \
+	$(AM_CFLAGS) \
+	$(NULL)
+test_kcm_renewals_LDFLAGS = \
+	-Wl,-wrap,fstat
+test_kcm_renewals_LDADD = \
+	$(LIBADD_DL) \
+	$(UUID_LIBS) \
+	$(JANSSON_LIBS) \
+	$(KRB5_LIBS) \
+	$(CARES_LIBS) \
+	$(CMOCKA_LIBS) \
+	$(SSSD_LIBS) \
+	$(SSSD_INTERNAL_LTLIBS) \
+	libsss_test_common.la \
+	libsss_iface.la \
+	libsss_sbus.la \
+	$(NULL)
 
 endif # BUILD_KCM
 
