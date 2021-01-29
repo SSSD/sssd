@@ -181,7 +181,8 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     state->sysdb = id_ctx->be->domain->sysdb;
 
     /* Download all rules from LDAP that are newer than usn */
-    if (srv_opts == NULL || srv_opts->max_sudo_value == 0) {
+    if (srv_opts == NULL || srv_opts->max_sudo_value == NULL
+         || strcmp(srv_opts->max_sudo_value, "0") == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, assuming zero.\n");
         usn = "0";
         search_filter = talloc_asprintf(state, "(%s=%s)",
