@@ -174,6 +174,35 @@ def backupsssdconf(session_multihost, request):
     request.addfinalizer(restoresssdconf)
 
 
+@pytest.fixture(scope='function')
+def delete_groups_users(session_multihost, request):
+    """Fixture for bz1817122"""
+    ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
+    ds_rootdn = 'cn=Directory Manager'
+    ds_rootpw = 'Secret123'
+    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+
+    def restoresssdconf():
+        """Delete users, ous and groups"""
+        for i in range(1, 9):
+            ldap_inst.del_dn(f'cn=user-{i},ou=posix_groups,ou=Unit2,'
+                             f'ou=Unit1,dc=example,dc=test')
+        for i in range(1, 3):
+            ldap_inst.del_dn(f'cn=group-{i},ou=posix_groups,ou=Unit2,'
+                             f'ou=Unit1,dc=example,dc=test')
+        for i in range(1, 9):
+            ldap_inst.del_dn(f'cn=user-{i},ou=users,ou=Unit2,'
+                             f'ou=Unit1,dc=example,dc=test')
+        for dn_dn in ['netgroups', 'services', 'sudoers']:
+            ldap_inst.del_dn(f'ou={dn_dn},dc=example,dc=test')
+        for dn_dn in ['ou=posix_groups,ou=Unit2,ou=Unit1,dc=example,dc=test',
+                      'ou=users,ou=Unit2,ou=Unit1,dc=example,dc=test',
+                      'ou=Unit2,ou=Unit1,dc=example,dc=test',
+                      'ou=Unit1,dc=example,dc=test']:
+            ldap_inst.del_dn(dn_dn)
+    request.addfinalizer(restoresssdconf)
+
+
 @pytest.fixture(scope="function")
 def set_dslimits(session_multihost, request):
     """ Modify nsslapd-sizelimit """
