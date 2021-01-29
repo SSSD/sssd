@@ -13,38 +13,66 @@ class TestDefaultDebugLevel(object):
     @pytest.mark.tier1
     def test_0001_check_default_debug_level(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Check default debug level by authenticating the
-        user
+        @Title: IDM-SSSD-TC: Check default debug level when sssd start
+        successfully
         """
         section = "domain/%s" % ds_instance_name
         domain_params = {'debug_level': ''}
         tools = sssdTools(multihost.client[0])
         tools.sssd_conf(section, domain_params, action='delete')
+        # stop sssd, delete sssd logs and cache, start sssd
+        tools.clear_sssd_cache()
+        log_list = ['sssd', 'sssd_example1', 'sssd_nss',
+                    'sssd_pam', 'sssd_implicit_files']
+        for log_filename in log_list:
+            log = '/var/log/sssd/%s.log' % log_filename
+            log_str = multihost.client[0].get_file_contents(log).decode(
+                'utf-8')
+            debug_level = ['0x0080', '0x0100', '0x0200', '0x0400', '0x1000',
+                           '0x2000', '0x4000', '0x10000']
+            for level in debug_level:
+                regex = r'%s' % level
+                if re.compile(regex).search(log_str):
+                    assert False
+                else:
+                    assert True
+
+    @pytest.mark.tier1
+    def test_0002_check_default_level_with_auth(self, multihost,
+                                                backupsssdconf):
+        """
+        @Title: IDM-SSSD-TC: Check default debug level by
+        successful authentication of the user
+        """
+        section = "domain/%s" % ds_instance_name
+        domain_params = {'debug_level': ''}
+        tools = sssdTools(multihost.client[0])
+        tools.sssd_conf(section, domain_params, action='delete')
+        # stop sssd, delete logs and cache, start sssd
         tools.clear_sssd_cache()
         user = 'foo1@%s' % ds_instance_name
+        # Authenticate user
         client = pexpect_ssh(multihost.client[0].sys_hostname, user,
                              'Secret123', debug=False)
         client.login(login_timeout=30, sync_multiplier=5,
                      auto_prompt_reset=False)
-        log_list = ['sssd.log', 'sssd_example1.log', 'sssd_nss.log',
-                    'sssd_pam.log', 'sssd_implicit_files.log']
-        for log in log_list:
-            log = '/var/log/sssd/%s' % log
+        log_list = ['sssd', 'sssd_example1', 'sssd_nss',
+                    'sssd_pam', 'sssd_implicit_files']
+        for log_filename in log_list:
+            log = '/var/log/sssd/%s.log' % log_filename
             log_str = multihost.client[0].get_file_contents(log).decode(
                 'utf-8')
-            find1 = re.compile(r'0x0020')
-            find2 = re.compile(r'0x0010')
-            find3 = re.compile(r'0x0040')
-            find4 = re.compile(r'Starting with debug level = 0x0070')
-            if not (find1.search(log_str) or find2.search(log_str) or
-                    find3.search(log_str)) and find4.search(log_str):
-                status = 'FAIL'
-            else:
-                status = 'PASS'
-        assert status == 'PASS'
+            debug_level = ['0x0080', '0x0100', '0x0200', '0x0400', '0x1000',
+                           '0x2000', '0x4000', '0x10000']
+            for level in debug_level:
+                regex = r'%s' % level
+                if re.compile(regex).search(log_str):
+                    assert False
+                else:
+                    assert True
 
     @pytest.mark.tier1
-    def test_0002_bz1893159(self, multihost, backupsssdconf):
+    def test_0003_bz1893159(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: Check default level as 0 and 1
         """
@@ -73,7 +101,7 @@ class TestDefaultDebugLevel(object):
         assert status == 'PASS'
 
     @pytest.mark.tier1
-    def test_0003_bz1893159(self, multihost, backupsssdconf):
+    def test_0004_bz1893159(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: Check default level 2
         """
@@ -98,7 +126,7 @@ class TestDefaultDebugLevel(object):
         assert status == 'PASS'
 
     @pytest.mark.tier1
-    def test_0004_bz1915319(self, multihost, backupsssdconf):
+    def test_0005_bz1915319(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: Check SBUS code triggers failure message during
         modules startup
