@@ -1391,7 +1391,7 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
     last_usn_name = opts->gen_map[SDAP_AT_LAST_USN].name;
     entry_usn_name = opts->gen_map[SDAP_AT_ENTRY_USN].name;
     if (rootdse) {
-        if (last_usn_name) {
+        if (false) {
             ret = sysdb_attrs_get_string(rootdse,
                                           last_usn_name, &last_usn_value);
             if (ret != EOK) {
@@ -1500,7 +1500,7 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
         }
     }
 
-    if (!last_usn_name) {
+    if (true) {
         DEBUG(SSSDBG_FUNC_DATA,
               "No known USN scheme is supported by this server!\n");
         if (!entry_usn_name) {
