@@ -8,10 +8,9 @@
 
 from __future__ import print_function
 import re
-import pytest
 import time
 import subprocess
-from sssd.testlib.common.utils import sssdTools
+import pytest
 from sssd.testlib.common.expect import pexpect_ssh
 from sssd.testlib.common.exceptions import SSHLoginException
 from sssd.testlib.common.utils import sssdTools, LdapOperations
@@ -234,3 +233,123 @@ class TestMisc(object):
         cmd = multihost.client[0].run_command(cmd_getent)
         ldap_inst.del_dn(user_dn)
         assert ":/:" not in cmd.stdout_text
+
+    @pytest.mark.tier1_2
+    def test_0006_getent_group(self, multihost,
+                               backupsssdconf,
+                               delete_groups_users):
+        """
+        :title: 'getent group ldapgroupname' doesn't
+         show any LDAP users or some LDAP users when
+         'rfc2307bis' schema is used with SSSD
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1817122
+        :id: dc81bb8e-72c0-11eb-9eae-002b677efe14
+        :customerscenario: true
+        :steps:
+            1. Configure SSSD with id_provider = ldap and
+            set ldap_schema = rfc2307bis
+            2. Add necessary users and groups with uniqueMember.
+            3. Check 'getent group ldapgroupname' output.
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. 'getent group ldapgroupname' should show
+            all it's member ldapusers.
+        """
+        tools = sssdTools(multihost.client[0])
+        domain_name = tools.get_domain_section_name()
+        client = sssdTools(multihost.client[0])
+        domain_params = {'ldap_schema': 'rfc2307bis',
+                         'ldap_group_member': 'uniquemember'}
+        client.sssd_conf(f'domain/{domain_name}', domain_params)
+        multihost.client[0].service_sssd('restart')
+        ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
+        ds_rootdn = 'cn=Directory Manager'
+        ds_rootpw = 'Secret123'
+        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        user_info = {
+            'ou': 'Unit1'.encode('utf-8'),
+            'objectClass': [b'top', b'organizationalUnit']}
+        user_dn = 'ou=Unit1,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {
+            'ou': 'Unit2'.encode('utf-8'),
+            'objectClass': [b'top', b'organizationalUnit']}
+        user_dn = 'ou=Unit2,ou=Unit1,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {
+            'ou': 'users'.encode('utf-8'),
+            'objectClass': [b'top', b'organizationalUnit']}
+        user_dn = 'ou=users,ou=Unit2,ou=Unit1,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {
+            'ou': 'posix_groups'.encode('utf-8'),
+            'objectClass': [b'top', b'organizationalUnit']}
+        user_dn = 'ou=posix_groups,ou=Unit2,' \
+                  'ou=Unit1,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {
+            'ou': 'netgroups'.encode('utf-8'),
+            'objectClass': [b'top', b'organizationalUnit']}
+        user_dn = 'ou=netgroups,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {
+            'ou': 'services'.encode('utf-8'),
+            'objectClass': [b'top', b'organizationalUnit']}
+        user_dn = 'ou=services,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {
+            'ou': 'sudoers'.encode('utf-8'),
+            'objectClass': [b'top', b'organizationalUnit']}
+        user_dn = 'ou=sudoers,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        for i in range(1, 9):
+            user_info = {
+                'cn': f'user-{i}'.encode('utf-8'),
+                'objectClass': [b'top', b'posixAccount'],
+                'uid': f'user-{i}'.encode('utf-8'),
+                'uidNumber': f'1111{i}'.encode('utf-8'),
+                'gidNumber': f'1111{i}'.encode('utf-8'),
+                'homeDirectory': f'/home/user-{i}'.encode('utf-8')}
+            user_dn = f'cn=user-{i},ou=users,ou=Unit2,' \
+                      f'ou=Unit1,dc=example,dc=test'
+            (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        for i in range(1, 9):
+            user_info = {
+                'cn': f'user-{i}'.encode('utf-8'),
+                'objectClass': [b'top', b'posixGroup'],
+                'gidNumber': f'1111{i}'.encode('utf-8')}
+            user_dn = f'cn=user-{i},ou=posix_groups,' \
+                      f'ou=Unit2,ou=Unit1,dc=example,dc=test'
+            (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {
+            'cn': 'group-1'.encode('utf-8'),
+            'objectClass': [b'top', b'posixGroup', b'groupOfUniqueNames'],
+            'gidNumber': '20001'.encode('utf-8'),
+            'uniqueMember': [
+                b'cn=user-1,ou=users,ou=unit2,ou=unit1,dc=example,dc=test',
+                b'cn=user-3,ou=users,ou=unit2,ou=unit1,dc=example,dc=test',
+                b'cn=user-5,ou=users,ou=unit2,ou=unit1,dc=example,dc=test',
+                b'cn=user-7,ou=users,ou=unit2,ou=unit1,dc=example,dc=test']}
+        user_dn = 'cn=group-1,ou=posix_groups,ou=Unit2,' \
+                  'ou=Unit1,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+
+        user_info = {
+            'cn': 'group-2'.encode('utf-8'),
+            'objectClass': [b'top', b'posixGroup', b'groupOfUniqueNames'],
+            'gidNumber': '20002'.encode('utf-8'),
+            'uniqueMember': [
+                b'cn=user-2,ou=users,ou=unit2,ou=unit1,dc=example,dc=test',
+                b'cn=user-4,ou=users,ou=unit2,ou=unit1,dc=example,dc=test',
+                b'cn=user-6,ou=users,ou=unit2,ou=unit1,dc=example,dc=test',
+                b'cn=user-8,ou=users,ou=unit2,ou=unit1,dc=example,dc=test']}
+        user_dn = 'cn=group-2,ou=posix_groups,ou=Unit2,' \
+                  'ou=Unit1,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        time.sleep(3)
+        cmd = multihost.client[0].run_command("getent group "
+                                              "group-2@example1")
+        assert "group-2@example1:*:20002:user-2@example1," \
+               "user-4@example1,user-6@example1," \
+               "user-8@example1" in cmd.stdout_text
