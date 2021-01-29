@@ -129,25 +129,17 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
 static char *
 sdap_sudo_new_usn(TALLOC_CTX *mem_ctx,
                   unsigned long usn,
-                  const char *leftover,
-                  bool supports_usn)
+                  const char *leftover)
 {
     const char *str = leftover == NULL ? "" : leftover;
     char *newusn;
 
-    /* This is a fresh start and server uses modifyTimestamp. We need to
-     * provide proper datetime value. */
-    if (!supports_usn && usn == 0) {
-        newusn = talloc_strdup(mem_ctx, "00000101000000Z");
-        if (newusn == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to change USN value (OOM)!\n");
-            return NULL;
-        }
-
-        return newusn;
+    /* Current largest USN is unknown so we keep "0" to indicate it. */
+    if (usn == 0) {
+        return talloc_strdup(mem_ctx, "0");
     }
 
-    /* We increment USN number so that we can later use simplify filter
+    /* We increment USN number so that we can later use simplified filter
      * (just usn >= last+1 instead of usn >= last && usn != last).
      */
     usn++;
@@ -219,8 +211,7 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
         srv_opts->last_usn = usn_number;
     }
 
-    newusn = sdap_sudo_new_usn(srv_opts, srv_opts->last_usn, timezone,
-                               srv_opts->supports_usn);
+    newusn = sdap_sudo_new_usn(srv_opts, srv_opts->last_usn, timezone);
     if (newusn == NULL) {
         return;
     }
