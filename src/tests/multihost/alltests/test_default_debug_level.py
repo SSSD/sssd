@@ -83,8 +83,7 @@ class TestDefaultDebugLevel(object):
         multihost.client[0].service_sssd('stop')
         chmod_cmd = 'chmod 444 /etc/sssd/sssd.conf'
         cmd = multihost.client[0].run_command(chmod_cmd, raiseonerr=False)
-        if cmd.returncode == 1:
-            status = 'PASS'
+        assert cmd.returncode == 0
         tools.remove_sss_cache('/var/log/sssd')
         multihost.client[0].run_command('systemctl start sssd',
                                         raiseonerr=False)
@@ -92,13 +91,12 @@ class TestDefaultDebugLevel(object):
         log_str = multihost.client[0].get_file_contents(slog).decode('utf-8')
         find1 = re.compile(r'0x0020')
         find2 = re.compile(r'0x0010')
-        if not find1.search(log_str) and find2.search(log_str):
-            status = 'FAIL'
-        else:
-            status = 'PASS'
         restore_sssd = 'chmod 600 /etc/sssd/sssd.conf'
         multihost.client[0].run_command(restore_sssd, raiseonerr=False)
-        assert status == 'PASS'
+        if not find1.search(log_str) and find2.search(log_str):
+            assert False
+        else:
+            assert True
 
     @pytest.mark.tier1
     def test_0004_bz1893159(self, multihost, backupsssdconf):
@@ -112,39 +110,37 @@ class TestDefaultDebugLevel(object):
         tools.clear_sssd_cache()
         cmd_kill = 'kill -SIGUSR2 $(pidof sssd)'
         multihost.client[0].run_command(cmd_kill, raiseonerr=False)
-        log_list = ['sssd.log', 'sssd_example1.log', 'sssd_nss.log',
-                    'sssd_pam.log', 'sssd_implicit_files.log']
-        for log in log_list:
-            log = '/var/log/sssd/%s' % log
+        log_list = ['sssd', 'sssd_example1', 'sssd_nss', 'sssd_pam',
+                    'sssd_implicit_files']
+        for logfilename in log_list:
+            log = '/var/log/sssd/%s.log' % logfilename
             log_str = multihost.client[0].get_file_contents(log).decode(
                 'utf-8')
             find = re.compile(r'.0x0040.')
             if not find.search(log_str):
-                status = 'FAIL'
+                assert False
             else:
-                status = 'PASS'
-        assert status == 'PASS'
+                assert True
 
     @pytest.mark.tier1
     def test_0005_bz1915319(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Check SBUS code triggers failure message during
-        modules startup
+        @Title: IDM-SSSD-TC: Check SBUS code should not trigger failure
+        message during modules startup
         """
         section = "domain/%s" % ds_instance_name
         domain_params = {'debug_level': ''}
         tools = sssdTools(multihost.client[0])
         tools.sssd_conf(section, domain_params, action='delete')
         tools.clear_sssd_cache()
-        log_list = ['sssd.log', 'sssd_example1.log', 'sssd_nss.log',
-                    'sssd_pam.log', 'sssd_implicit_files.log']
+        log_list = ['sssd', 'sssd_example1', 'sssd_nss', 'sssd_pam',
+                    'sssd_implicit_files']
         for log in log_list:
-            log = '/var/log/sssd/%s' % log
+            log = '/var/log/sssd/%s.log' % log
             log_str = multihost.client[0].get_file_contents(log).decode(
                 'utf-8')
             find = re.compile(r'Unable to remove key.*')
             if not find.search(log_str):
-                status = 'PASS'
+                assert True
             else:
-                status = 'FAIL'
-        assert status == 'PASS'
+                assert False
