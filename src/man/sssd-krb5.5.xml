@@ -557,6 +557,25 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>krb5_use_subdomain_realm (boolean)</term>
+                    <listitem>
+                        <para>
+                            Specifies to use subdomains realms for the
+                            authentication of users from trusted domains. This
+                            option can be set to 'true' if enterprise principals
+                            are used with upnSuffixes which are not known on the
+                            parent domain KDCs. If the option is set to 'true'
+                            SSSD will try to send the request directly to a KDC
+                            of the trusted domain the user is coming from.
+                        </para>
+
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_map_user (string)</term>
                     <listitem>
                         <para>

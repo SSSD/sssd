@@ -300,9 +300,11 @@ static errno_t activate_child_timeout_handler(struct tevent_req *req,
 }
 
 errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
+                       struct sss_domain_info *domain,
                        const char ***krb5_child_extra_args)
 {
     const char **extra_args;
+    const char *krb5_realm;
     size_t c = 0;
     int ret;
 
@@ -336,9 +338,15 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
     }
     c++;
 
+    krb5_realm = krb5_ctx->realm;
+    if (domain != NULL && IS_SUBDOMAIN(domain) && dp_opt_get_bool(krb5_ctx->opts, KRB5_USE_SUBDOMAIN_REALM)) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Use subdomain realm %s.\n", domain->realm);
+        krb5_realm = domain->realm;
+    }
+
     if (krb5_ctx->realm != NULL) {
         extra_args[c] = talloc_asprintf(extra_args, "--"CHILD_OPT_REALM"=%s",
-                                        krb5_ctx->realm);
+                                        krb5_realm);
         if (extra_args[c] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
             ret = ENOMEM;
@@ -439,7 +447,7 @@ static errno_t fork_child(struct tevent_req *req)
     struct handle_child_state *state = tevent_req_data(req,
                                                      struct handle_child_state);
 
-    ret = set_extra_args(state, state->kr->krb5_ctx, &krb5_child_extra_args);
+    ret = set_extra_args(state, state->kr->krb5_ctx, state->kr->dom, &krb5_child_extra_args);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "set_extra_args failed.\n");
         goto fail;

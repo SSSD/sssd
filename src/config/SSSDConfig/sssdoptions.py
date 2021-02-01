@@ -348,6 +348,7 @@ class SSSDOptions(object):
         'krb5_fast_principal': _("Selects the principal to use for FAST"),
         'krb5_canonicalize': _("Enables principal canonicalization"),
         'krb5_use_enterprise_principal': _("Enables enterprise principals"),
+        'krb5_use_subdomain_realm': _("Enables using of subdomains realms for authentication"),
         'krb5_map_user': _('A mapping from user names to Kerberos principal names'),
 
         # [provider/krb5/chpass]
