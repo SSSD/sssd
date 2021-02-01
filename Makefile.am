@@ -3717,6 +3717,7 @@ test_cert_utils_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     -I$(abs_builddir)/src \
     $(CRYPTO_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
     $(NULL)
 test_cert_utils_LDADD = \
     $(CMOCKA_LIBS) \
