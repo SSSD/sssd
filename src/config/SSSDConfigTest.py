@@ -738,6 +738,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_fast_principal',
              'krb5_canonicalize',
              'krb5_use_enterprise_principal',
+             'krb5_use_subdomain_realm',
              'krb5_use_kdcinfo',
              'krb5_map_user'])
 
@@ -901,6 +902,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'krb5_fast_principal',
             'krb5_canonicalize',
             'krb5_use_enterprise_principal',
+            'krb5_use_subdomain_realm',
             'krb5_use_kdcinfo',
             'krb5_map_user']
 
@@ -1118,6 +1120,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_fast_principal',
              'krb5_canonicalize',
              'krb5_use_enterprise_principal',
+             'krb5_use_subdomain_realm',
              'krb5_use_kdcinfo',
              'krb5_map_user'])
 

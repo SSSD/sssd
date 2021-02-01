@@ -63,6 +63,7 @@ enum krb5_opts {
     KRB5_USE_KDCINFO,
     KRB5_KDCINFO_LOOKAHEAD,
     KRB5_MAP_USER,
+    KRB5_USE_SUBDOMAIN_REALM,
 
     KRB5_OPTS
 };
@@ -237,5 +238,6 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
                                         krb5_keytab *_mem_keytab);
 
 errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
+                       struct sss_domain_info *domain,
                        const char ***krb5_child_extra_args);
 #endif /* __KRB5_COMMON_H__ */

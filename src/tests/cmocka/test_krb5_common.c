@@ -87,7 +87,7 @@ void test_set_extra_args(void **state)
     char *gid_opt;
     const char **krb5_child_extra_args;
 
-    ret = set_extra_args(NULL, NULL, NULL);
+    ret = set_extra_args(NULL, NULL, NULL, NULL);
     assert_int_equal(ret, EINVAL);
 
     krb5_ctx = talloc_zero(global_talloc_context, struct krb5_ctx);
@@ -98,7 +98,7 @@ void test_set_extra_args(void **state)
     gid_opt = talloc_asprintf(krb5_ctx, "--fast-ccache-gid=%"SPRIgid, getgid());
     assert_non_null(gid_opt);
 
-    ret = set_extra_args(global_talloc_context, krb5_ctx,
+    ret = set_extra_args(global_talloc_context, krb5_ctx, NULL,
                          &krb5_child_extra_args);
     assert_int_equal(ret, EOK);
     assert_string_equal(krb5_child_extra_args[0], uid_opt);
@@ -107,7 +107,7 @@ void test_set_extra_args(void **state)
     talloc_free(krb5_child_extra_args);
 
     krb5_ctx->canonicalize = true;
-    ret = set_extra_args(global_talloc_context, krb5_ctx,
+    ret = set_extra_args(global_talloc_context, krb5_ctx, NULL,
                          &krb5_child_extra_args);
     assert_int_equal(ret, EOK);
     assert_string_equal(krb5_child_extra_args[0], uid_opt);
@@ -117,7 +117,7 @@ void test_set_extra_args(void **state)
     talloc_free(krb5_child_extra_args);
 
     krb5_ctx->realm = discard_const(TEST_REALM);
-    ret = set_extra_args(global_talloc_context, krb5_ctx,
+    ret = set_extra_args(global_talloc_context, krb5_ctx, NULL,
                          &krb5_child_extra_args);
     assert_int_equal(ret, EOK);
     assert_string_equal(krb5_child_extra_args[0], uid_opt);
@@ -129,7 +129,7 @@ void test_set_extra_args(void **state)
 
     /* --fast-principal will be only set if FAST is used */
     krb5_ctx->fast_principal = discard_const(TEST_FAST_PRINC);
-    ret = set_extra_args(global_talloc_context, krb5_ctx,
+    ret = set_extra_args(global_talloc_context, krb5_ctx, NULL,
                          &krb5_child_extra_args);
     assert_int_equal(ret, EOK);
     assert_string_equal(krb5_child_extra_args[0], uid_opt);
@@ -140,7 +140,7 @@ void test_set_extra_args(void **state)
     talloc_free(krb5_child_extra_args);
 
     krb5_ctx->use_fast_str = discard_const(TEST_FAST_STR);
-    ret = set_extra_args(global_talloc_context, krb5_ctx,
+    ret = set_extra_args(global_talloc_context, krb5_ctx, NULL,
                          &krb5_child_extra_args);
     assert_int_equal(ret, EOK);
     assert_string_equal(krb5_child_extra_args[0], uid_opt);
@@ -155,7 +155,7 @@ void test_set_extra_args(void **state)
 
     krb5_ctx->lifetime_str = discard_const(TEST_LIFE_STR);
     krb5_ctx->rlife_str = discard_const(TEST_RLIFE_STR);
-    ret = set_extra_args(global_talloc_context, krb5_ctx,
+    ret = set_extra_args(global_talloc_context, krb5_ctx, NULL,
                          &krb5_child_extra_args);
     assert_int_equal(ret, EOK);
     assert_string_equal(krb5_child_extra_args[0], uid_opt);
@@ -241,6 +241,9 @@ void test_sss_krb5_check_options(void **state)
     ret = sss_krb5_check_options(opts, test_ctx->tctx->dom, krb5_ctx);
     assert_int_equal(ret, EOK);
     assert_true(krb5_ctx->canonicalize);
+
+    ret = dp_opt_set_bool(opts, KRB5_USE_SUBDOMAIN_REALM, true);
+    assert_int_equal(ret, EOK);
 
     talloc_free(krb5_ctx);
     talloc_free(opts);
