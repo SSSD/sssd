@@ -66,7 +66,6 @@ BuildRequires: c-ares-devel
 BuildRequires: check-devel
 BuildRequires: cifs-utils-devel
 BuildRequires: dbus-devel
-BuildRequires: diffstat
 BuildRequires: docbook-style-xsl
 BuildRequires: doxygen
 BuildRequires: findutils
@@ -471,27 +470,7 @@ An implementation of a Kerberos KCM server. Use this package if you want to
 use the KCM: Kerberos credentials cache.
 
 %prep
-# Update timestamps on the files touched by a patch, to avoid non-equal
-# .pyc/.pyo files across the multilib peers within a build, where "Level"
-# is the patch prefix option (e.g. -p1)
-# Taken from specfile for python-simplejson
-UpdateTimestamps() {
-  Level=$1
-  PatchFile=$2
-
-  # Locate the affected files:
-  for f in $(diffstat $Level -l $PatchFile); do
-    # Set the files to have the same timestamp as that of the patch:
-    touch -r $PatchFile $f
-  done
-}
-
-%setup -q
-
-for p in %patches ; do
-    %__patch -p1 -i $p
-    UpdateTimestamps -p1 $p
-done
+%autosetup -p1
 
 %build
 
