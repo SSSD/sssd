@@ -32,7 +32,7 @@
 int main(int argc, const char **argv)
 {
     TALLOC_CTX *mem_ctx = NULL;
-    int pc_debug = SSSDBG_DEFAULT;
+    int pc_debug = SSSDBG_FATAL_FAILURE;
     const char *pc_domain = NULL;
     const char *pc_user = NULL;
     struct poptOption long_options[] = {
