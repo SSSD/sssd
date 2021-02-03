@@ -73,15 +73,6 @@ class TestPasswordCheck(object):
                                                      'bumblebee@123',
                                                      'bumblebee')
             assert change_pass == 5
-            log1 = re.compile(
-                r'Failed\spreliminary\scheck\sby\spassword\sservice')
-            time.sleep(10)
-            test_str_log = multihost.client[0].get_file_contents(
-                '/var/log/secure')
-            # time.sleep(5)
-            cat_cmd = 'cat /var/log/secure'
-            multihost.client[0].run_command(cat_cmd)
-            assert log1.search(test_str_log.decode())
 
     @pytest.mark.tier2
     def test_0003_smallnewpass(self, multihost):
