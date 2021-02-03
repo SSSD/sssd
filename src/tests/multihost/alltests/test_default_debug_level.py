@@ -10,7 +10,7 @@ from constants import ds_instance_name
 @pytest.mark.defaultdebuglevel
 class TestDefaultDebugLevel(object):
     """ Check sssd default debug level """
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0001_check_default_debug_level(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: Check default debug level when sssd start
@@ -28,21 +28,24 @@ class TestDefaultDebugLevel(object):
             log = '/var/log/sssd/%s.log' % log_filename
             log_str = multihost.client[0].get_file_contents(log).decode(
                 'utf-8')
-            debug_level = ['0x0080', '0x0100', '0x0200', '0x0400', '0x1000',
-                           '0x2000', '0x4000', '0x10000']
-            for level in debug_level:
-                regex = r'%s' % level
-                if re.compile(regex).search(log_str):
+            log_split = log_str.split("\n")
+            for index in range(len(log_split)-1):
+                log_single_line = log_split[index]
+                pattern = re.compile(r'\] \(0x\d*\): ')
+                debug_str = pattern.search(log_single_line).group()
+                # get debug_level in hex from log
+                value = debug_str[3:-3]
+                int_debug_level = int(value, 16)
+                # int('0x0040', 16) is 64
+                if int_debug_level > 64:
                     assert False
-                else:
-                    assert True
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0002_check_default_level_with_auth(self, multihost,
                                                 backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Check default debug level by
-        successful authentication of the user
+        @Title: IDM-SSSD-TC: Check default debug level by checking sssd
+        log size before and after authetication of user is same
         """
         section = "domain/%s" % ds_instance_name
         domain_params = {'debug_level': ''}
@@ -50,28 +53,25 @@ class TestDefaultDebugLevel(object):
         tools.sssd_conf(section, domain_params, action='delete')
         # stop sssd, delete logs and cache, start sssd
         tools.clear_sssd_cache()
+        check_log_size = 'ls -ash /var/log/sssd/'
+        blog_size = multihost.client[0].run_command(check_log_size,
+                                                    raiseonerr=False)
+        split_string = blog_size.stdout_text.split("\n", 1)
+        before_auth = int(re.search(r'\d+', split_string[0]).group())
         user = 'foo1@%s' % ds_instance_name
         # Authenticate user
         client = pexpect_ssh(multihost.client[0].sys_hostname, user,
                              'Secret123', debug=False)
         client.login(login_timeout=30, sync_multiplier=5,
                      auto_prompt_reset=False)
-        log_list = ['sssd', 'sssd_example1', 'sssd_nss',
-                    'sssd_pam', 'sssd_implicit_files']
-        for log_filename in log_list:
-            log = '/var/log/sssd/%s.log' % log_filename
-            log_str = multihost.client[0].get_file_contents(log).decode(
-                'utf-8')
-            debug_level = ['0x0080', '0x0100', '0x0200', '0x0400', '0x1000',
-                           '0x2000', '0x4000', '0x10000']
-            for level in debug_level:
-                regex = r'%s' % level
-                if re.compile(regex).search(log_str):
-                    assert False
-                else:
-                    assert True
+        alog_size = multihost.client[0].run_command(check_log_size,
+                                                    raiseonerr=False)
+        split_string = alog_size.stdout_text.split("\n", 1)
+        after_auth = int(re.search(r'\d+', split_string[0]).group())
+        if before_auth == after_auth:
+            assert True
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0003_bz1893159(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: Check default level as 0 and 1
@@ -95,10 +95,8 @@ class TestDefaultDebugLevel(object):
         multihost.client[0].run_command(restore_sssd, raiseonerr=False)
         if not find1.search(log_str) and find2.search(log_str):
             assert False
-        else:
-            assert True
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0004_bz1893159(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: Check default level 2
@@ -119,10 +117,8 @@ class TestDefaultDebugLevel(object):
             find = re.compile(r'.0x0040.')
             if not find.search(log_str):
                 assert False
-            else:
-                assert True
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_2
     def test_0005_bz1915319(self, multihost, backupsssdconf):
         """
         @Title: IDM-SSSD-TC: Check SBUS code should not trigger failure
@@ -142,5 +138,3 @@ class TestDefaultDebugLevel(object):
             find = re.compile(r'Unable to remove key.*')
             if not find.search(log_str):
                 assert True
-            else:
-                assert False
