@@ -105,9 +105,9 @@ static void sss_log_internal(int priority, int facility, const char *format,
     syslog_priority = sss_to_syslog(priority);
     sd_journal_send("MESSAGE=%s", message,
                     "SSSD_DOMAIN=%s", domain,
+                    "SSSD_PRG_NAME=sssd[%s]", debug_prg_name,
                     "PRIORITY=%i", syslog_priority,
                     "SYSLOG_FACILITY=%i", LOG_FAC(facility),
-                    "SYSLOG_IDENTIFIER=sssd[%s]", debug_prg_name,
                     NULL);
 
     free(message);
