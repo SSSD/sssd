@@ -30,6 +30,14 @@ without them. In this case, you will need to execute configure script
 with argument --without-samba
     ]]))
 
+    PKG_CHECK_MODULES(SAMBA_UTIL, samba-util, ,
+        AC_MSG_ERROR([[Please install libsamba-util development libraries.
+libsamba-util libraries are necessary for building ad and ipa provider.
+If you do not want to build these providers it is possible to build SSSD
+without them. In this case, you will need to execute configure script
+with argument --without-samba
+    ]]))
+
     if test x"$HAVE_LIBINI_CONFIG_V1_1" != x1; then
         AC_MSG_ERROR([[Please install libini_config development libraries
 v1.1.0, or newer. libini_config libraries are necessary for building ipa
