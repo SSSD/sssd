@@ -24,6 +24,7 @@
 #include <gssapi/gssapi_krb5.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <talloc.h>
 #include <ldb.h>
 
@@ -81,6 +82,117 @@ static bool pam_gssapi_should_check_upn(struct pam_ctx *pam_ctx,
     }
 
     return pam_ctx->gssapi_check_upn;
+}
+
+static int pam_gssapi_check_indicators(TALLOC_CTX *mem_ctx,
+                                       const char *pam_service,
+                                       char **gssapi_indicators_map,
+                                       char **indicators)
+{
+    char *authind = NULL;
+    size_t pam_len = strlen(pam_service);
+    char **map = gssapi_indicators_map;
+    char **result = NULL;
+    int res;
+
+    authind = talloc_strdup(mem_ctx, "");
+    if (authind == NULL) {
+        return ENOMEM;
+    }
+
+    for (int i = 0; map[i]; i++) {
+        if (map[i][0] == '-') {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Indicators aren't used for [%s]\n",
+                  pam_service);
+            talloc_free(authind);
+            return EOK;
+        }
+        if (!strchr(map[i], ':')) {
+            authind = talloc_asprintf_append(authind, "%s ", map[i]);
+            if (authind == NULL) {
+                /* Since we allocate on pam_ctx, caller will free it */
+                return ENOMEM;
+            }
+            continue;
+        }
+
+        res = strncmp(map[i], pam_service, pam_len);
+        if (res == 0) {
+            if (strlen(map[i]) > pam_len) {
+                if (map[i][pam_len] != ':') {
+                    /* different PAM service, skip it */
+                    continue;
+                }
+
+                if (map[i][pam_len + 1] == '-') {
+                    DEBUG(SSSDBG_TRACE_FUNC,
+                        "Indicators aren't used for [%s]\n",
+                        pam_service);
+                    talloc_free(authind);
+                    return EOK;
+                }
+
+                authind = talloc_asprintf_append(authind, "%s ",
+                                                 map[i] + (pam_len + 1));
+                if (authind == NULL) {
+                    /* Since we allocate on pam_ctx, caller will free it */
+                    return ENOMEM;
+                }
+            } else {
+                DEBUG(SSSDBG_MINOR_FAILURE, "Invalid value for %s: [%s]\n",
+                      CONFDB_PAM_GSSAPI_INDICATORS_MAP, map[i]);
+                talloc_free(authind);
+                return EINVAL;
+            }
+        }
+    }
+
+    res = ENOENT;
+    map = NULL;
+
+    if (authind[0] == '\0') {
+        /* empty list of per-service indicators -> skip */
+        goto done;
+    }
+
+    /* trim a space after the final indicator
+     * to prevent split_on_separator() to fail */
+    authind[strlen(authind) - 1] = '\0';
+
+    res = split_on_separator(mem_ctx, authind, ' ', true, true,
+                             &map, NULL);
+    if (res != 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+            "Cannot parse list of indicators: [%s]\n", authind);
+        res = EINVAL;
+        goto done;
+    }
+
+    res = diff_string_lists(mem_ctx, indicators, map, NULL, NULL, &result);
+    if (res != 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE,"Cannot diff lists of indicators\n");
+        res = EINVAL;
+        goto done;
+    }
+
+    if (result && result[0] != NULL) {
+        for (int i = 0; result[i]; i++) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "indicator [%s] is allowed for PAM service [%s]\n",
+                  result[i], pam_service);
+        }
+        res = EOK;
+        goto done;
+    }
+
+    res = EPERM;
+
+done:
+    talloc_free(result);
+    talloc_free(authind);
+    talloc_free(map);
+    return res;
 }
 
 static bool pam_gssapi_allowed(struct pam_ctx *pam_ctx,
@@ -385,12 +497,126 @@ static char *gssapi_get_name(TALLOC_CTX *mem_ctx, gss_name_t gss_name)
     return exported;
 }
 
+#define AUTH_INDICATORS_TAG "auth-indicators"
+
+static char **gssapi_get_indicators(TALLOC_CTX *mem_ctx, gss_name_t gss_name)
+{
+    gss_buffer_set_t attrs = GSS_C_NO_BUFFER_SET;
+    int is_mechname;
+    OM_uint32 major;
+    OM_uint32 minor;
+    gss_buffer_desc value = GSS_C_EMPTY_BUFFER;
+    gss_buffer_desc display_value = GSS_C_EMPTY_BUFFER;
+    char *exported = NULL;
+    char **map = NULL;
+    int res;
+
+    major = gss_inquire_name(&minor, gss_name, &is_mechname, NULL, &attrs);
+    if (major != GSS_S_COMPLETE) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to inquire name\n");
+        return NULL;
+    }
+
+    if (attrs == GSS_C_NO_BUFFER_SET) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No krb5 attributes in the ticket\n");
+        return NULL;
+    }
+
+    exported = talloc_strdup(mem_ctx, "");
+    if (exported == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to pre-allocate indicators\n");
+        goto done;
+    }
+
+    for (int i = 0; i < attrs->count; i++) {
+        int authenticated = 0;
+        int complete = 0;
+        int more = -1;
+
+        /* skip anything but auth-indicators */
+        if (strncmp(AUTH_INDICATORS_TAG, attrs->elements[i].value,
+                    sizeof(AUTH_INDICATORS_TAG) - 1) != 0)
+            continue;
+
+        /* retrieve all indicators */
+        while (more != 0) {
+            value.value = NULL;
+            display_value.value = NULL;
+
+            major = gss_get_name_attribute(&minor, gss_name,
+                                            &attrs->elements[i],
+                                            &authenticated,
+                                            &complete, &value,
+                                            &display_value,
+                                            &more);
+            if (major != GSS_S_COMPLETE) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                        "Unable to retrieve an attribute\n");
+                goto done;
+            }
+
+            if ((value.value != NULL) && authenticated) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                        "attribute's [%.*s] value [%.*s] authenticated\n",
+                        (int) attrs->elements[i].length,
+                        (char*) attrs->elements[i].value,
+                        (int) value.length,
+                        (char*) value.value);
+                exported = talloc_asprintf_append(exported, "%.*s ",
+                                                (int) value.length,
+                                                (char*) value.value);
+            }
+
+            if (exported == NULL) {
+                /* Since we allocate on mem_ctx, caller will free
+                 * the previous version of 'exported' */
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                        "Unable to collect an attribute value\n");
+                goto done;
+            }
+            (void) gss_release_buffer(&minor, &value);
+            (void) gss_release_buffer(&minor, &display_value);
+        }
+    }
+
+    if (exported[0] != '\0') {
+        /* trim a space after the final indicator
+         * to prevent split_on_separator() to fail */
+        exported[strlen(exported) - 1] = '\0';
+    } else {
+        /* empty list */
+        goto done;
+    }
+
+    res = split_on_separator(mem_ctx, exported, ' ', true, true,
+                            &map, NULL);
+    if (res != 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+            "Cannot parse list of indicators: [%s]\n", exported);
+        goto done;
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, "authentication indicators: [%s]\n",
+              exported);
+    }
+
+done:
+    (void) gss_release_buffer(&minor, &value);
+    (void) gss_release_buffer(&minor, &display_value);
+    (void) gss_release_buffer_set(&minor, &attrs);
+
+    talloc_free(exported);
+    return map;
+}
+
+
 struct gssapi_state {
     struct cli_ctx *cli_ctx;
     struct sss_domain_info *domain;
     const char *username;
 
     char *authenticated_upn;
+    char **auth_indicators;
     bool established;
     gss_ctx_id_t ctx;
 };
@@ -568,6 +794,8 @@ gssapi_handshake(struct gssapi_state *state,
     DEBUG(SSSDBG_TRACE_FUNC, "Security context established with [%s]\n",
           state->authenticated_upn);
 
+    state->auth_indicators = gssapi_get_indicators(state, client_name);
+
     state->established = true;
     ret = EOK;
 
@@ -632,6 +860,7 @@ pam_cmd_gssapi_sec_ctx(struct cli_ctx *cli_ctx)
     const char *domain_name;
     const char *username;
     char *target;
+    char **indicators_map = NULL;
     size_t gss_data_len;
     uint8_t *gss_data;
     errno_t ret;
@@ -697,6 +926,27 @@ pam_cmd_gssapi_sec_ctx(struct cli_ctx *cli_ctx)
                            gss_data_len);
     if (ret != EOK || !state->established) {
         goto done;
+    }
+
+    /* Use map for auth-indicators from the domain, if defined and
+     * fallback to the [pam] section otherwise */
+    indicators_map = domain->gssapi_indicators_map ?
+                     domain->gssapi_indicators_map :
+                     (pam_ctx->gssapi_indicators_map ?
+                      pam_ctx->gssapi_indicators_map : NULL);
+    if (indicators_map != NULL) {
+        ret = pam_gssapi_check_indicators(state,
+                                          pam_service,
+                                          indicators_map,
+                                          state->auth_indicators);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Check if acquired service ticket has req. indicators: %d\n",
+              ret);
+        if ((ret == EPERM) || (ret == ENOMEM) || (ret == EINVAL)) {
+            /* skip further checks if denied or no memory,
+             * ENOENT means the check is not applicable */
+            goto done;
+        }
     }
 
     if (!pam_gssapi_should_check_upn(pam_ctx, domain)) {

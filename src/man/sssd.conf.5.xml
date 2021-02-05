@@ -1771,6 +1771,70 @@ pam_gssapi_services = sudo, sudo-i
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pam_gssapi_indicators_map</term>
+                    <listitem>
+                        <para>
+                           Comma separated list of authentication indicators required
+                           to be present in a Kerberos ticket to access a PAM service
+                           that is allowed to try GSSAPI authentication using
+                           pam_sss_gss.so module.
+                        </para>
+                        <para>
+                           Each element of the list can be either an authentication indicator
+                           name or a pair <quote>service:indicator</quote>. Indicators not
+                           prefixed with the PAM service name will be required to access any
+                           PAM service configured to be used with
+                           <option>pam_gssapi_services</option>. A resulting list of indicators
+                           per PAM service is then checked against indicators in the Kerberos
+                           ticket during authentication by pam_sss_gss.so. Any indicator from the
+                           ticket that matches the resulting list of indicators for the PAM service
+                           would grant access. If none of the indicators in the list match, access
+                           will be denied. If the resulting list of indicators for the PAM service
+                           is empty, the check will not prevent the access.
+                        </para>
+                        <para>
+                           To disable GSSAPI authentication indicator check, set this option
+                           to <quote>-</quote> (dash). To disable the check for a specific PAM
+                           service, add <quote>service:-</quote>.
+                        </para>
+                        <para>
+                           Note: This option can also be set per-domain which
+                           overwrites the value in [pam] section. It can also
+                           be set for trusted domain which overwrites the value
+                           in the domain section.
+                        </para>
+                        <para>
+                            Following authentication indicators are supported by IPA Kerberos deployments:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>pkinit -- pre-authentication using X.509 certificates -- whether stored in files or on smart cards.</para>
+                                </listitem>
+                                <listitem>
+                                    <para>hardened -- SPAKE pre-authentication or any pre-authentication wrapped in a FAST channel.</para>
+                                </listitem>
+                                <listitem>
+                                    <para>radius -- pre-authentication with the help of a RADIUS server.</para>
+                                </listitem>
+                                <listitem>
+                                    <para>otp -- pre-authentication using integrated two-factor authentication (2FA or one-time password, OTP) in IPA.</para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            Example: to require access to SUDO services only
+                            for users which obtained their Kerberos tickets
+                            with a X.509 certificate pre-authentication
+                            (PKINIT), set
+                                <programlisting>
+pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: not set (use of authentication indicators is not required)
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 
