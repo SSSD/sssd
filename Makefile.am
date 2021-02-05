@@ -4423,7 +4423,8 @@ gpo_child_LDADD = \
     $(POPT_LIBS) \
     $(DHASH_LIBS) \
     $(INI_CONFIG_LIBS) \
-    $(SMBCLIENT_LIBS)
+    $(SMBCLIENT_LIBS) \
+    $(SAMBA_UTIL_LIBS)
 
 proxy_child_SOURCES = \
     src/providers/proxy/proxy_child.c \
