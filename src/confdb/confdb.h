@@ -146,6 +146,7 @@
 #define CONFDB_PAM_INITGROUPS_SCHEME "pam_initgroups_scheme"
 #define CONFDB_PAM_GSSAPI_SERVICES "pam_gssapi_services"
 #define CONFDB_PAM_GSSAPI_CHECK_UPN "pam_gssapi_check_upn"
+#define CONFDB_PAM_GSSAPI_INDICATORS_MAP "pam_gssapi_indicators_map"
 
 /* SUDO */
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"
@@ -437,6 +438,8 @@ struct sss_domain_info {
     /* List of PAM services that are allowed to authenticate with GSSAPI. */
     char **gssapi_services;
     char *gssapi_check_upn; /* true | false | NULL */
+    /* List of indicators associated with the specific PAM service */
+    char **gssapi_indicators_map;
 };
 
 /**

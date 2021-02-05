@@ -1603,6 +1603,19 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_PAM_GSSAPI_INDICATORS_MAP,
+                                      NULL);
+    if (tmp != NULL && tmp[0] != '\0') {
+        ret = split_on_separator(domain, tmp, ',', true, true,
+                                 &domain->gssapi_indicators_map, NULL);
+        if (ret != 0) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Cannot parse %s\n", CONFDB_PAM_GSSAPI_INDICATORS_MAP);
+            goto done;
+        }
+    }
+
     domain->has_views = false;
     domain->view_name = NULL;
 

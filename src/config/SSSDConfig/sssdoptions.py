@@ -106,6 +106,8 @@ class SSSDOptions(object):
         'pam_initgroups_scheme' : _('When shall the PAM responder force an initgroups request'),
         'pam_gssapi_services' : _('List of PAM services that are allowed to authenticate with GSSAPI.'),
         'pam_gssapi_check_upn' : _('Whether to match authenticated UPN with target user'),
+        'pam_gssapi_indicators_map' : _('List of pairs <PAM service>:<authentication indicator> that '
+                                        'must be enforced for PAM access with GSSAPI authentication'),
 
         # [sudo]
         'sudo_timed': _('Whether to evaluate the time-based attributes in sudo rules'),

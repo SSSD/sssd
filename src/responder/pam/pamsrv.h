@@ -65,6 +65,8 @@ struct pam_ctx {
 
     /* List of PAM services that are allowed to authenticate with GSSAPI. */
     char **gssapi_services;
+    /* List of authentication indicators associated with a PAM service */
+    char **gssapi_indicators_map;
     bool gssapi_check_upn;
 };
 

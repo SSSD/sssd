@@ -191,6 +191,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->override_gid = parent->override_gid;
 
     dom->gssapi_services = parent->gssapi_services;
+    dom->gssapi_indicators_map = parent->gssapi_indicators_map;
 
     if (parent->sysdb == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing sysdb context in parent domain.\n");
@@ -270,6 +271,17 @@ check_subdom_config_file(struct confdb_ctx *confdb,
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to get %s option for the subdomain: %s\n",
               CONFDB_PAM_GSSAPI_CHECK_UPN, subdomain->name);
+        goto done;
+    }
+
+    /* allow to set pam_gssapi_indicators_map */
+    ret = confdb_get_string_as_list(confdb, subdomain, sd_conf_path,
+                                    CONFDB_PAM_GSSAPI_INDICATORS_MAP,
+                                    &subdomain->gssapi_indicators_map);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to get %s option for the subdomain: %s\n",
+              CONFDB_PAM_GSSAPI_INDICATORS_MAP, subdomain->name);
         goto done;
     }
 
