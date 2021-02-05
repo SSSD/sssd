@@ -8,11 +8,11 @@ function config()
 
 SAVED_PWD=$PWD
 version=`grep '\[VERSION_NUMBER], \[.*\]' version.m4 |grep '[0-9]\+\.[0-9]\+\.[0-9]\+' -o`
-tag=$(echo ${version} | tr "." "_")
+tag=${version}
 
 trap "cd $SAVED_PWD; rm -rf sssd-${version} sssd-${version}.tar" EXIT
 
-git archive --format=tar --prefix=sssd-${version}/ sssd-${tag} > sssd-${version}.tar
+git archive --format=tar --prefix=sssd-${version}/ ${tag} > sssd-${version}.tar
 if [ $? -ne 0 ]; then
     echo "Cannot perform git-archive, check if tag $tag is present in git tree"
     exit 1
