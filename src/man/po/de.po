@@ -11,15 +11,16 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2020-05-19 12:09+0200\n"
-"PO-Revision-Date: 2014-12-14 11:53-0500\n"
-"Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
-"Language-Team: German (http://www.transifex.com/projects/p/sssd/language/de/)\n"
+"PO-Revision-Date: 2021-02-02 14:40+0000\n"
+"Last-Translator: Sumit Bose <sbose@redhat.com>\n"
+"Language-Team: German <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-manpage-master/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 4.6.2\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.4.2\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -697,8 +698,7 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
-"Verzeichnis auf dem Dateisystem, auf dem SSSD Dateien des Kerberos-Replay-"
-"Zwischenspeichers speichern sollte."
+"Verzeichnis im Dateisystem, in welchem SSSD den Kerberos Replay-Cache ablegt."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
@@ -3565,6 +3565,10 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
+"Falls 2-Faktor-Authentifizierung genutzt wird und die Anmeldedaten "
+"gespeichert werden sollen, gibt dieser Wert an wie lang der erste Faktor ("
+"langlebiges Passwort) mindestens sein muss um als SHA512 Hash-Wert im Cache "
+"gespeichert zu werden."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -4769,8 +4773,8 @@ msgstr "realmd_tags (Zeichenkette)"
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
-"verschiedene vom Konfigurationsdienst »realmd« für diese Domain gespeicherte"
-" Kennzeichnungen"
+"verschiedene vom Konfigurationsdienst »realmd« für diese Domain gespeicherte "
+"Kennzeichnungen."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><term>
