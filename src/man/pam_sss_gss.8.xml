@@ -70,6 +70,19 @@
                 <manvolnum>5</manvolnum>
             </citerefentry> for more details on these options.
         </para>
+        <para>
+            Some Kerberos deployments allow to assocate authentication
+            indicators with a particular pre-authentication method used to
+            obtain the ticket granting ticket by the user.
+            <command>pam_sss_gss.so</command> allows to enforce presence of
+            authentication indicators in the service tickets before a particular
+            PAM service can be accessed.
+        </para>
+        <para>
+            If <option>pam_gssapi_indicators_map</option> is set in the [pam] or
+            domain section of sssd.conf, then SSSD will perform a check of the
+            presence of any configured indicators in the service ticket.
+        </para>
     </refsect1>
 
     <refsect1 id='options'>
