@@ -2551,7 +2551,8 @@ sbus_internal_tests_SOURCES = \
     src/tests/cmocka/sbus_internal_tests.c \
     src/sbus/sssd_dbus_request.c
 sbus_internal_tests_CFLAGS = \
-    $(AM_CFLAGS)
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS)
 sbus_internal_tests_LDFLAGS = \
     -Wl,-wrap,dbus_bus_get \
     -Wl,-wrap,dbus_pending_call_steal_reply \
