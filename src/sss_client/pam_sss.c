@@ -996,7 +996,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
 {
     int ret;
     size_t p=0;
-    char *env_item;
+    char *env_item = NULL;
     int32_t c;
     int32_t type;
     int32_t len;
@@ -1020,6 +1020,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
     while(c>0) {
         if (buflen < (p+2*sizeof(int32_t))) {
             D(("response buffer is too small"));
+            free(env_item);
             return PAM_BUF_ERR;
         }
 
@@ -1031,6 +1032,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
 
         if (buflen < (p + len)) {
             D(("response buffer is too small"));
+            free(env_item);
             return PAM_BUF_ERR;
         }
 
@@ -1207,6 +1209,9 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
         p += len;
 
         --c;
+
+        free(env_item);
+        env_item = NULL;
     }
 
     return PAM_SUCCESS;
@@ -2139,7 +2144,7 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
 static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
 {
     size_t c;
-    int ret;
+    int ret = PAM_SYSTEM_ERR;
 
     if (pi->pc == NULL || *pi->pc == NULL) {
         return PAM_SYSTEM_ERR;
