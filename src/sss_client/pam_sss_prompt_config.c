@@ -98,6 +98,7 @@ static void pc_free_password(struct prompt_config *pc)
 {
     if (pc != NULL && pc_get_type(pc) == PC_TYPE_PASSWORD) {
         free(pc->data.password.prompt);
+        pc->data.password.prompt = NULL;
     }
     return;
 }
@@ -106,7 +107,9 @@ static void pc_free_2fa(struct prompt_config *pc)
 {
     if (pc != NULL && pc_get_type(pc) == PC_TYPE_2FA) {
         free(pc->data.two_fa.prompt_1st);
+        pc->data.two_fa.prompt_1st = NULL;
         free(pc->data.two_fa.prompt_2nd);
+        pc->data.two_fa.prompt_2nd = NULL;
     }
     return;
 }
@@ -115,6 +118,7 @@ static void pc_free_2fa_single(struct prompt_config *pc)
 {
     if (pc != NULL && pc_get_type(pc) == PC_TYPE_2FA_SINGLE) {
         free(pc->data.two_fa_single.prompt);
+        pc->data.two_fa_single.prompt = NULL;
     }
     return;
 }
@@ -123,6 +127,7 @@ static void pc_free_sc_pin(struct prompt_config *pc)
 {
     if (pc != NULL && pc_get_type(pc) == PC_TYPE_SC_PIN) {
         free(pc->data.sc_pin.prompt);
+        pc->data.sc_pin.prompt = NULL;
     }
     return;
 }
@@ -153,6 +158,7 @@ void pc_list_free(struct prompt_config **pc_list)
             return;
         }
         free(pc_list[c]);
+        pc_list[c] = NULL;
     }
     free(pc_list);
 }
@@ -541,6 +547,7 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
 done:
     if (ret != EOK) {
         pc_list_free(pl);
+        pl = NULL;
     }
 
     return ret;
