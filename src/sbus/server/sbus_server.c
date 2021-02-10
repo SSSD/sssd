@@ -146,6 +146,10 @@ sbus_server_symlink_create(const char *filename,
 {
     errno_t ret;
 
+    if (symlink_filename == NULL) {
+        return EINVAL;
+    }
+
     DEBUG(SSSDBG_TRACE_LIBS, "Symlinking the dbus path %s to a link %s\n",
               filename, symlink_filename);
     errno = 0;
