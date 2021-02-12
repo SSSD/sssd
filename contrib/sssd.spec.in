@@ -36,7 +36,6 @@ Source0: %{url}/archive/%{version}/%{name}-%{version}.tar.gz
 
 ### Dependencies ###
 
-Requires: python3-sssdconfig = %{version}-%{release}
 Requires: sssd-ad = %{version}-%{release}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-ipa = %{version}-%{release}
@@ -44,6 +43,7 @@ Requires: sssd-krb5 = %{version}-%{release}
 Requires: sssd-ldap = %{version}-%{release}
 Recommends: sssd-proxy = %{version}-%{release}
 Recommends: logrotate
+Suggests: python3-sssdconfig = %{version}-%{release}
 Suggests: sssd-dbus = %{version}-%{release}
 
 %global servicename sssd
