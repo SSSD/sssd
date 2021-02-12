@@ -53,9 +53,10 @@ nss_get_homedir_override(TALLOC_CTX *mem_ctx,
                          struct sss_nss_homedir_ctx *homedir_ctx)
 {
     const char *homedir;
+    bool is_override = false;
 
-    homedir = sss_view_ldb_msg_find_attr_as_string(dom, msg, SYSDB_HOMEDIR,
-                                                   NULL);
+    homedir = sss_view_ldb_msg_find_attr_as_string_ex(dom, msg, SYSDB_HOMEDIR,
+                                                      NULL, &is_override);
     homedir_ctx->original = homedir;
 
     /* Check to see which homedir_prefix to use. */
@@ -63,6 +64,13 @@ nss_get_homedir_override(TALLOC_CTX *mem_ctx,
         homedir_ctx->config_homedir_substr = dom->homedir_substr;
     } else if (nctx->homedir_substr != NULL) {
         homedir_ctx->config_homedir_substr = nctx->homedir_substr;
+    }
+
+    /* Individual overrides have the highest priority, only templates will be
+     * expanded and no further options will be evaluated. */
+    if (is_override) {
+        return expand_homedir_template(mem_ctx, homedir,
+                                       dom->case_preserve, homedir_ctx);
     }
 
     /* Here we skip the files provider as it should always return *only*
