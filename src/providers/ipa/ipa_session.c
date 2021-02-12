@@ -510,7 +510,7 @@ ipa_pam_session_handler_send(TALLOC_CTX *mem_ctx,
      * that this operation is done. */
     ret = ipa_pam_session_handler_get_deskprofile_user_info(
                                                         state,
-                                                        state->be_ctx->domain,
+                                                        params->domain,
                                                         pd->user,
                                                         &state->shortname,
                                                         &state->domain,
