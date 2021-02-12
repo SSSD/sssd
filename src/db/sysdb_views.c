@@ -1788,14 +1788,19 @@ done:
     return val;
 }
 
-const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
-                                                 const struct ldb_message *msg,
-                                                 const char *attr_name,
-                                                 const char * default_value)
+const char *sss_view_ldb_msg_find_attr_as_string_ex(struct sss_domain_info *dom,
+                                                  const struct ldb_message *msg,
+                                                  const char *attr_name,
+                                                  const char *default_value,
+                                                  bool *is_override)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *val;
     char *override_attr_name;
+
+    if (is_override != NULL) {
+        *is_override = false;
+    }
 
     if (DOM_HAS_VIEWS(dom)) {
         tmp_ctx = talloc_new(NULL);
@@ -1816,6 +1821,9 @@ const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
         if (ldb_msg_find_element(msg, override_attr_name) != NULL) {
             val = ldb_msg_find_attr_as_string(msg, override_attr_name,
                                               default_value);
+            if (is_override != NULL && val != default_value) {
+                *is_override = true;
+            }
             goto done;
         }
     }
@@ -1825,4 +1833,13 @@ const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
 done:
     talloc_free(tmp_ctx);
     return val;
+}
+
+const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
+                                                 const struct ldb_message *msg,
+                                                 const char *attr_name,
+                                                 const char *default_value)
+{
+    return sss_view_ldb_msg_find_attr_as_string_ex(dom, msg, attr_name,
+                                                   default_value, NULL);
 }

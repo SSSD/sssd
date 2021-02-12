@@ -725,6 +725,12 @@ sss_view_ldb_msg_find_element(struct sss_domain_info *dom,
                               const struct ldb_message *msg,
                               const char *attr_name);
 
+const char *sss_view_ldb_msg_find_attr_as_string_ex(struct sss_domain_info *dom,
+                                                  const struct ldb_message *msg,
+                                                  const char *attr_name,
+                                                  const char *default_value,
+                                                  bool *is_override);
+
 const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
                                                  const struct ldb_message *msg,
                                                  const char *attr_name,
