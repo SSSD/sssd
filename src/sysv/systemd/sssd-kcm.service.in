@@ -11,3 +11,4 @@ Also=sssd-kcm.socket
 Environment=DEBUG_LOGGER=--logger=files
 ExecStartPre=-@sbindir@/sssd --genconf-section=kcm
 ExecStart=@libexecdir@/sssd/sssd_kcm --uid 0 --gid 0 ${DEBUG_LOGGER}
+CapabilityBoundingSet=CAP_IPC_LOCK CAP_CHOWN CAP_DAC_READ_SEARCH CAP_FOWNER CAP_SETGID CAP_SETUID
