@@ -905,7 +905,7 @@ static int get_service_user(struct mt_ctx *ctx)
 
     ret = confdb_get_string(ctx->cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
                             CONFDB_MONITOR_USER_RUNAS,
-                            SSSD_USER, &user_str);
+                            "root", &user_str);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get the user to run as\n");
         return ret;
