@@ -2734,7 +2734,8 @@ static errno_t ipa_subdomains_write_kdcinfo_write_step(struct sss_domain_info *d
                               SSS_KRB5KDC_FO_SRV);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-                "write_krb5info_file failed, authentication might fail.\n");
+              "write to %s/kdcinfo.%s failed, authentication might fail.\n",
+              PUBCONF_PATH, krb5_service->realm);
         goto done;
     }
 
