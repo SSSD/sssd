@@ -891,7 +891,8 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
                                                  NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "write_krb5info_file failed, authentication might fail.\n");
+                  "write to %s/kdcinfo.%s failed, authentication might fail.\n",
+                  PUBCONF_PATH, service->krb5_service->realm);
         }
     }
 
