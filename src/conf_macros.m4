@@ -807,6 +807,7 @@ AC_DEFUN([WITH_SSSD_USER],
     AC_SUBST(SSSD_USER)
     AC_DEFINE_UNQUOTED(SSSD_USER, "$SSSD_USER", ["The default user to run SSSD as"])
     AM_CONDITIONAL([SSSD_USER], [test x"$with_sssd_user" != x])
+    AM_CONDITIONAL([SSSD_NON_ROOT_USER], [test x"$SSSD_USER" != xroot])
   ])
 
   AC_DEFUN([WITH_AD_GPO_DEFAULT],

@@ -104,6 +104,14 @@ condconfigexists =
 else
 condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectoryNotEmpty=\|/etc/sssd/conf.d/
 endif
+# If sssd is configured with --with-sssd-user=<user> where <user>!='root'
+# but is actually run under the root we need CAP_DAC_OVERRIDE to access
+# files owned by <user>:<user>
+# If sssd is really run under non-root account that doesn't have this cap
+# originally then it's addition to CapabilityBoundingSet doesn't matter.
+if SSSD_NON_ROOT_USER
+additional_caps = CAP_DAC_OVERRIDE
+endif
 else
 ifp_exec_cmd = $(sssdlibexecdir)/sss_signal
 ifp_systemdservice =
@@ -5123,7 +5131,8 @@ edit_cmd = $(SED) \
         -e 's|@pipepath[@]|$(pipepath)|g' \
         -e 's|@prefix[@]|$(prefix)|g' \
         -e 's|@SSSD_USER[@]|$(SSSD_USER)|g' \
-        -e 's|@condconfigexists[@]|$(condconfigexists)|g'
+        -e 's|@condconfigexists[@]|$(condconfigexists)|g' \
+        -e 's|@additional_caps[@]|$(additional_caps)|g'
 
 replace_script = \
     @rm -f $@ $@.tmp; \
