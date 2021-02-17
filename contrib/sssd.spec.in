@@ -486,7 +486,6 @@ autoreconf -ivf
 %configure \
     --disable-rpath \
     --disable-static \
-    --enable-files-domain \
     --enable-gss-spnego-for-zero-maxssf \
     --enable-nfsidmaplibdir=%{_libdir}/libnfsidmap \
     --enable-nsslibdir=%{_libdir} \
@@ -506,6 +505,7 @@ autoreconf -ivf
     --with-syslog=journald \
     --with-test-dir=/dev/shm \
 %if 0%{?fedora}
+    --enable-files-domain \
     --disable-polkit-rules-path \
 %endif
     %{nil}
