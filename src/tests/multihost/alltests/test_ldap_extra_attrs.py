@@ -1,4 +1,10 @@
-""" Automation of ldap_extra_attr suite"""
+""" Automation of ldap_extra_attr suite
+
+:requirement: ldap_extra_attrs
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import re
 import pytest
@@ -16,8 +22,10 @@ class TestLdapExtraAttrs(object):
     @pytest.mark.tier1
     def test_0001_bz1362023(self, multihost):
         """
-        :Title: IDM-SSSD-TC: ldap_extra_attrs: Verify the bz1362023, SSSD
-        fails to start when ldap_user_extra_attrs contains mail
+        :title: IDM-SSSD-TC: ldap_extra_attrs: SSSD fails to start
+          when ldap_user_extra_attrs contains mail
+        :id: 260d62d3-91c1-4d42-b783-df031ad34223
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1362023
         """
         services = "nss, pam, ifp"
         ldap_extra_attr = {'ldap_user_extra_attrs':
@@ -37,8 +45,9 @@ class TestLdapExtraAttrs(object):
     @pytest.mark.tier1
     def test_0002_givenmail(self, multihost):
         """
-        :Title: IDM-SSSD-TC: ldap_extra_attrs: Verify the entry of option
-        value given_email:mail in cache data
+        :title: IDM-SSSD-TC: ldap_extra_attrs: Verify the entry of option
+         value given_email:mail in cache data
+        :id: f0fb818e-5706-4444-915d-15e4f5fc6c9e
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -64,8 +73,10 @@ class TestLdapExtraAttrs(object):
     @pytest.mark.tier1
     def test_0003_checkldb(self, multihost):
         """
-        :Title: IDM-SSSD-TC: ldap_extra_attrs: Verify recently added
-        attribute should be in cache db along with their value
+        :title: IDM-SSSD-TC: ldap_extra_attrs: Verify recently added
+         attribute should be in cache db along with their value
+        :id: 7bc84c52-d6d6-4ac0-89e1-128b01d7f8ae
+        :customerscenario: True
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -98,8 +109,9 @@ class TestLdapExtraAttrs(object):
     @pytest.mark.tier1
     def test_0004_negativecache(self, multihost):
         """
-        :Title: IDM-SSSD-TC: ldap_extra_attrs: Check whether, not added
-        parameter of user is displaying in cache or not
+        :title: IDM-SSSD-TC: ldap_extra_attrs: Check whether, not added
+         parameter of user is displaying in cache or not
+        :id: 208d78dd-1af3-468c-ab4b-c98b79a412a3
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -126,9 +138,10 @@ class TestLdapExtraAttrs(object):
     @pytest.mark.tier1
     def test_0005_ldapextraattrs(self, multihost):
         """
-        :Title: IDM-SSSD-TC: ldap_extra_attrs: Check sssd should start with
-        options ldap_user_email and ldap_user_extra_attrs and check entries in
-        cache
+        :title: IDM-SSSD-TC: ldap_extra_attrs: Check sssd should start with
+         options ldap_user_email and ldap_user_extra_attrs and check entries in
+         cache
+        :id: f10bca5c-ead4-426a-b173-12e9f79f01b4
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -162,9 +175,9 @@ class TestLdapExtraAttrs(object):
     @pytest.mark.tier1
     def test_0006_bz1667252(self, multihost):
         """
-        @Title: ifp: crash when requesting extra attributes
-
-        BZ:1667252 crash when requesting extra attributes
+        :title: ifp: crash when requesting extra attributes
+        :id: 617c7909-039c-48a6-ba1a-79ebedea4186
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1667252
         """
         tools = sssdTools(multihost.client[0])
         sssd_params = {'services': 'nss, pam, ifp'}

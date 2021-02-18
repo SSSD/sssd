@@ -1,4 +1,10 @@
-""" test cases for sssd proxy """
+""" test cases for sssd proxy
+
+:requirement: IDM-SSSD-REQ : Proxy Provider
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 import time
 import re
@@ -20,7 +26,8 @@ class TestsssdProxy(object):
     @pytest.mark.tier1
     def test_0001_1724717(self, multihost):
         """
-        @Title: proxy: sssd-proxy crashes resolving groups with no members
+        :title: proxy: sssd-proxy crashes resolving groups with no members
+        :id: 28b64673-8f1b-46c1-b0dd-6eaba9f80b2c
         """
         # backup sssd.conf
         backup = 'cp -f /etc/sssd/sssd.conf /etc/sssd/sssd.conf.backup'

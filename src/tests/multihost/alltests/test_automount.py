@@ -1,4 +1,10 @@
-""" Test cases for autofs responder """
+""" Test cases for autofs responder
+
+:requirement: Ldap Provider - automount
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 from __future__ import print_function
 import re
@@ -13,28 +19,29 @@ from sssd.testlib.common.utils import sssdTools
 @pytest.mark.automount
 class Testautofsresponder(object):
     """ Autofs responder test cases
-        @setup
-        1. Configure nfs server exporting /export
-        2. Load autofs maps to Directory Server under
-           ou=automout,dc=example,dc=test
-        3. Add an nisMapEntry in automount specifying nfs server,
-           directory and file system(nfs)
-        4. Join RHEL7 client to Windows AD using realm
+
+        :setup:
+          1. Configure nfs server exporting /export
+          2. Load autofs maps to Directory Server under
+             ou=automout,dc=example,dc=test
+          3. Add an nisMapEntry in automount specifying nfs server,
+             directory and file system(nfs)
+          4. Join RHEL7 client to Windows AD using realm
     """
     @pytest.mark.parametrize('add_nisobject', ['/export'], indirect=True)
     @pytest.mark.tier1
     def test_001_searchbasedn(self, multihost, add_nisobject):
         """
-        @Title: IDM-SSSD-TC: LDAP-Provider Automount: Verify automount rules
-        are searched from basedn
-
-        1. Edit sssd.conf and specify autofs_provider = ldap and restart autofs
-
-        @Steps:
-        1. Access /export share
-
-        @expectedResults:
-        1. /export share should be mounted successfully
+        :title: IDM-SSSD-TC: LDAP-Provider: Automount: Verify automount rules
+         are searched from basedn
+        :id: f0b8962d-446b-412e-959a-41182d906dbf
+        :steps:
+          1. Edit sssd.conf and specify autofs_provider = ldap and restart
+             autofs
+          2. Access /export share
+        :expectedresults:
+          1. Should succeed
+          2. /export share should be mounted successfully
         """
         # pylint: disable=unused-argument
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
@@ -57,20 +64,19 @@ class Testautofsresponder(object):
     @pytest.mark.tier1
     def test_002_offline(self, multihost, add_nisobject):
         """
-        @Title: IDM-SSSD-TC: ldap-Provider Automount: Verify automount
-        maps are retrieved from cache when sssd is offline
-
-        @Setup:
-        1. Edit sssd.conf and specify autofs_provider = ldap
-        2. Restart Autofs
-
-        @Steps:
-        1. pkill -USR1 sssd
-        2. access /export/nfs-test
-
-        @expectedResults:
-        1. sssd should be offline
-        2. /export/nfs-test share should be accessible from client
+        :title: IDM-SSSD-TC: LDAP-Provider Automount: Verify automount
+         maps are retrieved from cache when sssd is offline
+        :id: 5e85710a-bd86-416b-82aa-10f254421381
+        :steps:
+          1. Edit sssd.conf and specify autofs_provider = ldap
+          2. Restart Autofs
+          3. pkill -USR1 sssd
+          4. access /export/nfs-test
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. sssd should be offline
+          4. /export/nfs-test share should be accessible from client
         """
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
         for service in ['sssd', 'autofs']:
@@ -101,21 +107,21 @@ class Testautofsresponder(object):
     def test_003_setbasedn(self, multihost, set_autofs_search_base,
                            add_nisobject):
         """
-        @Title: IDM-SSSD-TC: ldap-Provider Automount: Verify automount
-        rules are searched when ldap_autofs_search_base is set
-
-        @Setup
-        1. Edit sssd.conf and specify below parameters: autofs_provider = ldap
-           ldap_autofs_search_base = ou=automount,dc=example,dc=test
-        2. Restart sssd
-
-        @Steps:
-        1. Execute automount -m
-        2. Access /export shared
-
-        @expectedResults:
-        1. automount -m should succeed and show maps from AD
-        2. client is able mount nfs share /export
+        :title: IDM-SSSD-TC: LDAP-Provider Automount: Verify automount
+         rules are searched when ldap_autofs_search_base is set
+        :id: 76e7449e-226a-47c5-bc7f-0bb6b9e749e7
+        :steps:
+          1. Edit sssd.conf and specify below parameters:
+             autofs_provider = ldap
+             ldap_autofs_search_base = ou=automount,dc=example,dc=test
+          2. Restart sssd
+          3. Execute automount -m
+          4. Access /export shared
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. automount -m should succeed and show maps from AD
+          4. client is able mount nfs share /export
         """
         # pylint: disable=unused-argument
         journalctl_cmd = "journalctl -x -n 50 --no-pager"
@@ -141,20 +147,19 @@ class Testautofsresponder(object):
     def test_004_autofsnone(self, multihost, set_autofs_search_base,
                             add_nisobject):
         """
-        @Title: IDM-SSSD-TC: ldap-Provider Automount: Verify maps are
-        loaded from cache and maps are accessible when autofs_provider is None
-
-        1. Set autofs_provider = None
-
-        @Steps:
-        1. Restart sssd service
-        2. Execute automount -m
-        3. Run ls -l /export/nfs-share
-
-        @expectedResults:
-        1. sssd service should be started successfully
-        2. automount -m should execute successfully
-        3. /export/nfs-share should be accessible
+        :title: IDM-SSSD-TC: LDAP-Provider Automount: Verify maps are
+         loaded from cache and maps are accessible when autofs_provider is None
+        :id: 67daac8b-c7c2-4dca-8331-5e95fd21b483
+        :steps:
+          1. Set autofs_provider = None
+          2. Restart sssd service
+          3. Execute automount -m
+          4. Run ls -l /export/nfs-share
+        :expectedresults:
+          1. Should succeed
+          2. sssd service should be started successfully
+          3. automount -m should execute successfully
+          4. /export/nfs-share should be accessible
         """
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
         for service in ['sssd', 'autofs']:
@@ -194,17 +199,14 @@ class Testautofsresponder(object):
     def test_005_autofsnotset(self, multihost, set_autofs_search_base,
                               add_nisobject):
         """
-        @Title: IDM-SSSD-TC: ldap-Provider Automount: Verify automount maps are
-        loaded from Directory Server when autofs provider is not set
-        in sssd.conf
-
-        1. Make sure autofs_provider is not set in sssd.conf,
-
-        @Steps:
-        1. Access nfs share /export/nfs-test
-
-        @expectedResults:
-        1. Verify automount maps are loaded from AD and client is able to
+        :title: IDM-SSSD-TC: LDAP-Provider: Automount: Verify automount maps
+         are loaded from Directory Server when autofs provider is not set
+         in sssd.conf
+        :id: 3d93a51c-332c-4a88-af68-71a92e8a1b8e
+        :steps:
+          1. Access nfs share /export/nfs-test with autofs provider not set
+        :expectedresults:
+          1. Verify automount maps are loaded from AD and client is able to
            mount nfs share
         """
         # pylint: disable=unused-argument
@@ -233,19 +235,18 @@ class Testautofsresponder(object):
     def test_006_updatedmaps(self, multihost, set_autofs_search_base,
                              add_nisobject):
         """
-        @Title: IDM-SSSD-TC: ldap-Provider Automount: Verify sssd properly
-        updates cache when automount maps are updated with more entries
-        in Directory server
-
-        1. Add /project1 entry to auto.direct map
-        2. Restart autofs
-
-        @Steps:
-        1. Access /project1 nfs share
-
-        @expectedResults:
-        1. Verify /project1 can be mounted on nfs client
-
+        :title: IDM-SSSD-TC: LDAP-Provider Automount: Verify sssd properly
+         updates cache when automount maps are updated with more entries
+         in Directory server
+        :id: 0509a594-bd7a-45d6-b40b-4efcdc6b27f0
+        :steps:
+          1. Add /project1 entry to auto.direct map
+          2. Restart autofs
+          3. Access /project1 nfs share
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Verify /project1 can be mounted on nfs client
         """
         # pylint: disable=unused-argument
         nfstest = '/project1/project1-test'
@@ -267,14 +268,17 @@ class Testautofsresponder(object):
     @pytest.mark.tier2
     def test_007_1206221(self, multihost, set_dslimits, indirect_nismaps):
         """
-        @Title: automount: sssd should not always read
-        entire autofs map from ldap
-        setup:
-        1. Add Indirect map auto.idmtest which has mount point keys
-           from foo1 to foo20 pointing to /projects/foo1 to /projects/foo20
-        2. Set sizelimit to 10 on Directory server.
-
-        Verify all the map keys are accessible
+        :title: automount: sssd should not always read
+         entire autofs map from ldap
+        :id: e79723ce-ad26-44ae-82ff-1afaae22f188
+        :customerscenario: True
+        :steps:
+          1. Add Indirect map auto.idmtest which has mount point keys
+             from foo1 to foo20 pointing to /projects/foo1 to /projects/foo20
+          2. Set sizelimit to 10 on Directory server.
+        :expectedresults:
+          1. Should succeed
+          2. Verify all the map keys are accessible
         """
         for service in ['sssd', 'autofs']:
             restart = 'systemctl restart %s' % service
@@ -295,12 +299,14 @@ class Testautofsresponder(object):
     def test_008_wildcardsearch(self, multihost, indirect_nismaps,
                                 set_ldap_uri):
         """
-        @Title: automount: sssd should not use wildcard
-        search to fetch map keys
-        setup:
-        1. Add Indirect map auto.idmtest which has mount point keys
+        :title: automount: sssd should not use wildcard
+         search to fetch map keys
+        :id: 92640015-52b9-4e76-9e63-ea7357eec9cd
+        :steps:
+          1. Add Indirect map auto.idmtest which has mount point keys
            from foo1 to foo20 pointing to /projects/foo1 to /projects/foo20
-        Verify sssd doesn't use (cn=*)(objectclass=nisObject)
+        :expectedresults:
+          1. Verify sssd doesn't use (cn=*)(objectclass=nisObject)
         """
         auto_pcapfile = '/tmp/automount.pcap'
         ldap_host = multihost.master[0].sys_hostname

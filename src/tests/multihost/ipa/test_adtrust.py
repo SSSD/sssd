@@ -1,4 +1,10 @@
-""" IPA AD Trust Sanity tests """
+""" IPA AD Trust Sanity tests
+
+:requirement: IDM-SSSD-REQ: Testing SSSD in IPA Provider
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 import pytest
 import time
@@ -11,7 +17,10 @@ from sssd.testlib.common.exceptions import SSSDException
 class TestADTrust(object):
     """ IPA AD Trust tests """
     def test_basic_sssctl_list(self, multihost):
-        """ @Title: Verify sssctl lists trusted domain  """
+        """
+        :title: Verify sssctl lists trusted domain
+        :id: 8da8919d-524c-4498-8dc8-608eb5e139b0
+        """
         domain_list = 'sssctl domain-list'
         ad_domain_name = multihost.ad[0].domainname
         cmd = multihost.master[0].run_command(domain_list, raiseonerr=False)
@@ -19,8 +28,10 @@ class TestADTrust(object):
         assert ad_domain_name in mylist
 
     def test_ipaserver_sss_cache_user(self, multihost):
-        """ @Title: Verify AD user is cached on IPA server
-        when ipa client queries AD User
+        """
+        :title: Verify AD user is cached on IPA server
+         when ipa client queries AD User
+        :id: 4a48ee7a-62d1-4eea-9f33-7df3fccc908e
         """
         ipaserver = sssdTools(multihost.master[0])
         domain_name = ipaserver.get_domain_section_name()
@@ -38,11 +49,11 @@ class TestADTrust(object):
 
     def test_enforce_gid(self, multihost):
         """
-        @Title: Verify whether the new gid is enforceable when
-        gid of AD Group Domain Users is overridden
-
-        @Bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1817219
+        :title: Verify whether the new gid is enforceable when
+         gid of AD Group Domain Users is overridden
+        :id: 3581c7c0-d598-4e34-bb9b-9d791b93ec65
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1817219
         """
         create_view = 'ipa idview-add  foo_bar'
         multihost.master[0].run_command(create_view)
@@ -68,10 +79,10 @@ class TestADTrust(object):
 
     def test_honour_idoverride(self, multihost, create_aduser_group):
         """
-        @Title: Verify sssd honours the customized ID View
-
-        @Bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1826720
+        :title: Verify sssd honours the customized ID View
+        :id: 0c0dcfbb-6099-4c61-81c9-3bd3a003ff58
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1826720
         """
         (aduser, adgroup) = create_aduser_group
         domain = multihost.ad[0].domainname

@@ -1,4 +1,10 @@
-""" Automation of Netgroup suite"""
+""" Automation of Netgroup suite
+
+:requirement: netgroup
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 import time
 import ldap
@@ -14,8 +20,10 @@ class TestNetgroup(object):
     @pytest.mark.tier1
     def test_0001_bz1502686(self, multihost):
         """
-        :Title: IDM-SSSD-TC: ldap_provider: netgroup: SSSD crashes in nss
-        responder after netgroup timeout when backend is offline
+        :title: IDM-SSSD-TC: ldap_provider: netgroup: SSSD crashes in nss
+         responder after netgroup timeout when backend is offline
+        :id: 2e5823a2-835b-45fd-a2be-36b20856e726
+        :customerscenario: True
         """
         hostname = multihost.master[0].sys_hostname
         bad_ldap_uri = "ldaps://typo.%s" % hostname
@@ -70,8 +78,9 @@ class TestNetgroup(object):
     @pytest.mark.tier1
     def test_0002_bz1406437(self, multihost):
         """
-        :Title: IDM-SSSD-TC: ldap_provider: netgroup: sssctl netgroup-show
-        Cannot allocate memory
+        :title: IDM-SSSD-TC: ldap_provider: netgroup: sssctl netgroup-show
+         Cannot allocate memory
+        :id: bdcf03d6-fe5d-44fd-9517-f812dacaf6af
         """
         multihost.client[0].service_sssd('stop')
         tools = sssdTools(multihost.client[0])
@@ -93,12 +102,12 @@ class TestNetgroup(object):
     @pytest.mark.tier1
     def test_0003_background_refresh(self, multihost):
         """
-        :Title: netgroup: background refresh task does not refresh
-        updated netgroup entries
-
-        @Bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1779486 (RHEL8.2)
-        https://bugzilla.redhat.com/show_bug.cgi?id=1822461 (RHEL7.8)
+        :title: netgroup: background refresh task does not refresh
+         updated netgroup entries
+        :id: b17d904d-0d64-4f4a-bbad-4c7f63e1faf2
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1779486 (RHEL8.2)
+         https://bugzilla.redhat.com/show_bug.cgi?id=1822461 (RHEL7.8)
         """
         multihost.client[0].service_sssd('stop')
         tools = sssdTools(multihost.client[0])

@@ -1,4 +1,10 @@
-""" AD Sudo test cases """
+""" AD Sudo test cases
+
+:requirement: ad_sudo
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 import pytest
 import paramiko
 from sssd.testlib.common.utils import SSHClient
@@ -32,17 +38,18 @@ class TestSudo(object):
         client.clear_sssd_cache()
 
     def test_001_bz1380436(self, multihost):
-        """@Title: IDM-SSSD-TC: ad_provider: ad_sudo: ignore case
-        on case insenstive Domain
-
-        @setup:
-        1. Add sudo rules containing upper and lower case user names
-        2. Login with lower and upper user case names
-
-        @expectedResuls:
-        1. Verify the the user when logged in with upper
-        and lower case can fetch the sudo rules from AD
-
+        """
+        :title: IDM-SSSD-TC: ad_provider: ad_sudo: ignore case
+         on case insenstive Domain
+        :id: 6cc67f37-808a-4b2c-a2cc-e4e4812388f4
+        :customerscenario: True
+        :steps:
+          1. Add sudo rules containing upper and lower case user names
+          2. Login with lower and upper user case names
+        :expectedresults:
+          1. Should succeed
+          2. Verify the the user when logged in with upper
+             and lower case can fetch the sudo rules from AD
         Note: This test case also cover BZ-1622109 and BZ-bz1519287
         Sudo rules used in the fixture contains multiple
         sudoUser attributes added.
@@ -71,18 +78,22 @@ class TestSudo(object):
                         assert '/usr/bin/less\n' in result
 
     def test_002_bz1372440(self, multihost):
-        """@Title: IDM-SSSD-TC: ad_provider: ad_sudo: AD managed sudo groups
-        will not work with sssd
+        """
+        :title: IDM-SSSD-TC: ad_provider: ad_sudo: AD managed sudo groups
+         will not work with sssd
+        :id: 56616411-d56a-4e3f-b732-a39a4fae8bbc
+        :steps:
+          1. Add sudo rules with sudoUser attribute set to group names
+             (%sudo_idmgroup1 which has member sudo_idmuser1)
+          2. Add users to the group.
+          3. Verify sudo_idmuser1 can fetch the sudo rule
+          4. Run the required command as sudo
 
-        @setup:
-        1. Add sudo rules with sudoUser attribute set to group names
-           (%sudo_idmgroup1 which has member sudo_idmuser1)
-        2. Add users to the group.
-        3. List the sudo commands allowed for the user
-
-        @expectedResuls:
-        1. Verify sudo_idmuser1 can fetch the sudo rule and run
-        the required command  as sudo
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
         """
         multihost.client[0].service_sssd('restart')
         aduser = 'sudo_idmuser1'
@@ -105,22 +116,24 @@ class TestSudo(object):
 
     def test_003_support_non_posix_group_in_sudorule(self, multihost):
         """
-        @Title: IDM-SSSD-TC: ad_provider: ad_sudo: support non-posix
-        groups in sudo rules
-        @Bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1826272
-
-        @setup:
-        1. Create a non-posix group in the AD and add an AD-user as a
-           members to it
-        2. Add a sudo rule in the /etc/sudoers file for this user with
-           '%:<group_name>'
-        3. List the sudo commands allowed for the user
-        4. Disable ldap_id_mapping on client
-
-        @expectedResuls:
-        1. Verify sudo_userx can fetch the sudo rule and run
-        the required command  as sudo
+        :title: IDM-SSSD-TC: ad_provider: ad_sudo: support non-posix
+         groups in sudo rules
+        :id: b2def0eb-772d-41b4-b496-f7b3cb61169d
+        :customerscenario: True
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1826272
+        :steps:
+          1. Disable ldap_id_mapping on client
+          2. Create a non-posix group in the AD and add an AD-user as a
+             members to it
+          3. Add a sudo rule in the /etc/sudoers file for this user with
+             '%:<group_name>'
+          4. List the sudo commands allowed for the user
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Verify sudo_userx can fetch the sudo rule and run
+             the required command  as sudo
         """
         client = sssdTools(multihost.client[0], multihost.ad[0])
         domain_name = multihost.ad[0].domainname

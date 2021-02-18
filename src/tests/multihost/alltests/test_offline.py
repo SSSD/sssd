@@ -1,4 +1,10 @@
-""" Automation of offline suite"""
+""" Automation of offline suite
+
+:requirement: offline
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import time
 import pytest
@@ -15,9 +21,10 @@ class TestOffline(object):
     @pytest.mark.tier1
     def test_0001_bz1416150(self, multihost):
         """
-        :Title: IDM-SSSD-TC: ldap_provider: offline: Log to syslog when sssd
-        cannot contact servers goes offline
-        offline.
+        :title: IDM-SSSD-TC: ldap_provider: offline: Log to syslog when sssd
+         cannot contact servers goes offline
+         offline.
+        :id: fd062319-fa78-4a9e-98ad-be6636b36c5e
         """
         hostname = multihost.master[0].sys_hostname
         bad_ldap_uri = "ldaps://typo.%s" % (hostname)

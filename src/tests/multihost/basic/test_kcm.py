@@ -1,4 +1,10 @@
-""" KCM Responder Sanity Test Cases """
+""" KCM Responder Sanity Test Cases
+
+:requirement: IDM-SSSD-REQ :: SSSD KCM as default Kerberos CCACHE provider
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from sssd.testlib.common.utils import SSHClient
 import paramiko
 import pytest
@@ -46,7 +52,8 @@ class TestSanityKCM(object):
 
     def test_kinit_kcm(self, multihost, enable_kcm):
         """
-        @Title: kcm: Run kinit with KRB5CCNAME=KCM
+        :title: kcm: Run kinit with KRB5CCNAME=KCM
+        :id: 245eecf6-04b9-4c9f-8685-681d184fbbcf
         """
         self._start_kcm(multihost)
         try:
@@ -70,7 +77,8 @@ class TestSanityKCM(object):
 
     def test_ssh_login_kcm(self, multihost, enable_kcm):
         """
-        @Title: kcm: Verify ssh logins are successuful with kcm as default
+        :title: kcm: Verify ssh logins are successuful with kcm as default
+        :id: 458ed1e4-b908-40d3-b2fd-392e8d2dcf4b
         """
         # pylint: disable=unused-argument
         _pytest_fixture = [enable_kcm]
@@ -87,12 +95,12 @@ class TestSanityKCM(object):
 
     def test_kcm_debug_level_set(self, multihost, enable_kcm):
         """
-        @Title: kcm: After kcm section with debug
-        level set restaring sssd-kcm service enables kcm debugging
-
-        @Description: Test that just adding a [kcm] section and restarting
-        the kcm service enables debugging without having to restart the
-        whole sssd
+        :title: kcm: After kcm section with debug
+         level set restaring sssd-kcm service enables kcm debugging
+        :id: 31c74bfc-69d5-46bd-aef8-a5581970832e
+        :description: Test that just adding a [kcm] section and restarting
+         the kcm service enables debugging without having to restart the
+         whole sssd
         """
         # Start from a known-good state where the configuration is refreshed
         # by the monitor and logging is completely disabled
@@ -138,8 +146,9 @@ class TestSanityKCM(object):
 
     def test_kdestroy_retval(self, multihost, enable_kcm):
         """
-        @Title: kcm: Test that destroying an empty cache does
-        not return a non-zero return code
+        :title: kcm: Test that destroying an empty cache does
+         not return a non-zero return code
+        :id: 2826097f-e6d7-4d99-ac85-3ee081aa681a
         """
         ssh = SSHClient(multihost.master[0].sys_hostname,
                         username='foo3', password='Secret123')
@@ -155,9 +164,9 @@ class TestSanityKCM(object):
 
     def test_ssh_forward_creds(self, multihost, enable_kcm):
         """
-        @Title: kcm: Test that SSH can forward credentials with KCM
-
-        A regression test for https://github.com/SSSD/sssd/issues/4863
+        :title: kcm: Test that SSH can forward credentials with KCM
+        :id: f4b0c785-a895-48a1-a55e-7519cf221393
+        :ticket: https://github.com/SSSD/sssd/issues/4863
         """
         ssh = SSHClient(multihost.master[0].sys_hostname,
                         username='foo3', password='Secret123')
@@ -184,8 +193,9 @@ class TestSanityKCM(object):
 
     def test_kvno_display(self, multihost, enable_kcm):
         """
-        @Title: kcm: Test kvno correctly displays version numbers of principals
-        #https://github.com/SSSD/sssd/issues/4763
+        :title: kcm: Test kvno correctly displays version numbers of principals
+        :id: 7c9178e6-fea5-44a1-b473-76667624cee2
+        :ticket: https://github.com/SSSD/sssd/issues/4763
         """
         ssh = SSHClient(multihost.master[0].sys_hostname,
                         username='foo4', password='Secret123')
@@ -206,7 +216,8 @@ class TestSanityKCM(object):
                               enable_kcm,
                               create_many_user_principals):
         """
-        @Title: kcm: Make sure the quota limits a client, but only that client
+        :title: kcm: Make sure the quota limits a client, but only that client
+        :id: 3ac8f62e-05e4-4ca7-b588-145fd6258c2a
         """
         # It is easier to keep these tests stable and independent from others
         # if they start from a clean slate
@@ -253,10 +264,10 @@ class TestSanityKCM(object):
                                        enable_kcm,
                                        create_many_user_principals):
         """
-        @Title: kcm: Quota increase
-
-        Increasing the peruid quota allows a client to store more
-        data
+        :title: kcm: Quota increase
+        :id: 0b3cab49-befb-4ab2-bb12-b102d94249aa
+        :description: Increasing the peruid quota allows a client to store
+         more data
         """
         # It is easier to keep these tests stable and independent from others
         # if they start from a clean slate
@@ -293,10 +304,10 @@ class TestSanityKCM(object):
                                    multihost,
                                    enable_kcm):
         """
-        @Title: kcm: Quota enforcement
-
-        Set a prohibitive quota for the per-ccache payload limit and
-        make sure it gets enforced
+        :title: kcm: Quota enforcement
+        :id: cb3daadb-c5e7-48f8-b419-11c616f0d602
+        :description: Set a prohibitive quota for the per-ccache payload
+         limit and make sure it gets enforced
         """
         # It is easier to keep these tests stable and independent from others
         # if they start from a clean slate

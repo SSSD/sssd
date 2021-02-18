@@ -1,4 +1,10 @@
-""" AD-Provider BZ Automations """
+""" AD-Provider BZ Automations
+
+:requirement: ad_parameters
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import time
 import random
@@ -18,21 +24,19 @@ class TestBugzillaAutomation(object):
     def test_0001_bz1296618(self, multihost, adjoin,
                             create_aduser_group):
         """
-        @Title: IDM-SSSD-TC: ad_provider: ad_parameters: Properly remove
-        OriginalMemberOf attribute from SSSD cache if user has no secondary
-        groups anymore
-
-        @steps:
-
-        1. Run id <ad user>
-        2. Run ldbsearch -H <Domain-cache> name=AD user
-        3. Remove AD users membership of Group
-        4. Stop, clear cache and start sssd
-        5. Run ldbsearch -H <Domain-cache> name=AD user
-
-        @Expectedresults:
-        1. AD Users cache Entry should not have OriginalMember of
-         attribute having Windows AD Group DN
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: Properly remove
+         OriginalMemberOf attribute from SSSD cache if user has no secondary
+         groups anymore
+        :id: af7fd9fd-e044-461c-ad51-c91c0b371018
+        :steps:
+          1. Run id <ad user>
+          2. Run ldbsearch -H <Domain-cache> name=AD user
+          3. Remove AD users membership of Group
+          4. Stop, clear cache and start sssd
+          5. Run ldbsearch -H <Domain-cache> name=AD user
+        :expectedresults:
+          1. AD Users cache Entry should not have OriginalMember of
+             attribute having Windows AD Group DN
         """
         adjoin(membersw='adcli')
         (aduser, adgroup) = create_aduser_group
@@ -67,18 +71,18 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier1
     def test_0002_bz1287209(self, multihost, adjoin, create_aduser_group):
         """
-        :Title: IDM-SSSD-TC: ad_provider: ad_parameters: Allow short usernames
-        in trust setups
-
-        @setup
-        1. Modify sssd.conf and set "full_name_format=%1$s" in  Domain section
-
-        @steps:
-        1. Run command "su -ADUser@Domain -c whoami"
-
-        @Expectedresults:
-        1.Output of whoami command should display only the User part without
-        Domain part ,Ex: "ADUser"
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: Allow short usernames
+         in trust setups
+        :id: 651a0fb6-7199-40af-aafb-5edff3e17d39
+        :customerscenario: True
+        :steps:
+          1. Modify sssd.conf and set "full_name_format=%1$s" in  Domain
+             section
+          2. Run command "su -ADUser@Domain -c whoami"
+        :expectedresults:
+          1. Should succeed
+          2. Output of whoami command should display only the User part without
+             Domain part ,Ex: "ADUser"
         """
         adjoin(membersw='adcli')
         (ad_user, _) = create_aduser_group
@@ -101,16 +105,15 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier1
     def test_0003_bz1421622(self, multihost, adjoin, create_aduser_group):
         """
-        :Title: IDM-SSSD-TC: ad_provider: ad_parameters: Users or Groups are
-        cached as mixed-case resulting in users unable to sign in
-
-        @Steps:
-        1. Run command "#getent group <group_name>"
-        2. Run command "#sssctl group-show <group_name>"
-
-        @Expectedresults:
-        1. Group look up should successful.
-        2. Get successful information about cached group.
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: Users or Groups are
+         cached as mixed-case resulting in users unable to sign in
+        :id: 164201c2-61f4-4bbc-b936-fd0050d2fa08
+        :steps:
+          1. Run command "#getent group <group_name>"
+          2. Run command "#sssctl group-show <group_name>"
+        :expectedresults:
+          1. Group look up should successful.
+          2. Get successful information about cached group.
         """
         logger_cmd = 'logger test_0003_bz1421622'
         multihost.client[0].run_command(logger_cmd, raiseonerr=False)
@@ -135,24 +138,23 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier2
     def test_0004_bz1407960(self, multihost, create_aduser_group, smbconfig):
         """
-        :Title: IDM-SSSD-TC: ad_provider: ad_parameters: wbcLookupSid() fails
-        in pdomain is NULL
-
-        @steps:
-        1. Leave the already join AD system
-        2. Joined to AD using net ads command
-        3. Obtain cache Kerberos ticket-granting ticket by Administrator
-        4. Check the user info.
-        5. Leave the system from AD Domain, using net ads
-        6. Join system to AD using realmd
-
-        :Expectedresults:
-        1. Successfully leave the already join AD system
-        2. Successfully joined to AD using net ads command
-        3. Obtained cache Kerberos ticket-granting ticket by Administartor
-        4. Successfully check the user info without any segfault
-        5. Successfully leave the system from AD Domain, using net ads
-        6. Successfully join system to AD using realmd
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: wbcLookupSid() fails
+         in pdomain is NULL
+        :id: f444b01e-8c78-41f2-8aa7-7fb9cff87162
+        :steps:
+          1. Leave the already join AD system
+          2. Joined to AD using net ads command
+          3. Obtain cache Kerberos ticket-granting ticket by Administrator
+          4. Check the user info.
+          5. Leave the system from AD Domain, using net ads
+          6. Join system to AD using realmd
+        :expectedresults:
+          1. Successfully leave the already join AD system
+          2. Successfully joined to AD using net ads command
+          3. Obtained cache Kerberos ticket-granting ticket by Administartor
+          4. Successfully check the user info without any segfault
+          5. Successfully leave the system from AD Domain, using net ads
+          6. Successfully join system to AD using realmd
         """
         (ad_user, _) = create_aduser_group
         password = multihost.ad[0].ssh_password
@@ -195,9 +197,11 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier1
     def test_00015_authselect_cannot_validate_its_own_files(self, multihost):
         """
-        :Title: authselect: authselect cannot validate its own files
-        @bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1734302
+        :title: authselect: authselect cannot validate its own files
+        :id: 67bec814-d67b-4469-9662-58354889d549
+        :requirement: IDM-SSSD-REQ :: Authselect replaced authconfig
+        :casecomponent: authselect
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1734302
         """
         password = multihost.ad[0].ssh_password
         client = sssdTools(multihost.client[0])
@@ -222,21 +226,21 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier1
     def test_0005_BZ1527149_BZ1549675(self, multihost, adjoin, create_adgrp):
         """
-        :Title: IDM-SSSD-TC: ad_provider: ad_parameters: AD BUILTIN groups are
-        cached with gidNumber equal to 0
-
-        @Setup:
-        1. Create AD group with scope as "Global" and type "Security"
-        2. Update the properties newly created group and update under
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: AD BUILTIN groups are
+         cached with gidNumber equal to 0
+        :id: d31bffa6-4313-44af-b103-9ea4bc715e72
+        :customerscenario: True
+        :steps:
+          1. Create AD group with scope as "Global" and type "Security"
+          2. Update the properties newly created group and update under
            "Member of" tab and add Users BUILTIN group.
-
-        @Steps:
-        1. Check the group lookup for BUILTIN group.
-        2. Check the cache entry, for built in group.
-
-        @Expectedresults:
-        1. Group lookup should give empty output.
-        2. Should not list the entry for built in group
+          3. Check the group lookup for BUILTIN group.
+          4. Check the cache entry, for built in group.
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Group lookup should give empty output.
+          4. Should not list the entry for built in group
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0])
@@ -266,20 +270,20 @@ class TestBugzillaAutomation(object):
                             create_domain_local_group,
                             add_user_in_domain_local_group):
         """
-        @Title: IDM-SSSD-TC: ad_provider: ad_parameters: Groups go missing
-        with PAC enabled in sssd
-
-        @Steps:
-        1. Update sssd with pac.
-        2. Remove the sssd cache.
-        3. Check user lookup and check entry for all groups in output.
-        4. Check ldbsearch and check entry for all groups for that user
-
-        @expectedResults
-        1. Successfully update PAC enabled service in sssd.
-        2. Successfully remove the sssd cache.
-        3. User and group lookup should be successfull
-        4. Get successful information about domain local group in ldbsearch.
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: Groups go missing
+         with PAC enabled in sssd
+        :id: 505be110-0b3c-46ea-8be8-15c9ee2291f4
+        :customerscenario: True
+        :steps:
+          1. Update sssd with pac.
+          2. Remove the sssd cache.
+          3. Check user lookup and check entry for all groups in output.
+          4. Check ldbsearch and check entry for all groups for that user
+        :expectedResults
+          1. Successfully update PAC enabled service in sssd.
+          2. Successfully remove the sssd cache.
+          3. User and group lookup should be successfull
+          4. Get successful information about domain local group in ldbsearch.
         """
         adjoin(membersw='adcli')
         (ad_user, _) = create_aduser_group
@@ -316,22 +320,21 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier2
     def test_0007_bz1361597(self, multihost, adjoin, create_aduser_group):
         """
-        @Title: IDM-SSSD-TC: ad_provider: ad_parameters: Test if we can lookup
-        the AD group with one member
-
-        @Steps:
-        1. Lookup the group.
-        2. Add only one user to the group as the member.
-        3. Lookup the group.
-        4. Delete the member.
-        5. Lookup the group.
-
-        @Expectedresults:
-        1. Look must be successful.
-        2. User must be added to the group as a member successfully.
-        3. Look must be successful.
-        4. Member should be deleted successfully.
-        5. Lookup must be successful.
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: Test if we can lookup
+         the AD group with one member
+        :id: 03cde0b0-27ae-43bd-84ff-96bceb0a15db
+        :steps:
+          1. Lookup the group.
+          2. Add only one user to the group as the member.
+          3. Lookup the group.
+          4. Delete the member.
+          5. Lookup the group.
+        :expectedresults:
+          1. Look must be successful.
+          2. User must be added to the group as a member successfully.
+          3. Look must be successful.
+          4. Member should be deleted successfully.
+          5. Lookup must be successful.
         """
         adjoin(membersw='adcli')
         multihost.client[0].service_sssd('stop')
@@ -385,19 +388,19 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier3
     def test_0008_bz1431858(self, multihost, adjoin):
         """
-        @Title : IDM-SSSD-TC: ad_provider: ad_parameters: Wrong principal is
-        found with ad provider having long hostname
-
-        @Setup:
-        1. Provision windows hostname longer than 15 chracters
-        2. Provision RHEL machine and install SSSD
-        3. Add a user to AD.
-
-        @Steps:
-        1. Lookup user
-
-        @Expectedresults:
-        1. Lookup should be successful.
+        :title : IDM-SSSD-TC: ad_provider: ad_parameters: Wrong principal is
+         found with ad provider having long hostname
+        :id: 8ce3e54b-6b4d-4a35-b751-47020db1ac97
+        :steps:
+          1. Provision windows hostname longer than 15 chracters
+          2. Provision RHEL machine and install SSSD
+          3. Add a user to AD.
+          4. Lookup user
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Lookup should be successful
         """
         adjoin(membersw='adcli')
         user = "Administrator"
@@ -411,16 +414,16 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier1
     def test_0009_bz1565761(self, multihost, adjoin):
         """
-        @Title : IDM-SSSD-TC: ad_provider: ad_parameters: SSSD reports minor
-        failures trying to resolve well-known SIDs
-
-        @Steps:
-        1. Lookup user
-        2. Grep "Domain not found"
-
-        @Expected Results:
-        1. Lookup should be successful.
-        2. Empty output
+        :title : IDM-SSSD-TC: ad_provider: ad_parameters: SSSD reports minor
+         failures trying to resolve well-known SIDs
+        :id: 65cc1f42-92b0-4e3e-8752-5ed9bac2fd6d
+        :customerscenario: True
+        :steps:
+          1. Lookup user
+          2. Grep "Domain not found"
+        :expectedresults:
+          1. Lookup should be successful.
+          2. Empty output
         """
         adjoin(membersw='adcli')
         user = "Administrator"
@@ -435,15 +438,16 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier1
     def test_0010_bz1527662(self, multihost, adjoin):
         """
-        @Title: ad_parameters: Handle conflicting e-mail addresses
-        more gracefully
-        @steps:
-        1. create ad user akhomic1 having mail akhomic1b@<domain>
-        2. create ad user akhomic1b
-        3. login as akhomic1 user
-
-        @expected Results:
-        1. akhomic1 and akhomic1b should  successfully login
+        :title: ad_parameters: Handle conflicting e-mail addresses
+         more gracefully
+        :id: 21b13b8f-0fc5-44e0-9ce0-e59f74826db0
+        :customerscenario: True
+        :steps:
+          1. create ad user akhomic1 having mail akhomic1b@<domain>
+          2. create ad user akhomic1b
+          3. login as akhomic1 user
+        :expectedresults:
+          1. akhomic1 and akhomic1b should  successfully login
         """
         adjoin(membersw='adcli')
         user_list = ['akhomic1', 'akhomic1b']
@@ -471,8 +475,10 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier1
     def test_0011_bz1571526(self, multihost, adjoin):
         """
-        @Title: ad_parameters: sssd should give warning
-        when changing ldap schema from AD to others
+        :title: ad_parameters: sssd should give warning
+         when changing ldap schema from AD to others
+        :id: ae2fc714-e698-492f-8d80-4d180e049cc3
+        :customerscenario: True
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0])
@@ -492,21 +498,19 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier1
     def test_0012_bz1738532(self, multihost, adjoin, create_aduser_group):
         """
-        :Title: ad_parameters: lookup identity does not work in some cases
-
-        @setup
-        1. Add user and set its UPN different from the username,
-        Ex: TestUserUPN@ad.vm
-
-        @steps:
-        1. Run command "dbus-send --print-reply --system
-        --dest=org.freedesktop.sssd.infopipe /org/freedesktop/sssd/
-        infopipe org.freedesktop.sssd.infopipe.GetUserAttr string:
-        TestUserUPN@ad.vm array:string:name"
-
-        @Expectedresults:
-        1.Output of above command should not give any error message
-        suppose to get username in output.
+        :title: ad_parameters: lookup identity does not work in some cases
+        :id: b8382774-e568-4e5b-b787-bdd4db380c28
+        :steps:
+          1. Add user and set its UPN different from the username,
+            Ex: TestUserUPN@ad.vm
+          2. Run command "dbus-send --print-reply --system
+             --dest=org.freedesktop.sssd.infopipe /org/freedesktop/sssd/
+             infopipe org.freedesktop.sssd.infopipe.GetUserAttr string:
+             TestUserUPN@ad.vm array:string:name"
+        :expectedresults:
+          1. Should succeed
+          2. Output of above command should not give any error message
+             suppose to get username in output.
         """
         adjoin(membersw='adcli')
         (ad_user, _) = create_aduser_group
@@ -536,8 +540,9 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier1
     def test_0013_bz1794016(self, multihost, adjoin):
         """
-        @Title: sssd_be frequently crashes when refresh_expired_interval
-        is set and files provider is also enabled
+        :title: sssd_be frequently crashes when refresh_expired_interval
+         is set and files provider is also enabled
+        :id: ac5e99cc-2d81-48f7-82ff-622f1c6b3684
         """
         adjoin(membersw='adcli')
         realm = multihost.ad[0].domainname.strip().upper()
@@ -570,23 +575,22 @@ class TestBugzillaAutomation(object):
     def test_0014_user_filtering(self, multihost,
                                  adjoin, create_aduser_group):
         """
-        @Title: SSSD user filtering is failing
-        after files provider rebuilds cache
-        Bz: 1824323
-
-        @Steps:
-        1. Join RHEL to the AD-server
-        2. Create two ADusers on AD
-        3. Add one ADuser in filter_users in nss section
-        4. Restart sssd
-        5. Make sure that filtered user is not returned by SSSD
-        6. Add a local user and fetch that user information
-        7. Again Make sure that filtered user is not returned by SSSD
-
-        @Expected Results:
-        1. filtered user should not be returned after localuser addition
-        2. Other AD-users should be returned correctly
-
+        :title: SSSD user filtering is failing
+         after files provider rebuilds cache
+        :id: a85acb65-a8af-4397-b4e0-fa9e093b86d7
+        :customerscenario: True
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1824323
+        :steps:
+          1. Join RHEL to the AD-server
+          2. Create two ADusers on AD
+          3. Add one ADuser in filter_users in nss section
+          4. Restart sssd
+          5. Make sure that filtered user is not returned by SSSD
+          6. Add a local user and fetch that user information
+          7. Again Make sure that filtered user is not returned by SSSD
+        :expectedresults:
+          1. filtered user should not be returned after localuser addition
+          2. Other AD-users should be returned correctly
         """
         adjoin(membersw='adcli')
         (aduser, _) = create_aduser_group
@@ -626,22 +630,21 @@ class TestBugzillaAutomation(object):
                              adjoin, fetch_ca_cert,
                              create_aduser_group):
         """
-        @Title: Force LDAPS over 636 with AD Access Provider
-        Bz: 1762415
-
-        @Steps:
-        1. Join RHEL to the AD-server
-        2. Block 389 port on client with iptable
-        3. Enable 'ad_use_ldaps' option sssd.conf
-        4. Add channel bindings /etc/openldap/ldap.conf
-        4. Restart sssd
-        5. Run id <Username>
-        6. Parse sssd log file for port used to contact AD
-
-        @Expected Results:
-        1. User information should be returned correctly
-        2. Logs should show that port 636 was used to contact AD
-
+        :title: Force LDAPS over 636 with AD Access Provider
+        :id: 12d0c340-9c50-4583-97c1-23f9f583522c
+        :customerscenario: True
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1762415
+        :steps:
+          1. Join RHEL to the AD-server
+          2. Block 389 port on client with iptable
+          3. Enable 'ad_use_ldaps' option sssd.conf
+          4. Add channel bindings /etc/openldap/ldap.conf
+          4. Restart sssd
+          5. Run id <Username>
+          6. Parse sssd log file for port used to contact AD
+        :expectedresults:
+          1. User information should be returned correctly
+          2. Logs should show that port 636 was used to contact AD
         """
         adjoin(membersw='adcli')
         (aduser, adgroup) = create_aduser_group
@@ -702,10 +705,9 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier2
     def test_0017_gssspnego_adjoin(self, multihost):
         """
-        @Title: Verify sssd uses GSS-SPNEGO when communicating to AD
-
-        @Bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1707963
+        :title: Verify sssd uses GSS-SPNEGO when communicating to AD
+        :id: 9d8b68a0-1208-446c-9dbd-93ee1f934903
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1707963
         """
         tools = sssdTools(multihost.client[0])
         ad_hostname = multihost.ad[0].sys_hostname
@@ -752,10 +754,11 @@ class TestBugzillaAutomation(object):
     @pytest.mark.tier1
     def test_0018_bz1734040(self, multihost, adjoin):
         """
-        @Title: ad_parameters: sssd crash in ad_get_account_domain_search
+        :title: ad_parameters: sssd crash in ad_get_account_domain_search
+        :id: dcca509e-b316-4010-a173-20f541dafd52
+        :customerscenario: True
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1734040
         """
-        # Automation of bug
-        # https://bugzilla.redhat.com/show_bug.cgi?id=1734040
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0])
         domain_name = client.get_domain_section_name()

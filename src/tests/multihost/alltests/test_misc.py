@@ -1,4 +1,10 @@
-""" Automation of misc bugs """
+""" Automation of misc bugs
+
+:requirement: IDM-SSSD-REQ : LDAP Provider
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 from __future__ import print_function
 import re
@@ -23,10 +29,10 @@ class TestMisc(object):
     def test_0001_ldapcachepurgetimeout(self,
                                         multihost, backupsssdconf):
         """
-        @Title: ldap_purge_cache_timeout validates most of
-        the entries once the cleanup task kicks in.
-
-        Bugzilla: 1471808
+        :title: ldap_purge_cache_timeout validates most of
+         the entries once the cleanup task kicks in.
+        :id: 5ed009f4-6462-402c-a1fe-4bef7fb0ef73
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1471808
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -69,9 +75,10 @@ class TestMisc(object):
     def test_0002_offbyonereconn(self,
                                  multihost, backupsssdconf):
         """
-        @Title: off by one in reconnection retries option intepretation
-
-        Bugzilla: 1801401
+        :title: off by one in reconnection retries option intepretation
+        :id: 85c5357d-0cc4-4a32-b36a-00ed530865ad
+        :customerscenario: True
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1801401
         """
         tools = sssdTools(multihost.client[0])
         domainname = tools.get_domain_section_name()
@@ -104,11 +111,12 @@ class TestMisc(object):
     def test_0003_sssd_crashes_after_update(self, multihost,
                                             backupsssdconf):
         """
-        :Title: misc: sssd crashes after last update to
-        sssd-common-1.16.4-37.el7_8.1
-
-        @bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1854317
+        :title: misc: sssd crashes after last update to
+         sssd-common-1.16.4-37.el7_8.1
+        :id: 55cbdb9c-c62e-4604-8c77-9d70dd333a50
+        :customerscenario: True
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1854317
         """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
@@ -163,15 +171,14 @@ class TestMisc(object):
     @pytest.mark.tier1
     def test_0004_sssd_api_conf(self, multihost, backupsssdconf):
         """
-        @Title: sssd.api.conf and sssd.api.d
-        should belong to python-sssdconfig package
-
-        @Description: Verify by removing sssd-common that
-        sssd.api.conf, sssd.api.d is part of python-sssdconfig package
-
-        @Bugzilla
-        https://bugzilla.redhat.com/show_bug.cgi?id=1800564 (RHEL7.8)
-        https://bugzilla.redhat.com/show_bug.cgi?id=1829470 (RHEL8.2)
+        :title: sssd.api.conf and sssd.api.d
+         should belong to python-sssdconfig package
+        :id: 4c6bd6a2-d7eb-4c2c-9346-a89b2bdd553e
+        :description: Verify by removing sssd-common that
+         sssd.api.conf, sssd.api.d is part of python-sssdconfig package
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1800564 (RHEL7.8)
+         https://bugzilla.redhat.com/show_bug.cgi?id=1829470 (RHEL8.2)
         """
         # remove sssd-common package
         rpm_remove = 'rpm -e sssd-common --nodeps'
@@ -197,10 +204,12 @@ class TestMisc(object):
     def test_0005_getent_homedirectory(self, multihost,
                                        backupsssdconf):
         """
-        :Title: misc: fallback_homedir returns '/'
-        for empty home directories in passwd file
-        @bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1660693
+        :title: misc: fallback_homedir returns '/'
+         for empty home directories in passwd file
+        :id: 69a6b54e-a8eb-4145-8554-c5e666d82276
+        :customerscenario: True
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1660693
         """
         multihost.client[0].service_sssd('restart')
         ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)

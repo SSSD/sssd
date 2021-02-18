@@ -1,5 +1,9 @@
-"""
-Bug 1268902 SSSD doesn't set the ID mapping range automatically
+"""Bug 1268902 SSSD doesn't set the ID mapping range automatically
+
+:requirement: IDM-SSSD-REQ: Active Directory host keytab renewal
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
 """
 import re
 import time
@@ -10,18 +14,19 @@ from sssd.testlib.common.utils import sssdTools
 @pytest.mark.usefixtures('joinad')
 @pytest.mark.idmaprange
 class Testidmaprange(object):
-    """
-    Test cases for BZ: 1268902
-    SSSD doesn't set the ID mapping range automatically
-    @Setup:
-    1. Join to AD using adcli command.
-    2. Add the user using adcli user add.
+    """ Test cases for BZ: 1268902
+
+    :setup:
+      1. Join to AD using adcli command.
+      2. Add the user using adcli user add.
+    :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1268902
     """
     @pytest.mark.tier1
     def test_001_findrid(self, multihost, get_rid):
         """
-        @Title: IDM-SSSD-TC: Support large AD RIDs automatically: Find RID
-        value from objectSID
+        :title: IDM-SSSD-TC: Support large AD RIDs automatically: Find RID
+         value from objectSID
+        :id: ecb488b2-7694-4e68-9ee7-8833cb7100b1
         """
         (_, rid) = get_rid
         assert rid != 0 or rid is not None
@@ -29,8 +34,9 @@ class Testidmaprange(object):
     @pytest.mark.tier1
     def test_002_rangelessthansid(self, multihost, get_rid):
         """
-        @Title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
-        lookup when ldap idmap range size less than sids
+        :title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
+         lookup when ldap idmap range size less than sids
+        :id: de6144c2-ac5a-4b00-a7e1-bd6a87f99134
         """
         (ad_user, rid) = get_rid
         new_rid = str(rid - 1)
@@ -53,8 +59,9 @@ class Testidmaprange(object):
     @pytest.mark.tier2
     def test_003_disablerange(self, multihost, get_rid):
         """
-        @Title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
-        lookup when ldap idmap range size less than sids with disable feature
+        :title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
+         lookup when ldap idmap range size less than sids with disable feature
+        :id: 13d9a69a-de96-4884-872d-579191740cc0
         """
         (ad_user, rid) = get_rid
         assert rid != 0 or rid is not None
@@ -88,8 +95,9 @@ class Testidmaprange(object):
     @pytest.mark.tier2
     def test_004_rangeequalsid(self, multihost, get_rid):
         """
-        @Title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
-        lookup when ldap idmap range size equal to sids
+        :title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
+         lookup when ldap idmap range size equal to sids
+        :id: 3687ca8c-5b40-434e-b699-0598b1db19e4
         """
         (ad_user, new_rid) = get_rid
         multihost.client[0].service_sssd('stop')
@@ -119,8 +127,9 @@ class Testidmaprange(object):
     @pytest.mark.tier2
     def test_005_disablerange(self, multihost, get_rid):
         """
-        @Title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
-        lookup when ldap idmap range size equal to sids with disable feature
+        :title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
+         lookup when ldap idmap range size equal to sids with disable feature
+        :id: 6682d1c8-2ea8-47a2-9d67-3d48e0949816
         """
         (ad_user, new_rid) = get_rid
         multihost.client[0].service_sssd('stop')
@@ -153,8 +162,9 @@ class Testidmaprange(object):
     @pytest.mark.tier2
     def test_006_rangevalues(self, multihost, get_rid):
         """
-        @Title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
-        lookup when ldap idmap range size near border values
+        :title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
+         lookup when ldap idmap range size near border values
+        :id: 54178ed0-10b4-4d23-b134-c8c99ebbd724
         """
         rid_list = []
         (ad_user, rid) = get_rid
@@ -190,9 +200,10 @@ class Testidmaprange(object):
     @pytest.mark.tier2
     def test_007_disablerangevalues(self, multihost, get_rid):
         """
-        @Title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
-        lookup when ldap idmap range size near border values with disable
-        feature
+        :title: IDM-SSSD-TC: Support large AD RIDs automatically: Verify user
+         lookup when ldap idmap range size near border values with disable
+         feature
+        :id: 58e85bda-9b03-45c6-b508-5d3bb56ea6cf
         """
         rid_list = []
         (ad_user, rid) = get_rid

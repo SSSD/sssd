@@ -1,4 +1,10 @@
-""" CIFS Test cases """
+""" CIFS Test cases
+
+:requirement: cifs
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 import time
 import pytest
 
@@ -9,24 +15,26 @@ import pytest
 @pytest.mark.tier2
 @pytest.mark.cifs
 class Testcifs(object):
-    """ Samba IDMAP and CIFS Automations """
+    """ Samba IDMAP and CIFS Automations
+
+    :setup:
+      1. Join RHEL system to windows AD domain using below command
+         $ realm join -v TESTRELM.TEST --membership-software=samba
+      2. configure smb.conf to use sss as idmap backend
+         idmap config * : backend = sss
+         idmap config * : range   = 200000-2147483647
+      3. Restart winbind
+    """
 
     @pytest.mark.tier1
     def test_0001_wbinfo(self, multihost):
         """
-        @Title: IDM-SSSD-TC: samba_idmap: Samba can not
-        register sss idmap module due to SMB_IDMAP_INTERFACE_VERSION
-
-        @Setup:
-        1. Join RHEL system to windows AD domain using below command
-           $ realm join -v TESTRELM.TEST --membership-software=samba
-        2. configure smb.conf to use sss as idmap backend
-           idmap config * : backend = sss
-           idmap config * : range   = 200000-2147483647
-        3. Restart winbind
-
-        @Steps:
-        1. Run wbinfo -i <DOMAIN>\administrator
+        :title: IDM-SSSD-TC: samba_idmap: Samba can not
+         register sss idmap module due to SMB_IDMAP_INTERFACE_VERSION
+        :id: bad2770e-75de-4b41-af47-e9a38b8c0e73
+        :requirement: IDM-SSSD-REQ: Samba with sssd as idmap backend
+        :steps: Run wbinfo -i <DOMAIN>\\administrator
+        :expectedresults: wbinfo command should be successfull
         """
         realm = multihost.ad[0].realm
         wb_cmd = 'wbinfo -i {}{}{}'.format(realm, '\\\\', "administrator")
@@ -35,7 +43,10 @@ class Testcifs(object):
 
     @pytest.mark.tier2
     def test_0002_smb1mount(self, multihost):
-        """ @Title: cifs: mount samba share using smb1 protocol """
+        """
+        :title: cifs: mount samba share using smb1 protocol
+        :id: b82b6c93-1857-449c-bfbb-2a184e12cce6
+        """
         ad_user = 'idmfoouser1'
         ad_group = 'idmfoogroup1'
         realm = multihost.ad[0].realm
@@ -58,7 +69,10 @@ class Testcifs(object):
         multihost.client[0].run_command(kdestroy, raiseonerr=False)
 
     def test_0003_smb3mount(self, multihost):
-        """ @Title: cifs: mount samba share using encrypted smb3 protocol """
+        """
+        :title: cifs: mount samba share using encrypted smb3 protocol
+        :id: 1b10f6f2-d91e-4ea4-a56a-985cd9f9d884
+        """
         ad_user = 'idmfoouser1'
         ad_group = 'idmfoogroup1'
         realm = multihost.ad[0].realm
@@ -97,7 +111,10 @@ class Testcifs(object):
         multihost.client[0].run_command(kdestroy, raiseonerr=False)
 
     def test_0004_writeable(self, multihost):
-        """ @Title: cifs: verify samba share is writeable """
+        """
+        :title: cifs: verify samba share is writeable
+        :id: abd21985-ebd3-4c9d-987c-6e6da32bb922
+        """
         realm = multihost.ad[0].realm
         netbiosname = multihost.ad[0].netbiosname
         for idx in range(1, 3):
@@ -140,7 +157,10 @@ class Testcifs(object):
             multihost.client[0].run_command(kdestroy, raiseonerr=False)
 
     def test_0005_aclcheck(self, multihost, cifsmount):
-        """ @Title: cifs: verify cifs acls on samba share with smb1 mount"""
+        """
+        :title: cifs: verify cifs acls on samba share with smb1 mount
+        :id: b6f86e6b-03f7-4d76-8450-9b2d3d1ed71e
+        """
         ad_user = 'idmfoouser1'
         ad_group = 'idmfoogroup1'
         realm = multihost.ad[0].realm
@@ -190,8 +210,10 @@ class Testcifs(object):
             assert usersid in acl_list
 
     def test_0006_readfromclient(self, multihost, cifsmount):
-        """@Title: verify files modified on server
-        are reflected properly on client
+        """
+        :title: verify files modified on server
+         are reflected properly on client
+        :id: d8861167-2815-4aaa-abeb-1ac9183e3627
         """
         ad_user = 'idmfoouser1'
         ad_group = 'idmfoogroup1'
@@ -218,8 +240,10 @@ class Testcifs(object):
             assert 'testwrite1' in cmd.stdout_text
 
     def test_0007_readfromserver(self, multihost, cifsmount):
-        """@Title: verify files modified on client
-        are reflected properly on server
+        """
+        :title: verify files modified on client
+         are reflected properly on server
+        :id: 0b8e677b-159b-49c0-9b85-3effdd22642d
         """
         ad_user = 'idmfoouser1'
         ad_group = 'idmfoogroup1'
