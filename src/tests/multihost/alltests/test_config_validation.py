@@ -1,4 +1,10 @@
-""" Automation of configuration validation"""
+""" Automation of configuration validation
+
+:requirement: IDM-SSSD-REQ: Configuration validation
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 from __future__ import print_function
 import re
@@ -18,8 +24,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0001_searchbase(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify typos in option
-        name (not value) of configuration file
+        :title: IDM-SSSD-TC: Configuration validation: Verify typos in option
+         name (not value) of configuration file
+        :id: e15fcc7f-1a5d-49f2-b995-3963d0e8d1e5
         """
         section = "domain/%s" % ds_instance_name
         domain_params = {'ldap_search_base': ''}
@@ -36,8 +43,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0002_domainname(self, multihost, backupsssdconf):
         """
-        @Title:  IDM-SSSD-TC: Configuration validation: Verify typos in domain
-        name of configuration file
+        :title:  IDM-SSSD-TC: Configuration validation: Verify typos in domain
+         name of configuration file
+        :id: 9188aa83-012d-4358-8387-e09cec1aa25d
         """
         sssdcfg = multihost.client[0].get_file_contents('/etc/sssd/sssd.conf')
         sssdcfg = re.sub(b'domain/%s' % ds_instance_name.encode('utf-8'),
@@ -52,8 +60,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0003_snippetfile(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify typos in option
-        name (not value) of snippet files
+        :title: IDM-SSSD-TC: Configuration validation: Verify typos in option
+         name (not value) of snippet files
+        :id: 7e3f57f6-aa7c-4c30-841b-d81ba98d2e29
         """
         section = "domain/%s" % ds_instance_name
         content = "[%s]\nfully_quailified_name = False" % section
@@ -72,8 +81,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0004_snippetfile(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify typos in domain
-        name of snippet files
+        :title: IDM-SSSD-TC: Configuration validation: Verify typos in domain
+         name of snippet files
+        :id: 0f3a8809-594f-41d0-a52a-2d7365e23b09
         """
         file_content = "[dmain/%s]\nfully_quailified_name = False" \
                        % ds_instance_name
@@ -92,8 +102,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0005_misplaced(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify misplaced
-        options
+        :title: IDM-SSSD-TC: Configuration validation: Verify misplaced
+         options
+        :id: ba3278f1-d80c-429f-ac00-f96a9f0f0f0f
         """
         section = "domain/%s" % ds_instance_name
         sssd_params = {'services': ''}
@@ -110,8 +121,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0006_sameerrors(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify same error when
-        sssd is started
+        :title: IDM-SSSD-TC: Configuration validation: Verify same error when
+         sssd is started
+        :id: ab843b71-6f23-45f5-899e-6c66aabee936
         """
         for status in ['start', 'stop']:
             multihost.client[0].service_sssd(status)
@@ -130,8 +142,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0007_equalsign(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: No equal sign between
-        option name and value
+        :title: IDM-SSSD-TC: Configuration validation: No equal sign between
+         option name and value
+        :id: 17fddf2e-07fe-4b1a-b6e2-7028b12c7ef8
         """
         sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
         sssdcfg = re.sub(b'id_provider = ldap',
@@ -146,8 +159,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0008_specialcharacter(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Option name contains
-        special character
+        :title: IDM-SSSD-TC: Configuration validation: Option name contains
+         special character
+        :id: c4d9c29b-d3a6-4a44-ba88-317d46930916
         """
         section = "domain/%s" % ds_instance_name
         tools = sssdTools(multihost.client[0])
@@ -163,8 +177,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0009_sectionname(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify typos in
-        section name
+        :title: IDM-SSSD-TC: Configuration validation: Verify typos in
+         section name
+        :id: 8c03a1a1-2833-4216-86b3-1c97bf5276ca
         """
         sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
         instance_name = ds_instance_name.encode('utf-8')
@@ -181,8 +196,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0010_splcharacters(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify typos
-        (special character) in section name
+        :title: IDM-SSSD-TC: Configuration validation: Verify typos
+         (special character) in section name
+        :id: de98c544-2f4a-4540-a180-34352b063db2
         """
         sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
         instance_name = ds_instance_name.encode('utf-8')
@@ -199,8 +215,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0011_splcharacters(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify typos (special
-        character) in domain name
+        :title: IDM-SSSD-TC: Configuration validation: Verify typos (special
+         character) in domain name
+        :id: b2a70e9a-2bab-489a-a93d-7508aceb5cd8
         """
         sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
         instance_name = ds_instance_name.encode('utf-8')
@@ -217,8 +234,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0012_forwardslash(self, multihost, backupsssdconf):
         """
-        @Title:  IDM-SSSD-TC: Configuration validation: Forward slash is not
-        present between domain name and section name
+        :title: IDM-SSSD-TC: Configuration validation: Forward slash is not
+         present between domain name and section name
+        :id: d7a73c48-3e92-46aa-864d-40ddeeebdcfb
         """
         sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
         instance_name = ds_instance_name.encode('utf-8')
@@ -234,8 +252,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0013_sectiontypos(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation:
-        Typo in sssd section name
+        :title: IDM-SSSD-TC: Configuration validation:
+         Typo in sssd section name
+        :id: 1d049368-3088-4fd9-9c12-9c379cf7639b
         """
         sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
         sssdcfg = re.sub(b'.sssd.',
@@ -250,8 +269,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0014_pamsection(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Typos in pam section
-        name
+        :title: IDM-SSSD-TC: Configuration validation: Typos in pam section
+         name
+        :id: 1d9ac54d-278c-441f-8ad8-5e127e137039
         """
         tools = sssdTools(multihost.client[0])
         pam_params = {'debug_level': '9'}
@@ -265,8 +285,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0015_nsssection(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Typos in nss section
-        name
+        :title: IDM-SSSD-TC: Configuration validation: Typos in nss section
+         name
+        :id: 0506e544-5d96-43c9-bc61-407c991a565f
         """
         tools = sssdTools(multihost.client[0])
         pam_params = {'debug_level': '9'}
@@ -280,8 +301,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0016_verifypermission(self, multihost):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify the permission
-        of default configuration file
+        :title: IDM-SSSD-TC: Configuration validation: Verify the permission
+         of default configuration file
+        :id: e395db40-f61f-4a74-992c-a52f58c58d25
         """
         cfgget = '/etc/sssd/sssd.conf'
         chmod = 'chmod 0777 %s' % cfgget
@@ -297,8 +319,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0017_verifyownership(self, multihost):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify the ownership
-        of default configuration file
+        :title: IDM-SSSD-TC: Configuration validation: Verify the ownership
+         of default configuration file
+        :id: d2737dfc-ece2-42ad-9af4-410c58d91766
         """
         cfgget = '/etc/sssd/sssd.conf'
         user = (''.join(choice(ascii_uppercase) for _ in range(10)))
@@ -323,8 +346,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0018_closingbrackets(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify the closing
-        bracket for sssd section
+        :title: IDM-SSSD-TC: Configuration validation: Verify the closing
+         bracket for sssd section
+        :id: ab53035f-9662-447e-8645-abb0d520de87
         """
         sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
         sssdcfg = re.sub(b'.sssd.',
@@ -339,8 +363,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0019_openingbracket(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Check starting square
-        bracket in domain section
+        :title: IDM-SSSD-TC: Configuration validation: Check starting square
+         bracket in domain section
+        :id: 665a2792-f1ca-4e6a-b0fd-378b10328537
         """
         sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
         instance_name = ds_instance_name.encode('utf-8')
@@ -356,8 +381,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0020_fatalerror(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: No sssctl commands can
-        be run if the configuration has fatal errors
+        :title: IDM-SSSD-TC: Configuration validation: No sssctl commands can
+         be run if the configuration has fatal errors
+        :id: b483e14b-b263-4e4b-a6f7-539badc76aa4
         """
         sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
         instance_name = ds_instance_name.encode('utf-8')
@@ -377,8 +403,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0021_twodomain(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify typo in option
-        name with multiple domains in default configuration file
+        :title: IDM-SSSD-TC: Configuration validation: Verify typo in option
+         name with multiple domains in default configuration file
+        :id: c240e28a-996f-482b-bac7-9a68c737192c
         """
         multidomain_sssd(domains='ldap_ldap')
         sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
@@ -397,8 +424,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0022_fatalerror(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: No sssctl commands can
-        be run if the configuration has fatal errors
+        :title: IDM-SSSD-TC: Configuration validation: No sssctl commands can
+         be run if the configuration has fatal errors (2)
+        :id: 9c7d169e-0999-4544-8df6-685f0e33023a
         """
         rm_cmd = 'rm -f %s' % SSSD_DEFAULT_CONF
         multihost.client[0].run_command(rm_cmd, raiseonerr=False)
@@ -411,8 +439,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0023_checkldaphostobjectdomain(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Check
-        ldap_host_object_class option in domain section
+        :title: IDM-SSSD-TC: Configuration validation: Check
+         ldap_host_object_class option in domain section
+        :id: d072b8e7-4981-431f-949d-34d8c12a2d6c
         """
         section = "domain/%s" % ds_instance_name
         tools = sssdTools(multihost.client[0])
@@ -426,8 +455,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0024_checkldaphostobjectsssd(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Check
-        ldap_host_object_class option in sssd section
+        :title: IDM-SSSD-TC: Configuration validation: Check
+         ldap_host_object_class option in sssd section
+        :id: d25f61ca-f75f-4a66-a43d-495bc0325fef
         """
         section = "sssd"
         tools = sssdTools(multihost.client[0])
@@ -444,9 +474,11 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0025_check2FA(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Check false
-        warnings are logged in sssd.log file after enabling 2FA prompting
-        settings in sssd.conf
+        :title: IDM-SSSD-TC: Configuration validation: Check false
+         warnings are logged in sssd.log file after enabling 2FA prompting
+         settings in sssd.conf
+        :id: 3a1060db-0120-4270-b669-aae8923613a0
+        :customerscenario: True
         """
         # Automation of BZ1856861
         tools = sssdTools(multihost.client[0])
@@ -467,9 +499,11 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0026_checkchilddomain(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: sssctl config-check
-        reports errors when auto_private_groups is disabled or enabled in
-        child domains
+        :title: IDM-SSSD-TC: Configuration validation: sssctl config-check
+         reports errors when auto_private_groups is disabled or enabled in
+         child domains
+        :id: 40722365-9c34-4230-9a7a-9d958acf078d
+        :customerscenario: True
         """
         # Automation of BZ1791892
         tools = sssdTools(multihost.client[0])
@@ -486,8 +520,10 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0027_bz1723273(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: sssctl config-check
-        complains about non-existing snippet dirctory
+        :title: IDM-SSSD-TC: Configuration merging: sssctl config-check
+         complains about non-existing snippet dirctory
+        :id: 8ed183c4-5102-492a-ada1-a6876978be1f
+        :customerscenario: True
         """
         cp_cmd = "mkdir /tmp/test; cp /etc/sssd/sssd.conf /tmp/test/"
         multihost.client[0].run_command(cp_cmd, raiseonerr=False)
@@ -504,9 +540,10 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0028_bz1723273(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: sssctl config-check
-        gives error message when copied conf file does not have proper
-        ownership and permission
+        :title: IDM-SSSD-TC: Configuration merging: sssctl config-check
+         gives error message when copied conf file does not have proper
+         ownership and permission
+        :id: 6453d102-167c-44a2-9332-80379bcd6f46
         """
         cp_cmd = "mkdir /tmp/test; cp /etc/sssd/sssd.conf /tmp/test/"
         chmod_cmd = "chmod 777 /tmp/test/sssd.conf"
@@ -526,8 +563,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0029_bz1723273(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Verify typos in option
-        name of copied configuration file
+        :title: IDM-SSSD-TC: Configuration validation: Verify typos in option
+         name of copied configuration file
+        :id: bf6663f3-eed1-4a0b-97d5-f2e68eec0dbf
         """
         tools = sssdTools(multihost.client[0])
         section = "domain/%s" % ds_instance_name
@@ -551,8 +589,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0030_bz1723273(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: Does not complain
-        about snippet directory after adding with proper permissions
+        :title: IDM-SSSD-TC: Configuration validation: Does not complain
+         about snippet directory after adding with proper permissions
+        :id: 7a1946ca-f32a-4749-bf49-dbc643c120a5
         """
         tools = sssdTools(multihost.client[0])
         section = "domain/%s" % ds_instance_name
@@ -575,8 +614,9 @@ class TestConfigValidation(object):
     @pytest.mark.tier1
     def test_0031_bz1723273(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration validation: complains about non
-        existing snippet directory
+        :title: IDM-SSSD-TC: Configuration validation: complains about non
+         existing snippet directory
+        :id: 3d30164f-b80b-4594-883d-1783d9337031
         """
         sssctl_cmd = 'sssctl config-check -c /tmp/test/sssd.conf -s ' \
                      '/tmp/does/not/exists'

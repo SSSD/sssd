@@ -1,4 +1,10 @@
-""" Automation of password policy test suite"""
+""" Automation of password policy test suite
+
+:requirement: password_policy
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 from constants import ds_instance_name
 from sssd.testlib.common.utils import sssdTools
@@ -18,9 +24,10 @@ class TestPasswordCheck(object):
     @pytest.mark.tier2
     def test_0001_chnageuserpass(self, multihost):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: password_policy: Change users
-        password with ldap_pwmodify_mode in sssd.conf
-
+        :title: IDM-SSSD-TC: ldap_provider: password_policy: Change users
+         password with ldap_pwmodify_mode in sssd.conf
+        :id: dc70641a-bf1b-445c-926c-7ca693a87615
+        :customerscenario: True
         """
         # Automation of BZ795044(rhel7) and BZ1695574(rhel8)
         # "exop" will change password with extended operation,
@@ -53,8 +60,9 @@ class TestPasswordCheck(object):
     @pytest.mark.tier2
     def test_0002_newpassnotmatch(self, multihost):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: password_policy: New password is
-        not matching with retype password with ldap_pwmodify_mode in sssd.conf
+        :title: IDM-SSSD-TC: ldap_provider: password_policy: New password is
+         not matching with retype password with ldap_pwmodify_mode in sssd.conf
+        :id: ef5a83f3-4560-46dd-b7e7-c6bbdf0da551
        """
         # Automation of BZ795044(rhel7) and BZ1695574(rhel8)
         # "exop" will change password with extended operation,
@@ -77,8 +85,9 @@ class TestPasswordCheck(object):
     @pytest.mark.tier2
     def test_0003_smallnewpass(self, multihost):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: password_policy: Check new
-        password quality check with ldap_pwmodify_mode in sssd.conf
+        :title: IDM-SSSD-TC: ldap_provider: password_policy: Check new
+         password quality check with ldap_pwmodify_mode in sssd.conf
+        :id: 00c39f98-3420-4e95-ac96-0929fe771eff
        """
         # Automation of BZ795044(rhel7) and BZ1695574(rhel8)
         # "exop" will change password with extended operation,
@@ -107,8 +116,9 @@ class TestPasswordCheck(object):
     @pytest.mark.tier2
     def test_0004_wrongcurrentpass(self, multihost):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: password_policy: Check wrong
-        current password with ldap_pwmodify_mode in sssd.conf
+        :title: IDM-SSSD-TC: ldap_provider: password_policy: Check wrong
+         current password with ldap_pwmodify_mode in sssd.conf
+        :id: 12ce875a-d8b9-4165-980a-f649459f45f0
         """
         # Automation of BZ795044(rhel7) and BZ1695574(rhel8)
         # "exop" will change password with extended operation,

@@ -1,3 +1,10 @@
+"""Automation for krb ldap connection
+
+:requirement: krb_ldap_connection
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import subprocess
 import time
@@ -30,10 +37,11 @@ class TestKrbLdapConnectionTimeout(object):
     @pytest.mark.tier3
     def test_0001_timeoutdefault(self, multihost):
         """
-        @Title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
-        Test if connection expires for the default value of ldap connection
-        timeout that is 900 seconds(15 minutes) after that it should release
-        the connention
+        :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
+         Test if connection expires for the default value of ldap connection
+         timeout that is 900 seconds(15 minutes) after that it should release
+         the connention
+        :id: 53ba0b29-f5fc-4daa-8730-04a8aec91829
         """
         domain_params = {'ldap_connection_expire_timeout': None}
         sssdTools(
@@ -55,9 +63,10 @@ class TestKrbLdapConnectionTimeout(object):
     @pytest.mark.tier3
     def test_0002_timeout100(self, multihost):
         """
-        @Title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
-        Test for arbitrary value  ldap connection timeout that is 100
-        seconds after that it should release the connection
+        :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
+         Test for arbitrary value ldap connection timeout that is 100
+         seconds after that it should release the connection
+        :id: bb8dee0a-8ade-4618-b616-589bfcd46ef3
         """
         multihost.client[0].log.info(
             '\n\n\nTesting for ldap_connection_expire_'
@@ -79,11 +88,12 @@ class TestKrbLdapConnectionTimeout(object):
     @pytest.mark.tier3
     def test_0003_timeouttimeoutoutofrange(self, multihost):
         """
-        @Title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
-        Test for out of range vlue of ldap connection timeout that
-        is value out of range of integer. SSSD sevice must
-        fail to restart successfully after entring that value
-        in configuration
+        :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
+         Test for out of range value of ldap connection timeout that
+         is value out of range of integer
+        :id: a3773739-41c7-4379-82d0-721d6993633c
+        :expectedresults: SSSD sevice must fail to restart
+         successfully after entring that value in configuration
         """
 
         multihost.client[0].log.info(
@@ -138,10 +148,12 @@ class TestKrbLdapConnectionTimeout(object):
     @pytest.mark.tier3
     def test_0004_timeoutminus100(self, multihost):
         """
-        @Title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
-        Test of invalid value of ldap connection timeout that is
-        -100 in our case. It shoud instatly release the connection
-        after establishing
+        :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
+         Test of invalid value of ldap connection timeout that is
+         -100 in our case.
+        :id: d68b6d42-30bd-4abb-bbf4-363388da931d
+        :expectedresults: It shoud instatly release the
+         connection after establishing
         """
         multihost.client[0].log.info(
             '\n\n\nTesting for ldap_connection_expire_'
@@ -163,9 +175,11 @@ class TestKrbLdapConnectionTimeout(object):
     @pytest.mark.tier3
     def test_0005_timeout0(self, multihost):
         """
-        @Title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:Test for
-        value of ldap connection timeout 0. It should have to release
-        the connection instantly after establishing.
+        :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:Test for
+         value of ldap connection timeout 0.
+        :id: 39af02aa-0860-4189-afc9-3ead42fd5fc1
+        :expectedresults: It should have to release
+         the connection instantly after establishing
         """
         multihost.client[0].log.info(
             '\n\n\nTesting for ldap_connection_expire_'
@@ -187,10 +201,12 @@ class TestKrbLdapConnectionTimeout(object):
     @pytest.mark.tier3
     def test_0006_timeoutkrb(self, multihost):
         """
-        @Title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
-        Test for krb. In this case value of timeout depends upon
-        max value of lifetime of ticket that is in our case is 120 seconds
-        (2 mins). After that it should have to release the connection
+        :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
+         Test for krb
+        :id: b8b3e2ab-d24e-4da8-b750-e405f25c6908
+        :expectedresults: In this case value of timeout depends upon
+         max value of lifetime of ticket that is in our case is 120 seconds
+         (2 mins). After that it should have to release the connection
         """
         cmd_mod_user = ["kadmin.local", "-q", "modprinc -maxlife 2mins foo1"]
         multihost.master[0].run_command(cmd_mod_user)

@@ -1,4 +1,10 @@
-""" SSSD LDAP provider tests """
+""" SSSD LDAP provider tests
+
+:requirement: IDM-SSSD-REQ : LDAP Provider
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 import re
 import time
@@ -127,8 +133,9 @@ class TestLDAPChpass(object):
 
     def test_ldap_chpass_extop(self, multihost):
         """
-        @Title: chpass: Test password change using the default extended
-        operation
+        :title: chpass: Test password change using the default extended
+         operation
+        :id: 4b3ab9a6-d26f-484d-994f-8bc74c31b9dd
         """
         self._change_test_reset_password(multihost)
 
@@ -137,6 +144,7 @@ class TestLDAPChpass(object):
                                 set_ldap_auth_provider,
                                 set_ldap_pwmodify_mode_ldap_modify):
         """
-        @Title: chpass: Test password change using LDAP modify
+        :title: chpass: Test password change using LDAP modify
+        :id: 554c989d-f99b-4722-925b-5be54a33af89
         """
         self._change_test_reset_password(multihost)

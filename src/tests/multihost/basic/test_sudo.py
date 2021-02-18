@@ -1,4 +1,10 @@
-""" SUDO responder sanity Test Cases """
+""" SUDO responder sanity Test Cases
+
+:requirement: sudo
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from sssd.testlib.common.utils import SSHClient
 import paramiko
 import pytest
@@ -11,7 +17,8 @@ class TestSanitySudo(object):
                              enable_sss_sudo_nsswitch,
                              set_case_sensitive_false):
         """
-        @Title: sudo: Verify case sensitivity in sudo responder
+        :title: sudo: Verify case sensitivity in sudo responder
+        :id: 64ab80be-17fd-4c3b-9d9b-7d07c6279975
         """
         # pylint: disable=unused-argument
         _pytest_fixtures = [case_sensitive_sudorule, enable_sss_sudo_nsswitch,
@@ -38,8 +45,9 @@ class TestSanitySudo(object):
                                   generic_sudorule,
                                   set_entry_cache_sudo_timeout):
         """
-        @Title: sudo: Verify refreshing expired sudo rules
-        do not crash sssd_sudo
+        :title: sudo: Verify refreshing expired sudo rules
+         do not crash sssd_sudo
+        :id: 532513b2-15bc-46ac-8fc9-19fd0bf485c4
         """
         # pylint: disable=unused-argument
         _pytest_fixtures = [enable_sss_sudo_nsswitch, generic_sudorule,

@@ -1,4 +1,8 @@
-""" Automation of Krb5 tests """
+""" Automation of Krb5 tests
+
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import pytest
 from sssd.testlib.common.utils import sssdTools
@@ -15,12 +19,15 @@ class TestKrbWithLogin(object):
                                                     localusers,
                                                     backupsssdconf):
         """
-        :Title: krb5: access_provider = krb5 is not
-        working in RHEL8 while restricting logins
-        based on .k5login file
-
-        @bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1734094
+        :title: krb5: access_provider = krb5 is not
+         working in RHEL8 while restricting logins
+         based on .k5login file
+        :id: dfc177ff-58a7-4697-8d23-e444928c7092
+        :casecomponent: authselect
+        :customerscenario: True
+        :requirement: IDM-SSSD-REQ :: Authselect replaced authconfig
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1734094
         """
         multihost.client[0].run_command(f'authselect '
                                         f'select sssd '

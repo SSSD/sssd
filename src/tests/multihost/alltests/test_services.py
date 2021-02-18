@@ -1,4 +1,10 @@
-""" Automation of sanity/services suite"""
+""" Automation of sanity/services suite
+
+:requirement: IDM-SSSD-REQ : Configuration and Service Management
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import pytest
 import paramiko
@@ -14,8 +20,9 @@ class TestServices(object):
     @pytest.mark.tier1
     def test_0001_bz1432010(self, multihost):
         """
-        :Title: IDM-SSSD-TC: sanity: services: SSSD ships a drop-in
-        configuration snippet in /etc/systemd/system
+        :title: IDM-SSSD-TC: sanity: services: SSSD ships a drop-in
+         configuration snippet in /etc/systemd/system
+        :id: 755973b3-200c-456d-8057-f4a6b093e3f4
         """
         rpm_grep = 'rpm -ql sssd-common'
         cmd = multihost.client[0].run_command(rpm_grep, raiseonerr=False)
@@ -24,8 +31,9 @@ class TestServices(object):
     @pytest.mark.tier1
     def test_0002_1736796(self, multihost, localusers):
         """
-        :Title: config: "default_domain_suffix" should not
-        cause files domain entries to be qualified, this can break sudo access
+        :title: config: "default_domain_suffix" should not
+         cause files domain entries to be qualified, this can break sudo access
+        :id: 4b7bdeff-51ba-46ed-b8e1-0685515b87a0
         """
         users = localusers
         for user in users.keys():
@@ -64,7 +72,9 @@ class TestServices(object):
     @pytest.mark.tier1
     def test_0003_bz1713368(self, multihost):
         """
-        :Title: services: Add sssd-dbus package as a dependency of sssd-tools
+        :title: services: Add sssd-dbus package as a dependency of sssd-tools
+        :id: dfbdcb9f-09ed-4467-97a6-0407c779dd08
+        :customerscenario: True
         """
         # sssd-dbus is a weak dependency of sssd-tools package so we did not
         # get sssd-dbus in '# yum deplist sssd-tools' command
@@ -81,10 +91,12 @@ class TestServices(object):
     @pytest.mark.tier1
     def test_0004_membership_with_files_provider(self, multihost):
         """
-        :Title: services: SSSD must be able to resolve
-        membership involving root with files provider
-        @bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1794607
+        :title: services: SSSD must be able to resolve
+         membership involving root with files provider
+        :id: ca7adb25-6a2b-4f09-b5ed-dc083226c6c9
+        :customerscenario: True
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1794607
         """
         # take backup:
         back_up = "cp -vf /etc/pam.d/su /etc/pam.d/su_bkp"
@@ -112,11 +124,13 @@ class TestServices(object):
     @pytest.mark.tier1
     def test_0005_sssd_stops_monitoring(self, multihost):
         """
-        :Title: services: When the passwd or group files
-        are replaced, sssd stops monitoring the file for
-        inotify events, and no updates are triggered
-        @bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1827432
+        :title: services: When the passwd or group files
+         are replaced, sssd stops monitoring the file for
+         inotify events, and no updates are triggered
+        :id: c6bf72fa-75be-4004-b04b-b5ea3e662c7d
+        :customerscenario: True
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1827432
         """
         group_bkp = "cp -vf /etc/group /etc/group_bkp"
         multihost.client[0].run_command(group_bkp, raiseonerr=False)

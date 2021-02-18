@@ -1,5 +1,9 @@
-"""
-InfoPipe test cases
+"""InfoPipe test cases
+
+:requirement: IDM-SSSD-REQ : Configuration and Service Management
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
 """
 
 import pytest
@@ -11,7 +15,8 @@ class TestInfoPipe(object):
     """
     def test_ifp_extra_attributes_property(self, multihost):
         """
-        @Title: ifp: requesting the extraAttributes property works
+        :title: ifp: requesting the extraAttributes property works
+        :id: 23b8c7e8-df4b-47ef-b38e-0503040e1d67
         see e.g.  https://github.com/SSSD/sssd/issues/4891
         """
         dbus_send_cmd = \

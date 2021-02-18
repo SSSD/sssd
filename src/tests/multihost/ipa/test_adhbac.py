@@ -1,4 +1,10 @@
-""" IPA AD Trust HBAC Cases """
+""" IPA AD Trust HBAC Cases
+
+:requirement: HBAC (ipa_provider)
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 import pytest
 import time
 import re
@@ -15,8 +21,9 @@ class TestADTrustHbac(object):
     """ AD Trust HBAC Test cases """
     def test_allowed_ad_group(self, multihost):
         """
-        @Title: Verify Member of allowed AD Group
-        through hbac is able to login
+        :title: Verify Member of allowed AD Group
+         through hbac is able to login
+        :id: 401fb710-b876-4693-92d0-86a75b94973f
         """
         ipa_server_tools = ipaTools(multihost.master[0])
         ipa_client = sssdTools(multihost.client[0])
@@ -65,8 +72,9 @@ class TestADTrustHbac(object):
 
     def test_disallowed_ad_group(self, multihost, create_aduser_group):
         """
-        @Title: Verify Member of denied AD Group through
-        hbac is not able to login
+        :title: Verify Member of denied AD Group through
+         hbac is not able to login
+        :id: 7092f403-ca58-4683-89b8-400c64dd0a1d
         """
         (aduser, adgroup) = create_aduser_group
         ipa_server_tools = ipaTools(multihost.master[0])
@@ -117,8 +125,9 @@ class TestADTrustHbac(object):
 
     def test_multiple_ad_groups(self, multihost):
         """
-        @Title: Verify hbac evaluation when user is member
-        of multiple AD Groups and with different hbac rules
+        :title: Verify hbac evaluation when user is member
+         of multiple AD Groups and with different hbac rules
+        :id: eb78448d-8a4d-4800-9334-8d8cdb8b0af2
         """
         ipa_server_tools = ipaTools(multihost.master[0])
         ipa_client = sssdTools(multihost.client[0])
@@ -175,7 +184,8 @@ class TestADTrustHbac(object):
 
     def test_hbac_nested_group(self, multihost):
         """
-        @Title: Verify hbac evaluation of AD Nested Groups
+        :title: Verify hbac evaluation of AD Nested Groups
+        :id: f7fc6349-daba-43c2-be4e-e13923e201f9
         """
         ipa_server_tools = ipaTools(multihost.master[0])
         ipa_client = sssdTools(multihost.client[0])
