@@ -1,4 +1,10 @@
-""" SSSD Sanity Test Cases """
+""" SSSD Sanity Test Cases
+
+:requirement: IDM-SSSD-REQ : KRB5 Provider
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 import time
 from sssd.testlib.common.utils import SSHClient
 import configparser as ConfigParser
@@ -10,7 +16,8 @@ class TestSanitySSSD(object):
     """ Basic Sanity Test cases """
     def test_ssh_user_login(self, multihost):
         """
-        @Title: Login: Check ssh login as LDAP user with Kerberos credentials
+        :title: Login: Check ssh login as LDAP user with Kerberos credentials
+        :id: b7600a46-1827-486a-ae2e-cbedad6ddf41
         """
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
@@ -23,7 +30,8 @@ class TestSanitySSSD(object):
 
     def test_kinit(self, multihost):
         """
-        @Title: Login: Verify kinit is successfull after user login
+        :title: Login: Verify kinit is successfull after user login
+        :id: 5e15e9e9-c559-49b8-a164-abe13d82d0fd
         """
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
@@ -41,7 +49,10 @@ class TestSanitySSSD(object):
                 ssh.close()
 
     def test_offline_ssh_login(self, multihost):
-        """@Title: Login: Verify offline ssh login"""
+        """
+        :title: Login: Verify offline ssh login
+        :id: 90e9a834-a1f9-4bef-bdae-57a7b411cce4
+        """
         multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
                                                '/tmp/sssd.conf')
         sssdconfig = ConfigParser.RawConfigParser()

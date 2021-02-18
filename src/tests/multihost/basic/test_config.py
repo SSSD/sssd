@@ -1,4 +1,10 @@
-""" SSSD Configuration-related Test Cases """
+""" SSSD Configuration-related Test Cases
+
+:requirement: IDM-SSSD-REQ: Configuration merging
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 import configparser as ConfigParser
 import pytest
 from utils_config import set_param, remove_section
@@ -21,8 +27,9 @@ class TestSSSDConfig(object):
 
     def test_sssd_genconf_sssd_running(self, multihost):
         """
-        @Title: config: sssd --genconf is able to re-generate
-        the configuration even while SSSD is running.
+        :title: config: sssd --genconf is able to re-generate
+         the configuration even while SSSD is running
+        :id: 078721e9-536b-4fd8-a36d-bd94673228fc
         """
         multihost.master[0].service_sssd('restart')
 
@@ -36,8 +43,9 @@ class TestSSSDConfig(object):
 
     def test_sssd_genconf_section_only(self, multihost):
         """
-        @Title: config: sssd --genconf-section only
-        refreshes those sections given on the command line
+        :title: config: sssd --genconf-section only
+         refreshes those sections given on the command line
+        :id: 011bf2ad-4a2a-4350-adfa-7826349e262f
         """
         multihost.master[0].service_sssd('restart')
 
@@ -59,8 +67,9 @@ class TestSSSDConfig(object):
 
     def test_sssd_genconf_add_remove_section(self, multihost):
         """
-        @Title: config: sssd --genconf-section can not only modify
-        existing configuration sections, but also add a new section
+        :title: config: sssd --genconf-section can not only modify
+         existing configuration sections, but also add a new section
+        :id: 8df66b51-aadc-456e-8f27-a1a787e61769
         """
         # Establish a baseline
         multihost.master[0].service_sssd('restart')
@@ -89,11 +98,11 @@ class TestSSSDConfig(object):
 
     def test_sssd_genconf_no_such_section(self, multihost):
         """
-        @Title: config: Referencing a non-existant section must not fail
-
-        @Description: Referencing a non-existant section must not fail,
-        because we want to call this command from the systemd unit files
-        and by default the sections don't have to be present
+        :title: config: Referencing a non-existant section must not fail
+        :id: 4e160dcc-9789-4f3f-b8d4-c67d27ef4a1c
+        :description: Referencing a non-existant section must not fail,
+         because we want to call this command from the systemd unit files
+         and by default the sections don't have to be present
         """
         multihost.master[0].service_sssd('restart')
         multihost.master[0].run_command(

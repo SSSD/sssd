@@ -1,4 +1,10 @@
-"""Test cases for Multidomain"""
+"""Test cases for Multidomain
+
+:requirement: multiple_domains
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import re
 import datetime
@@ -17,10 +23,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0001_proxyldap2(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check config
-        ldb filter users per domain for puser10 in proxy domain
-
-        multidomain_sssd(domains='proxy_ldap2')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check config
+         ldb filter users per domain for puser10 in proxy domain
+        :id: aeed42e2-5b9b-4b04-b5f2-ea832250c38e
         """
         multidomain_sssd(domains='proxy_ldap2')
         tools = sssdTools(multihost.client[0])
@@ -38,10 +43,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0002_proxyldap2(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check config
-        ldb filter users per domain for puser10 in ldap domain
-
-        multidomain_sssd(domains='proxy_ldap2')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check config
+         ldb filter users per domain for puser10 in ldap domain
+        :id: 847490b5-0687-4443-bbf5-96c5a7dd2c9f
         """
         multidomain_sssd(domains='proxy_ldap2')
         tools = sssdTools(multihost.client[0])
@@ -59,10 +63,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0003_proxyldap2(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain:
-        checking lookup and authentication for proxy domain with filter_users
-
-        multidomain_sssd(domains='proxy_ldap2')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain:
+         checking lookup and authentication for proxy domain with filter_users
+        :id: fb7d6f18-1c47-48f6-852f-824850b9f2d2
         """
         multidomain_sssd(domains='proxy_ldap2')
         tools = sssdTools(multihost.client[0])
@@ -88,10 +91,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0004_proxyldap2(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain:
-        checking lookup and authentication for ldap domain with filter_users
-
-        multidomain_sssd(domains='proxy_ldap2')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain:
+         checking lookup and authentication for ldap domain with filter_users
+        :id: 7aa98ea5-1790-4407-b897-a15e8ebcf775
         """
         multidomain_sssd(domains='proxy_ldap2')
         tools = sssdTools(multihost.client[0])
@@ -117,11 +119,10 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0005_proxyldap2(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: proxy
-        provider is not working with enumerate=true when trying to fetch
-        all groups
-
-        multidomain_sssd(domains='proxy_ldap2')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: proxy
+         provider is not working with enumerate=true when trying to fetch
+         all groups
+        :id: d6e5958d-e719-4aab-b4a4-705f97191dfe
         """
         # Automation of BZ1665867
         multidomain_sssd(domains='proxy_ldap2')
@@ -143,10 +144,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0006_filesproxy(self, multihost, multidomain_sssd):
         """
-        :Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: lookup
-        and ldbsearch with files and proxy domain
-
-        multidomain_sssd(domains='files_proxy')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: lookup
+         and ldbsearch with files and proxy domain
+        :id: 01b34e45-d291-41f3-b54b-3364ce63e079
         """
         multidomain_sssd(domains='files_proxy')
         ret = multihost.client[0].service_sssd('start')
@@ -171,10 +171,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0007_filesproxy(self, multihost, multidomain_sssd, localusers):
         """
-        :Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: lookup for
-        localusers with domain files and proxy
-
-        multidomain_sssd(domains='files_proxy')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: lookup for
+         localusers with domain files and proxy
+        :id: 33cd81a6-26a1-4235-8ef7-ebb52f6b6db2
         """
         multidomain_sssd(domains='files_proxy')
         ret = multihost.client[0].service_sssd('start')
@@ -196,10 +195,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0008_filesproxy(self, multihost, multidomain_sssd, localusers):
         """
-        :Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
-        modify LDAP domain User with domain files and proxy
-
-        multidomain_sssd(domains='files_proxy')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
+         modify LDAP domain User with domain files and proxy
+        :id: ecabce85-b620-45b9-a08a-d975952766a5
         """
         multidomain_sssd(domains='files_proxy')
         multihost.client[0].service_sssd('start')
@@ -212,10 +210,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0009_filesproxy(self, multihost, multidomain_sssd, localusers):
         """
-        :Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
-        delete LDAP domain User with domain files and proxy
-
-        multidomain_sssd(domains='files_proxy')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
+         delete LDAP domain User with domain files and proxy
+        :id: 327f75fc-d4f8-4d51-b140-117edf5f55eb
         """
         multidomain_sssd(domains='files_proxy')
         multihost.client[0].service_sssd('start')
@@ -228,10 +225,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0010_filesproxy(self, multihost, multidomain_sssd, localusers):
         """
-        :Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
-        modify group with domain files and proxy
-
-        multidomain_sssd(domains='files_proxy')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
+         modify group with domain files and proxy
+        :id: 662aaa9b-de83-4e43-8c9f-b8910e96644e
         """
         multidomain_sssd(domains='files_proxy')
         multihost.client[0].service_sssd('start')
@@ -245,10 +241,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0011_filesproxy(self, multihost, multidomain_sssd, localusers):
         """
-        :Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain:  Attempt to
-        delete group with domain files and proxy
-
-        multidomain_sssd(domains='files_proxy')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain:  Attempt to
+         delete group with domain files and proxy
+        :id: 28ecf278-b5bd-4d87-a63e-051010e55c5e
         """
         multidomain_sssd(domains='files_proxy')
         multihost.client[0].service_sssd('start')
@@ -262,10 +257,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0012_filesldap(self, multihost, multidomain_sssd):
         """
-        :Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: ldbsearch
-        for local and ldap domain
-
-        multidomain_sssd(domains='local_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: ldbsearch
+         for local and ldap domain
+        :id: bfb68697-9365-49ed-b277-1fef5cf0569b
         """
         multidomain_sssd(domains='local_ldap')
         ret = multihost.client[0].service_sssd('start')
@@ -292,10 +286,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0013_filesldap(self, multihost, multidomain_sssd, localusers):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: User and
-        group lookup for local and ldap domain
-
-        multidomain_sssd(domains='local_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: User and
+         group lookup for local and ldap domain
+        :id: 50cc738c-d522-426f-a2cb-6e2ee37db86b
         """
         multidomain_sssd(domains='local_ldap')
         ret = multihost.client[0].service_sssd('start')
@@ -317,10 +310,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0014_filesldap(self, multihost, multidomain_sssd, localusers):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
-        modify ldap user with local group id
-
-        multidomain_sssd(domains='local_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
+         modify ldap user with local group id
+        :id: 399362ee-ad63-4679-9409-6b15db3b6f63
         """
         multidomain_sssd(domains='local_ldap')
         multihost.client[0].service_sssd('start')
@@ -333,10 +325,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0015_filesldap(self, multihost, multidomain_sssd, localusers):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
-        delete ldap user
-
-        multidomain_sssd(domains='local_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
+         delete ldap user
+        :id: 51db041b-880d-4b4b-a68c-fec92cdee291
         """
         multidomain_sssd(domains='local_ldap')
         multihost.client[0].service_sssd('start')
@@ -349,10 +340,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0016_filesldap(self, multihost, multidomain_sssd, localusers):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
-        modify ldap group
-
-        multidomain_sssd(domains='local_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
+         modify ldap group
+        :id: cc3242cf-876e-4f58-bcd1-1532551bedf2
         """
         multidomain_sssd(domains='local_ldap')
         multihost.client[0].service_sssd('start')
@@ -366,10 +356,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0017_filesldap(self, multihost, multidomain_sssd, localusers):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
-        delete ldap domain group
-
-        multidomain_sssd(domains='local_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Attempt to
+         delete ldap domain group
+        :id: 1a7a5a67-13a9-48d7-bf67-29238d5056fd
         """
         multidomain_sssd(domains='local_ldap')
         multihost.client[0].service_sssd('start')
@@ -383,10 +372,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0018_filesfiles(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: sssd fails
-        to start with two local domain
-
-        multidomain_sssd(domains='files_files')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: sssd fails
+         to start with two local domain
+        :id: 8235b854-2527-480f-8d9f-d82b426149f4
         """
         multidomain_sssd(domains='files_files')
         result = multihost.client[0].service_sssd('start')
@@ -395,10 +383,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0019_ldapldap(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: ldb search
-        for users from two ldap domains
-
-        multidomain_sssd(domains='ldap_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: ldb search
+         for users from two ldap domains
+        :id: d00b674b-1f5a-4c72-ab5e-fe091a12c42c
         """
         multidomain_sssd(domains='ldap_ldap')
         ret = multihost.client[0].service_sssd('start')
@@ -422,10 +409,9 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0020_ldapldap(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: checking
-        users and groups lookup for two ldap domains
-
-        multidomain_sssd(domains='ldap_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: checking
+         users and groups lookup for two ldap domains
+        :id: db99d818-ca66-45df-9b3e-2167cc50fab7
         """
         multidomain_sssd(domains='ldap_ldap')
         ret = multihost.client[0].service_sssd('start')
@@ -443,33 +429,11 @@ class TestMultiDomain(object):
                 assert cmd.returncode == 0
 
     @pytest.mark.tier2
-    def test_0021_ldapldap(self, multihost, multidomain_sssd):
-        """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: User
-        information not updated on login for secondary domains bz678593
-
-        multidomain_sssd(domains='ldap_ldap')
-        """
-        multidomain_sssd(domains='ldap_ldap')
-        ret = multihost.client[0].service_sssd('start')
-        assert ret == 0
-        suffix = ['p', 'q']
-        for dom in range(2):
-            for idx in range(5):
-                user = '%suser%d@ldap%d' % (suffix[dom], idx, dom + 1)
-                ssh = SSHClient(multihost.client[0].external_hostname,
-                                username=user,
-                                password='Secret123')
-                assert ssh.connect
-                ssh.close()
-
-    @pytest.mark.tier2
     def test_0022_ldapldap(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: User
-        information not updated on login for secondary domains bz678593
-
-        multidomain_sssd(domains='ldap_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: User
+         information not updated on login for secondary domains bz678593
+        :id: df54756c-b141-4127-8e51-75ead63df10c
         """
         multidomain_sssd(domains='ldap_ldap')
         ret = multihost.client[0].service_sssd('start')
@@ -492,12 +456,11 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0023_ldapldap(self, multihost, multidomain_sssd):
         """
-         @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Login time
-        increases strongly while authenticating against a user from second
-        domain
-        Automation of BZ694905
-
-         multidomain_sssd(domains='ldap_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Login time
+         increases strongly while authenticating against a user from second
+         domain
+        :id: 29bdabfd-49ca-4040-a08d-b2b6adbde2cd
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=694905
          """
         multidomain_sssd(domains='ldap_ldap')
         client_tools = sssdTools(multihost.client[0])
@@ -541,14 +504,12 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0024_bz1884196(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check
-        lookup of user when enabled option is True in ldap1 domain
-        and False in second ldap2 domain
-
-        @Bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1884196
-
-        multidomain_sssd(domains='ldap_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check
+         lookup of user when enabled option is True in ldap1 domain
+         and False in second ldap2 domain
+        :id: a7ce3941-ba2c-407a-bed0-468aaab51fdb
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1884196
         """
         multidomain_sssd(domains='ldap_ldap')
         tools = sssdTools(multihost.client[0])
@@ -581,14 +542,12 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0025_bz1884196(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check user
-        when domains parameter has single domain but enabled True in both ldap
-        domain
-
-        @Bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1884196
-
-        multidomain_sssd(domains='ldap_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check user
+         when domains parameter has single domain but enabled True in both ldap
+         domain
+        :id: 33b9c044-3eef-472b-b9f9-d5de9f718c94
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1884196
         """
         multidomain_sssd(domains='ldap_ldap')
         tools = sssdTools(multihost.client[0])
@@ -616,13 +575,11 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0026_bz1884196(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check
-        enabled option with snippet file
-
-        @Bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1884196
-
-        multidomain_sssd(domains='ldap_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check
+         enabled option with snippet file
+        :id: 6fd1e9af-4039-49a1-bf4b-9925b042add5
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1884196
         """
         multidomain_sssd(domains='ldap_ldap')
         tools = sssdTools(multihost.client[0])
@@ -657,14 +614,12 @@ class TestMultiDomain(object):
     @pytest.mark.tier2
     def test_0027_bz1884196(self, multihost, multidomain_sssd):
         """
-        @Title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check
-        enabled option with snippet file and empty value of domains
-        parameter in sssd section
-
-        @Bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1884196
-
-        multidomain_sssd(domains='ldap_ldap')
+        :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Check
+         enabled option with snippet file and empty value of domains
+         parameter in sssd section
+        :id: bf65b8c7-f3ab-4ac1-a9a4-ad3377625a39
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1884196
         """
         multidomain_sssd(domains='ldap_ldap')
         tools = sssdTools(multihost.client[0])

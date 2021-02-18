@@ -1,5 +1,9 @@
-"""
-Automation of kcm related bugs
+"""Automation of kcm related bugs
+
+:requirement: IDM-SSSD-REQ :: SSSD KCM as default Kerberos CCACHE provider
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
 """
 
 from __future__ import print_function
@@ -23,11 +27,11 @@ class TestKcm(object):
     @pytest.mark.tier1_2
     def test_client_timeout(self, multihost, backupsssdconf):
         """
-        :Title: kcm: Increase client idle
-        timeout to 5 minutes
-
-        @bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1884205
+        :title: kcm: Increase client idle
+         timeout to 5 minutes
+        :id: 6933cb85-1616-4b7f-a049-e81ab4c05347
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1884205
         """
         client = sssdTools(multihost.client[0])
         domain_params = {'debug_level': '9'}

@@ -1,4 +1,10 @@
-""" Tests related to Caching of ssh keys """
+""" Tests related to Caching of ssh keys
+
+:requirement: ssh_authorizedkeys
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 import pytest
 import time
@@ -18,8 +24,11 @@ class TestSSHkeys(object):
     @pytest.mark.tier1
     @pytest.mark.fips
     def test_0001_bz1137013(self, multihost, create_ssh_keys):
-        """ @Title: ssh_authorizedkeys: OpenSSH LPK support
-        by default bz1137013 """
+        """
+        :title: ssh_authorizedkeys: OpenSSH LPK support
+         by default bz1137013
+        :id: 82c962b4-e740-4774-a3d1-b6e93a00bf26
+        """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
         user = 'foo1@%s' % domain_name

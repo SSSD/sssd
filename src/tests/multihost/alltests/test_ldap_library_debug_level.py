@@ -1,3 +1,10 @@
+"""Automation for ldap_library_debug_level
+
+:requirement: IDM-SSSD-REQ : LDAP Provider
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import re
 import pytest
@@ -13,8 +20,9 @@ class TestLdapLibDebugLevel(object):
     @pytest.mark.tier1_2
     def test_0001_bz1884207(self, multihost, backupsssdconf):
         """
-        @Title: ldap_library_debug_level: Check ldap_library_debug_level
-        option with config-check
+        :title: ldap_library_debug_level: Check ldap_library_debug_level
+         option with config-check
+        :id: b753a633-53ca-42ba-974e-cab6bfad17d2
         """
         section = "domain/%s" % ds_instance_name
         tools = sssdTools(multihost.client[0])
@@ -28,8 +36,9 @@ class TestLdapLibDebugLevel(object):
     @pytest.mark.tier1_2
     def test_0002_bz1884207(self, multihost, backupsssdconf):
         """
-        @Title: ldap_library_debug_level: Set ldap_library_debug_level to
-        zero and check corresponding logs
+        :title: ldap_library_debug_level: Set ldap_library_debug_level to
+         zero and check corresponding logs
+        :id: 6cf52e0f-594b-42b7-a933-6bf4257603c9
         """
         section = "domain/%s" % ds_instance_name
         tools = sssdTools(multihost.client[0])
@@ -44,8 +53,9 @@ class TestLdapLibDebugLevel(object):
     @pytest.mark.tier1_2
     def test_0003_bz1884207(self, multihost, backupsssdconf):
         """
-        @Title: ldap_library_debug_level: Set ldap_library_debug_level to
-        two and check corresponding logs
+        :title: ldap_library_debug_level: Set ldap_library_debug_level to
+         two and check corresponding logs
+        :id: 97e03505-d5f3-45df-b6ed-f7ede1106f07
         """
         section = "domain/%s" % ds_instance_name
         tools = sssdTools(multihost.client[0])

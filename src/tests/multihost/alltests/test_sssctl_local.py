@@ -1,4 +1,10 @@
-""" Automation of sssctl suite"""
+""" Automation of sssctl suite
+
+:requirement: IDM-SSSD-REQ: Status utility
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import pytest
 from sssd.testlib.common.utils import sssdTools
@@ -14,8 +20,9 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0001_bz1640576(self, multihost, localusers):
         """
-        @Title: IDM-SSSD-TC: sssctl: sssctl reports incorrect
-        information about local user's cache entry expiration time
+        :title: IDM-SSSD-TC: sssctl: sssctl reports incorrect
+         information about local user's cache entry expiration time
+        :id: 9315c119-8c69-4685-836d-0f71b5d0684c
         """
         users = localusers
         tools = sssdTools(multihost.client[0])
@@ -36,8 +43,9 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0002_bz1599207(self, multihost, backupsssdconf, localusers):
         """
-        @Title: IDM-SSSD-TC: sssctl: sssd tools do not handle the implicit
-        domain
+        :title: IDM-SSSD-TC: sssctl: sssd tools do not handle the implicit
+         domain
+        :id: b5ff4e8f-ce9f-4731-bbaa-bf2a8425dc15
         """
         users = localusers
         tools = sssdTools(multihost.client[0])

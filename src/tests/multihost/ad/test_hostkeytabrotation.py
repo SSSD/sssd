@@ -1,4 +1,10 @@
-""" Keytab Rotation Test cases """
+""" Keytab Rotation Test cases
+
+:requirement: IDM-SSSD-REQ: Active Directory host keytab renewal
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 from __future__ import print_function
 import subprocess
@@ -12,27 +18,27 @@ from sssd.testlib.common.samba import sambaTools
 @pytest.mark.keytabrotation
 class TestHostKeytabRotation(object):
     """ Keytab Rotation Test cases
-    @setup:
-    1.  Configure RHEL client to join to Windows AD using
+
+    :setup:
+      1. Configure RHEL client to join to Windows AD using
         realm
-    2. set machine password age to 1 day in sssd.conf
+      2. set machine password age to 1 day in sssd.conf
     """
 
     @pytest.mark.tier2
     def test_001_rotation(self, multihost, keytab_sssd_conf):
         """
-        @Title: IDM-SSSD-TC: AD-Provider Keytab Rotation:
-        Verify New entries in keytab should have new KVNO after keytab rotation
-
-        @Steps:
-        1. Set pwdLastSet attribute of computer account to 0
-        2. Restart sssd
-        3. sssd calls adcli and new host entries are added /etc/krb5.keytab
-
-        @expectedResults:
-        1. pwdLastSet Attribute should be 0
-        2. Verify sssd restart successfully
-        3. Verify /etc/krb5.keytab has new kvno apart from older entries
+        :title: IDM-SSSD-TC: AD-Provider Keytab Rotation: Verify New entries in
+         keytab should have new KVNO after keytab rotation
+        :id: 26551713-7a82-489f-adc5-8543caa97dd2
+        :steps:
+          1. Set pwdLastSet attribute of computer account to 0
+          2. Restart sssd
+          3. sssd calls adcli and new host entries are added /etc/krb5.keytab
+        :expectedresults:
+          1. pwdLastSet Attribute should be 0
+          2. Verify sssd restart successfully
+          3. Verify /etc/krb5.keytab has new kvno apart from older entries
         """
         # Get current keytab entries
         client = sssdTools(multihost.client[0], multihost.ad[0])
@@ -75,16 +81,16 @@ class TestHostKeytabRotation(object):
     @pytest.mark.tier2
     def test_002_updatedkeytab(self, multihost, keytab_sssd_conf):
         """
-        @Title: IDM-SSSD-TC: AD-Provider Keytab Rotation:
-        Verify with updated Keytab Authentication using
-        host credentials is successful
-
-        @Steps:
-        1. kinit using new HOST principal
-        2. Do ldapsearch using GSSAPI bind
-
-        @expectedResults:
-        1. kinit and ldapsearch  should be successful
+        :title: IDM-SSSD-TC: AD-Provider Keytab Rotation:
+         Verify with updated Keytab Authentication using
+         host credentials is successful
+        :id: 21176af3-614e-417f-87b6-13d8dfe7f33a
+        :steps:
+          1. kinit using new HOST principal
+          2. Do ldapsearch using GSSAPI bind
+        :expectedresults:
+          1. kinit should be successful
+          2. ldapsearch should be successful
         """
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client_hostname = multihost.client[0].sys_hostname.split('.')[0]
@@ -126,20 +132,19 @@ class TestHostKeytabRotation(object):
     @pytest.mark.tier2
     def test_003_delentry(self, multihost, keytab_sssd_conf):
         """
-        @Title: IDM-SSSD-TC: AD-Provider Keytab Rotation:
-        Verify the oldest host principal entries are deleted
-        after succesful machine password
-
-        @Steps:
-        1. Reset Machine password again by setting pwdlastSet attribute to 0
-        2. Restart sssd service
-        3. klist -k /etc/krb5.keytab
-
-        @expectedResults:
-        1. pwdLastSet attribute should be 0
-        2. sssd service should be successfully restarted
-        3. Verify adcli rotates keytab entries and the oldest keytab
-           entry with KVNO 2 is deleted
+        :title: IDM-SSSD-TC: AD-Provider Keytab Rotation:
+         Verify the oldest host principal entries are deleted
+         after succesful machine password
+        :id: 0812dcbf-5d58-4ff8-9891-789f1a5ce8d4
+        :steps:
+          1. Reset Machine password again by setting pwdlastSet attribute to 0
+          2. Restart sssd service
+          3. klist -k /etc/krb5.keytab
+        :expectedresults:
+          1. pwdLastSet attribute should be 0
+          2. sssd service should be successfully restarted
+          3. Verify adcli rotates keytab entries and the oldest keytab
+             entry with KVNO 2 is deleted
         """
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.reset_machine_password()
@@ -194,24 +199,23 @@ class TestHostKeytabRotation(object):
     @pytest.mark.tier3
     def test_004_multiplespn(self, multihost, keytab_sssd_conf):
         """
-        @Title: IDM-SSSD-TC: AD-Provider Keytab Rotation:
-        Add Multiple SPN(http,nfs) to the client host and
-        verify all the SPN entries are rotated
-
-        @Steps:
-        1. ADD HTTP SPN for client using net ads keytab cli
-        2. ADD NFS SPN for client using net ads keytab cli
-        3. Reset Machine password by setting pwdLastSet to 0
-        4. Restart sssd
-        5. klist -k /etc/krb5.keytab
-
-        @expectedResults:
-        1. klist -k /etc/krb5.keytab should HTTP entries
-        2. klist -k /etc/krb5.keytab should NFS entries
-        3. pwdLastSet attribute should be 0
-        4. sssd service should be restarted successfully
-        5. New HTTP and NFS entries with new kvno should be added to
-           /etc/krb5.keytab
+        :title: IDM-SSSD-TC: AD-Provider Keytab Rotation:
+         Add Multiple SPN(http,nfs) to the client host and
+         verify all the SPN entries are rotated
+        :id: a66c325f-09e2-4a81-8b76-b863dead7e92
+        :steps:
+          1. ADD HTTP SPN for client using net ads keytab cli
+          2. ADD NFS SPN for client using net ads keytab cli
+          3. Reset Machine password by setting pwdLastSet to 0
+          4. Restart sssd
+          5. klist -k /etc/krb5.keytab
+        :expectedresults:
+          1. klist -k /etc/krb5.keytab should HTTP entries
+          2. klist -k /etc/krb5.keytab should NFS entries
+          3. pwdLastSet attribute should be 0
+          4. sssd service should be restarted successfully
+          5. New HTTP and NFS entries with new kvno should be added to
+             /etc/krb5.keytab
         """
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.reset_machine_password()
@@ -249,22 +253,21 @@ class TestHostKeytabRotation(object):
     @pytest.mark.tier3
     def test_005_deletespn(self, multihost, keytab_sssd_conf):
         """
-        @Title: IDM-SSSD-TC: AD-Provider Keytab Rotation:
-        Removing SPN from AD and verify removed SPN entries
-        are not renewed upon renewal
-
-        @Steps:
-        1. Delete HTTP SPN using setspn.exe  cli from AD
-        2. Reset Machine password by setting pwdLastSet attribute to 0
-        3. Restart sssd
-        4. klist -k /etc/krb5.keytab
-
-        @expectedResults:
-        1. HTTP SPN should be deleted
-        2. pwdLastSet attribute should be 0
-        3. sssd service should be restarted successfuly
-        4. Verify no new HTTP Entries with new KVNO are added in
-           /etc/krb5.keytab
+        :title: IDM-SSSD-TC: AD-Provider Keytab Rotation:
+         Removing SPN from AD and verify removed SPN entries
+         are not renewed upon renewal
+        :id: 6430387a-a715-44b4-81e3-7c012d887e00
+        :steps:
+          1. Delete HTTP SPN using setspn.exe  cli from AD
+          2. Reset Machine password by setting pwdLastSet attribute to 0
+          3. Restart sssd
+          4. klist -k /etc/krb5.keytab
+        :expectedresults:
+          1. HTTP SPN should be deleted
+          2. pwdLastSet attribute should be 0
+          3. sssd service should be restarted successfuly
+          4. Verify no new HTTP Entries with new KVNO are added in
+             /etc/krb5.keytab
         """
         client = sssdTools(multihost.client[0], multihost.ad[0])
         sambaclient = sambaTools(multihost.client[0], multihost.ad[0])

@@ -1,4 +1,10 @@
-""" Automation of sssctl suite with ldap and krb5 provider"""
+""" Automation of sssctl suite with ldap and krb5 provider
+
+:requirement: IDM-SSSD-REQ: Status utility
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 from __future__ import print_function
 import re
@@ -16,8 +22,9 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0001_bz1638295(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
-        IFP user_attributes with allowed_uids equal to root and ldap user
+        :title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
+         IFP user_attributes with allowed_uids equal to root and ldap user
+        :id: aaa3c20e-176c-404a-8845-37a524222b14
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -40,8 +47,9 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0002_bz1638295(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
-        IFP user_attributes with allowed_uids equal to 0 and ldap user's uid
+        :title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
+         IFP user_attributes with allowed_uids equal to 0 and ldap user's uid
+        :id: 8f7f57ea-bc3d-4b1b-989f-b3b4d3c88a14
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -64,8 +72,9 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0003_bz1638295(self, multihost, localusers, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
-        IFP user_attributes with allowed_uids equal to root and localuser
+        :title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
+         IFP user_attributes with allowed_uids equal to root and localuser
+        :id: 4aafb8f5-3fad-46b3-91a3-e431e872a4af
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -88,9 +97,10 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0004_bz1638295(self, multihost, localusers, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
-        IFP user_attributes with allowed_uids equal to root's and
-        localuser's uid
+        :title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
+         IFP user_attributes with allowed_uids equal to root's and
+         localuser's uid
+        :id: e46353b3-904f-4226-b6fa-4444c67861b0
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -113,8 +123,9 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0005_bz1638295(self, multihost, localusers, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
-        IFP user_attributes with allowed_uids equal to localuser's uids
+        :title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
+         IFP user_attributes with allowed_uids equal to localuser's uids
+        :id: 96b47d83-e123-42fc-8952-381975e95f9b
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -134,8 +145,9 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0006_bz1638295(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
-        IFP user_attributes with allowed_uids equal to 0 and ldap user
+        :title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
+         IFP user_attributes with allowed_uids equal to 0 and ldap user
+        :id: 78cb0086-0107-49e1-93ca-efcc4a414aad
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -158,8 +170,10 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0007_bz1638295(self, multihost, localusers, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
-        IFP user_attributes with allowed_uids equal to root and localuser's uid
+        :title: IDM-SSSD-TC: sssctl: sssctl user-checks does not show custom
+         IFP user_attributes with allowed_uids equal to root and localuser's
+         uid
+        :id: 90f6f768-d006-4d8a-a289-5be50205aa0e
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -182,8 +196,9 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0008_bz1761047(self, multihost):
         """
-        @Title: sssctl: Null dereference in
-        sssctl/sssctl_domains.c:sssctl_domain_status_active_server()
+        :title: sssctl: Null dereference in
+         sssctl/sssctl_domains.c:sssctl_domain_status_active_server()
+        :id: bf38d933-5eaf-43cc-b763-55cacf447bd1
         """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
@@ -211,8 +226,9 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0009_bz1751691(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: sssctl: sssctl domain-list command displays
-        results intermittently
+        :title: IDM-SSSD-TC: sssctl: sssctl domain-list command displays
+         results intermittently
+        :id: 09fed728-1631-44fa-ad5d-082cba4a8ea2
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -233,8 +249,9 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0010_bz1628122(self, multihost):
         """
-        @Title: sssctl: Printing incorrect information
-        about domain with sssctl utility
+        :title: sssctl: Printing incorrect information
+         about domain with sssctl utility
+        :id: 6997a8a4-0531-4e51-a10b-8c1d5791b67b
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -264,8 +281,10 @@ class Testsssctl(object):
     @pytest.mark.tier1_2
     def test_0011_bz1406678(self, multihost):
         """
-        @Title: sssctl: sssd started before network
-        sssd to go online once network service starts after it
+        :title: sssctl: sssd started before network
+         sssd to go online once network service starts after it
+        :id: f734660f-269e-49fd-9864-00de54b11b2c
+        :customerscenario: True
         """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()

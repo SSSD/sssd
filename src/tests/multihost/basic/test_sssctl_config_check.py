@@ -1,4 +1,10 @@
-"""sssctl config-check Test Cases"""
+"""sssctl config-check Test Cases
+
+:requirement: IDM-SSSD-REQ: Status utility
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 import pytest
 import re
@@ -7,8 +13,9 @@ import re
 class TestSssctlConfigCheck(object):
     def test_verify_typo_option_name(self, multihost):
         """
-        @Title: sssctl: Verify typos in option name (not value)
-        of configuration file
+        :title: sssctl: Verify typos in option name (not value)
+         of configuration file
+        :id: 4089f5d6-cdeb-4bcb-9028-cabd97d43045
         """
         cfgget = '/etc/sssd/sssd.conf'
         cfgput = '/tmp/sssd.conf.backup'
@@ -36,7 +43,8 @@ class TestSssctlConfigCheck(object):
 
     def test_verify_typo_domain_name(self, multihost):
         """
-        @Title: sssctl: Verify typos in domain name of configuration file
+        :title: sssctl: Verify typos in domain name of configuration file
+        :id: a5d3a3a5-f832-4fc6-a628-9165dab69dd2
         """
         cfgget = '/etc/sssd/sssd.conf'
         cfgput = '/tmp/sssd.conf.backup'
@@ -64,7 +72,8 @@ class TestSssctlConfigCheck(object):
 
     def test_misplaced_option(self, multihost):
         """
-        @Title: sssctl: Verify misplace options in default configuration file
+        :title: sssctl: Verify misplace options in default configuration file
+        :id: ed814158-dea5-4f62-8500-fe62087332f9
         """
         cfgget = '/etc/sssd/sssd.conf'
         cfgput = '/tmp/sssd.conf.backup'

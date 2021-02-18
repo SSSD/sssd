@@ -1,4 +1,11 @@
-""" Automation of auto private groups"""
+""" Automation of auto private groups
+
+:requirement: IDM-SSSD-REQ: SSSD can automatically create\
+ user private groups for users
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import pytest
 from sssd.testlib.common.utils import sssdTools
@@ -13,8 +20,9 @@ class TestAutoPrivateGroups(object):
     @pytest.mark.tier1
     def test_0001_bz1695577(self, multihost, backupsssdconf):
         """
-        :Title: user_private_group: auto_private_group set to hybrid
-        uid equals to gid and group exists
+        :title: user_private_group: auto_private_group set to hybrid
+         uid equals to gid and group exists
+        :id: 19675eaa-d459-40da-985c-b8e89f8bea40
         """
         multihost.client[0].service_sssd('stop')
         tools = sssdTools(multihost.client[0])
@@ -41,8 +49,9 @@ class TestAutoPrivateGroups(object):
     @pytest.mark.tier1
     def test_0002_bz1695577(self, multihost, backupsssdconf):
         """
-        :Title: user_private_group: auto_private_group set to hybrid
-        uid does not equals to gid and group does exists
+        :title: user_private_group: auto_private_group set to hybrid
+         uid does not equals to gid and group does exists
+        :id: bd7cda5a-49d9-4ca7-8dc6-c0f6c39b494a
         """
         multihost.client[0].service_sssd('stop')
         tools = sssdTools(multihost.client[0])

@@ -1,4 +1,10 @@
-""" Automation of sanity/journald suite"""
+""" Automation of sanity/journald suite
+
+:requirement: IDM-SSSD-REQ : Journal based logging
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import pytest
 import re
@@ -16,8 +22,9 @@ class TestJournald(object):
     @pytest.mark.tier1
     def test_0001_bz1115508(self, multihost, enable_multiple_responders):
         """
-        @Title: IDM-SSSD-TC: sanity: journald: Send debug logs to journald by
-        default bz1115508
+        :title: IDM-SSSD-TC: sanity: journald: Send debug logs to journald by
+         default bz1115508
+        :id: 649107d8-7457-4da3-91c7-32b5bb493fb7
         """
         date = "date" + " --rfc-3339=ns"
         cmd = multihost.client[0].run_command(date, raiseonerr=False)
@@ -67,7 +74,8 @@ class TestJournald(object):
     @pytest.mark.tier1
     def test_0002_bz1460724(self, multihost, enable_multiple_responders):
         """
-        @Title: IDM-SSSD-TC: sanity: journald: SYSLOG_IDENTIFIER is different
+        :title: IDM-SSSD-TC: sanity: journald: SYSLOG_IDENTIFIER is different
+        :id: c30e6899-6c6b-42bb-a9a3-4aacd589908e
         """
         pgrep = multihost.client[0].run_command(["pgrep", "-af", "sssd"],
                                                 raiseonerr=False)

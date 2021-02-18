@@ -1,4 +1,10 @@
-""" Automation of configuration merging"""
+""" Automation of configuration merging
+
+:requirement: IDM-SSSD-REQ: Configuration merging
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import re
 from random import choice
@@ -18,8 +24,9 @@ class TestConfigMerge(object):
     @pytest.mark.tier1
     def test_0001_verifypermission(self, multihost):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: Verify the permission of
-        snippet files
+        :title: IDM-SSSD-TC: Configuration merging: Verify the permission of
+         snippet files
+        :id: 6e52a34b-0dda-4c84-8964-72915026ec8c
        """
         multihost.client[0].service_sssd('stop')
         section = "domain/%s" % ds_instance_name
@@ -47,8 +54,9 @@ class TestConfigMerge(object):
     @pytest.mark.tier1
     def test_0002_hiddenfiles(self, multihost):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: SSSD reads all *.conf
-        files, that are not starting with a . (hidden files)
+        :title: IDM-SSSD-TC: Configuration merging: SSSD reads all *.conf
+         files, that are not starting with a . (hidden files)
+        :id: 2428bb6b-535d-46b9-a092-a9c9c3f141fa
         """
         multihost.client[0].service_sssd('stop')
         dom_section = "domain/%s" % ds_instance_name
@@ -66,8 +74,9 @@ class TestConfigMerge(object):
     @pytest.mark.tier1
     def test_0003_lastreadparameter(self, multihost):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: SSSD will use the last
-        read parameter if the same option appears multiple times.
+        :title: IDM-SSSD-TC: Configuration merging: SSSD will use the last
+         read parameter if the same option appears multiple times.
+        :id: 57b4f8c5-08fe-46af-b7e3-e8271d72e41e
         """
         multihost.client[0].service_sssd('stop')
         dom_section = "domain/%s" % ds_instance_name
@@ -95,8 +104,9 @@ class TestConfigMerge(object):
     @pytest.mark.tier1
     def test_0004_formatsnippetfile(self, multihost):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: Verify the format of
-        snippet files
+        :title: IDM-SSSD-TC: Configuration merging: Verify the format of
+         snippet files
+        :id: 8496df1b-32ef-45cd-9d9f-34dcd18656ad
         """
         multihost.client[0].service_sssd('stop')
         dom_section = "domain/%s" % ds_instance_name
@@ -119,8 +129,9 @@ class TestConfigMerge(object):
     @pytest.mark.tier1
     def test_0005_ownershisnippetfile(self, multihost):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: Verify the ownership of
-        snippet files
+        :title: IDM-SSSD-TC: Configuration merging: Verify the ownership of
+         snippet files
+        :id: b89f0403-67ee-4f6b-8c17-bdc4f5213d4f
         """
         multihost.client[0].service_sssd('stop')
         gen = sssdTools(multihost.client[0])
@@ -167,8 +178,9 @@ class TestConfigMerge(object):
     @pytest.mark.tier1
     def test_0006_bz1372258(self, multihost):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: Add path to files when
-        pattern matching fails
+        :title: IDM-SSSD-TC: Configuration merging: Add path to files when
+         pattern matching fails
+        :id: f5620fe5-0576-41b3-acff-f9fceab13206
         """
         multihost.client[0].service_sssd('stop')
         section = "domain/%s" % ds_instance_name
@@ -189,8 +201,10 @@ class TestConfigMerge(object):
     @pytest.mark.tier1
     def test_0007_bz1466503(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: Verify scenario when no
-        sssd.conf and the snippets should be working
+        :title: IDM-SSSD-TC: Configuration merging: Verify scenario when no
+         sssd.conf and the snippets should be working
+        :id: 0148559d-19d0-4909-b7f2-9d8fc8165db4
+        :customerscenario: True
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -214,8 +228,9 @@ class TestConfigMerge(object):
     @pytest.mark.tier1
     def test_0008_bz1466503(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: Verify scenario when no
-        sssd.conf and wrong snippets should not be working
+        :title: IDM-SSSD-TC: Configuration merging: Verify scenario when no
+         sssd.conf and wrong snippets should not be working
+        :id: 4b4c340b-0b1d-419d-9347-66e9b068bfff
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -238,9 +253,10 @@ class TestConfigMerge(object):
     @pytest.mark.tier1
     def test_0009_bz1666307(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: sssctl config-check
-        giving the wrong error message when there are only snippet files
-        and no sssd. conf
+        :title: IDM-SSSD-TC: Configuration merging: sssctl config-check
+         giving the wrong error message when there are only snippet files
+         and no sssd. conf
+        :id: e7ca51e4-c41e-41ba-8335-bcc35ec43867
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -270,8 +286,10 @@ class TestConfigMerge(object):
     @pytest.mark.tier1
     def test_0010_bz1723273(self, multihost, backupsssdconf):
         """
-        @Title: IDM-SSSD-TC: Configuration merging: Verify error in snippet
-        file created under /etc/sssd/conf.d and /tmp/test/conf.d/
+        :title: IDM-SSSD-TC: Configuration merging: Verify error in snippet
+         file created under /etc/sssd/conf.d and /tmp/test/conf.d/
+        :id: 5ee4557b-952a-45b3-98f7-7fc98715c53b
+        :customerscenario: True
         """
         multihost.client[0].service_sssd('stop')
         cp_cmd = "mkdir -p /tmp/test/conf.d; cp /etc/sssd/sssd.conf /tmp/test/"

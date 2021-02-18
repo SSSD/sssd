@@ -1,4 +1,10 @@
-""" Automation for sssd failover  """
+""" Automation for sssd failover
+
+:requirement: IDM-SSSD-REQ : Failover
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 import pytest
 import time
 from sssd.testlib.common.utils import sssdTools
@@ -12,18 +18,19 @@ from constants import ds_instance_name
 @pytest.mark.failover
 class TestFailover(object):
     """ Bug 1283798 failover automation
-    @Setup:
-    1. Configure Directory servers on 2 Hosts (ldap1, ldap2)
-    with TLS
-    2. Configure sssd.conf on client with auth_provider: ldap
-    3. specify ldaps in ldap_uri pointing to 2 directory servers
-    example: ldap_uri: ldaps://ldap1, ldaps://ldap2
+    :setup:
+      1. Configure Directory servers on 2 Hosts (ldap1, ldap2)
+      with TLS
+      2. Configure sssd.conf on client with auth_provider: ldap
+      3. specify ldaps in ldap_uri pointing to 2 directory servers
+      example: ldap_uri: ldaps://ldap1, ldaps://ldap2
     """
     @pytest.mark.tier2
     def test_0001_getent(self, multihost):
         """
-        @Title: failover: Verify users can be queried from
-        second directory server when first directory server is down
+        :title: failover: Verify users can be queried from
+         second directory server when first directory server is down
+        :id: 0d145340-e147-4da7-acd0-f1c29891c397
         """
         # query ldap users when both ldaps servers are working
         user = 'foo0@%s' % ds_instance_name
@@ -54,8 +61,9 @@ class TestFailover(object):
     @pytest.mark.tier2
     def test_0002_login(self, multihost):
         """
-        @Title: failover: Verify users can login when the first
-        ldap server is down
+        :title: failover: Verify users can login when the first
+         ldap server is down
+        :id: 9c0e0448-3fc2-44c7-96f8-9b8b44fa5cba
         """
         user = 'foo2@%s' % ds_instance_name
         stop_ds1 = 'systemctl stop dirsrv@example'
@@ -79,8 +87,9 @@ class TestFailover(object):
     @pytest.mark.tier2
     def test_0003_stopsecondds(self, multihost):
         """
-        @Title: failover: Stop second ldap server and verify
-        users are able to login from first ldap server
+        :title: failover: Stop second ldap server and verify
+         users are able to login from first ldap server
+        :id: cf15aea7-a626-4ed2-a205-9180ddfe29b2
         """
         stop_ds2 = 'systemctl stop dirsrv@example'
         cmd = multihost.master[1].run_command(stop_ds2, raiseonerr=False)

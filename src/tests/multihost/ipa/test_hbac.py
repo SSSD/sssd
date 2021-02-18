@@ -1,4 +1,10 @@
-""" IPA hbac test cases """
+""" IPA hbac test cases
+
+:requirement: HBAC (ipa_provider)
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 import pytest
 import time
 import re
@@ -16,7 +22,10 @@ import pexpect
 class Testipahbac(object):
 
     def test_sssctl_sshd(self, multihost, hbac_sshd_rule):
-        """@Title: hbac: Verify using sssctl sshd service is allowed """
+        """
+        :title: hbac: Verify using sssctl sshd service is allowed
+        :id: 33a4288a-6c05-4472-a956-378736e030c8
+        """
         sssctl_cmd = 'sssctl user-checks -s sshd foobar1'
         test_pam = re.compile(r'%s' % 'pam_acct_mgmt: Success')
         cmd = multihost.client[0].run_command(sssctl_cmd)
@@ -28,7 +37,10 @@ class Testipahbac(object):
         assert STATUS == 'PASS'
 
     def test_hbac_changes(self, multihost, hbac_sshd_rule):
-        """@Title: hbac: verify hbac rule changes are applied """
+        """
+        :title: hbac: verify hbac rule changes are applied
+        :id: fcd4fc73-2425-46f8-8d66-95a49b5fb361
+        """
         update_rule = "ipa hbacrule-remove-user --users='foobar1' test1"
         multihost.master[0].run_command(update_rule)
         sssctl_cmd = 'sssctl user-checks -s sshd foobar1'
@@ -43,8 +55,9 @@ class Testipahbac(object):
 
     def test_hbac_refresh_time(self, multihost):
         """
-        @Title: hbac: Verify cached hbac rule is applied
-        for the refresh time period
+        :title: hbac: Verify cached hbac rule is applied
+         for the refresh time period
+        :id: c839fd33-65da-4252-82cf-5ba88ad02f55
         """
         ipa_server = ipaTools(multihost.master[0])
         ipa_client = ipaTools(multihost.client[0])
@@ -86,8 +99,9 @@ class Testipahbac(object):
 
     def test_multiple_hbac_rules(self, multihost):
         """
-        @Title: hbac: Verify HBAC Evaluation happens per service
-        when user is associated  with multiple hbac rules
+        :title: hbac: Verify HBAC Evaluation happens per service
+         when user is associated  with multiple hbac rules
+        :id: 6981b637-f4ea-449b-8916-60cc938c4d0f
         """
         ipa_server = ipaTools(multihost.master[0])
         client_host = multihost.client[0].sys_hostname
@@ -107,8 +121,9 @@ class Testipahbac(object):
 
     def test_nested_groups(self, multihost):
         """
-        @Title: hbac: Verify hbac evaluation works as expected
-        with nested group evaluation
+        :title: hbac: Verify hbac evaluation works as expected
+         with nested group evaluation
+        :id: fb2fd287-b217-487c-a59a-d827c426b0bb
         """
         ipa_server = ipaTools(multihost.master[0])
         client_host = multihost.client[0].sys_hostname
@@ -147,8 +162,11 @@ class Testipahbac(object):
         assert STATUS == 'PASS'
 
     def test_auto_private_group(self, multihost):
-        """@Title: hbac: Verify hbac rule associated with
-        User private Groups """
+        """
+        :title: hbac: Verify hbac rule associated with
+         User private Groups
+        :id: 99904ccd-bf2f-4c09-9636-92e036e19a0e
+        """
         ipa_server = ipaTools(multihost.master[0])
         sssd_client = sssdTools(multihost.client[0])
         domain_name = '%s/%s' % ('domain',

@@ -1,4 +1,10 @@
-""" Automation for RFE related to --add-samba-data to adcli """
+""" Automation for RFE related to --add-samba-data to adcli
+
+:casecomponent: sssd
+:requirement: Add support for passing --add-samba-data to adcli
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 from __future__ import print_function
 import subprocess
 import time
@@ -14,7 +20,8 @@ class Testsmbsecretrotation(object):
     @pytest.mark.tier2
     def test_0001_rotation(self, multihost):
         """
-        @Title: Verify machine passwd updates local smb secrets
+        :title: Verify machine passwd updates local smb secrets
+        :id: 3d08ea1c-6724-4bc9-ac62-b8be66486ee4
         """
         # Get current hash of /var/lib/samba/private/secrets.tdb
         hash_cmd = 'sha1hmac /var/lib/samba/private/secrets.tdb'

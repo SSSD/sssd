@@ -1,4 +1,10 @@
-""" Miscellaneous IPA Bug Automations """
+""" Miscellaneous IPA Bug Automations
+
+:requirement: IDM-SSSD-REQ: Testing SSSD in IPA Provider
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 import pytest
 import time
@@ -11,12 +17,14 @@ import re
 class Testipabz(object):
     """ IPA BZ Automations """
     def test_blank_kinit(self, multihost):
-        """@Title: verify sssd fails to start with
-        invalid default keytab file
-
-        BZ:1748292
-        systemctl status sssd says No such file or directory
-        about "default" when keytab exists but is empty file
+        """
+        :title: verify sssd fails to start with
+         invalid default keytab file
+        :id: 525cbe28-f835-4d2e-9583-d3f614b8486e
+        :requirement: IDM-SSSD-REQ : KRB5 Provider
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1748292
+        :description: systemctl status sssd says No such file or
+         directory about "default" when keytab exists but is empty file
         """
         tools = sssdTools(multihost.client[0])
         # stop sssd
@@ -49,15 +57,14 @@ class Testipabz(object):
 
     def test_sssdConfig_remove_Domains(self, multihost):
         """
-        @Title: Verify SSSDConfig.save_domain API removes
-        all autofs entries from sssd.conf
-
-        @Description:
-        SSSDConfig.save_domain(domain) does not always
-        remove all entries removed from domain
-
-        @Bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1796989
+        :title: Verify SSSDConfig.save_domain API removes
+         all autofs entries from sssd.conf
+        :id: 3efaf0af-58a7-4631-8555-da8a7bbcf351
+        :description:
+         SSSDConfig.save_domain(domain) does not always
+         remove all entries removed from domain
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1796989
         """
         tools = sssdTools(multihost.client[0])
         setup_automount = "ipa-client-automount --location default -U " \

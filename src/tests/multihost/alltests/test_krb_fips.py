@@ -1,4 +1,10 @@
-""" Basic fips sanity test cases for sssd """
+""" Basic fips sanity test cases for sssd
+
+:requirement: IDM-SSSD-REQ : KRB5 Provider
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 
 import time
 import re
@@ -22,9 +28,10 @@ class Testkrbfips(object):
     @pytest.mark.tier1
     def test_krb_ptr_hash_crash_1792331(self, multihost):
         """
-        @Title: sssd_be crashes when krb5_realm and krb5_server
-        is omitted and auth_provider is krb5
-        Bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1792331
+        :title: sssd_be crashes when krb5_realm and krb5_server
+         is omitted and auth_provider is krb5
+        :id: b1321b02-4a29-4285-8c85-36f925496463
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1792331
         """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
@@ -56,7 +63,8 @@ class Testkrbfips(object):
 
     def test_fips_login(self, multihost):
         """
-        @Title: Verify kerberos user can login successfully in fips mode.
+        :title: Verify kerberos user can login successfully in fips mode
+        :id: 0ec0efc9-85dd-4a66-9802-65f3b122b7da
         """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
@@ -73,10 +81,14 @@ class Testkrbfips(object):
     @pytest.mark.tier1_2
     def test_kcm_not_store_tgt(self, multihost, backupsssdconf):
         """
-        :Title: sssd-kcm does not store TGT with ssh
-        login using GSSAPI
-        @bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1722842
+        :title: sssd-kcm does not store TGT with ssh
+         login using GSSAPI
+        :id: 9a79474c-26c5-4aeb-9f26-f2ada0e9f453
+        :customerscenario: True
+        :requirement:
+         IDM-SSSD-REQ :: SSSD KCM as default Kerberos CCACHE provider
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1722842
         """
         client = sssdTools(multihost.client[0])
         domain_params = {'debug_level': '10',
@@ -104,10 +116,12 @@ class Testkrbfips(object):
 
     def test_child_logs_after_receiving_hup(self, multihost):
         """
-        :Title: sssd fails to release file descriptor on child
-        logs after receiving hup
-        @bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1544457
+        :title: sssd fails to release file descriptor on child
+         logs after receiving hup
+        :id: 3e28f453-fae8-4f52-82d0-757a5bdd0b06
+        :customerscenario: True
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1544457
         """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
@@ -151,9 +165,11 @@ class Testkrbfips(object):
     @pytest.mark.tier1
     def test_sssd_not_check_gss_spengo(self, multihost, backupsssdconf):
         """
-        :Title: krb5/fips: sssd does not properly check GSS-SPNEGO
-        @bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1868054
+        :title: krb5/fips: sssd does not properly check GSS-SPNEGO
+        :id: 8ba5427e-8abe-44b9-adaa-878d2418b189
+        :customerscenario: True
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1868054
         """
         client = sssdTools(multihost.client[0])
         domain_name = client.get_domain_section_name()
@@ -183,7 +199,8 @@ class Testkrbfips(object):
 
     def test_fips_as_req(self, multihost):
         """
-        @Title: krb5/fips: verify sssd accepts only elisted fips approved types
+        :title: krb5/fips: verify sssd accepts only elisted fips approved types
+        :id: c5ab16d5-8636-4f50-992b-aa0f05e1a9e5
         """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
@@ -222,7 +239,8 @@ class Testkrbfips(object):
 
     def test_fips_as_rep(self, multihost):
         """
-        @Title: krb5/fips: verify sssd accepts only elisted fips approved types
+        :title: krb5/fips: verify sssd accepts only elisted fips approved types
+        :id: f8452ecd-e13c-4485-83d3-83e25d7d544a
         """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
@@ -269,7 +287,8 @@ class Testkrbfips(object):
 
     def test_login_fips_weak_crypto(self, multihost):
         """
-        @Title: krb5/fips: verify login fails when weak crypto is presented.
+        :title: krb5/fips: verify login fails when weak crypto is presented
+        :id: cdd2ef0d-4921-40b3-b61e-0b271b2d5e00
         """
         ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
         ds_rootdn = 'cn=Directory Manager'
@@ -322,8 +341,9 @@ class Testkrbfips(object):
 
     def test_ldap_gssapi(self, multihost):
         """
-        @Title: krb5/fips: verify sssd is able to create gssapi connection
-        with fips approved etype.
+        :title: krb5/fips: verify sssd is able to create gssapi connection
+         with fips approved etype.
+        :id: 8e80ddc7-fe6a-4729-91b6-f1fbae0dad73
         """
         cmd = 'cat /etc/sssd/sssd.conf'
         multihost.client[0].run_command(cmd)
@@ -355,8 +375,9 @@ class Testkrbfips(object):
 
     def test_tgs_nonfips(self, multihost):
         """
-        @Title: krb5/fips: Verify sssd fails to create gssapi connection
-        with weak etypes
+        :title: krb5/fips: Verify sssd fails to create gssapi connection
+         with weak etypes
+        :id: f9623bc8-6305-45f1-ab6c-b9c2d18cdb8e
         """
         tools = sssdTools(multihost.client[0])
         host = multihost.client[0].sys_hostname

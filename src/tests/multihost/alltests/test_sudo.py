@@ -1,3 +1,10 @@
+"""Automation tests for sudo
+
+:requirement: sudo
+:casecomponent: sssd
+:subsystemteam: sst_identity_management
+:upstream: yes
+"""
 import time
 import re
 import pytest
@@ -16,7 +23,8 @@ class TestSudo(object):
     @pytest.mark.tier1_2
     def test_bz1294670(self, multihost, backupsssdconf, localusers):
         """
-        @Title: sudo: Local users with local sudo rules causes LDAP queries
+        :title: sudo: Local users with local sudo rules causes LDAP queries
+        :id: e8c5c396-e5e5-4eff-84f8-feff01defda1
         """
         # enable sudo with authselect
         authselect_cmd = 'authselect select sssd with-sudo'
@@ -72,8 +80,9 @@ class TestSudo(object):
     def test_timed_sudoers_entry(self,
                                  multihost, backupsssdconf, timed_sudoers):
         """
-        @Title: sudo: sssd accepts timed entries without minutes and or
-        seconds to attribute
+        :title: sudo: sssd accepts timed entries without minutes and or
+         seconds to attribute
+        :id: 5103a796-6c7f-4af0-b7b8-64c7338f0934
         """
         # pylint: disable=unused-argument
         tools = sssdTools(multihost.client[0])
