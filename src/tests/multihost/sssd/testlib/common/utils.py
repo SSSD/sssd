@@ -88,6 +88,23 @@ class sssdTools(object):
         self.multihost.package_mgmt(pkgs, action='install')
         self.multihost.package_mgmt(sssd_pkgs, action='install')
 
+    def service_ctrl(self, action, target_service):
+        """ Start, stop, restart, reload service with systemctl
+
+            :param str action: start/ stop/ restart/ reload
+            :param str target_service: target service/daemon
+            :return: str Return code of the systemctl command
+            :Exception Raises exception
+        """
+        cmd = self.run_command(['systemctl', action, target_service],
+                               raiseonerr=False)
+        if cmd.returncode == 0:
+            time.sleep(10)
+            return cmd.returncode
+        else:
+            raise SSSDException('Unable to %s %s' % (action,
+                                                     target_service), 1)
+
     def update_resolv_conf(self, ip_addr):
         """ Update /etc/resolv.conf with Windows AD IP address
 
