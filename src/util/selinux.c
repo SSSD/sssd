@@ -22,9 +22,11 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifdef HAVE_SELINUX
 #include <selinux/selinux.h>
+#include <selinux/label.h>
 #endif
 
 #include "tools/tools_util.h"
@@ -43,25 +45,61 @@
  */
 int selinux_file_context(const char *dst_name)
 {
+    struct selabel_handle *handle = NULL;
     char *scontext = NULL;
+    char *pathname = NULL;
+    int ret;
 
-    if (is_selinux_enabled() == 1) {
-        /* Get the default security context for this file */
-        if (matchpathcon(dst_name, 0, &scontext) < 0) {
-            if (security_getenforce () != 0) {
-                return 1;
-            }
-        }
-        /* Set the security context for the next created file */
-        if (setfscreatecon(scontext) < 0) {
-            if (security_getenforce() != 0) {
-                return 1;
-            }
-        }
-        freecon(scontext);
+    if (is_selinux_enabled() != 1) {
+        return EOK;
     }
 
-    return 0;
+    pathname = realpath(dst_name, NULL);
+    if (pathname == NULL) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "realpath of %s failed [%d]: %s\n",
+              dst_name, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Get the default security context for this file */
+    handle = selabel_open(SELABEL_CTX_FILE, NULL, 0);
+    if (handle == NULL) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create selabel context "
+                "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = selabel_lookup(handle, &scontext, pathname, 0);
+    if (ret < 0 && errno == ENOENT) {
+        scontext = NULL;
+    } else if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to lookup selinux context "
+                "[%d]: %s", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Set the security context for the next created file */
+    if (setfscreatecon(scontext) < 0) {
+        if (security_getenforce() != 0) {
+            ret = EFAULT;
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    free(pathname);
+    freecon(scontext);
+
+    if (handle != NULL) {
+        selabel_close(handle);
+    }
+
+    return ret;
 }
 
 int reset_selinux_file_context(void)
