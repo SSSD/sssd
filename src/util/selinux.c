@@ -43,7 +43,7 @@
  */
 int selinux_file_context(const char *dst_name)
 {
-    security_context_t scontext = NULL;
+    char *scontext = NULL;
 
     if (is_selinux_enabled() == 1) {
         /* Get the default security context for this file */
