@@ -27,7 +27,7 @@
 #include <selinux/context.h>
 #define SELINUX_CTX context_t
 #include <selinux/selinux.h>
-#define SEC_CTX security_context_t
+#define SEC_CTX char *
 
 #define SELINUX_context_new context_new
 #define SELINUX_context_free context_free
