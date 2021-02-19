@@ -1001,10 +1001,11 @@ int activate_unix_sockets(struct resp_ctx *rctx,
                           connection_setup_t conn_setup)
 {
     int ret;
+
+#ifdef HAVE_SYSTEMD
     struct sockaddr_un sockaddr;
     socklen_t sockaddr_len = sizeof(sockaddr);
 
-#ifdef HAVE_SYSTEMD
     if (rctx->lfd == -1 && rctx->priv_lfd == -1) {
         int numfds = (rctx->sock_name ? 1 : 0)
                      + (rctx->priv_sock_name ? 1 : 0);
