@@ -52,3 +52,39 @@ class TestKcm(object):
                                                    " /var/log/sssd/"
                                                    "sssd_kcm.log")
         assert 'Terminated client' in grep_cmd.stdout_text
+
+    @pytest.mark.tier1_2
+    def test_refresh_contain_timestamp(self,
+                                       multihost,
+                                       backupsssdconf):
+        """
+        :title: kcm: First smart refresh query contains
+         modifyTimestamp even if the modifyTimestamp is 0
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1926454
+        :customerscenario: true
+        :id: 09f654c4-759d-11eb-bfff-002b677efe14
+        :steps:
+          1. Configure SSSD with sudo
+          2. Leave ou=sudoers empty - do not define any rules
+          3. See that smart refresh does not contain
+          modifyTimestamp in the filter
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
+        ldap_params = {'domains': 'example1'}
+        tools.sssd_conf('sssd', ldap_params)
+        ldap_params = {'sudo_provider': 'ldap',
+                       'ldap_sudo_smart_refresh_interval': '60'}
+        tools.sssd_conf('domain/%s' % (ds_instance_name), ldap_params)
+        multihost.client[0].service_sssd('restart')
+        multihost.client[0].run_command("> /var/log/sssd/sssd_example1.log")
+        time.sleep(65)
+        log_location = "/var/log/sssd/sssd_example1.log"
+        grep_cmd = multihost.client[0].run_command(f"grep "
+                                                   f"'calling "
+                                                   f"ldap_search_ext with' "
+                                                   f"{log_location}")
+        assert 'modifyTimestamp>=' not in grep_cmd.stdout_text
