@@ -999,6 +999,11 @@ static errno_t nss_cmd_getpwuid_ex(struct cli_ctx *cli_ctx)
 static errno_t nss_cmd_setpwent(struct cli_ctx *cli_ctx)
 {
     struct nss_ctx *nss_ctx;
+    struct nss_state_ctx *state_ctx;
+
+    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    state_ctx->pwent.domain = 0;
+    state_ctx->pwent.result = 0;
 
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1055,6 +1060,11 @@ static errno_t nss_cmd_getgrgid_ex(struct cli_ctx *cli_ctx)
 static errno_t nss_cmd_setgrent(struct cli_ctx *cli_ctx)
 {
     struct nss_ctx *nss_ctx;
+    struct nss_state_ctx *state_ctx;
+
+    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    state_ctx->grent.domain = 0;
+    state_ctx->grent.result = 0;
 
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1097,6 +1107,12 @@ static errno_t nss_cmd_initgroups_ex(struct cli_ctx *cli_ctx)
 
 static errno_t nss_cmd_setnetgrent(struct cli_ctx *cli_ctx)
 {
+    struct nss_state_ctx *state_ctx;
+
+    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    state_ctx->netgrent.domain = 0;
+    state_ctx->netgrent.result = 0;
+
     return sss_nss_setnetgrent(cli_ctx, CACHE_REQ_NETGROUP_BY_NAME,
                                nss_protocol_fill_setnetgrent);
 }
@@ -1150,6 +1166,11 @@ static errno_t nss_cmd_getservbyport(struct cli_ctx *cli_ctx)
 static errno_t nss_cmd_setservent(struct cli_ctx *cli_ctx)
 {
     struct nss_ctx *nss_ctx;
+    struct nss_state_ctx *state_ctx;
+
+    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    state_ctx->svcent.domain = 0;
+    state_ctx->svcent.result = 0;
 
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1291,6 +1312,11 @@ static errno_t nss_cmd_gethostbyaddr(struct cli_ctx *cli_ctx)
 static errno_t nss_cmd_sethostent(struct cli_ctx *cli_ctx)
 {
     struct nss_ctx *nss_ctx;
+    struct nss_state_ctx *state_ctx;
+
+    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    state_ctx->hostent.domain = 0;
+    state_ctx->hostent.result = 0;
 
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1335,6 +1361,11 @@ static errno_t nss_cmd_getnetbyaddr(struct cli_ctx *cli_ctx)
 static errno_t nss_cmd_setnetent(struct cli_ctx *cli_ctx)
 {
     struct nss_ctx *nss_ctx;
+    struct nss_state_ctx *state_ctx;
+
+    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    state_ctx->netent.domain = 0;
+    state_ctx->netent.result = 0;
 
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
