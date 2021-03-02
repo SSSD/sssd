@@ -272,7 +272,7 @@ void sss_vdebug_fn(const char *file,
                    va_list ap)
 {
     struct timeval tv;
-    struct tm *tm;
+    struct tm tm;
 
 #ifdef WITH_JOURNALD
     errno_t ret;
@@ -300,10 +300,10 @@ void sss_vdebug_fn(const char *file,
 
     if (debug_timestamps) {
         gettimeofday(&tv, NULL);
-        tm = localtime(&tv.tv_sec);
+        localtime_r(&tv.tv_sec, &tm);
         debug_printf("(%d-%02d-%02d %2d:%02d:%02d",
-                     tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-                     tm->tm_hour, tm->tm_min, tm->tm_sec);
+                     tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                     tm.tm_hour, tm.tm_min, tm.tm_sec);
         if (debug_microseconds) {
             debug_printf(":%.6ld", tv.tv_usec);
         }
