@@ -271,6 +271,8 @@ void sss_vdebug_fn(const char *file,
                    const char *format,
                    va_list ap)
 {
+    static time_t last_time;
+    static char last_time_str[128];
     struct timeval tv;
     struct tm tm;
     time_t t;
@@ -306,14 +308,19 @@ void sss_vdebug_fn(const char *file,
         } else {
             t = time(NULL);
         }
-        localtime_r(&t, &tm);
-        debug_printf("(%d-%02d-%02d %2d:%02d:%02d",
+        if (t != last_time) {
+            last_time = t;
+            localtime_r(&t, &tm);
+            snprintf(last_time_str, sizeof(last_time_str),
+                     "(%d-%02d-%02d %2d:%02d:%02d",
                      tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
                      tm.tm_hour, tm.tm_min, tm.tm_sec);
-        if (debug_microseconds) {
-            debug_printf(":%.6ld", tv.tv_usec);
         }
-        debug_printf("): ");
+        if (debug_microseconds) {
+            debug_printf("%s:%.6ld): ", last_time_str, tv.tv_usec);
+        } else {
+            debug_printf("%s): ", last_time_str);
+        }
     }
 
     debug_printf("[%s] [%s] (%#.4x): ", debug_prg_name, function, level);
