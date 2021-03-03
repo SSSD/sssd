@@ -237,6 +237,8 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
     int ret;
     int lret;
     int optret;
+    int ticks_before_install;
+    int ticks_after_install;
 
     ret = sssd_async_socket_init_recv(subreq, &state->sd);
     talloc_zfree(subreq);
@@ -279,7 +281,9 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
     }
 
     if (ldap_is_ldaps_url(state->uri)) {
+        ticks_before_install = get_watchdog_ticks();
         lret = ldap_install_tls(state->ldap);
+        ticks_after_install = get_watchdog_ticks();
         if (lret != LDAP_SUCCESS) {
             if (lret == LDAP_LOCAL_ERROR) {
                 DEBUG(SSSDBG_FUNC_DATA, "TLS/SSL already in place.\n");
@@ -299,6 +303,14 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
                           sss_ldap_err2string(lret));
                     sss_log(SSS_LOG_ERR, "Could not start TLS encryption. "
                                          "Check for certificate issues.");
+                }
+
+                if (ticks_after_install > ticks_before_install) {
+                    ret = ERR_TLS_HANDSHAKE_INTERRUPTED;
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Assuming %s\n",
+                          sss_ldap_err2string(ret));
+                    goto fail;
                 }
 
                 ret = EIO;
