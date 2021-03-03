@@ -143,6 +143,9 @@ enum sssd_errors {
     ERR_GET_ACCT_DOM_CACHED,
     ERR_ID_OUTSIDE_RANGE,
     ERR_GID_DUPLICATED,
+
+    ERR_TLS_HANDSHAKE_INTERRUPTED,
+
     ERR_LAST            /* ALWAYS LAST */
 };
 
