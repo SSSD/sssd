@@ -144,6 +144,8 @@ struct err_string error_to_str[] = {
     { "Error while parsing configuration file" }, /* ERR_INI_PARSE_FAILED */
     { "Failed to add configuration snippets" }, /* ERR_INI_ADD_SNIPPETS_FAILED */
 
+    { "TLS handshake was interrupted"}, /* ERR_TLS_HANDSHAKE_INTERRUPTED */
+
     { "ERR_LAST" } /* ERR_LAST */
 };
 

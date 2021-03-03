@@ -30,6 +30,8 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 
+#define MAX_RETRY_ATTEMPTS 1
+
 /* ==Connect-to-LDAP-Server=============================================== */
 
 struct sdap_rebind_proc_params {
@@ -1448,6 +1450,8 @@ struct sdap_cli_connect_state {
     enum connect_tls force_tls;
     bool do_auth;
     bool use_tls;
+
+    int retry_attempts;
 };
 
 static int sdap_cli_resolve_next(struct tevent_req *req);
@@ -1600,16 +1604,37 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
     talloc_zfree(state->sh);
     ret = sdap_connect_recv(subreq, state, &state->sh);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret == ERR_TLS_HANDSHAKE_INTERRUPTED &&
+        state->retry_attempts < MAX_RETRY_ATTEMPTS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "TLS handshake was interruped, provider will retry\n");
+        state->retry_attempts++;
+        subreq = sdap_connect_send(state, state->ev, state->opts,
+                                   state->service->uri,
+                                   state->service->sockaddr,
+                                   state->use_tls);
+
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        tevent_req_set_callback(subreq, sdap_cli_connect_done, req);
+        return;
+    } else if (ret != EOK) {
+        state->retry_attempts = 0;
         /* retry another server */
         be_fo_set_port_status(state->be, state->service->name,
                               state->srv, PORT_NOT_WORKING);
+
         ret = sdap_cli_resolve_next(req);
         if (ret != EOK) {
             tevent_req_error(req, ret);
         }
+
         return;
     }
+    state->retry_attempts = 0;
 
     if (state->use_rootdse) {
         /* fetch the rootDSE this time */

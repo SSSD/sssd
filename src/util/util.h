@@ -748,6 +748,7 @@ int sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl);
 /* from util_watchdog.c */
 int setup_watchdog(struct tevent_context *ev, int interval);
 void teardown_watchdog(void);
+int get_watchdog_ticks(void);
 
 /* from files.c */
 int sss_remove_tree(const char *root);

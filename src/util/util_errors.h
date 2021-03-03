@@ -165,6 +165,8 @@ enum sssd_errors {
     ERR_INI_PARSE_FAILED,
     ERR_INI_ADD_SNIPPETS_FAILED,
 
+    ERR_TLS_HANDSHAKE_INTERRUPTED,
+
     ERR_LAST            /* ALWAYS LAST */
 };
 
