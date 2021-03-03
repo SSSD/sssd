@@ -1529,4 +1529,7 @@ errno_t sysdb_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx,
 /* define old name for backward compatibility */
 #define sysdb_error_to_errno(ldberr) sss_ldb_error_to_errno(ldberr)
 
+void ldb_debug_messages(void *context, enum ldb_debug_level level,
+                        const char *fmt, va_list ap);
+
 #endif /* __SYS_DB_H__ */

@@ -2113,3 +2113,29 @@ done:
     talloc_free(tmp_ctx);
     return differs;
 }
+
+void ldb_debug_messages(void *context, enum ldb_debug_level level,
+                        const char *fmt, va_list ap)
+{
+    int loglevel = SSSDBG_UNRESOLVED;
+
+    switch(level) {
+    case LDB_DEBUG_FATAL:
+        loglevel = SSSDBG_FATAL_FAILURE;
+        break;
+    case LDB_DEBUG_ERROR:
+        loglevel = SSSDBG_CRIT_FAILURE;
+        break;
+    case LDB_DEBUG_WARNING:
+        loglevel = SSSDBG_TRACE_FUNC;
+        break;
+    case LDB_DEBUG_TRACE:
+        loglevel = SSSDBG_TRACE_LDB;
+        break;
+    }
+
+    if (DEBUG_IS_SET(loglevel)) {
+        sss_vdebug_fn(__FILE__, __LINE__, "ldb", loglevel, APPEND_LINE_FEED,
+                      fmt, ap);
+    }
+}
