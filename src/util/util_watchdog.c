@@ -259,3 +259,8 @@ void teardown_watchdog(void)
     /* and kill the watchdog event */
     talloc_free(watchdog_ctx.te);
 }
+
+int get_watchdog_ticks(void)
+{
+    return __sync_add_and_fetch(&watchdog_ctx.ticks, 0);
+}
