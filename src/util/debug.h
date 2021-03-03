@@ -23,7 +23,8 @@
 
 #include "config.h"
 
-#include <stdarg.h>
+#include <stdio.h>
+#include <stdbool.h>
 
 #ifdef HAVE_FUNCTION_ATTRIBUTE_FORMAT
 #define SSS_ATTRIBUTE_PRINTF(a1, a2) __attribute__((format (printf, a1, a2)))
@@ -68,6 +69,11 @@ void sss_debug_fn(const char *file,
 int debug_convert_old_level(int old_level);
 errno_t set_debug_file_from_fd(const int fd);
 int get_fd_from_debug_file(void);
+int chown_debug_file(const char *filename, uid_t uid, gid_t gid);
+int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec);
+int open_debug_file(void);
+int rotate_debug_files(void);
+void talloc_log_fn(const char *msg);
 
 #define SSS_DOM_ENV           "_SSS_DOM"
 
