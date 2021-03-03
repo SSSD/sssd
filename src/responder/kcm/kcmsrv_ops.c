@@ -2263,6 +2263,125 @@ static errno_t kcm_op_set_kdc_offset_recv(struct tevent_req *req,
     KCM_OP_RET_FROM_TYPE(req, struct kcm_op_set_kdc_offset_state, _op_ret);
 }
 
+static void kcm_op_get_cred_list_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+kcm_op_get_cred_list_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct kcm_op_ctx *op_ctx)
+{
+    struct kcm_op_common_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    const char *name;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct kcm_op_common_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->op_ctx = op_ctx;
+
+    ret = sss_iobuf_read_stringz(op_ctx->input, &name);
+    if (ret != EOK) {
+        goto immediate;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, "Returning credentials for %s\n", name);
+
+    subreq = kcm_ccdb_getbyname_send(state, ev,
+                                     op_ctx->kcm_data->db,
+                                     op_ctx->client,
+                                     name);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+
+    tevent_req_set_callback(subreq, kcm_op_get_cred_list_done, req);
+
+    return req;
+
+immediate:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void kcm_op_get_cred_list_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct kcm_op_common_state *state;
+    struct kcm_ccache *cc;
+    struct kcm_cred *crd;
+    uint32_t num_creds;
+    struct sss_iobuf *crd_blob;
+    uint8_t *crd_data;
+    uint32_t crd_size;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct kcm_op_common_state);
+
+    ret = kcm_ccdb_getbyname_recv(subreq, state, &cc);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get ccache by name [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (cc == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "No ccache by that name\n");
+        state->op_ret = ERR_NO_CREDS;
+        ret = EOK;
+        goto done;
+    }
+
+    num_creds = 0;
+    for (crd = kcm_cc_get_cred(cc); crd != NULL; crd = kcm_cc_next_cred(crd)) {
+        num_creds++;
+    }
+
+    ret = sss_iobuf_write_uint32(state->op_ctx->reply, htobe32(num_creds));
+    if (ret != EOK) {
+        goto done;
+    }
+
+    for (crd = kcm_cc_get_cred(cc); crd != NULL; crd = kcm_cc_next_cred(crd)) {
+        crd_blob = kcm_cred_get_creds(crd);
+        if (crd_blob == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Credentials lack the creds blob\n");
+            ret = ERR_NO_CREDS;
+            goto done;
+        }
+
+        crd_data = sss_iobuf_get_data(crd_blob);
+        crd_size = sss_iobuf_get_size(crd_blob);
+
+        ret = sss_iobuf_write_uint32(state->op_ctx->reply, htobe32(crd_size));
+        if (ret != EOK) {
+            goto done;
+        }
+
+        ret = sss_iobuf_write_len(state->op_ctx->reply, crd_data, crd_size);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    state->op_ret = EOK;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
 static struct kcm_op kcm_optable[] = {
     { "NOOP",                NULL, NULL },
     { "GET_NAME",            NULL, NULL },
@@ -2297,9 +2416,11 @@ static struct kcm_op kcm_optable[] = {
     { NULL, NULL, NULL }
 };
 
-/* MIT EXTENSIONS. */
-#define KCM_MIT_OFFSET 13000
+/* MIT EXTENSIONS, see private header src/include/kcm.h in krb5 sources */
+#define KCM_MIT_OFFSET 13001
 static struct kcm_op kcm_mit_optable[] = {
+    { "GET_CRED_LIST", kcm_op_get_cred_list_send, NULL },
+
     { NULL, NULL, NULL }
 };
 
