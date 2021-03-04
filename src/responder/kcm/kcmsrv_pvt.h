@@ -28,6 +28,13 @@
 #include <krb5/krb5.h>
 #include "responder/common/responder.h"
 
+#define KCM_PROTOCOL_VERSION_MAJOR 2
+#define KCM_PROTOCOL_VERSION_MINOR 0
+
+/* This should ideally be in RUNSTATEDIR, but Heimdal uses a hardcoded
+ * /var/run, and we need to use the same default path. */
+#define DEFAULT_KCM_SOCKET_PATH "/var/run/.heim_org.h5l.kcm-socket"
+
 /*
  * KCM IO structure
  *

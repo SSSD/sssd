@@ -28,7 +28,6 @@
 #include "util/sss_krb5.h"
 #include "util/sss_ptr_hash.h"
 #include "util/util_creds.h"
-#include "responder/kcm/kcm.h"
 #include "responder/kcm/kcmsrv_pvt.h"
 #include "responder/kcm/kcmsrv_ops.h"
 #include "responder/kcm/kcmsrv_ccache.h"
@@ -2305,14 +2304,15 @@ struct kcm_op *kcm_get_opt(uint16_t opcode)
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "The client requested operation %"PRIu16"\n", opcode);
 
-    if (opcode >= KCM_OP_SENTINEL) {
+    if (opcode >= sizeof(kcm_optable) / sizeof(struct kcm_op)) {
         return NULL;
     }
 
-    op = &kcm_optable[opcode];
+    op = &table[opcode];
     if (op->fn_recv == NULL) {
         op->fn_recv = kcm_op_common_recv;
     }
+
     return op;
 }
 

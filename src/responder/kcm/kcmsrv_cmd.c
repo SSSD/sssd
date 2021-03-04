@@ -26,7 +26,6 @@
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/kcm/kcmsrv_pvt.h"
-#include "responder/kcm/kcm.h"
 #include "responder/kcm/kcmsrv_ops.h"
 
 /* The first four bytes of a message is always the size */

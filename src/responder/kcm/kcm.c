@@ -23,7 +23,6 @@
 
 #include <popt.h>
 
-#include "responder/kcm/kcm.h"
 #include "responder/kcm/kcmsrv_ccache.h"
 #include "responder/kcm/kcmsrv_pvt.h"
 #include "responder/common/responder.h"
