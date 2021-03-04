@@ -96,8 +96,8 @@ class sssdTools(object):
             :return: str Return code of the systemctl command
             :Exception Raises exception
         """
-        cmd = self.run_command(['systemctl', action, target_service],
-                               raiseonerr=False)
+        cmd = self.multihost.run_command(['systemctl', action,
+                                          target_service], raiseonerr=False)
         if cmd.returncode == 0:
             time.sleep(10)
             return cmd.returncode
