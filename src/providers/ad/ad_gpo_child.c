@@ -737,12 +737,7 @@ main(int argc, const char *argv[])
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0,
-         _("Debug level"), NULL},
-        {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0,
-         _("Add debug timestamps"), NULL},
-        {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0,
-         _("Show timestamps with microseconds"), NULL},
+        SSSD_DEBUG_OPTS
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         SSSD_LOGGER_OPTS

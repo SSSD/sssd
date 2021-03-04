@@ -244,7 +244,7 @@ int main(int argc, const char *argv[])
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug-level", 'd', POPT_ARG_INT, &debug_level, 0, "Set debug level", NULL },
+        SSSD_DEBUG_OPTS
         POPT_TABLEEND
     };
 
