@@ -47,8 +47,6 @@ extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;
 extern int debug_microseconds;
-extern int debug_to_file;
-extern int debug_to_stderr;
 extern enum sss_logger_t sss_logger;
 extern const char *debug_log_file;
 
@@ -114,10 +112,6 @@ void talloc_log_fn(const char *msg);
 #define SSSD_DEBUG_OPTS \
         {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0, \
          _("Debug level"), NULL}, \
-        {"debug-to-files", 'f', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_file, 0, \
-         _("Send the debug output to files instead of stderr"), NULL }, \
-        {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_stderr, 0, \
-         _("Send the debug output to stderr directly."), NULL }, \
         {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0, \
          _("Add debug timestamps"), NULL}, \
         {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0, \
@@ -165,7 +159,7 @@ void talloc_log_fn(const char *msg);
  */
 #define DEBUG_CLI_INIT(dbg_lvl) do { \
     DEBUG_INIT(dbg_lvl);             \
-    debug_to_stderr = 1;             \
+    sss_logger = STDERR_LOGGER;      \
 } while (0)
 
 #define PRINT(fmt, ...) fprintf(stdout, gettext(fmt), ##__VA_ARGS__)

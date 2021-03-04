@@ -644,7 +644,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     }
 
     /*
-     * program name, debug_level, debug_to_file, debug_timestamps,
+     * program name, debug_level, debug_timestamps,
      * debug_microseconds and NULL
      */
     argv  = talloc_array(mem_ctx, char *, argc);

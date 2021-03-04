@@ -2363,7 +2363,7 @@ int main(int argc, const char *argv[])
     int opt_version = 0;
     int opt_netlinkoff = 0;
     char *opt_config_file = NULL;
-    char *opt_logger = NULL;
+    const char *opt_logger = NULL;
     char *config_file = NULL;
     char *opt_genconf_section = NULL;
     int flags = 0;
@@ -2466,11 +2466,11 @@ int main(int argc, const char *argv[])
     if (opt_daemon) flags |= FLAGS_DAEMON;
     if (opt_interactive) {
         flags |= FLAGS_INTERACTIVE;
-        debug_to_stderr = 1;
+        opt_logger = sss_logger_str[STDERR_LOGGER];
     }
     if (opt_genconf) {
         flags |= FLAGS_GEN_CONF;
-        debug_to_stderr = 1;
+        opt_logger = sss_logger_str[STDERR_LOGGER];
     }
 
     sss_set_logger(opt_logger);
