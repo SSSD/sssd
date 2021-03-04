@@ -770,7 +770,6 @@ dist_noinst_HEADERS = \
     src/responder/secrets/secsrv_private.h \
     src/responder/secrets/secsrv_local.h \
     src/responder/secrets/secsrv_proxy.h \
-    src/responder/kcm/kcm.h \
     src/responder/kcm/kcmsrv_pvt.h \
     src/responder/kcm/kcmsrv_ccache.h \
     src/responder/kcm/kcmsrv_ccache_pvt.h \
