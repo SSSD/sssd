@@ -207,7 +207,7 @@ def format_basic_conf(ldap_conn, schema):
         # it need to be executed with valgrind because there is a problem
         # problem with "ifp" + client registration in monitor
         # There is not such problem in 1st test. Just in following tests.
-        command = {ifp_command} --uid 0 --gid 0 --debug-to-files
+        command = {ifp_command} --uid 0 --gid 0 --logger=files
         user_attributes = +extraName
 
         [domain/LDAP]
@@ -265,7 +265,7 @@ def create_conf_fixture(request, contents):
 
 def create_sssd_process():
     """Start the SSSD process"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
 
