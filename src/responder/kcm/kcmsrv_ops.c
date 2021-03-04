@@ -2297,14 +2297,30 @@ static struct kcm_op kcm_optable[] = {
     { NULL, NULL, NULL }
 };
 
+/* MIT EXTENSIONS. */
+#define KCM_MIT_OFFSET 13000
+static struct kcm_op kcm_mit_optable[] = {
+    { NULL, NULL, NULL }
+};
+
 struct kcm_op *kcm_get_opt(uint16_t opcode)
 {
+    struct kcm_op *table;
     struct kcm_op *op;
+    size_t len;
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "The client requested operation %"PRIu16"\n", opcode);
 
-    if (opcode >= sizeof(kcm_optable) / sizeof(struct kcm_op)) {
+    table = kcm_optable;
+    len = sizeof(kcm_optable) / sizeof(struct kcm_op);
+    if (opcode >= KCM_MIT_OFFSET) {
+        opcode -= KCM_MIT_OFFSET;
+        table = kcm_mit_optable;
+        len = sizeof(kcm_mit_optable) / sizeof(struct kcm_op);
+    }
+
+    if (opcode >= len) {
         return NULL;
     }
 
