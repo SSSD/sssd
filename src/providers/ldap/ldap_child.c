@@ -642,8 +642,6 @@ int main(int argc, const char *argv[])
          _("Show timestamps with microseconds"), NULL},
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
-        {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_stderr, 0, \
-         _("Send the debug output to stderr directly."), NULL }, \
         SSSD_LOGGER_OPTS
         POPT_TABLEEND
     };

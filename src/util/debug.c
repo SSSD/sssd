@@ -41,9 +41,7 @@ const char *debug_prg_name = "sssd";
 int debug_level = SSSDBG_UNRESOLVED;
 int debug_timestamps = SSSDBG_TIMESTAMP_UNRESOLVED;
 int debug_microseconds = SSSDBG_MICROSECONDS_UNRESOLVED;
-int debug_to_file = 0;
-int debug_to_stderr = 0;
-enum sss_logger_t sss_logger;
+enum sss_logger_t sss_logger = STDERR_LOGGER;
 const char *debug_log_file = "sssd";
 static FILE *debug_file;
 
@@ -56,47 +54,31 @@ const char *sss_logger_str[] = {
         NULL,
 };
 
-#ifdef WITH_JOURNALD
-#define JOURNALD_STR " journald,"
-#else
-#define JOURNALD_STR ""
-#endif
-
 void sss_set_logger(const char *logger)
 {
-    /* use old flags */
     if (logger == NULL) {
-        if (debug_to_stderr != 0) {
-            sss_logger = STDERR_LOGGER;
-        }
-        /* It is never described what should be used in case of
-         * debug_to_stderr == 1 && debug_to_file == 1. Because neither
-         * of binaries provide both command line arguments.
-         * Let files have higher priority.
-         */
-        if (debug_to_file != 0) {
-            sss_logger = FILES_LOGGER;
-        }
+        sss_logger = STDERR_LOGGER;
 #ifdef WITH_JOURNALD
-        if (debug_to_file == 0 && debug_to_stderr == 0) {
-            sss_logger = JOURNALD_LOGGER;
-        }
+        sss_logger = JOURNALD_LOGGER;
+#endif
+    } else if (strcmp(logger, "stderr") == 0) {
+        sss_logger = STDERR_LOGGER;
+    } else if (strcmp(logger, "files") == 0) {
+        sss_logger = FILES_LOGGER;
+#ifdef WITH_JOURNALD
+    } else if (strcmp(logger, "journald") == 0) {
+        sss_logger = JOURNALD_LOGGER;
 #endif
     } else {
-        if (strcmp(logger, "stderr") == 0) {
-            sss_logger = STDERR_LOGGER;
-        } else if (strcmp(logger, "files") == 0) {
-            sss_logger = FILES_LOGGER;
+        /* unexpected value */
+        fprintf(stderr, "Unexpected logger: %s\nExpected: ", logger);
+        fprintf(stderr, "%s", sss_logger_str[STDERR_LOGGER]);
+        fprintf(stderr, "|%s", sss_logger_str[FILES_LOGGER]);
 #ifdef WITH_JOURNALD
-        } else if (strcmp(logger, "journald") == 0) {
-            sss_logger = JOURNALD_LOGGER;
+        fprintf(stderr, "|%s", sss_logger_str[JOURNALD_LOGGER]);
 #endif
-        } else {
-            /* unexpected value */
-            fprintf(stderr, "Unexpected logger: %s\nExpected:%s stderr, "
-                            "files\n", logger, JOURNALD_STR);
-            sss_logger = STDERR_LOGGER;
-        }
+        fprintf(stderr, "\n");
+        sss_logger = STDERR_LOGGER;
     }
 }
 

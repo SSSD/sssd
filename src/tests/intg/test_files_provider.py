@@ -96,7 +96,7 @@ def start_sssd():
     """Start sssd and add teardown for stopping it and removing state"""
     os.environ["SSS_FILES_PASSWD"] = os.environ["NSS_WRAPPER_PASSWD"]
     os.environ["SSS_FILES_GROUP"] = os.environ["NSS_WRAPPER_GROUP"]
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
         raise Exception("sssd start failed")
 
 
