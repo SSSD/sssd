@@ -457,7 +457,7 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
 
     status = OCSP_basic_verify(ocsp_basic, NULL, p11_ctx->x509_store, 0);
     if (status != 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "OCSP_base_verify failed to verify OCSP "
+        DEBUG(SSSDBG_CRIT_FAILURE, "OCSP_basic_verify() failed to verify OCSP "
                                    "response.\n");
         ret = EIO;
         goto done;
