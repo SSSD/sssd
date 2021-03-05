@@ -826,6 +826,13 @@ static errno_t sss_nss_setnetgrent(struct cli_ctx *cli_ctx,
         goto done;
     }
 
+    /* enum_limit is not used for setnetgrent, all results will be returned at
+     * once to allow innetgr() to be implemented in the thread-safe way. */
+    cmd_ctx->enum_limit = 0;
+    cmd_ctx->enumeration = true;
+    cmd_ctx->enum_ctx = NULL; /* We will determine it later. */
+    cmd_ctx->enum_index = &cmd_ctx->state_ctx->netgrent;
+
     subreq = nss_setnetgrent_send(cli_ctx, cli_ctx->ev, cli_ctx, type,
                                   nss_ctx->netgrent, state_ctx->netgroup);
     if (subreq == NULL) {
@@ -848,80 +855,6 @@ done:
 }
 
 static void sss_nss_setnetgrent_done(struct tevent_req *subreq)
-{
-    struct nss_cmd_ctx *cmd_ctx;
-    errno_t ret;
-
-    cmd_ctx = tevent_req_callback_data(subreq, struct nss_cmd_ctx);
-
-    ret = nss_setnetgrent_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        nss_protocol_done(cmd_ctx->cli_ctx, ret);
-        goto done;
-    }
-
-    nss_protocol_reply(cmd_ctx->cli_ctx, cmd_ctx->nss_ctx, cmd_ctx,
-                       NULL, cmd_ctx->fill_fn);
-
-done:
-    talloc_free(cmd_ctx);
-}
-
-static void nss_getnetgrent_done(struct tevent_req *subreq);
-
-static errno_t nss_getnetgrent(struct cli_ctx *cli_ctx,
-                               enum cache_req_type type,
-                               nss_protocol_fill_packet_fn fill_fn)
-{
-    struct nss_cmd_ctx *cmd_ctx;
-    struct tevent_req *subreq;
-    errno_t ret;
-
-    cmd_ctx = nss_cmd_ctx_create(cli_ctx, cli_ctx, type, fill_fn);
-    if (cmd_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    if (cmd_ctx->state_ctx->netgroup == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "State does not contain netgroup name!\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = nss_protocol_parse_limit(cli_ctx, &cmd_ctx->enum_limit);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request message!\n");
-        goto done;
-    }
-
-    cmd_ctx->enumeration = true;
-    cmd_ctx->enum_ctx = NULL; /* We will determine it later. */
-    cmd_ctx->enum_index = &cmd_ctx->state_ctx->netgrent;
-
-    subreq = nss_setnetgrent_send(cli_ctx, cli_ctx->ev, cli_ctx, type,
-                                  cmd_ctx->nss_ctx->netgrent,
-                                  cmd_ctx->state_ctx->netgroup);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "nss_setnetgrent_send() failed\n");
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(subreq, nss_getnetgrent_done, cmd_ctx);
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(cmd_ctx);
-        return nss_protocol_done(cli_ctx, ret);
-    }
-
-    return EOK;
-}
-
-static void nss_getnetgrent_done(struct tevent_req *subreq)
 {
     struct nss_enum_ctx *enum_ctx;
     struct nss_cmd_ctx *cmd_ctx;
@@ -955,6 +888,9 @@ done:
     if (ret != EOK) {
         nss_protocol_done(cmd_ctx->cli_ctx, ret);
     }
+
+    cmd_ctx->state_ctx->netgrent.domain = 0;
+    cmd_ctx->state_ctx->netgrent.result = 0;
 
     talloc_free(cmd_ctx);
 }
@@ -1114,23 +1050,7 @@ static errno_t nss_cmd_setnetgrent(struct cli_ctx *cli_ctx)
     state_ctx->netgrent.result = 0;
 
     return sss_nss_setnetgrent(cli_ctx, CACHE_REQ_NETGROUP_BY_NAME,
-                               nss_protocol_fill_setnetgrent);
-}
-
-static errno_t nss_cmd_getnetgrent(struct cli_ctx *cli_ctx)
-{
-    return nss_getnetgrent(cli_ctx, CACHE_REQ_NETGROUP_BY_NAME,
-                           nss_protocol_fill_netgrent);
-}
-
-static errno_t nss_cmd_endnetgrent(struct cli_ctx *cli_ctx)
-{
-    struct nss_state_ctx *state_ctx;
-
-    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
-    talloc_zfree(state_ctx->netgroup);
-
-    return nss_endent(cli_ctx, &state_ctx->netgrent);
+                               nss_protocol_fill_netgrent);
 }
 
 static errno_t nss_cmd_getservbyname(struct cli_ctx *cli_ctx)
@@ -1410,8 +1330,8 @@ struct sss_cmd_table *get_nss_cmds(void)
         { SSS_NSS_ENDGRENT, nss_cmd_endgrent },
         { SSS_NSS_INITGR, nss_cmd_initgroups },
         { SSS_NSS_SETNETGRENT, nss_cmd_setnetgrent },
-        { SSS_NSS_GETNETGRENT, nss_cmd_getnetgrent },
-        { SSS_NSS_ENDNETGRENT, nss_cmd_endnetgrent },
+     /* { SSS_NSS_GETNETGRENT, "not needed" }, */
+     /* { SSS_NSS_ENDNETGRENT, "not needed" }, */
         { SSS_NSS_GETSERVBYNAME, nss_cmd_getservbyname },
         { SSS_NSS_GETSERVBYPORT, nss_cmd_getservbyport },
         { SSS_NSS_SETSERVENT, nss_cmd_setservent },

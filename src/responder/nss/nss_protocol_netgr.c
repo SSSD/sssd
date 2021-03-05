@@ -115,7 +115,6 @@ nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
     size_t body_len;
     uint8_t *body;
     errno_t ret;
-    unsigned int start;
 
     idx = cmd_ctx->enum_index;
     entries = cmd_ctx->enum_ctx->netgroup;
@@ -141,13 +140,8 @@ nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
         goto done;
     }
 
-    num_results = 0;
-    start = idx->result;
+    num_results = 1; /* group was found */
     for (; entries[idx->result] != NULL; idx->result++) {
-        if ((idx->result - start) >= cmd_ctx->enum_limit) {
-            /* We have reached result limit. */
-            break;
-        }
 
         entry = entries[idx->result];
 
@@ -181,29 +175,6 @@ done:
 
     sss_packet_get_body(packet, &body, &body_len);
     SAFEALIGN_COPY_UINT32(body, &num_results, NULL);
-    SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL); /* reserved */
-
-    return EOK;
-}
-
-errno_t
-nss_protocol_fill_setnetgrent(struct nss_ctx *nss_ctx,
-                              struct nss_cmd_ctx *cmd_ctx,
-                              struct sss_packet *packet,
-                              struct cache_req_result *result)
-{
-    size_t body_len;
-    uint8_t *body;
-    errno_t ret;
-
-    /* Two fields (length and reserved). */
-    ret = sss_packet_grow(packet, 2 * sizeof(uint32_t));
-    if (ret != EOK) {
-        return ret;
-    }
-
-    sss_packet_get_body(packet, &body, &body_len);
-    SAFEALIGN_SET_UINT32(body, 1, NULL); /* Netgroup was found. */
     SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL); /* reserved */
 
     return EOK;
