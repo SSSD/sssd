@@ -2470,6 +2470,7 @@ int main(int argc, const char *argv[])
         opt_logger = sss_logger_str[STDERR_LOGGER];
     }
 
+    /* default value of 'debug_prg_name' will be used */
     DEBUG_INIT(debug_level, opt_logger);
 
     if (opt_config_file) {
@@ -2493,15 +2494,6 @@ int main(int argc, const char *argv[])
 
     /* the monitor should not run a watchdog on itself */
     flags |= FLAGS_NO_WATCHDOG;
-
-    /* Open before server_setup() does to have logging
-     * during configuration checking */
-    if (sss_logger == FILES_LOGGER) {
-        ret = open_debug_file();
-        if (ret) {
-            return 7;
-        }
-    }
 
 #ifdef USE_KEYRING
     /* Do this before all the forks, it sets the session key ring so all

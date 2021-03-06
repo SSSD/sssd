@@ -84,6 +84,11 @@ void sss_set_logger(const char *logger)
     }
 }
 
+static int _sss_open_debug_file(void)
+{
+    return open_debug_file_ex(NULL, NULL, true);
+}
+
 void _sss_debug_init(int dbg_lvl, const char *logger)
 {
     if (dbg_lvl != SSSDBG_INVALID) {
@@ -93,6 +98,16 @@ void _sss_debug_init(int dbg_lvl, const char *logger)
     }
 
     sss_set_logger(logger);
+
+    /* if 'FILES_LOGGER' is requested then open log file, if it wasn't
+     * initialized before via set_debug_file_from_fd().
+     */
+    if ((sss_logger == FILES_LOGGER) && (debug_file == NULL)) {
+        if (_sss_open_debug_file() != 0) {
+            ERROR("Error opening log file, falling back to stderr\n");
+            sss_logger = STDERR_LOGGER;
+        }
+    }
 }
 
 errno_t set_debug_file_from_fd(const int fd)
@@ -435,11 +450,6 @@ int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec)
     return EOK;
 }
 
-int open_debug_file(void)
-{
-    return open_debug_file_ex(NULL, NULL, true);
-}
-
 int rotate_debug_files(void)
 {
     int ret;
@@ -478,7 +488,7 @@ int rotate_debug_files(void)
 
     debug_file = NULL;
 
-    return open_debug_file();
+    return _sss_open_debug_file();
 }
 
 void _sss_talloc_log_fn(const char *message)
