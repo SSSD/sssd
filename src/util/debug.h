@@ -87,6 +87,7 @@ int rotate_debug_files(void);
 
 #define SSS_DOM_ENV           "_SSS_DOM"
 
+/* 0x0800 isn't used for historical reasons */
 #define SSSDBG_FATAL_FAILURE  0x0010   /* level 0 */
 #define SSSDBG_CRIT_FAILURE   0x0020   /* level 1 */
 #define SSSDBG_OP_FAILURE     0x0040   /* level 2 */
@@ -102,12 +103,7 @@ int rotate_debug_files(void);
 #define SSSDBG_IMPORTANT_INFO SSSDBG_OP_FAILURE
 
 #define SSSDBG_INVALID        -1
-#define SSSDBG_UNRESOLVED     0
-
-/* enables all debug levels;
-   0x0800 isn't used for historical reasons: 0x1FFF0 - 0x0800 = 0x1F7F0
-*/
-#define SSSDBG_MASK_ALL  0x1F7F0
+#define SSSDBG_UNRESOLVED      0
 #define SSSDBG_DEFAULT   (SSSDBG_FATAL_FAILURE|SSSDBG_CRIT_FAILURE|SSSDBG_OP_FAILURE)
 
 

@@ -25,6 +25,11 @@
 #ifndef __TESTS_COMMON_H__
 #define __TESTS_COMMON_H__
 
+/* used to enable all debug levels in debug-tests.c and find_uid-tests.c
+ * 0x0800 isn't used for historical reasons: 0x1FFF0 - 0x0800 = 0x1F7F0
+ */
+#define SSSDBG_MASK_ALL  0x1F7F0
+
 #include "config.h"
 
 #include <talloc.h>
