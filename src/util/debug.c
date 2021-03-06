@@ -54,6 +54,7 @@ const char *sss_logger_str[] = {
         NULL,
 };
 
+
 void sss_set_logger(const char *logger)
 {
     if (logger == NULL) {
@@ -80,6 +81,17 @@ void sss_set_logger(const char *logger)
         fprintf(stderr, "\n");
         sss_logger = STDERR_LOGGER;
     }
+}
+
+void _sss_debug_init(int dbg_lvl, const char *logger)
+{
+    if (dbg_lvl != SSSDBG_INVALID) {
+        debug_level = debug_convert_old_level(dbg_lvl);
+    } else {
+        debug_level = SSSDBG_UNRESOLVED;
+    }
+
+    sss_set_logger(logger);
 }
 
 errno_t set_debug_file_from_fd(const int fd)

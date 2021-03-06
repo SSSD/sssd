@@ -3492,6 +3492,7 @@ dummy_child_SOURCES = \
     $(NULL)
 dummy_child_LDADD = \
     $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 

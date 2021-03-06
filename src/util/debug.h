@@ -50,6 +50,17 @@ extern int debug_microseconds;
 extern enum sss_logger_t sss_logger;
 extern const char *debug_log_file;
 
+
+#define DEBUG_INIT(dbg_lvl, logger) do { \
+    _sss_debug_init(dbg_lvl, logger);    \
+    talloc_set_log_fn(talloc_log_fn);    \
+} while (0)
+
+/* CLI tools shall debug to stderr */
+#define DEBUG_CLI_INIT(dbg_lvl) do {                    \
+    DEBUG_INIT(dbg_lvl, sss_logger_str[STDERR_LOGGER]); \
+} while (0)
+
 void sss_set_logger(const char *logger);
 
 void sss_vdebug_fn(const char *file,
@@ -144,25 +155,10 @@ void talloc_log_fn(const char *msg);
                                             (level & (SSSDBG_FATAL_FAILURE | \
                                                       SSSDBG_CRIT_FAILURE))))
 
-#define DEBUG_INIT(dbg_lvl) do { \
-    if (dbg_lvl != SSSDBG_INVALID) { \
-        debug_level = debug_convert_old_level(dbg_lvl); \
-    } else { \
-        debug_level = SSSDBG_UNRESOLVED; \
-    } \
-\
-    talloc_set_log_fn(talloc_log_fn); \
-} while (0)
-
-/* CLI tools shall debug to stderr even when SSSD was compiled with journald
- * support
- */
-#define DEBUG_CLI_INIT(dbg_lvl) do { \
-    DEBUG_INIT(dbg_lvl);             \
-    sss_logger = STDERR_LOGGER;      \
-} while (0)
-
 #define PRINT(fmt, ...) fprintf(stdout, gettext(fmt), ##__VA_ARGS__)
 #define ERROR(fmt, ...) fprintf(stderr, gettext(fmt), ##__VA_ARGS__)
+
+/* not to be used explictly, ise 'DEBUG_INIT' instead */
+void _sss_debug_init(int dbg_lvl, const char *logger);
 
 #endif /* __SSSD_DEBUG_H__ */
