@@ -1099,9 +1099,9 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
             return ENOMEM;
         }
 
-        if (cmdline_debug_level != SSSDBG_UNRESOLVED) {
+        if (cmdline_debug_level != SSSDBG_INVALID) {
             svc->command = talloc_asprintf_append(
-                svc->command, " -d %#.4x", cmdline_debug_level
+                svc->command, " -d %#.5x", cmdline_debug_level
             );
             if (!svc->command) {
                 talloc_free(svc);
@@ -1251,9 +1251,9 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
             return ENOMEM;
         }
 
-        if (cmdline_debug_level != SSSDBG_UNRESOLVED) {
+        if (cmdline_debug_level != SSSDBG_INVALID) {
             svc->command = talloc_asprintf_append(
-                svc->command, " -d %#.4x", cmdline_debug_level
+                svc->command, " -d %#.5x", cmdline_debug_level
             );
             if (!svc->command) {
                 talloc_free(svc);
@@ -2411,8 +2411,6 @@ int main(int argc, const char *argv[])
         }
     }
 
-    DEBUG_INIT(debug_level);
-
     if (opt_version) {
         puts(VERSION""PRERELEASE_VERSION);
         return EXIT_SUCCESS;
@@ -2433,13 +2431,13 @@ int main(int argc, const char *argv[])
     cmdline_debug_microseconds = debug_microseconds;
 
     if (opt_daemon && opt_interactive) {
-        fprintf(stderr, "Option -i|--interactive is not allowed together with -D|--daemon\n");
+        ERROR("Option -i|--interactive is not allowed together with -D|--daemon\n");
         poptPrintUsage(pc, stderr, 0);
         return 1;
     }
 
     if (opt_genconf && (opt_daemon || opt_interactive)) {
-        fprintf(stderr, "Option -g is incompatible with -D or -i\n");
+        ERROR("Option -g is incompatible with -D or -i\n");
         poptPrintUsage(pc, stderr, 0);
         return 1;
     }
@@ -2452,8 +2450,7 @@ int main(int argc, const char *argv[])
 
     uid = getuid();
     if (uid != 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Running under %"SPRIuid", must be root\n", uid);
+        ERROR("Running under %"SPRIuid", must be root\n", uid);
         sss_log(SSS_LOG_ALERT, "sssd must be run as root");
         return 8;
     }
@@ -2473,7 +2470,7 @@ int main(int argc, const char *argv[])
         opt_logger = sss_logger_str[STDERR_LOGGER];
     }
 
-    sss_set_logger(opt_logger);
+    DEBUG_INIT(debug_level, opt_logger);
 
     if (opt_config_file) {
         config_file = talloc_strdup(tmp_ctx, opt_config_file);

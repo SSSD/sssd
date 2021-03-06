@@ -738,13 +738,10 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
-
     /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = talloc_asprintf(NULL, "sssd_%s", be_domain);
     if (!debug_log_file) return 2;
-
-    sss_set_logger(opt_logger);
+    DEBUG_INIT(debug_level, opt_logger);
 
     srv_name = talloc_asprintf(NULL, "be[%s]", be_domain);
     if (!srv_name) return 2;

@@ -334,12 +334,9 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
-
     /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = "sssd_ifp";
-
-    sss_set_logger(opt_logger);
+    DEBUG_INIT(debug_level, opt_logger);
 
     ret = server_setup("ifp", 0, 0, 0,
                        CONFDB_IFP_CONF_ENTRY, &main_ctx);

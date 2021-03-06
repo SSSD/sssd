@@ -505,14 +505,14 @@ static int seed_init(TALLOC_CTX *mem_ctx,
 
     sctx = talloc_zero(tmp_ctx, struct seed_ctx);
     if (sctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not allocate tools context\n");
+        ERROR("Could not allocate tools context\n");
         ret = ENOMEM;
         goto fini;
     }
 
     sctx->uctx = talloc_zero(sctx, struct user_ctx);
     if (sctx->uctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not allocate user data context\n");
+        ERROR("Could not allocate user data context\n");
         ret = ENOMEM;
         goto fini;
     }
@@ -520,9 +520,7 @@ static int seed_init(TALLOC_CTX *mem_ctx,
     debug_prg_name = argv[0];
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "set_locale failed (%d): %s\n",
-                                    ret, strerror(ret));
-        ERROR("Error setting the locale\n");
+        ERROR("set_locale failed (%d): %s\n", ret, strerror(ret));
         ret = EINVAL;
         goto fini;
     }

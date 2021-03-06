@@ -171,12 +171,9 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
-
     /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = "sssd_sudo";
-
-    sss_set_logger(opt_logger);
+    DEBUG_INIT(debug_level, opt_logger);
 
     if (!is_socket_activated()) {
         /* Create pipe file descriptors here with right ownerschip */
