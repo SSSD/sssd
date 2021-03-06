@@ -61,8 +61,6 @@ extern const char *debug_log_file;
     DEBUG_INIT(dbg_lvl, sss_logger_str[STDERR_LOGGER]); \
 } while (0)
 
-void sss_set_logger(const char *logger);
-
 void sss_vdebug_fn(const char *file,
                    long line,
                    const char *function,

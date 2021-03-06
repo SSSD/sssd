@@ -30,6 +30,8 @@
 #include "util/util.h"
 #include "tests/common.h"
 
+void sss_set_logger(const char *logger);  /* from debug.c */
+
 #define DEBUG_TEST_ERROR    -1
 #define DEBUG_TEST_NOK      1
 #define DEBUG_TEST_NOK_TS   2
