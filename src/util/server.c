@@ -655,15 +655,6 @@ int server_setup(const char *name, int flags,
         return EIO;
     }
 
-    /* open log file if told so */
-    if (sss_logger == FILES_LOGGER) {
-        ret = open_debug_file();
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) "
-                                         "[%s]\n", ret, strerror(ret));
-            return ret;
-        }
-    }
     DEBUG(SSSDBG_IMPORTANT_INFO,
           "Starting with debug level = %#.4x\n", debug_level);
 

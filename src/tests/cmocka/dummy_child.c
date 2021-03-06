@@ -33,7 +33,6 @@
 int main(int argc, const char *argv[])
 {
     int opt;
-    int debug_fd = -1;
     char *opt_logger = NULL;
     poptContext pc;
     ssize_t len;
@@ -47,8 +46,6 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
-        {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
-         _("An open file descriptor for the debug logs"), NULL},
         SSSD_LOGGER_OPTS
         {"guitar", 0, POPT_ARG_STRING, &guitar, 0, _("Who plays guitar"), NULL },
         {"drums", 0, POPT_ARG_STRING, &drums, 0, _("Who plays drums"), NULL },
@@ -71,6 +68,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
+    debug_log_file = "test_dummy_child";
     DEBUG_INIT(debug_level, opt_logger);
 
     action = getenv("TEST_CHILD_ACTION");
