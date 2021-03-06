@@ -50,6 +50,7 @@ extern enum sss_logger_t sss_logger;
 extern const char *debug_log_file;   /* only file name, excluding path */
 
 
+/* converts log level from "old" notation and opens log file if needed */
 #define DEBUG_INIT(dbg_lvl, logger) do {   \
     _sss_debug_init(dbg_lvl, logger);      \
     talloc_set_log_fn(_sss_talloc_log_fn); \
@@ -81,8 +82,10 @@ int get_fd_from_debug_file(void);
 
 /* chown_debug_file() uses 'debug_log_file' in case 'filename == NULL' */
 int chown_debug_file(const char *filename, uid_t uid, gid_t gid);
+
+/* open_debug_file_ex() is used to open log file for *_child processes */
 int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec);
-int open_debug_file(void);
+
 int rotate_debug_files(void);
 
 #define SSS_DOM_ENV           "_SSS_DOM"
