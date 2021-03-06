@@ -55,6 +55,7 @@ const char *sss_logger_str[] = {
 };
 
 
+/* this function isn't static to let access from debug-tests.c */
 void sss_set_logger(const char *logger)
 {
     if (logger == NULL) {
