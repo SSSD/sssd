@@ -71,7 +71,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
-    sss_set_logger(opt_logger);
+    DEBUG_INIT(debug_level, opt_logger);
 
     action = getenv("TEST_CHILD_ACTION");
     if (action) {

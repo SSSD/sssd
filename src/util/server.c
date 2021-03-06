@@ -463,6 +463,11 @@ int server_setup(const char *name, int flags,
     char *pidfile_name;
     int cfg_debug_level = SSSDBG_INVALID;
 
+    debug_prg_name = strdup(name);
+    if (!debug_prg_name) {
+        return ENOMEM;
+    }
+
     my_pid = getpid();
     ret = setpgid(my_pid, my_pid);
     if (ret != EOK) {
@@ -486,11 +491,6 @@ int server_setup(const char *name, int flags,
                   "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
             return ret;
         }
-    }
-
-    debug_prg_name = strdup(name);
-    if (!debug_prg_name) {
-        return ENOMEM;
     }
 
     setenv("_SSS_LOOPS", "NO", 0);

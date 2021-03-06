@@ -72,7 +72,7 @@ int main(int argc, const char **argv)
     while ((ret = poptGetNextOpt(pc)) > 0)
         ;
 
-    DEBUG_INIT(pc_debug);
+    DEBUG_CLI_INIT(pc_debug);
 
     if (ret != -1) {
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
