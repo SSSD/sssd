@@ -25,9 +25,9 @@
 #ifdef HAVE_SELINUX
 
 #include <selinux/context.h>
-#define SELINUX_CTX context_t
+typedef context_t SELINUX_CTX;
 #include <selinux/selinux.h>
-#define SEC_CTX char *
+typedef char * SEC_CTX;
 
 #define SELINUX_context_new context_new
 #define SELINUX_context_free context_free
@@ -41,8 +41,8 @@
 
 #else /* not HAVE_SELINUX */
 
-#define SELINUX_CTX void *
-#define SEC_CTX void *
+typedef void * SELINUX_CTX;
+typedef void * SEC_CTX;
 
 #define SELINUX_context_new(x) NULL
 #define SELINUX_context_free(x) (x) = NULL
