@@ -39,6 +39,7 @@ class TestPasswordCheck(object):
             domain_parameter = {'ldap_pwmodify_mode': value}
             tools.sssd_conf(section, domain_parameter, action='update')
             tools.clear_sssd_cache()
+            time.sleep(5)
             change_pass = tools.change_user_password(user, 'Secret123',
                                                      'Secret123',
                                                      'bumblebee@123',

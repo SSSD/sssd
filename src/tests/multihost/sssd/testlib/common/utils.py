@@ -62,11 +62,15 @@ class sssdTools(object):
         pkgs = 'adcli realmd samba samba-common-tools krb5-workstation '\
                'oddjob oddjob-mkhomedir ldb-tools samba-winbind '\
                'samba-winbind-clients autofs nfs-utils authconfig '\
-               'authselect nss-pam-ldapd cifs-utils openldap-clients '\
+               'authselect cifs-utils openldap-clients '\
                'tcpdump wireshark-cli expect rsyslog gcc gcc-c++ pam-devel '\
                'tdb-tools libkcapi-hmaccalc'
         sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
                     'libsss_autofs libsss_simpleifp sssd-kcm sssd-dbus'
+        extra_pkg = ' nss-pam-ldapd'
+        distro = self.multihost.distro
+        if '8.' in distro:
+            pkgs = pkgs + extra_pkg
         self.multihost.package_mgmt(pkgs, action='install')
         self.multihost.package_mgmt(sssd_pkgs, action='install')
 
@@ -74,17 +78,13 @@ class sssdTools(object):
         """ Install common required packages on server"""
         pkgs = 'adcli realmd samba samba-common-tools krb5-workstation '\
                'samba-winbind-clients nfs-utils authconfig openldap-clients '\
-               'authselect krb5-server cifs-utils expect rsyslog'
+               'authselect krb5-server cifs-utils expect rsyslog 389-ds-base'
         sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
                     'libsss_autofs libsss_simpleifp sssd-kcm sssd-dbus'
-        if '8.' in self.multihost.distro:
+        distro = self.multihost.distro
+        if '8.' in distro:
             enable_idm = 'yum module enable idm:DL1 -y'
             self.multihost.run_command(enable_idm)
-            ds_pkgs = ' 389-ds-base'
-            pkgs = pkgs + ds_pkgs
-        if 'Fedora' in self.multihost.distro:
-            ds_pkgs = ' 389-ds-base'
-            pkgs = pkgs + ds_pkgs
         self.multihost.package_mgmt(pkgs, action='install')
         self.multihost.package_mgmt(sssd_pkgs, action='install')
 
@@ -244,12 +244,12 @@ class sssdTools(object):
     def systemsssdauth(self, realm, krb_server):
         """ Run authconfig/authselect to enable sssd authentication """
         distro = self.multihost.distro
-        if '8.' in distro or 'Fedora' in distro:
+        if '7.' in distro:
+            self.config_authconfig(krb_server, realm)
+        else:
             self.authselect()
             self.config_etckrb5(realm, krb_server)
             self.enable_kcm()
-        else:
-            self.config_authconfig(krb_server, realm)
 
     def update_conf(self, conffile, section, parameters, action='add'):
         """ Update configuration files """

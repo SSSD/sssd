@@ -40,12 +40,10 @@ def package_install(session_multihost):
                'openldap-clients krb5-workstation '\
                'sssd sssd-dbus sssd-kcm ' \
                'expect ldb-tools sssd-tools'
-    if 'Fedora' in distro:
-        cmd = 'dnf install -y %s' % (pkg_list)
-    elif '8.' in distro.split()[5]:
+    cmd = 'yum install -y %s' % (pkg_list)
+    if '8.' in distro:
         enableidm = 'yum -y module enable idm:DL1'
         session_multihost.master[0].run_command(enableidm)
-        cmd = 'yum install -y %s' % (pkg_list)
     session_multihost.master[0].run_command(cmd)
 
 
