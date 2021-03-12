@@ -361,6 +361,7 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
                          struct cache_req_result *result)
 {
     struct sss_domain_info *domain;
+    struct sss_domain_info *grp_dom;
     struct ldb_message *user;
     struct ldb_message *msg;
     struct ldb_message *primary_group_msg;
@@ -418,10 +419,11 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
     num_results = 0;
     for (i = 1; i < result->count; i++) {
         msg = result->msgs[i];
-        gid = sss_view_ldb_msg_find_attr_as_uint64(domain, msg, SYSDB_GIDNUM,
+        grp_dom = find_domain_by_msg(domain, msg);
+        gid = sss_view_ldb_msg_find_attr_as_uint64(grp_dom, msg, SYSDB_GIDNUM,
                                                    0);
         posix = ldb_msg_find_attr_as_string(msg, SYSDB_POSIX, NULL);
-        grp_name = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_NAME,
+        grp_name = sss_view_ldb_msg_find_attr_as_string(grp_dom, msg, SYSDB_NAME,
                                                         NULL);
 
         if (gid == 0) {
@@ -435,7 +437,7 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
             }
         }
 
-        if (is_group_filtered(nss_ctx->rctx->ncache, domain, grp_name, gid)) {
+        if (is_group_filtered(nss_ctx->rctx->ncache, grp_dom, grp_name, gid)) {
             continue;
         }
 

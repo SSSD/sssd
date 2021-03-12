@@ -2139,3 +2139,25 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
                       fmt, ap);
     }
 }
+
+struct sss_domain_info *find_domain_by_msg(struct sss_domain_info *dom,
+                                           struct ldb_message *msg)
+{
+    const char *name;
+    struct sss_domain_info *obj_dom = NULL;
+
+    name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    if (name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Object does not have a name attribute.\n");
+        return dom;
+    }
+
+    obj_dom = find_domain_by_object_name(get_domains_head(dom), name);
+    if (obj_dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "No domain found for [%s].\n", name);
+        return dom;
+    }
+
+    return obj_dom;
+}
