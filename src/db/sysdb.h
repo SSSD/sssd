@@ -1505,4 +1505,11 @@ errno_t sysdb_handle_original_uuid(const char *orig_name,
                                    struct sysdb_attrs *dest_attrs,
                                    const char *dest_name);
 
+/* Try to detect the object domain from the object's SYSDB_NAME attribute and
+ * return the matching sss_domain_info. This should work reliable with user
+ * and group objects since fully-qualified names are used here. If the proper
+ * domain cannot be detected the given domain is returned. */
+struct sss_domain_info *find_domain_by_msg(struct sss_domain_info *dom,
+                                           struct ldb_message *msg);
+
 #endif /* __SYS_DB_H__ */
