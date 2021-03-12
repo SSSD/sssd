@@ -125,7 +125,7 @@ int main(int argc, const char **argv)
     struct tools_ctx *tctx = NULL;
     const char *pc_username = NULL;
 
-    int pc_debug = SSSDBG_DEFAULT;
+    int pc_debug = SSSDBG_TOOLS_DEFAULT;
     int pc_remove = 0;
     int pc_force = 0;
     int pc_kick = 0;

@@ -709,7 +709,7 @@ static errno_t init_context(int argc, const char *argv[],
     struct cache_tool_ctx *ctx = NULL;
     int idb = INVALIDATE_NONE;
     struct input_values values = { 0 };
-    int debug = SSSDBG_DEFAULT;
+    int debug = SSSDBG_TOOLS_DEFAULT;
     errno_t ret = EOK;
 
     poptContext pc = NULL;

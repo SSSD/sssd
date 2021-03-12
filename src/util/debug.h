@@ -108,6 +108,7 @@ int rotate_debug_files(void);
 #define SSSDBG_INVALID        -1
 #define SSSDBG_UNRESOLVED      0
 #define SSSDBG_DEFAULT   (SSSDBG_FATAL_FAILURE|SSSDBG_CRIT_FAILURE|SSSDBG_OP_FAILURE)
+#define SSSDBG_TOOLS_DEFAULT (SSSDBG_FATAL_FAILURE)
 
 
 /** \def DEBUG(level, format, ...)

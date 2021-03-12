@@ -34,7 +34,7 @@
 int main(int argc, const char **argv)
 {
     gid_t pc_gid = 0;
-    int pc_debug = SSSDBG_DEFAULT;
+    int pc_debug = SSSDBG_TOOLS_DEFAULT;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "debug",'\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug,

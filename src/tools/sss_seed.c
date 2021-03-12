@@ -460,7 +460,7 @@ static int seed_init(TALLOC_CTX *mem_ctx,
                      struct seed_ctx **_sctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    int pc_debug = SSSDBG_DEFAULT;
+    int pc_debug = SSSDBG_TOOLS_DEFAULT;
     const char *pc_domain = NULL;
     const char *pc_name = NULL;
     uid_t pc_uid = 0;
