@@ -1136,6 +1136,13 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
             talloc_free(svc);
             return ENOMEM;
         }
+
+        DEBUG(SSSDBG_CONF_SETTINGS, "Formed command '%s' for service '%s'\n",
+              svc->command, svc->name);
+    } else {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Using custom command '%s' for service '%s'\n",
+              svc->command, svc->name);
     }
 
     svc->last_restart = now;
@@ -1288,6 +1295,13 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
             talloc_free(svc);
             return ENOMEM;
         }
+
+        DEBUG(SSSDBG_CONF_SETTINGS, "Formed command '%s' for provider '%s'\n",
+              svc->command, svc->identity);
+    } else {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Using custom command '%s' for provider '%s'\n",
+              svc->command, svc->identity);
     }
 
     svc->last_restart = now;
