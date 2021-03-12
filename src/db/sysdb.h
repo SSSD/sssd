@@ -1532,4 +1532,11 @@ errno_t sysdb_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx,
 void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap);
 
+/* Try to detect the object domain from the object's SYSDB_NAME attribute and
+ * return the matching sss_domain_info. This should work reliable with user
+ * and group objects since fully-qualified names are used here. If the proper
+ * domain cannot be detected the given domain is returned. */
+struct sss_domain_info *find_domain_by_msg(struct sss_domain_info *dom,
+                                           struct ldb_message *msg);
+
 #endif /* __SYS_DB_H__ */
