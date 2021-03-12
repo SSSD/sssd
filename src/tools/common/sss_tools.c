@@ -56,7 +56,7 @@ static void sss_tool_common_opts(struct sss_tool_ctx *tool_ctx,
                                  int *argc, const char **argv)
 {
     poptContext pc;
-    int debug = SSSDBG_DEFAULT;
+    int debug = SSSDBG_TOOLS_DEFAULT;
     int orig_argc = *argc;
     int help = 0;
 

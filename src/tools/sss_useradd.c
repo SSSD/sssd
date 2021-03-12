@@ -38,7 +38,7 @@ int main(int argc, const char **argv)
     const char *pc_gecos = NULL;
     const char *pc_home = NULL;
     char *pc_shell = NULL;
-    int pc_debug = SSSDBG_DEFAULT;
+    int pc_debug = SSSDBG_TOOLS_DEFAULT;
     int pc_create_home = 0;
     const char *pc_username = NULL;
     const char *pc_skeldir = NULL;
