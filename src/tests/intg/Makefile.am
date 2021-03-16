@@ -62,6 +62,18 @@ getsockopt_wrapper_la_LDFLAGS = \
     -avoid-version \
     -module
 
+bin_PROGRAMS = sss_netgroup_thread_test
+
+sss_netgroup_thread_test_SOURCES = \
+    sss_netgroup_thread_test.c \
+    $(NULL)
+sss_netgroup_thread_test_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+sss_netgroup_thread_test_LDADD = \
+    -lpthread \
+    $(NULL)
+
 dist_dbussysconf_DATA = cwrap-dbus-system.conf
 
 install-data-hook:
@@ -162,7 +174,7 @@ clean-local:
 PAM_CERT_DB_PATH="$(abs_builddir)/../test_CA/SSSD_test_CA.pem"
 SOFTHSM2_CONF="$(abs_builddir)/../test_CA/softhsm2_one.conf"
 
-intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service pam_sss_sc_required pam_sss_try_sc pam_sss_allow_missing_name pam_sss_domains
+intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service pam_sss_sc_required pam_sss_try_sc pam_sss_allow_missing_name pam_sss_domains sss_netgroup_thread_test
 	pipepath="$(DESTDIR)$(pipepath)"; \
 	if test $${#pipepath} -gt 80; then \
 	    echo "error: Pipe directory path too long," \
