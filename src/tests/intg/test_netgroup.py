@@ -510,3 +510,29 @@ def test_offline_netgroups(add_tripled_netgroup):
     res, _, netgrps = get_sssd_netgroups("tripled_netgroup")
     assert res == NssReturnCode.SUCCESS
     assert netgrps == [("host", "user", "domain")]
+
+
+@pytest.fixture
+def add_thread_test_netgroup(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+
+    triple_list = []
+    for i in range(1, 999):
+        triple_list.append("(host1,user" + str(i) + ",domain1)")
+    ent_list.add_netgroup("ng1", triple_list)
+
+    triple_list = []
+    for i in range(1, 999):
+        triple_list.append("(host2,user" + str(i) + ",domain2)")
+    ent_list.add_netgroup("ng2", triple_list)
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_innetgr_with_threads(add_thread_test_netgroup):
+
+    subprocess.check_call(["sss_netgroup_thread_test"])
