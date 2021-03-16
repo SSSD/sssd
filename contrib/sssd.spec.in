@@ -123,6 +123,7 @@ BuildRequires: softhsm >= 2.1.0
 BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
 BuildRequires: uid_wrapper
+BuildRequires: po4a
 
 %description
 Provides a set of daemons to manage access to remote directories and
