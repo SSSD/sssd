@@ -44,6 +44,7 @@
  * Replies:
  *
  * 0-3: 32bit unsigned number of results N
+ *      will be replaced with the file descriptor between calls
  * 4-7: 32bit unsigned (reserved/padding)
  *  For each result:
  *  8-11: 32bit unsigned type of result
@@ -167,6 +168,8 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
     char *name;
     size_t name_len;
     errno_t ret;
+    int my_fd = -1;
+    int32_t fd32 = -1;
 
     if (!netgroup) return NSS_STATUS_NOTFOUND;
 
@@ -191,8 +194,8 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
     rd.data = name;
     rd.len = name_len + 1;
 
-    nret = sss_nss_make_request(SSS_NSS_SETNETGRENT, &rd,
-                                &repbuf, &replen, &errnop);
+    nret = sss_nss_make_request_fd(SSS_NSS_SETNETGRENT, &rd, &my_fd,
+                                   &repbuf, &replen, &errnop);
     free(name);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
@@ -210,6 +213,20 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
     }
 
     free(repbuf);
+    if (my_fd < INT32_MAX) {
+        fd32 = my_fd;
+    } else {
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
+    }
+    result->data_size = 0;
+    result->data = malloc(sizeof(int32_t));
+    if (result->data == NULL) {
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
+    }
+    SAFEALIGN_COPY_INT32(result->data, &fd32, NULL);
+
     nret = NSS_STATUS_SUCCESS;
 
 out:
@@ -229,17 +246,24 @@ static enum nss_status internal_getnetgrent_r(struct __netgrent *result,
     enum nss_status nret;
     uint32_t num_entries;
     int ret;
+    int32_t fd32;
+    int my_fd = -1;
 
     /* Caught once glibc passing in buffer == 0x0 */
     if (!buffer || !buflen) {
-	*errnop = ERANGE;
-	return NSS_STATUS_TRYAGAIN;
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
+    }
+
+    if (result->data != NULL) {
+        SAFEALIGN_COPY_INT32(&fd32, result->data, NULL);
+        my_fd = fd32;
     }
 
     /* If we're already processing result data, continue to
      * return it.
      */
-    if (result->data != NULL &&
+    if (result->data != NULL && result->data_size != 0 &&
         result->idx.position < result->data_size) {
 
         repbuf = (uint8_t *) result->data + result->idx.position;
@@ -268,8 +292,8 @@ static enum nss_status internal_getnetgrent_r(struct __netgrent *result,
     rd.len = sizeof(uint32_t);
     rd.data = &num_entries;
 
-    nret = sss_nss_make_request(SSS_NSS_GETNETGRENT, &rd,
-                                &repbuf, &replen, errnop);
+    nret = sss_nss_make_request_fd(SSS_NSS_GETNETGRENT, &rd, &my_fd,
+                                   &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         return nret;
     }
@@ -283,6 +307,13 @@ static enum nss_status internal_getnetgrent_r(struct __netgrent *result,
         return NSS_STATUS_RETURN;
     }
 
+    if (my_fd < INT32_MAX) {
+        fd32 = my_fd;
+    } else {
+        free(repbuf);
+        return NSS_STATUS_TRYAGAIN;
+    }
+    SAFEALIGN_COPY_INT32(repbuf, &fd32, NULL);
     result->data = (char *) repbuf;
     result->data_size = replen;
     /* skip metadata fields */
@@ -310,20 +341,28 @@ enum nss_status _nss_sss_endnetgrent(struct __netgrent *result)
     enum nss_status nret;
     int errnop;
     int saved_errno = errno;
+    int my_fd = -1;
+    int fd32;
 
     sss_nss_lock();
+
+    if (result->data != NULL) {
+        SAFEALIGN_COPY_INT32(&fd32, result->data, NULL);
+        my_fd = fd32;
+    }
 
     /* make sure we do not have leftovers, and release memory */
     CLEAR_NETGRENT_DATA(result);
 
-    nret = sss_nss_make_request(SSS_NSS_ENDNETGRENT,
-                                NULL, NULL, NULL, &errnop);
+    nret = sss_nss_make_request_fd(SSS_NSS_ENDNETGRENT,
+                                   NULL, &my_fd, NULL, NULL, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         errno = errnop;
     } else {
         errno = saved_errno;
     }
 
+    close(my_fd);
     sss_nss_unlock();
     return nret;
 }
