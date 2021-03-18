@@ -7,13 +7,14 @@
 # Ludek Janda <ljanda@redhat.com>, 2020. #zanata
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 # Charles Lee <lchopn@gmail.com>, 2020.
+# Sundeep Anand <suanand@redhat.com>, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-02-05 11:58+0100\n"
-"PO-Revision-Date: 2020-08-20 14:29+0000\n"
-"Last-Translator: Charles Lee <lchopn@gmail.com>\n"
+"PO-Revision-Date: 2021-03-18 10:39+0000\n"
+"Last-Translator: Sundeep Anand <suanand@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_CN/>\n"
 "Language: zh_CN\n"
@@ -21,7 +22,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.1.1\n"
+"X-Generator: Weblate 4.5.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -230,19 +231,19 @@ msgstr "内存缓存记录有效期的长度"
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for passwd requests"
-msgstr ""
+msgstr "为 passwd 请求在快速内存缓存（in-memory cache）中分配的数据表的大小（以 MB 为单位）"
 
 #: src/config/SSSDConfig/sssdoptions.py:76
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
-msgstr ""
+msgstr "为组请求在快速内存缓存（in-memory cache）中分配的数据表的大小（以 MB 为单位）"
 
 #: src/config/SSSDConfig/sssdoptions.py:77
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
-msgstr ""
+msgstr "为 initgroups 请求在快速内存缓存（in-memory cache）中分配的数据表的大小（以 MB 为单位）"
 
 #: src/config/SSSDConfig/sssdoptions.py:78
 msgid ""
@@ -349,11 +350,11 @@ msgstr "什么时候 PAM 响应者要强制发起 initgroups 请求？"
 
 #: src/config/SSSDConfig/sssdoptions.py:107
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
-msgstr ""
+msgstr "允许使用 GSSAPI 验证的 PAM 服务列表。"
 
 #: src/config/SSSDConfig/sssdoptions.py:108
 msgid "Whether to match authenticated UPN with target user"
-msgstr ""
+msgstr "是否与目标用户匹配认证的 UPN"
 
 #: src/config/SSSDConfig/sssdoptions.py:111
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -517,13 +518,13 @@ msgstr ""
 msgid ""
 "A comma-separated list of users to be excluded from recording, only when "
 "scope=all"
-msgstr ""
+msgstr "要从记录中排除的用逗号分开的用户列表，仅当 scope=all 时"
 
 #: src/config/SSSDConfig/sssdoptions.py:168
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
-msgstr ""
+msgstr "用逗号分隔的组列表，其中的成员应不记录中排除，仅在 scope=all 时。 "
 
 #: src/config/SSSDConfig/sssdoptions.py:172
 msgid "Identity provider"
@@ -570,9 +571,8 @@ msgid "Whether the domain is usable by the OS or by applications"
 msgstr "域是否可以被 OS 或应用程序使用"
 
 #: src/config/SSSDConfig/sssdoptions.py:185
-#, fuzzy
 msgid "Enable or disable the domain"
-msgstr "启用或禁用隐式文件域"
+msgstr "启用或禁用域"
 
 #: src/config/SSSDConfig/sssdoptions.py:186
 msgid "Minimum user ID"
@@ -1057,7 +1057,7 @@ msgstr "将 LDAPS 端口用于 LDAP 和 Global Catalog 请求"
 
 #: src/config/SSSDConfig/sssdoptions.py:327
 msgid "Do not filter domain local groups from other domains"
-msgstr ""
+msgstr "不要从其它域过滤域本地组"
 
 #: src/config/SSSDConfig/sssdoptions.py:330
 #: src/config/SSSDConfig/sssdoptions.py:331
@@ -1134,7 +1134,7 @@ msgstr "启用企业主体"
 
 #: src/config/SSSDConfig/sssdoptions.py:351
 msgid "Enables using of subdomains realms for authentication"
-msgstr ""
+msgstr "启用使用子域域进行验证"
 
 #: src/config/SSSDConfig/sssdoptions.py:352
 msgid "A mapping from user names to Kerberos principal names"
@@ -1636,7 +1636,7 @@ msgstr "在通配符请求期间要提取多少个最大条目"
 
 #: src/config/SSSDConfig/sssdoptions.py:494
 msgid "Set libldap debug level"
-msgstr ""
+msgstr "设置 libldap debug 级别"
 
 #: src/config/SSSDConfig/sssdoptions.py:497
 msgid "Policy to evaluate the password expiration"
@@ -2172,9 +2172,9 @@ msgid "The path to the proxy command must be absolute\n"
 msgstr "到 proxy 命令的路径必须是绝对路径\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:326
-#, fuzzy, c-format
+#, c-format
 msgid "sss_ssh_knownhostsproxy: unable to proxy data: %s\n"
-msgstr "sss_ssh_knownhostsproxy：无法解析主机名 %s\n"
+msgstr "sss_ssh_knownhostsproxy：无法到代理数据：%s\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:330
 #, c-format
@@ -2812,6 +2812,8 @@ msgid ""
 "where the main config file is located. For example if the config is set to "
 "\"/my/path/sssd.conf\", the snippet dir \"/my/path/conf.d\" is used)"
 msgstr ""
+"指定非默认 snippet dir（默认为在主配置文件所在的相同位置查找）。例如，如果配置被设置为 \"/my/path/sssd.conf\", "
+"snippet dir 为 \"/my/path/conf.d\" ）"
 
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format
@@ -3009,7 +3011,7 @@ msgstr "无法获取服务器列表\n"
 
 #: src/tools/sssctl/sssctl_logs.c:46
 msgid "\n"
-msgstr ""
+msgstr "\n"
 
 #: src/tools/sssctl/sssctl_logs.c:236
 msgid "Delete log files instead of truncating"

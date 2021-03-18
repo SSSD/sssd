@@ -8,21 +8,22 @@
 # Keiko Moriguchi <kemorigu@redhat.com>, 2019. #zanata
 # Ludek Janda <ljanda@redhat.com>, 2020. #zanata
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
+# Sundeep Anand <suanand@redhat.com>, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-02-05 11:58+0100\n"
-"PO-Revision-Date: 2020-07-22 07:46-0400\n"
-"Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
-"Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
-"ja/)\n"
+"PO-Revision-Date: 2021-03-18 10:39+0000\n"
+"Last-Translator: Sundeep Anand <suanand@redhat.com>\n"
+"Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-master/ja/>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Zanata 4.6.2\n"
+"X-Generator: Weblate 4.5.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -85,9 +86,7 @@ msgstr ""
 msgid ""
 "Indicates what is the syntax of the config file. SSSD 0.6.0 and later use "
 "version 2."
-msgstr ""
-"Indicates what is the syntax of the config file. SSSD 0.6.0 and later use "
-"version 2."
+msgstr "設定ファイルの構文を示します。SSSD 0.6.0 以降はバージョン 2 を使用します。"
 
 #: src/config/SSSDConfig/sssdoptions.py:39
 msgid "SSSD Services to start"
@@ -161,27 +160,25 @@ msgid ""
 "this, and will fall back to polling resolv.conf every five seconds if "
 "inotify cannot be used."
 msgstr ""
-"SSSD monitors the state of resolv.conf to identify when it needs to update "
-"its internal DNS resolver. By default, we will attempt to use inotify for "
-"this, and will fall back to polling resolv.conf every five seconds if "
-"inotify cannot be used."
+"SSSD は、内部 DNSリゾルバーを更新する必要があるときを識別するために resolv.conf の状態を監視します。デフォルトでは、inotify "
+"の使用を試行します。また、inotify が使用できない場合は、5 秒ごとに resolv.conf のポーリングにフォールバックします。"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Enumeration cache timeout length (seconds)"
-msgstr "列挙キャッシュのタイムアウト（秒）"
+msgstr "列挙キャッシュのタイムアウト (秒)"
 
 #: src/config/SSSDConfig/sssdoptions.py:60
 msgid "Entry cache background update timeout length (seconds)"
-msgstr "エントリーキャッシュのバックグラウンド更新のタイムアウト時間（秒）"
+msgstr "エントリーキャッシュのバックグラウンド更新のタイムアウト時間 (秒)"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 #: src/config/SSSDConfig/sssdoptions.py:117
 msgid "Negative cache timeout length (seconds)"
-msgstr "ネガティブキャッシュのタイムアウト（秒）"
+msgstr "ネガティブキャッシュのタイムアウト (秒)"
 
 #: src/config/SSSDConfig/sssdoptions.py:62
 msgid "Files negative cache timeout length (seconds)"
-msgstr "ファイルネガティブキャッシュのタイムアウト時間（秒）"
+msgstr "ファイルネガティブキャッシュのタイムアウト時間 (秒)"
 
 #: src/config/SSSDConfig/sssdoptions.py:63
 msgid "Users that SSSD should explicitly ignore"
@@ -243,19 +240,19 @@ msgstr "メモリー内のキャッシュレコードが有効な期間"
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for passwd requests"
-msgstr ""
+msgstr "パスワード要求の高速インメモリーキャッシュ内で割り当てられるデータテーブルのサイズ (メガバイト)"
 
 #: src/config/SSSDConfig/sssdoptions.py:76
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
-msgstr ""
+msgstr "グループ要求の高速インメモリーキャッシュ内で割り当てられるデータテーブルのサイズ (メガバイト)"
 
 #: src/config/SSSDConfig/sssdoptions.py:77
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
-msgstr ""
+msgstr "initgroups 要求の高速インメモリーキャッシュ内で割り当てられるデータテーブルのサイズ (メガバイト)"
 
 #: src/config/SSSDConfig/sssdoptions.py:78
 msgid ""
@@ -277,13 +274,12 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
-"The entry cache can be set to automatically update entries in the background "
-"if they are requested beyond a percentage of the entry_cache_timeout value "
-"for the domain."
+"エントリーキャッシュは、ドメインの entry_cache_timeout "
+"値のパーセントを超えるリクエストが行われた場合に、バックグラウンドでエントリーを自動的に更新するように設定できます。"
 
 #: src/config/SSSDConfig/sssdoptions.py:87
 msgid "How long to allow cached logins between online logins (days)"
-msgstr "オンラインログイン中にキャッシュによるログインが許容される期間（日数）"
+msgstr "オンラインログイン中にキャッシュによるログインが許容される期間 (日数)"
 
 #: src/config/SSSDConfig/sssdoptions.py:88
 msgid "How many failed logins attempts are allowed when offline"
@@ -293,7 +289,7 @@ msgstr "オフラインの時に許容されるログイン試行失敗回数"
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
-msgstr "offline_failed_login_attempts に達した後にログインを拒否する時間（分）"
+msgstr "offline_failed_login_attempts に達した後にログインを拒否する時間 (分)"
 
 #: src/config/SSSDConfig/sssdoptions.py:91
 msgid "What kind of messages are displayed to the user during authentication"
@@ -362,11 +358,11 @@ msgstr "PAM レスポンダーが initgroups リクエストを強制すると�
 
 #: src/config/SSSDConfig/sssdoptions.py:107
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
-msgstr ""
+msgstr "GSSAPI での認証が許可される PAM サービスの一覧。"
 
 #: src/config/SSSDConfig/sssdoptions.py:108
 msgid "Whether to match authenticated UPN with target user"
-msgstr ""
+msgstr "ターゲットユーザーと認証された UPN に一致するかどうか"
 
 #: src/config/SSSDConfig/sssdoptions.py:111
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -540,13 +536,13 @@ msgstr ""
 msgid ""
 "A comma-separated list of users to be excluded from recording, only when "
 "scope=all"
-msgstr ""
+msgstr "録画から除外されるユーザーのコンマ区切りリスト。scope=all の場合のみ"
 
 #: src/config/SSSDConfig/sssdoptions.py:168
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
-msgstr ""
+msgstr "scope=all の場合にのみ記録から除外されるべきメンバーから成るグループのコンマ区切りリスト。 "
 
 #: src/config/SSSDConfig/sssdoptions.py:172
 msgid "Identity provider"
@@ -593,9 +589,8 @@ msgid "Whether the domain is usable by the OS or by applications"
 msgstr "OS またはアプリケーションがドメインを使用できるかどうか"
 
 #: src/config/SSSDConfig/sssdoptions.py:185
-#, fuzzy
 msgid "Enable or disable the domain"
-msgstr "暗黙のファイルドメインを有効化または無効化する"
+msgstr "ドメインを有効または無効にする"
 
 #: src/config/SSSDConfig/sssdoptions.py:186
 msgid "Minimum user ID"
@@ -630,7 +625,7 @@ msgstr "グループ検索にグループメンバーを含めない"
 #: src/config/SSSDConfig/sssdoptions.py:207
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "Entry cache timeout length (seconds)"
-msgstr "エントリーキャッシュのタイムアウト長（秒）"
+msgstr "エントリーキャッシュのタイムアウト長 (秒)"
 
 #: src/config/SSSDConfig/sssdoptions.py:193
 msgid ""
@@ -655,7 +650,7 @@ msgstr "単一の DNS クエリーの解決を試行する時間 (秒)"
 
 #: src/config/SSSDConfig/sssdoptions.py:198
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
-msgstr "サーバーを名前解決する時に DNS から応答を待つ時間（秒）"
+msgstr "サーバーを名前解決する時に DNS から応答を待つ時間 (秒)"
 
 #: src/config/SSSDConfig/sssdoptions.py:199
 msgid "The domain part of service discovery DNS query"
@@ -734,7 +729,7 @@ msgstr "ユーザーにプライベートグループを自動的に作成する
 
 #: src/config/SSSDConfig/sssdoptions.py:224
 msgid "Display a warning N days before the password expires."
-msgstr "Display a warning N days before the password expires."
+msgstr "パスワードの期限が切れる N 日前の警告を表示します。"
 
 #: src/config/SSSDConfig/sssdoptions.py:225
 msgid ""
@@ -894,7 +889,7 @@ msgstr "ネットグループの NIS ドメイン名を含む LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:270
 msgid "The LDAP attribute that contains the names of the netgroup's members."
-msgstr "The LDAP attribute that contains the names of the netgroup's members."
+msgstr "ネットグループのメンバーの名前を含む LDAP 属性。"
 
 #: src/config/SSSDConfig/sssdoptions.py:271
 msgid ""
@@ -1105,7 +1100,7 @@ msgstr "LDAP およびグローバルカタログのリクエストに LDAPS ポ
 
 #: src/config/SSSDConfig/sssdoptions.py:327
 msgid "Do not filter domain local groups from other domains"
-msgstr ""
+msgstr "他のドメインからのドメインローカルグループをフィルターしない"
 
 #: src/config/SSSDConfig/sssdoptions.py:330
 #: src/config/SSSDConfig/sssdoptions.py:331
@@ -1182,7 +1177,7 @@ msgstr "エンタープライズ・プリンシパルの有効化"
 
 #: src/config/SSSDConfig/sssdoptions.py:351
 msgid "Enables using of subdomains realms for authentication"
-msgstr ""
+msgstr "認証にサブドメインレルムの使用を有効化"
 
 #: src/config/SSSDConfig/sssdoptions.py:352
 msgid "A mapping from user names to Kerberos principal names"
@@ -1432,7 +1427,7 @@ msgstr "ID マッピングの Active Directory プライマリーグループ属
 
 #: src/config/SSSDConfig/sssdoptions.py:424
 msgid "User principal attribute (for Kerberos)"
-msgstr "ユーザープリンシパルの属性（Kerberos 用）"
+msgstr "ユーザープリンシパルの属性 (Kerberos 用)"
 
 #: src/config/SSSDConfig/sssdoptions.py:425
 msgid "Full Name"
@@ -1688,7 +1683,7 @@ msgstr "ワイルドカードの要求の間に取得する最大エントリー
 
 #: src/config/SSSDConfig/sssdoptions.py:494
 msgid "Set libldap debug level"
-msgstr ""
+msgstr "libldap デバッグレベルの設定"
 
 #: src/config/SSSDConfig/sssdoptions.py:497
 msgid "Policy to evaluate the password expiration"
@@ -1893,9 +1888,7 @@ msgstr "禁止ユーザーのカンマ区切り一覧"
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
-msgstr ""
-"Comma separated list of groups that are allowed to log in. This applies only "
-"to groups within this SSSD domain. Local groups are not evaluated."
+msgstr "ログインが許可されるグループのカンマ区切りの一覧。これは、SSSDドメイン内のグループにのみ適用されます。ローカルグループは評価されません。"
 
 #: src/config/SSSDConfig/sssdoptions.py:560
 msgid ""
@@ -1903,9 +1896,8 @@ msgid ""
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
 msgstr ""
-"Comma separated list of groups that are explicitly denied access. This "
-"applies only to groups within this SSSD domain. Local groups are not "
-"evaluated."
+"排他的にアクセスが拒否されたグループのカンマ区切りの一覧。これは、この SSSD "
+"ドメイン内のグループにのみ適用されます。ローカルグループは評価されません。"
 
 #: src/config/SSSDConfig/sssdoptions.py:564
 msgid "Base for home directories"
@@ -1959,19 +1951,19 @@ msgstr "使用する PAM スタック"
 
 #: src/config/SSSDConfig/sssdoptions.py:584
 msgid "Path of passwd file sources."
-msgstr "passwd ファイルソースへのパス"
+msgstr "passwd ファイルソースへのパス。"
 
 #: src/config/SSSDConfig/sssdoptions.py:585
 msgid "Path of group file sources."
-msgstr "グループファイルソースへのパス"
+msgstr "グループファイルソースへのパス。"
 
 #: src/monitor/monitor.c:2381
 msgid "Become a daemon (default)"
-msgstr "デーモンとして実行（デフォルト）"
+msgstr "デーモンとして実行 (デフォルト)"
 
 #: src/monitor/monitor.c:2383
 msgid "Run interactive (not a daemon)"
-msgstr "対話的に実行（デーモンではない）"
+msgstr "対話的に実行 (デーモンではない)"
 
 #: src/monitor/monitor.c:2386
 msgid "Disable netlink interface"
@@ -2092,7 +2084,7 @@ msgstr "エラーの説明を検索中に予期しないエラーが発生しま
 
 #: src/sss_client/pam_sss.c:68
 msgid "Permission denied. "
-msgstr "パーミッションが拒否されました。"
+msgstr "パーミッションが拒否されました。 "
 
 #: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:785
 #: src/sss_client/pam_sss.c:796
@@ -2143,7 +2135,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
 msgid "Password change failed. "
-msgstr "パスワードの変更に失敗しました。"
+msgstr "パスワードの変更に失敗しました。 "
 
 #: src/sss_client/pam_sss.c:2044
 msgid "New Password: "
@@ -2236,14 +2228,14 @@ msgid "The path to the proxy command must be absolute\n"
 msgstr "プロキシコマンドへのパスは絶対パスにする必要があります\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:326
-#, fuzzy, c-format
+#, c-format
 msgid "sss_ssh_knownhostsproxy: unable to proxy data: %s\n"
-msgstr "sss_ssh_knownhostsproxy: ホスト名 %s を解決できませんでした\n"
+msgstr "sss_ssh_knownhostsproxy: データをプロキシーできません: %s\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:330
-#, fuzzy, c-format
+#, c-format
 msgid "sss_ssh_knownhostsproxy: connect to host %s port %d: %s\n"
-msgstr "sss_ssh_knownhostsproxy: ホスト名 %s を解決できませんでした\n"
+msgstr "sss_ssh_knownhostsproxy: ホスト %s ポート %d に接続: %s\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:334
 #, c-format
@@ -2644,8 +2636,7 @@ msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
-"名前/値のペアに属性を指定します。形式は attrname=value です。複数の値を持つ属"
-"性の場合、コマンドがすでに存在する値に置き換えられます。"
+"名前/値のペアに属性を指定します。形式は attrname=value です。複数の値を持つ属性の場合、コマンドがすでに存在する値に置き換えられます"
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
@@ -2660,9 +2651,7 @@ msgstr "変更するユーザーを指定してください\n"
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
-msgstr ""
-"ローカルドメインにユーザーを見つけられません。ユーザーの変更はローカルドメイ"
-"ンにおいてのみ許可されます。\n"
+msgstr "ローカルドメインにユーザーを見つけられません。ユーザーの変更はローカルドメインにおいてのみ許可されます\n"
 
 #: src/tools/sss_usermod.c:322
 msgid "Could not modify user - check if group names are correct\n"
@@ -2841,7 +2830,7 @@ msgstr "SSSD は再起動が必要です。SSSD を今、再起動しますか?"
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
 msgid " %s is not present in cache.\n"
-msgstr " %s はキャッシュにありません\n"
+msgstr " %s はキャッシュにありません。\n"
 
 #: src/tools/sssctl/sssctl_cache.c:33
 msgid "Name"
@@ -2904,6 +2893,8 @@ msgid ""
 "where the main config file is located. For example if the config is set to "
 "\"/my/path/sssd.conf\", the snippet dir \"/my/path/conf.d\" is used)"
 msgstr ""
+"デフォルト以外のスニペットディレクトリーを指定します (デフォルトでは、メインの設定ファイルが存在する場所と同じ場所を検索します)。たとえば、設定が \""
+"/my/path/sssd.conf\" に設定されている場合は、スニペット dir \"/my/path/conf.d\" が使用されます"
 
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format
