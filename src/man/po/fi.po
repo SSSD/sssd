@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2020-05-19 12:09+0200\n"
-"PO-Revision-Date: 2021-01-12 16:38+0000\n"
+"PO-Revision-Date: 2021-03-18 10:39+0000\n"
 "Last-Translator: Jan Kuparinen <copper_fin@hotmail.com>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/fi/>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.4\n"
+"X-Generator: Weblate 4.5.1\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -1072,7 +1072,7 @@ msgstr ""
 #: sssd.conf.5.xml:691 sssd.conf.5.xml:1494 sssd.conf.5.xml:3510
 #: sssd-ad.5.xml:164 sssd-ad.5.xml:304 sssd-ad.5.xml:318
 msgid "Default: Not set"
-msgstr ""
+msgstr "Oletus: ei asetettu"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:184
@@ -1435,7 +1435,7 @@ msgstr ""
 #: sssd.conf.5.xml:962 sssd.conf.5.xml:1402 sssd.conf.5.xml:1421
 #: sssd-krb5.5.xml:573 include/override_homedir.xml:59
 msgid "example: <placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
+msgstr "Esimerkki: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -2032,7 +2032,7 @@ msgstr ""
 #: sssd.conf.5.xml:1616 sssd.conf.5.xml:2171 sssd.conf.5.xml:3221
 #: sssd-ldap.5.xml:1091
 msgid "Default: none"
-msgstr ""
+msgstr "Oletus: ei mitään"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
@@ -2109,7 +2109,7 @@ msgstr ""
 #: sssd-ldap.5.xml:1164 sssd-ad.5.xml:481 sssd-ad.5.xml:499 sssd-ad.5.xml:1044
 #: include/ldap_id_mapping.xml:244
 msgid "Default: False"
-msgstr ""
+msgstr "Oletus:epätosi"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
@@ -2127,7 +2127,7 @@ msgstr ""
 #. <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1452 sssd.conf.5.xml:1830 sssd.conf.5.xml:3746
 msgid "Default:"
-msgstr ""
+msgstr "Oletus:"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -2218,7 +2218,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1526 sssd-ad.5.xml:566
 msgid "login"
-msgstr ""
+msgstr "kirjautuminen"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -2339,7 +2339,7 @@ msgstr ""
 #. <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1629
 msgid "always"
-msgstr ""
+msgstr "aina"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
@@ -2366,7 +2366,7 @@ msgstr ""
 #. <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1640
 msgid "never"
-msgstr ""
+msgstr "Ei koskaan"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
@@ -3007,7 +3007,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2158
 msgid "all"
-msgstr ""
+msgstr "kaikki"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
@@ -3019,7 +3019,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2162
 msgid "none"
-msgstr ""
+msgstr "Ei mitään"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
@@ -3041,7 +3041,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2177
 msgid "entry_cache_timeout (integer)"
-msgstr ""
+msgstr "entry_cache_timeout (integeri)"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -4009,7 +4009,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:2995
 msgid "username"
-msgstr ""
+msgstr "käyttäjänimi"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -4192,7 +4192,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3163
 msgid "False"
-msgstr ""
+msgstr "epätosi"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
@@ -4405,7 +4405,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3303
 msgid "true"
-msgstr ""
+msgstr "tosi"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
@@ -4429,7 +4429,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3319
 msgid "false"
-msgstr ""
+msgstr "epätosi"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
@@ -5471,7 +5471,7 @@ msgstr ""
 #: sssd-ldap.5.xml:132 sssd-ad.5.xml:288 sss_override.8.xml:137
 #: sss_override.8.xml:234 sssd-ldap-attributes.5.xml:453
 msgid "Examples:"
-msgstr ""
+msgstr "Esimerkki:"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -5654,7 +5654,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:273
 msgid "password"
-msgstr ""
+msgstr "salasana"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -6421,7 +6421,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:934
 msgid "Default: false;"
-msgstr ""
+msgstr "Oletus: epätosi;"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -6730,7 +6730,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1193
 msgid "Example:"
-msgstr ""
+msgstr "Esimerkki:"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
@@ -7455,7 +7455,7 @@ msgstr ""
 #: sssd-krb5.5.xml:613 sssd-files.5.xml:137 sssd-files.5.xml:148
 #: sssd-session-recording.5.xml:150 include/ldap_id_mapping.xml:105
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
+msgstr "<placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1758
@@ -7962,7 +7962,7 @@ msgstr ""
 #. <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:374
 msgid "Error in service module."
-msgstr ""
+msgstr "Virhe palvelumoduulissa."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><variablelist><varlistentry><term>
@@ -8090,7 +8090,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss.8.xml:464
 msgid "FILES"
-msgstr ""
+msgstr "TIEDOSTOT"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:465
@@ -10994,7 +10994,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:507
 msgid "ad_gpo_cache_timeout (integer)"
-msgstr ""
+msgstr "ad_gpo_cache_timeout (integeri)"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -11158,7 +11158,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:680
 msgid "cockpit"
-msgstr ""
+msgstr "cockpit"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -11456,7 +11456,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:949
 msgid "network"
-msgstr ""
+msgstr "verkko"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -11468,7 +11468,7 @@ msgstr ""
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:959
 msgid "service"
-msgstr ""
+msgstr "palvelu"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -11607,7 +11607,7 @@ msgstr ""
 #. <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1135 sss_rpcidmapd.5.xml:76
 msgid "Default: True"
-msgstr ""
+msgstr "Oletus:tosi"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:1242
@@ -12915,7 +12915,7 @@ msgstr ""
 #. <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:166 include/override_homedir.xml:12
 msgid "login name"
-msgstr ""
+msgstr "Kirjautumisnimi"
 
 #. type: Content of:
 #. <varlistentry><listitem><para><variablelist><varlistentry><term>
@@ -12963,7 +12963,7 @@ msgstr ""
 #. <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:183 sssd-ifp.5.xml:108
 msgid "home directory"
-msgstr ""
+msgstr "kotihakemisto"
 
 #. type: Content of:
 #. <varlistentry><listitem><para><variablelist><varlistentry><term>
@@ -13462,7 +13462,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_groupadd.8.xml:10 sss_groupadd.8.xml:15
 msgid "sss_groupadd"
-msgstr ""
+msgstr "sss_groupadd"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_groupadd.8.xml:16
@@ -14231,7 +14231,7 @@ msgstr ""
 #. <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-ifp.5.xml:91
 msgid "name"
-msgstr ""
+msgstr "nimi"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
@@ -14249,7 +14249,7 @@ msgstr ""
 #. <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:96
 msgid "user ID"
-msgstr ""
+msgstr "käyttäjä-ID"
 
 #. type: Content of:
 #. <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
@@ -14494,7 +14494,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
 #: sss_ssh_authorizedkeys.1.xml:11 sss_ssh_knownhostsproxy.1.xml:11
 msgid "1"
-msgstr ""
+msgstr "1"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_ssh_authorizedkeys.1.xml:16
@@ -18447,7 +18447,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><title>
 #: include/service_discovery.xml:9 include/ldap_id_mapping.xml:99
 msgid "Configuration"
-msgstr ""
+msgstr "Asetukset"
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/service_discovery.xml:11
@@ -19337,7 +19337,7 @@ msgstr ""
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:7
 msgid "syntax: <placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
+msgstr "Esimerkki: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:13
@@ -19385,7 +19385,7 @@ msgstr ""
 #. <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: include/override_homedir.xml:20
 msgid "domain name"
-msgstr ""
+msgstr "Toimialueen nimi"
 
 #. type: Content of:
 #. <varlistentry><listitem><para><variablelist><varlistentry><term>
@@ -19572,7 +19572,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><title>
 #: include/ad_modified_defaults.xml:80
 msgid "NSS configuration"
-msgstr ""
+msgstr "NSS-määritykset"
 
 #. type: Content of: <refsect1><refsect2><itemizedlist><listitem><para>
 #: include/ad_modified_defaults.xml:84
