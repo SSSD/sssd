@@ -128,12 +128,10 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
         }
     }
 
-    if (DEBUG_IS_SET(SSSDBG_TRACE_LIBS)) {
-        char *uri = ldap_url_desc2str(srv);
-        DEBUG(SSSDBG_TRACE_ALL, "New connection to [%s] with fd [%d]\n",
-                  uri, ber_fd);
-        free(uri);
-    }
+    char *uri = ldap_url_desc2str(srv);
+    DEBUG(SSSDBG_TRACE_ALL, "New connection to [%s] with fd [%d]\n",
+              uri, ber_fd);
+    free(uri);
 
     fd_event_item = talloc_zero(cb_data, struct fd_event_item);
     if (fd_event_item == NULL) {

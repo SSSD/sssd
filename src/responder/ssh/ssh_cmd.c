@@ -140,12 +140,10 @@ static void ssh_ext_debug(void *private, const char *file, long line,
         level = data->level;
     }
 
-    if (DEBUG_IS_SET(level)) {
-        va_start(ap, format);
-        sss_vdebug_fn(file, line, function, level, APPEND_LINE_FEED,
-                      format, ap);
-        va_end(ap);
-    }
+    va_start(ap, format);
+    sss_vdebug_fn(file, line, function, level, APPEND_LINE_FEED,
+                  format, ap);
+    va_end(ap);
 }
 
 static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,

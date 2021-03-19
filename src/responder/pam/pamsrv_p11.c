@@ -132,12 +132,10 @@ static void ext_debug(void *private, const char *file, long line,
         level = data->level;
     }
 
-    if (DEBUG_IS_SET(level)) {
-        va_start(ap, format);
-        sss_vdebug_fn(file, line, function, level, APPEND_LINE_FEED,
-                      format, ap);
-        va_end(ap);
-    }
+    va_start(ap, format);
+    sss_vdebug_fn(file, line, function, level, APPEND_LINE_FEED,
+                  format, ap);
+    va_end(ap);
 }
 
 errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
