@@ -1658,14 +1658,12 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    if (DEBUG_IS_SET(SSSDBG_TRACE_FUNC)) {
-        input = ipa_s2n_reqinp2str(state, req_input);
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Sending request_type: [%s] for trust user [%s] to IPA server\n",
-              ipa_s2n_reqtype2str(state->request_type),
-              input);
-        talloc_zfree(input);
-    }
+    input = ipa_s2n_reqinp2str(state, req_input);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Sending request_type: [%s] for trust user [%s] to IPA server\n",
+          ipa_s2n_reqtype2str(state->request_type),
+          input);
+    talloc_zfree(input);
 
     subreq = ipa_s2n_exop_send(state, state->ev, state->sh, state->protocol,
                                state->exop_timeout, bv_req);
@@ -2085,15 +2083,11 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
         if (attrs->response_type == RESP_USER_GROUPLIST) {
 
-            if (DEBUG_IS_SET(SSSDBG_TRACE_FUNC)) {
-                size_t c;
+            DEBUG(SSSDBG_TRACE_FUNC, "Received [%zu] groups in group list "
+                                     "from IPA Server\n", attrs->ngroups);
 
-                DEBUG(SSSDBG_TRACE_FUNC, "Received [%zu] groups in group list "
-                                         "from IPA Server\n", attrs->ngroups);
-
-                for (c = 0; c < attrs->ngroups; c++) {
-                    DEBUG(SSSDBG_TRACE_FUNC, "[%s].\n", attrs->groups[c]);
-                }
+            for (size_t c = 0; c < attrs->ngroups; c++) {
+                DEBUG(SSSDBG_TRACE_FUNC, "[%s].\n", attrs->groups[c]);
             }
 
 

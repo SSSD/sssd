@@ -55,10 +55,8 @@ static void sss_semanage_error_callback(void *varg,
     }
 
     va_start(ap, fmt);
-    if (DEBUG_IS_SET(level)) {
-        sss_vdebug_fn(__FILE__, __LINE__, "libsemanage", level,
-                      APPEND_LINE_FEED, fmt, ap);
-    }
+    sss_vdebug_fn(__FILE__, __LINE__, "libsemanage", level,
+                  APPEND_LINE_FEED, fmt, ap);
     va_end(ap);
 }
 

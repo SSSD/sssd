@@ -34,7 +34,7 @@
 #include "util/authtok.h"
 
 #define DEBUG_PAM_DATA(level, pd) do { \
-    if (DEBUG_IS_SET(level)) pam_print_data(level, pd); \
+    pam_print_data(level, pd); \
 } while(0)
 
 struct response_data {

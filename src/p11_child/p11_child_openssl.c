@@ -1335,11 +1335,9 @@ static CK_RV get_preferred_rsa_mechanism(TALLOC_CTX *mem_ctx,
         if (mechanism_list != NULL) {
             rv = module->C_GetMechanismList(slot_id, mechanism_list, &count);
             if (rv == CKR_OK) {
-                if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
-                    for (m = 0; m < count; m++) {
-                        DEBUG(SSSDBG_TRACE_ALL, "Found mechanism [%lu].\n",
-                                                mechanism_list[m]);
-                    }
+                for (m = 0; m < count; m++) {
+                    DEBUG(SSSDBG_TRACE_ALL, "Found mechanism [%lu].\n",
+                                            mechanism_list[m]);
                 }
                 for (c = 0; prefs[c].mech != 0; c++) {
                     for (m = 0; m < count; m++) {

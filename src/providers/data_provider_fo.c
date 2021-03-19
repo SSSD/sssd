@@ -645,7 +645,7 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
         return ENOENT;
     }
 
-    if (DEBUG_IS_SET(SSSDBG_FUNC_DATA) && fo_get_server_name(state->srv)) {
+    if (fo_get_server_name(state->srv)) {
         struct resolv_hostent *srvaddr;
         char ipaddr[128];
         srvaddr = fo_get_server_hostent(state->srv);

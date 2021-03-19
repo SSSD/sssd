@@ -696,12 +696,10 @@ static krb5_error_code answer_pkinit(krb5_context ctx,
         goto done;
     }
 
-    if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
-        for (c = 0; chl->identities[c] != NULL; c++) {
-            DEBUG(SSSDBG_TRACE_ALL, "[%zu] Identity [%s] flags [%"PRId32"].\n",
-                                    c, chl->identities[c]->identity,
-                                    chl->identities[c]->token_flags);
-        }
+    for (c = 0; chl->identities[c] != NULL; c++) {
+        DEBUG(SSSDBG_TRACE_ALL, "[%zu] Identity [%s] flags [%"PRId32"].\n",
+                                c, chl->identities[c]->identity,
+                                chl->identities[c]->token_flags);
     }
 
     DEBUG(SSSDBG_TRACE_ALL, "Setting pkinit_prompting.\n");
@@ -847,11 +845,9 @@ static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
           name, banner, num_prompts);
 
     if (num_prompts != 0) {
-        if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
-            for (c = 0; c < num_prompts; c++) {
-                DEBUG(SSSDBG_TRACE_ALL, "Prompt [%zu][%s].\n", c,
-                                        prompts[c].prompt);
-            }
+        for (c = 0; c < num_prompts; c++) {
+            DEBUG(SSSDBG_TRACE_ALL, "Prompt [%zu][%s].\n", c,
+                                    prompts[c].prompt);
         }
 
         DEBUG(SSSDBG_FUNC_DATA, "Prompter interface isn't used for password prompts by SSSD.\n");

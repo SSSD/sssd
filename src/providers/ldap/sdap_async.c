@@ -1247,10 +1247,6 @@ static void sdap_print_server(struct sdap_handle *sh)
     char ip[NI_MAXHOST];
     int port;
 
-    if (!DEBUG_IS_SET(SSSDBG_TRACE_INTERNAL)) {
-        return;
-    }
-
     ret = get_fd_from_ldap(sh->ldap, &fd);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "cannot get sdap fd\n");
@@ -1470,14 +1466,10 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
          "calling ldap_search_ext with [%s][%s].\n",
           state->filter ? state->filter : "no filter",
           state->search_base);
-    if (DEBUG_IS_SET(SSSDBG_TRACE_LIBS)) {
-        int i;
-
-        if (state->attrs) {
-            for (i = 0; state->attrs[i]; i++) {
-                DEBUG(SSSDBG_TRACE_LIBS,
-                      "Requesting attrs: [%s]\n", state->attrs[i]);
-            }
+    if (state->attrs) {
+        for (int i = 0; state->attrs[i]; i++) {
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "Requesting attrs: [%s]\n", state->attrs[i]);
         }
     }
 
