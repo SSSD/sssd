@@ -196,15 +196,13 @@ static void handle_curlmsg_done(CURLMsg *message)
         return;
     }
 
-    if (DEBUG_IS_SET(SSSDBG_TRACE_FUNC)) {
-        crv = curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &done_url);
-        if (crv != CURLE_OK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get CURLINFO_EFFECTIVE_URL "
-                  "[%d]: %s\n", crv, curl_easy_strerror(crv));
-            /* not fatal since we need this only for debugging */
-        } else {
-            DEBUG(SSSDBG_TRACE_FUNC, "Handled %s\n", done_url);
-        }
+    crv = curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &done_url);
+    if (crv != CURLE_OK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get CURLINFO_EFFECTIVE_URL "
+              "[%d]: %s\n", crv, curl_easy_strerror(crv));
+        /* not fatal since we need this only for debugging */
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, "Handled %s\n", done_url);
     }
 
     crv = curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, (void *) &req);

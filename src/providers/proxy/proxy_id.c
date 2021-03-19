@@ -565,19 +565,17 @@ done:
 /* =Save-group-utilities=================================================*/
 #define DEBUG_GR_MEM(level, grp) \
     do { \
-        if (DEBUG_IS_SET(level)) { \
-            if (!grp->gr_mem || !grp->gr_mem[0]) { \
-                DEBUG(level, "Group %s has no members!\n", \
-                              grp->gr_name); \
-            } else { \
-                int i = 0; \
-                while (grp->gr_mem[i]) { \
-                    /* count */ \
-                    i++; \
-                } \
-                DEBUG(level, "Group %s has %d members!\n", \
-                              grp->gr_name, i); \
+        if (!grp->gr_mem || !grp->gr_mem[0]) { \
+            DEBUG(level, "Group %s has no members!\n", \
+                          grp->gr_name); \
+        } else { \
+            int i = 0; \
+            while (grp->gr_mem[i]) { \
+                /* count */ \
+                i++; \
             } \
+            DEBUG(level, "Group %s has %d members!\n", \
+                          grp->gr_name, i); \
         } \
     } while(0)
 

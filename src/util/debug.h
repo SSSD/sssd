@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "util/util_errors.h"
+
 #define SSSDBG_TIMESTAMP_UNRESOLVED      -1
 #define SSSDBG_TIMESTAMP_DEFAULT          1
 
@@ -128,15 +130,6 @@ int rotate_debug_files(void);
     } \
 } while (0)
 
-/** \def DEBUG_IS_SET(level)
-    \brief checks whether level is set in debug_level
-
-    \param level the debug level, please use one of the SSSDBG*_ macros
-*/
-#define DEBUG_IS_SET(level) (debug_level & (level) || \
-                            (debug_level == SSSDBG_UNRESOLVED && \
-                                            (level & (SSSDBG_FATAL_FAILURE | \
-                                                      SSSDBG_CRIT_FAILURE))))
 
 /* SSSD_*_OPTS are used as 'poptOption' entries */
 #define SSSD_LOGGER_OPTS \
@@ -180,6 +173,18 @@ void sss_debug_fn(const char *file,
                   const char *format, ...) SSS_ATTRIBUTE_PRINTF(5, 6);
 
 #define APPEND_LINE_FEED 0x1 /* can be used as a sss_vdebug_fn() flag */
+
+/* Checks whether level is set in generic debug_level.
+   Rarely needed to be used explicitly as everything
+   should go to backtrace buffer anyway (regardless debug_level)
+   Deciding if "--verbose" should be passed to `adcli` child process
+   is one of usage examples.
+ */
+#define DEBUG_IS_SET(level) (debug_level & (level) || \
+                            (debug_level == SSSDBG_UNRESOLVED && \
+                                            (level & (SSSDBG_FATAL_FAILURE | \
+                                                      SSSDBG_CRIT_FAILURE))))
+
 
 /* not to be used explictly, use 'DEBUG_INIT' instead */
 void _sss_debug_init(int dbg_lvl, const char *logger);
