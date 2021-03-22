@@ -63,6 +63,8 @@ extern const char *debug_log_file;   /* only file name, excluding path */
     DEBUG_INIT(dbg_lvl, sss_logger_str[STDERR_LOGGER]); \
 } while (0)
 
+void sss_debug_backtrace_enable(bool enable);
+
 /* debug_convert_old_level() converts "old" style decimal notation
  * to bitmask composed of SSSDBG_*
  * Used explicitly, for example, while processing user input
@@ -122,12 +124,9 @@ int rotate_debug_files(void);
     \param ... the debug message format arguments
 */
 #define DEBUG(level, format, ...) do { \
-    int __debug_macro_level = level; \
-    if (DEBUG_IS_SET(__debug_macro_level)) { \
-        sss_debug_fn(__FILE__, __LINE__, __FUNCTION__, \
-                     __debug_macro_level, \
-                     format, ##__VA_ARGS__); \
-    } \
+    sss_debug_fn(__FILE__, __LINE__, __FUNCTION__, \
+                 level, \
+                 format, ##__VA_ARGS__); \
 } while (0)
 
 
