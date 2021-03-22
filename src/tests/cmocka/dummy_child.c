@@ -42,6 +42,7 @@ int main(int argc, const char *argv[])
     const char *action = NULL;
     const char *guitar;
     const char *drums;
+    int timestamp_opt;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -69,6 +70,7 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
 
     debug_log_file = "test_dummy_child";
+    timestamp_opt = debug_timestamps; /* save value for verification */
     DEBUG_INIT(debug_level, opt_logger);
 
     action = getenv("TEST_CHILD_ACTION");
@@ -80,7 +82,7 @@ int main(int argc, const char *argv[])
                 _exit(1);
             }
         } else if (strcasecmp(action, "check_only_extra_args") == 0) {
-            if (debug_timestamps == 1) {
+            if (timestamp_opt == 1) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "debug_timestamp was passed when only extra args "
                       "should have been\n");
@@ -93,7 +95,7 @@ int main(int argc, const char *argv[])
                 _exit(1);
             }
         } else if (strcasecmp(action, "check_only_extra_args_neg") == 0) {
-            if (debug_timestamps != 1) {
+            if (timestamp_opt != 1) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "debug_timestamp was not passed as expected\n");
                 _exit(1);

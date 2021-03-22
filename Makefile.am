@@ -937,6 +937,7 @@ endif
 pkglib_LTLIBRARIES += libsss_debug.la
 libsss_debug_la_SOURCES = \
     src/util/debug.c \
+    src/util/debug_backtrace.c \
     src/util/sss_log.c \
     src/util/sss_cli_cmd.c \
     $(NULL)
@@ -1061,6 +1062,7 @@ pkglib_LTLIBRARIES += libsss_sbus.la
 libsss_sbus_la_SOURCES = \
     src/util/check_and_open.c \
     src/util/debug.c \
+    src/util/debug_backtrace.c \
     src/util/sss_ptr_hash.c \
     src/util/sss_ptr_list.c \
     src/util/sss_utf8.c \
@@ -1124,6 +1126,7 @@ libsss_sbus_la_LDFLAGS = \
 pkglib_LTLIBRARIES += libsss_sbus_sync.la
 libsss_sbus_sync_la_SOURCES = \
     src/util/debug.c \
+    src/util/debug_backtrace.c \
     src/util/sss_utf8.c \
     src/util/util.c \
     src/util/util_errors.c \
