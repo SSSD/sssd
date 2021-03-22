@@ -36,6 +36,12 @@
 
 #include "util/util.h"
 
+/* from debug_backtrace.h */
+void sss_debug_backtrace_init(void);
+void sss_debug_backtrace_vprintf(int level, const char *format, va_list ap);
+void sss_debug_backtrace_printf(int level, const char *format, ...);
+void sss_debug_backtrace_endmsg(int level);
+
 const char *debug_prg_name = "sssd";
 
 int debug_level = SSSDBG_UNRESOLVED;
@@ -43,7 +49,7 @@ int debug_timestamps = SSSDBG_TIMESTAMP_UNRESOLVED;
 int debug_microseconds = SSSDBG_MICROSECONDS_UNRESOLVED;
 enum sss_logger_t sss_logger = STDERR_LOGGER;
 const char *debug_log_file = "sssd";
-static FILE *debug_file;
+FILE *_sss_debug_file;
 
 const char *sss_logger_str[] = {
         [STDERR_LOGGER] = "stderr",
@@ -97,17 +103,27 @@ void _sss_debug_init(int dbg_lvl, const char *logger)
         debug_level = SSSDBG_UNRESOLVED;
     }
 
+    if (debug_timestamps == SSSDBG_TIMESTAMP_UNRESOLVED) {
+        debug_timestamps = SSSDBG_TIMESTAMP_DEFAULT;
+    }
+
+    if (debug_microseconds == SSSDBG_MICROSECONDS_UNRESOLVED) {
+        debug_microseconds = SSSDBG_MICROSECONDS_DEFAULT;
+    }
+
     sss_set_logger(logger);
 
     /* if 'FILES_LOGGER' is requested then open log file, if it wasn't
      * initialized before via set_debug_file_from_fd().
      */
-    if ((sss_logger == FILES_LOGGER) && (debug_file == NULL)) {
+    if ((sss_logger == FILES_LOGGER) && (_sss_debug_file == NULL)) {
         if (_sss_open_debug_file() != 0) {
             ERROR("Error opening log file, falling back to stderr\n");
             sss_logger = STDERR_LOGGER;
         }
     }
+
+    sss_debug_backtrace_init();
 }
 
 errno_t set_debug_file_from_fd(const int fd)
@@ -129,18 +145,18 @@ errno_t set_debug_file_from_fd(const int fd)
         return ret;
     }
 
-    debug_file = dummy;
+    _sss_debug_file = dummy;
 
     return EOK;
 }
 
 int get_fd_from_debug_file(void)
 {
-    if (debug_file == NULL) {
+    if (_sss_debug_file == NULL) {
         return STDERR_FILENO;
     }
 
-    return fileno(debug_file);
+    return fileno(_sss_debug_file);
 }
 
 int debug_convert_old_level(int old_level)
@@ -186,29 +202,6 @@ int debug_convert_old_level(int old_level)
     return new_level;
 }
 
-static void debug_fflush(void)
-{
-    fflush(debug_file ? debug_file : stderr);
-}
-
-static void debug_vprintf(const char *format, va_list ap)
-{
-    vfprintf(debug_file ? debug_file : stderr, format, ap);
-}
-
-static void debug_printf(const char *format, ...)
-                SSS_ATTRIBUTE_PRINTF(1, 2);
-
-static void debug_printf(const char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-
-    debug_vprintf(format, ap);
-
-    va_end(ap);
-}
 
 #ifdef WITH_JOURNALD
 static errno_t journal_send(const char *file,
@@ -292,6 +285,7 @@ void sss_vdebug_fn(const char *file,
     va_list ap_fallback;
 
     if (sss_logger == JOURNALD_LOGGER) {
+        if (!DEBUG_IS_SET(level)) return; /* no debug backtrace with journald atm */
         /* If we are not outputting logs to files, we should be sending them
          * to journald.
          * NOTE: on modern systems, this is where stdout/stderr will end up
@@ -303,8 +297,8 @@ void sss_vdebug_fn(const char *file,
         ret = journal_send(file, line, function, level, format, ap);
         if (ret != EOK) {
             /* Emergency fallback, send to STDERR */
-            debug_vprintf(format, ap_fallback);
-            debug_fflush();
+            vfprintf(stderr, format, ap_fallback);
+            fflush(stderr);
         }
         va_end(ap_fallback);
         return;
@@ -327,19 +321,21 @@ void sss_vdebug_fn(const char *file,
                      tm.tm_hour, tm.tm_min, tm.tm_sec);
         }
         if (debug_microseconds) {
-            debug_printf("%s:%.6ld): ", last_time_str, tv.tv_usec);
+            sss_debug_backtrace_printf(level, "%s:%.6ld): ",
+                                       last_time_str, tv.tv_usec);
         } else {
-            debug_printf("%s): ", last_time_str);
+            sss_debug_backtrace_printf(level, "%s): ", last_time_str);
         }
     }
 
-    debug_printf("[%s] [%s] (%#.4x): ", debug_prg_name, function, level);
+    sss_debug_backtrace_printf(level, "[%s] [%s] (%#.4x): ",
+                               debug_prg_name, function, level);
 
-    debug_vprintf(format, ap);
+    sss_debug_backtrace_vprintf(level, format, ap);
     if (flags & APPEND_LINE_FEED) {
-        debug_printf("\n");
+        sss_debug_backtrace_printf(level, "\n");
     }
-    debug_fflush();
+    sss_debug_backtrace_endmsg(level);
 }
 
 void sss_debug_fn(const char *file,
@@ -416,7 +412,7 @@ int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec)
         return ENOMEM;
     }
 
-    if (debug_file && !filep) fclose(debug_file);
+    if (_sss_debug_file && !filep) fclose(_sss_debug_file);
 
     old_umask = umask(SSS_DFL_UMASK);
     errno = 0;
@@ -442,7 +438,7 @@ int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec)
     }
 
     if (filep == NULL) {
-        debug_file = f;
+        _sss_debug_file = f;
     } else {
         *filep = f;
     }
@@ -457,10 +453,10 @@ int rotate_debug_files(void)
 
     if (sss_logger != FILES_LOGGER) return EOK;
 
-    if (debug_file != NULL) {
+    if (_sss_debug_file != NULL) {
         do {
             error = 0;
-            ret = fclose(debug_file);
+            ret = fclose(_sss_debug_file);
             if (ret != 0) {
                 error = errno;
             }
@@ -486,7 +482,7 @@ int rotate_debug_files(void)
         }
     }
 
-    debug_file = NULL;
+    _sss_debug_file = NULL;
 
     return _sss_open_debug_file();
 }
