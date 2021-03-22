@@ -2,7 +2,7 @@
 
 :requirement: IDM-SSSD-REQ :: SSSD KCM as default Kerberos CCACHE provider
 :casecomponent: sssd
-:subsystemteam: sst_identity_management
+:subsystemteam: sst_idm_sssd
 :upstream: yes
 """
 

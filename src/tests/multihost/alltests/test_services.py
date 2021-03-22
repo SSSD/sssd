@@ -2,7 +2,7 @@
 
 :requirement: IDM-SSSD-REQ : Configuration and Service Management
 :casecomponent: sssd
-:subsystemteam: sst_identity_management
+:subsystemteam: sst_idm_sssd
 :upstream: yes
 """
 from __future__ import print_function

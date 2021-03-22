@@ -2,7 +2,7 @@
 
 :requirement: IDM-SSSD-REQ: Active Directory host keytab renewal
 :casecomponent: sssd
-:subsystemteam: sst_identity_management
+:subsystemteam: sst_idm_sssd
 :upstream: yes
 """
 
