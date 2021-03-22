@@ -2,7 +2,7 @@
 
 :requirement: ad_parameters
 :casecomponent: sssd
-:subsystemteam: sst_identity_management
+:subsystemteam: sst_idm_sssd
 :upstream: yes
 """
 from __future__ import print_function

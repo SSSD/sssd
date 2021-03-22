@@ -2,7 +2,7 @@
 
 :casecomponent: sssd
 :requirement: Add support for passing --add-samba-data to adcli
-:subsystemteam: sst_identity_management
+:subsystemteam: sst_idm_sssd
 :upstream: yes
 """
 from __future__ import print_function

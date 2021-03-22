@@ -3,7 +3,7 @@
 :requirement: IDM-SSSD-REQ: SSSD can automatically create\
  user private groups for users
 :casecomponent: sssd
-:subsystemteam: sst_identity_management
+:subsystemteam: sst_idm_sssd
 :upstream: yes
 """
 from __future__ import print_function

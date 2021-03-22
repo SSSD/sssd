@@ -2,7 +2,7 @@
 
 :requirement: HBAC (ipa_provider)
 :casecomponent: sssd
-:subsystemteam: sst_identity_management
+:subsystemteam: sst_idm_sssd
 :upstream: yes
 """
 import pytest
