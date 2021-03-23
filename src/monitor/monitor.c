@@ -721,6 +721,11 @@ static int service_signal_clear_memcache(struct mt_svc *svc)
     return service_signal(svc, sbus_call_service_clearMemcache_send,
                           sbus_call_service_clearMemcache_recv);
 }
+static int service_signal_clear_negcache(struct mt_svc *svc)
+{
+    return service_signal(svc, sbus_call_service_clearNegcache_send,
+                          sbus_call_service_clearNegcache_recv);
+}
 static int service_signal_clear_enum_cache(struct mt_svc *svc)
 {
     return service_signal(svc, sbus_call_service_clearEnumCache_send,
@@ -1356,18 +1361,26 @@ static void monitor_hup(struct tevent_context *ev,
     struct mt_ctx *ctx = talloc_get_type(private_data, struct mt_ctx);
     struct mt_svc *cur_svc;
 
-    DEBUG(SSSDBG_CRIT_FAILURE, "Received SIGHUP.\n");
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Monitor received SIGHUP\n");
 
     /* Send D-Bus message to other services to rotate their logs.
      * NSS service receives also message to clear memory caches. */
     for(cur_svc = ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Log rotate triggered for: %s\n", cur_svc->name);
         service_signal_rotate(cur_svc);
         if (!strcmp(NSS_SBUS_SERVICE_NAME, cur_svc->name)) {
+            DEBUG(SSSDBG_TRACE_FUNC, "NSS negcache cleaning\n");
+            service_signal_clear_negcache(cur_svc);
+
+            DEBUG(SSSDBG_TRACE_FUNC, "NSS memcache cleaning\n");
             service_signal_clear_memcache(cur_svc);
+
+            DEBUG(SSSDBG_TRACE_FUNC, "NSS enum_cache cleaning\n");
             service_signal_clear_enum_cache(cur_svc);
         }
 
         if (!strcmp(SSS_AUTOFS_SBUS_SERVICE_NAME, cur_svc->name)) {
+            DEBUG(SSSDBG_TRACE_FUNC, "AUTOFS enum_cache cleaning\n");
             service_signal_clear_enum_cache(cur_svc);
         }
 
