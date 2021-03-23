@@ -20,6 +20,7 @@
         <method name="resetOffline" />
         <method name="rotateLogs" />
         <method name="clearMemcache" />
+        <method name="clearNegcache" />
         <method name="clearEnumCache" />
         <method name="sysbusReconnect" />
     </interface>
