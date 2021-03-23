@@ -55,12 +55,19 @@
 
 #define ENUM_INDICATOR "*"
 
+/*
+ * CLEAR_MC_FLAG is a flag file used to notify NSS responder
+ * that SIGHUP signal it received was triggered by sss_cache
+ * as a call for memory cache clearing. During the procedure
+ * this file is deleted by NSS responder to notify back
+ * sss_cache that memory cache clearing was completed.
+ */
 #define CLEAR_MC_FLAG "clear_mc_flag"
 
-/** Default secure umask */
+/* Default secure umask */
 #define SSS_DFL_UMASK 0177
 
-/** Secure mask with executable bit */
+/* Secure mask with executable bit */
 #define SSS_DFL_X_UMASK 0077
 
 #ifndef NULL
