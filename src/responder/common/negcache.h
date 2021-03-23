@@ -159,7 +159,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                struct confdb_ctx *cdb,
                                struct resp_ctx *rctx);
 
-/* Flush the negcache and then repopulate */
+/* Flush the negcache permament entries and then repopulate them */
 errno_t sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
                                               struct sss_nc_ctx *ncache);
 
