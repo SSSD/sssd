@@ -51,7 +51,7 @@
 #define ONLINE_CB_RETRY 3
 #define ONLINE_CB_RETRY_MAX_DELAY 4
 
-#define OFFLINE_TIMEOUT_RANDOM_OFFSET 30
+#define OFFLINE_TIMEOUT_RANDOM_OFFSET_DEFAULT 30
 #define OFFLINE_TIMEOUT_DEFAULT 60
 #define OFFLINE_TIMEOUT_MAX_DEFAULT 3600
 
@@ -134,10 +134,30 @@ static int get_offline_timeout_max(struct be_ctx *ctx)
     return offline_timeout_max;
 }
 
+static int get_offline_timeout_random_offset(struct be_ctx *ctx)
+{
+    int offline_timeout_random_offset;
+    errno_t ret;
+
+    ret = confdb_get_int(ctx->cdb, ctx->conf_path,
+                         CONFDB_DOMAIN_OFFLINE_TIMEOUT_RANDOM_OFFSET,
+                         OFFLINE_TIMEOUT_RANDOM_OFFSET_DEFAULT,
+                         &offline_timeout_random_offset);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Failed to get refresh_max_random_offset from confdb. "
+              "Will use %d seconds.\n", OFFLINE_TIMEOUT_RANDOM_OFFSET_DEFAULT);
+        offline_timeout_random_offset = OFFLINE_TIMEOUT_RANDOM_OFFSET_DEFAULT;
+    }
+
+    return offline_timeout_random_offset;
+}
+
 void be_mark_offline(struct be_ctx *ctx)
 {
     int offline_timeout;
     int offline_timeout_max;
+    int offline_timeout_random_offset;
     errno_t ret;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Going offline!\n");
@@ -152,13 +172,14 @@ void be_mark_offline(struct be_ctx *ctx)
 
         offline_timeout = get_offline_timeout(ctx);
         offline_timeout_max = get_offline_timeout_max(ctx);
+        offline_timeout_random_offset = get_offline_timeout_random_offset(ctx);
 
         ret = be_ptask_create_sync(ctx,
                                    ctx,
                                    offline_timeout,
                                    offline_timeout,
                                    offline_timeout,
-                                   OFFLINE_TIMEOUT_RANDOM_OFFSET,
+                                   offline_timeout_random_offset,
                                    offline_timeout,
                                    offline_timeout_max,
                                    try_to_go_online,
