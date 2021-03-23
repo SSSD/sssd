@@ -245,6 +245,7 @@
 #define CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL "refresh_expired_interval"
 #define CONFDB_DOMAIN_OFFLINE_TIMEOUT "offline_timeout"
 #define CONFDB_DOMAIN_OFFLINE_TIMEOUT_MAX "offline_timeout_max"
+#define CONFDB_DOMAIN_OFFLINE_TIMEOUT_RANDOM_OFFSET "offline_timeout_random_offset"
 #define CONFDB_DOMAIN_SUBDOMAIN_INHERIT "subdomain_inherit"
 #define CONFDB_DOMAIN_CACHED_AUTH_TIMEOUT "cached_auth_timeout"
 #define CONFDB_DOMAIN_TYPE "domain_type"
