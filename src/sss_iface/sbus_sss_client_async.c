@@ -2436,6 +2436,24 @@ sbus_call_service_clearMemcache_recv
 }
 
 struct tevent_req *
+sbus_call_service_clearNegcache_send
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_connection *conn,
+     const char *busname,
+     const char *object_path)
+{
+    return sbus_method_in__out__send(mem_ctx, conn, NULL,
+        busname, object_path, "sssd.service", "clearNegcache");
+}
+
+errno_t
+sbus_call_service_clearNegcache_recv
+    (struct tevent_req *req)
+{
+    return sbus_method_in__out__recv(req);
+}
+
+struct tevent_req *
 sbus_call_service_goOffline_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,

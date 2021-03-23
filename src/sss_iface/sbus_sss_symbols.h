@@ -125,6 +125,9 @@ extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_service_clearMemcache;
 
 extern const struct sbus_method_arguments
+_sbus_sss_args_sssd_service_clearNegcache;
+
+extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_service_goOffline;
 
 extern const struct sbus_method_arguments
