@@ -72,7 +72,13 @@ nss_clear_memcache(TALLOC_CTX *mem_ctx,
         }
     }
 
-    /* CLEAR_MC_FLAG found. Clearing memory caches. */
+    /*
+     * CLEAR_MC_FLAG flag file found.
+     * This file existance indicates that SIGHUP was called by sss_cache
+     * as trigger for the memory cache cleanup.
+     * sss_cache is waiting for CLEAR_MC_FLAG file deletion
+     * as confirmation that memory cache cleaning has finished.
+     */
 
     ret = confdb_get_int(nctx->rctx->cdb,
                          CONFDB_NSS_CONF_ENTRY,
@@ -121,6 +127,33 @@ done:
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unlink file: %s.\n",
                   strerror(errno));
     }
+    return ret;
+}
+
+static errno_t
+nss_clear_negcache(TALLOC_CTX *mem_ctx,
+                   struct sbus_request *sbus_req,
+                   struct nss_ctx *nctx)
+{
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Clearing negative cache non-permament entries\n");
+
+    ret = sss_ncache_reset_users(nctx->rctx->ncache);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Negative cache clearing users failed\n");
+        goto done;
+    }
+
+    ret = sss_ncache_reset_groups(nctx->rctx->ncache);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Negative cache clearing groups failed\n");
+        goto done;
+    }
+
+done:
     return ret;
 }
 
@@ -339,7 +372,8 @@ nss_register_service_iface(struct nss_ctx *nss_ctx,
             SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),
             SBUS_SYNC(METHOD, sssd_service, rotateLogs, responder_logrotate, rctx),
             SBUS_SYNC(METHOD, sssd_service, clearEnumCache, nss_clear_netgroup_hash_table, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_service, clearMemcache, nss_clear_memcache, nss_ctx)
+            SBUS_SYNC(METHOD, sssd_service, clearMemcache, nss_clear_memcache, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_service, clearNegcache, nss_clear_negcache, nss_ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)

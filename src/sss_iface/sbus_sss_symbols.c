@@ -438,6 +438,16 @@ _sbus_sss_args_sssd_service_clearMemcache = {
 };
 
 const struct sbus_method_arguments
+_sbus_sss_args_sssd_service_clearNegcache = {
+    .input = (const struct sbus_argument[]){
+        {NULL}
+    },
+    .output = (const struct sbus_argument[]){
+        {NULL}
+    }
+};
+
+const struct sbus_method_arguments
 _sbus_sss_args_sssd_service_goOffline = {
     .input = (const struct sbus_argument[]){
         {NULL}
