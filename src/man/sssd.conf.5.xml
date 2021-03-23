@@ -744,26 +744,25 @@
                             When SSSD switches to offline mode the amount of
                             time before it tries to go back online will
                             increase based upon the time spent disconnected.
-                            This value is in seconds and calculated by the
-                            following:
-                        </para>
-                        <para>
-                             offline_timeout + random_offset
-                        </para>
-                        <para>
-                            The random offset value is from 0 to 30.
+                            By default SSSD uses incremental behaviour to
+                            calculate delay in between retries.
+                            So, the wait time for a given retry will be longer
+                            than the wait time for the previous ones.
                             After each unsuccessful attempt to go online,
                             the new interval is recalculated by the following:
                         </para>
                         <para>
-                            new_interval = (old_interval * 2) + random_offset
+                             new_delay = Minimum(old_delay * 2, offline_timeout_max) + random[0...offline_timeout_random_offset]
+                        </para>
+                        <para>
+                            The offline_timeout default value is 60.
+                            The offline_timeout_max default value is 3600.
+                            The offline_timeout_random_offset default value is 30.
+                            The end result is amount of seconds before next retry.
                         </para>
                         <para>
                             Note that the maximum length of each interval
-                            is defined by offline_timeout_max, which defaults
-                            to one hour. If the calculated length of new_interval
-                            is greater than offline_timeout_max, it will be forced
-                            to the offline_timeout_max value.
+                            is defined by offline_timeout_max (apart of random part).
                         </para>
                         <para>
                             Default: 60
@@ -798,6 +797,32 @@
                         </para>
                         <para>
                             Default: 3600
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>offline_timeout_random_offset (integer)</term>
+                    <listitem>
+                        <para>
+                            When SSSD is in offline mode it keeps probing
+                            backend servers in specified time intervals:
+                        </para>
+                        <para>
+                            new_delay = Minimum(old_delay * 2, offline_timeout_max) + random[0...offline_timeout_random_offset]
+                        </para>
+                        <para>
+                            This parameter controls the value of the random offset
+                            used for the above equation. Final random_offset value
+                            will be random number in range:
+                        </para>
+                        <para>
+                            [0 - offline_timeout_random_offset]
+                        </para>
+                        <para>
+                            A value of 0 disables the random offset addition.
+                        </para>
+                        <para>
+                            Default: 30
                         </para>
                     </listitem>
                 </varlistentry>
