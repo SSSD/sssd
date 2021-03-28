@@ -1551,6 +1551,31 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>pam_cert_verification (string)</term>
+                    <listitem>
+                        <para>
+                            With this parameter the PAM certificate verification
+                            can be tuned with a comma separated list of
+                            options that override the
+                            <quote>certificate_verification</quote> value in
+                            <quote>[sssd]</quote> section.
+                            Supported options are the same of
+                            <quote>certificate_verification</quote>.
+                        </para>
+                        <para>
+                            example:
+                            <programlisting>
+pam_cert_verification = partial_chain
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: not set, i.e. use default
+                            <quote>certificate_verification</quote> option defined
+                            in <quote>[sssd]</quote> section.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>p11_child_timeout (integer)</term>
                     <listitem>
                         <para>

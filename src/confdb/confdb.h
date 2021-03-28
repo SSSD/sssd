@@ -137,6 +137,7 @@
 #define CONFDB_PAM_ACCOUNT_LOCKED_MESSAGE "pam_account_locked_message"
 #define CONFDB_PAM_CERT_AUTH "pam_cert_auth"
 #define CONFDB_PAM_CERT_DB_PATH "pam_cert_db_path"
+#define CONFDB_PAM_CERT_VERIFICATION "pam_cert_verification"
 #define CONFDB_PAM_P11_CHILD_TIMEOUT "p11_child_timeout"
 #define CONFDB_PAM_WAIT_FOR_CARD_TIMEOUT "p11_wait_for_card_timeout"
 #define CONFDB_PAM_APP_SERVICES "pam_app_services"

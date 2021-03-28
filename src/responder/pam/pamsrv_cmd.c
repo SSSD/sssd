@@ -1383,14 +1383,26 @@ static errno_t check_cert(TALLOC_CTX *mctx,
         p11_child_timeout += wait_for_card_timeout;
     }
 
-    ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_MONITOR_CONF_ENTRY,
-                            CONFDB_MONITOR_CERT_VERIFICATION, NULL,
-                            &cert_verification_opts);
+    ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_CERT_VERIFICATION,
+                            NULL, &cert_verification_opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to read '"CONFDB_MONITOR_CERT_VERIFICATION"' from confdb: [%d]: %s\n",
+              "Failed to read '"CONFDB_PAM_CERT_VERIFICATION"' from confdb: [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
+    }
+
+    if (cert_verification_opts == NULL) {
+        ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_MONITOR_CONF_ENTRY,
+                                CONFDB_MONITOR_CERT_VERIFICATION, NULL,
+                                &cert_verification_opts);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "Failed to read '"CONFDB_MONITOR_CERT_VERIFICATION"' from confdb: [%d]: %s\n",
+                ret, sss_strerror(ret));
+            return ret;
+        }
     }
 
     ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_PAM_CONF_ENTRY,
