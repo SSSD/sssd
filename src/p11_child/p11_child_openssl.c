@@ -686,6 +686,10 @@ done:
         X509_STORE_free(store);
     }
 
+    if (verify_param != NULL) {
+        X509_VERIFY_PARAM_free(verify_param);
+    }
+
     return ret;
 }
 
