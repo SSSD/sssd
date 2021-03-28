@@ -1682,6 +1682,7 @@ static void test_parse_cert_verify_opts(void **state)
     ret = parse_cert_verify_opts(global_talloc_context, NULL, &cv_opts);
     assert_int_equal(ret, EOK);
     assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
@@ -1691,6 +1692,7 @@ static void test_parse_cert_verify_opts(void **state)
     ret = parse_cert_verify_opts(global_talloc_context, "wedfkwefjk", &cv_opts);
     assert_int_equal(ret, EOK);
     assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
@@ -1700,6 +1702,7 @@ static void test_parse_cert_verify_opts(void **state)
     ret = parse_cert_verify_opts(global_talloc_context, "no_ocsp", &cv_opts);
     assert_int_equal(ret, EOK);
     assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_false(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
@@ -1710,6 +1713,7 @@ static void test_parse_cert_verify_opts(void **state)
                                  &cv_opts);
     assert_int_equal(ret, EOK);
     assert_false(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
@@ -1720,6 +1724,7 @@ static void test_parse_cert_verify_opts(void **state)
                                  "no_ocsp,no_verification", &cv_opts);
     assert_int_equal(ret, EOK);
     assert_false(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_false(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
@@ -1741,6 +1746,7 @@ static void test_parse_cert_verify_opts(void **state)
                                  &cv_opts);
     assert_int_equal(ret, EOK);
     assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_true(cv_opts->do_ocsp);
     assert_string_equal(cv_opts->ocsp_default_responder, "abc");
     assert_string_equal(cv_opts->ocsp_default_responder_signing_cert, "def");
@@ -1751,10 +1757,21 @@ static void test_parse_cert_verify_opts(void **state)
                                  &cv_opts);
     assert_int_equal(ret, EOK);
     assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
     assert_string_equal(cv_opts->crl_file, "hij");
+    talloc_free(cv_opts);
+
+    ret = parse_cert_verify_opts(global_talloc_context, "partial_chain", &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_true(cv_opts->do_verification);
+    assert_true(cv_opts->verification_partial_chain);
+    assert_true(cv_opts->do_ocsp);
+    assert_null(cv_opts->ocsp_default_responder);
+    assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    assert_null(cv_opts->crl_file);
     talloc_free(cv_opts);
 }
 

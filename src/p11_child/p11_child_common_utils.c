@@ -40,6 +40,7 @@ static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
 
     cert_verify_opts->do_ocsp = true;
     cert_verify_opts->do_verification = true;
+    cert_verify_opts->verification_partial_chain = false;
     cert_verify_opts->ocsp_default_responder = NULL;
     cert_verify_opts->ocsp_default_responder_signing_cert = NULL;
     cert_verify_opts->crl_file = NULL;
@@ -111,6 +112,13 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                     "Smart card certificate verification disabled completely. "
                     "This should not be used in production.");
             cert_verify_opts->do_verification = false;
+        } else if (strcasecmp(opts[c], "partial_chain") == 0) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Found 'partial_chain' option, verification will not fail if "
+                  "a complete chain cannot be built to a self-signed "
+                  "trust-anchor, provided it is possible to construct a chain "
+                  "to a trusted certificate that might not be self-signed.\n");
+            cert_verify_opts->verification_partial_chain = true;
         } else if (strncasecmp(opts[c], OCSP_DEFAUL_RESPONDER,
                                OCSP_DEFAUL_RESPONDER_LEN) == 0) {
             cert_verify_opts->ocsp_default_responder =

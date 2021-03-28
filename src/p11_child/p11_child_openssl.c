@@ -617,6 +617,25 @@ static int talloc_free_x509_store(struct p11_ctx *p11_ctx)
     return 0;
 }
 
+static int ensure_verify_param(X509_VERIFY_PARAM **verify_param_out)
+{
+    if (verify_param_out == NULL) {
+        return EINVAL;
+    }
+
+    if (*verify_param_out != NULL) {
+        return EOK;
+    }
+
+    *verify_param_out = X509_VERIFY_PARAM_new();
+    if (*verify_param_out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "X509_VERIFY_PARAM_new failed.\n");
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
 errno_t init_verification(struct p11_ctx *p11_ctx,
                           struct cert_verify_opts *cert_verify_opts)
 {
@@ -651,18 +670,20 @@ errno_t init_verification(struct p11_ctx *p11_ctx,
         goto done;
     }
 
+    if (cert_verify_opts->verification_partial_chain) {
+        if ((ret = ensure_verify_param (&verify_param)) != EOK) {
+            goto done;
+        }
+        X509_VERIFY_PARAM_set_flags(verify_param, X509_V_FLAG_PARTIAL_CHAIN);
+    }
+
     if (cert_verify_opts->crl_file != NULL) {
-        verify_param = X509_VERIFY_PARAM_new();
-        if (verify_param == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "X509_VERIFY_PARAM_new failed.\n");
-            ret = ENOMEM;
+        if ((ret = ensure_verify_param (&verify_param)) != EOK) {
             goto done;
         }
 
         X509_VERIFY_PARAM_set_flags(verify_param, (X509_V_FLAG_CRL_CHECK
                                                   | X509_V_FLAG_CRL_CHECK_ALL));
-
-        X509_STORE_set1_param(store, verify_param);
 
         ret = X509_load_crl_file(lookup, cert_verify_opts->crl_file,
                                  X509_FILETYPE_PEM);
@@ -673,6 +694,10 @@ errno_t init_verification(struct p11_ctx *p11_ctx,
             ret = EIO;
             goto done;
         }
+    }
+
+    if (verify_param != NULL) {
+        X509_STORE_set1_param(store, verify_param);
     }
 
     p11_ctx->x509_store = store;
