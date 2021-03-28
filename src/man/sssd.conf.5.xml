@@ -519,6 +519,17 @@
                                     </listitem>
                                 </varlistentry>
                                 <varlistentry>
+                                    <term>partial_chain</term>
+                                    <listitem>
+                                        <para>Allow verification to succeed even
+                                        if a <replaceable>complete</replaceable>
+                                        chain cannot be built to a self-signed
+                                        trust-anchor, provided it is possible to
+                                        construct a chain to a trusted certificate
+                                        that might not be self-signed.</para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
                                     <term>ocsp_default_responder=URL</term>
                                     <listitem>
                                         <para>Sets the OCSP default responder

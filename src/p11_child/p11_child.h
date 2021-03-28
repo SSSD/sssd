@@ -36,6 +36,7 @@ struct p11_ctx;
 struct cert_verify_opts {
     bool do_ocsp;
     bool do_verification;
+    bool verification_partial_chain;
     char *ocsp_default_responder;
     char *ocsp_default_responder_signing_cert;
     char *crl_file;

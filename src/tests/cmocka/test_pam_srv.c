@@ -2449,6 +2449,143 @@ void test_pam_intermediate_ca_cert_auth_fails_with_incomplete_db(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_pam_intermediate_ca_cert_auth_with_partial_chain(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "partial_chain" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/intermediate_CA/softhsm2_intermediate_one.conf"));
+
+    set_cert_auth_param(pam_test_ctx->pctx, INTERMEDIATE_CA_DB);
+
+    /* Here the last option must be set to true because the backend is only
+     * connected once. During authentication the backend is connected first to
+     * see if it can handle Smartcard authentication, but before that the user
+     * is looked up. Since the first mocked reply already adds the certificate
+     * to the user entry the lookup by certificate will already find the user
+     * in the cache and no second request to the backend is needed. */
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456",
+                        "SSSD Test intermediate CA Token",
+                        TEST_MODULE_NAME,
+                        "190E513C9A3DFAACDE5D2D0592F0FDFF559C10CB",
+                        "SSSD test intermediate cert 0001", NULL,
+                        test_lookup_by_cert_cb,
+                        SSSD_TEST_INTERMEDIATE_CA_CERT_0001);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+    set_cmd_cb(test_pam_simple_check_success);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_intermediate_ca_cert_auth_with_full_certs_and_partial_chain(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "partial_chain" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/intermediate_CA/softhsm2_intermediate_one.conf"));
+
+    set_cert_auth_param(pam_test_ctx->pctx, INTERMEDIATE_FULL_CA_DB);
+
+    /* Here the last option must be set to true because the backend is only
+     * connected once. During authentication the backend is connected first to
+     * see if it can handle Smartcard authentication, but before that the user
+     * is looked up. Since the first mocked reply already adds the certificate
+     * to the user entry the lookup by certificate will already find the user
+     * in the cache and no second request to the backend is needed. */
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456",
+                        "SSSD Test intermediate CA Token",
+                        TEST_MODULE_NAME,
+                        "190E513C9A3DFAACDE5D2D0592F0FDFF559C10CB",
+                        "SSSD test intermediate cert 0001", NULL,
+                        test_lookup_by_cert_cb,
+                        SSSD_TEST_INTERMEDIATE_CA_CERT_0001);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+    set_cmd_cb(test_pam_simple_check_success);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_intermediate_ca_cert_auth_fails_with_root_and_partial_chain(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "partial_chain" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/intermediate_CA/softhsm2_intermediate_one.conf"));
+
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+
+    /* Here the last option must be set to true because the backend is only
+     * connected once. During authentication the backend is connected first to
+     * see if it can handle Smartcard authentication, but before that the user
+     * is looked up. Since the first mocked reply already adds the certificate
+     * to the user entry the lookup by certificate will already find the user
+     * in the cache and no second request to the backend is needed. */
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456",
+                        "SSSD Test intermediate CA Token",
+                        TEST_MODULE_NAME,
+                        "9876543210",
+                        NULL, NULL, NULL,
+                        SSSD_TEST_INTERMEDIATE_CA_CERT_0001);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+    set_cmd_cb(test_pam_auth_err_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void test_pam_cert_auth_no_logon_name(void **state)
 {
     int ret;
@@ -3406,6 +3543,15 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(
                     test_pam_intermediate_ca_cert_auth_fails_with_incomplete_db,
                     pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(
+                          test_pam_intermediate_ca_cert_auth_with_partial_chain,
+                          pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(
+           test_pam_intermediate_ca_cert_auth_with_full_certs_and_partial_chain,
+           pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(
+           test_pam_intermediate_ca_cert_auth_fails_with_root_and_partial_chain,
+           pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth_double_cert,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_2certs_one_mapping,
