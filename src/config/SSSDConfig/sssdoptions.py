@@ -97,6 +97,7 @@ class SSSDOptions(object):
         'pam_account_locked_message': _('Message printed when user account is locked.'),
         'pam_cert_auth': _('Allow certificate based/Smartcard authentication.'),
         'pam_cert_db_path': _('Path to certificate database with PKCS#11 modules.'),
+        'pam_cert_verification': _('Tune certificate verification for PAM authentication.'),
         'p11_child_timeout': _('How many seconds will pam_sss wait for p11_child to finish'),
         'pam_app_services': _('Which PAM services are permitted to contact application domains'),
         'pam_p11_allowed_services': _('Allowed services for using smartcards'),
