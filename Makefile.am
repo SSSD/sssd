@@ -5530,6 +5530,7 @@ test_CA: test_CA.stamp
 
 test_CA.stamp: $(srcdir)/src/tests/test_CA/* $(srcdir)/src/tests/test_ECC_CA/*
 	$(MAKE) -C src/tests/test_CA ca_all
+	$(MAKE) -C src/tests/test_CA/intermediate_CA ca_all
 	$(MAKE) -C src/tests/test_ECC_CA ca_all
 	touch $@
 

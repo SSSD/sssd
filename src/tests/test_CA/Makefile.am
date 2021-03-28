@@ -192,8 +192,10 @@ clean-local:
 	rm -rf newcerts
 	rm -rf softhsm*
 
-serial: clean
+serial:
 	touch index.txt
 	touch index.txt.attr
 	mkdir newcerts
 	echo -n 01 > serial
+
+SUBDIRS = intermediate_CA
