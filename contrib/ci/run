@@ -60,7 +60,7 @@ declare RIGOROUS=false
 
 # pep8 was renamed to pycodestyle
 declare PEP8_BIN="pep8"
-if which pycodestyle &> /dev/null; then
+if command -v pycodestyle &> /dev/null; then
   PEP8_BIN="pycodestyle"
 fi
 
