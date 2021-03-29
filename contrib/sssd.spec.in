@@ -106,6 +106,8 @@ BuildRequires: make
 BuildRequires: nss_wrapper
 BuildRequires: openldap-devel
 BuildRequires: openssh
+# required for p11_child smartcard tests
+BuildRequires: openssl
 BuildRequires: openssl-devel
 BuildRequires: p11-kit-devel
 BuildRequires: pam_wrapper
