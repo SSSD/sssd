@@ -1720,6 +1720,7 @@ static int prompt_multi_cert_gdm(pam_handle_t *pamh, struct pam_items *pi)
         ret = asprintf(&cai->choice_list_id, "%zu", c);
         if (ret == -1) {
             cai->choice_list_id = NULL;
+            free(prompt);
             ret = ENOMEM;
             goto done;
         }
