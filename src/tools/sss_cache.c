@@ -568,6 +568,12 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
                     ret = sysdb_attrs_add_time_t(sys_attrs,
                             SYSDB_INITGR_EXPIRE, 1);
                     if (ret != EOK) return ret;
+                    ret = sysdb_attrs_add_string(sys_attrs,
+                            SYSDB_ORIG_MODSTAMP, "1");
+                    if (ret != EOK) return ret;
+                    ret = sysdb_attrs_add_uint32(sys_attrs,
+                            SYSDB_USN, 1);
+                    if (ret != EOK) return ret;
 
                     ret = sysdb_set_user_attr(domain, name, sys_attrs,
                                               SYSDB_MOD_REP);
@@ -577,6 +583,13 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
                     ret = sysdb_invalidate_user_cache_entry(domain, name);
                     break;
                 case TYPE_GROUP:
+                    ret = sysdb_attrs_add_string(sys_attrs,
+                            SYSDB_ORIG_MODSTAMP, "1");
+                    if (ret != EOK) return ret;
+                    ret = sysdb_attrs_add_uint32(sys_attrs,
+                            SYSDB_USN, 1);
+                    if (ret != EOK) return ret;
+
                     ret = sysdb_set_group_attr(domain, name, sys_attrs,
                                                SYSDB_MOD_REP);
                     if (ret != EOK) break;
