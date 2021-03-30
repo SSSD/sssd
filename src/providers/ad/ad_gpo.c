@@ -2472,7 +2472,15 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
             }
         }
 
-        ret = EOK;
+        if (state->gpo_implicit_deny == true) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "No applicable GPOs have been found and ad_gpo_implicit_deny"
+                  " is set to 'true'. The user will be denied access.\n");
+            ret = ERR_ACCESS_DENIED;
+        } else {
+            ret = EOK;
+        }
+
         goto done;
     }
 
