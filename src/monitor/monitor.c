@@ -2477,11 +2477,15 @@ int main(int argc, const char *argv[])
     if (opt_daemon) flags |= FLAGS_DAEMON;
     if (opt_interactive) {
         flags |= FLAGS_INTERACTIVE;
-        opt_logger = sss_logger_str[STDERR_LOGGER];
+        if (!opt_logger) {
+            opt_logger = sss_logger_str[STDERR_LOGGER];
+        }
     }
     if (opt_genconf) {
         flags |= FLAGS_GEN_CONF;
-        opt_logger = sss_logger_str[STDERR_LOGGER];
+        if (!opt_logger) {
+            opt_logger = sss_logger_str[STDERR_LOGGER];
+        }
     }
 
     /* default value of 'debug_prg_name' will be used */
