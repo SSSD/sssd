@@ -68,7 +68,8 @@ enum pam_initgroups_scheme pam_initgroups_string_to_enum(const char *str)
     return PAM_INITGR_INVALID;
 }
 
-const char *pam_initgroup_enum_to_string(enum pam_initgroups_scheme scheme) {
+const char *pam_initgroup_enum_to_string(enum pam_initgroups_scheme scheme)
+{
     size_t c;
 
     for (c = 0 ; pam_initgroup_enum_str[c].option != NULL; c++) {
@@ -77,7 +78,7 @@ const char *pam_initgroup_enum_to_string(enum pam_initgroups_scheme scheme) {
         }
     }
 
-    return NULL;
+    return "(NULL)";
 }
 
 
@@ -567,7 +568,9 @@ static errno_t filter_responses_env(struct response_data *resp,
 
         DEBUG(SSSDBG_TRACE_ALL,
               "Found PAM ENV filter for variable [%.*s] and service [%s].\n",
-              (int) var_name_len, var_name, service);
+              (int) var_name_len,
+              (var_name ? var_name : "(NULL)"),
+              (service ? service : "(NULL)"));
 
         if (service != NULL && pd->service != NULL
                     && strcmp(service, pd->service) != 0) {
