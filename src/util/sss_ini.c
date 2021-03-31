@@ -856,11 +856,11 @@ int sss_ini_read_sssd_conf(struct sss_ini *self,
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Permission check on config file failed.\n");
             return ERR_INI_INVALID_PERMISSION;
-        } else {
-            DEBUG(SSSDBG_CONF_SETTINGS,
-                  "File %1$s does not exist.\n",
-                  (config_file ? config_file : "NULL"));
         }
+    } else {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "File %1$s does not exist.\n",
+              (config_file ? config_file : "NULL"));
     }
 
     ret = sss_ini_parse(self);
