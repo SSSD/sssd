@@ -214,20 +214,20 @@ m4_include([src/external/service.m4])
 m4_include([src/external/test_ca.m4])
 m4_include([src/external/ax_valgrind_check.m4])
 
-if test x$with_secrets = xyes; then
+AS_IF([test x$with_secrets = xyes], [
     m4_include([src/external/libhttp_parser.m4])
     m4_include([src/external/libcurl.m4])
-fi
+])
 
-if test x$with_kcm = xyes; then
+AS_IF([test x$with_kcm = xyes], [
     m4_include([src/external/libuuid.m4])
-fi
+])
 
-if test x$with_kcm = xyes -o x$with_secrets = xyes; then
+AS_IF([test x$with_kcm = xyes -o x$with_secrets = xyes], [
     BUILD_WITH_LIBSECRET=1
     AC_DEFINE_UNQUOTED(BUILD_WITH_LIBSECRET, 1, [libsecret will be built])
     m4_include([src/external/libjansson.m4])
-fi
+])
 
 AM_CONDITIONAL([BUILD_WITH_LIBSECRET],
                [test x"$BUILD_WITH_LIBSECRET" != "x"])
@@ -238,39 +238,39 @@ AM_CONDITIONAL([BUILD_WITH_LIBCURL],
                [test x"$have_curlopt_unix_sockpath" = xyes])
 
 WITH_UNICODE_LIB
-if test x$unicode_lib = xlibunistring; then
+AS_IF([test x$unicode_lib = xlibunistring], [
     m4_include([src/external/libunistring.m4])
     AC_DEFINE_UNQUOTED(HAVE_LIBUNISTRING, 1, [Using libunistring for unicode])
     UNICODE_LIBS=$UNISTRING_LIBS
-else
+], [
     m4_include([src/external/glib.m4])
     AC_DEFINE_UNQUOTED(HAVE_GLIB2, 1, [Using glib2 for unicode])
     UNICODE_LIBS=$GLIB2_LIBS
-fi
+])
 AC_SUBST(UNICODE_LIBS)
 
 WITH_LIBNL
 
-if test x$HAVE_NSCD; then
+AS_IF([test x$HAVE_NSCD], [
     WITH_NSCD_CONF
-fi
+])
 
 WITH_INITSCRIPT
-if test x$initscript = xsystemd; then
+AS_IF([test x$initscript = xsystemd], [
     WITH_SYSTEMD_UNIT_DIR
     WITH_SYSTEMD_CONF_DIR
-else
+], [
     CHECK_SERVICE_EXECUTABLE
-fi
+])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
 dnl if test -n "`$PKG_CONFIG --modversion dbus-1 | grep '^0\.'`" ; then
-if ! $PKG_CONFIG --atleast-version 1.0.0 dbus-1; then
+AS_IF([! $PKG_CONFIG --atleast-version 1.0.0 dbus-1], [
     DBUS_CFLAGS="$DBUS_CFLAGS -DDBUS_API_SUBJECT_TO_CHANGE"
     AC_MSG_RESULT([setting -DDBUS_API_SUBJECT_TO_CHANGE])
-fi
+])
 
-if test x$has_dbus != xno; then
+AS_IF([test x$has_dbus != xno], [
     SAFE_LIBS="$LIBS"
     LIBS="$DBUS_LIBS"
     SAFE_CFLAGS=$CFLAGS
@@ -286,12 +286,12 @@ if test x$has_dbus != xno; then
 
     LIBS="$SAFE_LIBS"
     CFLAGS=$SAFE_CFLAGS
-fi
+])
 
 # work around a bug in cov-build from Coverity
 test -n "$XML_CATALOG_FILES" || unset XML_CATALOG_FILES
 
-if test x$HAVE_MANPAGES != x; then
+AS_IF([test x$HAVE_MANPAGES != x], [
     CHECK_XML_TOOLS
 
     DOCBOOK_XSLT=http://docbook.sourceforge.net/release/xsl/current/manpages/profile-docbook.xsl
@@ -301,18 +301,18 @@ if test x$HAVE_MANPAGES != x; then
                      [HAVE_PROFILE_CATALOGS=1],
                      [AC_MSG_WARN([Man pages might contain documentation for experimental features])])
 
-    if test x$HAVE_PROFILE_CATALOGS = x; then
+    AS_IF([test x$HAVE_PROFILE_CATALOGS = x], [
         DOCBOOK_XSLT=http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl
         CHECK_STYLESHEET([$SGML_CATALOG_FILES],
                          [$DOCBOOK_XSLT],
                          [Docbook XSL templates],
                          [],
                          [AC_MSG_ERROR([could not find the docbook xsl catalog])])
-    fi
+    ])
 
     AC_CHECK_PROG([PO4A],[po4a],[po4a],[no])
     AC_SUBST(DOCBOOK_XSLT)
-fi
+])
 AM_CONDITIONAL([HAVE_PROFILE_CATALOGS], [test "x$HAVE_PROFILE_CATALOGS" != "x"])
 AM_CONDITIONAL([HAVE_MANPAGES], [test "x$HAVE_MANPAGES" != "x"])
 AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
@@ -325,9 +325,9 @@ AC_CHECK_PROG(HAVE_PYTHON3, python3, yes, no)
 AS_IF([test x$HAVE_PYTHON3 = xyes],
       [AC_PATH_PROG(PYTHON3, python3)])
 
-if test x$HAVE_PYTHON2_BINDINGS = xyes; then
-    AS_IF([test x$HAVE_PYTHON2 != xyes],
-          [AC_MSG_ERROR([
+AS_IF([test x$HAVE_PYTHON2_BINDINGS = xyes],
+      [AS_IF([test x$HAVE_PYTHON2 != xyes],
+             [AC_MSG_ERROR([
 The program python2 was not found in search path.
 Please ensure that it is installed and its directory is included in the search
 path. It is required for building python2 bindings. If you do not want to build
@@ -349,11 +349,11 @@ them please use argument --without-python2-bindings when running configure.])])
     AC_SUBST([PYTHON2_EXEC_PREFIX], [$PYTHON_EXEC_PREFIX])
 
     SSS_CLEAN_PYTHON_VARIABLES
-fi
+])
 
-if test x$HAVE_PYTHON3_BINDINGS = xyes; then
-    AS_IF([test x$HAVE_PYTHON3 != xyes],
-          [AC_MSG_ERROR([
+AS_IF([test x$HAVE_PYTHON3_BINDINGS = xyes],
+      [AS_IF([test x$HAVE_PYTHON3 != xyes],
+             [AC_MSG_ERROR([
 The program python3 was not found in search path.
 Please ensure that it is installed and its directory is included in the search
 path. It is required for building python3 bindings. If you do not want to build
@@ -375,31 +375,31 @@ them please use argument --without-python3-bindings when running configure.])])
     AC_SUBST([PYTHON3_EXEC_PREFIX], [$PYTHON_EXEC_PREFIX])
 
     SSS_CLEAN_PYTHON_VARIABLES
-fi
+])
 
-if test x$HAVE_PYTHON3 = xyes; then
+AS_IF([test x$HAVE_PYTHON3 = xyes], [
     PYTHON_EXEC=$PYTHON3
-else
+], [
     PYTHON_EXEC=$PYTHON2
-fi
+])
 AC_SUBST(PYTHON_EXEC)
 
 AM_CONDITIONAL([BUILD_PYTHON_BINDINGS],
                [test x"$with_python2_bindings" = xyes \
                      -o x"$with_python3_bindings" = xyes])
 
-if test x$HAVE_SELINUX != x; then
+AS_IF([test x$HAVE_SELINUX != x], [
     AM_CHECK_SELINUX
-fi
+])
 
-if test x$HAVE_SEMANAGE != x -a x$HAVE_SELINUX != x; then
+AS_IF([test x$HAVE_SEMANAGE != x -a x$HAVE_SELINUX != x], [
     AM_CHECK_SEMANAGE
-fi
+])
 
 dnl If journald was selected for logging, configure journald
-if test x$syslog = xjournald; then
+AS_IF([test x$syslog = xjournald], [
     AM_CHECK_JOURNALD
-fi
+])
 
 AM_CHECK_LIBCRYPTO
 m4_include([src/external/p11-kit.m4])
@@ -413,10 +413,10 @@ AC_CACHE_CHECK([whether compiler supports __attribute__((destructor))],
                     sss_client_cv_attribute_destructor=yes)
                ])
 
-if test x"$sss_client_cv_attribute_destructor" = xyes ; then
+AS_IF([test x"$sss_client_cv_attribute_destructor" = xyes], [
    AC_DEFINE(HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR, 1,
              [whether compiler supports __attribute__((destructor))])
-fi
+])
 
 AC_CACHE_CHECK([whether compiler supports __attribute__((format))],
                sss_cv_attribute_format,
@@ -431,10 +431,10 @@ AC_CACHE_CHECK([whether compiler supports __attribute__((format))],
                     ])
                ])
 
-if test x"$sss_cv_attribute_format" = xyes ; then
+AS_IF([test x"$sss_cv_attribute_format" = xyes], [
    AC_DEFINE(HAVE_FUNCTION_ATTRIBUTE_FORMAT, 1,
              [whether compiler supports __attribute__((format))])
-fi
+])
 
 AC_CACHE_CHECK([whether compiler supports __attribute__((warn_unused_result))],
                sss_cv_attribute_warn_unused_result,
@@ -448,10 +448,10 @@ AC_CACHE_CHECK([whether compiler supports __attribute__((warn_unused_result))],
                         AC_MSG_WARN([compiler does NOT support __attribute__((warn_unused_result))])
                     ])
                ])
-if test x"$sss_cv_attribute_warn_unused_result" = xyes ; then
+AS_IF([test x"$sss_cv_attribute_warn_unused_result" = xyes], [
    AC_DEFINE(HAVE_FUNCTION_ATTRIBUTE_WARN_UNUSED_RESULT, 1,
              [whether compiler supports __attribute__((warn_unused_result))])
-fi
+])
 
 SAFE_CFLAGS=$CFLAGS
 CFLAGS="-Werror"
@@ -488,11 +488,11 @@ AC_DEFINE_UNQUOTED(
 
 
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.5], [have_check=1], [have_check=])
-if test x$have_check = x; then
+AS_IF([test x$have_check = x], [
     AC_MSG_WARN([Without the 'CHECK' libraries, you will be unable to run all tests in the 'make check' suite])
-else
+], [
     AC_CHECK_HEADERS([check.h],,AC_MSG_ERROR([Could not find CHECK headers]))
-fi
+])
 
 AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
