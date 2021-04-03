@@ -2317,7 +2317,7 @@ void test_pam_pss_cert_auth(void **state)
     mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", "SSSD Test Token",
                         TEST_MODULE_NAME,
                         "C554C9F82C2A9D58B70921C143304153A8A42F17",
-                        "SSSD test cert 0007 /oddchar", NULL,
+                        "SSSD test cert 0007", NULL,
                         test_lookup_by_cert_cb, SSSD_TEST_CERT_0007);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);

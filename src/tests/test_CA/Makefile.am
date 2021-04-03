@@ -28,7 +28,8 @@ pubkeys = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .pub,$(ids)))
 pubkeys_h = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .h,$(ids)))
 pkcs12 = $(addprefix SSSD_test_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 
-extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens softhsm2_ocsp softhsm2_2certs_same_id softhsm2_pss_one
+
+extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens softhsm2_ocsp softhsm2_2certs_same_id softhsm2_pss_one SSSD_test_cert_x509_0001.der SSSD_test_cert_x509_0007.der
 if HAVE_FAKETIME
 extra += SSSD_test_CA_expired_crl.pem
 endif
@@ -53,7 +54,7 @@ SSSD_test_cert_req_0006.pem: $(srcdir)/SSSD_test_cert_key_0001.pem $(srcdir)/SSS
 		$(OPENSSL) req -new -nodes -key $< -reqexts req_exts -config $(srcdir)/SSSD_test_cert_0006.config -out $@ ; \
 	fi
 
-# SSSD_test_cert_0007 should produce a rsassapss signed cert with nondefault settings seen by some 3rd party CA:s
+# SSSD_test_cert_0007 should produce a rsassapss signed cert with nondefault settings as seen by some 3rd party CA:s
 .INTERMEDIATE: SSSD_test_cert_req_0007.pem
 SSSD_test_cert_req_0007.pem: $(srcdir)/SSSD_test_cert_key_0007.pem $(srcdir)/SSSD_test_cert_0007.config
 	if [ $(shell grep -c req_exts $(srcdir)/SSSD_test_cert_0007.config) -eq 0 ]; then \
@@ -76,7 +77,7 @@ SSSD_test_cert_pkcs12_0006.pem: SSSD_test_cert_x509_0006.pem $(srcdir)/SSSD_test
 	$(OPENSSL) pkcs12 -export -in SSSD_test_cert_x509_0006.pem -inkey $(srcdir)/SSSD_test_cert_key_0001.pem -nodes -passout file:$(pwdfile) -out $@
 
 SSSD_test_cert_x509_0007.pem: SSSD_test_cert_req_0007.pem $(openssl_ca_config) SSSD_test_CA.pem
-	$(OPENSSL) ca -config ${openssl_ca_config} -batch -notext -keyfile $(openssl_ca_key) -in $< -days 200 -extensions usr_cert  -sigopt rsa_padding_mode\:pss -sigopt rsa_pss_saltlen\:20 -out $@
+	$(OPENSSL) ca -config ${openssl_ca_config} -batch -notext -keyfile $(openssl_ca_key) -in $< -sigopt rsa_padding_mode\:pss  -sigopt rsa_pss_saltlen\:20 -days 200 -extensions usr_cert -out $@
 
 SSSD_test_cert_pkcs12_%.pem: SSSD_test_cert_x509_%.pem $(srcdir)/SSSD_test_cert_key_%.pem $(pwdfile)
 	$(OPENSSL) pkcs12 -export -in SSSD_test_cert_x509_$*.pem -inkey $(srcdir)/SSSD_test_cert_key_$*.pem -nodes -passout file:$(pwdfile) -out $@
@@ -117,6 +118,15 @@ softhsm2_one.conf:
 	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_one" > $@
 	@echo "objectstore.backend = file" >> $@
 	@echo "slots.removable = true" >> $@
+
+#Export cert from softhsm2 via p11tool, should produce the same as openssl
+SSSD_test_cert_x509_0001.der: softhsm2_one.conf
+	$(eval ID_VAR = $(shell GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --info|cut -d' ' -f2|grep ^pkcs11))
+	@echo  ID_VAR=$(ID_VAR) GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) '$(ID_VAR)' --export --outder --outfile $@
+
+SSSD_test_cert_x509_0007.der: softhsm2_pss_one.conf
+	$(eval ID_VAR = $(shell GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --info|cut -d' ' -f2|grep ^pkcs11))
+	@echo ID_VAR=$(ID_VAR) GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) '$(ID_VAR)' --export --outder --outfile $@
 
 softhsm2_two: softhsm2_two.conf
 	mkdir $@
@@ -171,8 +181,8 @@ softhsm2_2certs_same_id.conf:
 softhsm2_pss_one: softhsm2_pss_one.conf
 	mkdir $@
 	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token" --pin 123456 --so-pin 123456 --free
-	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0007.pem --login  --label 'SSSD test cert 0007 /oddchar' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
-	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --load-privkey=$(srcdir)/SSSD_test_cert_key_0007.pem --login  --label 'SSSD test cert 0007 /oddchar' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0007.pem --login  --label 'SSSD test cert 0007' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --load-privkey=$(srcdir)/SSSD_test_cert_key_0007.pem --login  --label 'SSSD test cert 0007' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
 
 softhsm2_pss_one.conf:
 	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_pss_one" > $@
@@ -186,6 +196,7 @@ CLEANFILES = \
     SSSD_test_CA.pem $(pwdfile) SSSD_test_CA_expired_crl.pem \
     $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) \
     softhsm2_*.conf \
+    SSSD_test_*.der \
     $(NULL)
 
 clean-local:

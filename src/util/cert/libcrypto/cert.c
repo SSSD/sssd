@@ -322,6 +322,8 @@ static errno_t rsa_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
                 + modulus_len
                 + exponent_len
                 + 1; /* see comment about missing 00 below */
+    if (exponent[0] & 0x80)
+      size++;
 
     buf = talloc_size(mem_ctx, size);
     if (buf == NULL) {
@@ -334,7 +336,12 @@ static errno_t rsa_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
 
     SAFEALIGN_SET_UINT32(buf, htobe32(SSH_RSA_HEADER_LEN), &c);
     safealign_memcpy(&buf[c], SSH_RSA_HEADER, SSH_RSA_HEADER_LEN, &c);
-    SAFEALIGN_SET_UINT32(&buf[c], htobe32(exponent_len), &c);
+    if (exponent[0] & 0x80){
+      SAFEALIGN_SET_UINT32(&buf[c], htobe32(exponent_len+1), &c);
+      SAFEALIGN_SETMEM_VALUE(&buf[c], '\0', unsigned char, &c);
+    } else {
+      SAFEALIGN_SET_UINT32(&buf[c], htobe32(exponent_len), &c);
+    }
     safealign_memcpy(&buf[c], exponent, exponent_len, &c);
 
     /* Adding missing 00 which AFAIK is added to make sure
