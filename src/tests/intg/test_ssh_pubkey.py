@@ -22,16 +22,16 @@ import stat
 import signal
 import subprocess
 import time
-import ldap
-import ldap.modlist
-import pytest
 import string
 import random
+import pytest
 
-import config
 import ds_openldap
-import ent
 import ldap_ent
+import ldap
+import ldap.modlist
+import config
+
 from util import unindent, get_call_output
 
 LDAP_BASE_DN = "dc=example,dc=com"
@@ -115,7 +115,7 @@ def create_ldap_fixture(request, ldap_conn, ent_list=None):
 SCHEMA_RFC2307_BIS = "rfc2307bis"
 
 
-def format_basic_conf(ldap_conn, schema):
+def format_basic_conf(ldap_conn, schema, config):
     """Format a basic SSSD configuration"""
     schema_conf = "ldap_schema         = " + schema + "\n"
     schema_conf += "ldap_group_object_class = groupOfNames\n"
@@ -128,6 +128,10 @@ def format_basic_conf(ldap_conn, schema):
 
         [ssh]
         debug_level=10
+        ca_db               = {config.PAM_CERT_DB_PATH}
+
+        [pam]
+        pam_cert_auth = True
 
         [domain/LDAP]
         {schema_conf}
@@ -137,6 +141,7 @@ def format_basic_conf(ldap_conn, schema):
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
         ldap_sudo_use_host_filter = false
         debug_level=10
+        ldap_user_certificate = userCertificate;binary
     """).format(**locals())
 
 
@@ -217,7 +222,8 @@ def add_user_with_ssh_key(request, ldap_conn):
     ent_list.add_user("user2", 1002, 2001)
     create_ldap_fixture(request, ldap_conn, ent_list)
 
-    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS, config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
@@ -233,6 +239,22 @@ def test_ssh_pubkey_retrieve(add_user_with_ssh_key):
 
     sshpubkey = get_call_output(["sss_ssh_authorizedkeys", "user2"])
     assert len(sshpubkey) == 0
+
+
+def test_ssh_pubkey_retrieve_cert(add_user_with_ssh_cert):
+    """
+    Test that we can retrieve an SSH public key derived from a cert in ldap.
+    Compare with the sshpubkey derived via ssh-keygen, they should match.
+    """
+    for u in [1, 7]:
+        pubsshkey_path = os.path.dirname(config.PAM_CERT_DB_PATH)
+        pubsshkey_path += "/SSSD_test_cert_pubsshkey_000%s.pub" % u
+        with open(pubsshkey_path, 'r') as f:
+            pubsshkey = f.read()
+        sshpubkey = get_call_output(["sss_ssh_authorizedkeys", "user%s" % u])
+        print(sshpubkey)
+        print(pubsshkey)
+        assert sshpubkey == pubsshkey
 
 
 @pytest.fixture()
@@ -261,9 +283,36 @@ def add_user_with_many_keys(request, ldap_conn):
     ent_list.add_user("user1", 1001, 2001, sshPubKey=pubkey_list)
     create_ldap_fixture(request, ldap_conn, ent_list)
 
-    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS, config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def add_user_with_ssh_cert(request, ldap_conn):
+    # Add a certificate to ldap, to manually test a cert from a smartcard.
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user7", 1007, 2001)
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    for u in [1, 7]:
+        der_path = os.path.dirname(config.PAM_CERT_DB_PATH)
+        der_path += "/SSSD_test_cert_x509_000%s.der" % u
+        with open(der_path, 'rb') as f:
+            val = f.read()
+
+        dn = "uid=user%s,ou=Users," % u + LDAP_BASE_DN
+        ldap_conn.modify_s(dn, [(ldap.MOD_ADD, 'usercertificate;binary', val)])
+
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS, config)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
     return None
 
 
