@@ -5091,17 +5091,12 @@ if BUILD_KCM
         $(NULL)
 endif
 else
-if HAVE_SUSE
-    init_SCRIPTS += \
-        src/sysv/SUSE/sssd
-else
 if HAVE_GENTOO
     init_SCRIPTS += \
         src/sysv/gentoo/sssd
 else
     init_SCRIPTS += \
         src/sysv/sssd
-endif
 endif
 endif
 
