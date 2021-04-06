@@ -168,6 +168,9 @@ static void sdap_id_conn_cache_fo_reconnect_cb(void *pvt)
 /* Release sdap_id_conn_data and destroy it if no longer needed */
 static void sdap_id_release_conn_data(struct sdap_id_conn_data *conn_data)
 {
+    ber_socket_t fd = -1;
+    Sockbuf *sb;
+    int ret;
     struct sdap_id_conn_cache *conn_cache;
     if (!conn_data || conn_data->ops || conn_data->notify_lock) {
         /* connection is in use */
@@ -179,7 +182,16 @@ static void sdap_id_release_conn_data(struct sdap_id_conn_data *conn_data)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, "releasing unused connection\n");
+    if (conn_data->sh && conn_data->sh->ldap) {
+        ret = ldap_get_option(conn_data->sh->ldap, LDAP_OPT_SOCKBUF, &sb);
+        if (ret == LDAP_OPT_SUCCESS) {
+            if (ber_sockbuf_ctrl(sb, LBER_SB_OPT_GET_FD, &fd) != 1) {
+                fd = -1;
+            }
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Releasing unused connection with fd [%d]\n", fd);
 
     DLIST_REMOVE(conn_cache->connections, conn_data);
     talloc_zfree(conn_data);
@@ -277,8 +289,8 @@ static void sdap_id_conn_data_expire_handler(struct tevent_context *ev,
                                                           struct sdap_id_conn_data);
     struct sdap_id_conn_cache *conn_cache = conn_data->conn_cache;
 
-    DEBUG(SSSDBG_MINOR_FAILURE,
-          "connection is about to expire, releasing it\n");
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Connection is about to expire, releasing it\n");
 
     if (conn_cache->cached_connection == conn_data) {
         conn_cache->cached_connection = NULL;
