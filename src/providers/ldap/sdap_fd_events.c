@@ -130,7 +130,7 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
 
     if (DEBUG_IS_SET(SSSDBG_TRACE_LIBS)) {
         char *uri = ldap_url_desc2str(srv);
-        DEBUG(SSSDBG_TRACE_LIBS, "New LDAP connection to [%s] with fd [%d].\n",
+        DEBUG(SSSDBG_TRACE_ALL, "New connection to [%s] with fd [%d]\n",
                   uri, ber_fd);
         free(uri);
     }
