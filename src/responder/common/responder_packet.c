@@ -229,6 +229,17 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
             if (ret != EOK) {
                 return ret;
             }
+	/* Kerberos tickets can get pretty big; since Windows Server 2012, the
+	 * limit is 48 KiB!
+	 */
+	} else if ((sss_packet_get_cmd(packet) == SSS_GSSAPI_SEC_CTX)
+                && packet->memsize < SSS_GSSAPI_PACKET_MAX_RECV_SIZE
+                && new_len < SSS_GSSAPI_PACKET_MAX_RECV_SIZE) {
+            sss_packet_set_len(packet, 0);
+            ret = sss_packet_grow(packet, new_len);
+            if (ret != EOK) {
+                return ret;
+            }
         } else {
             return EINVAL;
         }
