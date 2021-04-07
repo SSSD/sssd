@@ -1034,7 +1034,8 @@ fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     ret = fo_resolve_service_activate_timeout(req, ev,
                                         ctx->opts->service_resolv_timeout);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not set service timeout\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not set service timeout [dns_resolver_timeout]\n");
         goto done;
     }
 
@@ -1100,7 +1101,7 @@ fo_resolve_service_activate_timeout(struct tevent_req *req,
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Resolve timeout set to %lu seconds\n",
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Resolve timeout [dns_resolver_timeout] set to %lu seconds\n",
           timeout_seconds);
     return EOK;
 }

@@ -1378,8 +1378,8 @@ static errno_t check_cert(TALLOC_CTX *mctx,
                              &wait_for_card_timeout);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to read wait_for_card_timeout from confdb: [%d]: %s\n",
-                  ret, sss_strerror(ret));
+                  "Failed to read [%s] from confdb: [%d]: %s\n",
+                  CONFDB_PAM_WAIT_FOR_CARD_TIMEOUT, ret, sss_strerror(ret));
             return ret;
         }
 

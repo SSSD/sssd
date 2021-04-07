@@ -105,8 +105,8 @@ static int kcm_get_config(struct kcm_ctx *kctx)
                          &kctx->rctx->client_idle_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the client idle timeout [%d]: %s\n",
-               ret, strerror(ret));
+              "Cannot get the client idle timeout [%s] [%d]: %s\n",
+               CONFDB_RESPONDER_CLI_IDLE_TIMEOUT, ret, strerror(ret));
         goto done;
     }
 
@@ -141,7 +141,8 @@ static int kcm_get_config(struct kcm_ctx *kctx)
         ret = responder_setup_idle_timeout_config(kctx->rctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot set up idle responder timeout\n");
+                  "Cannot set up idle responder timeout [%s].\n",
+                  CONFDB_RESPONDER_IDLE_TIMEOUT);
             /* Not fatal */
         }
     }

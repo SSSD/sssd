@@ -419,7 +419,7 @@ static void sdap_op_timeout(struct tevent_req *req)
     }
 
     /* signal the caller that we have a timeout */
-    DEBUG(SSSDBG_TRACE_LIBS, "Issuing timeout for %d\n", op->msgid);
+    DEBUG(SSSDBG_TRACE_LIBS, "Issuing timeout [ldap_opt_timeout] for message id %d\n", op->msgid);
     op->callback(op, NULL, ETIMEDOUT, op->data);
 }
 
@@ -1512,8 +1512,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
             if (optret == LDAP_SUCCESS) {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Connection error: %s\n", errmsg);
                 sss_log(SSS_LOG_ERR, "LDAP connection error: %s", errmsg);
-            }
-            else {
+            } else {
                 sss_log(SSS_LOG_ERR, "LDAP connection error, %s",
                                      sss_ldap_err2string(lret));
             }
@@ -1795,10 +1794,18 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
 
     ret = sdap_get_generic_ext_recv(subreq, req, &ref_count, &refs);
     talloc_zfree(subreq);
+
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sdap_get_generic_ext_recv failed [%d]: %s\n",
-              ret, sss_strerror(ret));
+        if (ret == ETIMEDOUT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sdap_get_generic_ext_recv failed: [%d]: %s "
+                  "[ldap_search_timeout]\n",
+                  ret, sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sdap_get_generic_ext_recv request failed: [%d]: %s\n",
+                  ret, sss_strerror(ret));
+        }
         tevent_req_error(req, ret);
         return;
     }
@@ -2406,10 +2413,18 @@ static void sdap_sd_search_done(struct tevent_req *subreq)
                                     &state->ref_count,
                                     &state->refs);
     talloc_zfree(subreq);
+
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sdap_get_generic_ext_recv failed [%d]: %s\n",
-              ret, sss_strerror(ret));
+        if (ret == ETIMEDOUT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sdap_get_generic_ext_recv request failed: [%d]: %s "
+                  "[ldap_network_timeout]\n",
+                  ret, sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sdap_get_generic_ext_recv request failed: [%d]: %s\n",
+                  ret, sss_strerror(ret));
+        }
         tevent_req_error(req, ret);
         return;
     }

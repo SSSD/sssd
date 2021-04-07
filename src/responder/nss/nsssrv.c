@@ -86,7 +86,8 @@ nss_clear_memcache(TALLOC_CTX *mem_ctx,
                          300, &memcache_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to get memory cache entry timeout.\n");
+              "Unable to get memory cache entry timeout [%s].\n",
+              CONFDB_MEMCACHE_TIMEOUT);
         goto done;
     }
 
