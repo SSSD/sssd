@@ -216,25 +216,27 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
 
     new_len = sss_packet_get_len(packet);
     if (new_len > packet->memsize) {
-        /* Allow certificate based requests to use larger buffer but not
-         * larger than SSS_CERT_PACKET_MAX_RECV_SIZE. Due to the way
-         * sss_packet_grow() works the packet len must be set to '0' first and
-         * then grow to the expected size. */
-        if ((sss_packet_get_cmd(packet) == SSS_NSS_GETNAMEBYCERT
-                    || sss_packet_get_cmd(packet) == SSS_NSS_GETLISTBYCERT)
-                && packet->memsize < SSS_CERT_PACKET_MAX_RECV_SIZE
-                && new_len < SSS_CERT_PACKET_MAX_RECV_SIZE) {
-            sss_packet_set_len(packet, 0);
-            ret = sss_packet_grow(packet, new_len);
-            if (ret != EOK) {
-                return ret;
-            }
-	/* Kerberos tickets can get pretty big; since Windows Server 2012, the
-	 * limit is 48 KiB!
-	 */
-	} else if ((sss_packet_get_cmd(packet) == SSS_GSSAPI_SEC_CTX)
-                && packet->memsize < SSS_GSSAPI_PACKET_MAX_RECV_SIZE
-                && new_len < SSS_GSSAPI_PACKET_MAX_RECV_SIZE) {
+        enum sss_cli_command cmd = sss_packet_get_cmd(packet);
+        size_t max_recv_size;
+
+        /* Allow certain packet types to use a larger buffer. */
+        switch (cmd) {
+        case SSS_NSS_GETNAMEBYCERT:
+        case SSS_NSS_GETLISTBYCERT:
+            max_recv_size = SSS_CERT_PACKET_MAX_RECV_SIZE;
+            break;
+
+        case SSS_GSSAPI_SEC_CTX:
+            max_recv_size = SSS_GSSAPI_PACKET_MAX_RECV_SIZE;
+            break;
+
+        default:
+            max_recv_size = 0;
+        }
+
+        /* Due to the way sss_packet_grow() works, the packet len must be set
+         * to 0 first, and then grown to the expected size. */
+        if (max_recv_size && packet->memsize < max_recv_size && new_len < max_recv_size) {
             sss_packet_set_len(packet, 0);
             ret = sss_packet_grow(packet, new_len);
             if (ret != EOK) {
