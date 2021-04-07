@@ -243,6 +243,9 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
                 return ret;
             }
         } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "Refusing to read overlarge packet from fd %d (length %zu bytes, cmd %#04x)",
+                    fd, new_len, cmd);
             return EINVAL;
         }
     }
