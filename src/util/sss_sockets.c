@@ -270,7 +270,8 @@ static void sssd_async_connect_timeout(struct tevent_context *ev,
 {
     struct tevent_req *connection_request;
 
-    DEBUG(SSSDBG_CONF_SETTINGS, "The connection timed out\n");
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "The connection timed out [ldap_network_timeout]\n");
 
     connection_request = talloc_get_type(pvt, struct tevent_req);
     tevent_req_error(connection_request, ETIMEDOUT);
@@ -338,7 +339,8 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Setting %d seconds timeout for connecting\n", timeout);
+          "Setting %d seconds timeout [ldap_network_timeout] for connecting\n",
+          timeout);
     tv = tevent_timeval_current_ofs(timeout, 0);
 
     state->connect_timeout = tevent_add_timer(ev, subreq, tv,
@@ -373,9 +375,16 @@ static void sssd_async_socket_init_done(struct tevent_req *subreq)
     ret = sssd_async_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "sdap_async_sys_connect request failed: [%d]: %s.\n",
-              ret, sss_strerror(ret));
+        if (ret == ETIMEDOUT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sdap_async_sys_connect request failed: [%d]: %s "
+                  "[ldap_network_timeout].\n",
+                  ret, sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sdap_async_sys_connect request failed: [%d]: %s.",
+                  ret, sss_strerror(ret));
+        }
         goto fail;
     }
 

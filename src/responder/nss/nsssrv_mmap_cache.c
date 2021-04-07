@@ -1298,7 +1298,7 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
         return EOK;
     }
     DEBUG(SSSDBG_CONF_SETTINGS,
-          "Fast '%s' mmap cache: timeout = %d, slots = %zu\n",
+          "Fast '%s' mmap cache: memcache_timeout = %d, slots = %zu\n",
           mc_type_to_str(type), (int)timeout, n_elem);
 
     mc_ctx = talloc_zero(mem_ctx, struct sss_mc_ctx);

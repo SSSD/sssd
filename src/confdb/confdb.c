@@ -795,7 +795,8 @@ static errno_t init_cached_auth_timeout(struct confdb_ctx *cdb,
                          CONFDB_PAM_CRED_TIMEOUT, 0, &cred_expiration);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to read expiration time of offline credentials.\n");
+              "Failed to read expiration time [%s] of offline credentials.\n",
+              CONFDB_PAM_CRED_TIMEOUT);
         goto done;
     }
 
@@ -936,7 +937,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                          300, &memcache_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to get memory cache entry timeout.\n");
+              "Unable to get memory cache entry timeout [%s].\n",
+              CONFDB_MEMCACHE_TIMEOUT);
         goto done;
     }
 

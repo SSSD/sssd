@@ -125,7 +125,8 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                          &pac_ctx->pac_lifetime);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to setup negative cache timeout.\n");
+              "Failed to setup pac lifetime timeout [%s].\n",
+              CONFDB_PAC_LIFETIME);
         goto fail;
     }
 

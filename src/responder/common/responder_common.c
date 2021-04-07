@@ -401,7 +401,8 @@ static void responder_idle_handler(struct tevent_context *ev,
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Re-scheduling the idle timeout for the responder [%p]\n", rctx);
+          "Re-scheduling the idle timeout [%s] for the responder [%p]\n",
+          CONFDB_RESPONDER_IDLE_TIMEOUT, rctx);
 
 end:
     schedule_responder_idle_timer(rctx);
@@ -427,7 +428,8 @@ static errno_t schedule_responder_idle_timer(struct resp_ctx *rctx)
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Re-scheduling the idle timeout for the responder [%p]\n", rctx);
+          "Re-scheduling the idle timeout [%s] for the responder [%p]\n",
+          CONFDB_RESPONDER_IDLE_TIMEOUT, rctx);
 
     return EOK;
 }
@@ -441,14 +443,15 @@ static errno_t setup_responder_idle_timer(struct resp_ctx *rctx)
     ret = schedule_responder_idle_timer(rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Error scheduling the idle timeout for the responder [%p]: "
+              "Error scheduling the idle timeout [%s] for the responder [%p]: "
               "%d [%s]\n",
-              rctx, ret, sss_strerror(ret));
+              CONFDB_RESPONDER_IDLE_TIMEOUT, rctx, ret, sss_strerror(ret));
         return ret;
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Setting up the idle timeout for the responder [%p]\n", rctx);
+          "Setting up the idle timeout [%s] for the responder [%p]\n",
+          CONFDB_RESPONDER_IDLE_TIMEOUT, rctx);
 
     return EOK;
 }
@@ -652,7 +655,8 @@ static void client_idle_handler(struct tevent_context *ev,
 
     if (cctx->last_request_time > now) {
         DEBUG(SSSDBG_IMPORTANT_INFO,
-              "Time shift detected, re-scheduling the client timeout\n");
+              "Time shift detected, re-scheduling the client timeout [%s].\n",
+              CONFDB_RESPONDER_CLI_IDLE_TIMEOUT);
         goto done;
     }
 
@@ -1143,7 +1147,8 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
                          15, &tmp_value);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Fatal failure of setup negative cache timeout.\n");
+              "Fatal failure of setup negative cache timeout [%s].\n",
+              CONFDB_NSS_ENTRY_NEG_TIMEOUT);
         ret = ENOENT;
         goto done;
     }
@@ -1162,7 +1167,8 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
                          &tmp_value);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Fatal failure of setup negative cache timeout.\n");
+              "Fatal failure of setup negative cache timeout [%s].\n",
+              CONFDB_RESPONDER_LOCAL_NEG_TIMEOUT);
         ret = ENOENT;
         goto done;
     }
@@ -1298,8 +1304,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                          &rctx->client_idle_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the client idle timeout [%d]: %s\n",
-               ret, strerror(ret));
+              "Cannot get the client idle timeout [%s] [%d]: %s\n",
+              CONFDB_RESPONDER_CLI_IDLE_TIMEOUT, ret, strerror(ret));
         goto fail;
     }
 
@@ -1331,13 +1337,17 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                          GET_DOMAINS_DEFAULT_TIMEOUT, &rctx->domains_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the default domain timeout [%d]: %s\n",
-               ret, strerror(ret));
+              "Cannot get the default domain timeout [%s] [%d]: %s\n",
+              CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT, ret, strerror(ret));
         goto fail;
     }
 
     if (rctx->domains_timeout < 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "timeout can't be set to negative value, setting default\n");
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "timeout [%s] can't be set to negative value, "
+              "setting default [%d] seconds.\n",
+              CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT,
+              GET_DOMAINS_DEFAULT_TIMEOUT);
         rctx->domains_timeout = GET_DOMAINS_DEFAULT_TIMEOUT;
     }
 
@@ -1663,8 +1673,8 @@ errno_t responder_setup_idle_timeout_config(struct resp_ctx *rctx)
                          &rctx->idle_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the responder idle timeout [%d]: %s\n",
-              ret, sss_strerror(ret));
+              "Cannot get the responder idle timeout [%s] [%d]: %s\n",
+              CONFDB_RESPONDER_IDLE_TIMEOUT, ret, sss_strerror(ret));
         goto fail;
     }
 
@@ -1689,9 +1699,10 @@ errno_t responder_setup_idle_timeout_config(struct resp_ctx *rctx)
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "An error occurred when setting up the responder's idle "
-                  "timeout for the responder [%p]: %s [%d].\n"
+                  "timeout [%s] for the responder [%p]: %s [%d].\n"
                   "The responder won't be automatically shutdown after %d "
-                  "seconds inactive. \n",
+                  "seconds inactive.\n",
+                  CONFDB_RESPONDER_IDLE_TIMEOUT,
                   rctx, sss_strerror(ret), ret,
                   rctx->idle_timeout);
         }
