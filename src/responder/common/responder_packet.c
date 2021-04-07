@@ -236,7 +236,7 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
 
         /* Due to the way sss_packet_grow() works, the packet len must be set
          * to 0 first, and then grown to the expected size. */
-        if (max_recv_size && packet->memsize < max_recv_size && new_len < max_recv_size) {
+        if (new_len < max_recv_size) {
             sss_packet_set_len(packet, 0);
             ret = sss_packet_grow(packet, new_len);
             if (ret != EOK) {
