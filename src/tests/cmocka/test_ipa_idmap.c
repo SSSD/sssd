@@ -81,23 +81,29 @@ void test_get_idmap_data_from_range(void **state)
         {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, 0, DOMAIN_SID,
           discard_const(IPA_RANGE_AD_TRUST_POSIX)},
          EOK, DOMAIN_SID, DOMAIN_SID, 0, {BASE_ID, RANGE_MAX}, true},
+        /* IPA_RANGE_AD_TRUST range  with unsupported type */
+        {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, 0, DOMAIN_SID,
+          discard_const("unsupported-range")},
+         ERR_UNSUPPORTED_RANGE_TYPE, NULL, NULL, 0, {0, 0}, false},
         {{0}, 0, NULL, NULL, 0, {0, 0}, false}
     };
 
-    for (c = 0; d[c].exp_dom_name != NULL; c++) {
+    for (c = 0; d[c].exp_dom_name != NULL || d[c].exp_ret != 0; c++) {
         ret = get_idmap_data_from_range(&d[c].r, DOMAIN_NAME, &dom_name, &sid,
                                         &rid, &range, &external_mapping);
         assert_int_equal(ret, d[c].exp_ret);
-        assert_string_equal(dom_name, d[c].exp_dom_name);
-        if (d[c].exp_sid == NULL) {
-            assert_null(sid);
-        } else {
-            assert_string_equal(sid, d[c].exp_sid);
+        if (ret == 0) {
+            assert_string_equal(dom_name, d[c].exp_dom_name);
+            if (d[c].exp_sid == NULL) {
+                assert_null(sid);
+            } else {
+                assert_string_equal(sid, d[c].exp_sid);
+            }
+            assert_int_equal(rid, d[c].exp_rid);
+            assert_int_equal(range.min, d[c].exp_range.min);
+            assert_int_equal(range.max, d[c].exp_range.max);
+            assert_true(external_mapping == d[c].exp_external_mapping);
         }
-        assert_int_equal(rid, d[c].exp_rid);
-        assert_int_equal(range.min, d[c].exp_range.min);
-        assert_int_equal(range.max, d[c].exp_range.max);
-        assert_true(external_mapping == d[c].exp_external_mapping);
     }
 }
 
