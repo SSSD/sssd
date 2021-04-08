@@ -204,7 +204,7 @@ errno_t get_idmap_data_from_range(struct range_info *r, char *domain_name,
             DEBUG(SSSDBG_MINOR_FAILURE, "Range type [%s] of id range " \
                                         "[%s] not supported.\n", \
                                         r->range_type, r->name);
-            return EINVAL;
+            return ERR_UNSUPPORTED_RANGE_TYPE;
         }
     }
 

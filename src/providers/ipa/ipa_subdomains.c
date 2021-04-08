@@ -173,6 +173,7 @@ static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
     struct range_info *r;
     const char *value;
     size_t c;
+    size_t rc = 0;
     size_t d;
     int ret;
     enum idmap_error_code err;
@@ -283,11 +284,14 @@ static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
 
         ret = get_idmap_data_from_range(r, domain_name, &name1, &sid1, &rid1,
                                         &range1, &mapping1);
-        if (ret != EOK) {
+        if (ret == ERR_UNSUPPORTED_RANGE_TYPE) {
+            talloc_free(r);
+            continue;
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "get_idmap_data_from_range failed.\n");
             goto done;
         }
-        for (d = 0; d < c; d++) {
+        for (d = 0; d < rc; d++) {
             ret = get_idmap_data_from_range(range_list[d], domain_name, &name2,
                                             &sid2, &rid2, &range2, &mapping2);
             if (ret != EOK) {
@@ -309,10 +313,10 @@ static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
             }
         }
 
-        range_list[c] = r;
+        range_list[rc++] = r;
     }
 
-    range_list[c] = NULL;
+    range_list[rc] = NULL;
 
     *_range_list = range_list;
     ret = EOK;
