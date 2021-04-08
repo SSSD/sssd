@@ -218,6 +218,101 @@ void test_ipa_idmap_get_ranges_from_sysdb(void **state)
     assert_int_equal(ret, EIO);
 }
 
+struct sysdb_attrs *create_range_attrs(TALLOC_CTX *mem_ctx,
+                                       struct range_info *r)
+{
+    int ret;
+    struct sysdb_attrs *a = NULL;
+
+    a = sysdb_new_attrs(mem_ctx);
+    assert_non_null(a);
+
+    ret = sysdb_attrs_add_string(a, IPA_CN, r->name);
+
+    if (ret == 0) {
+        ret = sysdb_attrs_add_string(a, IPA_TRUSTED_DOMAIN_SID,
+                                     r->trusted_dom_sid);
+    }
+
+    if (ret == 0) {
+        ret = sysdb_attrs_add_uint32(a, IPA_BASE_ID, r->base_id);
+    }
+
+    if (ret == 0) {
+        ret = sysdb_attrs_add_uint32(a, IPA_ID_RANGE_SIZE, r->id_range_size);
+    }
+
+    if (ret == 0) {
+        ret = sysdb_attrs_add_uint32(a, IPA_BASE_RID, r->base_rid);
+    }
+
+    if (ret == 0) {
+        ret = sysdb_attrs_add_uint32(a, IPA_SECONDARY_BASE_RID,
+                                     r->secondary_base_rid);
+    }
+
+    if (ret == 0) {
+        ret = sysdb_attrs_add_string(a, IPA_RANGE_TYPE, r->range_type);
+    }
+
+    if (ret != 0) {
+        talloc_zfree(a);
+    }
+
+    return a;
+
+}
+
+
+void test_ipa_ranges_parse_results(void **state)
+{
+    struct test_ctx *test_ctx = talloc_get_type(*state, struct test_ctx);
+    assert_non_null(test_ctx);
+    int ret;
+    size_t count = 5;
+    size_t c;
+    size_t d;
+    struct sysdb_attrs *reply[5];
+    struct range_info **range_list;
+    struct range_info r[5] = {
+        { discard_const("range1"), 1000, 500, 0, 1000, discard_const("S-1-2-1"), discard_const(IPA_RANGE_AD_TRUST) },
+        { discard_const("range2"), 2000, 500, 0, 2000, discard_const("S-1-2-2"), discard_const(IPA_RANGE_AD_TRUST) },
+        { discard_const("range3"), 3000, 500, 0, 3000, discard_const("S-1-2-3"), discard_const("unsupported-type") },
+        { discard_const("range4"), 4000, 500, 0, 4000, discard_const("S-1-2-4"), discard_const(IPA_RANGE_AD_TRUST) },
+        { discard_const("range5"), 5000, 500, 0, 5000, discard_const("S-1-2-5"), discard_const(IPA_RANGE_AD_TRUST) }
+    };
+
+    for (c = 0; c < count; c++) {
+        reply[c] = create_range_attrs(test_ctx, &r[c]);
+        assert_non_null(reply[c]);
+    }
+
+    ret = ipa_ranges_parse_results(test_ctx, discard_const("mydom"),
+                                   count, reply, &range_list);
+    for (c = 0; c < count; c++) {
+        talloc_free(reply[c]);
+    }
+    assert_int_equal(ret, EOK);
+    d = 0;
+    for (c = 0; c < count; c++) {
+        if (strcmp(r[c].range_type, "unsupported-type") == 0) {
+            continue;
+        }
+        assert_string_equal(r[c].name, range_list[d]->name);
+        assert_string_equal(r[c].trusted_dom_sid,
+                            range_list[d]->trusted_dom_sid);
+        assert_string_equal(r[c].range_type, range_list[d]->range_type);
+        assert_int_equal(r[c].base_id, range_list[d]->base_id);
+        assert_int_equal(r[c].id_range_size, range_list[d]->id_range_size);
+        assert_int_equal(r[c].base_rid, range_list[d]->base_rid);
+        assert_int_equal(r[c].secondary_base_rid,
+                         range_list[d]->secondary_base_rid);
+        d++;
+    }
+
+    talloc_free(range_list);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -231,6 +326,8 @@ int main(int argc, const char *argv[])
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_get_idmap_data_from_range),
         cmocka_unit_test_setup_teardown(test_ipa_idmap_get_ranges_from_sysdb,
+                                        setup_idmap_ctx, teardown_idmap_ctx),
+        cmocka_unit_test_setup_teardown(test_ipa_ranges_parse_results,
                                         setup_idmap_ctx, teardown_idmap_ctx),
     };
 
