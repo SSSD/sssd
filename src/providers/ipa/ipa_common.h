@@ -29,6 +29,14 @@
 #include "providers/ad/ad_common.h"
 #include "providers/ad/ad_srv.h"
 
+#define IPA_CN "cn"
+#define IPA_TRUSTED_DOMAIN_SID "ipaNTTrustedDomainSID"
+#define IPA_RANGE_TYPE "ipaRangeType"
+#define IPA_BASE_ID "ipaBaseID"
+#define IPA_ID_RANGE_SIZE "ipaIDRangeSize"
+#define IPA_BASE_RID "ipaBaseRID"
+#define IPA_SECONDARY_BASE_RID "ipaSecondaryBaseRID"
+
 struct ipa_service {
     struct sdap_service *sdap;
     struct krb5_service *krb5_service;
@@ -283,6 +291,12 @@ errno_t get_idmap_data_from_range(struct range_info *r, char *domain_name,
                                   char **_name, char **_sid, uint32_t *_rid,
                                   struct sss_idmap_range *_range,
                                   bool *_external_mapping);
+
+errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
+                                 char *domain_name,
+                                 size_t count,
+                                 struct sysdb_attrs **reply,
+                                 struct range_info ***_range_list);
 
 errno_t ipa_idmap_get_ranges_from_sysdb(struct sdap_idmap_ctx *idmap_ctx,
                                         const char *dom_name,
