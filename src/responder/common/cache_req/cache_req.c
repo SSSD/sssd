@@ -777,6 +777,11 @@ static errno_t cache_req_search_domains_next(struct tevent_req *req)
 
     while (state->cr_domain != NULL) {
         domain = state->cr_domain->domain;
+
+        if (domain == NULL) {
+            break;
+        }
+
         /* As the cr_domain list is a flatten version of the domains
          * list, we have to ensure to only go through the subdomains in
          * case it's specified in the plugin to do so.
@@ -803,10 +808,6 @@ static errno_t cache_req_search_domains_next(struct tevent_req *req)
         }
 
         state->selected_domain = domain;
-
-        if (domain == NULL) {
-            break;
-        }
 
         ret = cache_req_set_domain(cr, domain);
         if (ret != EOK) {
