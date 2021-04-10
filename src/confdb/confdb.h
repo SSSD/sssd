@@ -61,6 +61,7 @@
 #define CONFDB_SERVICE_DEBUG_LEVEL_ALIAS "debug"
 #define CONFDB_SERVICE_DEBUG_TIMESTAMPS "debug_timestamps"
 #define CONFDB_SERVICE_DEBUG_MICROSECONDS "debug_microseconds"
+#define CONFDB_SERVICE_DEBUG_BACKTRACE_ENABLED "debug_backtrace_enabled"
 #define CONFDB_SERVICE_RECON_RETRIES "reconnection_retries"
 #define CONFDB_SERVICE_FD_LIMIT "fd_limit"
 #define CONFDB_SERVICE_ALLOWED_UIDS "allowed_uids"
