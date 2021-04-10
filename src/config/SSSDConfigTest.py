@@ -381,6 +381,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'debug_level',
             'debug_timestamps',
             'debug_microseconds',
+            'debug_backtrace_enabled',
             'command',
             'reconnection_retries',
             'fd_limit',

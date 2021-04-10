@@ -21,6 +21,7 @@ class SSSDOptions(object):
         'debug_level': _('Set the verbosity of the debug logging'),
         'debug_timestamps': _('Include timestamps in debug logs'),
         'debug_microseconds': _('Include microseconds in timestamps in debug logs'),
+        'debug_backtrace_enabled': _('Enable/disable debug backtrace'),
         'timeout': _('Watchdog timeout before restarting service'),
         'command': _('Command to start service'),
         'reconnection_retries': _('Number of times to attempt connection to Data Providers'),

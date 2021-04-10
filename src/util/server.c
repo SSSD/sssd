@@ -455,6 +455,7 @@ int server_setup(const char *name, int flags,
     int ret = EOK;
     bool dt;
     bool dm;
+    bool backtrace_enabled;
     struct tevent_signal *tes;
     struct logrotate_ctx *lctx;
     char *locale;
@@ -641,6 +642,17 @@ int server_setup(const char *name, int flags,
         if (dm) debug_microseconds = 1;
         else debug_microseconds = 0;
     }
+
+    ret = confdb_get_bool(ctx->confdb_ctx, conf_entry,
+                          CONFDB_SERVICE_DEBUG_BACKTRACE_ENABLED,
+                          true,
+                          &backtrace_enabled);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading %s from confdb (%d) [%s]\n",
+              CONFDB_SERVICE_DEBUG_BACKTRACE_ENABLED, ret, strerror(ret));
+        return ret;
+    }
+    sss_debug_backtrace_enable(backtrace_enabled);
 
     /* before opening the log file set up log rotation */
     lctx = talloc_zero(ctx, struct logrotate_ctx);

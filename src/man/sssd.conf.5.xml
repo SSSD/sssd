@@ -147,6 +147,30 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>debug_backtrace_enabled (bool)</term>
+                    <listitem>
+                        <para>
+                            Enable debug backtrace.
+                        </para>
+                        <para>
+                            In case SSSD is run with debug_level less than 9,
+                            everything is logged to a ring buffer in memory and
+                            flushed to a log file on any error up to
+                            and including `min(0x0040, debug_level)`
+                            (i.e. if debug_level is explicitly set to 0 or 1 then
+                            only those error levels will trigger backtrace,
+                            otherwise up to 2).
+                        </para>
+                        <para>
+                            Feature is only supported for `logger == files` (i.e.
+                            setting doesn't have effect for other logger types).
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
               </variablelist>
             </para>
         </refsect2>
