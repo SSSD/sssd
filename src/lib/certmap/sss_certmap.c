@@ -932,7 +932,6 @@ int sss_certmap_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    CM_DEBUG((*ctx), "sss_certmap initialized.");
     return EOK;
 }
 
