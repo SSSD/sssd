@@ -2315,7 +2315,8 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                     }
                 }
                 ret = prompt_sc_pin(pamh, pi);
-            } else if (SERVICE_IS_GDM_SMARTCARD(pi)) {
+            } else if (SERVICE_IS_GDM_SMARTCARD(pi)
+                    || (pi->flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)) {
                /* Use pin prompt as fallback for gdm-smartcard */
                 ret = prompt_sc_pin(pamh, pi);
             } else {
