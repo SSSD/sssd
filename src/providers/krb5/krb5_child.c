@@ -46,10 +46,6 @@
 
 #define SSSD_KRB5_CHANGEPW_PRINCIPAL "kadmin/changepw"
 
-#define IS_SC_AUTHTOK(tok) ( \
-    sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_SC_PIN \
-        || sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_SC_KEYPAD)
-
 typedef krb5_error_code
 (*k5_init_creds_password_fn_t)(krb5_context context, krb5_creds *creds,
                                krb5_principal client, const char *password,

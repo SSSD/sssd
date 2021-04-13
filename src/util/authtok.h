@@ -24,6 +24,11 @@
 #include "util/authtok-utils.h"
 #include "sss_client/sss_cli.h"
 
+#define IS_SC_AUTHTOK(tok) ( \
+    sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_SC_PIN \
+        || sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_SC_KEYPAD)
+
+
 /* Use sss_authtok_* accessor functions instead of struct sss_auth_token
  */
 struct sss_auth_token;
