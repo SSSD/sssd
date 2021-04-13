@@ -1532,6 +1532,18 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     /* Determine what domain type to contact */
     preq->req_dom_type = get_domain_request_type(preq, pctx);
 
+    if (pd->cmd == SSS_PAM_AUTHENTICATE
+            && (pd->cli_flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)
+            && !IS_SC_AUTHTOK(pd->authtok)) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Smartcard authentication required but authentication "
+              "token [%d][%s] is not suitable.\n",
+              sss_authtok_get_type(pd->authtok),
+              sss_authtok_type_to_str(sss_authtok_get_type(pd->authtok)));
+        ret = ERR_NO_CREDS;
+        goto done;
+    }
+
     /* Try backend first for authentication before doing local Smartcard
      * authentication if a logon name is available. Otherwise try to derive
      * the logon name from the certificate first. */
