@@ -1474,6 +1474,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     domain->view_name = NULL;
 
     domain->state = DOM_ACTIVE;
+    domain->not_found_counter = 0;
 
     *_domain = domain;
     ret = EOK;

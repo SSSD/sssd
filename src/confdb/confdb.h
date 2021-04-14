@@ -406,6 +406,10 @@ struct sss_domain_info {
     /* Do not use the _output_fqnames property directly in new code, but rather
      * use sss_domain_info_{get,set}_output_fqnames(). */
     bool output_fqnames;
+
+    /* Counts how often the domain was not found during a refresh of the
+     * domain list */
+    size_t not_found_counter;
 };
 
 /**

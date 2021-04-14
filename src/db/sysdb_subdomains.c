@@ -171,6 +171,8 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->homedir_substr = parent->homedir_substr;
     dom->override_gid = parent->override_gid;
 
+    dom->not_found_counter = 0;
+
     if (parent->sysdb == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing sysdb context in parent domain.\n");
         goto fail;
