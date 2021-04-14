@@ -244,7 +244,7 @@ void orderly_shutdown(int status)
 
     if (sent_sigterm == 0 && getpgrp() == getpid()) {
         debug = is_socket_activated() ? SSSDBG_TRACE_INTERNAL
-                                      : SSSDBG_FATAL_FAILURE;
+                                      : SSSDBG_IMPORTANT_INFO;
         DEBUG(debug, "SIGTERM: killing children\n");
         sent_sigterm = 1;
         kill(-getpgrp(), SIGTERM);
