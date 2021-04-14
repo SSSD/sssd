@@ -441,6 +441,10 @@ struct sss_domain_info {
     char *gssapi_check_upn; /* true | false | NULL */
     /* List of indicators associated with the specific PAM service */
     char **gssapi_indicators_map;
+
+    /* Counts how often the domain was not found during a refresh of the
+     * domain list */
+    size_t not_found_counter;
 };
 
 /**
