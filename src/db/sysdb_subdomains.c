@@ -193,6 +193,8 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->gssapi_services = parent->gssapi_services;
     dom->gssapi_indicators_map = parent->gssapi_indicators_map;
 
+    dom->not_found_counter = 0;
+
     if (parent->sysdb == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing sysdb context in parent domain.\n");
         goto fail;
