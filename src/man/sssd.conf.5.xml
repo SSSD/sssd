@@ -4175,9 +4175,14 @@ ldap_user_extra_attrs = phone:telephoneNumber
                         <listitem><para>boolean value, if True there will be
                         only a single prompt using the value of first_prompt
                         where it is expected that both factors are entered as a
-                        single string</para></listitem>
+                        single string. Please note that both factors have to be
+                        entered here, even if the second factor is
+                        optional.</para></listitem>
                         </varlistentry>
                     </variablelist>
+                    If the second factor is optional and it should be possible
+                    to log in either only with the password or with both factors
+                    two-step prompting has to be used.
                     </para>
                 </listitem>
             </varlistentry>
