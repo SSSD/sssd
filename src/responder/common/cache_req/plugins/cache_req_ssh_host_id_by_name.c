@@ -85,7 +85,8 @@ cache_req_host_by_name_dp_send(TALLOC_CTX *mem_ctx,
 
     return sbus_call_dp_dp_hostHandler_send(mem_ctx, be_conn->conn,
                                             be_conn->bus_name, SSS_BUS_PATH,
-                                            0, data->name.name, data->alias);
+                                            0, data->name.name, data->alias,
+                                            cr->rctx->client_id_num);
 }
 
 static bool

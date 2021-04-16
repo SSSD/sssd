@@ -87,6 +87,7 @@ _sbus_sss_args_sssd_DataProvider_Autofs_Enumerate = {
     .input = (const struct sbus_argument[]){
         {.type = "u", .name = "dp_flags"},
         {.type = "s", .name = "mapname"},
+        {.type = "u", .name = "cli_id"},
         {NULL}
     },
     .output = (const struct sbus_argument[]){
@@ -100,6 +101,7 @@ _sbus_sss_args_sssd_DataProvider_Autofs_GetEntry = {
         {.type = "u", .name = "dp_flags"},
         {.type = "s", .name = "mapname"},
         {.type = "s", .name = "entryname"},
+        {.type = "u", .name = "cli_id"},
         {NULL}
     },
     .output = (const struct sbus_argument[]){
@@ -112,6 +114,7 @@ _sbus_sss_args_sssd_DataProvider_Autofs_GetMap = {
     .input = (const struct sbus_argument[]){
         {.type = "u", .name = "dp_flags"},
         {.type = "s", .name = "mapname"},
+        {.type = "u", .name = "cli_id"},
         {NULL}
     },
     .output = (const struct sbus_argument[]){
@@ -249,6 +252,7 @@ _sbus_sss_args_sssd_dataprovider_getAccountDomain = {
         {.type = "u", .name = "dp_flags"},
         {.type = "u", .name = "entry_type"},
         {.type = "s", .name = "filter"},
+        {.type = "u", .name = "cli_id"},
         {NULL}
     },
     .output = (const struct sbus_argument[]){
@@ -267,6 +271,7 @@ _sbus_sss_args_sssd_dataprovider_getAccountInfo = {
         {.type = "s", .name = "filter"},
         {.type = "s", .name = "domain"},
         {.type = "s", .name = "extra"},
+        {.type = "u", .name = "cli_id"},
         {NULL}
     },
     .output = (const struct sbus_argument[]){
@@ -297,6 +302,7 @@ _sbus_sss_args_sssd_dataprovider_hostHandler = {
         {.type = "u", .name = "dp_flags"},
         {.type = "s", .name = "name"},
         {.type = "s", .name = "alias"},
+        {.type = "u", .name = "cli_id"},
         {NULL}
     },
     .output = (const struct sbus_argument[]){
@@ -326,6 +332,7 @@ _sbus_sss_args_sssd_dataprovider_resolverHandler = {
         {.type = "u", .name = "entry_type"},
         {.type = "u", .name = "filter_type"},
         {.type = "s", .name = "filter_value"},
+        {.type = "u", .name = "cli_id"},
         {NULL}
     },
     .output = (const struct sbus_argument[]){

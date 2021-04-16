@@ -113,7 +113,8 @@ cache_req_autofs_map_entries_dp_send(TALLOC_CTX *mem_ctx,
 
     return sbus_call_dp_autofs_Enumerate_send(mem_ctx, be_conn->conn,
                                               be_conn->bus_name, SSS_BUS_PATH,
-                                              0, data->name.name);
+                                              0, data->name.name,
+                                              cr->rctx->client_id_num);
 }
 
 bool

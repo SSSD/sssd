@@ -51,12 +51,12 @@ _sbus_sss_declare_invoker(sqq, q);
 _sbus_sss_declare_invoker(ss, o);
 _sbus_sss_declare_invoker(ssau, );
 _sbus_sss_declare_invoker(u, );
-_sbus_sss_declare_invoker(us, );
 _sbus_sss_declare_invoker(usq, );
-_sbus_sss_declare_invoker(uss, );
-_sbus_sss_declare_invoker(uss, qus);
-_sbus_sss_declare_invoker(uus, qus);
-_sbus_sss_declare_invoker(uusss, qus);
-_sbus_sss_declare_invoker(uuus, qus);
+_sbus_sss_declare_invoker(ussu, );
+_sbus_sss_declare_invoker(ussu, qus);
+_sbus_sss_declare_invoker(usu, );
+_sbus_sss_declare_invoker(uusssu, qus);
+_sbus_sss_declare_invoker(uusu, qus);
+_sbus_sss_declare_invoker(uuusu, qus);
 
 #endif /* _SBUS_SSS_INVOKERS_H_ */

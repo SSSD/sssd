@@ -215,22 +215,6 @@ _sbus_sss_invoker_write_u
    (DBusMessageIter *iter,
     struct _sbus_sss_invoker_args_u *args);
 
-struct _sbus_sss_invoker_args_us {
-    uint32_t arg0;
-    const char * arg1;
-};
-
-errno_t
-_sbus_sss_invoker_read_us
-   (TALLOC_CTX *mem_ctx,
-    DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_us *args);
-
-errno_t
-_sbus_sss_invoker_write_us
-   (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_us *args);
-
 struct _sbus_sss_invoker_args_usq {
     uint32_t arg0;
     const char * arg1;
@@ -248,75 +232,96 @@ _sbus_sss_invoker_write_usq
    (DBusMessageIter *iter,
     struct _sbus_sss_invoker_args_usq *args);
 
-struct _sbus_sss_invoker_args_uss {
+struct _sbus_sss_invoker_args_ussu {
     uint32_t arg0;
     const char * arg1;
     const char * arg2;
+    uint32_t arg3;
 };
 
 errno_t
-_sbus_sss_invoker_read_uss
+_sbus_sss_invoker_read_ussu
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uss *args);
+    struct _sbus_sss_invoker_args_ussu *args);
 
 errno_t
-_sbus_sss_invoker_write_uss
+_sbus_sss_invoker_write_ussu
    (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uss *args);
+    struct _sbus_sss_invoker_args_ussu *args);
 
-struct _sbus_sss_invoker_args_uus {
+struct _sbus_sss_invoker_args_usu {
     uint32_t arg0;
-    uint32_t arg1;
-    const char * arg2;
+    const char * arg1;
+    uint32_t arg2;
 };
 
 errno_t
-_sbus_sss_invoker_read_uus
+_sbus_sss_invoker_read_usu
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uus *args);
+    struct _sbus_sss_invoker_args_usu *args);
 
 errno_t
-_sbus_sss_invoker_write_uus
+_sbus_sss_invoker_write_usu
    (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uus *args);
+    struct _sbus_sss_invoker_args_usu *args);
 
-struct _sbus_sss_invoker_args_uusss {
+struct _sbus_sss_invoker_args_uusssu {
     uint32_t arg0;
     uint32_t arg1;
     const char * arg2;
     const char * arg3;
     const char * arg4;
+    uint32_t arg5;
 };
 
 errno_t
-_sbus_sss_invoker_read_uusss
+_sbus_sss_invoker_read_uusssu
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uusss *args);
+    struct _sbus_sss_invoker_args_uusssu *args);
 
 errno_t
-_sbus_sss_invoker_write_uusss
+_sbus_sss_invoker_write_uusssu
    (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uusss *args);
+    struct _sbus_sss_invoker_args_uusssu *args);
 
-struct _sbus_sss_invoker_args_uuus {
+struct _sbus_sss_invoker_args_uusu {
+    uint32_t arg0;
+    uint32_t arg1;
+    const char * arg2;
+    uint32_t arg3;
+};
+
+errno_t
+_sbus_sss_invoker_read_uusu
+   (TALLOC_CTX *mem_ctx,
+    DBusMessageIter *iter,
+    struct _sbus_sss_invoker_args_uusu *args);
+
+errno_t
+_sbus_sss_invoker_write_uusu
+   (DBusMessageIter *iter,
+    struct _sbus_sss_invoker_args_uusu *args);
+
+struct _sbus_sss_invoker_args_uuusu {
     uint32_t arg0;
     uint32_t arg1;
     uint32_t arg2;
     const char * arg3;
+    uint32_t arg4;
 };
 
 errno_t
-_sbus_sss_invoker_read_uuus
+_sbus_sss_invoker_read_uuusu
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uuus *args);
+    struct _sbus_sss_invoker_args_uuusu *args);
 
 errno_t
-_sbus_sss_invoker_write_uuus
+_sbus_sss_invoker_write_uuusu
    (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uuus *args);
+    struct _sbus_sss_invoker_args_uuusu *args);
 
 #endif /* _SBUS_SSS_ARGUMENTS_H_ */

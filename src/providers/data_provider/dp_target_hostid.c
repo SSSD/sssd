@@ -42,7 +42,8 @@ dp_host_handler_send(TALLOC_CTX *mem_ctx,
                      struct data_provider *provider,
                      uint32_t dp_flags,
                      const char *name,
-                     const char *alias)
+                     const char *alias,
+                     uint32_t cli_id)
 {
     struct dp_host_handler_state *state;
     struct tevent_req *subreq;

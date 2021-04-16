@@ -45,7 +45,8 @@ dp_resolver_handler_send(TALLOC_CTX *mem_ctx,
                          uint32_t dp_flags,
                          uint32_t entry_type,
                          uint32_t filter_type,
-                         const char *filter_value)
+                         const char *filter_value,
+                         uint32_t cli_id)
 {
     struct dp_resolver_handler_state *state;
     struct tevent_req *subreq;
