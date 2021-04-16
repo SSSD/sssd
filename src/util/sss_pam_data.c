@@ -120,6 +120,7 @@ errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *src,
     }
 
     pd->cli_pid = src->cli_pid;
+    pd->client_id_num = src->client_id_num;
 
     /* if structure pam_data was allocated on stack and zero initialized,
      * than src->authtok and src->newauthtok are NULL, therefore

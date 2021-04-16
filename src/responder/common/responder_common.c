@@ -637,6 +637,7 @@ static void accept_fd_handler(struct tevent_context *ev,
         /* Non-fatal, continue */
     }
 
+    rctx->client_id_num++;
     DEBUG(SSSDBG_TRACE_FUNC,
           "Client [%p][%d] connected%s!\n",
           cctx, cctx->cfd,
