@@ -148,6 +148,7 @@ struct resp_ctx {
     struct session_recording_conf sr_conf;
 
     uint32_t cache_req_num;
+    uint32_t client_id_num;
 
     void *pvt_ctx;
 

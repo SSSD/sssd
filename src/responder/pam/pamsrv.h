@@ -92,6 +92,8 @@ struct pam_auth_req {
     struct cert_auth_info *cert_list;
     struct cert_auth_info *current_cert;
     bool cert_auth_local;
+
+    uint32_t client_id_num;
 };
 
 struct sss_cmd_table *get_pam_cmds(void);

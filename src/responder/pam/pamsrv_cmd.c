@@ -1485,6 +1485,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     }
     preq->cctx = cctx;
     preq->cert_auth_local = false;
+    preq->client_id_num = pctx->rctx->client_id_num;
 
     preq->pd = create_pam_data(preq);
     if (!preq->pd) {
@@ -1505,6 +1506,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
     pd->cmd = pam_cmd;
     pd->priv = cctx->priv;
+    pd->client_id_num = pctx->rctx->client_id_num;
 
     ret = pam_forwarder_parse_data(cctx, pd);
     if (ret == EAGAIN) {

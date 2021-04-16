@@ -69,6 +69,7 @@ struct pam_data {
     int priv;
     int account_locked;
 
+    uint32_t client_id_num;
 #ifdef USE_KEYRING
     key_serial_t key_serial;
 #endif
