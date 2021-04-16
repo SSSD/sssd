@@ -34,7 +34,8 @@ dp_get_account_info_send(TALLOC_CTX *mem_ctx,
                          uint32_t entry_type,
                          const char *filter,
                          const char *domain,
-                         const char *extra);
+                         const char *extra,
+                         uint32_t cli_id);
 
 errno_t
 dp_get_account_info_recv(TALLOC_CTX *mem_ctx,
@@ -76,7 +77,8 @@ dp_host_handler_send(TALLOC_CTX *mem_ctx,
                      struct data_provider *provider,
                      uint32_t dp_flags,
                      const char *name,
-                     const char *alias);
+                     const char *alias,
+                     uint32_t cli_id);
 
 errno_t
 dp_host_handler_recv(TALLOC_CTX *mem_ctx,
@@ -106,7 +108,8 @@ dp_autofs_get_map_send(TALLOC_CTX *mem_ctx,
                        struct sbus_request *sbus_req,
                        struct data_provider *provider,
                        uint32_t dp_flags,
-                       const char *mapname);
+                       const char *mapname,
+                       uint32_t cli_id);
 
 errno_t dp_autofs_get_map_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req);
 
@@ -117,7 +120,8 @@ dp_autofs_get_entry_send(TALLOC_CTX *mem_ctx,
                          struct data_provider *provider,
                          uint32_t dp_flags,
                          const char *mapname,
-                         const char *entryname);
+                         const char *entryname,
+                         uint32_t cli_id);
 
 errno_t dp_autofs_get_entry_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req);
 
@@ -127,7 +131,8 @@ dp_autofs_enumerate_send(TALLOC_CTX *mem_ctx,
                          struct sbus_request *sbus_req,
                          struct data_provider *provider,
                          uint32_t dp_flags,
-                         const char *mapname);
+                         const char *mapname,
+                         uint32_t cli_id);
 
 errno_t dp_autofs_enumerate_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req);
 
@@ -153,7 +158,8 @@ dp_resolver_handler_send(TALLOC_CTX *mem_ctx,
                          uint32_t dp_flags,
                          uint32_t entry_type,
                          uint32_t filter_type,
-                         const char *filter_value);
+                         const char *filter_value,
+                         uint32_t cli_id);
 
 errno_t
 dp_resolver_handler_recv(TALLOC_CTX *mem_ctx,
@@ -181,7 +187,8 @@ dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
                            struct data_provider *provider,
                            uint32_t dp_flags,
                            uint32_t entry_type,
-                           const char *filter);
+                           const char *filter,
+                           uint32_t cli_id);
 
 errno_t
 dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,

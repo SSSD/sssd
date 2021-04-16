@@ -39,7 +39,8 @@ dp_autofs_get_map_send(TALLOC_CTX *mem_ctx,
                        struct sbus_request *sbus_req,
                        struct data_provider *provider,
                        uint32_t dp_flags,
-                       const char *mapname)
+                       const char *mapname,
+                       uint32_t cli_id)
 {
     struct dp_autofs_get_map_state *state;
     struct tevent_req *subreq;
@@ -120,7 +121,8 @@ dp_autofs_get_entry_send(TALLOC_CTX *mem_ctx,
                          struct data_provider *provider,
                          uint32_t dp_flags,
                          const char *mapname,
-                         const char *entryname)
+                         const char *entryname,
+                         uint32_t cli_id)
 {
     struct dp_autofs_get_entry_state *state;
     struct tevent_req *subreq;
@@ -201,7 +203,8 @@ dp_autofs_enumerate_send(TALLOC_CTX *mem_ctx,
                          struct sbus_request *sbus_req,
                          struct data_provider *provider,
                          uint32_t dp_flags,
-                         const char *mapname)
+                         const char *mapname,
+                         uint32_t cli_id)
 {
     struct dp_autofs_enumerate_state *state;
     struct tevent_req *subreq;

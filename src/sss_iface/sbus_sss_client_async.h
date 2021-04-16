@@ -60,7 +60,8 @@ sbus_call_dp_autofs_Enumerate_send
      const char *busname,
      const char *object_path,
      uint32_t arg_dp_flags,
-     const char * arg_mapname);
+     const char * arg_mapname,
+     uint32_t arg_cli_id);
 
 errno_t
 sbus_call_dp_autofs_Enumerate_recv
@@ -74,7 +75,8 @@ sbus_call_dp_autofs_GetEntry_send
      const char *object_path,
      uint32_t arg_dp_flags,
      const char * arg_mapname,
-     const char * arg_entryname);
+     const char * arg_entryname,
+     uint32_t arg_cli_id);
 
 errno_t
 sbus_call_dp_autofs_GetEntry_recv
@@ -87,7 +89,8 @@ sbus_call_dp_autofs_GetMap_send
      const char *busname,
      const char *object_path,
      uint32_t arg_dp_flags,
-     const char * arg_mapname);
+     const char * arg_mapname,
+     uint32_t arg_cli_id);
 
 errno_t
 sbus_call_dp_autofs_GetMap_recv
@@ -240,7 +243,8 @@ sbus_call_dp_dp_getAccountDomain_send
      const char *object_path,
      uint32_t arg_dp_flags,
      uint32_t arg_entry_type,
-     const char * arg_filter);
+     const char * arg_filter,
+     uint32_t arg_cli_id);
 
 errno_t
 sbus_call_dp_dp_getAccountDomain_recv
@@ -260,7 +264,8 @@ sbus_call_dp_dp_getAccountInfo_send
      uint32_t arg_entry_type,
      const char * arg_filter,
      const char * arg_domain,
-     const char * arg_extra);
+     const char * arg_extra,
+     uint32_t arg_cli_id);
 
 errno_t
 sbus_call_dp_dp_getAccountInfo_recv
@@ -294,7 +299,8 @@ sbus_call_dp_dp_hostHandler_send
      const char *object_path,
      uint32_t arg_dp_flags,
      const char * arg_name,
-     const char * arg_alias);
+     const char * arg_alias,
+     uint32_t arg_cli_id);
 
 errno_t
 sbus_call_dp_dp_hostHandler_recv
@@ -327,7 +333,8 @@ sbus_call_dp_dp_resolverHandler_send
      uint32_t arg_dp_flags,
      uint32_t arg_entry_type,
      uint32_t arg_filter_type,
-     const char * arg_filter_value);
+     const char * arg_filter_value,
+     uint32_t arg_cli_id);
 
 errno_t
 sbus_call_dp_dp_resolverHandler_recv
