@@ -1090,90 +1090,6 @@ sbus_method_in_u_out__recv
     return EOK;
 }
 
-struct sbus_method_in_us_out__state {
-    struct _sbus_sss_invoker_args_us in;
-};
-
-static void sbus_method_in_us_out__done(struct tevent_req *subreq);
-
-static struct tevent_req *
-sbus_method_in_us_out__send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     sbus_invoker_keygen keygen,
-     const char *bus,
-     const char *path,
-     const char *iface,
-     const char *method,
-     uint32_t arg0,
-     const char * arg1)
-{
-    struct sbus_method_in_us_out__state *state;
-    struct tevent_req *subreq;
-    struct tevent_req *req;
-    errno_t ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_us_out__state);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
-        return NULL;
-    }
-
-    state->in.arg0 = arg0;
-    state->in.arg1 = arg1;
-
-    subreq = sbus_call_method_send(state, conn, NULL, keygen,
-                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_us,
-                                   bus, path, iface, method, &state->in);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(subreq, sbus_method_in_us_out__done, req);
-
-    ret = EAGAIN;
-
-done:
-    if (ret != EAGAIN) {
-        tevent_req_error(req, ret);
-        tevent_req_post(req, conn->ev);
-    }
-
-    return req;
-}
-
-static void sbus_method_in_us_out__done(struct tevent_req *subreq)
-{
-    struct sbus_method_in_us_out__state *state;
-    struct tevent_req *req;
-    DBusMessage *reply;
-    errno_t ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sbus_method_in_us_out__state);
-
-    ret = sbus_call_method_recv(state, subreq, &reply);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-    return;
-}
-
-static errno_t
-sbus_method_in_us_out__recv
-    (struct tevent_req *req)
-{
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return EOK;
-}
-
 struct sbus_method_in_usq_out__state {
     struct _sbus_sss_invoker_args_usq in;
 };
@@ -1260,14 +1176,14 @@ sbus_method_in_usq_out__recv
     return EOK;
 }
 
-struct sbus_method_in_uss_out__state {
-    struct _sbus_sss_invoker_args_uss in;
+struct sbus_method_in_ussu_out__state {
+    struct _sbus_sss_invoker_args_ussu in;
 };
 
-static void sbus_method_in_uss_out__done(struct tevent_req *subreq);
+static void sbus_method_in_ussu_out__done(struct tevent_req *subreq);
 
 static struct tevent_req *
-sbus_method_in_uss_out__send
+sbus_method_in_ussu_out__send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
      sbus_invoker_keygen keygen,
@@ -1277,14 +1193,15 @@ sbus_method_in_uss_out__send
      const char *method,
      uint32_t arg0,
      const char * arg1,
-     const char * arg2)
+     const char * arg2,
+     uint32_t arg3)
 {
-    struct sbus_method_in_uss_out__state *state;
+    struct sbus_method_in_ussu_out__state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_uss_out__state);
+    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_ussu_out__state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
@@ -1293,9 +1210,10 @@ sbus_method_in_uss_out__send
     state->in.arg0 = arg0;
     state->in.arg1 = arg1;
     state->in.arg2 = arg2;
+    state->in.arg3 = arg3;
 
     subreq = sbus_call_method_send(state, conn, NULL, keygen,
-                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_uss,
+                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_ussu,
                                    bus, path, iface, method, &state->in);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
@@ -1303,7 +1221,7 @@ sbus_method_in_uss_out__send
         goto done;
     }
 
-    tevent_req_set_callback(subreq, sbus_method_in_uss_out__done, req);
+    tevent_req_set_callback(subreq, sbus_method_in_ussu_out__done, req);
 
     ret = EAGAIN;
 
@@ -1316,15 +1234,15 @@ done:
     return req;
 }
 
-static void sbus_method_in_uss_out__done(struct tevent_req *subreq)
+static void sbus_method_in_ussu_out__done(struct tevent_req *subreq)
 {
-    struct sbus_method_in_uss_out__state *state;
+    struct sbus_method_in_ussu_out__state *state;
     struct tevent_req *req;
     DBusMessage *reply;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sbus_method_in_uss_out__state);
+    state = tevent_req_data(req, struct sbus_method_in_ussu_out__state);
 
     ret = sbus_call_method_recv(state, subreq, &reply);
     talloc_zfree(subreq);
@@ -1338,7 +1256,7 @@ static void sbus_method_in_uss_out__done(struct tevent_req *subreq)
 }
 
 static errno_t
-sbus_method_in_uss_out__recv
+sbus_method_in_ussu_out__recv
     (struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -1346,15 +1264,15 @@ sbus_method_in_uss_out__recv
     return EOK;
 }
 
-struct sbus_method_in_uss_out_qus_state {
-    struct _sbus_sss_invoker_args_uss in;
+struct sbus_method_in_ussu_out_qus_state {
+    struct _sbus_sss_invoker_args_ussu in;
     struct _sbus_sss_invoker_args_qus *out;
 };
 
-static void sbus_method_in_uss_out_qus_done(struct tevent_req *subreq);
+static void sbus_method_in_ussu_out_qus_done(struct tevent_req *subreq);
 
 static struct tevent_req *
-sbus_method_in_uss_out_qus_send
+sbus_method_in_ussu_out_qus_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
      sbus_invoker_keygen keygen,
@@ -1364,14 +1282,15 @@ sbus_method_in_uss_out_qus_send
      const char *method,
      uint32_t arg0,
      const char * arg1,
-     const char * arg2)
+     const char * arg2,
+     uint32_t arg3)
 {
-    struct sbus_method_in_uss_out_qus_state *state;
+    struct sbus_method_in_ussu_out_qus_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_uss_out_qus_state);
+    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_ussu_out_qus_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
@@ -1388,9 +1307,10 @@ sbus_method_in_uss_out_qus_send
     state->in.arg0 = arg0;
     state->in.arg1 = arg1;
     state->in.arg2 = arg2;
+    state->in.arg3 = arg3;
 
     subreq = sbus_call_method_send(state, conn, NULL, keygen,
-                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_uss,
+                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_ussu,
                                    bus, path, iface, method, &state->in);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
@@ -1398,7 +1318,7 @@ sbus_method_in_uss_out_qus_send
         goto done;
     }
 
-    tevent_req_set_callback(subreq, sbus_method_in_uss_out_qus_done, req);
+    tevent_req_set_callback(subreq, sbus_method_in_ussu_out_qus_done, req);
 
     ret = EAGAIN;
 
@@ -1411,15 +1331,15 @@ done:
     return req;
 }
 
-static void sbus_method_in_uss_out_qus_done(struct tevent_req *subreq)
+static void sbus_method_in_ussu_out_qus_done(struct tevent_req *subreq)
 {
-    struct sbus_method_in_uss_out_qus_state *state;
+    struct sbus_method_in_ussu_out_qus_state *state;
     struct tevent_req *req;
     DBusMessage *reply;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sbus_method_in_uss_out_qus_state);
+    state = tevent_req_data(req, struct sbus_method_in_ussu_out_qus_state);
 
     ret = sbus_call_method_recv(state, subreq, &reply);
     talloc_zfree(subreq);
@@ -1439,15 +1359,15 @@ static void sbus_method_in_uss_out_qus_done(struct tevent_req *subreq)
 }
 
 static errno_t
-sbus_method_in_uss_out_qus_recv
+sbus_method_in_ussu_out_qus_recv
     (TALLOC_CTX *mem_ctx,
      struct tevent_req *req,
      uint16_t* _arg0,
      uint32_t* _arg1,
      const char ** _arg2)
 {
-    struct sbus_method_in_uss_out_qus_state *state;
-    state = tevent_req_data(req, struct sbus_method_in_uss_out_qus_state);
+    struct sbus_method_in_ussu_out_qus_state *state;
+    state = tevent_req_data(req, struct sbus_method_in_ussu_out_qus_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -1458,15 +1378,14 @@ sbus_method_in_uss_out_qus_recv
     return EOK;
 }
 
-struct sbus_method_in_uus_out_qus_state {
-    struct _sbus_sss_invoker_args_uus in;
-    struct _sbus_sss_invoker_args_qus *out;
+struct sbus_method_in_usu_out__state {
+    struct _sbus_sss_invoker_args_usu in;
 };
 
-static void sbus_method_in_uus_out_qus_done(struct tevent_req *subreq);
+static void sbus_method_in_usu_out__done(struct tevent_req *subreq);
 
 static struct tevent_req *
-sbus_method_in_uus_out_qus_send
+sbus_method_in_usu_out__send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
      sbus_invoker_keygen keygen,
@@ -1475,26 +1394,18 @@ sbus_method_in_uus_out_qus_send
      const char *iface,
      const char *method,
      uint32_t arg0,
-     uint32_t arg1,
-     const char * arg2)
+     const char * arg1,
+     uint32_t arg2)
 {
-    struct sbus_method_in_uus_out_qus_state *state;
+    struct sbus_method_in_usu_out__state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_uus_out_qus_state);
+    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_usu_out__state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
-    }
-
-    state->out = talloc_zero(state, struct _sbus_sss_invoker_args_qus);
-    if (state->out == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to allocate space for output parameters!\n");
-        ret = ENOMEM;
-        goto done;
     }
 
     state->in.arg0 = arg0;
@@ -1502,7 +1413,7 @@ sbus_method_in_uus_out_qus_send
     state->in.arg2 = arg2;
 
     subreq = sbus_call_method_send(state, conn, NULL, keygen,
-                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_uus,
+                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_usu,
                                    bus, path, iface, method, &state->in);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
@@ -1510,7 +1421,7 @@ sbus_method_in_uus_out_qus_send
         goto done;
     }
 
-    tevent_req_set_callback(subreq, sbus_method_in_uus_out_qus_done, req);
+    tevent_req_set_callback(subreq, sbus_method_in_usu_out__done, req);
 
     ret = EAGAIN;
 
@@ -1523,24 +1434,18 @@ done:
     return req;
 }
 
-static void sbus_method_in_uus_out_qus_done(struct tevent_req *subreq)
+static void sbus_method_in_usu_out__done(struct tevent_req *subreq)
 {
-    struct sbus_method_in_uus_out_qus_state *state;
+    struct sbus_method_in_usu_out__state *state;
     struct tevent_req *req;
     DBusMessage *reply;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sbus_method_in_uus_out_qus_state);
+    state = tevent_req_data(req, struct sbus_method_in_usu_out__state);
 
     ret = sbus_call_method_recv(state, subreq, &reply);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = sbus_read_output(state->out, reply, (sbus_invoker_reader_fn)_sbus_sss_invoker_read_qus, state->out);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -1551,34 +1456,23 @@ static void sbus_method_in_uus_out_qus_done(struct tevent_req *subreq)
 }
 
 static errno_t
-sbus_method_in_uus_out_qus_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     uint16_t* _arg0,
-     uint32_t* _arg1,
-     const char ** _arg2)
+sbus_method_in_usu_out__recv
+    (struct tevent_req *req)
 {
-    struct sbus_method_in_uus_out_qus_state *state;
-    state = tevent_req_data(req, struct sbus_method_in_uus_out_qus_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *_arg0 = state->out->arg0;
-    *_arg1 = state->out->arg1;
-    *_arg2 = talloc_steal(mem_ctx, state->out->arg2);
 
     return EOK;
 }
 
-struct sbus_method_in_uusss_out_qus_state {
-    struct _sbus_sss_invoker_args_uusss in;
+struct sbus_method_in_uusssu_out_qus_state {
+    struct _sbus_sss_invoker_args_uusssu in;
     struct _sbus_sss_invoker_args_qus *out;
 };
 
-static void sbus_method_in_uusss_out_qus_done(struct tevent_req *subreq);
+static void sbus_method_in_uusssu_out_qus_done(struct tevent_req *subreq);
 
 static struct tevent_req *
-sbus_method_in_uusss_out_qus_send
+sbus_method_in_uusssu_out_qus_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
      sbus_invoker_keygen keygen,
@@ -1590,14 +1484,246 @@ sbus_method_in_uusss_out_qus_send
      uint32_t arg1,
      const char * arg2,
      const char * arg3,
-     const char * arg4)
+     const char * arg4,
+     uint32_t arg5)
 {
-    struct sbus_method_in_uusss_out_qus_state *state;
+    struct sbus_method_in_uusssu_out_qus_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_uusss_out_qus_state);
+    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_uusssu_out_qus_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    state->out = talloc_zero(state, struct _sbus_sss_invoker_args_qus);
+    if (state->out == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to allocate space for output parameters!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    state->in.arg0 = arg0;
+    state->in.arg1 = arg1;
+    state->in.arg2 = arg2;
+    state->in.arg3 = arg3;
+    state->in.arg4 = arg4;
+    state->in.arg5 = arg5;
+
+    subreq = sbus_call_method_send(state, conn, NULL, keygen,
+                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_uusssu,
+                                   bus, path, iface, method, &state->in);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, sbus_method_in_uusssu_out_qus_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, conn->ev);
+    }
+
+    return req;
+}
+
+static void sbus_method_in_uusssu_out_qus_done(struct tevent_req *subreq)
+{
+    struct sbus_method_in_uusssu_out_qus_state *state;
+    struct tevent_req *req;
+    DBusMessage *reply;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sbus_method_in_uusssu_out_qus_state);
+
+    ret = sbus_call_method_recv(state, subreq, &reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sbus_read_output(state->out, reply, (sbus_invoker_reader_fn)_sbus_sss_invoker_read_qus, state->out);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+static errno_t
+sbus_method_in_uusssu_out_qus_recv
+    (TALLOC_CTX *mem_ctx,
+     struct tevent_req *req,
+     uint16_t* _arg0,
+     uint32_t* _arg1,
+     const char ** _arg2)
+{
+    struct sbus_method_in_uusssu_out_qus_state *state;
+    state = tevent_req_data(req, struct sbus_method_in_uusssu_out_qus_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_arg0 = state->out->arg0;
+    *_arg1 = state->out->arg1;
+    *_arg2 = talloc_steal(mem_ctx, state->out->arg2);
+
+    return EOK;
+}
+
+struct sbus_method_in_uusu_out_qus_state {
+    struct _sbus_sss_invoker_args_uusu in;
+    struct _sbus_sss_invoker_args_qus *out;
+};
+
+static void sbus_method_in_uusu_out_qus_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+sbus_method_in_uusu_out_qus_send
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_connection *conn,
+     sbus_invoker_keygen keygen,
+     const char *bus,
+     const char *path,
+     const char *iface,
+     const char *method,
+     uint32_t arg0,
+     uint32_t arg1,
+     const char * arg2,
+     uint32_t arg3)
+{
+    struct sbus_method_in_uusu_out_qus_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_uusu_out_qus_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    state->out = talloc_zero(state, struct _sbus_sss_invoker_args_qus);
+    if (state->out == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to allocate space for output parameters!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    state->in.arg0 = arg0;
+    state->in.arg1 = arg1;
+    state->in.arg2 = arg2;
+    state->in.arg3 = arg3;
+
+    subreq = sbus_call_method_send(state, conn, NULL, keygen,
+                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_uusu,
+                                   bus, path, iface, method, &state->in);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, sbus_method_in_uusu_out_qus_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, conn->ev);
+    }
+
+    return req;
+}
+
+static void sbus_method_in_uusu_out_qus_done(struct tevent_req *subreq)
+{
+    struct sbus_method_in_uusu_out_qus_state *state;
+    struct tevent_req *req;
+    DBusMessage *reply;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sbus_method_in_uusu_out_qus_state);
+
+    ret = sbus_call_method_recv(state, subreq, &reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sbus_read_output(state->out, reply, (sbus_invoker_reader_fn)_sbus_sss_invoker_read_qus, state->out);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+static errno_t
+sbus_method_in_uusu_out_qus_recv
+    (TALLOC_CTX *mem_ctx,
+     struct tevent_req *req,
+     uint16_t* _arg0,
+     uint32_t* _arg1,
+     const char ** _arg2)
+{
+    struct sbus_method_in_uusu_out_qus_state *state;
+    state = tevent_req_data(req, struct sbus_method_in_uusu_out_qus_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_arg0 = state->out->arg0;
+    *_arg1 = state->out->arg1;
+    *_arg2 = talloc_steal(mem_ctx, state->out->arg2);
+
+    return EOK;
+}
+
+struct sbus_method_in_uuusu_out_qus_state {
+    struct _sbus_sss_invoker_args_uuusu in;
+    struct _sbus_sss_invoker_args_qus *out;
+};
+
+static void sbus_method_in_uuusu_out_qus_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+sbus_method_in_uuusu_out_qus_send
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_connection *conn,
+     sbus_invoker_keygen keygen,
+     const char *bus,
+     const char *path,
+     const char *iface,
+     const char *method,
+     uint32_t arg0,
+     uint32_t arg1,
+     uint32_t arg2,
+     const char * arg3,
+     uint32_t arg4)
+{
+    struct sbus_method_in_uuusu_out_qus_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_uuusu_out_qus_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
@@ -1618,7 +1744,7 @@ sbus_method_in_uusss_out_qus_send
     state->in.arg4 = arg4;
 
     subreq = sbus_call_method_send(state, conn, NULL, keygen,
-                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_uusss,
+                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_uuusu,
                                    bus, path, iface, method, &state->in);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
@@ -1626,7 +1752,7 @@ sbus_method_in_uusss_out_qus_send
         goto done;
     }
 
-    tevent_req_set_callback(subreq, sbus_method_in_uusss_out_qus_done, req);
+    tevent_req_set_callback(subreq, sbus_method_in_uuusu_out_qus_done, req);
 
     ret = EAGAIN;
 
@@ -1639,15 +1765,15 @@ done:
     return req;
 }
 
-static void sbus_method_in_uusss_out_qus_done(struct tevent_req *subreq)
+static void sbus_method_in_uuusu_out_qus_done(struct tevent_req *subreq)
 {
-    struct sbus_method_in_uusss_out_qus_state *state;
+    struct sbus_method_in_uuusu_out_qus_state *state;
     struct tevent_req *req;
     DBusMessage *reply;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sbus_method_in_uusss_out_qus_state);
+    state = tevent_req_data(req, struct sbus_method_in_uuusu_out_qus_state);
 
     ret = sbus_call_method_recv(state, subreq, &reply);
     talloc_zfree(subreq);
@@ -1667,129 +1793,15 @@ static void sbus_method_in_uusss_out_qus_done(struct tevent_req *subreq)
 }
 
 static errno_t
-sbus_method_in_uusss_out_qus_recv
+sbus_method_in_uuusu_out_qus_recv
     (TALLOC_CTX *mem_ctx,
      struct tevent_req *req,
      uint16_t* _arg0,
      uint32_t* _arg1,
      const char ** _arg2)
 {
-    struct sbus_method_in_uusss_out_qus_state *state;
-    state = tevent_req_data(req, struct sbus_method_in_uusss_out_qus_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *_arg0 = state->out->arg0;
-    *_arg1 = state->out->arg1;
-    *_arg2 = talloc_steal(mem_ctx, state->out->arg2);
-
-    return EOK;
-}
-
-struct sbus_method_in_uuus_out_qus_state {
-    struct _sbus_sss_invoker_args_uuus in;
-    struct _sbus_sss_invoker_args_qus *out;
-};
-
-static void sbus_method_in_uuus_out_qus_done(struct tevent_req *subreq);
-
-static struct tevent_req *
-sbus_method_in_uuus_out_qus_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     sbus_invoker_keygen keygen,
-     const char *bus,
-     const char *path,
-     const char *iface,
-     const char *method,
-     uint32_t arg0,
-     uint32_t arg1,
-     uint32_t arg2,
-     const char * arg3)
-{
-    struct sbus_method_in_uuus_out_qus_state *state;
-    struct tevent_req *subreq;
-    struct tevent_req *req;
-    errno_t ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_uuus_out_qus_state);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
-        return NULL;
-    }
-
-    state->out = talloc_zero(state, struct _sbus_sss_invoker_args_qus);
-    if (state->out == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to allocate space for output parameters!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    state->in.arg0 = arg0;
-    state->in.arg1 = arg1;
-    state->in.arg2 = arg2;
-    state->in.arg3 = arg3;
-
-    subreq = sbus_call_method_send(state, conn, NULL, keygen,
-                                   (sbus_invoker_writer_fn)_sbus_sss_invoker_write_uuus,
-                                   bus, path, iface, method, &state->in);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(subreq, sbus_method_in_uuus_out_qus_done, req);
-
-    ret = EAGAIN;
-
-done:
-    if (ret != EAGAIN) {
-        tevent_req_error(req, ret);
-        tevent_req_post(req, conn->ev);
-    }
-
-    return req;
-}
-
-static void sbus_method_in_uuus_out_qus_done(struct tevent_req *subreq)
-{
-    struct sbus_method_in_uuus_out_qus_state *state;
-    struct tevent_req *req;
-    DBusMessage *reply;
-    errno_t ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sbus_method_in_uuus_out_qus_state);
-
-    ret = sbus_call_method_recv(state, subreq, &reply);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = sbus_read_output(state->out, reply, (sbus_invoker_reader_fn)_sbus_sss_invoker_read_qus, state->out);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-    return;
-}
-
-static errno_t
-sbus_method_in_uuus_out_qus_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     uint16_t* _arg0,
-     uint32_t* _arg1,
-     const char ** _arg2)
-{
-    struct sbus_method_in_uuus_out_qus_state *state;
-    state = tevent_req_data(req, struct sbus_method_in_uuus_out_qus_state);
+    struct sbus_method_in_uuusu_out_qus_state *state;
+    state = tevent_req_data(req, struct sbus_method_in_uuusu_out_qus_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -1846,17 +1858,18 @@ sbus_call_dp_autofs_Enumerate_send
      const char *busname,
      const char *object_path,
      uint32_t arg_dp_flags,
-     const char * arg_mapname)
+     const char * arg_mapname,
+     uint32_t arg_cli_id)
 {
-    return sbus_method_in_us_out__send(mem_ctx, conn, _sbus_sss_key_us_0_1,
-        busname, object_path, "sssd.DataProvider.Autofs", "Enumerate", arg_dp_flags, arg_mapname);
+    return sbus_method_in_usu_out__send(mem_ctx, conn, _sbus_sss_key_usu_0_1_2,
+        busname, object_path, "sssd.DataProvider.Autofs", "Enumerate", arg_dp_flags, arg_mapname, arg_cli_id);
 }
 
 errno_t
 sbus_call_dp_autofs_Enumerate_recv
     (struct tevent_req *req)
 {
-    return sbus_method_in_us_out__recv(req);
+    return sbus_method_in_usu_out__recv(req);
 }
 
 struct tevent_req *
@@ -1867,17 +1880,18 @@ sbus_call_dp_autofs_GetEntry_send
      const char *object_path,
      uint32_t arg_dp_flags,
      const char * arg_mapname,
-     const char * arg_entryname)
+     const char * arg_entryname,
+     uint32_t arg_cli_id)
 {
-    return sbus_method_in_uss_out__send(mem_ctx, conn, _sbus_sss_key_uss_0_1_2,
-        busname, object_path, "sssd.DataProvider.Autofs", "GetEntry", arg_dp_flags, arg_mapname, arg_entryname);
+    return sbus_method_in_ussu_out__send(mem_ctx, conn, _sbus_sss_key_ussu_0_1_2_3,
+        busname, object_path, "sssd.DataProvider.Autofs", "GetEntry", arg_dp_flags, arg_mapname, arg_entryname, arg_cli_id);
 }
 
 errno_t
 sbus_call_dp_autofs_GetEntry_recv
     (struct tevent_req *req)
 {
-    return sbus_method_in_uss_out__recv(req);
+    return sbus_method_in_ussu_out__recv(req);
 }
 
 struct tevent_req *
@@ -1887,17 +1901,18 @@ sbus_call_dp_autofs_GetMap_send
      const char *busname,
      const char *object_path,
      uint32_t arg_dp_flags,
-     const char * arg_mapname)
+     const char * arg_mapname,
+     uint32_t arg_cli_id)
 {
-    return sbus_method_in_us_out__send(mem_ctx, conn, _sbus_sss_key_us_0_1,
-        busname, object_path, "sssd.DataProvider.Autofs", "GetMap", arg_dp_flags, arg_mapname);
+    return sbus_method_in_usu_out__send(mem_ctx, conn, _sbus_sss_key_usu_0_1_2,
+        busname, object_path, "sssd.DataProvider.Autofs", "GetMap", arg_dp_flags, arg_mapname, arg_cli_id);
 }
 
 errno_t
 sbus_call_dp_autofs_GetMap_recv
     (struct tevent_req *req)
 {
-    return sbus_method_in_us_out__recv(req);
+    return sbus_method_in_usu_out__recv(req);
 }
 
 struct tevent_req *
@@ -2124,10 +2139,11 @@ sbus_call_dp_dp_getAccountDomain_send
      const char *object_path,
      uint32_t arg_dp_flags,
      uint32_t arg_entry_type,
-     const char * arg_filter)
+     const char * arg_filter,
+     uint32_t arg_cli_id)
 {
-    return sbus_method_in_uus_out_qus_send(mem_ctx, conn, _sbus_sss_key_uus_0_1_2,
-        busname, object_path, "sssd.dataprovider", "getAccountDomain", arg_dp_flags, arg_entry_type, arg_filter);
+    return sbus_method_in_uusu_out_qus_send(mem_ctx, conn, _sbus_sss_key_uusu_0_1_2_3,
+        busname, object_path, "sssd.dataprovider", "getAccountDomain", arg_dp_flags, arg_entry_type, arg_filter, arg_cli_id);
 }
 
 errno_t
@@ -2138,7 +2154,7 @@ sbus_call_dp_dp_getAccountDomain_recv
      uint32_t* _error,
      const char ** _domain_name)
 {
-    return sbus_method_in_uus_out_qus_recv(mem_ctx, req, _dp_error, _error, _domain_name);
+    return sbus_method_in_uusu_out_qus_recv(mem_ctx, req, _dp_error, _error, _domain_name);
 }
 
 struct tevent_req *
@@ -2151,10 +2167,11 @@ sbus_call_dp_dp_getAccountInfo_send
      uint32_t arg_entry_type,
      const char * arg_filter,
      const char * arg_domain,
-     const char * arg_extra)
+     const char * arg_extra,
+     uint32_t arg_cli_id)
 {
-    return sbus_method_in_uusss_out_qus_send(mem_ctx, conn, _sbus_sss_key_uusss_0_1_2_3_4,
-        busname, object_path, "sssd.dataprovider", "getAccountInfo", arg_dp_flags, arg_entry_type, arg_filter, arg_domain, arg_extra);
+    return sbus_method_in_uusssu_out_qus_send(mem_ctx, conn, _sbus_sss_key_uusssu_0_1_2_3_4_5,
+        busname, object_path, "sssd.dataprovider", "getAccountInfo", arg_dp_flags, arg_entry_type, arg_filter, arg_domain, arg_extra, arg_cli_id);
 }
 
 errno_t
@@ -2165,7 +2182,7 @@ sbus_call_dp_dp_getAccountInfo_recv
      uint32_t* _error,
      const char ** _error_message)
 {
-    return sbus_method_in_uusss_out_qus_recv(mem_ctx, req, _dp_error, _error, _error_message);
+    return sbus_method_in_uusssu_out_qus_recv(mem_ctx, req, _dp_error, _error, _error_message);
 }
 
 struct tevent_req *
@@ -2199,10 +2216,11 @@ sbus_call_dp_dp_hostHandler_send
      const char *object_path,
      uint32_t arg_dp_flags,
      const char * arg_name,
-     const char * arg_alias)
+     const char * arg_alias,
+     uint32_t arg_cli_id)
 {
-    return sbus_method_in_uss_out_qus_send(mem_ctx, conn, _sbus_sss_key_uss_0_1,
-        busname, object_path, "sssd.dataprovider", "hostHandler", arg_dp_flags, arg_name, arg_alias);
+    return sbus_method_in_ussu_out_qus_send(mem_ctx, conn, _sbus_sss_key_ussu_0_1,
+        busname, object_path, "sssd.dataprovider", "hostHandler", arg_dp_flags, arg_name, arg_alias, arg_cli_id);
 }
 
 errno_t
@@ -2213,7 +2231,7 @@ sbus_call_dp_dp_hostHandler_recv
      uint32_t* _error,
      const char ** _error_message)
 {
-    return sbus_method_in_uss_out_qus_recv(mem_ctx, req, _dp_error, _error, _error_message);
+    return sbus_method_in_ussu_out_qus_recv(mem_ctx, req, _dp_error, _error, _error_message);
 }
 
 struct tevent_req *
@@ -2246,10 +2264,11 @@ sbus_call_dp_dp_resolverHandler_send
      uint32_t arg_dp_flags,
      uint32_t arg_entry_type,
      uint32_t arg_filter_type,
-     const char * arg_filter_value)
+     const char * arg_filter_value,
+     uint32_t arg_cli_id)
 {
-    return sbus_method_in_uuus_out_qus_send(mem_ctx, conn, _sbus_sss_key_uuus_0_1_2_3,
-        busname, object_path, "sssd.dataprovider", "resolverHandler", arg_dp_flags, arg_entry_type, arg_filter_type, arg_filter_value);
+    return sbus_method_in_uuusu_out_qus_send(mem_ctx, conn, _sbus_sss_key_uuusu_0_1_2_3_4,
+        busname, object_path, "sssd.dataprovider", "resolverHandler", arg_dp_flags, arg_entry_type, arg_filter_type, arg_filter_value, arg_cli_id);
 }
 
 errno_t
@@ -2260,7 +2279,7 @@ sbus_call_dp_dp_resolverHandler_recv
      uint32_t* _error,
      const char ** _error_message)
 {
-    return sbus_method_in_uuus_out_qus_recv(mem_ctx, req, _dp_error, _error, _error_message);
+    return sbus_method_in_uuusu_out_qus_recv(mem_ctx, req, _dp_error, _error, _error_message);
 }
 
 struct tevent_req *

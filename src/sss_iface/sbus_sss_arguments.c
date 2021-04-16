@@ -445,45 +445,6 @@ errno_t _sbus_sss_invoker_write_u
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_read_us
-   (TALLOC_CTX *mem_ctx,
-    DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_us *args)
-{
-    errno_t ret;
-
-    ret = sbus_iterator_read_u(iter, &args->arg0);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ret = sbus_iterator_read_s(mem_ctx, iter, &args->arg1);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    return EOK;
-}
-
-errno_t _sbus_sss_invoker_write_us
-   (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_us *args)
-{
-    errno_t ret;
-
-    ret = sbus_iterator_write_u(iter, args->arg0);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ret = sbus_iterator_write_s(iter, args->arg1);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    return EOK;
-}
-
 errno_t _sbus_sss_invoker_read_usq
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,
@@ -533,10 +494,10 @@ errno_t _sbus_sss_invoker_write_usq
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_read_uss
+errno_t _sbus_sss_invoker_read_ussu
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uss *args)
+    struct _sbus_sss_invoker_args_ussu *args)
 {
     errno_t ret;
 
@@ -555,12 +516,17 @@ errno_t _sbus_sss_invoker_read_uss
         return ret;
     }
 
+    ret = sbus_iterator_read_u(iter, &args->arg3);
+    if (ret != EOK) {
+        return ret;
+    }
+
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_write_uss
+errno_t _sbus_sss_invoker_write_ussu
    (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uss *args)
+    struct _sbus_sss_invoker_args_ussu *args)
 {
     errno_t ret;
 
@@ -579,13 +545,18 @@ errno_t _sbus_sss_invoker_write_uss
         return ret;
     }
 
+    ret = sbus_iterator_write_u(iter, args->arg3);
+    if (ret != EOK) {
+        return ret;
+    }
+
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_read_uus
+errno_t _sbus_sss_invoker_read_usu
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uus *args)
+    struct _sbus_sss_invoker_args_usu *args)
 {
     errno_t ret;
 
@@ -594,12 +565,12 @@ errno_t _sbus_sss_invoker_read_uus
         return ret;
     }
 
-    ret = sbus_iterator_read_u(iter, &args->arg1);
+    ret = sbus_iterator_read_s(mem_ctx, iter, &args->arg1);
     if (ret != EOK) {
         return ret;
     }
 
-    ret = sbus_iterator_read_s(mem_ctx, iter, &args->arg2);
+    ret = sbus_iterator_read_u(iter, &args->arg2);
     if (ret != EOK) {
         return ret;
     }
@@ -607,9 +578,9 @@ errno_t _sbus_sss_invoker_read_uus
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_write_uus
+errno_t _sbus_sss_invoker_write_usu
    (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uus *args)
+    struct _sbus_sss_invoker_args_usu *args)
 {
     errno_t ret;
 
@@ -618,12 +589,12 @@ errno_t _sbus_sss_invoker_write_uus
         return ret;
     }
 
-    ret = sbus_iterator_write_u(iter, args->arg1);
+    ret = sbus_iterator_write_s(iter, args->arg1);
     if (ret != EOK) {
         return ret;
     }
 
-    ret = sbus_iterator_write_s(iter, args->arg2);
+    ret = sbus_iterator_write_u(iter, args->arg2);
     if (ret != EOK) {
         return ret;
     }
@@ -631,10 +602,10 @@ errno_t _sbus_sss_invoker_write_uus
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_read_uusss
+errno_t _sbus_sss_invoker_read_uusssu
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uusss *args)
+    struct _sbus_sss_invoker_args_uusssu *args)
 {
     errno_t ret;
 
@@ -663,12 +634,17 @@ errno_t _sbus_sss_invoker_read_uusss
         return ret;
     }
 
+    ret = sbus_iterator_read_u(iter, &args->arg5);
+    if (ret != EOK) {
+        return ret;
+    }
+
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_write_uusss
+errno_t _sbus_sss_invoker_write_uusssu
    (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uusss *args)
+    struct _sbus_sss_invoker_args_uusssu *args)
 {
     errno_t ret;
 
@@ -697,13 +673,77 @@ errno_t _sbus_sss_invoker_write_uusss
         return ret;
     }
 
+    ret = sbus_iterator_write_u(iter, args->arg5);
+    if (ret != EOK) {
+        return ret;
+    }
+
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_read_uuus
+errno_t _sbus_sss_invoker_read_uusu
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uuus *args)
+    struct _sbus_sss_invoker_args_uusu *args)
+{
+    errno_t ret;
+
+    ret = sbus_iterator_read_u(iter, &args->arg0);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_read_u(iter, &args->arg1);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_read_s(mem_ctx, iter, &args->arg2);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_read_u(iter, &args->arg3);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
+errno_t _sbus_sss_invoker_write_uusu
+   (DBusMessageIter *iter,
+    struct _sbus_sss_invoker_args_uusu *args)
+{
+    errno_t ret;
+
+    ret = sbus_iterator_write_u(iter, args->arg0);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_write_u(iter, args->arg1);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_write_s(iter, args->arg2);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_write_u(iter, args->arg3);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
+errno_t _sbus_sss_invoker_read_uuusu
+   (TALLOC_CTX *mem_ctx,
+    DBusMessageIter *iter,
+    struct _sbus_sss_invoker_args_uuusu *args)
 {
     errno_t ret;
 
@@ -727,12 +767,17 @@ errno_t _sbus_sss_invoker_read_uuus
         return ret;
     }
 
+    ret = sbus_iterator_read_u(iter, &args->arg4);
+    if (ret != EOK) {
+        return ret;
+    }
+
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_write_uuus
+errno_t _sbus_sss_invoker_write_uuusu
    (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_uuus *args)
+    struct _sbus_sss_invoker_args_uuusu *args)
 {
     errno_t ret;
 
@@ -752,6 +797,11 @@ errno_t _sbus_sss_invoker_write_uuus
     }
 
     ret = sbus_iterator_write_s(iter, args->arg3);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_write_u(iter, args->arg4);
     if (ret != EOK) {
         return ret;
     }

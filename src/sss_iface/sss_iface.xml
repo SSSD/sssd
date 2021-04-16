@@ -88,15 +88,18 @@
         <method name="GetMap">
             <arg name="dp_flags" type="u" direction="in" key="1" />
             <arg name="mapname" type="s" direction="in" key="2" />
+            <arg name="cli_id" type="u" direction="in" key="3" />
         </method>
         <method name="GetEntry">
             <arg name="dp_flags" type="u" direction="in" key="1" />
             <arg name="mapname" type="s" direction="in" key="2" />
             <arg name="entryname" type="s" direction="in" key="3" />
+            <arg name="cli_id" type="u" direction="in" key="4" />
         </method>
         <method name="Enumerate">
             <arg name="dp_flags" type="u" direction="in" key="1" />
             <arg name="mapname" type="s" direction="in" key="2" />
+            <arg name="cli_id" type="u" direction="in" key="3" />
         </method>
     </interface>
 
@@ -117,6 +120,7 @@
             <arg name="dp_flags" type="u" direction="in" key="1" />
             <arg name="name" type="s" direction="in" key="2" />
             <arg name="alias" type="s" direction="in" />
+            <arg name="cli_id" type="u" direction="in" />
             <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
             <arg name="error_message" type="s" direction="out" />
@@ -126,6 +130,7 @@
             <arg name="entry_type" type="u" direction="in" key="2" />
             <arg name="filter_type" type="u" direction="in" key="3" />
             <arg name="filter_value" type="s" direction="in" key="4" />
+            <arg name="cli_id" type="u" direction="in" key="5" />
             <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
             <arg name="error_message" type="s" direction="out" />
@@ -142,6 +147,7 @@
             <arg name="filter" type="s" direction="in" key="3" />
             <arg name="domain" type="s" direction="in" key="4" />
             <arg name="extra" type="s" direction="in" key="5" />
+            <arg name="cli_id" type="u" direction="in" key="6" />
             <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
             <arg name="error_message" type="s" direction="out" />
@@ -150,6 +156,7 @@
             <arg name="dp_flags" type="u" direction="in" key="1" />
             <arg name="entry_type" type="u" direction="in" key="2" />
             <arg name="filter" type="s" direction="in" key="3" />
+            <arg name="cli_id" type="u" direction="in" key="4" />
             <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
             <arg name="domain_name" type="s" direction="out" />

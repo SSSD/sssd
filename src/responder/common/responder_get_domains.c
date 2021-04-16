@@ -750,7 +750,8 @@ sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
     subreq = sbus_call_dp_dp_getAccountDomain_send(state, be_conn->conn,
                                                    be_conn->bus_name,
                                                    SSS_BUS_PATH, dp_flags,
-                                                   entry_type, filter);
+                                                   entry_type, filter,
+                                                   rctx->client_id_num);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;

@@ -471,7 +471,8 @@ dp_get_account_info_send(TALLOC_CTX *mem_ctx,
                          uint32_t entry_type,
                          const char *filter,
                          const char *domain,
-                         const char *extra)
+                         const char *extra,
+                         uint32_t cli_id)
 {
     struct dp_get_account_info_state *state;
     struct tevent_req *subreq;
@@ -693,7 +694,8 @@ dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
                            struct data_provider *provider,
                            uint32_t dp_flags,
                            uint32_t entry_type,
-                           const char *filter)
+                           const char *filter,
+                           uint32_t cli_id)
 {
     struct dp_get_account_domain_state *state;
     struct tevent_req *subreq;
