@@ -4,7 +4,7 @@ set -e -u -o pipefail
 
 # An AWK regex matching tracked file paths to be excluded from the search.
 # Example: '.*\.po|README'
-PATH_EXCLUDE_REGEX='.*\.po|.*\.patch|.*\.diff|\/debian\/.*'
+PATH_EXCLUDE_REGEX='.*\.po|.*\.patch|.*\.diff'
 
 export GIT_DIR="$ABS_TOP_SRCDIR/.git"
 export GIT_WORK_TREE="$ABS_TOP_SRCDIR"
