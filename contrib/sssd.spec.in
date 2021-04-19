@@ -112,7 +112,7 @@ BuildRequires: openssl-devel
 BuildRequires: p11-kit-devel
 BuildRequires: pam_wrapper
 BuildRequires: pam-devel
-BuildRequires: pcre-devel
+BuildRequires: pcre2-devel
 BuildRequires: pkgconfig
 BuildRequires: popt-devel
 BuildRequires: python3-devel
