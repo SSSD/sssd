@@ -89,6 +89,8 @@ bool __wrap_be_is_offline(struct be_ctx *ctx)
 #define NAME      "test_user"
 #define NAME2     "test_user2"
 #define REQ_NAME  "getpwuid"
+#define CID 1
+#define SENDER_NAME  "sssd.test"
 
 struct method_data
 {
@@ -225,22 +227,25 @@ static void test_get_name_by_uid(void **state)
     req_data3->uid = UID2; /* We are looking for user by UID */
 
     /* Send request #1 */
-    req = dp_req_send(test_ctx, test_ctx->provider, NULL, REQ_NAME,
-                      DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data, &req_name);
+    req = dp_req_send(test_ctx, test_ctx->provider, NULL, REQ_NAME, CID,
+                      SENDER_NAME, DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data,
+                      &req_name);
     assert_non_null(req);
     assert_string_equal(req_name, REQ_NAME" #0");
     talloc_zfree(req_name);
 
     /* Send request #2 */
-    req2 = dp_req_send(test_ctx, test_ctx->provider, NULL, REQ_NAME,
-                       DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data2, &req_name);
+    req2 = dp_req_send(test_ctx, test_ctx->provider, NULL, REQ_NAME, CID,
+                       SENDER_NAME, DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data2,
+                       &req_name);
     assert_non_null(req2);
     assert_string_equal(req_name, REQ_NAME" #1");
     talloc_zfree(req_name);
 
     /* Send request #3 */
-    req3 = dp_req_send(test_ctx, test_ctx->provider, NULL, REQ_NAME,
-                       DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data3, &req_name);
+    req3 = dp_req_send(test_ctx, test_ctx->provider, NULL, REQ_NAME, CID,
+                       SENDER_NAME, DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data3,
+                       &req_name);
     assert_non_null(req3);
     assert_string_equal(req_name, REQ_NAME" #2");
     talloc_zfree(req_name);
@@ -297,8 +302,8 @@ static void test_type_mismatch(void **state)
     req_data->uid = UID; /* We are looking for user by UID */
 
     /* Send request #1 */
-    req = dp_req_send(test_ctx, test_ctx->provider, NULL, REQ_NAME,
-                      DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data, &req_name);
+    req = dp_req_send(test_ctx, test_ctx->provider, NULL, REQ_NAME, CID,
+                      SENDER_NAME, DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data, &req_name);
     assert_non_null(req);
     assert_string_equal(req_name, REQ_NAME" #0");
     talloc_zfree(req_name);
@@ -343,7 +348,7 @@ static void test_nonexist_dom(void **state)
     /* Send request #1 */
     req = dp_req_send(test_ctx, test_ctx->provider,
                       "non-existing domain name",
-                      REQ_NAME,
+                      REQ_NAME, CID, SENDER_NAME,
                       DPT_ID, DPM_ACCOUNT_HANDLER,
                       0,
                       req_data, NULL);
@@ -391,6 +396,7 @@ static void test_fast_reply(void **state)
 
     /* Send request #1 */
     req = dp_req_send(test_ctx, test_ctx->provider, NULL, REQ_NAME,
+                      CID, SENDER_NAME,
                       DPT_ID, DPM_ACCOUNT_HANDLER,
                       DP_FAST_REPLY, /* FAST REPLY, don't check online! */
                       req_data, NULL);

@@ -280,8 +280,8 @@ simple_resolve_group_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = dp_req_send(state, ctx->be_ctx->provider, ar->domain,
-                         "Simple Resolve Group", DPT_ID, DPM_ACCOUNT_HANDLER,
-                         0, ar, NULL);
+                         "Simple Resolve Group", 0, NULL,
+                         DPT_ID, DPM_ACCOUNT_HANDLER, 0, ar, NULL);
     if (!subreq) {
         ret = ENOMEM;
         goto done;

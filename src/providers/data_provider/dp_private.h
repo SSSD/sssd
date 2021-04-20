@@ -30,6 +30,10 @@
 #define DP_REQ_DEBUG(level, name, fmt, ...) \
     DEBUG(level, "DP Request [%s]: " fmt "\n", (name ?: "Unknown"), ##__VA_ARGS__)
 
+/* Tracing message, changing this can break log parsing tools */
+#define SSS_REQ_TRACE_CID_DP_REQ(level, name, fmt, ...) \
+    DP_REQ_DEBUG(level, name, "REQ_TRACE: " fmt, ##__VA_ARGS__)
+
 enum dp_clients {
     DPC_NSS,
     DPC_PAM,

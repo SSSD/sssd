@@ -291,7 +291,7 @@ static errno_t be_check_online_request(struct be_ctx *be_ctx)
     reset_fo(be_ctx);
 
     req = dp_req_send(be_ctx, be_ctx->provider, NULL, "Online Check",
-                      DPT_ID, DPM_CHECK_ONLINE, 0, NULL, NULL);
+                      0, NULL, DPT_ID, DPM_CHECK_ONLINE, 0, NULL, NULL);
     if (req == NULL) {
         return ENOMEM;
     }
