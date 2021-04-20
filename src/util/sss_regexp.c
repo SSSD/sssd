@@ -42,7 +42,7 @@ struct _sss_regexp_t {
     char *matched_string;
 };
 
-int sss_regexp_pcre2_destroy(sss_regexp_t *self)
+static int sss_regexp_pcre2_destroy(sss_regexp_t *self)
 {
     if (self->re) {
         pcre2_code_free(self->re);
@@ -56,7 +56,7 @@ int sss_regexp_pcre2_destroy(sss_regexp_t *self)
     return 0;
 }
 
-int sss_regexp_pcre2_compile(sss_regexp_t *self,
+static int sss_regexp_pcre2_compile(sss_regexp_t *self,
                              const char *pattern,
                              int options)
 {
@@ -81,7 +81,7 @@ int sss_regexp_pcre2_compile(sss_regexp_t *self,
     return EOK;
 }
 
-int sss_regexp_pcre2_match(sss_regexp_t *self,
+static int sss_regexp_pcre2_match(sss_regexp_t *self,
                            const char *subject,
                            int startoffset,
                            int options)
@@ -105,7 +105,7 @@ int sss_regexp_pcre2_match(sss_regexp_t *self,
                        NULL);
 }
 
-int sss_regexp_pcre2_get_named_substring(sss_regexp_t *self,
+static int sss_regexp_pcre2_get_named_substring(sss_regexp_t *self,
                                          const char *name,
                                          const char **value)
 {
@@ -135,7 +135,7 @@ struct _sss_regexp_t {
     const char *subject;
 };
 
-int sss_regexp_pcre1_destroy(sss_regexp_t *self)
+static int sss_regexp_pcre1_destroy(sss_regexp_t *self)
 {
     if (self->re) {
         pcre_free(self->re);
@@ -146,7 +146,7 @@ int sss_regexp_pcre1_destroy(sss_regexp_t *self)
     return 0;
 }
 
-int sss_regexp_pcre1_compile(sss_regexp_t *self,
+static int sss_regexp_pcre1_compile(sss_regexp_t *self,
                              const char *pattern,
                              int options)
 {
@@ -168,7 +168,7 @@ int sss_regexp_pcre1_compile(sss_regexp_t *self,
     return EOK;
 }
 
-int sss_regexp_pcre1_match(sss_regexp_t *self,
+static int sss_regexp_pcre1_match(sss_regexp_t *self,
                            const char *subject,
                            int startoffset,
                            int options)
@@ -187,7 +187,7 @@ int sss_regexp_pcre1_match(sss_regexp_t *self,
                      SSS_REGEXP_OVEC_SIZE);
 }
 
-int sss_regexp_pcre1_get_named_substring(sss_regexp_t *self,
+static int sss_regexp_pcre1_get_named_substring(sss_regexp_t *self,
                                          const char *name,
                                          const char **value)
 {
@@ -212,7 +212,7 @@ int sss_regexp_pcre1_get_named_substring(sss_regexp_t *self,
 /*
  * sss_regexp talloc destructor
  */
-int sss_regexp_destroy(sss_regexp_t *self)
+static int sss_regexp_destroy(sss_regexp_t *self)
 {
     if (!self) return -1;
 #ifdef HAVE_LIBPCRE2
