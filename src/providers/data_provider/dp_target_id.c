@@ -518,7 +518,8 @@ dp_get_account_info_send(TALLOC_CTX *mem_ctx,
         }
     }
 
-    subreq = dp_req_send(state, provider, domain, state->request_name, DPT_ID,
+    subreq = dp_req_send(state, provider, domain, state->request_name,
+                         cli_id, sbus_req->sender->name, DPT_ID,
                          DPM_ACCOUNT_HANDLER, dp_flags, state->data,
                          &state->request_name);
     if (subreq == NULL) {
@@ -720,9 +721,9 @@ dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    subreq = dp_req_send(state, provider, NULL, "AccountDomain", DPT_ID,
-                         DPM_ACCT_DOMAIN_HANDLER, dp_flags, state->data,
-                         &state->request_name);
+    subreq = dp_req_send(state, provider, NULL, "AccountDomain", cli_id,
+                         sbus_req->sender->name, DPT_ID, DPM_ACCT_DOMAIN_HANDLER,
+                         dp_flags, state->data, &state->request_name);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;

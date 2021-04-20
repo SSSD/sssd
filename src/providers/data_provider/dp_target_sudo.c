@@ -144,8 +144,8 @@ dp_sudo_handler_send(TALLOC_CTX *mem_ctx,
 
     name = dp_sudo_get_name(state->data->type);
 
-    subreq = dp_req_send(state, provider, NULL, name, DPT_SUDO,
-                         DPM_SUDO_HANDLER, dp_flags, state->data,
+    subreq = dp_req_send(state, provider, NULL, name, 0, sbus_req->sender->name,
+                         DPT_SUDO, DPM_SUDO_HANDLER, dp_flags, state->data,
                          &state->request_name);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
