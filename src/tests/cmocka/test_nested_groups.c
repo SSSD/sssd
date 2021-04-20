@@ -882,7 +882,7 @@ static int nested_group_external_member_teardown(void **state)
     }
 
     talloc_free(test_ctx->ext_ctx);
-    return nested_groups_test_setup(*state);
+    return nested_groups_test_teardown(*state);
 }
 
 static void nested_external_done(struct tevent_req *req)
