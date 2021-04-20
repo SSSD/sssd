@@ -225,7 +225,7 @@ void opt_test_get(void **state)
                                TEST_DOM_NAME, TEST_ID_PROVIDER, params);
     assert_non_null(tctx);
 
-    ret = dp_get_options(global_talloc_context, tctx->confdb, tctx->conf_dom_path,
+    ret = dp_get_options(tctx, tctx->confdb, tctx->conf_dom_path,
                          test_def_opts, OPT_NUM_OPTS, &opts);
     assert_int_equal(ret, EOK);
 
@@ -262,6 +262,8 @@ void opt_test_get(void **state)
 
     bo = dp_opt_get_bool(opts, OPT_BOOL_FALSE);
     assert_true(bo == false);
+
+    talloc_free(tctx);
 }
 
 static int opt_test_getset_setup(void **state)
