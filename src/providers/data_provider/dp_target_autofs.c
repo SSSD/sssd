@@ -61,9 +61,9 @@ dp_autofs_get_map_send(TALLOC_CTX *mem_ctx,
 
     state->data->mapname = mapname;
 
-    subreq = dp_req_send(state, provider, NULL, "AutoFS", DPT_AUTOFS,
-                         DPM_AUTOFS_GET_MAP, dp_flags, state->data,
-                         NULL);
+    subreq = dp_req_send(state, provider, NULL, "AutoFS", cli_id,
+                         sbus_req->sender->name, DPT_AUTOFS, DPM_AUTOFS_GET_MAP,
+                         dp_flags, state->data, NULL);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
@@ -144,7 +144,8 @@ dp_autofs_get_entry_send(TALLOC_CTX *mem_ctx,
     state->data->mapname = mapname;
     state->data->entryname = entryname;
 
-    subreq = dp_req_send(state, provider, NULL, "AutoFS", DPT_AUTOFS,
+    subreq = dp_req_send(state, provider, NULL, "AutoFS", cli_id,
+                         sbus_req->sender->name, DPT_AUTOFS,
                          DPM_AUTOFS_GET_ENTRY, dp_flags, state->data,
                          NULL);
     if (subreq == NULL) {
@@ -225,7 +226,8 @@ dp_autofs_enumerate_send(TALLOC_CTX *mem_ctx,
 
     state->data->mapname = mapname;
 
-    subreq = dp_req_send(state, provider, NULL, "AutoFS", DPT_AUTOFS,
+    subreq = dp_req_send(state, provider, NULL, "AutoFS", cli_id,
+                         sbus_req->sender->name, DPT_AUTOFS,
                          DPM_AUTOFS_ENUMERATE, dp_flags, state->data,
                          NULL);
     if (subreq == NULL) {

@@ -65,9 +65,9 @@ dp_host_handler_send(TALLOC_CTX *mem_ctx,
     state->data->name = name;
     state->data->alias = SBUS_REQ_STRING(alias);
 
-    subreq = dp_req_send(state, provider, NULL, "HostID", DPT_HOSTID,
-                         DPM_HOSTID_HANDLER, dp_flags, state->data,
-                         &state->request_name);
+    subreq = dp_req_send(state, provider, NULL, "HostID", cli_id,
+                         sbus_req->sender->name, DPT_HOSTID, DPM_HOSTID_HANDLER,
+                         dp_flags, state->data, &state->request_name);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;

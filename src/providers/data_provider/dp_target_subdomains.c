@@ -61,9 +61,9 @@ dp_subdomains_handler_send(TALLOC_CTX *mem_ctx,
 
     state->data->domain_hint = domain_hint;
 
-    subreq = dp_req_send(state, provider, NULL, "Subdomains", DPT_SUBDOMAINS,
-                         DPM_DOMAINS_HANDLER, 0, state->data,
-                         &state->request_name);
+    subreq = dp_req_send(state, provider, NULL, "Subdomains", 0,
+                         sbus_req->sender->name, DPT_SUBDOMAINS, DPM_DOMAINS_HANDLER,
+                         0, state->data, &state->request_name);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;

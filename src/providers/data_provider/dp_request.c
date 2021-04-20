@@ -103,7 +103,9 @@ static int dp_req_destructor(struct dp_req *dp_req)
 static errno_t dp_attach_req(struct dp_req *dp_req,
                              struct data_provider *provider,
                              const char *name,
-                             uint32_t dp_flags)
+                             uint32_t dp_flags,
+                             uint32_t cli_id,
+                             const char *sender_name)
 {
     /* If we run out of numbers we simply overflow. */
     dp_req->num = provider->requests.index++;
@@ -118,8 +120,15 @@ static errno_t dp_attach_req(struct dp_req *dp_req,
 
     talloc_set_destructor(dp_req, dp_req_destructor);
 
-    DP_REQ_DEBUG(SSSDBG_TRACE_FUNC, dp_req->name,
-                 "New request. Flags [%#.4x].", dp_flags);
+    if (cli_id > 0) {
+        SSS_REQ_TRACE_CID_DP_REQ(SSSDBG_TRACE_FUNC, dp_req->name,
+                                 "New request. [%s CID #%u] Flags [%#.4x].",
+                                 sender_name, cli_id, dp_flags);
+    } else {
+        SSS_REQ_TRACE_CID_DP_REQ(SSSDBG_TRACE_FUNC, dp_req->name,
+                                 "New request. Flags [%#.4x].",
+                                 dp_flags);
+    }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Number of active DP request: %u\n",
           provider->requests.num_active);
@@ -132,6 +141,8 @@ dp_req_new(TALLOC_CTX *mem_ctx,
            struct data_provider *provider,
            const char *domainname,
            const char *name,
+           uint32_t cli_id,
+           const char *sender_name,
            enum dp_targets target,
            enum dp_methods method,
            uint32_t dp_flags,
@@ -158,7 +169,7 @@ dp_req_new(TALLOC_CTX *mem_ctx,
     dp_req->request_data = request_data;
     dp_req->req = req;
 
-    ret = dp_attach_req(dp_req, provider, name, dp_flags);
+    ret = dp_attach_req(dp_req, provider, name, dp_flags, cli_id, sender_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create DP request "
               "[%s] [%d]: %s\n", name, ret, sss_strerror(ret));
@@ -192,6 +203,8 @@ file_dp_request(TALLOC_CTX *mem_ctx,
                 struct data_provider *provider,
                 const char *domainname,
                 const char *name,
+                uint32_t cli_id,
+                const char *sender_name,
                 enum dp_targets target,
                 enum dp_methods method,
                 uint32_t dp_flags,
@@ -207,8 +220,8 @@ file_dp_request(TALLOC_CTX *mem_ctx,
 
     be_ctx = provider->be_ctx;
 
-    ret = dp_req_new(mem_ctx, provider, domainname, name, target,
-                     method, dp_flags, request_data, req, &dp_req);
+    ret = dp_req_new(mem_ctx, provider, domainname, name, cli_id, sender_name,
+                     target, method, dp_flags, request_data, req, &dp_req);
     if (ret != EOK) {
         *_dp_req = dp_req;
         goto done;
@@ -274,6 +287,8 @@ struct tevent_req *dp_req_send(TALLOC_CTX *mem_ctx,
                                struct data_provider *provider,
                                const char *domain,
                                const char *name,
+                               uint32_t cli_id,
+                               const char *sender_name,
                                enum dp_targets target,
                                enum dp_methods method,
                                uint32_t dp_flags,
@@ -292,8 +307,8 @@ struct tevent_req *dp_req_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ret = file_dp_request(state, provider, domain, name, target,
-                          method, dp_flags, request_data, req, &dp_req);
+    ret = file_dp_request(state, provider, domain, name, cli_id, sender_name,
+                          target, method, dp_flags, request_data, req, &dp_req);
 
     if (dp_req == NULL) {
         /* An error occurred before request could be created. */

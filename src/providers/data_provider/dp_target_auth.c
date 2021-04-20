@@ -177,8 +177,9 @@ dp_pam_handler_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    subreq = dp_req_send(state, provider, pd->domain, req_name, target,
-                         method, 0, pd, NULL);
+    subreq = dp_req_send(state, provider, pd->domain, req_name,
+                         pd->client_id_num, sbus_req->sender->name,
+                         target, method, 0, pd, NULL);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
@@ -223,8 +224,9 @@ static void dp_pam_handler_auth_done(struct tevent_req *subreq)
     }
 
     subreq = dp_req_send(state, state->provider, state->pd->domain,
-                         "PAM SELinux", DPT_SELINUX, DPM_SELINUX_HANDLER,
-                         0, state->pd, NULL);
+                         "PAM SELinux", state->pd->client_id_num,
+                         "sssd.pam", DPT_SELINUX,
+                         DPM_SELINUX_HANDLER, 0, state->pd, NULL);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         tevent_req_error(req, ENOMEM);
@@ -292,7 +294,8 @@ dp_access_control_refresh_rules_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = dp_req_send(state, provider, NULL, "Refresh Access Control Rules",
-                         DPT_ACCESS, DPM_REFRESH_ACCESS_RULES, 0, NULL, NULL);
+                         0, sbus_req->sender->name, DPT_ACCESS, DPM_REFRESH_ACCESS_RULES,
+                         0, NULL, NULL);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
