@@ -2021,6 +2021,7 @@ int sysdb_add_user(struct sss_domain_info *domain,
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
     struct sysdb_attrs *id_attrs;
+    struct ldb_message_element *el = NULL;
     uint32_t id;
     int ret;
     bool posix;
@@ -2168,6 +2169,12 @@ int sysdb_add_user(struct sss_domain_info *domain,
                                  ((cache_timeout) ?
                                   (now + cache_timeout) : 0));
     if (ret) goto done;
+
+    ret = sysdb_attrs_get_el_ext(attrs, SYSDB_INITGR_EXPIRE, false, &el);
+    if (ret == ENOENT) {
+        ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE, 0);
+        if (ret) goto done;
+    }
 
     ret = sysdb_set_user_attr(domain, name, attrs, SYSDB_MOD_REP);
     if (ret) goto done;
