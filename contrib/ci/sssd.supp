@@ -70,6 +70,18 @@
    ...
 }
 
+# And the same, as above, for pcre2
+{
+   sssd-leak-sss_names_pcre2
+   Memcheck:Leak
+   fun:malloc
+   fun:pcre2_compile_8
+   fun:sss_regexp_pcre2_compile
+   fun:sss_regexp_new
+   fun:sss_names_init_from_args
+   ...
+}
+
 # Ignore tests exiting and abandoning cmocka state, concerns dyndns test
 {
    sssd-leak-cmocka-exit
