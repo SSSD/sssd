@@ -177,7 +177,7 @@ static errno_t attr_initgr(TALLOC_CTX *mem_ctx,
     errno_t ret;
 
     ret = sysdb_attrs_get_uint32_t(entry, attr, &value);
-    if (ret == ENOENT) {
+    if (ret == ENOENT || (ret == EOK && value == 0)) {
         *_value = "Initgroups were not yet performed";
         return EOK;
     } else if (ret != EOK) {
