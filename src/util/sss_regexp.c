@@ -214,7 +214,7 @@ static int sss_regexp_pcre1_get_named_substring(sss_regexp_t *self,
  */
 static int sss_regexp_destroy(sss_regexp_t *self)
 {
-    if (!self) return -1;
+    if (!self) return 0;
 #ifdef HAVE_LIBPCRE2
     return sss_regexp_pcre2_destroy(self);
 #else
