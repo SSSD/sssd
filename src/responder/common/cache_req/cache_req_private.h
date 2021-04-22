@@ -29,6 +29,10 @@
 #define CACHE_REQ_DEBUG(level, cr, fmt, ...) \
     DEBUG(level, "CR #%u: " fmt, (cr)->reqid, ##__VA_ARGS__)
 
+/* Tracing message, changing this can break log parsing tools */
+#define SSS_REQ_TRACE_CID_CR(level, cr, fmt, ...) \
+    CACHE_REQ_DEBUG(level, cr, "REQ_TRACE: " fmt, ##__VA_ARGS__)
+
 struct cache_req {
     /* Provided input. */
     struct cache_req_data *data;
