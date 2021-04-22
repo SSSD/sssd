@@ -1120,7 +1120,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
     }
     state->first_iteration = true;
 
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "New request '%s'\n", cr->reqname);
+    SSS_REQ_TRACE_CID_CR(SSSDBG_TRACE_FUNC, cr, "New request [CID #%u] '%s'\n",
+                         rctx->client_id_num, cr->reqname);
 
     ret = cache_req_is_well_known_object(state, cr, &result);
     if (ret == EOK) {
