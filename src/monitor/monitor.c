@@ -2180,7 +2180,7 @@ static void monitor_service_shutdown(struct mt_svc *svc)
 
     /* We must decrease the number of services when shutting down
      * a {socket,dbus}-activated service. */
-    ctx->num_services--;
+    if (ctx != NULL) ctx->num_services--;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Unregistering service %s (%p)\n", svc->identity, svc);
