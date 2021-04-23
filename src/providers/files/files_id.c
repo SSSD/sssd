@@ -57,7 +57,7 @@ files_account_info_handler_send(TALLOC_CTX *mem_ctx,
             goto immediate;
         }
         update_req = &id_ctx->users_req;
-        needs_update = id_ctx->updating_passwd ? true : false;
+        needs_update = (id_ctx->refresh_ctx != NULL);
         break;
     case BE_REQ_GROUP:
         if (data->filter_type != BE_FILTER_ENUM) {
@@ -67,7 +67,7 @@ files_account_info_handler_send(TALLOC_CTX *mem_ctx,
             goto immediate;
         }
         update_req = &id_ctx->groups_req;
-        needs_update = id_ctx->updating_groups ? true : false;
+        needs_update = (id_ctx->refresh_ctx != NULL);
         break;
     case BE_REQ_INITGROUPS:
         if (data->filter_type != BE_FILTER_NAME) {
@@ -83,9 +83,7 @@ files_account_info_handler_send(TALLOC_CTX *mem_ctx,
             goto immediate;
         }
         update_req = &id_ctx->initgroups_req;
-        needs_update = id_ctx->updating_groups || id_ctx->updating_passwd \
-                       ? true \
-                       : false;
+        needs_update = (id_ctx->refresh_ctx != NULL);
         break;
     case BE_REQ_BY_CERT:
         if (data->filter_type != BE_FILTER_CERT) {
@@ -164,24 +162,9 @@ void files_account_info_finished(struct files_id_ctx *id_ctx,
                                  int req_type,
                                  errno_t ret)
 {
-    switch (req_type) {
-    case BE_REQ_USER:
         finish_update_req(&id_ctx->users_req, ret);
-        if (id_ctx->updating_groups == false) {
-            finish_update_req(&id_ctx->initgroups_req, ret);
-        }
-        break;
-    case BE_REQ_GROUP:
         finish_update_req(&id_ctx->groups_req, ret);
-        if (id_ctx->updating_passwd == false) {
-            finish_update_req(&id_ctx->initgroups_req, ret);
-        }
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE,
-               "Unexpected req_type %d\n", req_type);
-        return;
-    }
+        finish_update_req(&id_ctx->initgroups_req, ret);
 }
 
 errno_t files_account_info_handler_recv(TALLOC_CTX *mem_ctx,
