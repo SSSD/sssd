@@ -39,6 +39,7 @@
 #define SF_UPDATE_PASSWD    1<<0
 #define SF_UPDATE_GROUP     1<<1
 #define SF_UPDATE_BOTH      (SF_UPDATE_PASSWD | SF_UPDATE_GROUP)
+#define SF_UPDATE_IMMEDIATE 1<<2
 
 struct files_ctx {
     struct files_ops_ctx *ops;
@@ -703,9 +704,11 @@ done:
 }
 
 enum update_steps {
+    WAIT_TO_START_USERS,
     DELETE_USERS,
     READ_USERS,
     SAVE_USERS,
+    WAIT_TO_START_GROUPS,
     DELETE_GROUPS,
     READ_GROUPS,
     SAVE_GROUPS,
@@ -713,8 +716,121 @@ enum update_steps {
     UPDATE_DONE,
 };
 
+struct files_refresh_ctx {
+    struct timeval start_passwd_refresh;
+    enum refresh_task_status updating_passwd;
+    bool passwd_start_again;
+    struct timeval start_group_refresh;
+    enum refresh_task_status updating_groups;
+    bool group_start_again;
+};
+
+static errno_t check_state(struct files_refresh_ctx *refresh_ctx, uint8_t flags)
+{
+    errno_t ret;
+    struct timeval tv;
+    struct timeval delay = { 1, 0 };
+    const struct timeval tv_zero = {0 , 0};
+
+    errno = 0;
+    ret = gettimeofday(&tv, NULL);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              "gettimeofday failed [%d][%s], keeping old value.\n",
+              ret, sss_strerror(ret));
+    }
+
+    if ((flags & SF_UPDATE_PASSWD) && (flags & SF_UPDATE_GROUP)) {
+        if (flags & SF_UPDATE_IMMEDIATE) {
+            refresh_ctx->start_passwd_refresh = tv_zero;
+        } else {
+            if (ret == EOK) {
+                timeradd(&tv, &delay,
+                         &refresh_ctx->start_passwd_refresh);
+            }
+        }
+
+        switch (refresh_ctx->updating_passwd) {
+        case REFRESH_NOT_RUNNIG:
+            break;
+        case REFRESH_WAITING_TO_START:
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Refresh is already waiting to start, nothing to do.\n");
+            return EAGAIN;
+        case REFRESH_ACTIVE:
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Refresh currently active, queing another refresh.\n");
+            refresh_ctx->passwd_start_again = true;
+            return EAGAIN;
+        default:
+            DEBUG(SSSDBG_OP_FAILURE, "Unknown refresh state [%d].\n",
+                                     refresh_ctx->updating_passwd);
+            return EINVAL;
+        }
+
+        /* Groups are updated after passwd, in case a new passwd update
+         * arrives we have to run the passwd steps again. */
+        switch (refresh_ctx->updating_groups) {
+        case REFRESH_NOT_RUNNIG:
+            break;
+        case REFRESH_WAITING_TO_START:
+            refresh_ctx->passwd_start_again = true;
+            return EAGAIN;
+        case REFRESH_ACTIVE:
+            refresh_ctx->passwd_start_again = true;
+            refresh_ctx->group_start_again = true;
+            return EAGAIN;
+        default:
+            DEBUG(SSSDBG_OP_FAILURE, "Unknown refresh state [%d].\n",
+                                     refresh_ctx->updating_groups);
+            return EINVAL;
+        }
+
+        refresh_ctx->passwd_start_again = false;
+        refresh_ctx->updating_passwd = REFRESH_WAITING_TO_START;
+        refresh_ctx->updating_groups = REFRESH_WAITING_TO_START;
+        return EOK;
+    } else if (flags & SF_UPDATE_GROUP) {
+        if (flags & SF_UPDATE_IMMEDIATE) {
+            refresh_ctx->start_group_refresh = tv_zero;
+        } else {
+            if (ret == EOK) {
+                timeradd(&tv, &delay,
+                         &refresh_ctx->start_group_refresh);
+            }
+        }
+
+        switch (refresh_ctx->updating_groups) {
+        case REFRESH_NOT_RUNNIG:
+            break;
+        case REFRESH_WAITING_TO_START:
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Refresh is already waiting to start, nothing to do.\n");
+            return EAGAIN;
+        case REFRESH_ACTIVE:
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Refresh currently active, queing another refresh.\n");
+            refresh_ctx->group_start_again = true;
+            return EAGAIN;
+        default:
+            DEBUG(SSSDBG_OP_FAILURE, "Unknown refresh state [%d].\n",
+                                     refresh_ctx->updating_passwd);
+            return EINVAL;
+        }
+
+        refresh_ctx->group_start_again = false;
+        refresh_ctx->updating_groups = REFRESH_WAITING_TO_START;
+        return EOK;
+    }
+
+    DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected refresh flags [%"PRIu8"].\n", flags);
+    return EINVAL;
+}
+
 struct sf_enum_files_state {
     struct files_id_ctx *id_ctx;
+    struct files_refresh_ctx *refresh_ctx;
     uint8_t flags;
     struct tevent_timer *te;
     enum update_steps current_step;
@@ -729,10 +845,19 @@ struct sf_enum_files_state {
     uint32_t initial_delay;
 };
 
-static void sf_enum_files_first_step(struct tevent_context *ev,
-                                     struct tevent_timer *te,
-                                     struct timeval tv,
-                                     void *data);
+static int clear_refresh_ctx(void *ptr)
+{
+    struct sf_enum_files_state *state = (struct sf_enum_files_state *) ptr;
+
+    state->id_ctx->refresh_ctx = NULL;
+
+    return 0;
+}
+
+static void sf_enum_files_steps(struct tevent_context *ev,
+                                struct tevent_timer *te,
+                                struct timeval tv,
+                                void *data);
 static struct tevent_req *sf_enum_files_send(struct files_id_ctx *id_ctx,
                                              uint8_t flags)
 {
@@ -740,11 +865,40 @@ static struct tevent_req *sf_enum_files_send(struct files_id_ctx *id_ctx,
     struct sf_enum_files_state *state;
     struct timeval tv;
     errno_t ret;
+    struct files_refresh_ctx *refresh_ctx = NULL;
+
+    if (id_ctx->refresh_ctx != NULL) {
+        refresh_ctx = id_ctx->refresh_ctx;
+    } else {
+        refresh_ctx = talloc_zero(id_ctx, struct files_refresh_ctx);
+        if (refresh_ctx == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate refresh context.\n");
+            return NULL;
+        }
+        refresh_ctx->updating_passwd = REFRESH_NOT_RUNNIG;
+        refresh_ctx->updating_groups = REFRESH_NOT_RUNNIG;
+    }
+
+    ret = check_state(refresh_ctx, flags);
+    if (ret != EOK) {
+        return NULL;
+    }
 
     req = tevent_req_create(id_ctx, &state, struct sf_enum_files_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
+    }
+
+    if (id_ctx->refresh_ctx == NULL) {
+        id_ctx->refresh_ctx = talloc_steal(state, refresh_ctx);
+        talloc_set_destructor((TALLOC_CTX *) state, clear_refresh_ctx);
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "The files refresh task should run only "
+              "once, but a second was detected. Error in internal procession "
+              "logic.\n");
+        ret = EFAULT;
+        goto done;
     }
 
     state->id_ctx = id_ctx;
@@ -757,25 +911,24 @@ static struct tevent_req *sf_enum_files_send(struct files_id_ctx *id_ctx,
     state->delay = 100;
 
     if (state->flags & SF_UPDATE_PASSWD) {
-        state->current_step = DELETE_USERS;
+        state->current_step = WAIT_TO_START_USERS;
     } else if (state->flags & SF_UPDATE_GROUP) {
-        state->current_step = DELETE_GROUPS;
+        state->current_step = WAIT_TO_START_GROUPS;
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, "None of the expected flags are set, "
+                                 "cannot start the refresh.\n");
+        ret = EINVAL;
+        goto done;
     }
 
     tv = tevent_timeval_current_ofs(0, state->initial_delay);
     state->te = tevent_add_timer(id_ctx->be->ev, state, tv,
-                                 sf_enum_files_first_step, req);
+                                 sf_enum_files_steps, req);
     if (state->te == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to schedule files update.\n");
         ret = EFAULT;
         goto done;
     }
-
-    ret = sysdb_transaction_start(id_ctx->domain->sysdb);
-    if (ret != EOK) {
-        goto done;
-    }
-    state->in_transaction = true;
 
     return req;
 
@@ -785,10 +938,10 @@ done:
     return req;
 }
 
-static void sf_enum_files_first_step(struct tevent_context *ev,
-                                     struct tevent_timer *te,
-                                     struct timeval tv,
-                                     void *data)
+static void sf_enum_files_steps(struct tevent_context *ev,
+                                struct tevent_timer *te,
+                                struct timeval tv,
+                                void *data)
 {
     errno_t ret;
     errno_t tret;
@@ -796,15 +949,50 @@ static void sf_enum_files_first_step(struct tevent_context *ev,
     struct tevent_req *req;
     struct files_id_ctx *id_ctx;
     const char *filename = NULL;
+    struct timeval now;
+    struct timeval diff;
+    uint32_t delay;
 
     req = talloc_get_type(data, struct tevent_req);
     state = tevent_req_data(req, struct sf_enum_files_state);
 
     state->te = NULL;
     id_ctx = state->id_ctx;
+    delay = state->delay;
 
     switch (state->current_step) {
+    case WAIT_TO_START_USERS:
+        DEBUG(SSSDBG_TRACE_ALL, "Step WAIT_TO_START_USERS.\n");
+        errno = 0;
+        ret = gettimeofday(&now, NULL);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "gettimeofday failed [%d][%s], starting user refresh now.\n",
+                  ret, sss_strerror(ret));
+            state->current_step = DELETE_USERS;
+            delay = 0;
+        } else {
+            timersub(&state->id_ctx->refresh_ctx->start_passwd_refresh, &now,
+                     &diff);
+            if (diff.tv_sec < 0) {
+                state->current_step = DELETE_USERS;
+                delay = 0;
+            } else {
+                delay = diff.tv_sec*1000000 + diff.tv_usec;
+            }
+        }
+        break;
     case DELETE_USERS:
+        if (!state->in_transaction) {
+            ret = sysdb_transaction_start(id_ctx->domain->sysdb);
+            if (ret != EOK) {
+                goto done;
+            }
+            state->in_transaction = true;
+        }
+
+        id_ctx->refresh_ctx->updating_passwd = REFRESH_ACTIVE;
         DEBUG(SSSDBG_TRACE_ALL, "Step DELETE_USERS.\n");
         ret = delete_all_users(id_ctx->domain);
         if (ret != EOK) {
@@ -829,15 +1017,26 @@ static void sf_enum_files_first_step(struct tevent_context *ev,
                       filename);
             } else if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "Cannot enumerate groups from %s, aborting\n",
+                      "Cannot enumerate users from %s, aborting\n",
                       filename);
                 goto done;
             }
         } else {
+            id_ctx->refresh_ctx->updating_passwd = REFRESH_NOT_RUNNIG;
             if (state->flags & SF_UPDATE_GROUP) {
-                state->current_step = DELETE_GROUPS;
+                state->current_step = WAIT_TO_START_GROUPS;
             } else {
-                state->current_step = UPDATE_FINISH;
+                if (state->id_ctx->refresh_ctx->passwd_start_again) {
+                    state->id_ctx->refresh_ctx->passwd_start_again = false;
+                    id_ctx->refresh_ctx->updating_passwd = REFRESH_WAITING_TO_START;
+                    state->current_step = WAIT_TO_START_USERS;
+                } else if (state->id_ctx->refresh_ctx->group_start_again) {
+                    state->id_ctx->refresh_ctx->group_start_again = false;
+                    id_ctx->refresh_ctx->updating_groups = REFRESH_WAITING_TO_START;
+                    state->current_step = WAIT_TO_START_GROUPS;
+                } else {
+                    state->current_step = UPDATE_FINISH;
+                }
             }
         }
         break;
@@ -847,6 +1046,7 @@ static void sf_enum_files_first_step(struct tevent_context *ev,
             ret = sf_enum_users(id_ctx, state->users,
                                 state->obj_idx, state->batch_size);
             if (ret == EOK) {
+                /* check next file */
                 state->current_step = READ_USERS;
             } else if (ret == EAGAIN) {
                 state->obj_idx += state->batch_size;
@@ -856,7 +1056,37 @@ static void sf_enum_files_first_step(struct tevent_context *ev,
             }
         }
         break;
+    case WAIT_TO_START_GROUPS:
+        DEBUG(SSSDBG_TRACE_ALL, "Step WAIT_TO_START_GROUPS.\n");
+        errno = 0;
+        ret = gettimeofday(&now, NULL);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "gettimeofday failed [%d][%s], starting user refresh now.\n",
+                  ret, sss_strerror(ret));
+            state->current_step = DELETE_GROUPS;
+            delay = 0;
+        } else {
+            timersub(&state->id_ctx->refresh_ctx->start_passwd_refresh, &now,
+                     &diff);
+            if (diff.tv_sec < 0) {
+                state->current_step = DELETE_GROUPS;
+                delay = 0;
+            } else {
+                delay = diff.tv_sec*1000000 + diff.tv_usec;
+            }
+        }
+        break;
     case DELETE_GROUPS:
+        if (!state->in_transaction) {
+            ret = sysdb_transaction_start(id_ctx->domain->sysdb);
+            if (ret != EOK) {
+                goto done;
+            }
+            state->in_transaction = true;
+        }
+        id_ctx->refresh_ctx->updating_groups = REFRESH_ACTIVE;
         DEBUG(SSSDBG_TRACE_ALL, "Step DELETE_GROUPS.\n");
         ret = delete_all_groups(id_ctx->domain);
         if (ret != EOK) {
@@ -886,7 +1116,18 @@ static void sf_enum_files_first_step(struct tevent_context *ev,
                 goto done;
             }
         } else {
-            state->current_step = UPDATE_FINISH;
+            id_ctx->refresh_ctx->updating_groups = REFRESH_NOT_RUNNIG;
+            if (state->id_ctx->refresh_ctx->passwd_start_again) {
+                state->id_ctx->refresh_ctx->passwd_start_again = false;
+                id_ctx->refresh_ctx->updating_passwd = REFRESH_WAITING_TO_START;
+                state->current_step = WAIT_TO_START_USERS;
+            } else if (state->id_ctx->refresh_ctx->group_start_again) {
+                state->id_ctx->refresh_ctx->group_start_again = false;
+                id_ctx->refresh_ctx->updating_groups = REFRESH_WAITING_TO_START;
+                state->current_step = WAIT_TO_START_GROUPS;
+            } else {
+                state->current_step = UPDATE_FINISH;
+            }
         }
         break;
     case SAVE_GROUPS:
@@ -920,19 +1161,18 @@ static void sf_enum_files_first_step(struct tevent_context *ev,
 
         state->current_step = UPDATE_DONE;
 
-        ret = EOK;
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Undefined update step [%zu].\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Undefined update step [%u].\n",
                                    state->current_step);
         ret = EINVAL;
         goto done;
     }
 
     if (state->current_step != UPDATE_DONE) {
-        tv = tevent_timeval_current_ofs(0, state->delay);
+        tv = tevent_timeval_current_ofs(0, delay);
         state->te = tevent_add_timer(id_ctx->be->ev, state, tv,
-                                     sf_enum_files_first_step, req);
+                                     sf_enum_files_steps, req);
         if (state->te == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Unable to schedule files update.\n");
             ret = EFAULT;
@@ -942,6 +1182,7 @@ static void sf_enum_files_first_step(struct tevent_context *ev,
         return;
     }
 
+    ret = EOK;
 done:
     if (state->in_transaction) {
         tret = sysdb_transaction_cancel(id_ctx->domain->sysdb);
@@ -949,8 +1190,11 @@ done:
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Cannot cancel transaction: %d\n", ret);
         }
+        state->in_transaction = false;
     }
 
+    id_ctx->refresh_ctx->updating_passwd = REFRESH_NOT_RUNNIG;
+    id_ctx->refresh_ctx->updating_groups = REFRESH_NOT_RUNNIG;
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
@@ -970,8 +1214,7 @@ static errno_t sf_enum_files_recv(struct tevent_req *req)
 static void sf_cb_done(struct files_id_ctx *id_ctx)
 {
     /* Only activate a domain when both callbacks are done */
-    if (id_ctx->updating_passwd == false
-            && id_ctx->updating_groups == false) {
+    if (id_ctx->refresh_ctx == NULL) {
         dp_sbus_domain_active(id_ctx->be->provider,
                               id_ctx->domain);
     }
@@ -990,8 +1233,6 @@ static int sf_passwd_cb(const char *filename, uint32_t flags, void *pvt)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "passwd notification\n");
-
-    id_ctx->updating_passwd = true;
     dp_sbus_domain_inconsistent(id_ctx->be->provider, id_ctx->domain);
 
     dp_sbus_reset_users_ncache(id_ctx->be->provider, id_ctx->domain);
@@ -1004,9 +1245,12 @@ static int sf_passwd_cb(const char *filename, uint32_t flags, void *pvt)
      */
     req = sf_enum_files_send(id_ctx, SF_UPDATE_BOTH);
     if (req == NULL) {
+        if (id_ctx->refresh_ctx != NULL) {
+            /* Update is currently active, nothing to do */
+            return EOK;
+        }
         DEBUG(SSSDBG_OP_FAILURE, "Failed to start files update.\n");
         ret = ENOMEM;
-        id_ctx->updating_passwd = false;
         sf_cb_done(id_ctx);
         files_account_info_finished(id_ctx, BE_REQ_USER, ret);
         return ret;
@@ -1035,9 +1279,9 @@ static void sf_passwd_cb_done(struct tevent_req *req)
 
     ret = EOK;
 done:
-    id_ctx->updating_passwd = false;
     sf_cb_done(id_ctx);
     files_account_info_finished(id_ctx, BE_REQ_USER, ret);
+    files_account_info_finished(id_ctx, BE_REQ_GROUP, ret);
 }
 
 static void sf_group_cb_done(struct tevent_req *req);
@@ -1053,8 +1297,6 @@ static int sf_group_cb(const char *filename, uint32_t flags, void *pvt)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "group notification\n");
-
-    id_ctx->updating_groups = true;
     dp_sbus_domain_inconsistent(id_ctx->be->provider, id_ctx->domain);
 
     dp_sbus_reset_groups_ncache(id_ctx->be->provider, id_ctx->domain);
@@ -1063,9 +1305,12 @@ static int sf_group_cb(const char *filename, uint32_t flags, void *pvt)
 
     req = sf_enum_files_send(id_ctx, SF_UPDATE_GROUP);
     if (req == NULL) {
+        if (id_ctx->refresh_ctx != NULL) {
+            /* Update is currently active, nothing to do */
+            return EOK;
+        }
         DEBUG(SSSDBG_OP_FAILURE, "Failed to start files update.\n");
         ret = ENOMEM;
-        id_ctx->updating_groups = false;
         sf_cb_done(id_ctx);
         files_account_info_finished(id_ctx, BE_REQ_GROUP, ret);
         return ret;
@@ -1094,7 +1339,6 @@ static void sf_group_cb_done(struct tevent_req *req)
 
     ret = EOK;
 done:
-    id_ctx->updating_groups = false;
     sf_cb_done(id_ctx);
     files_account_info_finished(id_ctx, BE_REQ_GROUP, ret);
 }
@@ -1109,7 +1353,7 @@ static void startup_enum_files(struct tevent_context *ev,
 
     talloc_zfree(imm);
 
-    req = sf_enum_files_send(id_ctx, SF_UPDATE_BOTH);
+    req = sf_enum_files_send(id_ctx, SF_UPDATE_BOTH|SF_UPDATE_IMMEDIATE);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not update files after startup.\n");
         return;
