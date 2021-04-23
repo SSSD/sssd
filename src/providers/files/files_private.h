@@ -34,6 +34,12 @@
 
 #include "providers/data_provider/dp.h"
 
+enum refresh_task_status {
+    REFRESH_NOT_RUNNIG = 0,
+    REFRESH_WAITING_TO_START,
+    REFRESH_ACTIVE
+};
+
 struct files_id_ctx {
     struct be_ctx *be;
     struct sss_domain_info *domain;
@@ -43,8 +49,7 @@ struct files_id_ctx {
     const char **passwd_files;
     const char **group_files;
 
-    bool updating_passwd;
-    bool updating_groups;
+    struct files_refresh_ctx *refresh_ctx;
 
     struct tevent_req *users_req;
     struct tevent_req *groups_req;
