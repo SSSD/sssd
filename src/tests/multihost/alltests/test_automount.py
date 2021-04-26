@@ -348,3 +348,60 @@ class Testautofsresponder(object):
         # delete the pcap file
         del_pcap = 'rm -f %s' % auto_pcapfile
         multihost.client[0].run_command(del_pcap)
+
+    @pytest.mark.tier2
+    def test_009_maps_after_coming_online(self, multihost, add_nisobject):
+        """
+        :title: IDM-SSSD-TC: ldap-Provider Automount: Without eisting cache
+          when sssd comes to online state from offline, autofs maps are fetched
+          without a restart
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1113639
+
+        :setup:
+          1. edit sssd.conf and specify autofs_provider = ad
+          2. restart autofs
+
+        :steps:
+          1. firewalld block 389 and 636
+          2. stop sssd, autofs.
+          3. remove sssd cache
+          4. Start sssd
+          5. remove firewall rule
+          6. start autofs
+
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+          5. Should succeed
+          6. Should succeed
+        """
+        multihost.master[0].run_command(['touch', '/export/nfs-test'])
+        client = sssdTools(multihost.client[0])
+        domain_name = client.get_domain_section_name()
+        for service in ['sssd', 'autofs']:
+            client.service_ctrl("stop", service)
+        client.service_ctrl("start", "firewalld")
+        client.firewall_port(636, 'BLOCK')
+        client.firewall_port(389, 'BLOCK')
+        client.firewall_port('ALL', 'allowall')
+        client.clear_sssd_cache()
+        time.sleep(5)
+        cmdy = 'id foo1@%s' % domain_name
+        multihost.client[0].run_command(cmdy, raiseonerr=False)
+        cmd = 'sssctl domain-status %s' % domain_name
+        cmd1 = multihost.client[0].run_command(cmd, raiseonerr=False)
+        find = re.compile(r'Online status: Offline')
+        result = find.search(cmd1.stdout_text)
+        assert result is not None
+        cmdz = cmd1.stdout_text
+        client.firewall_port(636, 'OPEN')
+        client.firewall_port(389, 'OPEN')
+        client.firewall_port('ALL', 'delall')
+        client.service_ctrl("stop", "firewalld")
+        time.sleep(60)
+        cmd2 = client.service_ctrl("start", "autofs")
+        cmd = 'dnf remove -y firewalld'
+        multihost.client[0].run_command(cmd, raiseonerr=True)
+        assert cmd2 == 0

@@ -138,6 +138,82 @@ class sssdTools(object):
         contents = "\n" + hostentry + contents.replace(hostentry, '')
         self.multihost.put_file_contents('/etc/hosts', contents)
 
+    def firewall_port(self, port, action):
+        """ open or block ports via firewalld
+            :param int port_num: port number to open or block
+            :param str action: action to perform on port, action could be
+            'block', 'open', 'allowall', 'delall'
+            :port option could take port number or word
+            :return: true
+            :exceptions: raise sssdexception
+        firewall_rules = firewall_rules.decode("utf-8")
+        firewall_rules = firewall_rules.stdout_text[:-1]
+        """
+        cmd = 'systemctl restart firewalld'
+        self.multihost.run_command(cmd)
+        cmd = 'firewall-cmd --permanent --direct --get-rules ' \
+              'ipv4 filter output'
+        cmd1 = self.multihost.run_command(cmd)
+        firewall_rules = cmd1.stdout_text
+        rule_num_index = []
+        port_and_rule_num = {}
+        for rule in firewall_rules.split('\n'):
+            if len(rule) > 13:
+                port = rule.split()[5].split('=')[1]
+                rule_num = rule.split()[0]
+                rule_num_index.append(rule[0])
+                port_and_rule_num[port] = rule_num
+        if not rule_num_index:
+            max_rule_num = 0
+        else:
+            max_rule_num = int(max(rule_num_index)) + 1
+        rule_allow_all = ''
+        for rule in firewall_rules.split('\n'):
+            if rule.split(' ').count('accept') == 1:
+                rule_allow_all = int(rule[0])
+        fw_rld = 'firewall-cmd --reload'
+        if action.lower() == 'block' and port not in port_and_rule_num:
+            fw_block = 'firewall-cmd --permanent --direct --add-rule ipv4 ' \
+                       'filter output %s -p tcp -m tcp ' \
+                       '--dport=%s -j drop' % (max_rule_num, port)
+            try:
+                self.multihost.run_command(fw_block, raiseonerr=false)
+            except subprocess.calledprocesserror:
+                pytest.fail("unable to block %s port" % port)
+            else:
+                self.multihost.run_command(fw_rld, raiseonerr=false)
+        elif action.lower() == 'open' and port in port_and_rule_num:
+            fw_open = 'firewall-cmd --permanent --direct --remove-rule ' \
+                  'ipv4 filter output %s -p tcp -m tcp ' \
+                  '--dport=%s -j drop' % (port_and_rule_num[port], port)
+            try:
+                cmd = self.multihost.run_command(fw_open, raiseonerr=false)
+            except subprocess.calledprocesserror:
+                pytest.fail("unable to open %s port" % port)
+            else:
+                self.multihost.run_command(fw_rld, raiseonerr=false)
+        elif action.lower() == 'allowall' and not rule_allow_all:
+            fw_alw_rest = 'firewall-cmd --permanent --direct --add-rule ' \
+                          'ipv4 filter output %s -j accept' % (max_rule_num)
+            try:
+                cmd = self.multihost.run_command(fw_alw_rest, raiseonerr=false)
+            except subprocess.calledprocesserror:
+                pytest.fail("unable to run cmd")
+            else:
+                self.multihost.run_command(fw_rld, raiseonerr=false)
+        elif action.lower() == 'delall' and isinstance(rule_allow_all, int):
+            fw_del_alw = 'firewall-cmd --permanent --direct --remove-rule ' \
+                         'ipv4 filter output %s -j accept' % (rule_allow_all)
+            try:
+                cmd = self.multihost.run_command(fw_del_alw, raiseonerr=false)
+            except subprocess.calledprocesserror:
+                pytest.fail("unable to run cmd")
+            else:
+                self.multihost.run_command(fw_rld, raiseonerr=false)
+        else:
+            print("failed to execute")
+            return false
+
     def config_authconfig(self, hostname, domainname):
         """ Run authconfig to configure Kerberos and SSSD auth on remote host
 
