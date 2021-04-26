@@ -1532,6 +1532,11 @@ ldap_access_filter = (employeeType=admin)
                             </emphasis>
                         </para>
                         <para>
+                            You can disable full refresh by setting this option
+                            to 0. However, either smart or full refresh must
+                            be enabled.
+                        </para>
+                        <para>
                             Default: 21600 (6 hours)
                         </para>
                     </listitem>
@@ -1560,6 +1565,11 @@ ldap_access_filter = (employeeType=admin)
                             3) by reconnecting to the server
                             (by default every 15 minutes, see
                             <emphasis>ldap_connection_expire_timeout</emphasis>).
+                        </para>
+                        <para>
+                            You can disable smart refresh by setting this option
+                            to 0. However, either smart or full refresh must
+                            be enabled.
                         </para>
                         <para>
                             Default: 900 (15 minutes)
