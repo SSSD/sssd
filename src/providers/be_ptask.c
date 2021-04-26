@@ -417,6 +417,21 @@ void be_ptask_disable(struct be_ptask *task)
     }
 }
 
+/* Cancel current timer and schedule new one. */
+void be_ptask_postpone(struct be_ptask *task)
+{
+    if (task == NULL) {
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: rescheduling task\n", task->name);
+    talloc_zfree(task->timer);
+    talloc_zfree(task->req);
+    task->period = task->orig_period;
+
+    be_ptask_schedule(task, BE_PTASK_PERIOD, BE_PTASK_SCHEDULE_FROM_NOW);
+}
+
 void be_ptask_destroy(struct be_ptask **task)
 {
     talloc_zfree(*task);
