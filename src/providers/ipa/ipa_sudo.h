@@ -27,6 +27,8 @@ struct ipa_sudo_ctx {
     struct sdap_id_ctx *id_ctx;
     struct ipa_options *ipa_opts;
     struct sdap_options *sdap_opts;
+    struct be_ptask *full_refresh;
+    struct be_ptask *smart_refresh;
 
     /* sudo */
     struct sdap_attr_map *sudocmdgroup_map;

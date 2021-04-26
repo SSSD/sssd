@@ -26,6 +26,8 @@
 
 struct sdap_sudo_ctx {
     struct sdap_id_ctx *id_ctx;
+    struct be_ptask *full_refresh;
+    struct be_ptask *smart_refresh;
 
     char **hostnames;
     char **ip_addr;
