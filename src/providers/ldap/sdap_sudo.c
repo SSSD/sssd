@@ -32,6 +32,7 @@
 struct sdap_sudo_handler_state {
     uint32_t type;
     struct dp_reply_std reply;
+    struct sdap_sudo_ctx *sudo_ctx;
 };
 
 static void sdap_sudo_handler_done(struct tevent_req *subreq);
@@ -54,6 +55,7 @@ sdap_sudo_handler_send(TALLOC_CTX *mem_ctx,
     }
 
     state->type = data->type;
+    state->sudo_ctx = sudo_ctx;
 
     switch (data->type) {
     case BE_REQ_SUDO_FULL:
@@ -105,6 +107,12 @@ static void sdap_sudo_handler_done(struct tevent_req *subreq)
     case BE_REQ_SUDO_FULL:
         ret = sdap_sudo_full_refresh_recv(subreq, &dp_error);
         talloc_zfree(subreq);
+
+        /* Reschedule the periodic task since the refresh was just finished
+         * per user request. */
+        if (ret == EOK && dp_error == DP_ERR_OK) {
+            be_ptask_postpone(state->sudo_ctx->full_refresh);
+        }
         break;
     case BE_REQ_SUDO_RULES:
         ret = sdap_sudo_rules_refresh_recv(subreq, &dp_error, &deleted);
