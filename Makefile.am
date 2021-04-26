@@ -53,9 +53,6 @@ endif
 if BUILD_SAMBA
 winbindplugindir = @winbindpluginpath@
 endif
-if BUILD_LIBWBCLIENT
-libwbclientdir = @appmodpath@
-endif
 sssdconfdir = $(sysconfdir)/sssd
 sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
@@ -285,7 +282,6 @@ if HAVE_CMOCKA
         test_sysdb_sudo \
         test_sysdb_utils \
         test_sysdb_domain_resolution_order \
-        test_wbc_calls \
         test_be_ptask \
         test_copy_ccache \
         test_copy_keytab \
@@ -902,10 +898,6 @@ dist_noinst_HEADERS = \
     src/sss_client/pam_message.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
-    src/sss_client/libwbclient/libwbclient.h \
-    src/sss_client/libwbclient/wbc_err_internal.h \
-    src/sss_client/libwbclient/wbclient_internal.h \
-    src/sss_client/libwbclient/wbc_sssd_internal.h \
     src/sss_client/nfs/nfsidmap_internal.h \
     src/lib/idmap/sss_idmap_private.h \
     src/lib/sifp/sss_sifp_private.h \
@@ -1431,46 +1423,6 @@ include_HEADERS = \
     src/sss_client/idmap/sss_nss_idmap.h \
     src/lib/certmap/sss_certmap.h \
     $(NULL)
-
-if BUILD_LIBWBCLIENT
-libwbclient_LTLIBRARIES = libwbclient.la
-pkgconfig_DATA += src/sss_client/libwbclient/wbclient_sssd.pc
-
-EXTRA_libwbclient_la_DEPENDENCIES = \
-    src/sss_client/libwbclient/wbclient.exports \
-    $(NULL)
-
-libwbclient_la_SOURCES = \
-    src/sss_client/libwbclient/wbc_guid.c \
-    src/sss_client/libwbclient/wbc_idmap_common.c \
-    src/sss_client/libwbclient/wbc_idmap_sssd.c \
-    src/sss_client/libwbclient/wbclient_common.c \
-    src/sss_client/libwbclient/wbclient_sssd.c \
-    src/sss_client/libwbclient/wbc_pam_sssd.c \
-    src/sss_client/libwbclient/wbc_pwd_sssd.c \
-    src/sss_client/libwbclient/wbc_sid_common.c \
-    src/sss_client/libwbclient/wbc_sid_sssd.c \
-    src/sss_client/libwbclient/wbc_sssd_internal.h \
-    src/sss_client/libwbclient/wbc_util_common.c \
-    src/sss_client/libwbclient/wbc_util_sssd.c \
-    src/sss_client/libwbclient/wbc_ctx_sssd.c \
-    $(NULL)
-libwbclient_la_LIBADD = \
-    $(LIBADD_DL) \
-    libsss_nss_idmap.la \
-    $(CLIENT_LIBS) \
-    $(NULL)
-
-libwbclient_la_LDFLAGS = \
-    -Wl,--version-script,$(srcdir)/src/sss_client/libwbclient/wbclient.exports \
-    -version-info @libwbclient_version_info@ \
-    $(NULL)
-
-dist_noinst_DATA += src/sss_client/libwbclient/wbclient.exports \
-    $(NULL)
-
-include_HEADERS += src/sss_client/libwbclient/wbclient_sssd.h
-endif #BUILD_LIBWBCLIENT
 
 if BUILD_IFP
 lib_LTLIBRARIES += libsss_simpleifp.la
@@ -3407,30 +3359,6 @@ test_sysdb_domain_resolution_order_LDADD = \
     $(TALLOC_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
-    $(NULL)
-
-test_wbc_calls_SOURCES = \
-    src/tests/cmocka/test_wbc_calls.c \
-    src/sss_client/libwbclient/wbc_sid_sssd.c \
-    src/sss_client/libwbclient/wbclient_common.c \
-    src/sss_client/libwbclient/wbc_sid_common.c \
-    src/sss_client/common.c \
-    $(NULL)
-test_wbc_calls_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(CMOCKA_CFLAGS) \
-    $(NULL)
-test_wbc_calls_LDFLAGS = \
-    -Wl,-wrap,sss_nss_getnamebysid \
-    $(NULL)
-test_wbc_calls_LDADD = \
-    $(CLIENT_LIBS) \
-    $(CMOCKA_LIBS) \
-    $(POPT_LIBS) \
-    $(TALLOC_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    libsss_test_common.la \
-    libsss_nss_idmap.la \
     $(NULL)
 
 test_be_ptask_SOURCES = \

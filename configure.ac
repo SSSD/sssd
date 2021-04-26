@@ -167,7 +167,6 @@ WITH_SYSLOG
 WITH_SAMBA
 WITH_NFS
 WITH_NFS_LIB_PATH
-WITH_LIBWBCLIENT
 WITH_SSSD_USER
 SSSD_RUNSTATEDIR
 WITH_SECRETS
@@ -535,7 +534,6 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/lib/certmap/sss_certmap.pc src/lib/certmap/sss_certmap.doxy
                  src/sss_client/idmap/sss_nss_idmap.pc
                  src/sss_client/idmap/sss_nss_idmap.doxy
-                 src/sss_client/libwbclient/wbclient_sssd.pc
                  src/lib/sifp/sss_simpleifp.pc
                  src/lib/sifp/sss_simpleifp.doxy
                  src/config/setup.py
