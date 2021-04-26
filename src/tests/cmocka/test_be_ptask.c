@@ -588,6 +588,32 @@ void test_be_ptask_enable_delay(void **state)
     assert_null(ptask);
 }
 
+void test_be_ptask_postpone(void **state)
+{
+    struct test_ctx *test_ctx = (struct test_ctx *)(*state);
+    struct be_ptask *ptask = NULL;
+    time_t now;
+    errno_t ret;
+
+    now = get_current_time();
+    ret = be_ptask_create(test_ctx, test_ctx->be_ctx, 30, 10, 0, 0, 0,
+                          0, test_be_ptask_send,
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
+    assert_int_equal(ret, ERR_OK);
+    assert_non_null(ptask);
+    assert_non_null(ptask->timer);
+    assert_true(now + 10 <= ptask->next_execution);
+    assert_true(now + 30 > ptask->next_execution);
+
+    be_ptask_postpone(ptask);
+    assert_true(now + 30 <= ptask->next_execution);
+
+    be_ptask_destroy(&ptask);
+    assert_null(ptask);
+}
+
 void test_be_ptask_offline_skip(void **state)
 {
     struct test_ctx *test_ctx = (struct test_ctx *)(*state);
@@ -1108,6 +1134,7 @@ int main(int argc, const char *argv[])
         new_test(be_ptask_disable),
         new_test(be_ptask_enable),
         new_test(be_ptask_enable_delay),
+        new_test(be_ptask_postpone),
         new_test(be_ptask_offline_skip),
         new_test(be_ptask_offline_disable),
         new_test(be_ptask_offline_execute),
