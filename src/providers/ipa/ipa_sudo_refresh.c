@@ -119,6 +119,9 @@ done:
         return;
     }
 
+    /* We just finished full request, we can postpone smart refresh. */
+    be_ptask_postpone(state->sudo_ctx->smart_refresh);
+
     tevent_req_done(req);
 }
 
@@ -456,5 +459,7 @@ ipa_sudo_ptask_setup(struct be_ctx *be_ctx, struct ipa_sudo_ctx *sudo_ctx)
                                          ipa_sudo_ptask_full_refresh_recv,
                                          ipa_sudo_ptask_smart_refresh_send,
                                          ipa_sudo_ptask_smart_refresh_recv,
-                                         sudo_ctx);
+                                         sudo_ctx,
+                                         &sudo_ctx->full_refresh,
+                                         &sudo_ctx->smart_refresh);
 }

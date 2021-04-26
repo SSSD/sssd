@@ -28,6 +28,7 @@
 struct ipa_sudo_handler_state {
     uint32_t type;
     struct dp_reply_std reply;
+    struct ipa_sudo_ctx *sudo_ctx;
 };
 
 static void ipa_sudo_handler_done(struct tevent_req *subreq);
@@ -50,6 +51,7 @@ ipa_sudo_handler_send(TALLOC_CTX *mem_ctx,
     }
 
     state->type = data->type;
+    state->sudo_ctx = sudo_ctx;
 
     switch (data->type) {
     case BE_REQ_SUDO_FULL:
@@ -102,6 +104,12 @@ static void ipa_sudo_handler_done(struct tevent_req *subreq)
     case BE_REQ_SUDO_FULL:
         ret = ipa_sudo_full_refresh_recv(subreq, &dp_error);
         talloc_zfree(subreq);
+
+        /* Postpone the periodic task since the refresh was just finished
+         * per user request. */
+        if (ret == EOK && dp_error == DP_ERR_OK) {
+            be_ptask_postpone(state->sudo_ctx->full_refresh);
+        }
         break;
     case BE_REQ_SUDO_RULES:
         ret = ipa_sudo_rules_refresh_recv(subreq, &dp_error, &deleted);
