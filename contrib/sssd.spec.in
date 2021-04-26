@@ -168,7 +168,6 @@ Summary: SSSD Client libraries for NSS and PAM
 License: LGPLv3+
 Requires: libsss_nss_idmap = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
-Requires(post): /sbin/ldconfig
 Requires(post):  /usr/sbin/alternatives
 Requires(preun): /usr/sbin/alternatives
 
@@ -994,27 +993,12 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %systemd_postun_with_restart sssd-kcm.service
 
 %post client
-%{?ldconfig}
 /usr/sbin/alternatives --install /etc/cifs-utils/idmap-plugin cifs-idmap-plugin %{_libdir}/cifs-utils/cifs_idmap_sss.so 20
 
 %preun client
 if [ $1 -eq 0 ] ; then
         /usr/sbin/alternatives --remove cifs-idmap-plugin %{_libdir}/cifs-utils/cifs_idmap_sss.so
 fi
-
-%ldconfig_postun client
-
-%ldconfig_scriptlets -n libsss_sudo
-
-%ldconfig_scriptlets -n libipa_hbac
-
-%ldconfig_scriptlets -n libsss_idmap
-
-%ldconfig_scriptlets -n libsss_nss_idmap
-
-%ldconfig_scriptlets -n libsss_simpleifp
-
-%ldconfig_scriptlets -n libsss_certmap
 
 %posttrans common
 %systemd_postun_with_restart sssd.service
