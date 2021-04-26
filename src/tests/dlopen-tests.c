@@ -51,9 +51,6 @@ struct so {
 #ifdef BUILD_WITH_LIBSECRET
     { "libsss_secrets.so", { LIBPFX"libsss_secrets.so", NULL } },
 #endif /* BUILD_WITH_LIBSECRET */
-#ifdef BUILD_LIBWBCLIENT
-    { "libwbclient.so", { LIBPFX"libwbclient.so", NULL } },
-#endif /* BUILD_LIBWBCLIENT */
 #ifdef BUILD_IFP
     { "libsss_simpleifp.so", { LIBPFX"libsss_simpleifp.so", NULL } },
 #endif /* BUILD_IFP */

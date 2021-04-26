@@ -135,65 +135,6 @@ class TestBugzillaAutomation(object):
             else:
                 assert False
 
-    @pytest.mark.tier2
-    def test_0004_bz1407960(self, multihost, create_aduser_group, smbconfig):
-        """
-        :title: IDM-SSSD-TC: ad_provider: ad_parameters: wbcLookupSid() fails
-         in pdomain is NULL
-        :id: f444b01e-8c78-41f2-8aa7-7fb9cff87162
-        :steps:
-          1. Leave the already join AD system
-          2. Joined to AD using net ads command
-          3. Obtain cache Kerberos ticket-granting ticket by Administrator
-          4. Check the user info.
-          5. Leave the system from AD Domain, using net ads
-          6. Join system to AD using realmd
-        :expectedresults:
-          1. Successfully leave the already join AD system
-          2. Successfully joined to AD using net ads command
-          3. Obtained cache Kerberos ticket-granting ticket by Administartor
-          4. Successfully check the user info without any segfault
-          5. Successfully leave the system from AD Domain, using net ads
-          6. Successfully join system to AD using realmd
-        """
-        (ad_user, _) = create_aduser_group
-        password = multihost.ad[0].ssh_password
-        username = multihost.ad[0].ssh_username
-        client = sssdTools(multihost.client[0])
-        domainname = multihost.ad[0].domainname.strip().upper()
-        net_join = 'net ads join -U %s %s' % (username, domainname)
-        cmd = multihost.client[0].run_command(net_join, stdin_text=password)
-        time.sleep(5)
-        if cmd.returncode == 0:
-            user = '{}@{}'.format(username, multihost.ad[0].domainname.upper())
-            ad_ip = multihost.ad[0].ip
-            dest_file = '/var/lib/sss/pubconf/kdcinfo.%s' % domainname
-            multihost.client[0].put_file_contents(dest_file, ad_ip)
-            kinit = 'kinit %s' % user
-            cmd = multihost.client[0].run_command(kinit, stdin_text=password)
-            if cmd.returncode == 0:
-                net_ads_info = 'net ads info'
-                aduser_info = multihost.client[0].run_command(net_ads_info,
-                                                              raiseonerr=False)
-                output = client.get_ad_user_info(ad_user, multihost.ad[0])
-                if not (aduser_info.returncode == 0) and output:
-                    pytest.fail("Unable to user %s info" % ad_user)
-        net_leave = 'net ads leave -U %s %s' % (username, domainname)
-        # authselect_cmd = 'authselect disable-feature winbind'
-        cmd = multihost.client[0].run_command(net_leave, stdin_text=password)
-        # multihost.client[0].run_command(authselect_cmd)
-        if cmd.returncode == 0:
-            realm_join = 'realm join -U %s %s' % (username, domainname)
-            multihost.client[0].run_command(realm_join, raiseonerr=False)
-            client.realm_leave(domainname)
-            client.realm_join(domainname, password)
-            client.realm_leave(domainname)
-        else:
-            raise Exception("Unable to remove system %s from AD server"
-                            % multihost.client[0].external_hostname)
-        kdestroy_cmd = 'kdestroy -A'
-        multihost.client[0].run_command(kdestroy_cmd)
-
     @pytest.mark.tier1
     def test_00015_authselect_cannot_validate_its_own_files(self, multihost):
         """
