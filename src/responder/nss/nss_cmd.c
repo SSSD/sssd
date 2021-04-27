@@ -1121,7 +1121,10 @@ static errno_t nss_cmd_endservent(struct cli_ctx *cli_ctx)
 
 static errno_t nss_cmd_getsidbyname(struct cli_ctx *cli_ctx)
 {
-    const char *attrs[] = { SYSDB_SID_STR, NULL };
+    /* The attributes besides SYSDB_SID_STR are needed to handle some corner
+     * cases with respect to user-private-groups */
+    const char *attrs[] = { SYSDB_SID_STR, SYSDB_UIDNUM, SYSDB_GIDNUM,
+                            SYSDB_OBJECTCATEGORY, NULL };
 
     return nss_getby_name(cli_ctx, false, CACHE_REQ_OBJECT_BY_NAME, attrs,
                           SSS_MC_NONE, nss_protocol_fill_sid);

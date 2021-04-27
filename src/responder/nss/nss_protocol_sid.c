@@ -87,13 +87,115 @@ nss_get_id_type(struct nss_cmd_ctx *cmd_ctx,
     return EOK;
 }
 
+static errno_t
+nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
+                    struct cache_req_result *result,
+                    const char **_sid,
+                    enum sss_id_type *_type)
+{
+    errno_t ret;
+    size_t c;
+    const char *tmp;
+    const char *user_sid = NULL;
+    const char *group_sid = NULL;
+    uint64_t user_uid = 0;
+    uint64_t user_gid = 0;
+    uint64_t group_gid = 0;
+    enum sss_id_type ltype;
+
+    if (result->count == 1) {
+        *_sid = ldb_msg_find_attr_as_string(result->msgs[0],
+                                            SYSDB_SID_STR, NULL);
+        if (*_sid == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Missing SID.\n");
+            return EINVAL;
+        }
+        return nss_get_id_type(cmd_ctx, result, _type);
+    }
+
+    for (c = 0; c < result->count; c++) {
+        ret = find_sss_id_type(result->msgs[c],
+                               false /* we are only interested in the type
+                                      * of the object, so mpg setting can
+                                      * be ignored */,
+                               &ltype);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unable to find ID type, ignored [%d][%s].\n",
+                  ret, sss_strerror(ret));
+            continue;
+        }
+
+        if (ltype == SSS_ID_TYPE_GID) {
+            tmp = ldb_msg_find_attr_as_string(result->msgs[c],
+                                               SYSDB_SID_STR, NULL);
+            if (tmp == NULL) {
+                continue;
+            }
+            if (tmp != NULL && group_sid != NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Search for SID found multiple users with a SID, "
+                      "request failed.\n");
+                return EINVAL;
+            }
+            group_sid = tmp;
+            group_gid = ldb_msg_find_attr_as_uint64(result->msgs[c],
+                                                    SYSDB_GIDNUM, 0);
+        } else {
+            tmp = ldb_msg_find_attr_as_string(result->msgs[c],
+                                              SYSDB_SID_STR, NULL);
+            if (tmp == NULL) {
+                continue;
+            }
+            if (tmp != NULL && user_sid != NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Search for SID found multiple users with a SID, "
+                      "request failed.\n");
+                return EINVAL;
+            }
+            user_sid = tmp;
+            user_uid = ldb_msg_find_attr_as_uint64(result->msgs[c],
+                                                   SYSDB_UIDNUM, 0);
+            user_gid = ldb_msg_find_attr_as_uint64(result->msgs[c],
+                                                   SYSDB_GIDNUM, 0);
+        }
+    }
+
+    if (user_sid == NULL && group_sid == NULL) {
+        /* No SID in the results */
+        return ENOENT;
+    } else if (user_sid != NULL && group_sid == NULL) {
+        /* There is only one user with a SID in the results */
+        *_sid = user_sid;
+        *_type = SSS_ID_TYPE_UID;
+    } else if (user_sid == NULL && group_sid != NULL) {
+        /* There is only one group with a SID in the results */
+        *_sid = group_sid;
+        *_type = SSS_ID_TYPE_GID;
+    } else if (user_sid != NULL && group_sid != NULL && user_uid != 0
+                    && user_uid == user_gid && user_gid == group_gid) {
+        /* Manually created user-private-group */
+        *_sid = user_sid;
+        *_type = SSS_ID_TYPE_UID;
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Found user with SID [%s] and group with SID [%s] during a "
+              "single request, cannot handle this case.\n",
+              user_sid, group_sid);
+        /* Unrelated user and group both with SIDs are returned, we cannot
+         * handle this case. */
+        return EINVAL;
+    }
+
+    return EOK;
+}
+
 errno_t
 nss_protocol_fill_sid(struct nss_ctx *nss_ctx,
                       struct nss_cmd_ctx *cmd_ctx,
                       struct sss_packet *packet,
                       struct cache_req_result *result)
 {
-    struct ldb_message *msg = result->msgs[0];
     struct sized_string sz_sid;
     enum sss_id_type id_type;
     const char *sid;
@@ -102,15 +204,9 @@ nss_protocol_fill_sid(struct nss_ctx *nss_ctx,
     uint8_t *body;
     errno_t ret;
 
-    ret = nss_get_id_type(cmd_ctx, result, &id_type);
+    ret = nss_get_sid_id_type(cmd_ctx, result, &sid, &id_type);
     if (ret != EOK) {
         return ret;
-    }
-
-    sid = ldb_msg_find_attr_as_string(msg, SYSDB_SID_STR, NULL);
-    if (sid == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing SID.\n");
-        return EINVAL;
     }
 
     to_sized_string(&sz_sid, sid);
@@ -241,6 +337,13 @@ nss_protocol_fill_orig(struct nss_ctx *nss_ctx,
                                  SYSDB_ORIG_DN,
                                  SYSDB_ORIG_MEMBEROF,
                                  NULL };
+
+    if (result->count != 1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unexpected number of results [%u], expected [1].\n",
+              result->count);
+        return EINVAL;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
