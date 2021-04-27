@@ -85,6 +85,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_full_refresh_interval", DP_OPT_NUMBER, { .number = 21600 }, NULL_NUMBER }, /* 360 mins */
     { "ldap_sudo_smart_refresh_interval", DP_OPT_NUMBER, { .number = 900 }, NULL_NUMBER }, /* 15 mins */
+    { "ldap_sudo_random_offset", DP_OPT_NUMBER, { .number = 30 }, NULL_NUMBER }, /* 30 seconds */
     { "ldap_sudo_use_host_filter", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_sudo_hostnames", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_ip", DP_OPT_STRING, NULL_STRING, NULL_STRING },

@@ -515,6 +515,7 @@ class SSSDOptions(object):
         'ldap_sudo_search_base': _('Base DN for sudo rules lookups'),
         'ldap_sudo_full_refresh_interval': _('Automatic full refresh period'),
         'ldap_sudo_smart_refresh_interval': _('Automatic smart refresh period'),
+        'ldap_sudo_random_offset': _('Smart and full refresh random offset'),
         'ldap_sudo_use_host_filter': _('Whether to filter rules by hostname, IP addresses and network'),
         'ldap_sudo_hostnames': _('Hostnames and/or fully qualified domain names of this machine to filter sudo rules'),
         'ldap_sudo_ip': _('IPv4 or IPv6 addresses or network of this machine to filter sudo rules'),
