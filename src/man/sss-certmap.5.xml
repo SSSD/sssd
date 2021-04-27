@@ -52,6 +52,14 @@
             Internally the priority is treated as unsigned 32bit integer, using
             a priority value larger than 4294967295 will cause an error.
         </para>
+        <para>
+            If multiple rules have the same priority and only one of the related
+            matching rules applies, this rule will be chosen. If there are
+            multiple rules with the same priority which matches, one is chosen
+            but which one is undefined. To avoid this undefined behavior either
+            use different priorities or make the matching rules more specific
+            e.g. by using distinct &lt;ISSUER&gt; patterns.
+        </para>
     </refsect2>
     <refsect2 id='match'>
         <title>MATCHING RULE</title>
