@@ -4109,6 +4109,21 @@ struct passwd sid_user = {
     .pw_passwd = discard_const("*"),
 };
 
+struct passwd sid_user_upg = {
+    .pw_name = discard_const("testusersidupg"),
+    .pw_uid = 5678,
+    .pw_gid = 5678,
+    .pw_dir = discard_const("/home/testusersidupg"),
+    .pw_gecos = discard_const("test user upg"),
+    .pw_shell = discard_const("/bin/sh"),
+    .pw_passwd = discard_const("*"),
+};
+
+struct group sid_user_group = {
+    .gr_name = discard_const("testusersidupg"),
+    .gr_gid = 5678,
+};
+
 static int test_nss_getsidbyname_check(uint32_t status,
                                        uint8_t *body,
                                        size_t blen)
@@ -4149,6 +4164,88 @@ void test_nss_getsidbyname(void **state)
 
     ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
                      &sid_user, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testusersid");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    will_return(test_nss_getsidbyname_check, testuser_sid);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getsidbyname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getsidbyname_ipa_upg(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    const char *testuser_sid = "S-1-2-3-4";
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &sid_user_upg, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+                      &sid_user_group, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testusersid");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    will_return(test_nss_getsidbyname_check, testuser_sid);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getsidbyname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getsidbyname_ipa_upg_manual(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    const char *testuser_sid = "S-1-2-3-4";
+    const char *testgroup_sid = "S-1-2-3-5";
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &sid_user_upg, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    talloc_free(attrs);
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testgroup_sid);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+                      &sid_user_group, attrs, 0);
     assert_int_equal(ret, EOK);
 
     mock_input_user_or_group("testusersid");
@@ -5667,6 +5764,8 @@ int main(int argc, const char *argv[])
                                         nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getsidbyname,
                                         nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getsidbyname_ipa_upg,
+                                        nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getsidbyid,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getsidbyuid,
@@ -5684,6 +5783,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_nss_getsidbyupn,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getsidbyname_neg,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getsidbyname_ipa_upg_manual,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getpwnam_ex,
                                         nss_test_setup, nss_test_teardown),

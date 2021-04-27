@@ -5266,7 +5266,7 @@ errno_t sysdb_search_object_by_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, true, res);
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, false, res);
 
 done:
     talloc_free(tmp_ctx);
