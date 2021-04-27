@@ -119,6 +119,7 @@ def setup_sssd(session_multihost, request):
     sssdConfig.set(domain_section, 'krb5_kpasswd', krb5_server)
     sssdConfig.set(domain_section, 'krb5_realm', 'EXAMPLE.TEST')
     sssdConfig.set(domain_section, 'debug_level', '9')
+    sssdConfig.set(domain_section, 'ldap_sudo_random_offset', '0')
     sssdConfig.add_section('nss')
     sssdConfig.set('nss', 'debug_level', '9')
     sssdConfig.add_section('pam')

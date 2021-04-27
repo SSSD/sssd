@@ -237,6 +237,11 @@ ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
             consider disabling the smart refresh by setting
             <emphasis>ldap_sudo_smart_refresh_interval = 0</emphasis>.
         </para>
+        <para>
+            4. If you have large number of clients, you may consider increasing
+            the value of <emphasis>ldap_sudo_random_offset</emphasis> to
+            distribute the load on the server better.
+        </para>
     </refsect1>
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />

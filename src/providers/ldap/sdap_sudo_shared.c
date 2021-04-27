@@ -43,10 +43,12 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
     time_t full;
     time_t delay;
     time_t last_refresh;
+    time_t offset;
     errno_t ret;
 
     smart = dp_opt_get_int(opts, SDAP_SUDO_SMART_REFRESH_INTERVAL);
     full = dp_opt_get_int(opts, SDAP_SUDO_FULL_REFRESH_INTERVAL);
+    offset = dp_opt_get_int(opts, SDAP_SUDO_RANDOM_OFFSET);
 
     if (smart == 0 && full == 0) {
         /* We don't allow both types to be disabled. At least smart refresh
@@ -91,8 +93,7 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
      * Since we have periodical online check we don't have to run this task
      * when offline. */
     if (full > 0) {
-        ret = be_ptask_create(be_ctx, be_ctx, full, delay, 0, 0, full,
-                              0,
+        ret = be_ptask_create(be_ctx, be_ctx, full, delay, 0, offset, full, 0,
                               full_send_fn, full_recv_fn, pvt,
                               "SUDO Full Refresh",
                               BE_PTASK_OFFLINE_DISABLE |
@@ -111,8 +112,8 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
      * Since we have periodical online check we don't have to run this task
      * when offline. */
     if (smart > 0) {
-        ret = be_ptask_create(be_ctx, be_ctx, smart, delay + smart, smart, 0,
-                              smart,                              0,
+        ret = be_ptask_create(be_ctx, be_ctx, smart, delay + smart, smart,
+                              offset, smart, 0,
                               smart_send_fn, smart_recv_fn, pvt,
                               "SUDO Smart Refresh",
                               BE_PTASK_OFFLINE_DISABLE |

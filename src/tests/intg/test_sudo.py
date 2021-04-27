@@ -134,6 +134,7 @@ def format_basic_conf(ldap_conn, schema):
         ldap_uri            = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
         ldap_sudo_use_host_filter = false
+        ldap_sudo_random_offset = 0
         debug_level=10
     """).format(**locals())
 
