@@ -352,10 +352,10 @@ class Testautofsresponder(object):
     @pytest.mark.tier2
     def test_009_maps_after_coming_online(self, multihost, add_nisobject):
         """
-        :title: IDM-SSSD-TC: ldap-Provider Automount: Without eisting cache
-          when sssd comes to online state from offline, autofs maps are fetched
-          without a restart
+        :title: fetch autofs map after coming online from offline
+        :id: b9da6e0e-3d8b-4465-b435-338708d0d51e
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1113639
+        :customerscenario: True
 
         :setup:
           1. edit sssd.conf and specify autofs_provider = ad
