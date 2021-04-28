@@ -1130,6 +1130,11 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                 mpg_flags = LDB_FLAG_MOD_REPLACE;
             }
             break;
+        case MPG_DEFAULT:
+            if (strcasecmp(tmp_str, "default") != 0) {
+                mpg_flags = LDB_FLAG_MOD_REPLACE;
+            }
+            break;
         }
 
         tmp_bool = ldb_msg_find_attr_as_bool(res->msgs[0], SYSDB_SUBDOMAIN_ENUM,
@@ -1393,6 +1398,67 @@ errno_t sysdb_subdomain_content_delete(struct sysdb_ctx *sysdb,
 
     return sysdb_subdomain_delete_with_filter(sysdb, name, filter);
 }
+
+errno_t
+sysdb_subdomain_get_id_by_name(TALLOC_CTX *mem_ctx,
+                               struct sysdb_ctx *sysdb,
+                               const char *name,
+                               const char **_id)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *base_dn;
+    const char *attrs[] = {SYSDB_DOMAIN_ID, NULL};
+    struct ldb_message **msgs;
+    const char *id;
+    char *filter;
+    size_t count;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    base_dn = sysdb_base_dn(sysdb, tmp_ctx);
+    if (base_dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx,
+        "(&(" SYSDB_OBJECTCLASS "=" SYSDB_SUBDOMAIN_CLASS ")(cn=%s))", name);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, sysdb, base_dn, LDB_SCOPE_ONELEVEL,
+                             filter, attrs, &count, &msgs);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (count != 1) {
+        ret = ERR_MULTIPLE_ENTRIES;
+        goto done;
+    }
+
+    id = ldb_msg_find_attr_as_string(msgs[0], SYSDB_DOMAIN_ID, NULL);
+    if (id == NULL) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_id = talloc_steal(mem_ctx, id);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 
 errno_t
 sysdb_domain_get_domain_resolution_order(TALLOC_CTX *mem_ctx,

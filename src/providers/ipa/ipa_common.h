@@ -36,6 +36,7 @@
 #define IPA_ID_RANGE_SIZE "ipaIDRangeSize"
 #define IPA_BASE_RID "ipaBaseRID"
 #define IPA_SECONDARY_BASE_RID "ipaSecondaryBaseRID"
+#define IPA_ID_RANGE_MPG "ipaAutoPrivateGroups"
 
 struct ipa_service {
     struct sdap_service *sdap;
