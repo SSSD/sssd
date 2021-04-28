@@ -165,23 +165,25 @@ failed:
 
 void pam_print_data(int l, struct pam_data *pd)
 {
-    DEBUG(l, "command: %s\n", sss_cmd2str(pd->cmd));
-    DEBUG(l, "domain: %s\n", PAM_SAFE_ITEM(pd->domain));
-    DEBUG(l, "user: %s\n", PAM_SAFE_ITEM(pd->user));
-    DEBUG(l, "service: %s\n", PAM_SAFE_ITEM(pd->service));
-    DEBUG(l, "tty: %s\n", PAM_SAFE_ITEM(pd->tty));
-    DEBUG(l, "ruser: %s\n", PAM_SAFE_ITEM(pd->ruser));
-    DEBUG(l, "rhost: %s\n", PAM_SAFE_ITEM(pd->rhost));
-    DEBUG(l, "authtok type: %d (%s)\n",
+    DEBUG(l, "[CID #%u] command: %s\n", pd->client_id_num, sss_cmd2str(pd->cmd));
+    DEBUG(l, "[CID #%u] domain: %s\n", pd->client_id_num, PAM_SAFE_ITEM(pd->domain));
+    DEBUG(l, "[CID #%u] user: %s\n", pd->client_id_num, PAM_SAFE_ITEM(pd->user));
+    DEBUG(l, "[CID #%u] service: %s\n", pd->client_id_num, PAM_SAFE_ITEM(pd->service));
+    DEBUG(l, "[CID #%u] tty: %s\n", pd->client_id_num, PAM_SAFE_ITEM(pd->tty));
+    DEBUG(l, "[CID #%u] ruser: %s\n", pd->client_id_num, PAM_SAFE_ITEM(pd->ruser));
+    DEBUG(l, "[CID #%u] rhost: %s\n", pd->client_id_num, PAM_SAFE_ITEM(pd->rhost));
+    DEBUG(l, "[CID #%u] authtok type: %d (%s)\n",
+          pd->client_id_num,
           sss_authtok_get_type(pd->authtok),
           sss_authtok_type_to_str(sss_authtok_get_type(pd->authtok)));
-    DEBUG(l, "newauthtok type: %d (%s)\n",
+    DEBUG(l, "[CID #%u] newauthtok type: %d (%s)\n",
+          pd->client_id_num,
           sss_authtok_get_type(pd->newauthtok),
           sss_authtok_type_to_str(sss_authtok_get_type(pd->newauthtok)));
-    DEBUG(l, "priv: %d\n", pd->priv);
-    DEBUG(l, "cli_pid: %d\n", pd->cli_pid);
-    DEBUG(l, "logon name: %s\n", PAM_SAFE_ITEM(pd->logon_name));
-    DEBUG(l, "flags: %d\n", pd->cli_flags);
+    DEBUG(l, "[CID #%u] priv: %d\n", pd->client_id_num, pd->priv);
+    DEBUG(l, "[CID #%u] cli_pid: %d\n", pd->client_id_num, pd->cli_pid);
+    DEBUG(l, "[CID #%u] logon name: %s\n", pd->client_id_num, PAM_SAFE_ITEM(pd->logon_name));
+    DEBUG(l, "[CID #%u] flags: %d\n", pd->client_id_num, pd->cli_flags);
 }
 
 int pam_add_response(struct pam_data *pd, enum response_type type,
