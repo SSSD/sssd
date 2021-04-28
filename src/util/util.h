@@ -626,6 +626,8 @@ bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain);
 
 bool sss_domain_is_mpg(struct sss_domain_info *domain);
 
+bool sss_domain_is_hybrid(struct sss_domain_info *domain);
+
 enum sss_domain_mpg_mode get_domain_mpg_mode(struct sss_domain_info *domain);
 const char *str_domain_mpg_mode(enum sss_domain_mpg_mode mpg_mode);
 enum sss_domain_mpg_mode str_to_domain_mpg_mode(const char *str_mpg_mode);

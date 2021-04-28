@@ -63,6 +63,7 @@ nss_get_id_type(struct nss_cmd_ctx *cmd_ctx,
                 enum sss_id_type *_type)
 {
     errno_t ret;
+    bool mpg;
 
     if (cmd_ctx->sid_id_type != SSS_ID_TYPE_NOT_SPECIFIED) {
         *_type = cmd_ctx->sid_id_type;
@@ -75,9 +76,8 @@ nss_get_id_type(struct nss_cmd_ctx *cmd_ctx,
         return EOK;
     }
 
-    ret = find_sss_id_type(result->msgs[0],
-                           sss_domain_is_mpg(result->domain),
-                           _type);
+    mpg = sss_domain_is_mpg(result->domain) || sss_domain_is_hybrid(result->domain);
+    ret = find_sss_id_type(result->msgs[0], mpg, _type);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to find ID type [%d]: %s\n", ret, sss_strerror(ret));

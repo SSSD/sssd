@@ -165,6 +165,7 @@
 #define SYSDB_SECONDARY_BASE_RID "secondaryBaseRID"
 #define SYSDB_DOMAIN_ID "domainID"
 #define SYSDB_ID_RANGE_TYPE "idRangeType"
+#define SYSDB_ID_RANGE_MPG "idRangeMPG"
 
 #define SYSDB_CERTMAP_PRIORITY "priority"
 #define SYSDB_CERTMAP_MATCHING_RULE "matchingRule"
@@ -344,6 +345,7 @@ struct range_info {
     uint32_t secondary_base_rid;
     char *trusted_dom_sid;
     char *range_type;
+    enum sss_domain_mpg_mode mpg_mode;
 };
 
 struct certmap_info {
@@ -563,6 +565,12 @@ errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name);
 errno_t sysdb_subdomain_content_delete(struct sysdb_ctx *sysdb,
                                        const char *name);
 
+errno_t
+sysdb_subdomain_get_id_by_name(TALLOC_CTX *mem_ctx,
+                               struct sysdb_ctx *sysdb,
+                               const char *name,
+                               const char **_id);
+
 /* The utility function to create a subdomain sss_domain_info object is handy
  * for unit tests, so it should be available in a headerr.
  */
@@ -584,6 +592,10 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
 errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                              size_t *range_count,
                              struct range_info ***range_list);
+errno_t sysdb_get_range(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *sysdb,
+                        const char *forest,
+                        struct range_info **_range);
 errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range);
 errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
                             struct range_info **ranges);

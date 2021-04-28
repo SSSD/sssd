@@ -408,6 +408,8 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     bool enumerate;
     uint32_t direction;
     struct ldb_message_element *alternative_domain_suffixes = NULL;
+    struct range_info *range;
+    const char *forest_id;
 
     tmp_ctx = talloc_new(parent);
     if (tmp_ctx == NULL) {
@@ -444,18 +446,6 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
         goto done;
     }
 
-    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(sdap_idmap_ctx,
-                                                               name, id);
-    if (use_id_mapping == true) {
-        mpg_mode = MPG_ENABLED;
-    } else {
-        /* Domains that use the POSIX attributes set by the admin must
-         * inherit the MPG setting from the parent domain so that the
-         * auto_private_groups options works for trusted domains as well
-         */
-        mpg_mode = get_domain_mpg_mode(parent);
-    }
-
     ret = ipa_subdom_get_forest(tmp_ctx, sysdb_ctx_get_ldb(parent->sysdb),
                                 attrs, &forest);
     if (ret != EOK) {
@@ -480,6 +470,44 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
         DEBUG(SSSDBG_FUNC_DATA,
               "Trust type of [%s]: %s\n", name, ipa_trust_dir2str(direction));
     }
+
+    /* First see if there is an ID range for the domain. */
+    ret = sysdb_get_range(tmp_ctx, parent->sysdb, id, &range);
+    if (ret == ENOENT) {
+        /* Check if there is ID range for the forest root. We need to find the
+         * domain in sysdb since the sss_domain_info object might not be yet
+         * created. */
+        ret = sysdb_subdomain_get_id_by_name(tmp_ctx, parent->sysdb, forest,
+                                             &forest_id);
+        if (ret == EOK) {
+            ret = sysdb_get_range(tmp_ctx, parent->sysdb, forest_id, &range);
+        }
+    }
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Unable to find ID range for [%s] [%d]: %s\n",
+              name, ret, sss_strerror(ret));
+    }
+    mpg_mode = ret == EOK ? range->mpg_mode : MPG_DEFAULT;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Range mpg mode for %s: %s\n",
+          name, str_domain_mpg_mode(mpg_mode));
+
+    if (mpg_mode == MPG_DEFAULT) {
+        use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                    sdap_idmap_ctx, name, id);
+        if (use_id_mapping == true) {
+            mpg_mode = MPG_ENABLED;
+        } else {
+            /* Domains that use the POSIX attributes set by the admin must
+            * inherit the MPG setting from the parent domain so that the
+            * auto_private_groups options works for trusted domains as well
+            */
+            mpg_mode = get_domain_mpg_mode(parent);
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Domain mpg mode for %s: %s\n",
+          name, str_domain_mpg_mode(mpg_mode));
 
     ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
                                 id, mpg_mode, enumerate, forest,
@@ -948,7 +976,7 @@ ipa_subdomains_ranges_send(TALLOC_CTX *mem_ctx,
     const char *attrs[] = { OBJECTCLASS, IPA_CN,
                             IPA_BASE_ID, IPA_BASE_RID, IPA_SECONDARY_BASE_RID,
                             IPA_ID_RANGE_SIZE, IPA_TRUSTED_DOMAIN_SID,
-                            IPA_RANGE_TYPE, NULL };
+                            IPA_RANGE_TYPE, IPA_ID_RANGE_MPG, NULL };
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_subdomains_ranges_state);

@@ -333,6 +333,16 @@ errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
+        ret = sysdb_attrs_get_string(reply[c], IPA_ID_RANGE_MPG, &value);
+        if (ret == EOK) {
+            r->mpg_mode = str_to_domain_mpg_mode(value);
+        } else if (ret == ENOENT) {
+            r->mpg_mode = MPG_DEFAULT;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
         ret = get_idmap_data_from_range(r, domain_name, &name1, &sid1, &rid1,
                                         &range1, &mapping1);
         if (ret == ERR_UNSUPPORTED_RANGE_TYPE) {

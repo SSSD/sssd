@@ -966,6 +966,11 @@ bool sss_domain_is_mpg(struct sss_domain_info *domain)
     return domain->mpg_mode == MPG_ENABLED;
 }
 
+bool sss_domain_is_hybrid(struct sss_domain_info *domain)
+{
+    return domain->mpg_mode == MPG_HYBRID;
+}
+
 enum sss_domain_mpg_mode get_domain_mpg_mode(struct sss_domain_info *domain)
 {
     return domain->mpg_mode;
@@ -980,6 +985,8 @@ const char *str_domain_mpg_mode(enum sss_domain_mpg_mode mpg_mode)
         return "false";
     case MPG_HYBRID:
         return "hybrid";
+    case MPG_DEFAULT:
+        return "default";
     }
 
     return NULL;
@@ -993,7 +1000,10 @@ enum sss_domain_mpg_mode str_to_domain_mpg_mode(const char *str_mpg_mode)
         return MPG_ENABLED;
     } else if (strcasecmp(str_mpg_mode, "HYBRID") == 0) {
         return MPG_HYBRID;
+    } else if (strcasecmp(str_mpg_mode, "DEFAULT") == 0) {
+        return MPG_DEFAULT;
     }
+
 
     DEBUG(SSSDBG_MINOR_FAILURE,
           "Invalid value for %s\n, assuming disabled",
