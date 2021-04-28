@@ -137,7 +137,9 @@ static void sbus_issue_request_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_TRACE_FUNC, "%s.%s: Success\n",
               meta.interface, meta.member);
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, "%s.%s: Error [%d]: %s\n",
+        int msg_level = SSSDBG_OP_FAILURE;
+        if (ret == ERR_MISSING_DP_TARGET) msg_level = SSSDBG_FUNC_DATA;
+        DEBUG(msg_level, "%s.%s: Error [%d]: %s\n",
               meta.interface, meta.member, ret, sss_strerror(ret));
     }
 
