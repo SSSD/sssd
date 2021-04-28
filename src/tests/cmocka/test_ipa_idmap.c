@@ -57,33 +57,35 @@ void test_get_idmap_data_from_range(void **state)
     } d[] = {
         /* working IPA_RANGE_LOCAL range */
         {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, SECONDARY_BASE_RID,
-          NULL, discard_const(IPA_RANGE_LOCAL)},
+          NULL, discard_const(IPA_RANGE_LOCAL), MPG_DEFAULT},
          EOK, DOMAIN_NAME, NULL, 0, {BASE_ID, RANGE_MAX}, true},
         /* working old-style IPA_RANGE_LOCAL range without range type */
         {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, SECONDARY_BASE_RID,
-          NULL, NULL},
+          NULL, NULL, MPG_DEFAULT},
          EOK, DOMAIN_NAME, NULL, 0, {BASE_ID, RANGE_MAX}, true},
         /* old-style IPA_RANGE_LOCAL without SID and secondary base rid */
-        {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, 0, NULL, NULL},
+        {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, 0, NULL, NULL,
+          MPG_DEFAULT},
          EINVAL, NULL, NULL, 0, {0, 0}, false},
         /* old-style range with SID and secondary base rid */
         {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, SECONDARY_BASE_RID,
-          DOMAIN_SID, NULL},
+          DOMAIN_SID, NULL, MPG_DEFAULT},
          EINVAL, NULL, NULL, 0, {0, 0}, false},
         /* working IPA_RANGE_AD_TRUST range */
         {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, 0, DOMAIN_SID,
-          discard_const(IPA_RANGE_AD_TRUST)},
+          discard_const(IPA_RANGE_AD_TRUST), MPG_DEFAULT},
          EOK, DOMAIN_SID, DOMAIN_SID, BASE_RID, {BASE_ID, RANGE_MAX}, false},
         /* working old-style IPA_RANGE_AD_TRUST range without range type */
-        {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, 0, DOMAIN_SID, NULL},
+        {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, 0, DOMAIN_SID, NULL,
+          MPG_DEFAULT},
          EOK, DOMAIN_SID, DOMAIN_SID, BASE_RID, {BASE_ID, RANGE_MAX}, false},
         /* working IPA_RANGE_AD_TRUST_POSIX range */
         {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, 0, DOMAIN_SID,
-          discard_const(IPA_RANGE_AD_TRUST_POSIX)},
+          discard_const(IPA_RANGE_AD_TRUST_POSIX), MPG_DEFAULT},
          EOK, DOMAIN_SID, DOMAIN_SID, 0, {BASE_ID, RANGE_MAX}, true},
         /* IPA_RANGE_AD_TRUST range  with unsupported type */
         {{RANGE_NAME, BASE_ID, RANGE_SIZE, BASE_RID, 0, DOMAIN_SID,
-          discard_const("unsupported-range")},
+          discard_const("unsupported-range"), MPG_DEFAULT},
          ERR_UNSUPPORTED_RANGE_TYPE, NULL, NULL, 0, {0, 0}, false},
         {{0}, 0, NULL, NULL, 0, {0, 0}, false}
     };
@@ -275,11 +277,11 @@ void test_ipa_ranges_parse_results(void **state)
     struct sysdb_attrs *reply[5];
     struct range_info **range_list;
     struct range_info r[5] = {
-        { discard_const("range1"), 1000, 500, 0, 1000, discard_const("S-1-2-1"), discard_const(IPA_RANGE_AD_TRUST) },
-        { discard_const("range2"), 2000, 500, 0, 2000, discard_const("S-1-2-2"), discard_const(IPA_RANGE_AD_TRUST) },
-        { discard_const("range3"), 3000, 500, 0, 3000, discard_const("S-1-2-3"), discard_const("unsupported-type") },
-        { discard_const("range4"), 4000, 500, 0, 4000, discard_const("S-1-2-4"), discard_const(IPA_RANGE_AD_TRUST) },
-        { discard_const("range5"), 5000, 500, 0, 5000, discard_const("S-1-2-5"), discard_const(IPA_RANGE_AD_TRUST) }
+        { discard_const("range1"), 1000, 500, 0, 1000, discard_const("S-1-2-1"), discard_const(IPA_RANGE_AD_TRUST), MPG_DEFAULT },
+        { discard_const("range2"), 2000, 500, 0, 2000, discard_const("S-1-2-2"), discard_const(IPA_RANGE_AD_TRUST), MPG_DEFAULT },
+        { discard_const("range3"), 3000, 500, 0, 3000, discard_const("S-1-2-3"), discard_const("unsupported-type"), MPG_DEFAULT },
+        { discard_const("range4"), 4000, 500, 0, 4000, discard_const("S-1-2-4"), discard_const(IPA_RANGE_AD_TRUST), MPG_DEFAULT },
+        { discard_const("range5"), 5000, 500, 0, 5000, discard_const("S-1-2-5"), discard_const(IPA_RANGE_AD_TRUST), MPG_DEFAULT }
     };
 
     for (c = 0; c < count; c++) {

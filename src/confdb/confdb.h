@@ -354,6 +354,7 @@ enum sss_domain_mpg_mode {
     MPG_DISABLED,
     MPG_ENABLED,
     MPG_HYBRID,
+    MPG_DEFAULT, /* Use default value for given id mapping. */
 };
 
 /**
