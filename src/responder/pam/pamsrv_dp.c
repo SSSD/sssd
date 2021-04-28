@@ -47,7 +47,8 @@ pam_dp_send_req(struct pam_auth_req *preq)
         return EIO;
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS, "Sending request with the following data:\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "Sending request [CID #%u] with the following data:\n",
+                                preq->client_id_num);
     DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, preq->pd);
 
     subreq = sbus_call_dp_dp_pamHandler_send(preq, be_conn->conn,
@@ -84,10 +85,11 @@ pam_dp_send_req_done(struct tevent_req *subreq)
     preq->pd->pam_status = pam_response->pam_status;
     preq->pd->account_locked = pam_response->account_locked;
 
-    DEBUG(SSSDBG_FUNC_DATA, "received: [%d (%s)][%s]\n",
+    DEBUG(SSSDBG_FUNC_DATA, "received: [%d (%s)][%s][CID #%u]\n",
           pam_response->pam_status,
           pam_strerror(NULL, pam_response->pam_status),
-          preq->pd->domain);
+          preq->pd->domain,
+          preq->pd->client_id_num);
 
     for (resp = pam_response->resp_list; resp != NULL; resp = resp->next) {
         talloc_steal(preq->pd, resp);
