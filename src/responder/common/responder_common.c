@@ -134,6 +134,7 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
                 ret = read(proc_fd, cmd_line, sizeof(cmd_line)-1);
                 if (ret > 0) {
                     cmd_line[ret] = 0;
+                    cctx->cmd_line = talloc_strdup(cctx, cmd_line);
                 }
             }
             close(proc_fd);
@@ -639,8 +640,8 @@ static void accept_fd_handler(struct tevent_context *ev,
 
     rctx->client_id_num++;
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Client [%p][%d] connected%s!\n",
-          cctx, cctx->cfd,
+          "Client [CID #%u][cmd %s][%p][%d] connected%s!\n",
+          rctx->client_id_num, cctx->cmd_line, cctx, cctx->cfd,
           accept_ctx->is_private ? " to privileged pipe" : "");
 
     return;

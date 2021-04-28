@@ -309,8 +309,9 @@ nss_get_object_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Client [%p][%d]: sent cache request #%u\n",
-          cli_ctx, cli_ctx->cfd, cache_req_get_reqid(subreq));
+    DEBUG(SSSDBG_TRACE_FUNC, "Client [%p][%d][CID #%u]: sent cache request #%u\n",
+          cli_ctx, cli_ctx->cfd, cli_ctx->rctx->client_id_num,
+          cache_req_get_reqid(subreq));
 
     tevent_req_set_callback(subreq, nss_get_object_done, req);
 
