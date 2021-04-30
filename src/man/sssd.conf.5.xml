@@ -1730,11 +1730,11 @@ pam_p11_allowed_services = +my_pam_service, -login
                         <para>
                             Example:
                             <programlisting>
-p11_uri = slot-description=My%20Smartcard%20Reader
+p11_uri = pkcs11:slot-description=My%20Smartcard%20Reader
                             </programlisting>
                             or
                             <programlisting>
-p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
+p11_uri = pkcs11:library-description=OpenSC%20smartcard%20framework;slot-id=2
                             </programlisting>
                             To find suitable URI please check the debug output
                             of p11_child. As an alternative the GnuTLS utility
