@@ -1008,7 +1008,7 @@ void sss_pam_close_fd(void)
     sss_pam_unlock();
 }
 
-static enum sss_status
+enum sss_status
 sss_cli_make_request_with_checks(enum sss_cli_command cmd,
                                  struct sss_cli_req_data *rd,
                                  int timeout,

@@ -74,6 +74,9 @@ SSSD_CACHE_REQ_OBJ = \
     ../../../src/responder/common/cache_req/plugins/cache_req_ip_network_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_ip_network_by_addr.c \
     $(NULL)
+if BUILD_SUBID
+    SSSD_CACHE_REQ_OBJ += ../../../src/responder/common/cache_req/plugins/cache_req_subid_ranges_by_name.c
+endif
 
 SSSD_RESPONDER_IFACE_OBJ = \
     ../../../src/responder/common/responder_iface.c \

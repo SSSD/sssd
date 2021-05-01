@@ -60,6 +60,9 @@ struct so {
 #ifdef BUILD_AUTOFS
     { "libsss_autofs.so", { LIBPFX"libsss_autofs.so", NULL } },
 #endif
+#ifdef BUILD_SUBID
+    { "libsubid_sss.so", { LIBPFX"libsubid_sss.so", NULL } },
+#endif
 #ifdef HAVE_KRB5_LOCATOR_PLUGIN
     { "sssd_krb5_locator_plugin.so", { LIBPFX"sssd_krb5_locator_plugin.so",
                                        NULL } },

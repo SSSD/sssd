@@ -1041,6 +1041,25 @@ static errno_t nss_cmd_initgroups_ex(struct cli_ctx *cli_ctx)
                           SSS_MC_INITGROUPS, nss_protocol_fill_initgr);
 }
 
+static errno_t nss_cmd_subid_ranges(struct cli_ctx *cli_ctx)
+{
+#ifdef BUILD_SUBID
+    const char *attrs[] =
+        {
+          SYSDB_SUBID_UID_COUND,
+          SYSDB_SUBID_GID_COUNT,
+          SYSDB_SUBID_UID_NUMBER,
+          SYSDB_SUBID_GID_NUMBER,
+          NULL
+        };
+
+    return nss_getby_name(cli_ctx, false, CACHE_REQ_SUBID_RANGES_BY_NAME, attrs,
+                          SSS_MC_NONE, nss_protocol_fill_subid_ranges);
+#else
+    return ENOTSUP;
+#endif
+}
+
 static errno_t nss_cmd_setnetgrent(struct cli_ctx *cli_ctx)
 {
     struct nss_state_ctx *state_ctx;
@@ -1332,6 +1351,7 @@ struct sss_cmd_table *get_nss_cmds(void)
         { SSS_NSS_GETGRENT, nss_cmd_getgrent },
         { SSS_NSS_ENDGRENT, nss_cmd_endgrent },
         { SSS_NSS_INITGR, nss_cmd_initgroups },
+        { SSS_NSS_GET_SUBID_RANGES, nss_cmd_subid_ranges },
         { SSS_NSS_SETNETGRENT, nss_cmd_setnetgrent },
      /* { SSS_NSS_GETNETGRENT, "not needed" }, */
      /* { SSS_NSS_ENDNETGRENT, "not needed" }, */

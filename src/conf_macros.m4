@@ -675,6 +675,36 @@ AC_DEFUN([WITH_AUTOFS],
     AM_CONDITIONAL([BUILD_AUTOFS], [test x"$with_autofs" = xyes])
   ])
 
+AC_DEFUN([WITH_SUBID],
+  [ AC_ARG_WITH([subid],
+                [AC_HELP_STRING([--with-subid],
+                                [Whether to build with subid ranges support [no]]
+                               )
+                ],
+                [with_subid=$withval],
+                with_subid=no
+               )
+
+    if test x"$with_subid" = xyes; then
+        AC_DEFINE(BUILD_SUBID, 1, [whether to build with SUBID ranges support])
+    fi
+    AM_CONDITIONAL([BUILD_SUBID], [test x"$with_subid" = xyes])
+  ])
+
+AC_DEFUN([WITH_SUBID_LIB_PATH],
+  [ AC_ARG_WITH([subid-lib-path],
+                [AC_HELP_STRING([--with-subid-lib-path=<path>],
+                                [Path to the subid library]
+                               )
+                ]
+               )
+    subidlibpath="${libdir}"
+    if test x"$with_subid_lib_path" != x; then
+        subidlibpath=$with_subid_lib_path
+    fi
+    AC_SUBST(subidlibpath)
+  ])
+
 AC_DEFUN([WITH_SSH],
   [ AC_ARG_WITH([ssh],
                 [AC_HELP_STRING([--with-ssh],
