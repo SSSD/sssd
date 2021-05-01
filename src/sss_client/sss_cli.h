@@ -284,6 +284,10 @@ SSS_NSS_GETSIDBYGID   = 0x0119, /**< Takes an unsigned 32bit integer (POSIX GID)
                                      and return the zero terminated string
                                      representation of the SID of the object
                                      with the given UID. */
+
+/* subid */
+    SSS_NSS_GET_SUBID_RANGES = 0x0130, /**< Requests both subuid and subgid ranges
+                                            defined for a user. */
 };
 
 /**
@@ -630,6 +634,13 @@ enum sss_cli_error_codes {
 };
 
 const char *ssscli_err2string(int err);
+
+enum sss_status sss_cli_make_request_with_checks(enum sss_cli_command cmd,
+                                                 struct sss_cli_req_data *rd,
+                                                 int timeout,
+                                                 uint8_t **repbuf, size_t *replen,
+                                                 int *errnop,
+                                                 const char *socket_name);
 
 enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
                                      struct sss_cli_req_data *rd,

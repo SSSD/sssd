@@ -728,6 +728,22 @@ static errno_t ipa_id_get_account_info_get_original_step(struct tevent_req *req,
                                           struct ipa_id_get_account_info_state);
     struct tevent_req *subreq;
 
+#ifdef BUILD_SUBID
+    if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_SUBID_RANGES) {
+        if (!state->ctx->opts->sdom->subid_ranges_search_bases ||
+            !state->ctx->opts->sdom->subid_ranges_search_bases[0] ||
+            !state->ctx->opts->sdom->subid_ranges_search_bases[0]->basedn) {
+            DEBUG(SSSDBG_OP_FAILURE, "subid_ranges_search_bases isn't set\n");
+            return EINVAL;
+        }
+        ar->extra_value = talloc_asprintf(ar,
+            "%s=%s,"SYSDB_USERS_CONTAINER",%s",
+            state->ctx->opts->user_map[SDAP_AT_USER_NAME].name,
+            ar->filter_value,
+            state->ctx->opts->sdom->user_search_bases[0]->basedn);
+    }
+#endif
+
     subreq = sdap_handle_acct_req_send(state, state->ctx->be, ar,
                                        state->ipa_ctx->sdap_id_ctx,
                                        state->ipa_ctx->sdap_id_ctx->opts->sdom,
@@ -769,6 +785,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
     }
 
     if (! is_object_overridable(state->ar)) {
+        DEBUG(SSSDBG_FUNC_DATA, "Object not overridable, ending request\n");
         state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
         return;
