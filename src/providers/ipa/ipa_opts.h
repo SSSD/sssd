@@ -40,6 +40,8 @@ extern struct sdap_attr_map ipa_group_map[];
 
 extern struct sdap_attr_map ipa_netgroup_map[];
 
+extern struct sdap_attr_map ipa_subid_map[];
+
 extern struct sdap_attr_map ipa_host_map[];
 
 extern struct sdap_attr_map ipa_hostgroup_map[];

@@ -143,6 +143,12 @@
 
 #define SYSDB_SSH_PUBKEY "sshPublicKey"
 
+#define SYSDB_SUBID_UID_COUND   "subUidCount"
+#define SYSDB_SUBID_GID_COUNT   "subGidCount"
+#define SYSDB_SUBID_UID_NUMBER  "subUidNumber"
+#define SYSDB_SUBID_GID_NUMBER  "subGidNumber"
+#define SYSDB_SUBID_OWNER       "subidOwner"
+
 #define SYSDB_AUTH_TYPE "authType"
 #define SYSDB_USER_CERT "userCertificate"
 #define SYSDB_USER_MAPPED_CERT "userMappedCertificate"
