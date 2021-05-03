@@ -29,6 +29,7 @@
 #include "util/util.h"
 #include "util/sss_iobuf.h"
 #include "util/util_creds.h"
+#include "providers/krb5/krb5_common.h"
 #include "responder/kcm/kcmsrv_pvt.h"
 
 #define UUID_BYTES    16
@@ -112,6 +113,10 @@ errno_t kcm_cc_set_header(struct kcm_ccache *cc,
                           const char *sec_key,
                           struct cli_creds *client);
 
+krb5_creds **kcm_cc_unmarshal(TALLOC_CTX *mem_ctx,
+                              krb5_context krb_context,
+                              struct kcm_ccache *cc);
+
 errno_t kcm_cred_get_uuid(struct kcm_cred *crd, uuid_t uuid);
 
 /*
@@ -140,6 +145,14 @@ struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
                                struct confdb_ctx *cdb,
                                const char *confdb_service_path,
                                enum kcm_ccdb_be cc_be);
+/*
+ * Prepare KCM ccache list for renewals
+ */
+errno_t kcm_ccdb_renew_tgts(TALLOC_CTX *mem_ctx,
+                            struct krb5_ctx *kctx,
+                            struct tevent_context *ev,
+                            struct kcm_ccdb *cdb,
+                            struct kcm_ccache ***_cc_list);
 
 /*
  * In KCM, each ccache name is usually in the form of "UID:<num>
@@ -376,4 +389,7 @@ errno_t kcm_ccache_to_sec_input_binary(TALLOC_CTX *mem_ctx,
                                        struct kcm_ccache *cc,
                                        struct sss_iobuf **_payload);
 
+errno_t bin_to_krb_data(TALLOC_CTX *mem_ctx,
+                        struct sss_iobuf *buf,
+                        krb5_data *out);
 #endif /* _KCMSRV_CCACHE_H_ */

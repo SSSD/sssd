@@ -130,6 +130,7 @@ struct krb5_ctx {
 
     struct deferred_auth_ctx *deferred_auth_ctx;
     struct renew_tgt_ctx *renew_tgt_ctx;
+    struct kcm_renew_tgt_ctx *kcm_renew_tgt_ctx;
     bool use_fast;
     bool sss_creds_password;
 

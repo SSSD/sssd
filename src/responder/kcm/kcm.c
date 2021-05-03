@@ -75,7 +75,7 @@ static errno_t kcm_renewals_init(struct tevent_context *ev,
     if (renew_intv > 0) {
         *_renewal_enabled = true;
 
-        ret = kcm_renewals_setup(rctx, krb5_ctx, ev, kctx->kcm_data->db, renew_intv);
+        ret = kcm_renewal_setup(rctx, krb5_ctx, ev, kctx->kcm_data->db, renew_intv);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Unable to setup TGT renewals [%d]: %s\n", ret, sss_strerror(ret));
