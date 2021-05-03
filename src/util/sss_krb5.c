@@ -1211,6 +1211,16 @@ static errno_t iobuf_get_len_bytes(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+errno_t get_krb5_data_from_cred(TALLOC_CTX *mem_ctx,
+                                struct sss_iobuf *iobuf,
+                                krb5_data *k5data)
+{
+    k5data->data = (char *) sss_iobuf_get_data(iobuf);
+    k5data->length = sss_iobuf_get_size(iobuf);
+
+    return EOK;
+}
+
 static errno_t get_krb5_data(TALLOC_CTX *mem_ctx,
                              struct sss_iobuf *iobuf,
                              krb5_data *k5data)

@@ -34,6 +34,7 @@
 
 #include "util/sss_iobuf.h"
 #include "util/util.h"
+#include <uuid/uuid.h>
 
 #define KRB5_CHILD_LOG_FILE     "krb5_child"
 #define LDAP_CHILD_LOG_FILE     "ldap_child"
@@ -197,5 +198,9 @@ krb5_error_code sss_krb5_unmarshal_princ(TALLOC_CTX *mem_ctx,
                                          krb5_principal *_princ);
 
 krb5_error_code sss_krb5_init_context(krb5_context *context);
+
+errno_t get_krb5_data_from_cred(TALLOC_CTX *mem_ctx,
+                                struct sss_iobuf *iobuf,
+                                krb5_data *k5data);
 
 #endif /* __SSS_KRB5_H__ */

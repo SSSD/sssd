@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <talloc.h>
+#include <uuid/uuid.h>
 
 #include "confdb/confdb.h"
 
@@ -86,6 +87,12 @@ errno_t sss_sec_new_req(TALLOC_CTX *mem_ctx,
                         struct sss_sec_req **_req);
 
 errno_t sss_sec_delete(struct sss_sec_req *req);
+
+errno_t sss_sec_list_cc_uuids(TALLOC_CTX *mem_ctx,
+                              struct sss_sec_ctx *sec_ctx,
+                              const char ***_uuid_list,
+                              const char ***_uid_list,
+                              size_t *uuid_list_count);
 
 errno_t sss_sec_list(TALLOC_CTX *mem_ctx,
                      struct sss_sec_req *req,

@@ -766,6 +766,7 @@ dist_noinst_HEADERS = \
     src/responder/secrets/secsrv_private.h \
     src/responder/secrets/secsrv_local.h \
     src/responder/secrets/secsrv_proxy.h \
+    src/responder/kcm/kcm_renew.h \
     src/responder/kcm/kcmsrv_pvt.h \
     src/responder/kcm/kcmsrv_ccache.h \
     src/responder/kcm/kcmsrv_ccache_pvt.h \
@@ -1789,6 +1790,7 @@ endif
 if BUILD_KCM
 sssd_kcm_SOURCES = \
     src/responder/kcm/kcm.c \
+    src/responder/kcm/kcm_renew.c \
     src/responder/kcm/kcmsrv_cmd.c \
     src/responder/kcm/kcmsrv_ccache.c \
     src/responder/kcm/kcmsrv_ccache_binary.c \
@@ -1799,6 +1801,7 @@ sssd_kcm_SOURCES = \
     src/responder/kcm/kcmsrv_ops.c \
     src/responder/kcm/kcmsrv_op_queue.c \
     src/providers/krb5/krb5_opts.c \
+    src/providers/krb5/krb5_child_handler.c \
     src/providers/data_provider_opts.c \
     src/util/sss_sockets.c \
     src/util/sss_krb5.c \
