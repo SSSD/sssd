@@ -22,10 +22,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <uuid/uuid.h>
 
 #include "config.h"
 
 #include "util/util.h"
+#include "util/strtonum.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/secrets/sec_pvt.h"
 #include "util/secrets/secrets.h"
@@ -935,6 +937,92 @@ static char *local_dn_to_path(TALLOC_CTX *mem_ctx,
           "Secrets path for [%s] is [%s]\n",
           ldb_dn_get_linearized(dn), path);
     return path;
+}
+
+/* Complete list of ccache names(UUID:name) */
+errno_t sss_sec_list_cc_uuids(TALLOC_CTX *mem_ctx,
+                              struct sss_sec_ctx *sec,
+                              const char ***_uuid_list,
+                              const char ***_uid_list,
+                              size_t *_uuid_list_count)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    struct ldb_dn *dn;
+    const struct ldb_val *name_val;
+    const struct ldb_val *uid_val;
+    static const char *attrs[] = { "distinguishedName", NULL };
+    const char **uuid_list;
+    const char **uid_list;
+    size_t real_count = 0;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new(tmp_ctx, sec->ldb, "cn=persistent,cn=kcm");
+
+    ret = ldb_search(sec->ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
+           attrs, "%s", "(!(type=container))");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "ldb_search returned [%d]: %s\n", ret, ldb_strerror(ret));
+        ret = EIO;
+        goto done;
+    }
+
+    if (res->count == 0) {
+        DEBUG(SSSDBG_TRACE_LIBS, "No ccaches found\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+	uuid_list = talloc_zero_array(tmp_ctx, const char *, res->count);
+    if (uuid_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+	uid_list = talloc_zero_array(tmp_ctx, const char *, res->count);
+    if (uuid_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (int i = 0; i < res->count; i++) {
+        name_val = ldb_dn_get_component_val(res->msgs[i]->dn, 0);
+        uid_val = ldb_dn_get_component_val(res->msgs[i]->dn, 2);
+        if (strcmp((const char *)name_val->data, "default") == 0) {
+            continue;
+        }
+
+        uuid_list[real_count] = talloc_strdup(uuid_list, (const char *)name_val->data);
+        if (uuid_list[real_count] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate UUID\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        uid_list[real_count] = talloc_strdup(uid_list, (const char *)uid_val->data);
+        if (uid_list[real_count] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate uid\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        real_count++;
+    }
+
+    *_uid_list = talloc_steal(mem_ctx, uid_list);
+    *_uuid_list = talloc_steal(mem_ctx, uuid_list);
+    *_uuid_list_count = real_count;
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 errno_t sss_sec_list(TALLOC_CTX *mem_ctx,

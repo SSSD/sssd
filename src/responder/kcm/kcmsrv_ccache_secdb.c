@@ -27,8 +27,12 @@
 #include "util/util.h"
 #include "util/secrets/secrets.h"
 #include "util/crypto/sss_crypto.h"
+#include "util/sss_krb5.h"
+#include "util/strtonum.h"
 #include "responder/kcm/kcmsrv_ccache_pvt.h"
 #include "responder/kcm/kcmsrv_ccache_be.h"
+#include "responder/kcm/kcm_renew.h"
+#include "providers/krb5/krb5_ccache.h"
 
 #define KCM_SECDB_URL        "/kcm/persistent"
 #define KCM_SECDB_BASE_FMT    KCM_SECDB_URL"/%"SPRIuid"/"
@@ -818,9 +822,179 @@ static errno_t ccdb_secdb_get_default_recv(struct tevent_req *req,
     return EOK;
 }
 
+static errno_t ccdb_secdb_get_cc_for_uuid(TALLOC_CTX *mem_ctx,
+                                          size_t uuid_list_count,
+                                          const char **uuid_list,
+                                          const char **uid_list,
+                                          struct ccdb_secdb *secdb,
+                                          struct kcm_ccache ***_cc_list)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    uid_t uid;
+    char **list;
+    uuid_t uuid;
+    char *uuid_str;
+    char *secdb_key;
+    struct cli_creds cli_cred;
+    struct kcm_ccache **cc_list;
+    int real_count = 0;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        return ret;
+    }
+
+    cc_list = talloc_zero_array(tmp_ctx, struct kcm_ccache *, uuid_list_count + 1);
+    if (cc_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (size_t i = 0; i < uuid_list_count; i++) {
+        struct passwd *pwd;
+
+        cc_list[i] = talloc_zero(cc_list, struct kcm_ccache);
+        if (cc_list[i] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = split_on_separator(tmp_ctx, uuid_list[i], ':', true, true,
+                                 &list, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "split on separator failed [%d]: %s\n",
+                                     ret, sss_strerror(ret));
+            goto done;
+        }
+
+        uuid_str = list[0];
+        uuid_str[UUID_STR_SIZE - 1] = '\0';
+        ret = uuid_parse(uuid_str, uuid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "uuid parse of [%s] failed [%d]: %s\n",
+                                     list[0], ret, sss_strerror(ret));
+            goto done;
+        }
+        uid = strtouint32(uid_list[i], NULL, 10);
+        ret = errno;
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid UID [%s] conversion to uint32 "
+                                       "[%d]: %s\n", uid_list[i], ret,
+                                       sss_strerror(ret));
+            goto done;
+        }
+
+        errno = 0;
+        pwd = getpwuid(uid);
+        if (pwd == NULL) {
+            ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to resolve user [%d] who "
+                  "is the owner of an existing ccache [%d]: %s\n",
+                  uid, ret, sss_strerror(ret));
+            /* Not fatal */
+            continue;
+        }
+
+        cli_cred.ucred.uid = pwd->pw_uid;
+        cli_cred.ucred.gid = pwd->pw_gid;
+
+        ret = key_by_uuid(tmp_ctx, secdb->sctx, &cli_cred, uuid, &secdb_key);
+        if (ret == ENOENT) {
+            ret = EOK;
+            goto done;
+        } else if (ret != EOK) {
+            goto done;
+        }
+
+        ret = secdb_get_cc(cc_list, secdb->sctx, secdb_key, &cli_cred,
+                           &cc_list[real_count]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to get ccache [%d]: %s\n",
+                                       ret, sss_strerror(ret));
+            goto done;
+        }
+
+        if (cc_list[real_count] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to get cc [%s] and [%s]\n",
+                                     uuid_list[i], uid_list[i]);
+            ret = EIO;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Retrieved ccache [%s]\n", cc_list[real_count]->name);
+        real_count++;
+    }
+
+    cc_list = talloc_realloc(tmp_ctx, cc_list, struct kcm_ccache *,
+                             real_count + 1);
+    if (cc_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    cc_list[real_count] = NULL;
+    *_cc_list = talloc_steal(mem_ctx, cc_list);
+
+    return EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 struct ccdb_secdb_list_state {
     uuid_t *uuid_list;
 };
+
+static errno_t ccdb_secdb_list_all_cc(TALLOC_CTX *mem_ctx,
+                                      struct krb5_ctx *krb5_ctx,
+                                      struct tevent_context *ev,
+                                      struct kcm_ccdb *db,
+                                      struct kcm_ccache ***_cc_list)
+{
+    struct ccdb_secdb *secdb = talloc_get_type(db->db_handle, struct ccdb_secdb);
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    const char **uid_list;
+    const char **uuid_list;
+    size_t uuid_list_count;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Retrieving all ccaches\n");
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        return ret;
+    }
+
+    ret = sss_sec_list_cc_uuids(tmp_ctx, secdb->sctx, &uuid_list, &uid_list, &uuid_list_count);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Error retrieving ccache uuid list "
+                                     "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    } else if (ret == ENOENT) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found [%lu] ccache uuids\n", uuid_list_count);
+
+    /* New count is full cc list size minus getpwuid() failures */
+    ret = ccdb_secdb_get_cc_for_uuid(mem_ctx, uuid_list_count, uuid_list,
+                                     uid_list, secdb, _cc_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Error getting cc list from uuid list "
+                                     "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Retrieving all caches done\n");
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
 
 static struct tevent_req *ccdb_secdb_list_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,
@@ -1479,6 +1653,8 @@ const struct kcm_ccdb_ops ccdb_secdb_ops = {
 
     .list_send = ccdb_secdb_list_send,
     .list_recv = ccdb_secdb_list_recv,
+
+    .list_all_cc = ccdb_secdb_list_all_cc,
 
     .getbyname_send = ccdb_secdb_getbyname_send,
     .getbyname_recv = ccdb_secdb_getbyname_recv,

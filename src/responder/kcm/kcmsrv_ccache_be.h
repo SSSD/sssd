@@ -62,6 +62,13 @@ typedef errno_t
                             uuid_t dfl);
 
 
+typedef errno_t
+(*ccdb_list_all_cc_fn)(TALLOC_CTX *mem_ctx,
+                       struct krb5_ctx *kctx,
+                       struct tevent_context *ev,
+                       struct kcm_ccdb *cdb,
+                       struct kcm_ccache ***_cc_list);
+
 typedef struct tevent_req *
 (*ccdb_list_send_fn)(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
@@ -172,6 +179,8 @@ struct kcm_ccdb_ops {
 
     ccdb_get_default_send_fn get_default_send;
     ccdb_get_default_recv_fn get_default_recv;
+
+    ccdb_list_all_cc_fn list_all_cc;
 
     ccdb_list_send_fn list_send;
     ccdb_list_recv_fn list_recv;
