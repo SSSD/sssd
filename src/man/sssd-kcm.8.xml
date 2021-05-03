@@ -162,7 +162,7 @@ systemctl restart sssd-kcm.service
         </para>
     </refsect1>
 
-    <refsect1 id='renewals'>
+    <refsect1 id='renewals' condition="enable_kcm_renewal">
         <title>RENEWALS</title>
         <para>
             The sssd-kcm service can be configured to attempt TGT

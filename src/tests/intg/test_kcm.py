@@ -61,6 +61,10 @@ class KcmTestEnv(object):
         return "KCM:%d" % my_uid
 
 
+def have_kcm_renewal():
+    return os.environ['KCM_RENEW'] == "enabled"
+
+
 @pytest.fixture(scope="module")
 def kdc_instance(request):
     """Kerberos server instance fixture"""
@@ -630,6 +634,8 @@ def test_kcm_secrets_quota(setup_for_kcm_sec,
     assert out != 0
 
 
+@pytest.mark.skipif(not have_kcm_renewal(),
+                    reason="KCM renewal disabled, skipping")
 def test_kcm_renewals(setup_for_kcm_renewals_secdb):
     """
     Test that basic KCM renewal works
