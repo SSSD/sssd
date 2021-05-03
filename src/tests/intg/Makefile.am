@@ -82,6 +82,12 @@ install-data-hook:
 
 endif
 
+if BUILD_KCM_RENEWAL
+KCM_RENEW = "enabled"
+else
+KCM_RENEW = "disabled"
+endif
+
 cwrap-dbus-system.conf: data/cwrap-dbus-system.conf.in Makefile
 	$(SED) -e "s!@runstatedir[@]!$(runstatedir)!" \
            -e "s!@dbusservicedir[@]!$(dbusservicedir)!" \
@@ -206,6 +212,7 @@ intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service 
 	PAM_WRAPPER_PATH=$$(pkg-config --libs pam_wrapper) \
 	PAM_CERT_DB_PATH=$(PAM_CERT_DB_PATH) \
 	SOFTHSM2_CONF=$(SOFTHSM2_CONF) \
+	KCM_RENEW=$(KCM_RENEW) \
 	DBUS_SOCK_DIR="$(DESTDIR)$(runstatedir)/dbus/" \
 	DBUS_SESSION_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/fake_socket" \
 	DBUS_SYSTEM_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/system_bus_socket" \
