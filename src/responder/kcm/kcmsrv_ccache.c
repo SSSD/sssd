@@ -282,6 +282,7 @@ errno_t kcm_cc_set_header(struct kcm_ccache *cc,
     return EOK;
 }
 
+#ifdef HAVE_KCM_RENEWAL
 static int kcm_cc_unmarshal_destructor(krb5_creds **creds)
 {
     krb5_error_code kerr;
@@ -302,11 +303,15 @@ static int kcm_cc_unmarshal_destructor(krb5_creds **creds)
 
     return 0;
 }
+#endif
 
 krb5_creds **kcm_cc_unmarshal(TALLOC_CTX *mem_ctx,
                               krb5_context krb_context,
                               struct kcm_ccache *cc)
 {
+#ifndef HAVE_KCM_RENEWAL
+    return NULL;
+#else
     TALLOC_CTX *tmp_ctx;
     struct kcm_cred *cred;
     krb5_data cred_data;
@@ -352,6 +357,7 @@ krb5_creds **kcm_cc_unmarshal(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(tmp_ctx);
     return NULL;
+#endif
 }
 
 errno_t kcm_cred_get_uuid(struct kcm_cred *crd, uuid_t _uuid)
