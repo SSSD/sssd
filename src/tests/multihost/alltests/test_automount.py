@@ -11,7 +11,7 @@ import re
 import subprocess
 import time
 import pytest
-from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.utils import sssdTools, LdapOperations
 
 
 @pytest.mark.usefixtures("setup_sssd", "create_posix_usersgroups",
@@ -193,6 +193,112 @@ class Testautofsresponder(object):
             pytest.fail("automount -m command failed")
         cmd = multihost.client[0].run_command(nfs_test, raiseonerr=False)
         assert cmd.returncode == 0
+
+    @pytest.mark.tier1_2
+    def test_two_automount_maps(self, multihost,
+                                backupsssdconf):
+        """
+        :title: Automount sssd issue when 2 maps have same key in
+         different case
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1873715
+        :id: d28e6eec-ac9f-11eb-b0f5-002b677efe14
+        :customerscenario: true
+        :steps:
+            1. Configure SSSD with autofs, automountMap,
+            automount, automountInformation
+            2. Add 2 automount entries in LDAP with
+            same key ( cn: MIT and cn: mit)
+            3. We should have the 2 automounts working
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
+        domain_name = tools.get_domain_section_name()
+        client = sssdTools(multihost.client[0])
+        domain_params = {'services': 'nss, pam, autofs'}
+        client.sssd_conf('sssd', domain_params)
+        domain_params = {
+            'ldap_autofs_map_object_class': 'automountMap',
+            'ldap_autofs_map_name': 'ou',
+            'ldap_autofs_entry_object_class': 'automount',
+            'ldap_autofs_entry_key': 'cn',
+            'ldap_autofs_entry_value': 'automountInformation'}
+        client.sssd_conf(f'domain/{domain_name}', domain_params)
+        multihost.client[0].service_sssd('restart')
+        share_list = ['/export', '/export1', '/export2']
+        nfs_server_ip = multihost.master[0].ip
+        client_ip = multihost.client[0].ip
+        server = sssdTools(multihost.master[0])
+        bkup = 'cp -af /etc/exports /etc/exports.backup'
+        multihost.master[0].run_command(bkup)
+        server.export_nfs_fs(share_list, client_ip)
+        search = multihost.master[0].run_command("grep 'fsid=0' "
+                                                 "/etc/exports")
+        if search.returncode == 0:
+            multihost.master[0].run_command("sed -i 's/,fsid=0//g' "
+                                            "/etc/exports")
+        start_nfs = 'systemctl start nfs-server'
+        multihost.master[0].run_command(start_nfs)
+        ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
+        ds_rootdn = 'cn=Directory Manager'
+        ds_rootpw = 'Secret123'
+        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        for ou_ou in ['auto.master', 'auto.direct', 'auto.home']:
+            user_info = {'ou': f'{ou_ou}'.encode('utf-8'),
+                         'objectClass': [b'top', b'automountMap']}
+            user_dn = f'ou={ou_ou},dc=example,dc=test'
+            (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {'cn': '/-'.encode('utf-8'),
+                     'objectClass': [b'top', b'automount'],
+                     'automountInformation': 'auto.direct'.encode('utf-8')}
+        user_dn = 'cn=/-,ou=auto.master,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {'cn': '/home'.encode('utf-8'),
+                     'objectClass': [b'top', b'automount'],
+                     'automountInformation': 'auto.home'.encode('utf-8')}
+        user_dn = 'cn=/home,ou=auto.master,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {'cn': 'MIT'.encode('utf-8'),
+                     'objectClass': [b'top', b'automount']}
+        user_dn = f'automountinformation={nfs_server_ip}:/export1,' \
+                  f'ou=auto.home,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        user_info = {'cn': 'mit'.encode('utf-8'),
+                     'objectClass': [b'top', b'automount']}
+        user_dn = f'automountinformation={nfs_server_ip}:/export2,' \
+                  f'ou=auto.home,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        multihost.client[0].run_command("systemctl stop sssd ; "
+                                        "rm -rf /var/log/sssd/* ; "
+                                        "rm -rf /var/lib/sss/db/* ; "
+                                        "systemctl start sssd")
+        multihost.client[0].run_command("systemctl restart autofs")
+        multihost.client[0].run_command("automount -m")
+        multihost.master[0].run_command("touch /export1/export1")
+        multihost.master[0].run_command("touch /export2/export2")
+        time.sleep(2)
+        MIT_export = multihost.client[0].run_command("ls /home/MIT")
+        mit_export = multihost.client[0].run_command("ls /home/mit")
+        assert 'export1' in MIT_export.stdout_text
+        assert 'export2' in mit_export.stdout_text
+        restore = 'cp -af /etc/exports.backup /etc/exports'
+        multihost.master[0].run_command(restore)
+        stop_nfs = 'systemctl stop nfs-server'
+        multihost.master[0].run_command(stop_nfs)
+        for dn_dn in [f'automountinformation={nfs_server_ip}:/export1,'
+                      f'ou=auto.home,dc=example,dc=test',
+                      f'automountinformation={nfs_server_ip}:/export2,'
+                      f'ou=auto.home,dc=example,dc=test',
+                      'cn=/-,ou=auto.master,dc=example,dc=test',
+                      'cn=/home,ou=auto.master,dc=example,dc=test',
+                      'ou=auto.master,dc=example,dc=test',
+                      'ou=auto.direct,dc=example,dc=test',
+                      'ou=auto.home,dc=example,dc=test']:
+            multihost.master[0].run_command(f'ldapdelete -x -D '
+                                            f'"cn=Directory Manager" '
+                                            f'-w Secret123 -H ldap:// {dn_dn}')
 
     @pytest.mark.parametrize('add_nisobject', ['/export'], indirect=True)
     @pytest.mark.tier2
