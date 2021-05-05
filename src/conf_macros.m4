@@ -839,7 +839,9 @@ AC_DEFUN([SSSD_RUNSTATEDIR],
 AC_DEFUN([WITH_SECRETS],
   [ AC_ARG_WITH([secrets],
                 [AC_HELP_STRING([--with-secrets],
-                                [Whether to build with secrets support [no]]
+                                [Whether to build with secrets support [no]
+                                 Please note this feature is deprecated and will
+                                 be removed in one of the next versions of SSSD.]
                                )
                 ],
                 [with_secrets=$withval],
