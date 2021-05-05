@@ -901,8 +901,9 @@ AM_CONDITIONAL([ADD_FILES_DOMAIN], [test x$enable_files_domain = xyes])
 AC_ARG_ENABLE([local-provider],
               [AS_HELP_STRING([--enable-local-provider],
                               [If this feature is enabled, then local-provider
-                               will be built by default.
-                              [default=no]])],
+                               will be built by default [default=no]
+                               Please note this feature is deprecated and will
+                               be removed in one of the next versions of SSSD.])],
               [enable_local_provider=$enableval],
               [enable_local_provider=no])
 AS_IF([test x$enable_local_provider = xyes],
