@@ -29,8 +29,8 @@ function acct_req_desc(entry_type)
         str_entry_type = "host"
     } else if (entry_type == 0x0009) {
         str_entry_type = "ip_network"
-    # See src/providers/data_provider_req.h, no 0x0010 there..
     } else if (entry_type == 0x0010) {
+        str_entry_type = "subid_ranges"
     } else if (entry_type == 0x0011) {
         str_entry_type = "by_secid"
     } else if (entry_type == 0x0012) {

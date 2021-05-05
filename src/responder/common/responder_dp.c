@@ -64,6 +64,7 @@ sss_dp_account_files_params(struct sss_domain_info *dom,
         *_opt_name_out = opt_name_in;
         return EAGAIN;
     /* These are not handled by the files provider, just fall back */
+    case SSS_DP_SUBID_RANGES:
     case SSS_DP_NETGR:
     case SSS_DP_SERVICES:
     case SSS_DP_SECID:
@@ -102,6 +103,9 @@ sss_dp_get_account_filter(TALLOC_CTX *mem_ctx,
             break;
         case SSS_DP_INITGROUPS:
             entry_type = BE_REQ_INITGROUPS;
+            break;
+        case SSS_DP_SUBID_RANGES:
+            entry_type = BE_REQ_SUBID_RANGES;
             break;
         case SSS_DP_NETGR:
             entry_type = BE_REQ_NETGROUP;

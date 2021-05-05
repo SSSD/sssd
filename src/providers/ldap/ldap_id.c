@@ -1449,6 +1449,24 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                                      noexist_delete);
         break;
 
+    case BE_REQ_SUBID_RANGES:
+#ifdef BUILD_SUBID
+        if (!ar->extra_value) {
+            ret = ERR_GET_ACCT_SUBID_RANGES_NOT_SUPPORTED;
+            state->err = "This id_provider doesn't support subid ranges";
+            goto done;
+        }
+        subreq = subid_ranges_get_send(state, be_ctx->ev, id_ctx,
+                                       sdom, conn,
+                                       ar->filter_value,
+                                       ar->extra_value);
+#else
+        ret = ERR_GET_ACCT_SUBID_RANGES_NOT_SUPPORTED;
+        state->err = "Subid ranges are not supported";
+        goto done;
+#endif
+        break;
+
     case BE_REQ_NETGROUP:
         if (ar->filter_type != BE_FILTER_NAME) {
             ret = EINVAL;
@@ -1533,6 +1551,11 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
     default: /*fail*/
         ret = EINVAL;
         state->err = "Invalid request type";
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unexpected request type: 0x%X [%s:%s] in %s\n",
+              ar->entry_type, ar->filter_value,
+              ar->extra_value?ar->extra_value:"-",
+              ar->domain);
         goto done;
     }
 
@@ -1577,6 +1600,14 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
     case BE_REQ_INITGROUPS: /* init groups for user */
         err = "Init group lookup failed";
         ret = groups_by_user_recv(subreq, &state->dp_error, &state->sdap_ret);
+        break;
+    case BE_REQ_SUBID_RANGES:
+        err = "Subid ranges lookup failed";
+#ifdef BUILD_SUBID
+        ret = subid_ranges_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+#else
+        ret = EINVAL;
+#endif
         break;
     case BE_REQ_NETGROUP:
         err = "Netgroup lookup failed";

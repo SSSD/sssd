@@ -597,6 +597,9 @@ SSSD_CACHE_REQ_OBJ = \
 	src/responder/common/cache_req/plugins/cache_req_ip_network_by_name.c \
 	src/responder/common/cache_req/plugins/cache_req_ip_network_by_addr.c \
 	$(NULL)
+if BUILD_SUBID
+    SSSD_CACHE_REQ_OBJ += src/responder/common/cache_req/plugins/cache_req_subid_ranges_by_name.c
+endif
 
 SSSD_RESPONDER_IFACE_OBJ = \
     src/responder/common/responder_iface.c \
@@ -810,6 +813,7 @@ dist_noinst_HEADERS = \
     src/db/sysdb_private.h \
     src/db/sysdb_services.h \
     src/db/sysdb_ssh.h \
+    src/db/sysdb_subid.h \
     src/db/sysdb_domain_resolution_order.h \
     src/db/sysdb_computer.h \
     src/db/sysdb_iphosts.h \
@@ -1246,6 +1250,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb_ipnetworks.c \
     src/util/sss_pam_data.c \
     src/db/sysdb_computer.c \
+    src/db/sysdb_subid.c \
     src/util/util.c \
     src/util/util_ext.c \
     src/util/util_preauth.c \
@@ -1556,6 +1561,9 @@ sssd_nss_LDADD = \
     libsss_iface.la \
     libsss_sbus.la \
     $(NULL)
+if BUILD_SUBID
+    sssd_nss_SOURCES += src/responder/nss/nss_protocol_subid.c
+endif
 
 sssd_pam_SOURCES = \
     src/responder/pam/pam_LOCAL_domain.c \
@@ -2692,6 +2700,9 @@ nss_srv_tests_LDADD = \
     libsss_iface.la \
     libsss_sbus.la \
     $(NULL)
+if BUILD_SUBID
+     nss_srv_tests_SOURCES += src/responder/nss/nss_protocol_subid.c
+endif
 
 EXTRA_pam_srv_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES) \
@@ -4334,6 +4345,9 @@ libsss_ldap_common_la_LDFLAGS = \
     $(NULL)
 if BUILD_SYSTEMTAP
 libsss_ldap_common_la_LIBADD += stap_generated_probes.lo
+endif
+if BUILD_SUBID
+libsss_ldap_common_la_SOURCES += src/providers/ldap/ldap_id_subid.c
 endif
 
 if BUILD_SSH

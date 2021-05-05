@@ -26,6 +26,7 @@
 #include "db/sysdb_autofs.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_selinux.h"
+#include "db/sysdb_subid.h"
 #include "providers/ldap/ldap_common.h"
 
 struct dp_option ipa_basic_opts[] = {
@@ -51,6 +52,7 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_deskprofile_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ipa_deskprofile_refresh", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
     { "ipa_deskprofile_request_interval", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
+    { "ipa_subid_ranges_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
 
@@ -247,6 +249,16 @@ struct sdap_attr_map ipa_netgroup_map[] = {
     { "ipa_netgroup_member_ext_host", "externalHost", SYSDB_ORIG_NETGROUP_EXTERNAL_HOST, NULL },
     { "ipa_netgroup_domain", "nisDomainName", SYSDB_NETGROUP_DOMAIN, NULL },
     { "ipa_netgroup_uuid", "ipaUniqueID", SYSDB_UUID, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
+};
+
+struct sdap_attr_map ipa_subid_map[] = {
+    { "ipa_subuid_object_class", "ipasubordinateid", SYSDB_SUBID_RANGE_OC, NULL },
+    { "ipa_subuid_count", "ipaSubUidCount", SYSDB_SUBID_UID_COUND, NULL },
+    { "ipa_subgid_count", "ipaSubGidCount", SYSDB_SUBID_GID_COUNT, NULL },
+    { "ipa_subuid_number", "ipaSubUidNumber", SYSDB_SUBID_UID_NUMBER, NULL },
+    { "ipa_subgid_number", "ipaSubGidNumber", SYSDB_SUBID_GID_NUMBER, NULL },
+    { "ipa_owner", "ipaOwner", SYSDB_SUBID_OWNER, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
