@@ -1622,6 +1622,18 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     domain->view_name = NULL;
 
     domain->state = DOM_ACTIVE;
+
+    domain->fallback_to_nss = false;
+    if (is_files_provider(domain)) {
+        ret = get_entry_as_bool(res->msgs[0], &domain->fallback_to_nss,
+                                CONFDB_DOMAIN_FALLBACK_TO_NSS, true);
+        if(ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Invalid value for %s\n", CONFDB_DOMAIN_FALLBACK_TO_NSS);
+            goto done;
+        }
+    }
+
     domain->not_found_counter = 0;
 
     *_domain = domain;

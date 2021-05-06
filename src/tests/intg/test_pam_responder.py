@@ -141,6 +141,7 @@ def format_pam_cert_auth_conf(config):
         [domain/auth_only]
         debug_level = 10
         id_provider = files
+        fallback_to_nss = False
 
         [certmap/auth_only/user1]
         matchrule = <SUBJECT>.*CN=SSSD test cert 0001.*
@@ -172,6 +173,7 @@ def format_pam_cert_auth_conf_name_format(config):
         full_name_format = %2$s\\%1$s
         debug_level = 10
         id_provider = files
+        fallback_to_nss = False
 
         [certmap/auth_only/user1]
         matchrule = <SUBJECT>.*CN=SSSD test cert 0001.*
@@ -195,6 +197,7 @@ def format_pam_krb5_auth(config, kdc_instance):
         [domain/krb5_auth]
         debug_level = 10
         id_provider = files
+        fallback_to_nss = False
         auth_provider = krb5
 
         krb5_realm = PAMKRB5TEST
@@ -219,6 +222,7 @@ def format_pam_krb5_auth_domains(config, kdc_instance):
         [domain/wrong.dom1]
         debug_level = 10
         id_provider = files
+        fallback_to_nss = False
         auth_provider = krb5
 
         krb5_realm = WRONG1REALM
@@ -227,6 +231,7 @@ def format_pam_krb5_auth_domains(config, kdc_instance):
         [domain/wrong.dom2]
         debug_level = 10
         id_provider = files
+        fallback_to_nss = False
         auth_provider = krb5
 
         krb5_realm = WRONG2REALM
@@ -235,6 +240,7 @@ def format_pam_krb5_auth_domains(config, kdc_instance):
         [domain/wrong.dom3]
         debug_level = 10
         id_provider = files
+        fallback_to_nss = False
         auth_provider = krb5
 
         krb5_realm = WRONG3REALM
@@ -243,6 +249,7 @@ def format_pam_krb5_auth_domains(config, kdc_instance):
         [domain/krb5_auth]
         debug_level = 10
         id_provider = files
+        fallback_to_nss = False
         auth_provider = krb5
 
         krb5_realm = PAMKRB5TEST

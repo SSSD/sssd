@@ -253,6 +253,7 @@
 #define CONFDB_DOMAIN_TYPE_POSIX "posix"
 #define CONFDB_DOMAIN_TYPE_APP "application"
 #define CONFDB_DOMAIN_INHERIT_FROM "inherit_from"
+#define CONFDB_DOMAIN_FALLBACK_TO_NSS "fallback_to_nss"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
@@ -424,6 +425,7 @@ struct sss_domain_info {
     struct sss_domain_info *next;
 
     enum sss_domain_state state;
+    bool fallback_to_nss;
     char **sd_inherit;
 
     /* Do not use the forest pointer directly in new code, but rather the
