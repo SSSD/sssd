@@ -151,6 +151,7 @@ def files_domain_only(request):
 
         [domain/files]
         id_provider = files
+        fallback_to_nss = False
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -180,6 +181,7 @@ def files_multiple_sources(request):
 
         [domain/files]
         id_provider = files
+        fallback_to_nss = False
         passwd_files = {passwd_list}
         group_files = {group_list}
         debug_level = 10
@@ -214,6 +216,7 @@ def files_multiple_sources_nocreate(request):
 
         [domain/files]
         id_provider = files
+        fallback_to_nss = False
         passwd_files = {passwd_list}
         group_files = {group_list}
         debug_level = 10
@@ -269,6 +272,7 @@ def no_files_domain(request):
 
         [domain/disabled.files]
         id_provider = files
+        fallback_to_nss = False
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -307,6 +311,7 @@ def domain_resolution_order(request):
 
         [domain/files]
         id_provider = files
+        fallback_to_nss = False
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -323,6 +328,7 @@ def default_domain_suffix(request):
 
         [domain/files]
         id_provider = files
+        fallback_to_nss = False
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -338,6 +344,7 @@ def override_homedir_and_shell(request):
 
         [domain/files]
         id_provider = files
+        fallback_to_nss = False
         override_homedir = /test/bar
         override_shell = /bin/bar
 
