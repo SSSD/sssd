@@ -292,7 +292,7 @@ class QeDomain(pytest_multihost.config.Domain):
     host_classes = {'default': QeHost, 'windows': QeWinHost}
 
 
-@pytest.yield_fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def session_multihost(request):
     """Multihost plugin fixture for session scope"""
     if pytest.num_ad > 0:
