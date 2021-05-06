@@ -41,6 +41,12 @@ sss_dp_account_files_params(struct sss_domain_info *dom,
             return EOK;
         }
 
+        if (sss_domain_fallback_to_nss(dom)) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Domain files is not consistent, falling back to nss.\n");
+            return ENOENT;
+        }
+
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "Domain files is not consistent, issuing update\n");
     }

@@ -122,6 +122,32 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>fallback_to_nss (boolean)</term>
+                    <listitem>
+                        <para>
+                            While updating the internal data SSSD will return an
+                            error and let the client continue with the next NSS
+                            module. This helps to avoid delays when using the
+                            default system files
+                            <filename>/etc/passwd</filename> and
+                            <filename>/etc/group</filename> and the NSS
+                            configuration has 'sss' before 'files' for the
+                            'passwd' and 'group' maps.
+                        </para>
+                        <para>
+                            If the files provider is configured to monitor other
+                            files it makes sense to set this option to 'False'
+                            to avoid inconsistent behavior because in general
+                            there would be no other NSS module which can be used
+                            as a fallback.
+                        </para>
+                        <para>
+                            Default: True
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

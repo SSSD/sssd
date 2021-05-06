@@ -901,6 +901,11 @@ void sss_domain_set_state(struct sss_domain_info *dom,
           "Domain %s is %s\n", dom->name, domain_state_str(dom));
 }
 
+bool sss_domain_fallback_to_nss(struct sss_domain_info *dom)
+{
+    return dom->fallback_to_nss;
+}
+
 bool sss_domain_is_forest_root(struct sss_domain_info *dom)
 {
     return (dom->forest_root == dom);
