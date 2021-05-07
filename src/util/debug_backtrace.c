@@ -175,9 +175,7 @@ static inline bool _all_levels_enabled(void)
       SSSDBG_TRACE_FUNC|SSSDBG_TRACE_LIBS|SSSDBG_TRACE_INTERNAL|
       SSSDBG_TRACE_ALL|SSSDBG_BE_FO;
 
-    unsigned level = debug_level & ~SSSDBG_TRACE_LDB;
-
-    return ((level ^ all_levels) == 0);
+    return ((debug_level & all_levels) == all_levels);
 }
 
 
