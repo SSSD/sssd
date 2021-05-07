@@ -3,7 +3,6 @@
 from __future__ import print_function
 import subprocess
 import pytest
-import time
 import random
 import os
 import posixpath
@@ -16,7 +15,7 @@ from sssd.testlib.common.qe_class import create_testdir
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import ADOperations
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 
 
 def pytest_configure():
@@ -65,7 +64,76 @@ def create_aduser_group(session_multihost, request):
     return (ad_user, ad_group)
 
 
+@pytest.fixture(scope="function")
+def default_ipa_groups(session_multihost, request):
+    """ Create IPA Groups ipa-group0 to ipa-group9 """
+    kinit_admin = 'kinit admin'
+    session_multihost.master[0].run_command(kinit_admin,
+                                            stdin_text='Secret123',
+                                            raiseonerr=False)
+    ipa_grp_gid_start = 342156780
+    ipa_grp_count = 10
+    for i in range(ipa_grp_count):
+        gid = ipa_grp_gid_start + i
+        group_add = 'ipa group-add ipa-group%d --desc="IPA group%d" --gid %d'\
+                    % (i, i, gid)
+
+        cmd = session_multihost.master[0].run_command(group_add,
+                                                      raiseonerr=False)
+        assert cmd.returncode == 0
+
+    def remove_ipa_groups():
+        """ Remove ipa Groups ipa-group0 to ipa-group9 """
+        for i in range(10):
+            cmd = 'ipa group-del ipa-group%d' % i
+            session_multihost.master[0].run_command(cmd)
+    request.addfinalizer(remove_ipa_groups)
+    return ipa_grp_gid_start
+
+
+@pytest.fixture(scope="function")
+def add_group_member(session_multihost, request):
+    """ Add  members in groups of IPA """
+    kinit_admin = 'kinit admin'
+    session_multihost.master[0].run_command(kinit_admin,
+                                            stdin_text='Secret123',
+                                            raiseonerr=False)
+    for i in range(5):
+        for j in range(10):
+            add_gr_member = 'ipa group-add-member ipa-group%d ' \
+                            '--users=foobar%d' % (i, j)
+
+            cmd = session_multihost.master[0].run_command(add_gr_member,
+                                                          raiseonerr=False)
+            assert cmd.returncode == 0
+
+    def remove_group_member():
+        """ Remove users from IPA groups """
+        for i in range(5):
+            for j in range(10):
+                cmd = ' ipa group-remove-member ipa-group%d --users=foobar%d'\
+                      % (i, j)
+                session_multihost.master[0].run_command(cmd)
+    request.addfinalizer(remove_group_member)
+
+
+@pytest.fixture(scope='function')
+def backupsssdconf(session_multihost, request):
+    """ Backup and restore sssd.conf """
+    bkup = 'cp -f %s %s.orig' % (SSSD_DEFAULT_CONF,
+                                 SSSD_DEFAULT_CONF)
+    session_multihost.client[0].run_command(bkup)
+    session_multihost.client[0].service_sssd('stop')
+
+    def restoresssdconf():
+        """ Restore sssd.conf """
+        restore = 'cp -f %s.orig %s' % (SSSD_DEFAULT_CONF, SSSD_DEFAULT_CONF)
+        session_multihost.client[0].run_command(restore)
+    request.addfinalizer(restoresssdconf)
+
 # ====================  Class Scoped Fixtures ================
+
+
 @pytest.fixture(scope="class")
 def default_ipa_users(session_multihost, request):
     """ Create IPA Users foobar0 to foobar9 """

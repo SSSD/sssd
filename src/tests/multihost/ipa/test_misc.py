@@ -13,6 +13,7 @@ from sssd.testlib.common.exceptions import SSSDException
 import re
 
 
+@pytest.mark.usefixtures('default_ipa_users')
 @pytest.mark.tier1
 class Testipabz(object):
     """ IPA BZ Automations """
@@ -79,3 +80,55 @@ class Testipabz(object):
                                                    raiseonerr=False)
             assert cmd1.returncode == 0
             assert cmd2.returncode == 0
+
+    def test_filter_groups(self, multihost, default_ipa_groups,
+                           add_group_member, backupsssdconf):
+        """
+        :title:  filter_groups option partially filters the group from id
+        output of the user because gidNumber still appears in id output
+        :id: 8babb6ee-7141-4723-a79d-c5cf7879a9b4
+        :description:
+         filter_groups option partially filters the group from 'id' output
+         of the user because gidNumber still appears in 'id' output
+        :steps:
+          1. Create IPA users, groups and add users in groups.
+          2. Add filter_groups in sssd.conf.
+          3. Check filter_groups option filters the group from 'id' output.
+        :expectedresults:
+          1. Successfully add users, groups and users added in groups.
+          2. Successfully added filter_groups in sssd.conf.
+          3. Successfully filter out the groups.
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1876658
+        """
+        gid_start = default_ipa_groups
+        sssd_client = sssdTools(multihost.client[0])
+        domain_name = '%s/%s' % ('domain',
+                                 sssd_client.get_domain_section_name())
+        enable_filtergroups1 = {'filter_groups': 'ipa-group1, ipa-group2'}
+        sssd_client.sssd_conf(domain_name, enable_filtergroups1)
+        sssd_client.clear_sssd_cache()
+        lk_cmd1 = 'id foobar1'
+        cmd1 = multihost.client[0].run_command(lk_cmd1, raiseonerr=False)
+        assert cmd1.returncode == 0
+        assert all(x not in cmd1.stdout_text for x in ["ipa-group1",
+                                                       "ipa-group2"]), \
+            "The unexpected group name found in the id output!"
+        assert all(x not in cmd1.stdout_text for x in [str(gid_start+1),
+                                                       str(gid_start+2)]), \
+            "The unexpected gid found in the id output!"
+        enable_filtergroups2 = {'filter_groups': 'ipa-group3, ipa-group4, '
+                                                 'ipa-group5'}
+        sssd_client.sssd_conf(domain_name, enable_filtergroups2)
+        sssd_client.clear_sssd_cache()
+        lk_cmd2 = 'id foobar2'
+        cmd2 = multihost.client[0].run_command(lk_cmd2, raiseonerr=False)
+        assert cmd2.returncode == 0
+        assert all(x not in cmd2.stdout_text for x in ["ipa-group3",
+                                                       "ipa-group4",
+                                                       "ipa-group5"]), \
+            "The unexpected group name found in the id output!"
+        assert all(x not in cmd2.stdout_text for x in [str(gid_start+3),
+                                                       str(gid_start+4),
+                                                       str(gid_start+5)]), \
+            "The unexpected gid found in the id output!"
