@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2020-05-19 12:09+0200\n"
-"PO-Revision-Date: 2021-03-18 10:39+0000\n"
+"PO-Revision-Date: 2021-04-03 06:01+0000\n"
 "Last-Translator: Jan Kuparinen <copper_fin@hotmail.com>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/fi/>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.1\n"
+"X-Generator: Weblate 4.5.3\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -401,6 +401,8 @@ msgid ""
 "Indicates what is the syntax of the config file. SSSD 0.6.0 and later use "
 "version 2."
 msgstr ""
+"Ilmaisee konfigurointitiedoston syntaksin. SSSD 0.6.0 ja uudemmat käyttävät "
+"versiota 2."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
@@ -635,6 +637,8 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
+"Tiedostojärjestelmän hakemisto, johon SSSD: n tulisi tallentaa Kerberos-"
+"toiston välimuistitiedostot."
 
 #. type: Content of:
 #. <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
