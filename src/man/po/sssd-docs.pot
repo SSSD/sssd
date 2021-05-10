@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.4.3\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-05-07 11:31+0200\n"
+"POT-Creation-Date: 2021-05-10 15:08+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,17 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #. type: Content of: <reference><title>
-#: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
-#: pam_sss_gss.8.xml:5 sssd_krb5_locator_plugin.8.xml:5 sssd-simple.5.xml:5
-#: sss-certmap.5.xml:5 sssd-ipa.5.xml:5 sssd-ad.5.xml:5 sssd-sudo.5.xml:5
-#: sssd.8.xml:5 sss_obfuscate.8.xml:5 sss_override.8.xml:5 sss_useradd.8.xml:5
-#: sssd-krb5.5.xml:5 sss_groupadd.8.xml:5 sss_userdel.8.xml:5
-#: sss_groupdel.8.xml:5 sss_groupshow.8.xml:5 sss_usermod.8.xml:5
-#: sss_cache.8.xml:5 sss_debuglevel.8.xml:5 sss_seed.8.xml:5 sssd-ifp.5.xml:5
-#: sss_rpcidmapd.5.xml:5 sss_ssh_authorizedkeys.1.xml:5
-#: sss_ssh_knownhostsproxy.1.xml:5 idmap_sss.8.xml:5 sssctl.8.xml:5
-#: sssd-files.5.xml:5 sssd-secrets.5.xml:5 sssd-session-recording.5.xml:5
-#: sssd-kcm.8.xml:5 sssd-systemtap.5.xml:5 sssd-ldap-attributes.5.xml:5
+#: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5 sssd_krb5_locator_plugin.8.xml:5 sssd-simple.5.xml:5 sss-certmap.5.xml:5 sssd-ipa.5.xml:5 sssd-ad.5.xml:5 sssd-sudo.5.xml:5 sssd.8.xml:5 sss_obfuscate.8.xml:5 sss_override.8.xml:5 sss_useradd.8.xml:5 sssd-krb5.5.xml:5 sss_groupadd.8.xml:5 sss_userdel.8.xml:5 sss_groupdel.8.xml:5 sss_groupshow.8.xml:5 sss_usermod.8.xml:5 sss_cache.8.xml:5 sss_debuglevel.8.xml:5 sss_seed.8.xml:5 sssd-ifp.5.xml:5 sss_rpcidmapd.5.xml:5 sss_ssh_authorizedkeys.1.xml:5 sss_ssh_knownhostsproxy.1.xml:5 idmap_sss.8.xml:5 sssctl.8.xml:5 sssd-files.5.xml:5 sssd-secrets.5.xml:5 sssd-session-recording.5.xml:5 sssd-kcm.8.xml:5 sssd-systemtap.5.xml:5 sssd-ldap-attributes.5.xml:5
 msgid "SSSD Manual pages"
 msgstr ""
 
@@ -38,12 +28,7 @@ msgid "sss_groupmod"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
-#: sss_groupmod.8.xml:11 pam_sss.8.xml:12 pam_sss_gss.8.xml:12
-#: sssd_krb5_locator_plugin.8.xml:11 sssd.8.xml:11 sss_obfuscate.8.xml:11
-#: sss_override.8.xml:11 sss_useradd.8.xml:11 sss_groupadd.8.xml:11
-#: sss_userdel.8.xml:11 sss_groupdel.8.xml:11 sss_groupshow.8.xml:11
-#: sss_usermod.8.xml:11 sss_cache.8.xml:11 sss_debuglevel.8.xml:11
-#: sss_seed.8.xml:11 idmap_sss.8.xml:11 sssctl.8.xml:11 sssd-kcm.8.xml:11
+#: sss_groupmod.8.xml:11 pam_sss.8.xml:12 pam_sss_gss.8.xml:12 sssd_krb5_locator_plugin.8.xml:11 sssd.8.xml:11 sss_obfuscate.8.xml:11 sss_override.8.xml:11 sss_useradd.8.xml:11 sss_groupadd.8.xml:11 sss_userdel.8.xml:11 sss_groupdel.8.xml:11 sss_groupshow.8.xml:11 sss_usermod.8.xml:11 sss_cache.8.xml:11 sss_debuglevel.8.xml:11 sss_seed.8.xml:11 idmap_sss.8.xml:11 sssctl.8.xml:11 sssd-kcm.8.xml:11
 msgid "8"
 msgstr ""
 
@@ -61,17 +46,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:30 sssd-ldap.5.xml:21 pam_sss.8.xml:63
-#: pam_sss_gss.8.xml:30 sssd_krb5_locator_plugin.8.xml:20 sssd-simple.5.xml:22
-#: sss-certmap.5.xml:21 sssd-ipa.5.xml:21 sssd-ad.5.xml:21 sssd-sudo.5.xml:21
-#: sssd.8.xml:29 sss_obfuscate.8.xml:30 sss_override.8.xml:30
-#: sss_useradd.8.xml:30 sssd-krb5.5.xml:21 sss_groupadd.8.xml:30
-#: sss_userdel.8.xml:30 sss_groupdel.8.xml:30 sss_groupshow.8.xml:30
-#: sss_usermod.8.xml:30 sss_cache.8.xml:29 sss_debuglevel.8.xml:30
-#: sss_seed.8.xml:31 sssd-ifp.5.xml:21 sss_ssh_authorizedkeys.1.xml:30
-#: sss_ssh_knownhostsproxy.1.xml:31 idmap_sss.8.xml:20 sssctl.8.xml:30
-#: sssd-files.5.xml:21 sssd-secrets.5.xml:21 sssd-session-recording.5.xml:21
-#: sssd-kcm.8.xml:21 sssd-systemtap.5.xml:21 sssd-ldap-attributes.5.xml:21
+#: sss_groupmod.8.xml:30 sssd-ldap.5.xml:21 pam_sss.8.xml:63 pam_sss_gss.8.xml:30 sssd_krb5_locator_plugin.8.xml:20 sssd-simple.5.xml:22 sss-certmap.5.xml:21 sssd-ipa.5.xml:21 sssd-ad.5.xml:21 sssd-sudo.5.xml:21 sssd.8.xml:29 sss_obfuscate.8.xml:30 sss_override.8.xml:30 sss_useradd.8.xml:30 sssd-krb5.5.xml:21 sss_groupadd.8.xml:30 sss_userdel.8.xml:30 sss_groupdel.8.xml:30 sss_groupshow.8.xml:30 sss_usermod.8.xml:30 sss_cache.8.xml:29 sss_debuglevel.8.xml:30 sss_seed.8.xml:31 sssd-ifp.5.xml:21 sss_ssh_authorizedkeys.1.xml:30 sss_ssh_knownhostsproxy.1.xml:31 idmap_sss.8.xml:20 sssctl.8.xml:30 sssd-files.5.xml:21 sssd-secrets.5.xml:21 sssd-session-recording.5.xml:21 sssd-kcm.8.xml:21 sssd-systemtap.5.xml:21 sssd-ldap-attributes.5.xml:21
 msgid "DESCRIPTION"
 msgstr ""
 
@@ -83,11 +58,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:39 pam_sss.8.xml:70 pam_sss_gss.8.xml:89 sssd.8.xml:42
-#: sss_obfuscate.8.xml:58 sss_useradd.8.xml:39 sss_groupadd.8.xml:39
-#: sss_userdel.8.xml:39 sss_groupdel.8.xml:39 sss_groupshow.8.xml:39
-#: sss_usermod.8.xml:39 sss_cache.8.xml:39 sss_seed.8.xml:42
-#: sss_ssh_authorizedkeys.1.xml:123 sss_ssh_knownhostsproxy.1.xml:62
+#: sss_groupmod.8.xml:39 pam_sss.8.xml:70 pam_sss_gss.8.xml:89 sssd.8.xml:42 sss_obfuscate.8.xml:58 sss_useradd.8.xml:39 sss_groupadd.8.xml:39 sss_userdel.8.xml:39 sss_groupdel.8.xml:39 sss_groupshow.8.xml:39 sss_usermod.8.xml:39 sss_cache.8.xml:39 sss_seed.8.xml:42 sss_ssh_authorizedkeys.1.xml:123 sss_ssh_knownhostsproxy.1.xml:62
 msgid "OPTIONS"
 msgstr ""
 
@@ -127,20 +98,12 @@ msgid "sssd.conf"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
-#: sssd.conf.5.xml:11 sssd-ldap.5.xml:11 sssd-simple.5.xml:11
-#: sss-certmap.5.xml:11 sssd-ipa.5.xml:11 sssd-ad.5.xml:11 sssd-sudo.5.xml:11
-#: sssd-krb5.5.xml:11 sssd-ifp.5.xml:11 sss_rpcidmapd.5.xml:27
-#: sssd-files.5.xml:11 sssd-secrets.5.xml:11 sssd-session-recording.5.xml:11
-#: sssd-systemtap.5.xml:11 sssd-ldap-attributes.5.xml:11
+#: sssd.conf.5.xml:11 sssd-ldap.5.xml:11 sssd-simple.5.xml:11 sss-certmap.5.xml:11 sssd-ipa.5.xml:11 sssd-ad.5.xml:11 sssd-sudo.5.xml:11 sssd-krb5.5.xml:11 sssd-ifp.5.xml:11 sss_rpcidmapd.5.xml:27 sssd-files.5.xml:11 sssd-secrets.5.xml:11 sssd-session-recording.5.xml:11 sssd-systemtap.5.xml:11 sssd-ldap-attributes.5.xml:11
 msgid "5"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refmeta><refmiscinfo>
-#: sssd.conf.5.xml:12 sssd-ldap.5.xml:12 sssd-simple.5.xml:12
-#: sss-certmap.5.xml:12 sssd-ipa.5.xml:12 sssd-ad.5.xml:12 sssd-sudo.5.xml:12
-#: sssd-krb5.5.xml:12 sssd-ifp.5.xml:12 sss_rpcidmapd.5.xml:28
-#: sssd-files.5.xml:12 sssd-secrets.5.xml:12 sssd-session-recording.5.xml:12
-#: sssd-kcm.8.xml:12 sssd-systemtap.5.xml:12 sssd-ldap-attributes.5.xml:12
+#: sssd.conf.5.xml:12 sssd-ldap.5.xml:12 sssd-simple.5.xml:12 sss-certmap.5.xml:12 sssd-ipa.5.xml:12 sssd-ad.5.xml:12 sssd-sudo.5.xml:12 sssd-krb5.5.xml:12 sssd-ifp.5.xml:12 sss_rpcidmapd.5.xml:28 sssd-files.5.xml:12 sssd-secrets.5.xml:12 sssd-session-recording.5.xml:12 sssd-kcm.8.xml:12 sssd-systemtap.5.xml:12 sssd-ldap-attributes.5.xml:12
 msgid "File Formats and Conventions"
 msgstr ""
 
@@ -291,13 +254,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:133 sssd.conf.5.xml:170 sssd.conf.5.xml:355
-#: sssd.conf.5.xml:647 sssd.conf.5.xml:1001 sssd.conf.5.xml:2021
-#: sssd.conf.5.xml:2051 sssd-ldap.5.xml:962 sssd-ldap.5.xml:1060
-#: sssd-ldap.5.xml:1127 sssd-ldap.5.xml:1579 sssd-ldap.5.xml:1644
-#: sssd-ipa.5.xml:341 sssd-ad.5.xml:229 sssd-ad.5.xml:343 sssd-ad.5.xml:1177
-#: sssd-ad.5.xml:1325 sssd-krb5.5.xml:499 sssd-secrets.5.xml:351
-#: sssd-secrets.5.xml:364
+#: sssd.conf.5.xml:133 sssd.conf.5.xml:170 sssd.conf.5.xml:355 sssd.conf.5.xml:647 sssd.conf.5.xml:1001 sssd.conf.5.xml:2021 sssd.conf.5.xml:2051 sssd-ldap.5.xml:962 sssd-ldap.5.xml:1060 sssd-ldap.5.xml:1127 sssd-ldap.5.xml:1608 sssd-ldap.5.xml:1673 sssd-ipa.5.xml:341 sssd-ad.5.xml:229 sssd-ad.5.xml:343 sssd-ad.5.xml:1177 sssd-ad.5.xml:1325 sssd-krb5.5.xml:342 sssd-secrets.5.xml:351 sssd-secrets.5.xml:364
 msgid "Default: true"
 msgstr ""
 
@@ -313,13 +270,8 @@ msgid ""
 "for SSSD debug logging this option is ignored."
 msgstr ""
 
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:146 sssd.conf.5.xml:644 sssd.conf.5.xml:883
-#: sssd.conf.5.xml:1954 sssd.conf.5.xml:3771 sssd-ldap.5.xml:312
-#: sssd-ldap.5.xml:813 sssd-ldap.5.xml:832 sssd-ldap.5.xml:1032
-#: sssd-ldap.5.xml:1463 sssd-ldap.5.xml:1668 sssd-ipa.5.xml:151
-#: sssd-ipa.5.xml:253 sssd-ipa.5.xml:589 sssd-ad.5.xml:1083 sssd-krb5.5.xml:266
-#: sssd-krb5.5.xml:300 sssd-krb5.5.xml:471 sssd-krb5.5.xml:573
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:146 sssd.conf.5.xml:644 sssd.conf.5.xml:883 sssd.conf.5.xml:1954 sssd.conf.5.xml:3771 sssd-ldap.5.xml:312 sssd-ldap.5.xml:813 sssd-ldap.5.xml:832 sssd-ldap.5.xml:1032 sssd-ldap.5.xml:1463 sssd-ldap.5.xml:1697 sssd-ipa.5.xml:151 sssd-ipa.5.xml:253 sssd-ipa.5.xml:589 sssd-ad.5.xml:1083 sssd-krb5.5.xml:268 sssd-krb5.5.xml:416 include/krb5_options.xml:29 include/krb5_options.xml:154
 msgid "Default: false"
 msgstr ""
 
@@ -351,14 +303,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: outside any tag (error?)
-#: sssd.conf.5.xml:106 sssd.conf.5.xml:181 sssd-ldap.5.xml:1520
-#: sssd-ldap.5.xml:1691 sssd-systemtap.5.xml:82 sssd-systemtap.5.xml:143
-#: sssd-systemtap.5.xml:236 sssd-systemtap.5.xml:274 sssd-systemtap.5.xml:330
-#: sssd-ldap-attributes.5.xml:40 sssd-ldap-attributes.5.xml:646
-#: sssd-ldap-attributes.5.xml:784 sssd-ldap-attributes.5.xml:873
-#: sssd-ldap-attributes.5.xml:970 sssd-ldap-attributes.5.xml:1028
-#: sssd-ldap-attributes.5.xml:1186 sssd-ldap-attributes.5.xml:1231
-#: include/autofs_attributes.xml:1
+#: sssd.conf.5.xml:106 sssd.conf.5.xml:181 sssd-ldap.5.xml:1520 sssd-ldap.5.xml:1720 sssd-systemtap.5.xml:82 sssd-systemtap.5.xml:143 sssd-systemtap.5.xml:236 sssd-systemtap.5.xml:274 sssd-systemtap.5.xml:330 sssd-ldap-attributes.5.xml:40 sssd-ldap-attributes.5.xml:646 sssd-ldap-attributes.5.xml:784 sssd-ldap-attributes.5.xml:873 sssd-ldap-attributes.5.xml:970 sssd-ldap-attributes.5.xml:1028 sssd-ldap-attributes.5.xml:1186 sssd-ldap-attributes.5.xml:1231 include/autofs_attributes.xml:1 include/krb5_options.xml:1
 msgid "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
@@ -381,8 +326,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:193 sssd.conf.5.xml:1221 sssd.conf.5.xml:1635
-#: sssd.conf.5.xml:3787 sssd-ldap.5.xml:684 include/ldap_id_mapping.xml:264
+#: sssd.conf.5.xml:193 sssd.conf.5.xml:1221 sssd.conf.5.xml:1635 sssd.conf.5.xml:3787 sssd-ldap.5.xml:684 include/ldap_id_mapping.xml:264
 msgid "Default: 10"
 msgstr ""
 
@@ -682,14 +626,8 @@ msgid ""
 "the default_domain_suffix option is used."
 msgstr ""
 
-#. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:460 sssd.conf.5.xml:1408 sssd-ldap.5.xml:772
-#: sssd-ldap.5.xml:784 sssd-ldap.5.xml:876 sssd-ad.5.xml:897 sssd-ad.5.xml:972
-#: sssd-krb5.5.xml:410 sssd-krb5.5.xml:609 sssd-secrets.5.xml:339
-#: sssd-secrets.5.xml:377 sssd-secrets.5.xml:390 sssd-secrets.5.xml:404
-#: sssd-secrets.5.xml:415 sssd-ldap-attributes.5.xml:470
-#: sssd-ldap-attributes.5.xml:959 include/ldap_id_mapping.xml:205
-#: include/ldap_id_mapping.xml:216
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:460 sssd.conf.5.xml:1408 sssd-ldap.5.xml:772 sssd-ldap.5.xml:784 sssd-ldap.5.xml:876 sssd-ad.5.xml:897 sssd-ad.5.xml:972 sssd-krb5.5.xml:452 sssd-secrets.5.xml:339 sssd-secrets.5.xml:377 sssd-secrets.5.xml:390 sssd-secrets.5.xml:404 sssd-secrets.5.xml:415 sssd-ldap-attributes.5.xml:470 sssd-ldap-attributes.5.xml:959 include/ldap_id_mapping.xml:205 include/ldap_id_mapping.xml:216 include/krb5_options.xml:139
 msgid "Default: not set"
 msgstr ""
 
@@ -955,8 +893,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:692 sssd.conf.5.xml:1647 sssd.conf.5.xml:3837
-#: sssd-ad.5.xml:164 sssd-ad.5.xml:304 sssd-ad.5.xml:318
+#: sssd.conf.5.xml:692 sssd.conf.5.xml:1647 sssd.conf.5.xml:3837 sssd-ad.5.xml:164 sssd-ad.5.xml:304 sssd-ad.5.xml:318
 msgid "Default: Not set"
 msgstr ""
 
@@ -1074,8 +1011,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:792 sssd.conf.5.xml:1132 sssd.conf.5.xml:1474
-#: sssd.conf.5.xml:1736 sssd-ldap.5.xml:469
+#: sssd.conf.5.xml:792 sssd.conf.5.xml:1132 sssd.conf.5.xml:1474 sssd.conf.5.xml:1736 sssd-ldap.5.xml:469
 msgid "Default: 60"
 msgstr ""
 
@@ -1153,8 +1089,8 @@ msgstr ""
 msgid "A value of 0 disables the random offset addition."
 msgstr ""
 
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:849
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:849 sssd-ldap.5.xml:1594
 msgid "Default: 30"
 msgstr ""
 
@@ -1176,8 +1112,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:871 sssd.conf.5.xml:1145 sssd.conf.5.xml:2175
-#: sssd-ldap.5.xml:326
+#: sssd.conf.5.xml:871 sssd.conf.5.xml:1145 sssd.conf.5.xml:2175 sssd-ldap.5.xml:326
 msgid "Default: 300"
 msgstr ""
 
@@ -1359,8 +1294,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
-#: sssd.conf.5.xml:1020 sssd.conf.5.xml:1541 sssd.conf.5.xml:1560
-#: sssd.conf.5.xml:1615 sssd-krb5.5.xml:592 include/override_homedir.xml:59
+#: sssd.conf.5.xml:1020 sssd.conf.5.xml:1541 sssd.conf.5.xml:1560 sssd.conf.5.xml:1615 sssd-krb5.5.xml:435 include/override_homedir.xml:59
 msgid "example: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 
@@ -1525,8 +1459,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1154 sssd.conf.5.xml:1179 sssd.conf.5.xml:1204
-#: sssd.conf.5.xml:1229
+#: sssd.conf.5.xml:1154 sssd.conf.5.xml:1179 sssd.conf.5.xml:1204 sssd.conf.5.xml:1229
 msgid ""
 "NOTE: If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", "
 "client applications will not use the fast in-memory cache."
@@ -1570,9 +1503,8 @@ msgid ""
 "cache."
 msgstr ""
 
-#. type: Content of: <refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1196 sssd.conf.5.xml:3425 sssd-ldap.5.xml:453
-#: sssd-ldap.5.xml:495 sssd-krb5.5.xml:248 include/failover.xml:116
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:1196 sssd.conf.5.xml:3425 sssd-ldap.5.xml:453 sssd-ldap.5.xml:495 include/failover.xml:116 include/krb5_options.xml:11
 msgid "Default: 6"
 msgstr ""
 
@@ -1939,9 +1871,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1522 sssd.conf.5.xml:1547 sssd.conf.5.xml:1566
-#: sssd.conf.5.xml:1769 sssd.conf.5.xml:2481 sssd.conf.5.xml:3548
-#: sssd-ldap.5.xml:1091
+#: sssd.conf.5.xml:1522 sssd.conf.5.xml:1547 sssd.conf.5.xml:1566 sssd.conf.5.xml:1769 sssd.conf.5.xml:2481 sssd.conf.5.xml:3548 sssd-ldap.5.xml:1091
 msgid "Default: none"
 msgstr ""
 
@@ -2006,9 +1936,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1580 sssd-ldap.5.xml:590 sssd-ldap.5.xml:611
-#: sssd-ldap.5.xml:1169 sssd-ad.5.xml:482 sssd-ad.5.xml:558 sssd-ad.5.xml:1103
-#: sssd-ad.5.xml:1152 include/ldap_id_mapping.xml:244
+#: sssd.conf.5.xml:1580 sssd-ldap.5.xml:590 sssd-ldap.5.xml:611 sssd-ldap.5.xml:1169 sssd-ad.5.xml:482 sssd-ad.5.xml:558 sssd-ad.5.xml:1103 sssd-ad.5.xml:1152 include/ldap_id_mapping.xml:244
 msgid "Default: False"
 msgstr ""
 
@@ -2119,8 +2047,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1674 sssd-ad.5.xml:621 sssd-ad.5.xml:730 sssd-ad.5.xml:788
-#: sssd-ad.5.xml:846 sssd-ad.5.xml:924
+#: sssd.conf.5.xml:1674 sssd-ad.5.xml:621 sssd-ad.5.xml:730 sssd-ad.5.xml:788 sssd-ad.5.xml:846 sssd-ad.5.xml:924
 msgid "Default: the default set of PAM service names includes:"
 msgstr ""
 
@@ -2797,8 +2724,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2267 sssd.conf.5.xml:2299 sssd-session-recording.5.xml:129
-#: sssd-session-recording.5.xml:161
+#: sssd.conf.5.xml:2267 sssd.conf.5.xml:2299 sssd-session-recording.5.xml:129 sssd-session-recording.5.xml:161
 msgid ""
 "NOTE: using this option (having it set to anything) has a considerable "
 "performance cost, because each uncached request for a user requires "
@@ -3094,9 +3020,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2520 sssd.conf.5.xml:2533 sssd.conf.5.xml:2546
-#: sssd.conf.5.xml:2559 sssd.conf.5.xml:2573 sssd.conf.5.xml:2586
-#: sssd.conf.5.xml:2600 sssd.conf.5.xml:2614 sssd.conf.5.xml:2627
+#: sssd.conf.5.xml:2520 sssd.conf.5.xml:2533 sssd.conf.5.xml:2546 sssd.conf.5.xml:2559 sssd.conf.5.xml:2573 sssd.conf.5.xml:2586 sssd.conf.5.xml:2600 sssd.conf.5.xml:2614 sssd.conf.5.xml:2627
 msgid "Default: entry_cache_timeout"
 msgstr ""
 
@@ -3357,8 +3281,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2783 sssd.conf.5.xml:2889 sssd.conf.5.xml:2944
-#: sssd.conf.5.xml:3007
+#: sssd.conf.5.xml:2783 sssd.conf.5.xml:2889 sssd.conf.5.xml:2944 sssd.conf.5.xml:3007
 msgid ""
 "<quote>ipa</quote>: FreeIPA and Red Hat Enterprise Identity Management "
 "provider. See <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
@@ -3367,8 +3290,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2792 sssd.conf.5.xml:2898 sssd.conf.5.xml:2953
-#: sssd.conf.5.xml:3016
+#: sssd.conf.5.xml:2792 sssd.conf.5.xml:2898 sssd.conf.5.xml:2953 sssd.conf.5.xml:3016
 msgid ""
 "<quote>ad</quote>: Active Directory provider. See <citerefentry> "
 "<refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</manvolnum> "
@@ -3628,8 +3550,7 @@ msgid "<quote>none</quote> disables SUDO explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3064 sssd.conf.5.xml:3150 sssd.conf.5.xml:3220
-#: sssd.conf.5.xml:3245 sssd.conf.5.xml:3281
+#: sssd.conf.5.xml:3064 sssd.conf.5.xml:3150 sssd.conf.5.xml:3220 sssd.conf.5.xml:3245 sssd.conf.5.xml:3281
 msgid "Default: The value of <quote>id_provider</quote> is used if it is set."
 msgstr ""
 
@@ -5105,9 +5026,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:49 sssd-simple.5.xml:69 sssd-ipa.5.xml:81 sssd-ad.5.xml:115
-#: sssd-krb5.5.xml:63 sssd-ifp.5.xml:44 sssd-files.5.xml:78
-#: sssd-secrets.5.xml:120 sssd-session-recording.5.xml:58 sssd-kcm.8.xml:166
+#: sssd-ldap.5.xml:49 sssd-simple.5.xml:69 sssd-ipa.5.xml:81 sssd-ad.5.xml:115 sssd-krb5.5.xml:63 sssd-ifp.5.xml:44 sssd-files.5.xml:78 sssd-secrets.5.xml:120 sssd-session-recording.5.xml:58 sssd-kcm.8.xml:202
 msgid "CONFIGURATION OPTIONS"
 msgstr ""
 
@@ -5206,8 +5125,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:132 sssd-ad.5.xml:288 sss_override.8.xml:143
-#: sss_override.8.xml:240 sssd-ldap-attributes.5.xml:453
+#: sssd-ldap.5.xml:132 sssd-ad.5.xml:288 sss_override.8.xml:143 sss_override.8.xml:240 sssd-ldap-attributes.5.xml:453
 msgid "Examples:"
 msgstr ""
 
@@ -5504,8 +5422,7 @@ msgid "Optional. Use the given string as search base for host objects."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:411 sssd-ipa.5.xml:389 sssd-ipa.5.xml:408 sssd-ipa.5.xml:427
-#: sssd-ipa.5.xml:446
+#: sssd-ldap.5.xml:411 sssd-ipa.5.xml:389 sssd-ipa.5.xml:408 sssd-ipa.5.xml:427 sssd-ipa.5.xml:446
 msgid ""
 "See <quote>ldap_search_base</quote> for information about configuring "
 "multiple search bases."
@@ -5617,7 +5534,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:535 sssd-ldap.5.xml:1565
+#: sssd-ldap.5.xml:535 sssd-ldap.5.xml:1575
 msgid "Default: 900 (15 minutes)"
 msgstr ""
 
@@ -6128,8 +6045,8 @@ msgstr ""
 msgid "Default: System defaults, see <filename>/etc/krb5.conf</filename>"
 msgstr ""
 
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1023 sssd-krb5.5.xml:462
+#. type: Content of: <variablelist><varlistentry><term>
+#: sssd-ldap.5.xml:1023 include/krb5_options.xml:145
 msgid "krb5_canonicalize (boolean)"
 msgstr ""
 
@@ -6141,12 +6058,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1038 sssd-krb5.5.xml:477
+#: sssd-ldap.5.xml:1038 sssd-krb5.5.xml:320
 msgid "krb5_use_kdcinfo (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1041 sssd-krb5.5.xml:480
+#: sssd-ldap.5.xml:1041 sssd-krb5.5.xml:323
 msgid ""
 "Specifies if the SSSD should instruct the Kerberos libraries what realm and "
 "which KDCs to use. This option is on by default, if you disable it, you need "
@@ -6156,7 +6073,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1052 sssd-krb5.5.xml:491
+#: sssd-ldap.5.xml:1052 sssd-krb5.5.xml:334
 msgid ""
 "See the <citerefentry> "
 "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle> "
@@ -6718,16 +6635,23 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1535
+msgid ""
+"You can disable full refresh by setting this option to 0. However, either "
+"smart or full refresh must be enabled."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:1540
 msgid "Default: 21600 (6 hours)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1541
+#: sssd-ldap.5.xml:1546
 msgid "ldap_sudo_smart_refresh_interval (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1544
+#: sssd-ldap.5.xml:1549
 msgid ""
 "How many seconds SSSD has to wait before executing a smart refresh of sudo "
 "rules (which downloads all rules that have USN higher than the highest "
@@ -6735,14 +6659,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1550
+#: sssd-ldap.5.xml:1555
 msgid ""
 "If USN attributes are not supported by the server, the modifyTimestamp "
 "attribute is used instead."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1554
+#: sssd-ldap.5.xml:1559
 msgid ""
 "<emphasis>Note:</emphasis> the highest USN value can be updated by three "
 "tasks: 1) By sudo full and smart refresh (if updated rules are found), 2) by "
@@ -6751,102 +6675,126 @@ msgid ""
 "see <emphasis>ldap_connection_expire_timeout</emphasis>)."
 msgstr ""
 
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:1570
+msgid ""
+"You can disable smart refresh by setting this option to 0. However, either "
+"smart or full refresh must be enabled."
+msgstr ""
+
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1571
+#: sssd-ldap.5.xml:1581
+msgid "ldap_sudo_random_offset (integer)"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:1584
+msgid ""
+"Random offset between 0 and configured value is added to smart and full "
+"refresh periods each time the periodic task is scheduled. The value is in "
+"seconds."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:1590
+msgid "You can disable this offset by setting the value to 0."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
+#: sssd-ldap.5.xml:1600
 msgid "ldap_sudo_use_host_filter (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1574
+#: sssd-ldap.5.xml:1603
 msgid ""
 "If true, SSSD will download only rules that are applicable to this machine "
 "(using the IPv4 or IPv6 host/network addresses and hostnames)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1585
+#: sssd-ldap.5.xml:1614
 msgid "ldap_sudo_hostnames (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1588
+#: sssd-ldap.5.xml:1617
 msgid ""
 "Space separated list of hostnames or fully qualified domain names that "
 "should be used to filter the rules."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1593
+#: sssd-ldap.5.xml:1622
 msgid ""
 "If this option is empty, SSSD will try to discover the hostname and the "
 "fully qualified domain name automatically."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1598 sssd-ldap.5.xml:1621 sssd-ldap.5.xml:1639
-#: sssd-ldap.5.xml:1657
+#: sssd-ldap.5.xml:1627 sssd-ldap.5.xml:1650 sssd-ldap.5.xml:1668 sssd-ldap.5.xml:1686
 msgid ""
 "If <emphasis>ldap_sudo_use_host_filter</emphasis> is "
 "<emphasis>false</emphasis> then this option has no effect."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1603 sssd-ldap.5.xml:1626
+#: sssd-ldap.5.xml:1632 sssd-ldap.5.xml:1655
 msgid "Default: not specified"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1609
+#: sssd-ldap.5.xml:1638
 msgid "ldap_sudo_ip (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1612
+#: sssd-ldap.5.xml:1641
 msgid ""
 "Space separated list of IPv4 or IPv6 host/network addresses that should be "
 "used to filter the rules."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1617
+#: sssd-ldap.5.xml:1646
 msgid ""
 "If this option is empty, SSSD will try to discover the addresses "
 "automatically."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1632
+#: sssd-ldap.5.xml:1661
 msgid "ldap_sudo_include_netgroups (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1635
+#: sssd-ldap.5.xml:1664
 msgid ""
 "If true then SSSD will download every rule that contains a netgroup in "
 "sudoHost attribute."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1650
+#: sssd-ldap.5.xml:1679
 msgid "ldap_sudo_include_regexp (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1653
+#: sssd-ldap.5.xml:1682
 msgid ""
 "If true then SSSD will download every rule that contains a wildcard in "
 "sudoHost attribute."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><note><para>
-#: sssd-ldap.5.xml:1663
+#: sssd-ldap.5.xml:1692
 msgid ""
 "Using wildcard is an operation that is very costly to evaluate on the LDAP "
 "server side!"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1675
+#: sssd-ldap.5.xml:1704
 msgid ""
 "This manual page only describes attribute name mapping.  For detailed "
 "explanation of sudo related attribute semantics, see <citerefentry> "
@@ -6855,59 +6803,59 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1685
+#: sssd-ldap.5.xml:1714
 msgid "AUTOFS OPTIONS"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1687
+#: sssd-ldap.5.xml:1716
 msgid ""
 "Some of the defaults for the parameters below are dependent on the LDAP "
 "schema."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1693
+#: sssd-ldap.5.xml:1722
 msgid "ldap_autofs_map_master_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1696
+#: sssd-ldap.5.xml:1725
 msgid "The name of the automount master map in LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1699
+#: sssd-ldap.5.xml:1728
 msgid "Default: auto.master"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1710
+#: sssd-ldap.5.xml:1739
 msgid "ADVANCED OPTIONS"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1717
+#: sssd-ldap.5.xml:1746
 msgid "ldap_netgroup_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1722
+#: sssd-ldap.5.xml:1751
 msgid "ldap_user_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1727
+#: sssd-ldap.5.xml:1756
 msgid "ldap_group_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><note>
-#: sssd-ldap.5.xml:1732
+#: sssd-ldap.5.xml:1761
 msgid "<note>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><note><para>
-#: sssd-ldap.5.xml:1734
+#: sssd-ldap.5.xml:1763
 msgid ""
 "If the option <quote>ldap_use_tokengroups</quote> is enabled, the searches "
 "against Active Directory will not be restricted and return all groups "
@@ -6916,22 +6864,22 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist>
-#: sssd-ldap.5.xml:1741
+#: sssd-ldap.5.xml:1770
 msgid "</note>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1743
+#: sssd-ldap.5.xml:1772
 msgid "ldap_sudo_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1748
+#: sssd-ldap.5.xml:1777
 msgid "ldap_autofs_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1712
+#: sssd-ldap.5.xml:1741
 msgid ""
 "These options are supported by LDAP domains, but they should be used with "
 "caution. Please include them in your configuration only if you know what you "
@@ -6940,14 +6888,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1763 sssd-simple.5.xml:131 sssd-ipa.5.xml:857
-#: sssd-ad.5.xml:1363 sssd-krb5.5.xml:623 sss_rpcidmapd.5.xml:98
-#: sssd-files.5.xml:130 sssd-session-recording.5.xml:176
+#: sssd-ldap.5.xml:1792 sssd-simple.5.xml:131 sssd-ipa.5.xml:857 sssd-ad.5.xml:1363 sssd-krb5.5.xml:467 sss_rpcidmapd.5.xml:98 sssd-files.5.xml:130 sssd-session-recording.5.xml:176
 msgid "EXAMPLE"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1765
+#: sssd-ldap.5.xml:1794
 msgid ""
 "The following example assumes that SSSD is correctly configured and LDAP is "
 "set to one of the domains in the <replaceable>[domains]</replaceable> "
@@ -6955,7 +6901,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ldap.5.xml:1771
+#: sssd-ldap.5.xml:1800
 #, no-wrap
 msgid ""
 "[domain/LDAP]\n"
@@ -6968,27 +6914,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
-#: sssd-ldap.5.xml:1770 sssd-ldap.5.xml:1788 sssd-simple.5.xml:139
-#: sssd-ipa.5.xml:865 sssd-ad.5.xml:1371 sssd-sudo.5.xml:56 sssd-krb5.5.xml:632
-#: sssd-files.5.xml:137 sssd-files.5.xml:148 sssd-session-recording.5.xml:182
-#: include/ldap_id_mapping.xml:105
+#: sssd-ldap.5.xml:1799 sssd-ldap.5.xml:1817 sssd-simple.5.xml:139 sssd-ipa.5.xml:865 sssd-ad.5.xml:1371 sssd-sudo.5.xml:56 sssd-krb5.5.xml:476 sssd-files.5.xml:137 sssd-files.5.xml:148 sssd-session-recording.5.xml:182 include/ldap_id_mapping.xml:105
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1782
+#: sssd-ldap.5.xml:1811
 msgid "LDAP ACCESS FILTER EXAMPLE"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1784
+#: sssd-ldap.5.xml:1813
 msgid ""
 "The following example assumes that SSSD is correctly configured and to use "
 "the ldap_access_order=lockout."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ldap.5.xml:1789
+#: sssd-ldap.5.xml:1818
 #, no-wrap
 msgid ""
 "[domain/LDAP]\n"
@@ -7004,13 +6947,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1804 sssd_krb5_locator_plugin.8.xml:83 sssd-simple.5.xml:148
-#: sssd-ad.5.xml:1386 sssd.8.xml:238 sss_seed.8.xml:163
+#: sssd-ldap.5.xml:1833 sssd_krb5_locator_plugin.8.xml:83 sssd-simple.5.xml:148 sssd-ad.5.xml:1386 sssd.8.xml:238 sss_seed.8.xml:163
 msgid "NOTES"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1806
+#: sssd-ldap.5.xml:1835
 msgid ""
 "The descriptions of some of the configuration options in this manual page "
 "are based on the <citerefentry> <refentrytitle>ldap.conf</refentrytitle> "
@@ -9556,10 +9498,7 @@ msgid "Name of the attribute holding the name of the view."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:637 sssd-ldap-attributes.5.xml:496
-#: sssd-ldap-attributes.5.xml:813 sssd-ldap-attributes.5.xml:894
-#: sssd-ldap-attributes.5.xml:991 sssd-ldap-attributes.5.xml:1049
-#: sssd-ldap-attributes.5.xml:1207 sssd-ldap-attributes.5.xml:1252
+#: sssd-ipa.5.xml:637 sssd-ldap-attributes.5.xml:496 sssd-ldap-attributes.5.xml:813 sssd-ldap-attributes.5.xml:894 sssd-ldap-attributes.5.xml:991 sssd-ldap-attributes.5.xml:1049 sssd-ldap-attributes.5.xml:1207 sssd-ldap-attributes.5.xml:1252
 msgid "Default: cn"
 msgstr ""
 
@@ -10376,8 +10315,7 @@ msgid "results"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry>
-#: sssd-ad.5.xml:503 sssd-ad.5.xml:506 sssd-ad.5.xml:509 sssd-ad.5.xml:529
-#: sssd-ad.5.xml:532 sssd-ad.5.xml:535
+#: sssd-ad.5.xml:503 sssd-ad.5.xml:506 sssd-ad.5.xml:509 sssd-ad.5.xml:529 sssd-ad.5.xml:532 sssd-ad.5.xml:535
 msgid "missing"
 msgstr ""
 
@@ -10387,8 +10325,7 @@ msgid "all users are allowed"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry>
-#: sssd-ad.5.xml:506 sssd-ad.5.xml:509 sssd-ad.5.xml:512 sssd-ad.5.xml:532
-#: sssd-ad.5.xml:535 sssd-ad.5.xml:538
+#: sssd-ad.5.xml:506 sssd-ad.5.xml:509 sssd-ad.5.xml:512 sssd-ad.5.xml:532 sssd-ad.5.xml:535 sssd-ad.5.xml:538
 msgid "present"
 msgstr ""
 
@@ -11298,6 +11235,55 @@ msgid ""
 "</citerefentry>."
 msgstr ""
 
+#. type: Content of: <reference><refentry><refsect1><title>
+#: sssd-sudo.5.xml:213
+msgid "Tuning the performance"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd-sudo.5.xml:215
+msgid ""
+"SSSD uses different kinds of mechanisms with more or less complex LDAP "
+"filters to keep the cached sudo rules up to date. The default configuration "
+"is set to values that should satisfy most of our users, but the following "
+"paragraps contains few tips on how to fine tune the configuration to your "
+"requirements."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd-sudo.5.xml:222
+msgid ""
+"1. <emphasis>Index LDAP attributes</emphasis>. Make sure that following LDAP "
+"attributes are indexed: objectClass, cn, entryUSN or modifyTimestamp."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd-sudo.5.xml:227
+msgid ""
+"2. <emphasis>Set ldap_sudo_search_base</emphasis>. Set the search base to "
+"the container that holds the sudo rules to limit the scope of the lookup."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd-sudo.5.xml:232
+msgid ""
+"3. <emphasis>Set full and smart refresh interval</emphasis>. If your sudo "
+"rules do not change often and you do not require quick update of cached "
+"rules on your clients, you may consider increasing the "
+"<emphasis>ldap_sudo_full_refresh_interval</emphasis> and "
+"<emphasis>ldap_sudo_smart_refresh_interval</emphasis>. You may also consider "
+"disabling the smart refresh by setting "
+"<emphasis>ldap_sudo_smart_refresh_interval = 0</emphasis>."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd-sudo.5.xml:241
+msgid ""
+"4. If you have large number of clients, you may consider increasing the "
+"value of <emphasis>ldap_sudo_random_offset</emphasis> to distribute the load "
+"on the server better."
+msgstr ""
+
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.8.xml:10 sssd.8.xml:15
 msgid "sssd"
@@ -11593,8 +11579,7 @@ msgid "The password to obfuscate will be read from standard input."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_obfuscate.8.xml:74 sss_ssh_authorizedkeys.1.xml:127
-#: sss_ssh_knownhostsproxy.1.xml:78
+#: sss_obfuscate.8.xml:74 sss_ssh_authorizedkeys.1.xml:127 sss_ssh_knownhostsproxy.1.xml:78
 msgid ""
 "<option>-d</option>,<option>--domain</option> "
 "<replaceable>DOMAIN</replaceable>"
@@ -12316,64 +12301,35 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:240
-msgid "krb5_auth_timeout (integer)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:243
-msgid ""
-"Timeout in seconds after an online authentication request or change password "
-"request is aborted. If possible, the authentication request is continued "
-"offline."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:254
-msgid "krb5_validate (boolean)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:257
-msgid ""
-"Verify with the help of krb5_keytab that the TGT obtained has not been "
-"spoofed. The keytab is checked for entries sequentially, and the first entry "
-"with a matching realm is used for validation. If no entry matches the realm, "
-"the last entry in the keytab is used. This process can be used to validate "
-"environments using cross-realm trust by placing the appropriate keytab entry "
-"as the last entry or the only entry in the keytab file."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:272
 msgid "krb5_keytab (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:275
+#: sssd-krb5.5.xml:243
 msgid ""
 "The location of the keytab to use when validating credentials obtained from "
 "KDCs."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:279
+#: sssd-krb5.5.xml:247
 msgid "Default: /etc/krb5.keytab"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:285
+#: sssd-krb5.5.xml:253
 msgid "krb5_store_password_if_offline (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:288
+#: sssd-krb5.5.xml:256
 msgid ""
 "Store the password of the user if the provider is offline and use it to "
 "request a TGT when the provider comes online again."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:293
+#: sssd-krb5.5.xml:261
 msgid ""
 "NOTE: this feature is only available on Linux.  Passwords stored in this way "
 "are kept in plaintext in the kernel keyring and are potentially accessible "
@@ -12381,146 +12337,50 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:306
-msgid "krb5_renewable_lifetime (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:309
-msgid ""
-"Request a renewable ticket with a total lifetime, given as an integer "
-"immediately followed by a time unit:"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:314 sssd-krb5.5.xml:348 sssd-krb5.5.xml:385
-msgid "<emphasis>s</emphasis> for seconds"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:317 sssd-krb5.5.xml:351 sssd-krb5.5.xml:388
-msgid "<emphasis>m</emphasis> for minutes"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:320 sssd-krb5.5.xml:354 sssd-krb5.5.xml:391
-msgid "<emphasis>h</emphasis> for hours"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:323 sssd-krb5.5.xml:357 sssd-krb5.5.xml:394
-msgid "<emphasis>d</emphasis> for days."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:326 sssd-krb5.5.xml:397
-msgid "If there is no unit given, <emphasis>s</emphasis> is assumed."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:330 sssd-krb5.5.xml:401
-msgid ""
-"NOTE: It is not possible to mix units.  To set the renewable lifetime to one "
-"and a half hours, use '90m' instead of '1h30m'."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:335
-msgid "Default: not set, i.e. the TGT is not renewable"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:341
-msgid "krb5_lifetime (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:344
-msgid ""
-"Request ticket with a lifetime, given as an integer immediately followed by "
-"a time unit:"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:360
-msgid "If there is no unit given <emphasis>s</emphasis> is assumed."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:364
-msgid ""
-"NOTE: It is not possible to mix units.  To set the lifetime to one and a "
-"half hours please use '90m' instead of '1h30m'."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:369
-msgid "Default: not set, i.e. the default ticket lifetime configured on the KDC."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:376
-msgid "krb5_renew_interval (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:379
-msgid ""
-"The time in seconds between two checks if the TGT should be renewed. TGTs "
-"are renewed if about half of their lifetime is exceeded, given as an integer "
-"immediately followed by a time unit:"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:406
-msgid "If this option is not set or is 0 the automatic renewal is disabled."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:416
+#: sssd-krb5.5.xml:274
 msgid "krb5_use_fast (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:419
+#: sssd-krb5.5.xml:277
 msgid ""
 "Enables flexible authentication secure tunneling (FAST) for Kerberos "
 "pre-authentication. The following options are supported:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:424
+#: sssd-krb5.5.xml:282
 msgid ""
 "<emphasis>never</emphasis> use FAST. This is equivalent to not setting this "
 "option at all."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:428
+#: sssd-krb5.5.xml:286
 msgid ""
 "<emphasis>try</emphasis> to use FAST. If the server does not support FAST, "
 "continue the authentication without it."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:433
+#: sssd-krb5.5.xml:291
 msgid ""
 "<emphasis>demand</emphasis> to use FAST. The authentication fails if the "
 "server does not require fast."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:438
+#: sssd-krb5.5.xml:296
 msgid "Default: not set, i.e. FAST is not used."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:441
+#: sssd-krb5.5.xml:299
 msgid "NOTE: a keytab is required to use FAST."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:444
+#: sssd-krb5.5.xml:302
 msgid ""
 "NOTE: SSSD supports FAST only with MIT Kerberos version 1.8 and later. If "
 "SSSD is used with an older version of MIT Kerberos, using this option is a "
@@ -12528,29 +12388,22 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:453
+#: sssd-krb5.5.xml:311
 msgid "krb5_fast_principal (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:456
+#: sssd-krb5.5.xml:314
 msgid "Specifies the server principal to use for FAST."
 msgstr ""
 
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:465
-msgid ""
-"Specifies if the host and user principal should be canonicalized. This "
-"feature is available with MIT Kerberos 1.7 and later versions."
-msgstr ""
-
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:505
+#: sssd-krb5.5.xml:348
 msgid "krb5_kdcinfo_lookahead (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:508
+#: sssd-krb5.5.xml:351
 msgid ""
 "When krb5_use_kdcinfo is set to true, you can limit the amount of servers "
 "handed to <citerefentry> "
@@ -12560,7 +12413,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:518
+#: sssd-krb5.5.xml:361
 msgid ""
 "The krb5_kdcinfo_lookahead option contains two numbers separated by a "
 "colon. The first number represents number of primary servers used and the "
@@ -12568,7 +12421,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:524
+#: sssd-krb5.5.xml:367
 msgid ""
 "For example <emphasis>10:0</emphasis> means that up to 10 primary servers "
 "will be handed to <citerefentry> "
@@ -12577,17 +12430,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:533
+#: sssd-krb5.5.xml:376
 msgid "Default: 3:1"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:539
+#: sssd-krb5.5.xml:382
 msgid "krb5_use_enterprise_principal (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:542
+#: sssd-krb5.5.xml:385
 msgid ""
 "Specifies if the user principal should be treated as enterprise "
 "principal. See section 5 of RFC 6806 for more details about enterprise "
@@ -12595,12 +12448,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:548
+#: sssd-krb5.5.xml:391
 msgid "Default: false (AD provider: true)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:551
+#: sssd-krb5.5.xml:394
 msgid ""
 "The IPA provider will set to option to 'true' if it detects that the server "
 "is capable of handling enterprise principals and the option is not set "
@@ -12608,12 +12461,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:560
+#: sssd-krb5.5.xml:403
 msgid "krb5_use_subdomain_realm (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:563
+#: sssd-krb5.5.xml:406
 msgid ""
 "Specifies to use subdomains realms for the authentication of users from "
 "trusted domains. This option can be set to 'true' if enterprise principals "
@@ -12623,12 +12476,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:579
+#: sssd-krb5.5.xml:422
 msgid "krb5_map_user (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:582
+#: sssd-krb5.5.xml:425
 msgid ""
 "The list of mappings is given as a comma-separated list of pairs "
 "<quote>username:primary</quote> where <quote>username</quote> is a UNIX user "
@@ -12638,7 +12491,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-krb5.5.xml:594
+#: sssd-krb5.5.xml:437
 #, no-wrap
 msgid ""
 "krb5_realm = REALM\n"
@@ -12646,7 +12499,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:599
+#: sssd-krb5.5.xml:442
 msgid ""
 "<quote>joe</quote> and <quote>dick</quote> are UNIX user names and "
 "<quote>juser</quote> and <quote>richard</quote> are primaries of kerberos "
@@ -12667,7 +12520,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-krb5.5.xml:625
+#: sssd-krb5.5.xml:469
 msgid ""
 "The following example assumes that SSSD is correctly configured and FOO is "
 "one of the domains in the <replaceable>[sssd]</replaceable> section. This "
@@ -12676,7 +12529,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-krb5.5.xml:633
+#: sssd-krb5.5.xml:477
 #, no-wrap
 msgid ""
 "[domain/FOO]\n"
@@ -13602,7 +13455,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><title>
-#: sss_rpcidmapd.5.xml:120 sssd-kcm.8.xml:256 include/seealso.xml:2
+#: sss_rpcidmapd.5.xml:120 sssd-kcm.8.xml:316 include/seealso.xml:2
 msgid "SEE ALSO"
 msgstr ""
 
@@ -15117,7 +14970,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-kcm.8.xml:149 sssd-kcm.8.xml:175
+#: sssd-kcm.8.xml:149 sssd-kcm.8.xml:211
 #, no-wrap
 msgid ""
 "systemctl restart sssd-kcm.service\n"
@@ -15149,8 +15002,67 @@ msgid ""
 "exists at all."
 msgstr ""
 
+#. type: Content of: <reference><refentry><refsect1><title>
+#: sssd-kcm.8.xml:166
+msgid "RENEWALS"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><programlisting>
+#: sssd-kcm.8.xml:174
+#, no-wrap
+msgid ""
+"tgt_renewal = true\n"
+"krb5_renew_interval = 60m\n"
+"            "
+msgstr ""
+
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:168
+msgid ""
+"The sssd-kcm service can be configured to attempt TGT renewal for renewable "
+"TGTs stored in the KCM ccache.  Renewals are only attempted when half of the "
+"ticket lifetime has been reached. KCM Renewals are configured when the "
+"following options are set in the [kcm] section: <placeholder "
+"type=\"programlisting\" id=\"0\"/>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd-kcm.8.xml:179
+msgid "SSSD can also inherit krb5 options for renewals from an existing domain."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><programlisting>
+#: sssd-kcm.8.xml:183
+#, no-wrap
+msgid ""
+"tgt_renewal = true\n"
+"tgt_renewal_inherit = domain-name\n"
+"            "
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><programlisting>
+#: sssd-kcm.8.xml:191
+#, no-wrap
+msgid ""
+"krb5_renew_interval\n"
+"krb5_renew_lifetime\n"
+"krb5_lifetime\n"
+"krb5_validate\n"
+"krb5_canonicalize\n"
+"krb5_auth_timeout\n"
+"            "
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd-kcm.8.xml:187
+msgid ""
+"The following krb5 options can be configured in the [kcm] section to control "
+"renewal behavior, these options are described in detail below <placeholder "
+"type=\"programlisting\" id=\"0\"/>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd-kcm.8.xml:204
 msgid ""
 "The KCM service is configured in the <quote>kcm</quote> section of the "
 "sssd.conf file. Please note that because the KCM service is typically "
@@ -15160,7 +15072,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-kcm.8.xml:179
+#: sssd-kcm.8.xml:215
 msgid ""
 "The KCM service is configured in the <quote>kcm</quote> For a detailed "
 "syntax reference, refer to the <quote>FILE FORMAT</quote> section of the "
@@ -15169,7 +15081,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-kcm.8.xml:187
+#: sssd-kcm.8.xml:223
 msgid ""
 "The generic SSSD service options such as <quote>debug_level</quote> or "
 "<quote>fd_limit</quote> are accepted by the kcm service.  Please refer to "
@@ -15179,22 +15091,22 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-kcm.8.xml:198
+#: sssd-kcm.8.xml:234
 msgid "socket_path (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-kcm.8.xml:201
+#: sssd-kcm.8.xml:237
 msgid "The socket the KCM service will listen on."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-kcm.8.xml:204
+#: sssd-kcm.8.xml:240
 msgid "Default: <replaceable>/var/run/.heim_org.h5l.kcm-socket</replaceable>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-kcm.8.xml:207
+#: sssd-kcm.8.xml:243
 msgid ""
 "<phrase condition=\"have_systemd\"> Note: on platforms where systemd is "
 "supported, the socket path is overwritten by the one defined in the "
@@ -15202,56 +15114,86 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-kcm.8.xml:216
+#: sssd-kcm.8.xml:252
 msgid "max_ccaches (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-kcm.8.xml:219
+#: sssd-kcm.8.xml:255
 msgid "How many credential caches does the KCM database allow for all users."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-kcm.8.xml:223
+#: sssd-kcm.8.xml:259
 msgid "Default: 0 (unlimited, only the per-UID quota is enforced)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-kcm.8.xml:228
+#: sssd-kcm.8.xml:264
 msgid "max_uid_ccaches (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-kcm.8.xml:231
+#: sssd-kcm.8.xml:267
 msgid ""
 "How many credential caches does the KCM database allow per UID. This is "
 "equivalent to <quote>with how many principals you can kinit</quote>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-kcm.8.xml:236
+#: sssd-kcm.8.xml:272
 msgid "Default: 64"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-kcm.8.xml:241
+#: sssd-kcm.8.xml:277
 msgid "max_ccache_size (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-kcm.8.xml:244
+#: sssd-kcm.8.xml:280
 msgid ""
 "How big can a credential cache be per ccache. Each service ticket accounts "
 "into this quota."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-kcm.8.xml:248
+#: sssd-kcm.8.xml:284
 msgid "Default: 65536"
 msgstr ""
 
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sssd-kcm.8.xml:289
+msgid "tgt_renewal (bool)"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sssd-kcm.8.xml:292
+msgid "Enables TGT renewals functionality."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sssd-kcm.8.xml:295
+msgid "Default: False (Automatic renewals disabled)"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sssd-kcm.8.xml:300
+msgid "tgt_renewal_inherit (string)"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sssd-kcm.8.xml:303
+msgid "Domain to inherit krb5_* options from, for use with TGT renewals."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sssd-kcm.8.xml:307
+msgid "Default: NULL"
+msgstr ""
+
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-kcm.8.xml:258
+#: sssd-kcm.8.xml:318
 msgid ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> "
 "</citerefentry>, <citerefentry> "
@@ -15346,8 +15288,7 @@ msgid "Start of a sysdb transaction, probes the sysdb_transaction_start() functi
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><programlisting>
-#: sssd-systemtap.5.xml:91 sssd-systemtap.5.xml:105 sssd-systemtap.5.xml:118
-#: sssd-systemtap.5.xml:131
+#: sssd-systemtap.5.xml:91 sssd-systemtap.5.xml:105 sssd-systemtap.5.xml:118 sssd-systemtap.5.xml:131
 #, no-wrap
 msgid ""
 "nesting:integer\n"
@@ -15550,8 +15491,7 @@ msgid "Probes the sdap_search_user_send()  function."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><programlisting>
-#: sssd-systemtap.5.xml:283 sssd-systemtap.5.xml:295 sssd-systemtap.5.xml:307
-#: sssd-systemtap.5.xml:319
+#: sssd-systemtap.5.xml:283 sssd-systemtap.5.xml:295 sssd-systemtap.5.xml:307 sssd-systemtap.5.xml:319
 #, no-wrap
 msgid ""
 "filter:string\n"
@@ -15930,16 +15870,14 @@ msgid "ldap_user_modify_timestamp (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap-attributes.5.xml:180 sssd-ldap-attributes.5.xml:732
-#: sssd-ldap-attributes.5.xml:855
+#: sssd-ldap-attributes.5.xml:180 sssd-ldap-attributes.5.xml:732 sssd-ldap-attributes.5.xml:855
 msgid ""
 "The LDAP attribute that contains timestamp of the last modification of the "
 "parent object."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap-attributes.5.xml:184 sssd-ldap-attributes.5.xml:736
-#: sssd-ldap-attributes.5.xml:862
+#: sssd-ldap-attributes.5.xml:184 sssd-ldap-attributes.5.xml:736 sssd-ldap-attributes.5.xml:862
 msgid "Default: modifyTimestamp"
 msgstr ""
 
@@ -18415,4 +18353,136 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><itemizedlist><listitem><para>
 #: include/ipa_modified_defaults.xml:118
 msgid "ldap_group_external_member = ipaExternalMember"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><term>
+#: include/krb5_options.xml:3
+msgid "krb5_auth_timeout (integer)"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:6
+msgid ""
+"Timeout in seconds after an online authentication request or change password "
+"request is aborted. If possible, the authentication request is continued "
+"offline."
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><term>
+#: include/krb5_options.xml:17
+msgid "krb5_validate (boolean)"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:20
+msgid ""
+"Verify with the help of krb5_keytab that the TGT obtained has not been "
+"spoofed. The keytab is checked for entries sequentially, and the first entry "
+"with a matching realm is used for validation. If no entry matches the realm, "
+"the last entry in the keytab is used. This process can be used to validate "
+"environments using cross-realm trust by placing the appropriate keytab entry "
+"as the last entry or the only entry in the keytab file."
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><term>
+#: include/krb5_options.xml:35
+msgid "krb5_renewable_lifetime (string)"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:38
+msgid ""
+"Request a renewable ticket with a total lifetime, given as an integer "
+"immediately followed by a time unit:"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:43 include/krb5_options.xml:77 include/krb5_options.xml:114
+msgid "<emphasis>s</emphasis> for seconds"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:46 include/krb5_options.xml:80 include/krb5_options.xml:117
+msgid "<emphasis>m</emphasis> for minutes"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:49 include/krb5_options.xml:83 include/krb5_options.xml:120
+msgid "<emphasis>h</emphasis> for hours"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:52 include/krb5_options.xml:86 include/krb5_options.xml:123
+msgid "<emphasis>d</emphasis> for days."
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:55 include/krb5_options.xml:126
+msgid "If there is no unit given, <emphasis>s</emphasis> is assumed."
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:59 include/krb5_options.xml:130
+msgid ""
+"NOTE: It is not possible to mix units.  To set the renewable lifetime to one "
+"and a half hours, use '90m' instead of '1h30m'."
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:64
+msgid "Default: not set, i.e. the TGT is not renewable"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><term>
+#: include/krb5_options.xml:70
+msgid "krb5_lifetime (string)"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:73
+msgid ""
+"Request ticket with a lifetime, given as an integer immediately followed by "
+"a time unit:"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:89
+msgid "If there is no unit given <emphasis>s</emphasis> is assumed."
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:93
+msgid ""
+"NOTE: It is not possible to mix units.  To set the lifetime to one and a "
+"half hours please use '90m' instead of '1h30m'."
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:98
+msgid "Default: not set, i.e. the default ticket lifetime configured on the KDC."
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><term>
+#: include/krb5_options.xml:105
+msgid "krb5_renew_interval (string)"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:108
+msgid ""
+"The time in seconds between two checks if the TGT should be renewed. TGTs "
+"are renewed if about half of their lifetime is exceeded, given as an integer "
+"immediately followed by a time unit:"
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:135
+msgid "If this option is not set or is 0 the automatic renewal is disabled."
+msgstr ""
+
+#. type: Content of: <variablelist><varlistentry><listitem><para>
+#: include/krb5_options.xml:148
+msgid ""
+"Specifies if the host and user principal should be canonicalized. This "
+"feature is available with MIT Kerberos 1.7 and later versions."
 msgstr ""

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-05-07 11:32+0200\n"
+"POT-Creation-Date: 2021-05-10 15:10+0200\n"
 "PO-Revision-Date: 2014-12-14 11:50-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Chinese (Taiwan) (http://www.transifex.com/projects/p/sssd/"
@@ -308,7 +308,6 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:101
 #, fuzzy
-#| msgid "Require TLS certificate verification"
 msgid "Tune certificate verification for PAM authentication."
 msgstr "需要 TLS 憑證驗證"
 
@@ -1662,222 +1661,226 @@ msgid "Automatic smart refresh period"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:518
-msgid "Whether to filter rules by hostname, IP addresses and network"
+msgid "Smart and full refresh random offset"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:519
+msgid "Whether to filter rules by hostname, IP addresses and network"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:520
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:520
+#: src/config/SSSDConfig/sssdoptions.py:521
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:521
+#: src/config/SSSDConfig/sssdoptions.py:522
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:522
+#: src/config/SSSDConfig/sssdoptions.py:523
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:523
+#: src/config/SSSDConfig/sssdoptions.py:524
 msgid "Object class for sudo rules"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:524
+#: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:525
+#: src/config/SSSDConfig/sssdoptions.py:526
 msgid "Sudo rule name"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:526
+#: src/config/SSSDConfig/sssdoptions.py:527
 msgid "Sudo rule command attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:527
+#: src/config/SSSDConfig/sssdoptions.py:528
 msgid "Sudo rule host attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:528
+#: src/config/SSSDConfig/sssdoptions.py:529
 msgid "Sudo rule user attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:529
+#: src/config/SSSDConfig/sssdoptions.py:530
 msgid "Sudo rule option attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:530
+#: src/config/SSSDConfig/sssdoptions.py:531
 msgid "Sudo rule runas attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:531
+#: src/config/SSSDConfig/sssdoptions.py:532
 msgid "Sudo rule runasuser attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:532
+#: src/config/SSSDConfig/sssdoptions.py:533
 msgid "Sudo rule runasgroup attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:533
+#: src/config/SSSDConfig/sssdoptions.py:534
 msgid "Sudo rule notbefore attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:534
+#: src/config/SSSDConfig/sssdoptions.py:535
 msgid "Sudo rule notafter attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:535
+#: src/config/SSSDConfig/sssdoptions.py:536
 msgid "Sudo rule order attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:538
+#: src/config/SSSDConfig/sssdoptions.py:539
 msgid "Object class for automounter maps"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:539
+#: src/config/SSSDConfig/sssdoptions.py:540
 msgid "Automounter map name attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:540
+#: src/config/SSSDConfig/sssdoptions.py:541
 msgid "Object class for automounter map entries"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:541
+#: src/config/SSSDConfig/sssdoptions.py:542
 msgid "Automounter map entry key attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:542
+#: src/config/SSSDConfig/sssdoptions.py:543
 msgid "Automounter map entry value attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:543
+#: src/config/SSSDConfig/sssdoptions.py:544
 msgid "Base DN for automounter map lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:544
+#: src/config/SSSDConfig/sssdoptions.py:545
 msgid "The name of the automount master map in LDAP."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:547
+#: src/config/SSSDConfig/sssdoptions.py:548
 msgid "Base DN for IP hosts lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:548
+#: src/config/SSSDConfig/sssdoptions.py:549
 msgid "Object class for IP hosts"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:549
+#: src/config/SSSDConfig/sssdoptions.py:550
 msgid "IP host name attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:550
+#: src/config/SSSDConfig/sssdoptions.py:551
 msgid "IP host number (address) attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:551
+#: src/config/SSSDConfig/sssdoptions.py:552
 msgid "IP host entryUSN attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:552
+#: src/config/SSSDConfig/sssdoptions.py:553
 msgid "Base DN for IP networks lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:553
+#: src/config/SSSDConfig/sssdoptions.py:554
 msgid "Object class for IP networks"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:554
+#: src/config/SSSDConfig/sssdoptions.py:555
 msgid "IP network name attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:555
+#: src/config/SSSDConfig/sssdoptions.py:556
 msgid "IP network number (address) attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:556
+#: src/config/SSSDConfig/sssdoptions.py:557
 msgid "IP network entryUSN attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:559
+#: src/config/SSSDConfig/sssdoptions.py:560
 msgid "Comma separated list of allowed users"
 msgstr "許可的使用者清單，請使用半形逗號作為分隔"
 
-#: src/config/SSSDConfig/sssdoptions.py:560
+#: src/config/SSSDConfig/sssdoptions.py:561
 msgid "Comma separated list of prohibited users"
 msgstr "被禁止的使用者清單，請使用半形逗號作為分隔"
 
-#: src/config/SSSDConfig/sssdoptions.py:561
+#: src/config/SSSDConfig/sssdoptions.py:562
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:563
+#: src/config/SSSDConfig/sssdoptions.py:564
 msgid ""
 "Comma separated list of groups that are explicitly denied access. This "
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:567
+#: src/config/SSSDConfig/sssdoptions.py:568
 msgid "Base for home directories"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:568
+#: src/config/SSSDConfig/sssdoptions.py:569
 msgid "Indicate if a home directory should be created for new users."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:569
+#: src/config/SSSDConfig/sssdoptions.py:570
 msgid "Indicate if a home directory should be removed for deleted users."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:570
+#: src/config/SSSDConfig/sssdoptions.py:571
 msgid "Specify the default permissions on a newly created home directory."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:571
+#: src/config/SSSDConfig/sssdoptions.py:572
 msgid "The skeleton directory."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:572
+#: src/config/SSSDConfig/sssdoptions.py:573
 msgid "The mail spool directory."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:573
+#: src/config/SSSDConfig/sssdoptions.py:574
 msgid "The command that is run after a user is removed."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:576
+#: src/config/SSSDConfig/sssdoptions.py:577
 msgid "The number of preforked proxy children."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:579
+#: src/config/SSSDConfig/sssdoptions.py:580
 msgid "The name of the NSS library to use"
 msgstr "要使用的 NSS 函式庫名稱"
 
-#: src/config/SSSDConfig/sssdoptions.py:580
+#: src/config/SSSDConfig/sssdoptions.py:581
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:581
+#: src/config/SSSDConfig/sssdoptions.py:582
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:584
+#: src/config/SSSDConfig/sssdoptions.py:585
 msgid "PAM stack to use"
 msgstr "要使用的 PAM 堆疊"
 
-#: src/config/SSSDConfig/sssdoptions.py:587
+#: src/config/SSSDConfig/sssdoptions.py:588
 msgid "Path of passwd file sources."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:588
+#: src/config/SSSDConfig/sssdoptions.py:589
 msgid "Path of group file sources."
 msgstr ""
 
@@ -2104,7 +2107,7 @@ msgstr "密碼已過期。請立刻變更您的密碼。"
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:668
 #: src/tools/sss_userdel.c:136 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:719
+#: src/tools/sss_cache.c:732
 msgid "The debug level to run with"
 msgstr ""
 
@@ -2117,7 +2120,7 @@ msgstr ""
 #: src/tools/sss_groupadd.c:59 src/tools/sss_groupdel.c:54
 #: src/tools/sss_groupmod.c:66 src/tools/sss_groupshow.c:680
 #: src/tools/sss_userdel.c:154 src/tools/sss_usermod.c:79
-#: src/tools/sss_cache.c:765
+#: src/tools/sss_cache.c:778
 msgid "Error setting the locale\n"
 msgstr "設定區域設置時發生錯誤\n"
 
@@ -2580,88 +2583,88 @@ msgstr ""
 msgid "Couldn't invalidate %1$s %2$s\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:721
+#: src/tools/sss_cache.c:734
 msgid "Invalidate all cached entries"
 msgstr ""
 
-#: src/tools/sss_cache.c:723
+#: src/tools/sss_cache.c:736
 msgid "Invalidate particular user"
 msgstr ""
 
-#: src/tools/sss_cache.c:725
+#: src/tools/sss_cache.c:738
 msgid "Invalidate all users"
 msgstr ""
 
-#: src/tools/sss_cache.c:727
+#: src/tools/sss_cache.c:740
 msgid "Invalidate particular group"
 msgstr ""
 
-#: src/tools/sss_cache.c:729
+#: src/tools/sss_cache.c:742
 msgid "Invalidate all groups"
 msgstr ""
 
-#: src/tools/sss_cache.c:731
+#: src/tools/sss_cache.c:744
 msgid "Invalidate particular netgroup"
 msgstr ""
 
-#: src/tools/sss_cache.c:733
+#: src/tools/sss_cache.c:746
 msgid "Invalidate all netgroups"
 msgstr ""
 
-#: src/tools/sss_cache.c:735
+#: src/tools/sss_cache.c:748
 msgid "Invalidate particular service"
 msgstr ""
 
-#: src/tools/sss_cache.c:737
+#: src/tools/sss_cache.c:750
 msgid "Invalidate all services"
 msgstr ""
 
-#: src/tools/sss_cache.c:740
+#: src/tools/sss_cache.c:753
 msgid "Invalidate particular autofs map"
 msgstr ""
 
-#: src/tools/sss_cache.c:742
+#: src/tools/sss_cache.c:755
 msgid "Invalidate all autofs maps"
 msgstr ""
 
-#: src/tools/sss_cache.c:746
+#: src/tools/sss_cache.c:759
 msgid "Invalidate particular SSH host"
 msgstr ""
 
-#: src/tools/sss_cache.c:748
+#: src/tools/sss_cache.c:761
 msgid "Invalidate all SSH hosts"
 msgstr ""
 
-#: src/tools/sss_cache.c:752
+#: src/tools/sss_cache.c:765
 msgid "Invalidate particular sudo rule"
 msgstr ""
 
-#: src/tools/sss_cache.c:754
+#: src/tools/sss_cache.c:767
 msgid "Invalidate all cached sudo rules"
 msgstr ""
 
-#: src/tools/sss_cache.c:757
+#: src/tools/sss_cache.c:770
 msgid "Only invalidate entries from a particular domain"
 msgstr ""
 
-#: src/tools/sss_cache.c:811
+#: src/tools/sss_cache.c:824
 msgid ""
 "Unexpected argument(s) provided, options that invalidate a single object "
 "only accept a single provided argument.\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:821
+#: src/tools/sss_cache.c:834
 msgid "Please select at least one object to invalidate\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:904
+#: src/tools/sss_cache.c:917
 #, c-format
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:909
+#: src/tools/sss_cache.c:922
 msgid "Could not open available domains\n"
 msgstr ""
 

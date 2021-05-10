@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-05-07 11:32+0200\n"
+"POT-Creation-Date: 2021-05-10 15:10+0200\n"
 "PO-Revision-Date: 2021-03-24 13:01+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
@@ -349,7 +349,6 @@ msgstr "Sökväg till certifikatdatabasen med PKCS#11-moduler."
 
 #: src/config/SSSDConfig/sssdoptions.py:101
 #, fuzzy
-#| msgid "Tune certificate verification"
 msgid "Tune certificate verification for PAM authentication."
 msgstr "Trimma certifikatverifikation"
 
@@ -1793,11 +1792,15 @@ msgid "Automatic smart refresh period"
 msgstr "Intervall mellan automatisk smart omläsning"
 
 #: src/config/SSSDConfig/sssdoptions.py:518
+msgid "Smart and full refresh random offset"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:519
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr ""
 "Huruvida regler skall filtreras efter värdnamn, IP-adresser och nätverk"
 
-#: src/config/SSSDConfig/sssdoptions.py:519
+#: src/config/SSSDConfig/sssdoptions.py:520
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -1805,153 +1808,153 @@ msgstr ""
 "Värdnamn och/eller fullständigt kvalificerade domännamn på denna maskin för "
 "att filtrera sudo-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:520
+#: src/config/SSSDConfig/sssdoptions.py:521
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "IPv4- eller IPv6-adresser eller -nätverk för denna maskin för att filtrera "
 "sudo-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:521
+#: src/config/SSSDConfig/sssdoptions.py:522
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
 "Huruvida regler som innehåller nätgrupper i värdattribut skall inkluderas"
 
-#: src/config/SSSDConfig/sssdoptions.py:522
+#: src/config/SSSDConfig/sssdoptions.py:523
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 "Huruvida regler som innehåller reguljära uttryck i värdattribut skall "
 "inkluderas"
 
-#: src/config/SSSDConfig/sssdoptions.py:523
+#: src/config/SSSDConfig/sssdoptions.py:524
 msgid "Object class for sudo rules"
 msgstr "Objektklass för sudo-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:524
+#: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr "Namn på attributet som används som objektklass för sudo-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:525
+#: src/config/SSSDConfig/sssdoptions.py:526
 msgid "Sudo rule name"
 msgstr "Sudo-regelnamn"
 
-#: src/config/SSSDConfig/sssdoptions.py:526
+#: src/config/SSSDConfig/sssdoptions.py:527
 msgid "Sudo rule command attribute"
 msgstr "Attribut för sudo-regelkommandon"
 
-#: src/config/SSSDConfig/sssdoptions.py:527
+#: src/config/SSSDConfig/sssdoptions.py:528
 msgid "Sudo rule host attribute"
 msgstr "Attribut för sudo-regelvärd"
 
-#: src/config/SSSDConfig/sssdoptions.py:528
+#: src/config/SSSDConfig/sssdoptions.py:529
 msgid "Sudo rule user attribute"
 msgstr "Attribut för sudo-regelanvändare"
 
-#: src/config/SSSDConfig/sssdoptions.py:529
+#: src/config/SSSDConfig/sssdoptions.py:530
 msgid "Sudo rule option attribute"
 msgstr "Attribut för sudo-regelflaggor"
 
-#: src/config/SSSDConfig/sssdoptions.py:530
+#: src/config/SSSDConfig/sssdoptions.py:531
 msgid "Sudo rule runas attribute"
 msgstr "Sudo-regel-runas-attribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:531
+#: src/config/SSSDConfig/sssdoptions.py:532
 msgid "Sudo rule runasuser attribute"
 msgstr "Attribut för sudo-runasuser"
 
-#: src/config/SSSDConfig/sssdoptions.py:532
+#: src/config/SSSDConfig/sssdoptions.py:533
 msgid "Sudo rule runasgroup attribute"
 msgstr "Attribut på runasgroup i sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:533
+#: src/config/SSSDConfig/sssdoptions.py:534
 msgid "Sudo rule notbefore attribute"
 msgstr "Attribut för sudo-notbefore-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:534
+#: src/config/SSSDConfig/sssdoptions.py:535
 msgid "Sudo rule notafter attribute"
 msgstr "Attribut för sudo-notafter-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:535
+#: src/config/SSSDConfig/sssdoptions.py:536
 msgid "Sudo rule order attribute"
 msgstr "Attribut för sudo-order-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:538
+#: src/config/SSSDConfig/sssdoptions.py:539
 msgid "Object class for automounter maps"
 msgstr "Objektklass för avbildningar för automatmonterare"
 
-#: src/config/SSSDConfig/sssdoptions.py:539
+#: src/config/SSSDConfig/sssdoptions.py:540
 msgid "Automounter map name attribute"
 msgstr "Attribut för namn i avbildningar för automatmonterare"
 
-#: src/config/SSSDConfig/sssdoptions.py:540
+#: src/config/SSSDConfig/sssdoptions.py:541
 msgid "Object class for automounter map entries"
 msgstr "Objektklass för poster i avbildningar för automatmonterare"
 
-#: src/config/SSSDConfig/sssdoptions.py:541
+#: src/config/SSSDConfig/sssdoptions.py:542
 msgid "Automounter map entry key attribute"
 msgstr "Attribut för postnycklar i avbildningar för automatmonterare"
 
-#: src/config/SSSDConfig/sssdoptions.py:542
+#: src/config/SSSDConfig/sssdoptions.py:543
 msgid "Automounter map entry value attribute"
 msgstr "Attribut på postvärde i avbildning för automatmonteraren"
 
-#: src/config/SSSDConfig/sssdoptions.py:543
+#: src/config/SSSDConfig/sssdoptions.py:544
 msgid "Base DN for automounter map lookups"
 msgstr "Bas-DN för uppslagningar i avbildningar för automatmonterare"
 
-#: src/config/SSSDConfig/sssdoptions.py:544
+#: src/config/SSSDConfig/sssdoptions.py:545
 msgid "The name of the automount master map in LDAP."
 msgstr "Namnet på automount master-kartan i LDAP."
 
-#: src/config/SSSDConfig/sssdoptions.py:547
+#: src/config/SSSDConfig/sssdoptions.py:548
 msgid "Base DN for IP hosts lookups"
 msgstr "Bas-DN för IP-värd-uppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:548
+#: src/config/SSSDConfig/sssdoptions.py:549
 msgid "Object class for IP hosts"
 msgstr "Objektklass för IP-värdar"
 
-#: src/config/SSSDConfig/sssdoptions.py:549
+#: src/config/SSSDConfig/sssdoptions.py:550
 msgid "IP host name attribute"
 msgstr "IP-värdnamnsattribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:550
+#: src/config/SSSDConfig/sssdoptions.py:551
 msgid "IP host number (address) attribute"
 msgstr "IP-värdnummer- (adress-)attribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:551
+#: src/config/SSSDConfig/sssdoptions.py:552
 msgid "IP host entryUSN attribute"
 msgstr "IP-värd-entryUSN-attribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:552
+#: src/config/SSSDConfig/sssdoptions.py:553
 msgid "Base DN for IP networks lookups"
 msgstr "Bas-DN för IP-nätverks-uppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:553
+#: src/config/SSSDConfig/sssdoptions.py:554
 msgid "Object class for IP networks"
 msgstr "Objektklass för IP-nätverk"
 
-#: src/config/SSSDConfig/sssdoptions.py:554
+#: src/config/SSSDConfig/sssdoptions.py:555
 msgid "IP network name attribute"
 msgstr "IP-nätverksnamnsattribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:555
+#: src/config/SSSDConfig/sssdoptions.py:556
 msgid "IP network number (address) attribute"
 msgstr "IP-nätverksnummer- (adress-)attribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:556
+#: src/config/SSSDConfig/sssdoptions.py:557
 msgid "IP network entryUSN attribute"
 msgstr "IP-nätverks-entryUSN-attribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:559
+#: src/config/SSSDConfig/sssdoptions.py:560
 msgid "Comma separated list of allowed users"
 msgstr "Kommaseparerad lista över tillåtna användare"
 
-#: src/config/SSSDConfig/sssdoptions.py:560
+#: src/config/SSSDConfig/sssdoptions.py:561
 msgid "Comma separated list of prohibited users"
 msgstr "Kommaseparerad lista över förbjudna användare"
 
-#: src/config/SSSDConfig/sssdoptions.py:561
+#: src/config/SSSDConfig/sssdoptions.py:562
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
@@ -1959,7 +1962,7 @@ msgstr ""
 "Kommaseparerad lista över grupper som tillåts logga in. Detta är endast "
 "tillämpligt på grupper i denna SSSD-domän. Lokala grupper utvärderas inte."
 
-#: src/config/SSSDConfig/sssdoptions.py:563
+#: src/config/SSSDConfig/sssdoptions.py:564
 msgid ""
 "Comma separated list of groups that are explicitly denied access. This "
 "applies only to groups within this SSSD domain. Local groups are not "
@@ -1968,60 +1971,60 @@ msgstr ""
 "Kommaseparerad lista över grupper som nekas åtkomst. Detta är endast "
 "tillämpligt på grupper i denna SSSD-domän. Lokala grupper utvärderas inte."
 
-#: src/config/SSSDConfig/sssdoptions.py:567
+#: src/config/SSSDConfig/sssdoptions.py:568
 msgid "Base for home directories"
 msgstr "Bas för hemkataloger"
 
-#: src/config/SSSDConfig/sssdoptions.py:568
+#: src/config/SSSDConfig/sssdoptions.py:569
 msgid "Indicate if a home directory should be created for new users."
 msgstr "Indikera om en hemkatalog skall skapas för nya användare."
 
-#: src/config/SSSDConfig/sssdoptions.py:569
+#: src/config/SSSDConfig/sssdoptions.py:570
 msgid "Indicate if a home directory should be removed for deleted users."
 msgstr "Indikera om en hemkatalog skall tas bort för raderade användare."
 
-#: src/config/SSSDConfig/sssdoptions.py:570
+#: src/config/SSSDConfig/sssdoptions.py:571
 msgid "Specify the default permissions on a newly created home directory."
 msgstr "Ange standardrättigheter på en nyskapad hemkatalog."
 
-#: src/config/SSSDConfig/sssdoptions.py:571
+#: src/config/SSSDConfig/sssdoptions.py:572
 msgid "The skeleton directory."
 msgstr "Skelettbiblioteket."
 
-#: src/config/SSSDConfig/sssdoptions.py:572
+#: src/config/SSSDConfig/sssdoptions.py:573
 msgid "The mail spool directory."
 msgstr "Brevlådekatalogen."
 
-#: src/config/SSSDConfig/sssdoptions.py:573
+#: src/config/SSSDConfig/sssdoptions.py:574
 msgid "The command that is run after a user is removed."
 msgstr "Kommandot som körs efter att en användare tagits bort."
 
-#: src/config/SSSDConfig/sssdoptions.py:576
+#: src/config/SSSDConfig/sssdoptions.py:577
 msgid "The number of preforked proxy children."
 msgstr "Antal ombudsbarn före grening."
 
-#: src/config/SSSDConfig/sssdoptions.py:579
+#: src/config/SSSDConfig/sssdoptions.py:580
 msgid "The name of the NSS library to use"
 msgstr "Namnet på NSS-biblioteket att använda"
 
-#: src/config/SSSDConfig/sssdoptions.py:580
+#: src/config/SSSDConfig/sssdoptions.py:581
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr ""
 "Namnet på NSS-biblioteket som används för värd- och nätverksuppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:581
+#: src/config/SSSDConfig/sssdoptions.py:582
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr "Huruvida kanoniska gruppnamn skall slås upp från cachen om möjligt"
 
-#: src/config/SSSDConfig/sssdoptions.py:584
+#: src/config/SSSDConfig/sssdoptions.py:585
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
-#: src/config/SSSDConfig/sssdoptions.py:587
+#: src/config/SSSDConfig/sssdoptions.py:588
 msgid "Path of passwd file sources."
 msgstr "Sökväg till lösenordsfilkällor."
 
-#: src/config/SSSDConfig/sssdoptions.py:588
+#: src/config/SSSDConfig/sssdoptions.py:589
 msgid "Path of group file sources."
 msgstr "Sökväg till gruppfilkällor."
 
@@ -2112,7 +2115,6 @@ msgstr "Använd en anpassad version av krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3319 src/providers/ldap/ldap_child.c:663
 #, fuzzy
-#| msgid "malloc failed.\n"
 msgid "talloc_asprintf failed.\n"
 msgstr "malloc misslyckades.\n"
 
@@ -2252,7 +2254,7 @@ msgstr "Lösenordet har gått ut. Ändra ditt lösenord nu."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:668
 #: src/tools/sss_userdel.c:136 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:719
+#: src/tools/sss_cache.c:732
 msgid "The debug level to run with"
 msgstr "Felsökningsnivån att köra med"
 
@@ -2265,7 +2267,7 @@ msgstr "SSSD-domäner att använda"
 #: src/tools/sss_groupadd.c:59 src/tools/sss_groupdel.c:54
 #: src/tools/sss_groupmod.c:66 src/tools/sss_groupshow.c:680
 #: src/tools/sss_userdel.c:154 src/tools/sss_usermod.c:79
-#: src/tools/sss_cache.c:765
+#: src/tools/sss_cache.c:778
 msgid "Error setting the locale\n"
 msgstr "Fel när lokalen sattes\n"
 
@@ -2756,71 +2758,71 @@ msgstr "Kunde inte invalidera %1$s\n"
 msgid "Couldn't invalidate %1$s %2$s\n"
 msgstr "Kunde inte invalidera %1$s %2$s\n"
 
-#: src/tools/sss_cache.c:721
+#: src/tools/sss_cache.c:734
 msgid "Invalidate all cached entries"
 msgstr "Invalidera alla cachade poster"
 
-#: src/tools/sss_cache.c:723
+#: src/tools/sss_cache.c:736
 msgid "Invalidate particular user"
 msgstr "Invalidera en viss användare"
 
-#: src/tools/sss_cache.c:725
+#: src/tools/sss_cache.c:738
 msgid "Invalidate all users"
 msgstr "Invalidera alla användare"
 
-#: src/tools/sss_cache.c:727
+#: src/tools/sss_cache.c:740
 msgid "Invalidate particular group"
 msgstr "Invalidera en viss grupp"
 
-#: src/tools/sss_cache.c:729
+#: src/tools/sss_cache.c:742
 msgid "Invalidate all groups"
 msgstr "Invalidera alla grupper"
 
-#: src/tools/sss_cache.c:731
+#: src/tools/sss_cache.c:744
 msgid "Invalidate particular netgroup"
 msgstr "Invalidera en viss nätgrupp"
 
-#: src/tools/sss_cache.c:733
+#: src/tools/sss_cache.c:746
 msgid "Invalidate all netgroups"
 msgstr "Invalidera alla nätgrupper"
 
-#: src/tools/sss_cache.c:735
+#: src/tools/sss_cache.c:748
 msgid "Invalidate particular service"
 msgstr "Invalidera en viss tjänst"
 
-#: src/tools/sss_cache.c:737
+#: src/tools/sss_cache.c:750
 msgid "Invalidate all services"
 msgstr "Invalidera alla tjänster"
 
-#: src/tools/sss_cache.c:740
+#: src/tools/sss_cache.c:753
 msgid "Invalidate particular autofs map"
 msgstr "Invalidera en viss autofs-mapp"
 
-#: src/tools/sss_cache.c:742
+#: src/tools/sss_cache.c:755
 msgid "Invalidate all autofs maps"
 msgstr "Invalidera alla autofs-mappar"
 
-#: src/tools/sss_cache.c:746
+#: src/tools/sss_cache.c:759
 msgid "Invalidate particular SSH host"
 msgstr "Invalidera en viss SSH-värd"
 
-#: src/tools/sss_cache.c:748
+#: src/tools/sss_cache.c:761
 msgid "Invalidate all SSH hosts"
 msgstr "Invalidera alla SSH-värdar"
 
-#: src/tools/sss_cache.c:752
+#: src/tools/sss_cache.c:765
 msgid "Invalidate particular sudo rule"
 msgstr "Invalidera en viss sudo-regel"
 
-#: src/tools/sss_cache.c:754
+#: src/tools/sss_cache.c:767
 msgid "Invalidate all cached sudo rules"
 msgstr "Invalidera alla cachade sudo-regler"
 
-#: src/tools/sss_cache.c:757
+#: src/tools/sss_cache.c:770
 msgid "Only invalidate entries from a particular domain"
 msgstr "Invalidera endast poster från en viss domän"
 
-#: src/tools/sss_cache.c:811
+#: src/tools/sss_cache.c:824
 msgid ""
 "Unexpected argument(s) provided, options that invalidate a single object "
 "only accept a single provided argument.\n"
@@ -2828,11 +2830,11 @@ msgstr ""
 "Oväntat argument angivet, flaggor som invaliderar ett ensamt objekt tar bara "
 "ett ensamt angivet argument.\n"
 
-#: src/tools/sss_cache.c:821
+#: src/tools/sss_cache.c:834
 msgid "Please select at least one object to invalidate\n"
 msgstr "Välj åtminstone ett objekt att invalidera\n"
 
-#: src/tools/sss_cache.c:904
+#: src/tools/sss_cache.c:917
 #, c-format
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
@@ -2841,7 +2843,7 @@ msgstr ""
 "Kunde inte öppna domänen %1$s. Om domänen är en underdomän (betrodd domän), "
 "använd fullt kvalificerat namn istället för parametrarna --domain/-d.\n"
 
-#: src/tools/sss_cache.c:909
+#: src/tools/sss_cache.c:922
 msgid "Could not open available domains\n"
 msgstr "Kunde inte öppna tillgängliga domäner\n"
 
