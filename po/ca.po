@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-05-07 11:32+0200\n"
+"POT-Creation-Date: 2021-05-10 15:10+0200\n"
 "PO-Revision-Date: 2017-10-15 03:02-0400\n"
 "Last-Translator: Robert Antoni Buj Gelonch <rbuj@fedoraproject.org>\n"
 "Language-Team: Catalan (http://www.transifex.com/projects/p/sssd/language/"
@@ -349,7 +349,6 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:101
 #, fuzzy
-#| msgid "Require TLS certificate verification"
 msgid "Tune certificate verification for PAM authentication."
 msgstr "Requereix verificació de certificat TLS"
 
@@ -1770,10 +1769,14 @@ msgid "Automatic smart refresh period"
 msgstr "Període d'actualització automàtica intel·ligent"
 
 #: src/config/SSSDConfig/sssdoptions.py:518
+msgid "Smart and full refresh random offset"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:519
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr "Si es filtren les regles per nom d'amfitrió, adreça IP i xarxa"
 
-#: src/config/SSSDConfig/sssdoptions.py:519
+#: src/config/SSSDConfig/sssdoptions.py:520
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -1781,224 +1784,224 @@ msgstr ""
 "Noms d'amfitrió i/o noms de domini plenament qualificat d'aquesta màquina "
 "per filtrar les regles de sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:520
+#: src/config/SSSDConfig/sssdoptions.py:521
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "Adreces IPv4 o IPv6 o xarxa d'aquesta màquina per filtrar regles de sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:521
+#: src/config/SSSDConfig/sssdoptions.py:522
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
 "Si s'inclouen les regles que contenen el grup de xarxa a l'atribut de "
 "l'amfitrió"
 
-#: src/config/SSSDConfig/sssdoptions.py:522
+#: src/config/SSSDConfig/sssdoptions.py:523
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 "Si s'inclouen les regles que contenen expressions regulars a l'atribut de "
 "l'amfitrió"
 
-#: src/config/SSSDConfig/sssdoptions.py:523
+#: src/config/SSSDConfig/sssdoptions.py:524
 msgid "Object class for sudo rules"
 msgstr "Objectclass de les regles sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:524
+#: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:525
+#: src/config/SSSDConfig/sssdoptions.py:526
 msgid "Sudo rule name"
 msgstr "Nom de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:526
+#: src/config/SSSDConfig/sssdoptions.py:527
 msgid "Sudo rule command attribute"
 msgstr "Attribut command de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:527
+#: src/config/SSSDConfig/sssdoptions.py:528
 msgid "Sudo rule host attribute"
 msgstr "L'atribut host de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:528
+#: src/config/SSSDConfig/sssdoptions.py:529
 msgid "Sudo rule user attribute"
 msgstr "L'atribut user de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:529
+#: src/config/SSSDConfig/sssdoptions.py:530
 msgid "Sudo rule option attribute"
 msgstr "L'atribut option de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:530
+#: src/config/SSSDConfig/sssdoptions.py:531
 msgid "Sudo rule runas attribute"
 msgstr "L'atribut runas de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:531
+#: src/config/SSSDConfig/sssdoptions.py:532
 msgid "Sudo rule runasuser attribute"
 msgstr "L'atribut runasuser de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:532
+#: src/config/SSSDConfig/sssdoptions.py:533
 msgid "Sudo rule runasgroup attribute"
 msgstr "L'atribut runasgroup de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:533
+#: src/config/SSSDConfig/sssdoptions.py:534
 msgid "Sudo rule notbefore attribute"
 msgstr "L'atribut notbefore de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:534
+#: src/config/SSSDConfig/sssdoptions.py:535
 msgid "Sudo rule notafter attribute"
 msgstr "L'atribut notafter de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:535
+#: src/config/SSSDConfig/sssdoptions.py:536
 msgid "Sudo rule order attribute"
 msgstr "L'atribut order de la regla sudo"
 
-#: src/config/SSSDConfig/sssdoptions.py:538
+#: src/config/SSSDConfig/sssdoptions.py:539
 msgid "Object class for automounter maps"
 msgstr "Objectclass per a les assignacions de l'eina de muntatge automàtic"
 
-#: src/config/SSSDConfig/sssdoptions.py:539
+#: src/config/SSSDConfig/sssdoptions.py:540
 msgid "Automounter map name attribute"
 msgstr "L'atribut nom de l'assignació de l'eina de muntatge automàtic"
 
-#: src/config/SSSDConfig/sssdoptions.py:540
+#: src/config/SSSDConfig/sssdoptions.py:541
 msgid "Object class for automounter map entries"
 msgstr ""
 "Objectclass per a les entrades de les assignacions de l'eina de muntatge "
 "automàtic"
 
-#: src/config/SSSDConfig/sssdoptions.py:541
+#: src/config/SSSDConfig/sssdoptions.py:542
 msgid "Automounter map entry key attribute"
 msgstr ""
 "L'atribut clau d'entrada de l'assignació de l'eina de muntatge automàtic"
 
-#: src/config/SSSDConfig/sssdoptions.py:542
+#: src/config/SSSDConfig/sssdoptions.py:543
 msgid "Automounter map entry value attribute"
 msgstr ""
 "L'atribut valor de l'entrada de l'assignació l'eina de muntatge automàtic"
 
-#: src/config/SSSDConfig/sssdoptions.py:543
+#: src/config/SSSDConfig/sssdoptions.py:544
 msgid "Base DN for automounter map lookups"
 msgstr ""
 "DN base per a la recerca de l'assignació de l'eina de muntatge automàtic"
 
-#: src/config/SSSDConfig/sssdoptions.py:544
+#: src/config/SSSDConfig/sssdoptions.py:545
 msgid "The name of the automount master map in LDAP."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:547
+#: src/config/SSSDConfig/sssdoptions.py:548
 msgid "Base DN for IP hosts lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:548
+#: src/config/SSSDConfig/sssdoptions.py:549
 msgid "Object class for IP hosts"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:549
+#: src/config/SSSDConfig/sssdoptions.py:550
 msgid "IP host name attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:550
+#: src/config/SSSDConfig/sssdoptions.py:551
 msgid "IP host number (address) attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:551
+#: src/config/SSSDConfig/sssdoptions.py:552
 msgid "IP host entryUSN attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:552
+#: src/config/SSSDConfig/sssdoptions.py:553
 msgid "Base DN for IP networks lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:553
+#: src/config/SSSDConfig/sssdoptions.py:554
 msgid "Object class for IP networks"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:554
+#: src/config/SSSDConfig/sssdoptions.py:555
 msgid "IP network name attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:555
+#: src/config/SSSDConfig/sssdoptions.py:556
 msgid "IP network number (address) attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:556
+#: src/config/SSSDConfig/sssdoptions.py:557
 msgid "IP network entryUSN attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:559
+#: src/config/SSSDConfig/sssdoptions.py:560
 msgid "Comma separated list of allowed users"
 msgstr "Llista separada per comes dels usuaris autoritzats"
 
-#: src/config/SSSDConfig/sssdoptions.py:560
+#: src/config/SSSDConfig/sssdoptions.py:561
 msgid "Comma separated list of prohibited users"
 msgstr "Llista separada per comes dels usuaris no autoritzats"
 
-#: src/config/SSSDConfig/sssdoptions.py:561
+#: src/config/SSSDConfig/sssdoptions.py:562
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:563
+#: src/config/SSSDConfig/sssdoptions.py:564
 msgid ""
 "Comma separated list of groups that are explicitly denied access. This "
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:567
+#: src/config/SSSDConfig/sssdoptions.py:568
 msgid "Base for home directories"
 msgstr "Base per als directoris inicials"
 
-#: src/config/SSSDConfig/sssdoptions.py:568
+#: src/config/SSSDConfig/sssdoptions.py:569
 msgid "Indicate if a home directory should be created for new users."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:569
+#: src/config/SSSDConfig/sssdoptions.py:570
 msgid "Indicate if a home directory should be removed for deleted users."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:570
+#: src/config/SSSDConfig/sssdoptions.py:571
 msgid "Specify the default permissions on a newly created home directory."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:571
+#: src/config/SSSDConfig/sssdoptions.py:572
 msgid "The skeleton directory."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:572
+#: src/config/SSSDConfig/sssdoptions.py:573
 msgid "The mail spool directory."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:573
+#: src/config/SSSDConfig/sssdoptions.py:574
 msgid "The command that is run after a user is removed."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:576
+#: src/config/SSSDConfig/sssdoptions.py:577
 msgid "The number of preforked proxy children."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:579
+#: src/config/SSSDConfig/sssdoptions.py:580
 msgid "The name of the NSS library to use"
 msgstr "El nom de la biblioteca NSS a utilitzar"
 
-#: src/config/SSSDConfig/sssdoptions.py:580
+#: src/config/SSSDConfig/sssdoptions.py:581
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:581
+#: src/config/SSSDConfig/sssdoptions.py:582
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr ""
 "Si se cerca el nom del grup canònic des de la memòria cau, si és possible"
 
-#: src/config/SSSDConfig/sssdoptions.py:584
+#: src/config/SSSDConfig/sssdoptions.py:585
 msgid "PAM stack to use"
 msgstr "Pila PAM a utilitzar"
 
-#: src/config/SSSDConfig/sssdoptions.py:587
+#: src/config/SSSDConfig/sssdoptions.py:588
 msgid "Path of passwd file sources."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:588
+#: src/config/SSSDConfig/sssdoptions.py:589
 msgid "Path of group file sources."
 msgstr ""
 
@@ -2229,7 +2232,7 @@ msgstr "La contrasenya ha vençut. Canvieu ara la vostra contrasenya."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:668
 #: src/tools/sss_userdel.c:136 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:719
+#: src/tools/sss_cache.c:732
 msgid "The debug level to run with"
 msgstr "El nivell de depuració amb què s'executa"
 
@@ -2242,7 +2245,7 @@ msgstr "El domini SSSD a utilitzar"
 #: src/tools/sss_groupadd.c:59 src/tools/sss_groupdel.c:54
 #: src/tools/sss_groupmod.c:66 src/tools/sss_groupshow.c:680
 #: src/tools/sss_userdel.c:154 src/tools/sss_usermod.c:79
-#: src/tools/sss_cache.c:765
+#: src/tools/sss_cache.c:778
 msgid "Error setting the locale\n"
 msgstr "S'ha produït un error en establir la configuració regional\n"
 
@@ -2743,81 +2746,81 @@ msgstr "No s'ha pogut invalidar %1$s\n"
 msgid "Couldn't invalidate %1$s %2$s\n"
 msgstr "No s'ha pogut invalidar %1$s %2$s\n"
 
-#: src/tools/sss_cache.c:721
+#: src/tools/sss_cache.c:734
 msgid "Invalidate all cached entries"
 msgstr ""
 
-#: src/tools/sss_cache.c:723
+#: src/tools/sss_cache.c:736
 msgid "Invalidate particular user"
 msgstr "Invalida un usuari determinat"
 
-#: src/tools/sss_cache.c:725
+#: src/tools/sss_cache.c:738
 msgid "Invalidate all users"
 msgstr "Invalida tots els usuaris"
 
-#: src/tools/sss_cache.c:727
+#: src/tools/sss_cache.c:740
 msgid "Invalidate particular group"
 msgstr "Invalida un grup determinat"
 
-#: src/tools/sss_cache.c:729
+#: src/tools/sss_cache.c:742
 msgid "Invalidate all groups"
 msgstr "Invalida tots els grups"
 
-#: src/tools/sss_cache.c:731
+#: src/tools/sss_cache.c:744
 msgid "Invalidate particular netgroup"
 msgstr "Invalida un grup de xarxa determinat"
 
-#: src/tools/sss_cache.c:733
+#: src/tools/sss_cache.c:746
 msgid "Invalidate all netgroups"
 msgstr "Invalida tots els grups de xarxa"
 
-#: src/tools/sss_cache.c:735
+#: src/tools/sss_cache.c:748
 msgid "Invalidate particular service"
 msgstr "Invalida un servei determinat"
 
-#: src/tools/sss_cache.c:737
+#: src/tools/sss_cache.c:750
 msgid "Invalidate all services"
 msgstr "Invalida tots els serveis"
 
-#: src/tools/sss_cache.c:740
+#: src/tools/sss_cache.c:753
 msgid "Invalidate particular autofs map"
 msgstr "Invalida una assignació autofs determinada"
 
-#: src/tools/sss_cache.c:742
+#: src/tools/sss_cache.c:755
 msgid "Invalidate all autofs maps"
 msgstr "Invalida totes les assignacions autofs"
 
-#: src/tools/sss_cache.c:746
+#: src/tools/sss_cache.c:759
 msgid "Invalidate particular SSH host"
 msgstr "Invalida un amfitrió SSH determinat"
 
-#: src/tools/sss_cache.c:748
+#: src/tools/sss_cache.c:761
 msgid "Invalidate all SSH hosts"
 msgstr "Invalida tots els amfitrions SSH"
 
-#: src/tools/sss_cache.c:752
+#: src/tools/sss_cache.c:765
 msgid "Invalidate particular sudo rule"
 msgstr ""
 
-#: src/tools/sss_cache.c:754
+#: src/tools/sss_cache.c:767
 msgid "Invalidate all cached sudo rules"
 msgstr ""
 
-#: src/tools/sss_cache.c:757
+#: src/tools/sss_cache.c:770
 msgid "Only invalidate entries from a particular domain"
 msgstr "Invalida les entrades només d'un domini determinat"
 
-#: src/tools/sss_cache.c:811
+#: src/tools/sss_cache.c:824
 msgid ""
 "Unexpected argument(s) provided, options that invalidate a single object "
 "only accept a single provided argument.\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:821
+#: src/tools/sss_cache.c:834
 msgid "Please select at least one object to invalidate\n"
 msgstr "Si us plau, seleccioneu almenys un objecte a invalidar\n"
 
-#: src/tools/sss_cache.c:904
+#: src/tools/sss_cache.c:917
 #, c-format
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
@@ -2826,7 +2829,7 @@ msgstr ""
 "No es pot obrir el domini %1$s. Si el domini és un subdomini (domini de "
 "confiança), utilitzeu el FQN en lloc del paràmetre --domain/-d.\n"
 
-#: src/tools/sss_cache.c:909
+#: src/tools/sss_cache.c:922
 msgid "Could not open available domains\n"
 msgstr "No s'han pogut obrir els dominis disponibles\n"
 
