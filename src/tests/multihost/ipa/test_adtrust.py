@@ -6,8 +6,9 @@
 :upstream: yes
 """
 
-import pytest
+import re
 import time
+import pytest
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.exceptions import SSSDException
 
@@ -115,3 +116,123 @@ class TestADTrust(object):
         multihost.master[0].run_command(delete_id_view)
         ipa_client.clear_sssd_cache()
         assert count == 0
+
+    def test_ipa_missing_secondary_ipa_posix_groups(self, multihost,
+                                                    create_aduser_group):
+        """
+        :title: IPA missing secondary IPA Posix groups in latest sssd
+        :id: bbb82516-4127-4053-9b06-9104ac889819
+        :setup:
+         1. Configure trust between IPA server and AD.
+         2. Configure client machine with SSSD integrated to IPA.
+         3. domain-resolution-order set so the AD domains are checked first
+         4. Create external group that is member of a posix group
+         5. Create user that is a member of the external group
+         6. Make sure that external group is member of posix group.
+        :steps:
+         0. Clean sssd cache
+         1. Run getent group for posix group and using id check that user
+            is member of posix group.
+        :expectedresults:
+         0. Cache is cleared.
+         1. The posix group gid is present in id output.
+        :teardown:
+         Remove the created user, groups and revert resolution order.
+        :customerscenario: True
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1945552
+         https://bugzilla.redhat.com/show_bug.cgi?id=1937919
+         https://bugzilla.redhat.com/show_bug.cgi?id=1945654
+        """
+        ad_domain = multihost.ad[0].domainname
+        ipaserver = sssdTools(multihost.master[0])
+        ipa_domain = ipaserver.get_domain_section_name()
+        (username, _) = create_aduser_group
+        posix_group = "posix_group_01"
+        ext_group = "ext_group_01"
+        # SETUP
+        # Set the domain resolution order to AD first
+        resorder_cmd = f'ipa config-mod --domain-resolution-order=' \
+                       f'{ad_domain}:{ipa_domain}'
+        multihost.master[0].run_command(resorder_cmd, raiseonerr=False)
+
+        # Create posix group
+        pgroup_cmd = f'ipa group-add {posix_group}'
+        multihost.master[0].run_command(pgroup_cmd, raiseonerr=False)
+
+        # Create and external group
+        ext_group_cmd = f'ipa group-add --external {ext_group}'
+        multihost.master[0].run_command(ext_group_cmd, raiseonerr=False)
+
+        # Set membership of external group in posix group
+        member_cmd = f'ipa -n group-add-member {posix_group} --groups=' \
+                     f'{ext_group}'
+        multihost.master[0].run_command(member_cmd, raiseonerr=False)
+
+        # Set AD user membership in external group
+        usr_mbr_cmd = f"ipa -n group-add-member {ext_group} --external" \
+                      f" '{username}@{ad_domain}'"
+        multihost.master[0].run_command(usr_mbr_cmd, raiseonerr=False)
+
+        # TEST
+        # Get posix group id
+        grp_show_cmd = f"ipa group-show {posix_group}"
+        cmd = multihost.master[0].run_command(grp_show_cmd, raiseonerr=False)
+        gid_regex = re.compile(r"GID: (\d+)")
+        posix_group_id = gid_regex.search(cmd.stdout_text).group(1)
+
+        # Check that external group is member of posix group
+        grp_show_cmd = f"ipa group-show {ext_group}"
+        cmd = multihost.master[0].run_command(grp_show_cmd, raiseonerr=False)
+        assert posix_group in cmd.stdout_text, \
+            "The external group is not a member of posix group!"
+
+        # A bit of wait so the user is propagated
+        time.sleep(60)
+
+        # The reproduction rate is not 100%, I had reliably 2+
+        # fails in 5 rounds.
+        for _ in range(5):
+            # Clean caches on SSSD so we don't have to wait for cache timeouts
+            # The reproduction works better on sssd on ipa master
+            sssd_client = sssdTools(multihost.master[0])
+            sssd_client.clear_sssd_cache()
+
+            # Search the posix group using getent to trigger the condition with
+            # negative cache
+            getent_cmd = f"getent group {posix_group_id}"
+            multihost.master[0].run_command(getent_cmd, raiseonerr=False)
+
+            # Check that posix group is listed in id
+            id_cmd = f"id {username}@{ad_domain}"
+            cmd = multihost.master[0].run_command(id_cmd, raiseonerr=False)
+            # Check if id worked
+            assert cmd.returncode == 0,\
+                'Could not find the user, something wrong with setup!'
+            # Check if the posix group was found for the user.
+            assert posix_group_id in cmd.stdout_text,\
+                "The user is not a member of posix group!"
+
+        # TEARDOWN
+        # Remove user from external group
+        usr_mbr_del_cmd = f"ipa -n group-remove-member {ext_group} " \
+                          f"--external '{username}@{ad_domain}'"
+        multihost.master[0].run_command(usr_mbr_del_cmd, raiseonerr=False)
+
+        # Remove group membership
+        grp_del_mbr_cmd = f'ipa -n group-remove-member {posix_group}' \
+                          f' --groups={ext_group}'
+        multihost.master[0].run_command(grp_del_mbr_cmd, raiseonerr=False)
+
+        # Remove external group
+        ext_grp_del_cmd = f'ipa group-del {ext_group}'
+        multihost.master[0].run_command(ext_grp_del_cmd, raiseonerr=False)
+
+        # Remove posix group
+        px_grp_del_cmd = f'ipa group-del {posix_group}'
+        multihost.master[0].run_command(px_grp_del_cmd, raiseonerr=False)
+
+        # Reset the domain resolution order
+        rev_resorder_cmd = f'ipa config-mod --domain-resolution-order=' \
+                           f'{ipa_domain}:{ad_domain}'
+        multihost.master[0].run_command(rev_resorder_cmd, raiseonerr=False)
