@@ -697,6 +697,7 @@ dist_noinst_HEADERS = \
     src/util/session_recording.h \
     src/util/strtonum.h \
     src/util/sss_cli_cmd.h \
+    src/util/sss_chain_id.h \
     src/util/sss_ptr_hash.h \
     src/util/sss_ptr_list.h \
     src/util/sss_endian.h \
@@ -1069,6 +1070,7 @@ libsss_sbus_la_SOURCES = \
     src/util/check_and_open.c \
     src/util/debug.c \
     src/util/debug_backtrace.c \
+    src/util/sss_chain_id.c \
     src/util/sss_ptr_hash.c \
     src/util/sss_ptr_list.c \
     src/util/sss_utf8.c \
@@ -1280,6 +1282,7 @@ libsss_util_la_SOURCES = \
     src/util/files.c \
     src/util/selinux.c \
     src/util/sss_regexp.c \
+    src/util/sss_chain_id.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \

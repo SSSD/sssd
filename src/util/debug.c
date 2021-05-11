@@ -50,6 +50,7 @@ int debug_microseconds = SSSDBG_MICROSECONDS_UNRESOLVED;
 enum sss_logger_t sss_logger = STDERR_LOGGER;
 const char *debug_log_file = "sssd";
 FILE *_sss_debug_file;
+uint64_t debug_chain_id;
 
 const char *sss_logger_str[] = {
         [STDERR_LOGGER] = "stderr",
@@ -323,7 +324,12 @@ void sss_vdebug_fn(const char *file,
     sss_debug_backtrace_printf(level, "[%s] [%s] (%#.4x): ",
                                debug_prg_name, function, level);
 
+    if (debug_chain_id > 0) {
+        sss_debug_backtrace_printf(level, "[RID#%lu] ", debug_chain_id);
+    }
+
     sss_debug_backtrace_vprintf(level, format, ap);
+
     if (flags & APPEND_LINE_FEED) {
         sss_debug_backtrace_printf(level, "\n");
     }
