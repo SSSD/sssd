@@ -26,6 +26,7 @@
 
 #include "util/util.h"
 #include "util/dlinklist.h"
+#include "util/sss_chain_id.h"
 #include "sbus/sbus_private.h"
 
 struct sbus_message_meta {
@@ -124,8 +125,18 @@ static void sbus_issue_request_done(struct tevent_req *subreq)
     struct sbus_message_meta meta;
     const char *error_name;
     const char *error_msg;
+    uint64_t old_chain_id;
     DBusMessage *reply;
     errno_t ret;
+
+    /* This is a top level request and a place where we loose tracking of the
+     * correct chain id. We got here from sbus_incoming_request_done
+     * which may finish multiple identical requests at once but we know chain
+     * id only of the one requests that actually run its handler.
+     *
+     * Therefore we need to set the id to 0 since it is not known at this
+     * moment, but it is ok. */
+    old_chain_id = sss_chain_id_set(0);
 
     state = tevent_req_callback_data(subreq, struct sbus_issue_request_state);
     sbus_message_meta_read(state->message, &meta);
@@ -162,6 +173,8 @@ done:
     }
 
     talloc_free(state);
+
+    sss_chain_id_set(old_chain_id);
 }
 
 DBusHandlerResult

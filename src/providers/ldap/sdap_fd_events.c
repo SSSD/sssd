@@ -24,6 +24,7 @@
 
 #include "util/util.h"
 #include "util/sss_sockets.h"
+#include "util/sss_chain_id.h"
 #include "providers/ldap/sdap_async_private.h"
 
 struct sdap_fd_events {
@@ -89,6 +90,7 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
 {
     int ret;
     ber_socket_t ber_fd;
+    uint64_t old_chain_id;
     struct timeval *tv = NULL;
     struct fd_event_item *fd_event_item;
     struct ldap_cb_data *cb_data = talloc_get_type(ctx->lc_arg,
@@ -139,9 +141,14 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
         return ENOMEM;
     }
 
+    /* This is a global event which is shared between multiple requests. However
+     * it is usually created from an input request chain therefore we need to set
+     * the chain id to zero explicitly. */
+    old_chain_id = sss_chain_id_set(0);
     fd_event_item->fde = tevent_add_fd(cb_data->ev, fd_event_item, ber_fd,
                                        TEVENT_FD_READ, sdap_ldap_result,
                                        cb_data->sh);
+    sss_chain_id_set(old_chain_id);
     if (fd_event_item->fde == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_fd failed.\n");
         talloc_free(fd_event_item);
@@ -195,6 +202,7 @@ static void sdap_ldap_connect_callback_del(LDAP *ld, Sockbuf *sb,
 static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
                                        struct tevent_context *ev)
 {
+    uint64_t old_chain_id;
     int fd;
     int ret;
 
@@ -214,9 +222,14 @@ static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
     ret = get_fd_from_ldap(sh->ldap, &fd);
     if (ret) return ret;
 
+    /* This is a global event which is shared between multiple requests. However
+     * it is usually created from an input request chain therefore we need to set
+     * the chain id to zero explicitly. */
+    old_chain_id = sss_chain_id_set(0);
     sh->sdap_fd_events->fde = tevent_add_fd(ev, sh->sdap_fd_events, fd,
                                             TEVENT_FD_READ, sdap_ldap_result,
                                             sh);
+    sss_chain_id_set(old_chain_id);
     if (!sh->sdap_fd_events->fde) {
         talloc_zfree(sh->sdap_fd_events);
         return ENOMEM;

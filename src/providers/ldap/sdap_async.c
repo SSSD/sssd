@@ -24,6 +24,7 @@
 #include "util/util.h"
 #include "util/strtonum.h"
 #include "util/probes.h"
+#include "util/sss_chain_id.h"
 #include "providers/ldap/sdap_async_private.h"
 
 #define REPLY_REALLOC_INCREMENT 10
@@ -133,13 +134,40 @@ static void sdap_ldap_next_result(struct tevent_context *ev,
     sdap_process_result(ev, pvt);
 }
 
+static struct sdap_op *sdap_get_message_op(struct sdap_handle *sh,
+                                           LDAPMessage *msg)
+{
+    struct sdap_op *op;
+    int msgid;
+
+    msgid = ldap_msgid(msg);
+    if (msgid == -1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid message id!\n");
+        return NULL;
+    }
+
+    for (op = sh->ops; op; op = op->next) {
+        if (op->msgid == msgid) {
+            return op;
+        }
+    }
+
+    return NULL;
+}
+
 static void sdap_process_result(struct tevent_context *ev, void *pvt)
 {
     struct sdap_handle *sh = talloc_get_type(pvt, struct sdap_handle);
+    uint64_t old_chain_id;
     struct timeval no_timeout = {0, 0};
     struct tevent_timer *te;
+    struct sdap_op *op;
     LDAPMessage *msg;
     int ret;
+
+    /* This is a top level event, always use chain id 0. We set a proper id
+     * later in this function once we can match the reply with an operation. */
+    old_chain_id = sss_chain_id_set(0);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Trace: sh[%p], connected[%d], ops[%p], ldap[%p]\n",
@@ -181,8 +209,17 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
               "Failed to add critical timer to fetch next result!\n");
     }
 
+    /* Set the chain id if we can match the operation. */
+    op = sdap_get_message_op(sh, msg);
+    if (op != NULL) {
+        sss_chain_id_set(op->chain_id);
+    }
+
     /* now process this message */
     sdap_process_message(ev, sh, msg);
+
+    /* Restore the chain id. */
+    sss_chain_id_set(old_chain_id);
 }
 
 static const char *sdap_ldap_result_str(int msgtype)
@@ -250,27 +287,16 @@ static void sdap_process_message(struct tevent_context *ev,
 {
     struct sdap_msg *reply;
     struct sdap_op *op;
-    int msgid;
     int msgtype;
     int ret;
 
-    msgid = ldap_msgid(msg);
-    if (msgid == -1) {
-        DEBUG(SSSDBG_OP_FAILURE, "can't fire callback, message id invalid!\n");
-        ldap_msgfree(msg);
-        return;
-    }
-
     msgtype = ldap_msgtype(msg);
 
-    for (op = sh->ops; op; op = op->next) {
-        if (op->msgid == msgid) break;
-    }
-
+    op = sdap_get_message_op(sh, msg);
     if (op == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Unmatched msgid, discarding message (type: %0x)\n",
-                  msgtype);
+              msgtype);
         ldap_msgfree(msg);
         return;
     }
@@ -438,6 +464,7 @@ int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
     op->callback = callback;
     op->data = data;
     op->ev = ev;
+    op->chain_id = sss_chain_id_get();
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "New operation %d timeout %d\n", op->msgid, timeout);
