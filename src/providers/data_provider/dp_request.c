@@ -27,6 +27,7 @@
 #include "util/dlinklist.h"
 #include "util/util.h"
 #include "util/probes.h"
+#include "util/sss_chain_id.h"
 
 struct dp_req {
     struct data_provider *provider;
@@ -107,8 +108,16 @@ static errno_t dp_attach_req(struct dp_req *dp_req,
                              uint32_t cli_id,
                              const char *sender_name)
 {
-    /* If we run out of numbers we simply overflow. */
+    /* If we run out of numbers we simply overflow. Zero is a reserved value
+     * in debug chain id thus we need to skip it. */
+    if (provider->requests.index == 0) {
+        provider->requests.index = 1;
+    }
     dp_req->num = provider->requests.index++;
+
+    /* Set the chain id for this request. */
+    sss_chain_id_set(dp_req->num);
+
     dp_req->name = talloc_asprintf(dp_req, "%s #%u", name, dp_req->num);
     if (dp_req->name == NULL) {
         return ENOMEM;
@@ -216,8 +225,10 @@ file_dp_request(TALLOC_CTX *mem_ctx,
     dp_req_send_fn send_fn;
     struct dp_req *dp_req;
     struct be_ctx *be_ctx;
+    uint64_t old_chain_id;
     errno_t ret;
 
+    old_chain_id = sss_chain_id_get();
     be_ctx = provider->be_ctx;
 
     ret = dp_req_new(mem_ctx, provider, domainname, name, cli_id, sender_name,
@@ -272,6 +283,8 @@ file_dp_request(TALLOC_CTX *mem_ctx,
     ret = EOK;
 
 done:
+    /* Restore the chain id to its original value when leaving this request. */
+    sss_chain_id_set(old_chain_id);
     return ret;
 }
 

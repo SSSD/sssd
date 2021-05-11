@@ -231,7 +231,7 @@ static void test_get_name_by_uid(void **state)
                       SENDER_NAME, DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data,
                       &req_name);
     assert_non_null(req);
-    assert_string_equal(req_name, REQ_NAME" #0");
+    assert_string_equal(req_name, REQ_NAME" #1");
     talloc_zfree(req_name);
 
     /* Send request #2 */
@@ -239,7 +239,7 @@ static void test_get_name_by_uid(void **state)
                        SENDER_NAME, DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data2,
                        &req_name);
     assert_non_null(req2);
-    assert_string_equal(req_name, REQ_NAME" #1");
+    assert_string_equal(req_name, REQ_NAME" #2");
     talloc_zfree(req_name);
 
     /* Send request #3 */
@@ -247,7 +247,7 @@ static void test_get_name_by_uid(void **state)
                        SENDER_NAME, DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data3,
                        &req_name);
     assert_non_null(req3);
-    assert_string_equal(req_name, REQ_NAME" #2");
+    assert_string_equal(req_name, REQ_NAME" #3");
     talloc_zfree(req_name);
 
     tevent_loop_wait(test_ctx->tctx->ev);
@@ -305,7 +305,7 @@ static void test_type_mismatch(void **state)
     req = dp_req_send(test_ctx, test_ctx->provider, NULL, REQ_NAME, CID,
                       SENDER_NAME, DPT_ID, DPM_ACCOUNT_HANDLER, 0, req_data, &req_name);
     assert_non_null(req);
-    assert_string_equal(req_name, REQ_NAME" #0");
+    assert_string_equal(req_name, REQ_NAME" #1");
     talloc_zfree(req_name);
 
     tevent_loop_wait(test_ctx->tctx->ev);

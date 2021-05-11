@@ -42,6 +42,7 @@ struct sdap_handle;
 struct sdap_op {
     struct sdap_op *prev, *next;
     struct sdap_handle *sh;
+    uint64_t chain_id;
 
     int msgid;
     bool done;

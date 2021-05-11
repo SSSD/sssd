@@ -25,6 +25,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_id_op.h"
+#include "util/sss_chain_id.h"
 
 /* LDAP async connection cache */
 struct sdap_id_conn_cache {
@@ -54,6 +55,9 @@ struct sdap_id_op {
      * This member is cleared when sdap_id_op_connect_state
      * associated with request is destroyed */
     struct tevent_req *connect_req;
+
+    /* chain id of the request that created this op */
+    uint64_t chain_id;
 };
 
 /* LDAP connection cache connection attempt/established connection data */
@@ -308,6 +312,11 @@ struct sdap_id_op *sdap_id_op_create(TALLOC_CTX *memctx, struct sdap_id_conn_cac
     }
 
     op->conn_cache = conn_cache;
+
+    /* Remember the current chain id so we can use it when connection is
+     * established. This is required since the connection might be done
+     * by other request that was called before. */
+    op->chain_id = sss_chain_id_get();
 
     talloc_set_destructor((void*)op, sdap_id_op_destroy);
     return op;
@@ -787,6 +796,7 @@ static void sdap_id_op_connect_req_complete(struct sdap_id_op *op, int dp_error,
 {
     struct tevent_req *req = op->connect_req;
     struct sdap_id_op_connect_state *state;
+    uint64_t old_chain_id;
 
     if (!req) {
         return;
@@ -798,12 +808,15 @@ static void sdap_id_op_connect_req_complete(struct sdap_id_op *op, int dp_error,
     state->dp_error = dp_error;
     state->result = ret;
 
+    /* Set the chain id to the one associated with this request. */
+    old_chain_id = sss_chain_id_set(op->chain_id);
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
         sdap_id_op_hook_conn_data(op, NULL);
         tevent_req_error(req, ret);
     }
+    sss_chain_id_set(old_chain_id);
 }
 
 /* Get the result of an asynchronous connect operation on sdap_id_op

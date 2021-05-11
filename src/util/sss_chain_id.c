@@ -135,7 +135,7 @@ uint64_t sss_chain_id_set(uint64_t id)
     return old_id;
 }
 
-uint64_t sss_chain_id_get()
+uint64_t sss_chain_id_get(void)
 {
     return debug_chain_id;
 }
