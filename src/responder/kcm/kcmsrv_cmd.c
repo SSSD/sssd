@@ -197,7 +197,7 @@ static errno_t kcm_input_parse(struct kcm_reqbuf *reqbuf,
     if (op_io->op == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Did not find a KCM operation handler for the requested opcode\n");
-        return ERR_KCM_MALFORMED_IN_PKT;
+        return ERR_KCM_OP_NOT_IMPLEMENTED;
     }
 
     /* The operation only receives the payload, not the opcode or the protocol info */
@@ -643,7 +643,7 @@ krb5_error_code sss2krb5_error(errno_t err)
     case EACCES:
         return KRB5_FCC_PERM;
     case ERR_KCM_OP_NOT_IMPLEMENTED:
-        return KRB5_CC_NOSUPP;
+        return KRB5_FCC_INTERNAL;
     case ERR_WRONG_NAME_FORMAT:
         return KRB5_CC_BADNAME;
     case ERR_NO_MATCHING_CREDS:
