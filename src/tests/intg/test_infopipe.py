@@ -615,3 +615,57 @@ def test_sssctl_domain_list_app_domain(dbus_system_bus,
     assert "Error" not in output
     assert output.find("LDAP") != -1
     assert output.find("app") != -1
+
+
+def test_update_member_list_and_get_all(dbus_system_bus,
+                                        ldap_conn,
+                                        sanity_rfc2307):
+    '''
+    Test that UpdateMemberList() and GetAll() return the correct users that are
+    members of a group
+    '''
+    sssd_obj = dbus_system_bus.get_object(
+        'org.freedesktop.sssd.infopipe',
+        '/org/freedesktop/sssd/infopipe/Groups')
+    groups_iface = dbus.Interface(sssd_obj,
+                                  'org.freedesktop.sssd.infopipe.Groups')
+    group_id = 2011
+    expected_user_result = "/org/freedesktop/sssd/infopipe/Users/LDAP/1001"
+
+    group_path = groups_iface.FindByName('single_user_group')
+
+    group_object = dbus_system_bus.get_object('org.freedesktop.sssd.infopipe',
+                                              group_path)
+    group_iface = dbus.Interface(group_object,
+                                 'org.freedesktop.sssd.infopipe.Groups.Group')
+
+    # update local cache for group
+    try:
+        group_iface.UpdateMemberList(group_id)
+    except dbus.exceptions.DBusException as ex:
+        assert False, "Unexpected DBusException raised"
+
+    # check members of group
+    prop_iface = dbus.Interface(group_object,
+                                'org.freedesktop.DBus.Properties')
+    res = prop_iface.GetAll('org.freedesktop.sssd.infopipe.Groups.Group')
+    assert str(res.get("users")[0]) == expected_user_result
+
+    # delete group (there's no other way of removing a user from a group) and
+    # wait change to propagate
+    ldap_conn.delete("cn=single_user_group,ou=Groups,dc=example,dc=com")
+    time.sleep(INTERACTIVE_TIMEOUT)
+
+    # add group back but this time without any member
+    ldap_group = ldap_ent.group("dc=example,dc=com", "single_user_group", 2011)
+    ldap_conn.add_s(ldap_group[0], ldap_group[1])
+
+    # invalidate cache
+    subprocess.call(["sss_cache", "-E"])
+
+    # check that group has no members
+    group_iface.UpdateMemberList(group_id)
+    prop_interface = dbus.Interface(group_object,
+                                    'org.freedesktop.DBus.Properties')
+    res = prop_interface.GetAll('org.freedesktop.sssd.infopipe.Groups.Group')
+    assert not res.get("users")

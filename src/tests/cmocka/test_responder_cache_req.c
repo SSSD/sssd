@@ -34,6 +34,8 @@
 #define TEST_ID_PROVIDER "ldap"
 
 #define TEST_USER_PREFIX "test*"
+#define TEST_NO_USER_PREFIX "nosuchuser*"
+#define TEST_NO_GROUP_PREFIX "nosuchgroup*"
 
 struct test_user {
     const char *short_name;
@@ -877,6 +879,9 @@ void test_user_by_name_cache_valid(void **state)
     /* Setup user. */
     prepare_user(test_ctx->tctx->dom, &users[0], 1000, time(NULL));
 
+    /* Mock values */
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
+
     /* Test. */
     run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
     check_user(test_ctx, &users[0], test_ctx->tctx->dom);
@@ -890,6 +895,9 @@ void test_user_by_name_cache_expired(void **state)
 
     /* Setup user. */
     prepare_user(test_ctx->tctx->dom, &users[0], -1000, time(NULL));
+
+    /* Mock values */
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
 
     /* Mock values. */
     /* DP should be contacted */
@@ -914,6 +922,7 @@ void test_user_by_name_cache_midpoint(void **state)
     /* Mock values. */
     /* DP should be contacted without callback */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
 
     /* Test. */
     run_user_by_name(test_ctx, test_ctx->tctx->dom, 50, ERR_OK);
@@ -939,6 +948,9 @@ void test_user_by_name_ncache(void **state)
     talloc_free(fqname);
     assert_int_equal(ret, EOK);
 
+    /* Mock values */
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
+
     /* Test. */
     run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
     assert_false(test_ctx->dp_called);
@@ -953,6 +965,7 @@ void test_user_by_name_missing_found(void **state)
     /* Mock values. */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
 
     test_ctx->create_user1 = true;
     test_ctx->create_user2 = false;
@@ -972,6 +985,7 @@ void test_user_by_name_missing_notfound(void **state)
     /* Mock values. */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
 
     /* Test. */
     run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
@@ -1780,6 +1794,9 @@ void test_group_by_name_cache_valid(void **state)
     /* Setup group. */
     prepare_group(test_ctx->tctx->dom, &groups[0], 1000, time(NULL));
 
+    /* Mock values */
+    mock_parse_inp(groups[0].short_name, NULL, ERR_OK);
+
     /* Test. */
     run_group_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
     check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
@@ -1798,6 +1815,7 @@ void test_group_by_name_cache_expired(void **state)
     /* DP should be contacted */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(groups[0].short_name, NULL, ERR_OK);
 
     /* Test. */
     run_group_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
@@ -1817,6 +1835,7 @@ void test_group_by_name_cache_midpoint(void **state)
     /* Mock values. */
     /* DP should be contacted without callback */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_parse_inp(groups[0].short_name, NULL, ERR_OK);
 
     /* Test. */
     run_group_by_name(test_ctx, test_ctx->tctx->dom, 50, ERR_OK);
@@ -1842,6 +1861,9 @@ void test_group_by_name_ncache(void **state)
     talloc_free(fqname);
     assert_int_equal(ret, EOK);
 
+    /* Mock values */
+    mock_parse_inp(groups[0].short_name, NULL, ERR_OK);
+
     /* Test. */
     run_group_by_name(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
     assert_false(test_ctx->dp_called);
@@ -1856,6 +1878,7 @@ void test_group_by_name_missing_found(void **state)
     /* Mock values. */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(groups[0].short_name, NULL, ERR_OK);
 
     test_ctx->create_group1 = true;
     test_ctx->create_group2 = false;
@@ -1875,6 +1898,7 @@ void test_group_by_name_missing_notfound(void **state)
     /* Mock values. */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(groups[0].short_name, NULL, ERR_OK);
 
     /* Test. */
     run_group_by_name(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
@@ -2387,9 +2411,11 @@ void test_user_by_recent_filter_valid(void **state)
     req_mem_ctx = talloc_new(test_ctx->tctx);
     check_leaks_push(req_mem_ctx);
 
+    /* Mock values */
     /* Filters always go to DP */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(TEST_USER_PREFIX, NULL, ERR_OK);
 
     /* User TEST_USER is created with a DP callback. */
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
@@ -2433,6 +2459,7 @@ void test_users_by_recent_filter_valid(void **state)
     /* Filters always go to DP */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(TEST_USER_PREFIX, NULL, ERR_OK);
 
     /* User TEST_USER1 and TEST_USER2 are created with a DP callback. */
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
@@ -2496,6 +2523,7 @@ void test_users_by_filter_filter_old(void **state)
     /* Filters always go to DP */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(TEST_USER_PREFIX, NULL, ERR_OK);
 
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
@@ -2532,12 +2560,13 @@ void test_users_by_filter_notfound(void **state)
     /* Filters always go to DP */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(TEST_NO_USER_PREFIX, NULL, ERR_OK);
 
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
-                                        "nosuchuser*");
+                                        TEST_NO_USER_PREFIX);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
 
@@ -2610,6 +2639,7 @@ static void test_users_by_filter_multiple_domains_valid(void **state)
     /* Filters always go to DP */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(TEST_USER_PREFIX, NULL, ERR_OK);
 
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
@@ -2654,14 +2684,15 @@ void test_users_by_filter_multiple_domains_notfound(void **state)
     check_leaks_push(req_mem_ctx);
 
     /* Filters always go to DP */
-    will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    mock_account_recv_simple();
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+    mock_parse_inp(TEST_NO_USER_PREFIX, NULL, ERR_OK);
 
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         domain->name,
-                                        "nosuchuser*");
+                                        TEST_NO_USER_PREFIX);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
 
@@ -2700,6 +2731,7 @@ void test_group_by_recent_filter_valid(void **state)
     /* Filters always go to DP */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(TEST_USER_PREFIX, NULL, ERR_OK);
 
     /* Group TEST_GROUP is created with a DP callback. */
     req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
@@ -2741,6 +2773,7 @@ void test_groups_by_recent_filter_valid(void **state)
 
     req_mem_ctx = talloc_new(global_talloc_context);
     check_leaks_push(req_mem_ctx);
+    mock_parse_inp(TEST_USER_PREFIX, NULL, ERR_OK);
 
     /* Filters always go to DP */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
@@ -2805,12 +2838,13 @@ void test_groups_by_filter_notfound(void **state)
     /* Filters always go to DP */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(TEST_NO_GROUP_PREFIX, NULL, ERR_OK);
 
     req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
-                                        "nosuchgroup*");
+                                        TEST_NO_GROUP_PREFIX);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_group_by_filter_test_done, test_ctx);
 
@@ -2870,6 +2904,7 @@ void test_groups_by_filter_multiple_domains_valid(void **state)
     /* Filters always go to DP */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
+    mock_parse_inp(TEST_USER_PREFIX, NULL, ERR_OK);
 
     req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
@@ -2914,14 +2949,15 @@ void test_groups_by_filter_multiple_domains_notfound(void **state)
     check_leaks_push(req_mem_ctx);
 
     /* Filters always go to DP */
-    will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    mock_account_recv_simple();
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+    mock_parse_inp(TEST_NO_GROUP_PREFIX, NULL, ERR_OK);
 
     req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         domain->name,
-                                        "nosuchgroup*");
+                                        TEST_NO_GROUP_PREFIX);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_group_by_filter_test_done, test_ctx);
 
