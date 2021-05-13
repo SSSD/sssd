@@ -1170,7 +1170,7 @@ static errno_t cache_req_process_input(TALLOC_CTX *mem_ctx,
         return cache_req_update_domains(mem_ctx, req, cr, domain);
     }
 
-    if (cr->plugin->parse_name == false || domain != NULL) {
+    if (cr->plugin->parse_name == false) {
         /* Call cache_req_update_domains() in order to get a up to date list
          * of domains and subdomains, if needed. Otherwise, just use the input
          * name as it is. */
@@ -1275,6 +1275,16 @@ static void cache_req_input_parsed(struct tevent_req *subreq)
     state = tevent_req_data(req, struct cache_req_state);
 
     ret = sss_parse_inp_recv(subreq, state, &name, &domain);
+
+    if (state->domain_name != NULL && domain != NULL
+        && strcmp(state->domain_name, domain) != 0){
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Mismatch between input domain name [%s] and parsed domain name [%s]\n",
+              state->domain_name, domain);
+        tevent_req_error(req, ERR_INPUT_PARSE);
+        return;
+    }
+
     switch (ret) {
     case EOK:
         ret = cache_req_set_name(state->cr, name);
