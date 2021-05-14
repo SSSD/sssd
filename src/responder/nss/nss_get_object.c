@@ -171,6 +171,8 @@ hybrid_domain_retry_data(TALLOC_CTX *mem_ctx,
                                           input_name);
     }
 
+    cache_req_data_set_hybrid_lookup(hybrid_data, true);
+
     return hybrid_data;
 }
 
@@ -255,6 +257,7 @@ struct nss_get_object_state {
 };
 
 static void nss_get_object_done(struct tevent_req *subreq);
+static bool nss_is_hybrid_object_enabled(struct sss_domain_info *domains);
 static errno_t nss_get_hybrid_object_step(struct tevent_req *req);
 static void nss_get_hybrid_object_done(struct tevent_req *subreq);
 static void nss_get_hybrid_gid_verify_done(struct tevent_req *subreq);
@@ -335,8 +338,10 @@ static void nss_get_object_done(struct tevent_req *subreq)
     ret = cache_req_single_domain_recv(state, subreq, &state->result);
     talloc_zfree(subreq);
 
+    /* Try to process hybrid object if any domain enables it. This will issue a
+     * cache_req that will iterate only over domains with MPG_HYBRID. */
     if (ret == ENOENT
-            && state->nss_ctx->rctx->domains->mpg_mode == MPG_HYBRID) {
+            && nss_is_hybrid_object_enabled(state->nss_ctx->rctx->domains)) {
         retry_ret = nss_get_hybrid_object_step(req);
         if (retry_ret == EAGAIN) {
             /* Retrying hybrid search */
@@ -385,6 +390,20 @@ static void nss_get_object_finish_req(struct tevent_req *req,
         tevent_req_error(req, ret);
         break;
     }
+}
+
+static bool nss_is_hybrid_object_enabled(struct sss_domain_info *domains)
+{
+    struct sss_domain_info *dom;
+
+    for (dom = domains; dom != NULL;
+             dom = get_next_domain(dom, SSS_GND_DESCEND)) {
+        if (dom->mpg_mode == MPG_HYBRID) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 static errno_t nss_get_hybrid_object_step(struct tevent_req *req)

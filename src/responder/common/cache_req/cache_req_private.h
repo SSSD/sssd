@@ -106,6 +106,9 @@ struct cache_req_data {
 
     /* if set, ERR_OFFLINE is returned if data provider is offline */
     bool propogate_offline_status;
+
+    /* if set, only domains with MPG_HYBRID are searched */
+    bool hybrid_lookup;
 };
 
 struct tevent_req *
