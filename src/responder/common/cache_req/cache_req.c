@@ -259,6 +259,11 @@ cache_req_validate_domain(struct cache_req *cr,
         return false;
     }
 
+    ok = !cr->data->hybrid_lookup || domain->mpg_mode == MPG_HYBRID;
+    if (ok == false) {
+        return false;
+    }
+
     return true;
 }
 

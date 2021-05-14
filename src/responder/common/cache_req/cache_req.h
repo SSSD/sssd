@@ -175,6 +175,10 @@ void
 cache_req_data_set_propogate_offline_status(struct cache_req_data *data,
                                             bool propogate_offline_status);
 
+void
+cache_req_data_set_hybrid_lookup(struct cache_req_data *data,
+                                 bool hybrid_lookup);
+
 enum cache_req_type
 cache_req_data_get_type(struct cache_req_data *data);
 
