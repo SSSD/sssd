@@ -5079,7 +5079,8 @@ endif
 else
 if HAVE_GENTOO
     init_SCRIPTS += \
-        src/sysv/gentoo/sssd
+        src/sysv/gentoo/sssd \
+        src/sysv/gentoo/sssd-kcm
 else
     init_SCRIPTS += \
         src/sysv/sssd
