@@ -59,7 +59,8 @@ class PySssMurmurImport(unittest.TestCase):
             print("Could not load the pysss_murmur module. "
                   "Please check if it is compiled", file=sys.stderr)
             raise e
-        self.assertEqual(pysss_murmur.__file__, MODPATH + "/pysss_murmur.so")
+        self.assertEqual(os.path.realpath(pysss_murmur.__file__),
+                         os.path.realpath(MODPATH + "/pysss_murmur.so"))
 
 
 class PySssMurmurTestNeg(unittest.TestCase):
