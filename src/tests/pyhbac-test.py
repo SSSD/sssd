@@ -88,7 +88,8 @@ class PyHbacImport(unittest.TestCase):
             print("Could not load the pyhbac module. Please check if it is "
                   "compiled", file=sys.stderr)
             raise e
-        self.assertEqual(pyhbac.__file__, MODPATH + "/pyhbac.so")
+        self.assertEqual(os.path.realpath(pyhbac.__file__),
+                         os.path.realpath(MODPATH + "/pyhbac.so"))
 
 
 class PyHbacRuleElementTest(unittest.TestCase):

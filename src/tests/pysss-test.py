@@ -58,7 +58,8 @@ class PysssImport(unittest.TestCase):
             print("Could not load the pysss module. Please check if it is "
                   "compiled", file=sys.stderr)
             raise ex
-        self.assertEqual(pysss.__file__, MODPATH + "/pysss.so")
+        self.assertEqual(os.path.realpath(pysss.__file__),
+                         os.path.realpath(MODPATH + "/pysss.so"))
 
 
 class PysssEncryptTest(unittest.TestCase):
