@@ -33,7 +33,7 @@ class TestSudo(object):
         multihost.client[0].service_sssd('stop')
         tools = sssdTools(multihost.client[0])
         # remove sssd cache
-        tools.remove_sss_cache('/var/lib/sss/db')
+        tools.remove_sss_cache('/var/lib/sss/db/')
         tools = sssdTools(multihost.client[0])
         ldap_uri = 'ldap://%s' % multihost.master[0].sys_hostname
         sssd_params = {'services': 'nss, pam, sudo'}
@@ -87,7 +87,7 @@ class TestSudo(object):
         # pylint: disable=unused-argument
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
-        tools.remove_sss_cache('/var/lib/sss/db')
+        tools.remove_sss_cache('/var/lib/sss/db/')
         sudo_base = 'ou=sudoers,dc=example,dc=test'
         sudo_uri = "ldap://%s" % multihost.master[0].sys_hostname
         params = {'ldap_sudo_search_base': sudo_base,

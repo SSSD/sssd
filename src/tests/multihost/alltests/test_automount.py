@@ -455,6 +455,7 @@ class Testautofsresponder(object):
         del_pcap = 'rm -f %s' % auto_pcapfile
         multihost.client[0].run_command(del_pcap)
 
+    @pytest.mark.parametrize('add_nisobject', ['/export'], indirect=True)
     @pytest.mark.tier2
     def test_009_maps_after_coming_online(self, multihost, add_nisobject):
         """
@@ -462,19 +463,15 @@ class Testautofsresponder(object):
         :id: b9da6e0e-3d8b-4465-b435-338708d0d51e
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1113639
         :customerscenario: True
-
-        :setup:
+        :steps:
           1. edit sssd.conf and specify autofs_provider = ad
           2. restart autofs
-
-        :steps:
-          1. firewalld block 389 and 636
-          2. stop sssd, autofs.
-          3. remove sssd cache
-          4. Start sssd
-          5. remove firewall rule
-          6. start autofs
-
+          3. firewalld block 389 and 636
+          4. stop sssd, autofs.
+          5. remove sssd cache
+          6. Start sssd
+          7. remove firewall rule
+          8. start autofs
         :expectedresults:
           1. Should succeed
           2. Should succeed
@@ -482,6 +479,8 @@ class Testautofsresponder(object):
           4. Should succeed
           5. Should succeed
           6. Should succeed
+          7. Should succeed
+          8. Should succeed
         """
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
         client = sssdTools(multihost.client[0])

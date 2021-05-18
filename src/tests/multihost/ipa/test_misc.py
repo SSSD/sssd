@@ -85,8 +85,9 @@ class Testipabz(object):
                            add_group_member, backupsssdconf):
         """
         :title:  filter_groups option partially filters the group from id
-        output of the user because gidNumber still appears in id output
+         output of the user because gidNumber still appears in id output
         :id: 8babb6ee-7141-4723-a79d-c5cf7879a9b4
+        :customerscenario: True
         :description:
          filter_groups option partially filters the group from 'id' output
          of the user because gidNumber still appears in 'id' output
