@@ -1002,14 +1002,14 @@ errno_t sss_sec_list_cc_uuids(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-	uuid_list = talloc_zero_array(tmp_ctx, const char *, res->count);
+    uuid_list = talloc_zero_array(tmp_ctx, const char *, res->count);
     if (uuid_list == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-	uid_list = talloc_zero_array(tmp_ctx, const char *, res->count);
-    if (uuid_list == NULL) {
+    uid_list = talloc_zero_array(tmp_ctx, const char *, res->count);
+    if (uid_list == NULL) {
         ret = ENOMEM;
         goto done;
     }
