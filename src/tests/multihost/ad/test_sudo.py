@@ -89,7 +89,6 @@ class TestSudo(object):
           2. Add users to the group.
           3. Verify sudo_idmuser1 can fetch the sudo rule
           4. Run the required command as sudo
-
         :expectedresults:
           1. Should succeed
           2. Should succeed
