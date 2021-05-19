@@ -37,6 +37,7 @@
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_kcm_renewals_conf.ldb"
 #define TEST_DB_FULL_PATH  TESTS_PATH "/secrets.ldb"
+#define TEST_MKEY_FULL_PATH  TESTS_PATH "/.secrets.mkey"
 
 errno_t kcm_renew_all_tgts(TALLOC_CTX *mem_ctx,
                            struct kcm_renew_tgt_ctx *renew_tgt_ctx,
@@ -199,7 +200,7 @@ static void test_kcm_renewals_tgt(void **state)
     open(TEST_DB_FULL_PATH, O_CREAT|O_EXCL|O_WRONLY, 0600);
 
     ret = sss_sec_init_with_path(test_ctx->ccdb, NULL, TEST_DB_FULL_PATH,
-                                 &secdb->sctx);
+                                 TEST_MKEY_FULL_PATH, &secdb->sctx);
 
     /* Create renew ctx */
     renew_tgt_ctx = talloc_zero(test_ctx, struct kcm_renew_tgt_ctx);
