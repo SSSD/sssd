@@ -512,7 +512,6 @@ int sss_tool_main(int argc, const char **argv,
 
     uid = getuid();
     if (uid != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Running under %d, must be root\n", uid);
         ERROR("%1$s must be run as root\n", argv[0]);
         return EXIT_FAILURE;
     }
