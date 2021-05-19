@@ -634,13 +634,13 @@ static int generate_master_key(const char *filename, size_t size)
 }
 
 static errno_t lcl_read_mkey(TALLOC_CTX *mem_ctx,
-                             const char *dbpath,
+                             const char *mkeypath,
                              struct sss_sec_data *master_key)
 {
     int mfd;
     ssize_t size;
     errno_t ret;
-    const char *mkey = dbpath;
+    const char *mkey = mkeypath;
 
     master_key->data = talloc_size(mem_ctx, MKEY_SIZE);
     if (master_key->data == NULL) {
@@ -703,6 +703,7 @@ static int set_quotas(struct sss_sec_ctx *sec_ctx,
 errno_t sss_sec_init_with_path(TALLOC_CTX *mem_ctx,
                                struct sss_sec_hive_config **config_list,
                                const char *dbpath,
+                               const char *mkeypath,
                                struct sss_sec_ctx **_sec_ctx)
 {
     struct sss_sec_ctx *sec_ctx;
@@ -746,7 +747,7 @@ errno_t sss_sec_init_with_path(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = lcl_read_mkey(sec_ctx, dbpath, &sec_ctx->master_key);
+    ret = lcl_read_mkey(sec_ctx, mkeypath, &sec_ctx->master_key);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot get the master key\n");
         goto done;
@@ -764,9 +765,10 @@ errno_t sss_sec_init(TALLOC_CTX *mem_ctx,
                      struct sss_sec_ctx **_sec_ctx)
 {
     const char *dbpath = SECRETS_DB_PATH"/secrets.ldb";
+    const char *mkeypath = SECRETS_DB_PATH"/.secrets.mkey";
     errno_t ret;
 
-    ret = sss_sec_init_with_path(mem_ctx, config_list, dbpath, _sec_ctx);
+    ret = sss_sec_init_with_path(mem_ctx, config_list, dbpath, mkeypath, _sec_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize secdb [%d]: %s\n",
                                    ret, sss_strerror(ret));
