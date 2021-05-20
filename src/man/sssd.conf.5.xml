@@ -3407,6 +3407,45 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                 </varlistentry>
 
                 <varlistentry>
+                    <term>dns_resolver_server_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Defines the amount of time (in milliseconds)
+                            SSSD would try to talk to DNS server before
+                            trying next DNS server.
+                        </para>
+                        <para>
+                            Please see the section <quote>FAILOVER</quote>
+                            for more information about the service
+                            resolution.
+                        </para>
+                        <para>
+                            Default: 1000
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dns_resolver_op_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Defines the amount of time (in seconds) to
+                            wait to resolve single DNS query
+                            (e.g. resolution of a hostname or an SRV record)
+                            before try next hostname or DNS discovery.
+                        </para>
+                        <para>
+                            Please see the section <quote>FAILOVER</quote>
+                            for more information about the service
+                            resolution.
+                        </para>
+                        <para>
+                            Default: 3
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dns_resolver_timeout (integer)</term>
                     <listitem>
                         <para>
