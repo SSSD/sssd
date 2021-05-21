@@ -40,6 +40,7 @@
 
 #define LOG_FILE(file) " " LOG_PATH "/" file
 #define LOG_FILES LOG_FILE("*.log")
+#define SSS_ANALYZE PYTHONDIR_PATH"/sss_analyze.py"
 
 #define CHECK(expr, done, msg) do { \
     if (expr) { \
@@ -366,5 +367,53 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
 
 fini:
     talloc_free(ctx);
+    return ret;
+}
+
+errno_t sssctl_analyze(struct sss_cmdline *cmdline,
+                       struct sss_tool_ctx *tool_ctx,
+                       void *pvt)
+{
+    errno_t ret;
+    char *cmd_args = NULL;
+    const char *analyzecmd = SSS_ANALYZE;
+    char *cmd = NULL;
+    int i;
+
+#ifndef BUILD_CHAIN_ID
+    PRINT("NOTE: Tevent chain ID support missing, request analysis will be limited.\n");
+    PRINT("It is recommended to use the --logdir option against tevent chain ID "
+          "supported SSSD logs.\n");
+#endif
+    if (cmdline->argc == 0) {
+        ret = sssctl_run_command(analyzecmd);
+        goto done;
+    }
+
+    cmd_args = talloc_strdup(tool_ctx, "");
+    if (cmd_args == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < cmdline->argc; i++) {
+        cmd_args = talloc_strdup_append(cmd_args, cmdline->argv[i]);
+        if (i != cmdline->argc - 1) {
+            cmd_args = talloc_strdup_append(cmd_args, " ");
+        }
+    }
+
+    cmd = talloc_asprintf(tool_ctx, "%s %s", analyzecmd, cmd_args);
+    if (cmd == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sssctl_run_command(cmd);
+
+done:
+    talloc_free(cmd_args);
+    talloc_free(cmd);
+
     return ret;
 }
