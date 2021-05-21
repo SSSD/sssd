@@ -1041,7 +1041,8 @@ int activate_unix_sockets(struct resp_ctx *rctx,
 
             ret = getsockname(rctx->lfd, (struct sockaddr *) &sockaddr, &sockaddr_len);
             if (ret == EOK) {
-                if (memcmp(rctx->sock_name, sockaddr.sun_path, strlen(rctx->sock_name)) != 0) {
+                if (rctx->sock_name &&
+                    memcmp(rctx->sock_name, sockaddr.sun_path, strlen(rctx->sock_name)) != 0) {
                     DEBUG(SSSDBG_CONF_SETTINGS,
                           "Warning: socket path defined in systemd unit (%s) and sssd.conf (%s) don't match\n",
                           sockaddr.sun_path, rctx->sock_name);
