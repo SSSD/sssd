@@ -1915,6 +1915,7 @@ sssctl_LDADD = \
     $(NULL)
 sssctl_CFLAGS = \
     $(AM_CFLAGS) \
+    -DPYTHONDIR_PATH=\"$(python3dir)/sssd\" \
     $(NULL)
 
 if BUILD_SUDO

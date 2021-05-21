@@ -41,6 +41,7 @@
 
 #define LOG_FILE(file) " " LOG_PATH "/" file
 #define LOG_FILES LOG_FILE("*.log")
+#define SSS_ANALYZE PYTHONDIR_PATH"/sss_analyze.py"
 
 #define CHECK(expr, done, msg) do { \
     if (expr) { \
@@ -386,5 +387,33 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
 
 fini:
     talloc_free(ctx);
+    return ret;
+}
+
+errno_t sssctl_analyze(struct sss_cmdline *cmdline,
+                       struct sss_tool_ctx *tool_ctx,
+                       void *pvt)
+{
+    errno_t ret;
+
+#ifndef BUILD_CHAIN_ID
+    PRINT("NOTE: Tevent chain ID support missing, request analysis will be limited.\n");
+    PRINT("It is recommended to use the --logdir option against tevent chain ID "
+          "supported SSSD logs.\n");
+#endif
+    const char **args = talloc_array_size(tool_ctx,
+                                          sizeof(char *),
+                                          cmdline->argc + 2);
+    if (!args) {
+        return ENOMEM;
+    }
+    memcpy(&args[1], cmdline->argv, sizeof(char *) * cmdline->argc);
+    args[0] = SSS_ANALYZE;
+    args[cmdline->argc + 1] = NULL;
+
+    ret = sssctl_run_command(args);
+
+    talloc_free(args);
+
     return ret;
 }
