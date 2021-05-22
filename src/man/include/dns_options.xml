@@ -1,0 +1,52 @@
+<variablelist>
+    <varlistentry>
+        <term>
+            dns_resolver_server_timeout (integer)
+        </term>
+        <listitem>
+            <para>
+                Defines the amount of time (in milliseconds) SSSD
+                would wait for a response from a DNS server before
+                trying the query via another DNS server.
+            </para>
+            <para>
+                Default: 1000
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>
+            dns_resolver_op_timeout (integer)
+        </term>
+        <listitem>
+            <para>
+                Defines the amount of time (in seconds) to
+                resolve a single DNS query (e.g. resolution of a
+                hostname or an SRV record) before trying the
+                next hostname or DNS discovery.
+            </para>
+            <para>
+                Default: 3
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>
+            dns_resolver_timeout (integer)
+        </term>
+        <listitem>
+            <para>
+                Defines the amount of time (in seconds) to wait
+                for a reply from the internal failover service
+                before assuming that the service is unreachable.
+                If this timeout is reached, the domain will
+                continue to operate in offline mode.
+            </para>
+            <para>
+                Default: 6
+            </para>
+        </listitem>
+    </varlistentry>
+</variablelist>

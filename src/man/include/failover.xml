@@ -64,60 +64,8 @@
             you can consider changing the time outs.
         </para>
         <para>
-            This section lists the available tunables. Please refer to their
-            description in the
-            <citerefentry>
-                <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
-            </citerefentry>,
-            manual page.
-            <variablelist>
-                <varlistentry>
-                    <term>
-                        dns_resolver_server_timeout
-                    </term>
-                    <listitem>
-                        <para>
-                            Time in milliseconds that sets how long would SSSD
-                            talk to a single DNS server before trying next one.
-                        </para>
-                        <para>
-                            Default: 1000
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>
-                        dns_resolver_op_timeout
-                    </term>
-                    <listitem>
-                        <para>
-                            Time in seconds to tell how long would SSSD try
-                            to resolve single DNS query (e.g. resolution of a
-                            hostname or an SRV record) before trying the next
-                            hostname or discovery domain.
-                        </para>
-                        <para>
-                            Default: 3
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>
-                        dns_resolver_timeout
-                    </term>
-                    <listitem>
-                        <para>
-                            How long would SSSD try to resolve a failover
-                            service. This service resolution internally might
-                            include several steps, such as resolving DNS SRV
-                            queries or locating the site.
-                        </para>
-                        <para>
-                            Default: 6
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
+            This section lists the available tunables.
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="dns_options.xml" />
         </para>
         <para>
             For LDAP-based providers, the resolve operation is performed
