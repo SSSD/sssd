@@ -119,8 +119,8 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
 
     keytab = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_KEYTAB);
     if (keytab == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing keytab option.\n");
-        return EINVAL;
+        DEBUG(SSSDBG_TRACE_FUNC, "krb5_keytab not set for domain in sssd.conf\n");
+        keytab = "";
     }
 
     validate = dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_VALIDATE) ? 1 : 0;
