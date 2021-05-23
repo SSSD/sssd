@@ -2503,9 +2503,13 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
         if (len > size - p) return EINVAL;
-        kr->keytab = talloc_strndup(pd, (char *)(buf + p), len);
-        if (kr->keytab == NULL) return ENOMEM;
-        p += len;
+
+        if (len > 0) {
+            kr->keytab = talloc_strndup(pd, (char *)(buf + p), len);
+            p += len;
+        } else {
+            kr->keytab = NULL;
+        }
 
         ret = unpack_authtok(pd->authtok, buf, size, &p);
         if (ret) {
@@ -2516,7 +2520,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
               "ccname: [%s] old_ccname: [%s] keytab: [%s]\n",
               kr->ccname,
               kr->old_ccname ? kr->old_ccname : "not set",
-              kr->keytab);
+              kr->keytab ? kr->keytab : "not set");
     } else {
         kr->ccname = NULL;
         kr->old_ccname = NULL;
@@ -3154,6 +3158,49 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     return kerr;
 }
 
+static krb5_error_code check_keytab_name(struct krb5_req *kr)
+{
+    krb5_error_code kerr;
+    char krb5_conf_keytab[MAX_KEYTAB_NAME_LEN];
+    char *path_start = NULL;
+
+    if (kr->keytab == NULL && (
+        kr->pd->cmd == SSS_PAM_AUTHENTICATE ||
+        kr->pd->cmd == SSS_PAM_PREAUTH ||
+        kr->pd->cmd == SSS_CMD_RENEW ||
+        kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ||
+        kr->pd->cmd == SSS_PAM_CHAUTHTOK)) {
+
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Missing krb5_keytab option for domain, looking for default one\n");
+
+        kerr = krb5_kt_default_name(kr->ctx, krb5_conf_keytab, sizeof(krb5_conf_keytab));
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unable to get default keytab location from krb.conf\n");
+            return kerr;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "krb5_kt_default_name() returned: %s\n",
+              krb5_conf_keytab);
+
+        /* krb5_kt_default_name() can return file path with "FILE:" prefix,
+           it need to be removed */
+        if (0 == strncmp(krb5_conf_keytab, "FILE:", strlen("FILE:"))) {
+            path_start = krb5_conf_keytab + strlen("FILE:");
+        } else {
+            path_start = krb5_conf_keytab;
+        }
+
+        kr->keytab = talloc_strndup(kr->pd, path_start, strlen(path_start));
+
+        DEBUG(SSSDBG_TRACE_FUNC, "krb5_child will default to: %s\n", path_start);
+    }
+
+    return 0;
+}
+
 static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
                                              uint32_t offline)
 {
@@ -3167,6 +3214,12 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
     }
 
     kerr = krb5_init_context(&kr->ctx);
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        return kerr;
+    }
+
+    kerr = check_keytab_name(kr);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         return kerr;

@@ -244,7 +244,7 @@
                             credentials obtained from KDCs.
                         </para>
                         <para>
-                            Default: /etc/krb5.keytab
+                            Default: System keytab, normally <filename>/etc/krb5.keytab</filename>
                         </para>
                     </listitem>
                 </varlistentry>
