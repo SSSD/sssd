@@ -227,6 +227,7 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
             break;
 
         case SSS_GSSAPI_SEC_CTX:
+        case SSS_PAC_ADD_PAC_USER:
             max_recv_size = SSS_GSSAPI_PACKET_MAX_RECV_SIZE;
             break;
 
