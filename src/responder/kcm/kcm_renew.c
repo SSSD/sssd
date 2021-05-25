@@ -641,7 +641,7 @@ errno_t kcm_renew_all_tgts(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Found [%lu] renewal entries.\n", count - 1);
+    DEBUG(SSSDBG_TRACE_FUNC, "Found [%zu] renewal entries.\n", count - 1);
     for (int i = 0; i < count - 1; i++) {
         cc = cc_list[i];
         DEBUG(SSSDBG_TRACE_FUNC,
