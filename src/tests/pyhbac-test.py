@@ -27,7 +27,7 @@ import copy
 import tempfile
 
 BUILD_DIR = os.getenv('builddir') or "."
-TEST_DIR = os.getenv('SSS_TEST_DIR') or "."
+TEST_DIR = os.path.realpath(os.getenv('SSS_TEST_DIR') or ".")
 MODPATH = tempfile.mkdtemp(prefix="tp_pyhbac_", dir=TEST_DIR)
 
 
