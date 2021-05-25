@@ -29,6 +29,7 @@
 #include <stdbool.h>
 #include <strings.h>
 #include <talloc.h>
+#include <netdb.h>
 
 #include "util/dlinklist.h"
 #include "util/refcount.h"
@@ -1188,9 +1189,19 @@ fo_resolve_service_done(struct tevent_req *subreq)
                                     &common->rhostent);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resolve server '%s': %s\n",
+        if (resolv_status == ARES_EFILE) {
+            /* resolv_strerror(resolv_status) provided msg from c-ares lib.
+             * c-ares lib in most distros will default to /etc/hosts for
+             * file based host resolving */
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resolve server '%s': %s [%s]\n",
+                  common->name,
+                  resolv_strerror(resolv_status),
+                  _PATH_HOSTS);
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resolve server '%s': %s\n",
                   common->name,
                   resolv_strerror(resolv_status));
+        }
         /* If the resolver failed to resolve a hostname but did not
          * encounter an error, tell the caller to retry another server.
          *
