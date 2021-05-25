@@ -977,7 +977,7 @@ static errno_t ccdb_secdb_list_all_cc(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Found [%lu] ccache uuids\n", uuid_list_count);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found [%zu] ccache uuids\n", uuid_list_count);
 
     /* New count is full cc list size minus getpwuid() failures */
     ret = ccdb_secdb_get_cc_for_uuid(mem_ctx, uuid_list_count, uuid_list,
