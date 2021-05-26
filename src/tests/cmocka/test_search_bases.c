@@ -35,7 +35,6 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap.h"
 #include "dhash.h"
-#include "tests/common_check.h"
 
 enum sss_test_get_by_dn {
     DN_NOT_IN_DOMS, /* dn is not in any domain           */
