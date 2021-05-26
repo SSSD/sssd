@@ -575,8 +575,13 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     return;
 
 fail:
-    DEBUG(SSSDBG_TRACE_LIBS,
-          "Server resolution failed: [%d]: %s\n", ret, sss_strerror(ret));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Server resolution failed: [%d]: All servers down\n", ret);
+    } else {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Server resolution failed: [%d]: %s\n", ret, sss_strerror(ret));
+    }
     state->svc->first_resolved = NULL;
     tevent_req_error(req, ret);
 }
