@@ -32,32 +32,32 @@
  ********************/
 #define EXPECT_UNSET_ERRNO(error) \
     do { \
-        fail_unless(error == 0, "errno unexpectedly set to %d[%s]", \
+        ck_assert_msg(error == 0, "errno unexpectedly set to %d[%s]", \
                                 error, strerror(error)); \
     } while(0)
 
 #define CHECK_RESULT(expected, actual) \
     do { \
-        fail_unless(actual == expected, "Expected %jd, got %jd", \
+        ck_assert_msg(actual == expected, "Expected %jd, got %jd", \
                                         (intmax_t)expected, (intmax_t)actual); \
     } while(0)
 
 #define CHECK_ERRNO(expected, actual) \
     do { \
-        fail_unless(actual == expected, "Expected errno %d[%s], got %d[%s]", \
+        ck_assert_msg(actual == expected, "Expected errno %d[%s], got %d[%s]", \
                                         expected, strerror(expected), \
                                         actual, strerror(actual)); \
     } while(0)
 
 #define CHECK_ENDPTR(expected, actual) \
     do { \
-        fail_unless(actual == expected, "Expected endptr %p, got %p", \
+        ck_assert_msg(actual == expected, "Expected endptr %p, got %p", \
                                          expected, actual); \
     } while(0)
 
 #define CHECK_ZERO_ENDPTR(endptr) \
     do { \
-        fail_unless(endptr && *endptr == '\0', "Invalid endptr"); \
+        ck_assert_msg(endptr && *endptr == '\0', "Invalid endptr"); \
     } while(0)
 
 /******************

@@ -31,7 +31,7 @@
 #include <limits.h>
 #include <check.h>
 #include <dirent.h>
-#include "tests/common.h"
+#include "tests/common_check.h"
 
 #define LIBPFX ABS_BUILD_DIR "/" LT_OBJDIR
 
@@ -189,13 +189,13 @@ static char **get_so_files(size_t *_list_size)
     char **libraries;
 
     n = scandir(LIBPFX, &namelist, file_so_filter, alphasort);
-    fail_unless(n > 0, "Failed to scan dirrectory: " LIBPFX);
+    ck_assert_msg(n > 0, "Failed to scan dirrectory: " LIBPFX);
 
     libraries = calloc(n + 1, sizeof(char *));
 
     for (int i = 0; i < n; ++i) {
         libraries[i] = strdup(namelist[i]->d_name);
-        fail_if(libraries[i] == NULL, "Failed to allocate memory");
+        sss_ck_fail_if_msg(libraries[i] == NULL, "Failed to allocate memory");
 
         free(namelist[i]);
     }
@@ -231,7 +231,7 @@ START_TEST(test_dlopen_base)
 
     for (i = 0; so[i].name != NULL; i++) {
         ok = recursive_dlopen(so[i].libs, 0, &errmsg);
-        fail_unless(ok, "Error opening %s: [%s]", so[i].name, errmsg);
+        ck_assert_msg(ok, "Error opening %s: [%s]", so[i].name, errmsg);
 
         remove_library_from_list(so[i].name, found_libraries,
                                  found_libraries_size);
@@ -245,7 +245,7 @@ START_TEST(test_dlopen_base)
     }
     free(found_libraries);
 
-    fail_if(unchecked_library, "Unchecked library found");
+    sss_ck_fail_if_msg(unchecked_library, "Unchecked library found");
 }
 END_TEST
 
