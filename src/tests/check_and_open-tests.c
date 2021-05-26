@@ -46,12 +46,12 @@ void setup_check_and_open(void)
     mode_t old_umask;
 
     filename = strdup(FILENAME_TEMPLATE);
-    fail_unless(filename != NULL, "strdup failed");
+    ck_assert_msg(filename != NULL, "strdup failed");
 
     old_umask = umask(SSS_DFL_UMASK);
     ret = mkstemp(filename);
     umask(old_umask);
-    fail_unless(ret != -1, "mkstemp failed [%d][%s]", errno, strerror(errno));
+    ck_assert_msg(ret != -1, "mkstemp failed [%d][%s]", errno, strerror(errno));
     close(ret);
 
     uid = getuid();
@@ -66,13 +66,13 @@ void teardown_check_and_open(void)
 
     if (fd != -1) {
         ret = close(fd);
-        fail_unless(ret == 0, "close failed [%d][%s]", errno, strerror(errno));
+        ck_assert_msg(ret == 0, "close failed [%d][%s]", errno, strerror(errno));
     }
 
-    fail_unless(filename != NULL, "unknown filename");
+    ck_assert_msg(filename != NULL, "unknown filename");
     ret = unlink(filename);
     free(filename);
-    fail_unless(ret == 0, "unlink failed [%d][%s]", errno, strerror(errno));
+    ck_assert_msg(ret == 0, "unlink failed [%d][%s]", errno, strerror(errno));
 }
 
 START_TEST(test_wrong_filename)
@@ -81,9 +81,9 @@ START_TEST(test_wrong_filename)
 
     ret = check_and_open_readonly("/bla/bla/bla", &fd,
                                   uid, gid, S_IFREG|mode, 0);
-    fail_unless(ret == ENOENT,
+    ck_assert_msg(ret == ENOENT,
                 "check_and_open_readonly succeeded on non-existing file");
-    fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
+    ck_assert_msg(fd == -1, "check_and_open_readonly file descriptor not -1");
 }
 END_TEST
 
@@ -95,20 +95,20 @@ START_TEST(test_symlink)
 
     newpath_length = strlen(filename) + strlen(SUFFIX) + 1;
     newpath = malloc((newpath_length) * sizeof(char));
-    fail_unless(newpath != NULL, "malloc failed");
+    ck_assert_msg(newpath != NULL, "malloc failed");
 
     ret = snprintf(newpath, newpath_length, "%s%s", filename, SUFFIX);
-    fail_unless(ret == newpath_length - 1,
+    ck_assert_msg(ret == newpath_length - 1,
                 "snprintf failed: expected [%zd] got [%d]", newpath_length - 1,
                                                            ret);
 
     ret = symlink(filename, newpath);
-    fail_unless(ret == 0, "symlink failed [%d][%s]", ret, strerror(errno));
+    ck_assert_msg(ret == 0, "symlink failed [%d][%s]", ret, strerror(errno));
 
     ret = check_file(newpath, uid, gid, S_IFREG|mode, 0, NULL, false);
     unlink(newpath);
 
-    fail_unless(ret == EINVAL,
+    ck_assert_msg(ret == EINVAL,
                 "check_and_open_readonly succeeded on symlink");
     free(newpath);
 }
@@ -122,20 +122,20 @@ START_TEST(test_follow_symlink)
 
     newpath_length = strlen(filename) + strlen(SUFFIX) + 1;
     newpath = malloc((newpath_length) * sizeof(char));
-    fail_unless(newpath != NULL, "malloc failed");
+    ck_assert_msg(newpath != NULL, "malloc failed");
 
     ret = snprintf(newpath, newpath_length, "%s%s", filename, SUFFIX);
-    fail_unless(ret == newpath_length - 1,
+    ck_assert_msg(ret == newpath_length - 1,
                 "snprintf failed: expected [%zd] got [%d]", newpath_length - 1,
                                                            ret);
 
     ret = symlink(filename, newpath);
-    fail_unless(ret == 0, "symlink failed [%d][%s]", ret, strerror(errno));
+    ck_assert_msg(ret == 0, "symlink failed [%d][%s]", ret, strerror(errno));
 
     ret = check_file(newpath, uid, gid, S_IFREG|mode, 0, NULL, true);
     unlink(newpath);
 
-    fail_unless(ret == EOK,
+    ck_assert_msg(ret == EOK,
                 "check_and_open_readonly failed on symlink with follow=true");
     free(newpath);
 }
@@ -146,9 +146,9 @@ START_TEST(test_not_regular_file)
     int ret;
 
     ret = check_and_open_readonly("/dev/null", &fd, uid, gid, S_IFREG|mode, 0);
-    fail_unless(ret == EINVAL,
+    ck_assert_msg(ret == EINVAL,
                 "check_and_open_readonly succeeded on non-regular file");
-    fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
+    ck_assert_msg(fd == -1, "check_and_open_readonly file descriptor not -1");
 }
 END_TEST
 
@@ -157,9 +157,9 @@ START_TEST(test_wrong_uid)
     int ret;
 
     ret = check_and_open_readonly(filename, &fd, uid+1, gid, S_IFREG|mode, 0);
-    fail_unless(ret == EINVAL,
+    ck_assert_msg(ret == EINVAL,
                 "check_and_open_readonly succeeded with wrong uid");
-    fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
+    ck_assert_msg(fd == -1, "check_and_open_readonly file descriptor not -1");
 }
 END_TEST
 
@@ -168,9 +168,9 @@ START_TEST(test_wrong_gid)
     int ret;
 
     ret = check_and_open_readonly(filename, &fd, uid, gid+1, S_IFREG|mode, 0);
-    fail_unless(ret == EINVAL,
+    ck_assert_msg(ret == EINVAL,
                 "check_and_open_readonly succeeded with wrong gid");
-    fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
+    ck_assert_msg(fd == -1, "check_and_open_readonly file descriptor not -1");
 }
 END_TEST
 
@@ -180,9 +180,9 @@ START_TEST(test_wrong_permission)
 
     ret = check_and_open_readonly(filename, &fd,
                                   uid, gid, S_IFREG|mode|S_IWOTH, 0);
-    fail_unless(ret == EINVAL,
+    ck_assert_msg(ret == EINVAL,
                 "check_and_open_readonly succeeded with wrong mode");
-    fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
+    ck_assert_msg(fd == -1, "check_and_open_readonly file descriptor not -1");
 }
 END_TEST
 
@@ -191,9 +191,9 @@ START_TEST(test_ok)
     int ret;
 
     ret = check_and_open_readonly(filename, &fd, uid, gid, S_IFREG|mode, 0);
-    fail_unless(ret == EOK,
+    ck_assert_msg(ret == EOK,
                 "check_and_open_readonly failed");
-    fail_unless(fd >= 0,
+    ck_assert_msg(fd >= 0,
                 "check_and_open_readonly returned illegal file descriptor");
 }
 END_TEST
@@ -205,15 +205,15 @@ START_TEST(test_write)
     errno_t my_errno;
 
     ret = check_and_open_readonly(filename, &fd, uid, gid, S_IFREG|mode, 0);
-    fail_unless(ret == EOK,
+    ck_assert_msg(ret == EOK,
                 "check_and_open_readonly failed");
-    fail_unless(fd >= 0,
+    ck_assert_msg(fd >= 0,
                 "check_and_open_readonly returned illegal file descriptor");
 
     size = write(fd, "abc", 3);
     my_errno = errno;
-    fail_unless(size == -1, "check_and_open_readonly file is not readonly");
-    fail_unless(my_errno == EBADF,
+    ck_assert_msg(size == -1, "check_and_open_readonly file is not readonly");
+    ck_assert_msg(my_errno == EBADF,
                 "write failed for other reason than readonly");
 }
 END_TEST

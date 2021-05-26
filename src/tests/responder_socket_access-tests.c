@@ -70,15 +70,15 @@ START_TEST(resp_str_to_array_test)
     for (c = 0; s2a_data[c].exp_ret != -1; c++) {
         ret = csv_string_to_uid_array(global_talloc_context, s2a_data[c].inp,
                                       true, &uid_count, &uids);
-        fail_unless(ret == s2a_data[c].exp_ret,
+        ck_assert_msg(ret == s2a_data[c].exp_ret,
                     "csv_string_to_uid_array failed [%d][%s].", ret,
                                                                 strerror(ret));
         if (ret == 0) {
-            fail_unless(uid_count == s2a_data[c].exp_count,
+            ck_assert_msg(uid_count == s2a_data[c].exp_count,
                         "Wrong number of values, expected [%zu], got [%zu].",
                         s2a_data[c].exp_count, uid_count);
             for (d = 0; d < s2a_data[c].exp_count; d++) {
-                fail_unless(uids[d] == s2a_data[c].exp_uids[d],
+                ck_assert_msg(uids[d] == s2a_data[c].exp_uids[d],
                             "Wrong value, expected [%d], got [%d].\n",
                             s2a_data[c].exp_uids[d], uids[d]);
             }
@@ -116,7 +116,7 @@ START_TEST(check_allowed_uids_test)
         ret = check_allowed_uids(uid_check_data[c].uid,
                                  uid_check_data[c].allowed_uids_count,
                                  uid_check_data[c].allowed_uids);
-        fail_unless(ret == uid_check_data[c].exp_ret,
+        ck_assert_msg(ret == uid_check_data[c].exp_ret,
                     "check_allowed_uids failed [%d][%s].", ret, strerror(ret));
     }
 }

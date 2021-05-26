@@ -41,8 +41,8 @@ START_TEST(test_check_if_uid_is_active_success)
     uid = getuid();
 
     ret = check_if_uid_is_active(uid, &result);
-    fail_unless(ret == EOK, "check_if_uid_is_active failed.");
-    fail_unless(result, "check_if_uid_is_active did not found my uid [%d]",
+    ck_assert_msg(ret == EOK, "check_if_uid_is_active failed.");
+    ck_assert_msg(result, "check_if_uid_is_active did not found my uid [%d]",
                 uid);
 }
 END_TEST
@@ -56,8 +56,8 @@ START_TEST(test_check_if_uid_is_active_fail)
     uid = (uid_t) -4;
 
     ret = check_if_uid_is_active(uid, &result);
-    fail_unless(ret == EOK, "check_if_uid_is_active failed.");
-    fail_unless(!result, "check_if_uid_is_active found (hopefully not active) "
+    ck_assert_msg(ret == EOK, "check_if_uid_is_active failed.");
+    ck_assert_msg(!result, "check_if_uid_is_active found (hopefully not active) "
                          "uid [%d]", uid);
 }
 END_TEST
@@ -72,10 +72,10 @@ START_TEST(test_get_uid_table)
     hash_value_t value;
 
     tmp_ctx = talloc_new(NULL);
-    fail_unless(tmp_ctx != NULL, "talloc_new failed.");
+    ck_assert_msg(tmp_ctx != NULL, "talloc_new failed.");
 
     ret = get_uid_table(tmp_ctx, &table);
-    fail_unless(ret == EOK, "get_uid_table failed.");
+    ck_assert_msg(ret == EOK, "get_uid_table failed.");
 
     uid = getuid();
     key.type = HASH_KEY_ULONG;
@@ -83,7 +83,7 @@ START_TEST(test_get_uid_table)
 
     ret = hash_lookup(table, &key, &value);
 
-    fail_unless(ret == HASH_SUCCESS, "Cannot find my uid [%d] in the table", uid);
+    ck_assert_msg(ret == HASH_SUCCESS, "Cannot find my uid [%d] in the table", uid);
 
     uid = (uid_t) -4;
     key.type = HASH_KEY_ULONG;
@@ -91,7 +91,7 @@ START_TEST(test_get_uid_table)
 
     ret = hash_lookup(table, &key, &value);
 
-    fail_unless(ret == HASH_ERROR_KEY_NOT_FOUND, "Found (hopefully not active) "
+    ck_assert_msg(ret == HASH_ERROR_KEY_NOT_FOUND, "Found (hopefully not active) "
                                                  "uid [%d] in the table", uid);
 
     talloc_free(tmp_ctx);

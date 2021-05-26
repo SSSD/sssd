@@ -41,11 +41,11 @@ START_TEST(test_compare_opts)
 
     ret = compare_dp_options(default_basic_opts, SDAP_OPTS_BASIC,
                              ad_def_ldap_opts);
-    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    ck_assert_msg(ret == EOK, "[%s]", strerror(ret));
 
     ret = compare_dp_options(default_krb5_opts, KRB5_OPTS,
                              ad_def_krb5_opts);
-    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    ck_assert_msg(ret == EOK, "[%s]", strerror(ret));
 }
 END_TEST
 
@@ -56,27 +56,27 @@ START_TEST(test_compare_sdap_attrs)
     /* General Attributes */
     ret = compare_sdap_attr_maps(generic_attr_map, SDAP_AT_GENERAL,
                                  ad_2008r2_attr_map);
-    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    ck_assert_msg(ret == EOK, "[%s]", strerror(ret));
 
     /* User Attributes */
     ret = compare_sdap_attr_maps(rfc2307_user_map, SDAP_OPTS_USER,
                                  ad_2008r2_user_map);
-    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    ck_assert_msg(ret == EOK, "[%s]", strerror(ret));
 
     /* Group Attributes */
     ret = compare_sdap_attr_maps(rfc2307_group_map, SDAP_OPTS_GROUP,
                                  ad_2008r2_group_map);
-    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    ck_assert_msg(ret == EOK, "[%s]", strerror(ret));
 
     /* Netgroup Attributes */
     ret = compare_sdap_attr_maps(netgroup_map, SDAP_OPTS_NETGROUP,
                                  ad_netgroup_map);
-    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    ck_assert_msg(ret == EOK, "[%s]", strerror(ret));
 
     /* Service Attributes */
     ret = compare_sdap_attr_maps(service_map, SDAP_OPTS_SERVICES,
                                  ad_service_map);
-    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    ck_assert_msg(ret == EOK, "[%s]", strerror(ret));
 }
 END_TEST
 
