@@ -31,6 +31,11 @@ void ck_leak_check_setup(void);
 void ck_leak_check_teardown(void);
 
 #define ck_leaks_push(ctx) check_leaks_push(ctx)
-#define ck_leaks_pop(ctx) fail_unless(check_leaks_pop(ctx) == true, "%s", check_leaks_err_msg())
+#define ck_leaks_pop(ctx) ck_assert_msg(check_leaks_pop(ctx) == true, "%s", check_leaks_err_msg())
+
+#define sss_ck_fail_if_msg(expr, ...) \
+  (expr) ? \
+     _ck_assert_failed(__FILE__, __LINE__, "Assertion '"#expr"' failed" , ## __VA_ARGS__) : \
+     _mark_point(__FILE__, __LINE__)
 
 #endif /* __TESTS_COMMON_CHECK_H__ */

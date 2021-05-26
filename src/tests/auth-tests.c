@@ -62,13 +62,13 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     /* (relative to current dir) */
     ret = mkdir(TESTS_PATH, 0775);
     if (ret == -1 && errno != EEXIST) {
-        fail("Could not create %s directory", TESTS_PATH);
+        ck_abort_msg("Could not create %s directory", TESTS_PATH);
         return EFAULT;
     }
 
     test_ctx = talloc_zero(NULL, struct sysdb_test_ctx);
     if (test_ctx == NULL) {
-        fail("Could not allocate memory for test context");
+        ck_abort_msg("Could not allocate memory for test context");
         return ENOMEM;
     }
 
@@ -77,14 +77,14 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
      */
     test_ctx->ev = tevent_context_init(test_ctx);
     if (test_ctx->ev == NULL) {
-        fail("Could not create event context");
+        ck_abort_msg("Could not create event context");
         talloc_free(test_ctx);
         return EIO;
     }
 
     conf_db = talloc_asprintf(test_ctx, "%s/%s", TESTS_PATH, TEST_CONF_FILE);
     if (conf_db == NULL) {
-        fail("Out of memory, aborting!");
+        ck_abort_msg("Out of memory, aborting!");
         talloc_free(test_ctx);
         return ENOMEM;
     }
@@ -93,7 +93,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     /* Connect to the conf db */
     ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);
     if (ret != EOK) {
-        fail("Could not initialize connection to the confdb");
+        ck_abort_msg("Could not initialize connection to the confdb");
         talloc_free(test_ctx);
         return ret;
     }
@@ -102,7 +102,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);
     if (ret != EOK) {
-        fail("Could not initialize domains placeholder");
+        ck_abort_msg("Could not initialize domains placeholder");
         talloc_free(test_ctx);
         return ret;
     }
@@ -111,7 +111,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/FILES", "id_provider", val);
     if (ret != EOK) {
-        fail("Could not initialize provider");
+        ck_abort_msg("Could not initialize provider");
         talloc_free(test_ctx);
         return ret;
     }
@@ -120,7 +120,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/FILES", "enumerate", val);
     if (ret != EOK) {
-        fail("Could not initialize FILES domain");
+        ck_abort_msg("Could not initialize FILES domain");
         talloc_free(test_ctx);
         return ret;
     }
@@ -129,7 +129,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/FILES", "cache_credentials", val);
     if (ret != EOK) {
-        fail("Could not initialize FILES domain");
+        ck_abort_msg("Could not initialize FILES domain");
         talloc_free(test_ctx);
         return ret;
     }
@@ -137,7 +137,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     ret = sssd_domain_init(test_ctx, test_ctx->confdb, "files",
                            TESTS_PATH, &test_ctx->domain);
     if (ret != EOK) {
-        fail("Could not initialize connection to the sysdb (%d)", ret);
+        ck_abort_msg("Could not initialize connection to the sysdb (%d)", ret);
         talloc_free(test_ctx);
         return ret;
     }
@@ -165,43 +165,43 @@ static void do_failed_login_test(uint32_t failed_login_attempts,
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
-    fail_unless(ret == EOK, "Could not set up the test");
+    ck_assert_msg(ret == EOK, "Could not set up the test");
 
     val[0] = talloc_asprintf(test_ctx, "%u", offline_failed_login_attempts);
-    fail_unless(val[0] != NULL, "talloc_sprintf failed");
+    ck_assert_msg(val[0] != NULL, "talloc_sprintf failed");
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/pam", CONFDB_PAM_FAILED_LOGIN_ATTEMPTS, val);
-    fail_unless(ret == EOK, "Could not set offline_failed_login_attempts");
+    ck_assert_msg(ret == EOK, "Could not set offline_failed_login_attempts");
 
     val[0] = talloc_asprintf(test_ctx, "%u", offline_failed_login_delay);
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/pam", CONFDB_PAM_FAILED_LOGIN_DELAY, val);
-    fail_unless(ret == EOK, "Could not set offline_failed_login_delay");
+    ck_assert_msg(ret == EOK, "Could not set offline_failed_login_delay");
 
     ldb_msg = ldb_msg_new(test_ctx);
-    fail_unless(ldb_msg != NULL, "ldb_msg_new failed");
+    ck_assert_msg(ldb_msg != NULL, "ldb_msg_new failed");
 
     ret = ldb_msg_add_fmt(ldb_msg, SYSDB_FAILED_LOGIN_ATTEMPTS, "%u",
                           failed_login_attempts);
-    fail_unless(ret == EOK, "ldb_msg_add_string failed");
+    ck_assert_msg(ret == EOK, "ldb_msg_add_string failed");
 
     ret = ldb_msg_add_fmt(ldb_msg, SYSDB_LAST_FAILED_LOGIN, "%lld",
                           (long long) last_failed_login);
-    fail_unless(ret == EOK, "ldb_msg_add_string failed");
+    ck_assert_msg(ret == EOK, "ldb_msg_add_string failed");
 
     ret = check_failed_login_attempts(test_ctx->confdb, ldb_msg,
                                       &returned_failed_login_attempts,
                                       &delayed_until);
-    fail_unless(ret == expected_result,
+    ck_assert_msg(ret == expected_result,
                 "check_failed_login_attempts returned wrong error code, "
                 "expected [%d], got [%d]", expected_result, ret);
 
-    fail_unless(returned_failed_login_attempts == expected_counter,
+    ck_assert_msg(returned_failed_login_attempts == expected_counter,
                 "check_failed_login_attempts returned wrong number of failed "
                 "login attempts, expected [%d], got [%d]",
                 expected_counter, failed_login_attempts);
 
-    fail_unless(delayed_until == expected_delay,
+    ck_assert_msg(delayed_until == expected_delay,
                 "check_failed_login_attempts wrong delay, "
                 "expected [%ld], got [%ld]",
                 expected_delay, delayed_until);

@@ -64,8 +64,8 @@ void idmap_ctx_setup(void)
     err = sss_idmap_init(idmap_talloc, global_talloc_context, idmap_talloc_free,
                          &idmap_ctx);
 
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_init failed.");
-    fail_unless(idmap_ctx != NULL, "sss_idmap_init returned NULL.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_init failed.");
+    ck_assert_msg(idmap_ctx != NULL, "sss_idmap_init returned NULL.");
 }
 
 void idmap_ctx_setup_additional_secondary_slices(void)
@@ -75,8 +75,8 @@ void idmap_ctx_setup_additional_secondary_slices(void)
     err = sss_idmap_init(idmap_talloc, global_talloc_context, idmap_talloc_free,
                          &idmap_ctx);
 
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_init failed.");
-    fail_unless(idmap_ctx != NULL, "sss_idmap_init returned NULL.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_init failed.");
+    ck_assert_msg(idmap_ctx != NULL, "sss_idmap_init returned NULL.");
 
     idmap_ctx->idmap_opts.rangesize = 10;
     idmap_ctx->idmap_opts.extra_slice_init = 5;
@@ -87,7 +87,7 @@ void idmap_ctx_teardown(void)
     enum idmap_error_code err;
 
     err = sss_idmap_free(idmap_ctx);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_free failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_free failed.");
 }
 
 void idmap_add_domain_setup(void)
@@ -96,7 +96,7 @@ void idmap_add_domain_setup(void)
     struct sss_idmap_range range = {IDMAP_RANGE_MIN, IDMAP_RANGE_MAX};
 
     err = sss_idmap_add_domain(idmap_ctx, "test.dom", "S-1-5-21-1-2-3", &range);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_domain failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_add_domain failed.");
 }
 
 void idmap_add_domain_with_sec_slices_setup(void)
@@ -110,7 +110,7 @@ void idmap_add_domain_with_sec_slices_setup(void)
     err = sss_idmap_add_auto_domain_ex(idmap_ctx, "test.dom", "S-1-5-21-1-2-3",
                                        &range, NULL, 0, false, NULL, NULL);
 
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_auto_domain_ex failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_add_auto_domain_ex failed.");
 }
 
 
@@ -136,7 +136,7 @@ void idmap_add_domain_with_sec_slices_setup_cb_fail(void)
     err = sss_idmap_add_auto_domain_ex(idmap_ctx, "test.dom", "S-1-5-21-1-2-3",
                                        &range, NULL, 0, false, cb, NULL);
 
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_auto_domain_ex failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_add_auto_domain_ex failed.");
 }
 
 
@@ -176,7 +176,7 @@ void idmap_add_domain_with_sec_slices_setup_cb_ok(void)
     err = sss_idmap_add_auto_domain_ex(idmap_ctx, "test.dom", "S-1-5-21-1-2-3",
                                        &range, NULL, 0, false, cb2, pvt);
 
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_auto_domain_ex failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_add_auto_domain_ex failed.");
 }
 
 START_TEST(idmap_test_is_domain_sid)
@@ -191,13 +191,13 @@ START_TEST(idmap_test_is_domain_sid)
                               "S-1-5-21-1-2-3-4",
                               NULL };
 
-    fail_if(is_domain_sid(NULL), "is_domain_sid() returned true for [NULL]");
+    sss_ck_fail_if_msg(is_domain_sid(NULL), "is_domain_sid() returned true for [NULL]");
     for (c = 0; invalid[c] != NULL; c++) {
-        fail_if(is_domain_sid(invalid[c]),
+        sss_ck_fail_if_msg(is_domain_sid(invalid[c]),
                 "is_domain_sid() returned true for [%s]", invalid[c]);
     }
 
-    fail_unless(is_domain_sid("S-1-5-21-1-2-3"),
+    ck_assert_msg(is_domain_sid("S-1-5-21-1-2-3"),
                 "is_domain_sid() returned true for [S-1-5-21-1-2-3]");
 }
 END_TEST
@@ -209,11 +209,11 @@ START_TEST(idmap_test_init_malloc)
 
     err = sss_idmap_init(NULL, NULL, NULL, &ctx);
 
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_init failed.");
-    fail_unless(ctx != NULL, "sss_idmap_init returned NULL.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_init failed.");
+    ck_assert_msg(ctx != NULL, "sss_idmap_init returned NULL.");
 
     err = sss_idmap_free(ctx);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_free failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_free failed.");
 }
 END_TEST
 
@@ -225,11 +225,11 @@ START_TEST(idmap_test_init_talloc)
     err = sss_idmap_init(idmap_talloc, global_talloc_context, idmap_talloc_free,
                          &ctx);
 
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_init failed.");
-    fail_unless(ctx != NULL, "sss_idmap_init returned NULL.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_init failed.");
+    ck_assert_msg(ctx != NULL, "sss_idmap_init returned NULL.");
 
     err = sss_idmap_free(ctx);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_free failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_free failed.");
 }
 END_TEST
 
@@ -246,26 +246,26 @@ START_TEST(idmap_test_add_domain_collisions)
     struct sss_idmap_range range2 = {IDMAP_RANGE_MIN2, IDMAP_RANGE_MAX2};
 
     err = sss_idmap_add_domain(idmap_ctx, "test.dom", "S-1-5-21-1-2-3", &range);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_domain failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_add_domain failed.");
 
     err = sss_idmap_add_domain(idmap_ctx, "test.dom", "S-1-5-21-1-2-4",
                                &range2);
-    fail_unless(err == IDMAP_COLLISION,
+    ck_assert_msg(err == IDMAP_COLLISION,
                 "sss_idmap_add_domain added domain with the same name.");
 
     err = sss_idmap_add_domain(idmap_ctx, "test.dom2", "S-1-5-21-1-2-3",
                                &range2);
-    fail_unless(err == IDMAP_COLLISION,
+    ck_assert_msg(err == IDMAP_COLLISION,
                 "sss_idmap_add_domain added domain with the same SID.");
 
     err = sss_idmap_add_domain(idmap_ctx, "test.dom2", "S-1-5-21-1-2-4",
                                &range);
-    fail_unless(err == IDMAP_COLLISION,
+    ck_assert_msg(err == IDMAP_COLLISION,
                 "sss_idmap_add_domain added domain with the same range.");
 
     err = sss_idmap_add_domain(idmap_ctx, "test.dom2", "S-1-5-21-1-2-4",
                                &range2);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "sss_idmap_add_domain failed to add second domain.");
 }
 END_TEST
@@ -278,21 +278,21 @@ START_TEST(idmap_test_add_domain_collisions_ext_mapping)
 
     err = sss_idmap_add_domain_ex(idmap_ctx, "test.dom", "S-1-5-21-1-2-3",
                                   &range, NULL, 0, true);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_domain failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_add_domain failed.");
 
     err = sss_idmap_add_domain_ex(idmap_ctx, "test.dom", "S-1-5-21-1-2-4",
                                   &range2, NULL, 0, true);
-    fail_unless(err == IDMAP_COLLISION,
+    ck_assert_msg(err == IDMAP_COLLISION,
                 "sss_idmap_add_domain added domain with the same name.");
 
     err = sss_idmap_add_domain_ex(idmap_ctx, "test.dom2", "S-1-5-21-1-2-3",
                                   &range2, NULL, 0, true);
-    fail_unless(err == IDMAP_COLLISION,
+    ck_assert_msg(err == IDMAP_COLLISION,
                 "sss_idmap_add_domain added domain with the same SID.");
 
     err = sss_idmap_add_domain_ex(idmap_ctx, "test.dom2", "S-1-5-21-1-2-4",
                                   &range, NULL, 0, true);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "sss_idmap_add_domain failed to add second domain with " \
                 "external mapping and the same range.");
 }
@@ -304,16 +304,16 @@ START_TEST(idmap_test_sid2uid)
     uint32_t id;
 
     err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3333-1000", &id);
-    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_sid_to_unix did not detect "
+    ck_assert_msg(err == IDMAP_NO_DOMAIN, "sss_idmap_sid_to_unix did not detect "
                                         "unknown domain");
 
     err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-10000", &id);
-    fail_unless(err == IDMAP_NO_RANGE, "sss_idmap_sid_to_unix did not detect "
+    ck_assert_msg(err == IDMAP_NO_RANGE, "sss_idmap_sid_to_unix did not detect "
                                        "RID out of range");
 
     err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-1000", &id);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
-    fail_unless(id == (1000 + IDMAP_RANGE_MIN),
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    ck_assert_msg(id == (1000 + IDMAP_RANGE_MIN),
                 "sss_idmap_sid_to_unix returned wrong id, "
                 "got [%d], expected [%d].", id, 1000 + IDMAP_RANGE_MIN);
 }
@@ -327,25 +327,25 @@ START_TEST(idmap_test_sid2uid_ss)
     const uint32_t exp_id2 = 832610000;
 
     err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3333-1000", &id);
-    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_sid_to_unix did not detect "
+    ck_assert_msg(err == IDMAP_NO_DOMAIN, "sss_idmap_sid_to_unix did not detect "
                                         "unknown domain");
 
     /* RID out of primary and secondary range */
     err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-4000000", &id);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
-    fail_unless(id == exp_id,
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    ck_assert_msg(id == exp_id,
                 "sss_idmap_sid_to_unix returned wrong id, "
                 "got [%d], expected [%d].", id, exp_id);
 
     err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-1000", &id);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
-    fail_unless(id == (1000 + IDMAP_RANGE_MIN),
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    ck_assert_msg(id == (1000 + IDMAP_RANGE_MIN),
                 "sss_idmap_sid_to_unix returned wrong id, "
                 "got [%d], expected [%d].", id, 1000 + IDMAP_RANGE_MIN);
 
     err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-210000", &id);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
-    fail_unless(id == exp_id2,
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    ck_assert_msg(id == exp_id2,
                 "sss_idmap_sid_to_unix returned wrong id, "
                 "got [%d], expected [%d].", id, exp_id2);
 }
@@ -359,20 +359,20 @@ START_TEST(idmap_test_sid2uid_ext_sec_slices)
     const uint32_t exp_id = 351800000;
 
     err = sss_idmap_unix_to_sid(idmap_ctx, exp_id, &sid);
-    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
+    ck_assert_msg(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
                                         "id out of range");
 
     /* RID out of primary and secondary range */
     err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-4000000", &id);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
-    fail_unless(id == exp_id,
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    ck_assert_msg(id == exp_id,
                 "sss_idmap_sid_to_unix returned wrong id, "
                 "got [%d], expected [%d].", id, exp_id);
 
     /* Secondary ranges were expanded by sid_to_unix call */
     err = sss_idmap_unix_to_sid(idmap_ctx, exp_id, &sid);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
-    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-4000000") == 0,
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
+    ck_assert_msg(strcmp(sid, "S-1-5-21-1-2-3-4000000") == 0,
                 "sss_idmap_unix_to_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-4000000", sid);
     sss_idmap_free_sid(idmap_ctx, sid);
@@ -388,12 +388,12 @@ START_TEST(idmap_test_dyn_dom_store_cb_fail)
     const uint32_t exp_id = 351800000;
 
     err = sss_idmap_unix_to_sid(idmap_ctx, exp_id, &sid);
-    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
+    ck_assert_msg(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
                                         "id out of range");
 
     /* RID out of primary and secondary range */
     err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-4000000", &id);
-    fail_unless(err == IDMAP_ERROR, "sss_idmap_sid_to_unix failed.");
+    ck_assert_msg(err == IDMAP_ERROR, "sss_idmap_sid_to_unix failed.");
 }
 END_TEST
 
@@ -406,14 +406,14 @@ START_TEST(idmap_test_dyn_dom_store_cb_ok)
     const char *exp_stored_data = "test.dom, S-1-5-21-1-2-3 S-1-5-21-1-2-3-4000000, 351800000, 351999999, 4000000";
 
     err = sss_idmap_unix_to_sid(idmap_ctx, exp_id, &sid);
-    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
+    ck_assert_msg(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
                                         "id out of range");
 
     /* RID out of primary and secondary range */
     err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-4000000", &id);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
 
-    fail_unless(strcmp(data,
+    ck_assert_msg(strcmp(data,
                        exp_stored_data) == 0,
                 "Storing dynamic domains idmapping failed: "
                 "expected [%s] but got [%s].", exp_stored_data, data);
@@ -431,24 +431,24 @@ START_TEST(idmap_test_sid2uid_additional_secondary_slices)
     unsigned int ids[max_rid + 1];
 
     tmp_ctx = talloc_new(NULL);
-    fail_unless(tmp_ctx != NULL, "Out of memory.");
+    ck_assert_msg(tmp_ctx != NULL, "Out of memory.");
 
     for (unsigned int i = 0; i < max_rid + 1; i++) {
         sids[i] = talloc_asprintf(tmp_ctx, "%s-%u", dom_prefix, i);
 
-        fail_unless(sids[i] != NULL, "Out of memory");
+        ck_assert_msg(sids[i] != NULL, "Out of memory");
 
         err = sss_idmap_sid_to_unix(idmap_ctx, sids[i], &ids[i]);
-        fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+        ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
     }
 
     for (unsigned int i = 0; i < max_rid + 1; i++) {
         char *sid;
 
         err = sss_idmap_unix_to_sid(idmap_ctx, ids[i], &sid);
-        fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+        ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
 
-        fail_unless(strcmp(sid, sids[i]) == 0,
+        ck_assert_msg(strcmp(sid, sids[i]) == 0,
                     "sss_idmap_unix_to_sid returned wrong sid, "
                     "got [%s], expected [%s].", sid, sids[i]);
         talloc_free(sid);
@@ -467,11 +467,11 @@ START_TEST(idmap_test_bin_sid2uid)
 
     err = sss_idmap_sid_to_bin_sid(idmap_ctx, "S-1-5-21-1-2-3-1000",
                                    &bin_sid, &length);
-    fail_unless(err == IDMAP_SUCCESS, "Failed to convert SID to binary SID");
+    ck_assert_msg(err == IDMAP_SUCCESS, "Failed to convert SID to binary SID");
 
     err = sss_idmap_bin_sid_to_unix(idmap_ctx, bin_sid, length , &id);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_bin_sid_to_unix failed.");
-    fail_unless(id == (1000 + IDMAP_RANGE_MIN),
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_bin_sid_to_unix failed.");
+    ck_assert_msg(id == (1000 + IDMAP_RANGE_MIN),
                 "sss_idmap_bin_sid_to_unix returned wrong id, "
                 "got [%d], expected [%d].", id, 1000 + IDMAP_RANGE_MIN);
 
@@ -486,11 +486,11 @@ START_TEST(idmap_test_dom_sid2uid)
     struct sss_dom_sid *dom_sid = NULL;
 
     err = sss_idmap_sid_to_dom_sid(idmap_ctx, "S-1-5-21-1-2-3-1000", &dom_sid);
-    fail_unless(err == IDMAP_SUCCESS, "Failed to convert SID to SID structure");
+    ck_assert_msg(err == IDMAP_SUCCESS, "Failed to convert SID to SID structure");
 
     err = sss_idmap_dom_sid_to_unix(idmap_ctx, dom_sid, &id);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_dom_sid_to_unix failed.");
-    fail_unless(id == (1000 + IDMAP_RANGE_MIN),
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_dom_sid_to_unix failed.");
+    ck_assert_msg(id == (1000 + IDMAP_RANGE_MIN),
                 "sss_idmap_dom_sid_to_unix returned wrong id, "
                 "got [%d], expected [%d].", id, 1000 + IDMAP_RANGE_MIN);
 
@@ -504,12 +504,12 @@ START_TEST(idmap_test_uid2sid)
     char *sid;
 
     err = sss_idmap_unix_to_sid(idmap_ctx, 10000, &sid);
-    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
+    ck_assert_msg(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
                                         "id out of range");
 
     err = sss_idmap_unix_to_sid(idmap_ctx, 2234, &sid);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
-    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
+    ck_assert_msg(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
                 "sss_idmap_unix_to_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
 
@@ -525,12 +525,12 @@ START_TEST(idmap_test_uid2sid_ss)
     err = sss_idmap_unix_to_sid(idmap_ctx,
                                 IDMAP_RANGE_MIN + idmap_ctx->idmap_opts.rangesize + 1,
                                 &sid);
-    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
+    ck_assert_msg(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
                                         "id out of range");
 
     err = sss_idmap_unix_to_sid(idmap_ctx, 2234, &sid);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
-    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
+    ck_assert_msg(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
                 "sss_idmap_unix_to_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
 
@@ -540,8 +540,8 @@ START_TEST(idmap_test_uid2sid_ss)
     err = sss_idmap_unix_to_sid(idmap_ctx,
                                 313800000,
                                 &sid);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
-    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-400000") == 0,
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
+    ck_assert_msg(strcmp(sid, "S-1-5-21-1-2-3-400000") == 0,
                 "sss_idmap_unix_to_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-400000", sid);
 
@@ -556,16 +556,16 @@ START_TEST(idmap_test_uid2dom_sid)
     char *sid = NULL;
 
     err = sss_idmap_unix_to_dom_sid(idmap_ctx, 10000, &dom_sid);
-    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_dom_sid did not detect "
+    ck_assert_msg(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_dom_sid did not detect "
                                         "id out of range");
 
     err = sss_idmap_unix_to_dom_sid(idmap_ctx, 2234, &dom_sid);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_dom_sid failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_unix_to_dom_sid failed.");
 
     err = sss_idmap_dom_sid_to_sid(idmap_ctx, dom_sid, &sid);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_dom_sid_to_sid failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_dom_sid_to_sid failed.");
 
-    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
+    ck_assert_msg(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
                 "sss_idmap_unix_to_dom_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
 
@@ -582,16 +582,16 @@ START_TEST(idmap_test_uid2bin_sid)
     char *sid = NULL;
 
     err = sss_idmap_unix_to_bin_sid(idmap_ctx, 10000, &bin_sid, &length);
-    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_bin_sid did not detect "
+    ck_assert_msg(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_bin_sid did not detect "
                                         "id out of range");
 
     err = sss_idmap_unix_to_bin_sid(idmap_ctx, 2234, &bin_sid, &length);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_bin_sid failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_unix_to_bin_sid failed.");
 
     err = sss_idmap_bin_sid_to_sid(idmap_ctx, bin_sid, length, &sid);
-    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_bin_sid_to_sid failed.");
+    ck_assert_msg(err == IDMAP_SUCCESS, "sss_idmap_bin_sid_to_sid failed.");
 
-    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
+    ck_assert_msg(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
                 "sss_idmap_unix_to_bin_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
 
@@ -610,17 +610,17 @@ START_TEST(idmap_test_bin_sid2dom_sid)
     err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, test_bin_sid,
                                        test_bin_sid_length, &dom_sid);
 
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert binary SID to struct sss_dom_sid.");
 
     err = sss_idmap_dom_sid_to_bin_sid(idmap_ctx, dom_sid, &new_bin_sid,
                                        &new_bin_sid_length);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert struct sss_dom_sid to binary SID.");
 
-    fail_unless(new_bin_sid_length == test_bin_sid_length,
+    ck_assert_msg(new_bin_sid_length == test_bin_sid_length,
                 "Length of binary SIDs do not match.");
-    fail_unless(memcmp(test_bin_sid, new_bin_sid, test_bin_sid_length) == 0,
+    ck_assert_msg(memcmp(test_bin_sid, new_bin_sid, test_bin_sid_length) == 0,
                 "Binary SIDs do not match.");
 
     sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
@@ -636,17 +636,17 @@ START_TEST(idmap_test_sid2dom_sid)
 
     err = sss_idmap_sid_to_dom_sid(idmap_ctx, "S-1-5-21-1-2-3-1000", &dom_sid);
 
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert SID string to struct sss_dom_sid.");
 
     err = sss_idmap_dom_sid_to_sid(idmap_ctx, dom_sid, &new_sid);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert struct sss_dom_sid to SID string.");
 
-    fail_unless(new_sid != NULL, "SID string not set");
-    fail_unless(strlen("S-1-5-21-1-2-3-1000") == strlen(new_sid),
+    ck_assert_msg(new_sid != NULL, "SID string not set");
+    ck_assert_msg(strlen("S-1-5-21-1-2-3-1000") == strlen(new_sid),
                 "Length of SID strings do not match.");
-    fail_unless(strcmp("S-1-5-21-1-2-3-1000", new_sid) == 0,
+    ck_assert_msg(strcmp("S-1-5-21-1-2-3-1000", new_sid) == 0,
                 "SID strings do not match.");
 
     sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
@@ -662,23 +662,23 @@ START_TEST(idmap_test_large_and_too_large_sid)
 
     err = sss_idmap_sid_to_dom_sid(idmap_ctx, large_sid, &dom_sid);
 
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert SID string with a UINT32_MAX component "
                 "to struct sss_dom_sid.");
 
     err = sss_idmap_dom_sid_to_sid(idmap_ctx, dom_sid, &new_sid);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert struct sss_dom_sid to SID string.");
 
-    fail_unless(new_sid != NULL, "SID string not set");
-    fail_unless(strlen(large_sid) == strlen(new_sid),
+    ck_assert_msg(new_sid != NULL, "SID string not set");
+    ck_assert_msg(strlen(large_sid) == strlen(new_sid),
                 "Length of SID strings do not match.");
-    fail_unless(strcmp(large_sid, new_sid) == 0,
+    ck_assert_msg(strcmp(large_sid, new_sid) == 0,
                 "SID strings do not match, expected [%s], got [%s]",
                 large_sid, new_sid);
 
     err = sss_idmap_sid_to_dom_sid(idmap_ctx, too_large_sid, &dom_sid);
-    fail_unless(err == IDMAP_SID_INVALID,
+    ck_assert_msg(err == IDMAP_SID_INVALID,
                 "Trying to convert  a SID with a too large component "
                 "did not return IDMAP_SID_INVALID");
 
@@ -694,12 +694,12 @@ START_TEST(idmap_test_sid2bin_sid)
     uint8_t *bin_sid = NULL;
 
     err = sss_idmap_sid_to_bin_sid(idmap_ctx, test_sid, &bin_sid, &length);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert SID string to binary sid.");
-    fail_unless(length == test_bin_sid_length,
+    ck_assert_msg(length == test_bin_sid_length,
                 "Size of binary SIDs do not match, got [%zu], expected [%zu]",
                 length, test_bin_sid_length);
-    fail_unless(memcmp(bin_sid, test_bin_sid, test_bin_sid_length) == 0,
+    ck_assert_msg(memcmp(bin_sid, test_bin_sid, test_bin_sid_length) == 0,
                 "Binary SIDs do not match");
 
     sss_idmap_free_bin_sid(idmap_ctx, bin_sid);
@@ -713,9 +713,9 @@ START_TEST(idmap_test_bin_sid2sid)
 
     err = sss_idmap_bin_sid_to_sid(idmap_ctx, test_bin_sid, test_bin_sid_length,
                                    &sid);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert binary SID to SID string.");
-    fail_unless(strcmp(sid, test_sid) == 0, "SID strings do not match, "
+    ck_assert_msg(strcmp(sid, test_sid) == 0, "SID strings do not match, "
                                             "expected [%s], get [%s]",
                                             test_sid, sid);
 
@@ -730,14 +730,14 @@ START_TEST(idmap_test_smb_sid2dom_sid)
     struct dom_sid *new_smb_sid = NULL;
 
     err = sss_idmap_smb_sid_to_dom_sid(idmap_ctx, &test_smb_sid, &dom_sid);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert samba dom_sid to struct sss_dom_sid.");
 
     err = sss_idmap_dom_sid_to_smb_sid(idmap_ctx, dom_sid, &new_smb_sid);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert struct sss_dom_sid to samba dom_sid.");
 
-    fail_unless(memcmp(&test_smb_sid, new_smb_sid, sizeof(struct dom_sid)) == 0,
+    ck_assert_msg(memcmp(&test_smb_sid, new_smb_sid, sizeof(struct dom_sid)) == 0,
                 "Samba dom_sid-s do not match.");
 
     sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
@@ -753,12 +753,12 @@ START_TEST(idmap_test_smb_sid2bin_sid)
 
     err = sss_idmap_smb_sid_to_bin_sid(idmap_ctx, &test_smb_sid,
                                        &bin_sid, &length);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert samba dom_sid to binary sid.");
-    fail_unless(length == test_bin_sid_length,
+    ck_assert_msg(length == test_bin_sid_length,
                 "Size of binary SIDs do not match, got [%zu], expected [%zu]",
                 length, test_bin_sid_length);
-    fail_unless(memcmp(bin_sid, test_bin_sid, test_bin_sid_length) == 0,
+    ck_assert_msg(memcmp(bin_sid, test_bin_sid, test_bin_sid_length) == 0,
                 "Binary SIDs do not match.");
 
     sss_idmap_free_bin_sid(idmap_ctx, bin_sid);
@@ -772,9 +772,9 @@ START_TEST(idmap_test_bin_sid2smb_sid)
 
     err = sss_idmap_bin_sid_to_smb_sid(idmap_ctx, test_bin_sid,
                                        test_bin_sid_length, &smb_sid);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert binary sid to samba dom_sid.");
-    fail_unless(memcmp(&test_smb_sid, smb_sid, sizeof(struct dom_sid)) == 0,
+    ck_assert_msg(memcmp(&test_smb_sid, smb_sid, sizeof(struct dom_sid)) == 0,
                  "Samba dom_sid structs do not match.");
 
     sss_idmap_free_smb_sid(idmap_ctx, smb_sid);
@@ -787,9 +787,9 @@ START_TEST(idmap_test_smb_sid2sid)
     char *sid = NULL;
 
     err = sss_idmap_smb_sid_to_sid(idmap_ctx, &test_smb_sid, &sid);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert samba dom_sid to sid string.");
-    fail_unless(strcmp(sid, test_sid) == 0, "SID strings do not match, "
+    ck_assert_msg(strcmp(sid, test_sid) == 0, "SID strings do not match, "
                                             "expected [%s], get [%s]",
                                             test_sid, sid);
 
@@ -803,9 +803,9 @@ START_TEST(idmap_test_sid2smb_sid)
     struct dom_sid *smb_sid = NULL;
 
     err = sss_idmap_sid_to_smb_sid(idmap_ctx, test_sid, &smb_sid);
-    fail_unless(err == IDMAP_SUCCESS,
+    ck_assert_msg(err == IDMAP_SUCCESS,
                 "Failed to convert binary sid to samba dom_sid.");
-    fail_unless(memcmp(&test_smb_sid, smb_sid, sizeof(struct dom_sid)) == 0,
+    ck_assert_msg(memcmp(&test_smb_sid, smb_sid, sizeof(struct dom_sid)) == 0,
                  "Samba dom_sid structs do not match.");
 
     sss_idmap_free_smb_sid(idmap_ctx, smb_sid);
