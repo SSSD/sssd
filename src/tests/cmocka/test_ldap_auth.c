@@ -28,7 +28,7 @@
 #include <sys/types.h>
 #include <cmocka.h>
 
-#include "tests/common_check.h"
+#include "tests/common.h"
 #include "providers/ldap/ldap_auth.h"
 #include "tests/cmocka/test_expire_common.h"
 
