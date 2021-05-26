@@ -10,10 +10,7 @@ from __future__ import print_function
 import re
 import pytest
 import time
-import paramiko
-import subprocess
 from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.exceptions import SSHLoginException
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from constants import ds_instance_name
 
@@ -93,7 +90,7 @@ class TestKcm(object):
                                                    f"{log_location}")
         assert 'modifyTimestamp>=' not in grep_cmd.stdout_text
 
-    @pytest.mark.no_tier
+    @pytest.mark.tier1_2
     def test_kcm_check_socket_path(self, multihost, backupsssdconf):
         """
         :title: kcm: Test socket path when sssd-kcm is activated by systemd
@@ -102,25 +99,22 @@ class TestKcm(object):
         """
         # Start from a known-good state after removing log file and adding a
         # new socket path
+        client = sssdTools(multihost.client[0])
         domain_log = '/var/log/sssd/sssd_kcm.log'
         multihost.client[0].service_sssd('stop')
-        multihost.client[0].run_command("systemctl stop sssd-kcm")
-        client = sssdTools(multihost.client[0])
+        client.service_ctrl('stop', 'sssd-kcm')
         client.remove_sss_cache(domain_log)
-        socket_path = "/some_path/kcm.socket"
-        domain_section = "kcm"
-        sssd_params = {'socket_path': '%s' % (socket_path)}
-        client.sssd_conf(domain_section, sssd_params)
+        domain_params = {'debug_level': '9',
+                         'socket_path': '/some_path/kcm.socket'}
+        client.sssd_conf('kcm', domain_params)
         multihost.client[0].service_sssd('start')
-        multihost.client[0].run_command("systemctl start sssd-kcm")
+        # After starting sssd-kcm, latest sssd_kcm.log will generate
+        client.service_ctrl('start', 'sssd-kcm')
         # Give sssd some time to load
         time.sleep(2)
-
         # Check log file for the expected warning message
         log = multihost.client[0].get_file_contents(domain_log).decode('utf-8')
-        msg = "Warning: socket path defined in systemd unit "\
-              "\([a-zA-Z0-9\/._-]) and sssd.conf \(%s\) don't "\
-              "match" % (socket_path)
+        msg = "Warning: socket path defined in systemd unit .*." \
+              "and.sssd.conf...some_path.kcm.socket..don't.match"
         find = re.compile(r'%s' % msg)
-
         assert find.search(log)
