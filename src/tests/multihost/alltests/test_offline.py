@@ -19,11 +19,10 @@ class TestOffline(object):
     This is test case class for ldap offline suite
     """
     @pytest.mark.tier1
-    def test_0001_bz1416150(self, multihost):
+    def test_0001_bz1416150(self, multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: ldap_provider: offline: Log to syslog when sssd
          cannot contact servers goes offline
-         offline.
         :id: fd062319-fa78-4a9e-98ad-be6636b36c5e
         """
         hostname = multihost.master[0].sys_hostname
@@ -34,7 +33,8 @@ class TestOffline(object):
         tools = sssdTools(multihost.client[0])
         # remove sssd cache
         tools.remove_sss_cache('/var/lib/sss/db')
-        domain_params = {'ldap_uri': bad_ldap_uri}
+        domain_params = {'ldap_uri': bad_ldap_uri,
+                         'ldap_sudo_random_offset': '0'}
         tools.sssd_conf('domain/%s' % (ds_instance_name), domain_params)
         start = multihost.client[0].service_sssd('start')
         # Check backend status
