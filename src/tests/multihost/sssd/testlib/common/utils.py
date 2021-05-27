@@ -472,9 +472,8 @@ class sssdTools(object):
 
     def remove_sss_cache(self, cache_path):
         """ Remove the sssd cache
-            :param str cache_path: The relative path of cache
-            :return bool: True if deletion and mkdir is successful
-            :Exception: Raises SSSDException
+            :param str cache_path/log_path: The relative path of cache/log
+            :return bool: True if deletion
         """
         cmd = self.multihost.run_command(['ls', cache_path], raiseonerr=False)
         if cmd.returncode == 0:
@@ -488,11 +487,11 @@ class sssdTools(object):
                                                       relative_path],
                                                      raiseonerr=False)
                 if rm_file.returncode != 0:
-                    raise SSSDException("Error: %s", cmd.stderr_text)
+                    print("Error: %s", cmd.stderr_text)
                 else:
                     print("Successfully deleted %s" % (relative_path))
         else:
-            raise SSSDException('%s path not found' % cache_path)
+            print('%s path not found' % cache_path)
         return True
 
     def clear_sssd_cache(self, start=True):
