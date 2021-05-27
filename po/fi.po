@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-05-10 15:10+0200\n"
-"PO-Revision-Date: 2021-04-03 06:01+0000\n"
+"PO-Revision-Date: 2021-05-27 06:02+0000\n"
 "Last-Translator: Jan Kuparinen <copper_fin@hotmail.com>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fi/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.3\n"
+"X-Generator: Weblate 4.6.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2798,7 +2798,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format
 msgid "Failed to open %s\n"
-msgstr ""
+msgstr "%s:ta ei voitu avata\n"
 
 #: src/tools/sssctl/sssctl_config.c:123
 #, c-format
