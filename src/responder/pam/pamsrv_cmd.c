@@ -602,6 +602,11 @@ errno_t filter_responses(struct pam_ctx *pctx,
     uint32_t user_info_type;
     int64_t expire_date = 0;
     int pam_verbosity = DEFAULT_PAM_VERBOSITY;
+    char **new_opts;
+    size_t c;
+    const char *default_pam_response_filter[] = { "ENV:KRB5CCNAME:sudo",
+                                                  "ENV:KRB5CCNAME:sudo-i",
+                                                  NULL };
 
     ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
@@ -617,21 +622,43 @@ errno_t filter_responses(struct pam_ctx *pctx,
                                         CONFDB_PAM_CONF_ENTRY,
                                         CONFDB_PAM_RESPONSE_FILTER,
                                         &pctx->pam_filter_opts);
-        if (ret != EOK) {
-            if (ret == ENOENT) {
-                DEBUG(SSSDBG_CONF_SETTINGS, "[%s] not available, not fatal.\n",
-                                            CONFDB_PAM_RESPONSE_FILTER);
-                pctx->pam_filter_opts = talloc_zero_array(pctx, char *, 1);
-                if (pctx->pam_filter_opts == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Failed to allocate memory for empty [%s], not fatal.\n",
-                      CONFDB_PAM_RESPONSE_FILTER);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to read values of [%s], not fatal.\n",
+                  CONFDB_PAM_RESPONSE_FILTER);
+            pctx->pam_filter_opts = NULL;
+        } else {
+            if (pctx->pam_filter_opts == NULL
+                        || *pctx->pam_filter_opts[0] == '+'
+                        || *pctx->pam_filter_opts[0] == '-') {
+                ret = mod_defaults_list(pctx, default_pam_response_filter,
+                                        pctx->pam_filter_opts, &new_opts);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Failed to modify [%s] defaults.\n",
+                          CONFDB_PAM_RESPONSE_FILTER);
+                    return ret;
                 }
-            } else {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Failed to read values of [%s], not fatal.\n",
-                      CONFDB_PAM_RESPONSE_FILTER);
-                pctx->pam_filter_opts = NULL;
+                talloc_free(pctx->pam_filter_opts);
+                pctx->pam_filter_opts = new_opts;
+            }
+        }
+
+        if (pctx->pam_filter_opts == NULL) {
+            DEBUG(SSSDBG_CONF_SETTINGS, "No PAM response filter set.\n");
+        } else {
+            /* Make sure there are no '+' or '-' prefixes anymore */
+            for (c = 0; pctx->pam_filter_opts[c] != NULL; c++) {
+                    if (*pctx->pam_filter_opts[0] == '+'
+                            || *pctx->pam_filter_opts[0] == '-') {
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "Unsupport mix of prefixed and not prefixed "
+                              "values of [%s].\n", CONFDB_PAM_RESPONSE_FILTER);
+                        return EINVAL;
+                    }
+                    DEBUG(SSSDBG_CONF_SETTINGS,
+                          "PAM response filter: [%s].\n",
+                          pctx->pam_filter_opts[c]);
             }
         }
     }

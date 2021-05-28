@@ -3348,6 +3348,76 @@ void test_filter_response(void **state)
     talloc_free(pd);
 }
 
+#define ENV_1 "MyEnv=abcdef"
+#define ENV_2 "KRB5CCNAME=abc"
+void test_filter_response_defaults(void **state)
+{
+    int ret;
+    struct pam_data *pd;
+    uint8_t offline_auth_data[(sizeof(uint32_t) + sizeof(int64_t))];
+    uint32_t info_type;
+
+    struct sss_test_conf_param pam_params[] = {
+        { CONFDB_PAM_VERBOSITY, "1" },
+        { CONFDB_PAM_RESPONSE_FILTER, NULL },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    pd = talloc_zero(pam_test_ctx, struct pam_data);
+    assert_non_null(pd);
+
+    /* Currently only KRB5CCNAME is filtered for sudo and sudo-i, so all other
+     * environment variables and all other services should not be affected */
+    pd->service = discard_const("MyService");
+
+    ret = pam_add_response(pd, SSS_PAM_ENV_ITEM,
+                           strlen(ENV_1) + 1, (const uint8_t *) ENV_1);
+    assert_int_equal(ret, EOK);
+
+    ret = pam_add_response(pd, SSS_PAM_ENV_ITEM,
+                           strlen(ENV_2) + 1, (const uint8_t *) ENV_2);
+    assert_int_equal(ret, EOK);
+
+    info_type = SSS_PAM_USER_INFO_OFFLINE_AUTH;
+    memset(offline_auth_data, 0, sizeof(offline_auth_data));
+    memcpy(offline_auth_data, &info_type, sizeof(uint32_t));
+    ret = pam_add_response(pd, SSS_PAM_USER_INFO,
+                           sizeof(offline_auth_data), offline_auth_data);
+    assert_int_equal(ret, EOK);
+
+    /* pd->resp_list points to the SSS_PAM_USER_INFO and pd->resp_list->next
+     * to the SSS_PAM_ENV_ITEM message with KRB5CCNAME and
+     * pd->resp_list->next->next to the SSS_PAM_ENV_ITEM message with MyEnv. */
+
+    pam_test_ctx->pctx->rctx = pam_test_ctx->rctx;
+
+
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_false(pd->resp_list->next->do_not_send_to_client);
+    assert_false(pd->resp_list->next->next->do_not_send_to_client);
+
+    pd->service = discard_const("sudo");
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_true(pd->resp_list->next->do_not_send_to_client);
+    assert_false(pd->resp_list->next->next->do_not_send_to_client);
+
+    pd->service = discard_const("sudo-i");
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_true(pd->resp_list->next->do_not_send_to_client);
+    assert_false(pd->resp_list->next->next->do_not_send_to_client);
+
+    talloc_free(pd);
+}
+
 static int pam_test_setup_appsvc_posix_dom(void **state)
 {
     int ret;
@@ -3652,6 +3722,8 @@ int main(int argc, const char *argv[])
 #endif /* HAVE_TEST_CA */
 
         cmocka_unit_test_setup_teardown(test_filter_response,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_filter_response_defaults,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_appsvc_posix_dom,
                                         pam_test_setup_appsvc_posix_dom,
