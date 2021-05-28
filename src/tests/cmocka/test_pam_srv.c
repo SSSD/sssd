@@ -3220,6 +3220,7 @@ void test_filter_response(void **state)
     assert_false(pd->resp_list->next->do_not_send_to_client);
 
     /* Test CONFDB_PAM_RESPONSE_FILTER option */
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "NoSuchOption";
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
@@ -3229,6 +3230,7 @@ void test_filter_response(void **state)
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
 
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV"; /* filter all environment variables */
                                  /* for all services */
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
@@ -3239,6 +3241,7 @@ void test_filter_response(void **state)
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
 
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV:"; /* filter all environment variables */
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
@@ -3248,6 +3251,7 @@ void test_filter_response(void **state)
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
 
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV::"; /* filter all environment variables */
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
@@ -3257,6 +3261,7 @@ void test_filter_response(void **state)
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
 
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV:abc:"; /* variable name does not match */
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
@@ -3266,6 +3271,7 @@ void test_filter_response(void **state)
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
 
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV:abc:MyService"; /* variable name does not match */
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
@@ -3275,6 +3281,7 @@ void test_filter_response(void **state)
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
 
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV::abc"; /* service name does not match */
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
@@ -3285,6 +3292,7 @@ void test_filter_response(void **state)
     assert_false(pd->resp_list->next->do_not_send_to_client);
 
     /* service name does not match */
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV:MyEnv:abc";
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
@@ -3294,6 +3302,7 @@ void test_filter_response(void **state)
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
 
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV:MyEnv"; /* match */
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
@@ -3303,6 +3312,7 @@ void test_filter_response(void **state)
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
 
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV:MyEnv:"; /* match */
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
@@ -3312,6 +3322,7 @@ void test_filter_response(void **state)
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
 
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV:MyEnv:MyService"; /* match */
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
@@ -3322,6 +3333,7 @@ void test_filter_response(void **state)
     assert_true(pd->resp_list->next->do_not_send_to_client);
 
     /* multiple rules with a match */
+    talloc_zfree(pam_test_ctx->pctx->pam_filter_opts);
     pam_params[1].value = "ENV:abc:def, "
                           "ENV:MyEnv:MyService, "
                           "ENV:stu:xyz";
