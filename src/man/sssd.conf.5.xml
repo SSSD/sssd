@@ -1405,10 +1405,22 @@ fallback_homedir = /home/%u
                             </variablelist>
                         </para>
                         <para>
-                            Default: not set
+                            The list of strings can either be the list of
+                            filters which would set this list of filters and
+                            overwrite the defaults. Or each element of the list
+                            can be prefixed by a '+' or '-' character which
+                            would add the filter to the existing default or
+                            remove it from the defaults, respectively. Please
+                            note that either all list elements must have a '+'
+                            or '-' prefix or none. It is considered as an error
+                            to mix both styles.
                         </para>
                         <para>
-                            Example: ENV:KRB5CCNAME:sudo-i
+                            Default: ENV:KRB5CCNAME:sudo, ENV:KRB5CCNAME:sudo-i
+                        </para>
+                        <para>
+                            Example: -ENV:KRB5CCNAME:sudo-i will remove the
+                            filter from the default list
                         </para>
                     </listitem>
                 </varlistentry>
