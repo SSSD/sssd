@@ -701,6 +701,9 @@ char **concatenate_string_array(TALLOC_CTX *mem_ctx,
                                 char **arr1, size_t len1,
                                 char **arr2, size_t len2);
 
+errno_t mod_defaults_list(TALLOC_CTX *mem_ctx, const char **defaults_list,
+                          char **mod_list, char ***_list);
+
 /* from become_user.c */
 errno_t become_user(uid_t uid, gid_t gid);
 struct sss_creds;
