@@ -36,9 +36,6 @@ Make sure to follow the [guide on reporting SSSD bugs](https://sssd.io/docs/repo
 ## Licensing
 Please see the file called [COPYING](COPYING).
 
-## Social networks
-We maintain our presence on [Twitter](https://twitter.com/SysSecSvcDaemon).
-
 ## Contacts
 There are several ways to contact us:
 
