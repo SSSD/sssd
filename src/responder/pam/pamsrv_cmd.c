@@ -593,7 +593,7 @@ static errno_t filter_responses_env(struct response_data *resp,
     return EOK;
 }
 
-errno_t filter_responses(struct confdb_ctx *cdb,
+errno_t filter_responses(struct pam_ctx *pctx,
                          struct response_data *resp_list,
                          struct pam_data *pd)
 {
@@ -604,7 +604,7 @@ errno_t filter_responses(struct confdb_ctx *cdb,
     int pam_verbosity = DEFAULT_PAM_VERBOSITY;
     char **pam_filter_opts = NULL;
 
-    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
                          &pam_verbosity);
     if (ret != EOK) {
@@ -613,7 +613,7 @@ errno_t filter_responses(struct confdb_ctx *cdb,
         pam_verbosity = DEFAULT_PAM_VERBOSITY;
     }
 
-    ret = confdb_get_string_as_list(cdb, pd, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_string_as_list(pctx->rctx->cdb, pd, CONFDB_PAM_CONF_ENTRY,
                                     CONFDB_PAM_RESPONSE_FILTER,
                                     &pam_filter_opts);
     if (ret != EOK) {
@@ -1036,7 +1036,7 @@ static void pam_reply(struct pam_auth_req *preq)
         inform_user(pd, pam_account_locked_message);
     }
 
-    ret = filter_responses(pctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pctx, pd->resp_list, pd);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "filter_responses failed, not fatal.\n");
     }
