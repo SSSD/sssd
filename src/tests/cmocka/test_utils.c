@@ -2173,6 +2173,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_filter_sanitize_dn,
                                         setup_leak_tests,
                                         teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_mod_defaults_list,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
