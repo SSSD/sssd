@@ -58,6 +58,9 @@ struct pam_ctx {
     struct sss_certmap_ctx *sss_certmap_ctx;
     char **smartcard_services;
 
+    /* parsed list of pam_response_filter option */
+    char **pam_filter_opts;
+
     char **prompting_config_sections;
     int num_prompting_config_sections;
 
