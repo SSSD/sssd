@@ -269,3 +269,104 @@ void test_concatenate_string_array(void **state)
     assert_true(check_leaks_pop(mem_ctx) == true);
     talloc_free(mem_ctx);
 }
+
+void test_mod_defaults_list(void **state)
+{
+    int ret;
+    char **list;
+    size_t c;
+    size_t t;
+    const char *default_list[] = {"abc", "def", "ghi", "jkl", NULL};
+
+    const char *mod_list_error1[] = {"abc", "+def", NULL};
+    const char *mod_list_error2[] = {"-abc", "def", NULL};
+
+    const char *mod_list1[] = {"-abc", NULL};
+    const char *res_list1[] = {"def", "ghi", "jkl", NULL};
+
+    const char *mod_list2[] = {"-def", NULL};
+    const char *res_list2[] = {"abc", "ghi", "jkl", NULL};
+
+    const char *mod_list3[] = {"-jkl", NULL};
+    const char *res_list3[] = {"abc", "def", "ghi", NULL};
+
+    const char *mod_list4[] = {"+abc", NULL};
+    const char *res_list4[] = {"abc", "abc", "def", "ghi", "jkl", NULL};
+
+    const char *mod_list5[] = {"+xyz", NULL};
+    const char *res_list5[] = {"xyz", "abc", "def", "ghi", "jkl", NULL};
+
+    const char *mod_list6[] = {"+xyz", "-xyz", NULL};
+    const char *res_list6[] = {"abc", "def", "ghi", "jkl", NULL};
+
+    const char *mod_list7[] = {"-xyz", NULL};
+    const char *res_list7[] = {"abc", "def", "ghi", "jkl", NULL};
+
+    struct test_data {
+        const char **mod_list;
+        const char **res_list;
+    } test_data[] = {
+        {mod_list1, res_list1 },
+        {mod_list2, res_list2 },
+        {mod_list3, res_list3 },
+        {mod_list4, res_list4 },
+        {mod_list5, res_list5 },
+        {mod_list6, res_list6 },
+        {mod_list7, res_list7 },
+        {NULL, NULL}
+    };
+
+    ret = mod_defaults_list(NULL, NULL, NULL, NULL);
+    assert_int_equal(ret, EOK);
+
+    list = NULL;
+    ret = mod_defaults_list(NULL, NULL, NULL, &list);
+    assert_int_equal(ret, EOK);
+    assert_non_null(list);
+    assert_null(list[0]);
+    talloc_free(list);
+
+    list = NULL;
+    ret = mod_defaults_list(NULL, default_list, NULL, &list);
+    assert_int_equal(ret, EOK);
+    assert_non_null(list);
+    for (c = 0; default_list[c] != NULL; c++) {
+        assert_string_equal(list[c], default_list[c]);
+    }
+    assert_null(list[c]);
+    talloc_free(list);
+
+    list = NULL;
+    ret = mod_defaults_list(NULL, default_list, discard_const(mod_list_error1),
+                            &list);
+    assert_int_equal(ret, EINVAL);
+    assert_null(list);
+
+    list = NULL;
+    ret = mod_defaults_list(NULL, default_list, discard_const(mod_list_error2),
+                            &list);
+    assert_int_equal(ret, EINVAL);
+    assert_null(list);
+
+    list = NULL;
+    ret = mod_defaults_list(NULL, NULL, discard_const(mod_list4), &list);
+    assert_int_equal(ret, EOK);
+    assert_non_null(list);
+    assert_string_equal(list[0], "abc");
+    assert_null(list[1]);
+    talloc_free(list);
+
+    for (t = 0; test_data[t].res_list != NULL; t++) {
+        list = NULL;
+        ret = mod_defaults_list(NULL, default_list,
+                                discard_const(test_data[t].mod_list), &list);
+        assert_int_equal(ret, EOK);
+        assert_non_null(list);
+        for (c = 0; test_data[t].res_list[c] != NULL; c++) {
+            assert_non_null(list[c]);
+            assert_string_equal(list[c], test_data[t].res_list[c]);
+        }
+        assert_null(list[c]);
+        talloc_free(list);
+    }
+}

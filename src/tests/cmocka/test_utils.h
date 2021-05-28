@@ -32,6 +32,7 @@ void test_reverse_replace_whitespaces(void **state);
 void test_guid_blob_to_string_buf(void **state);
 void test_get_last_x_chars(void **state);
 void test_concatenate_string_array(void **state);
+void test_mod_defaults_list(void **state);
 
 /* from src/tests/cmocka/test_sss_ptr_hash.c */
 void test_sss_ptr_hash_with_free_cb(void **state);
