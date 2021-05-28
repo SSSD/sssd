@@ -602,7 +602,6 @@ errno_t filter_responses(struct pam_ctx *pctx,
     uint32_t user_info_type;
     int64_t expire_date = 0;
     int pam_verbosity = DEFAULT_PAM_VERBOSITY;
-    char **pam_filter_opts = NULL;
 
     ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
@@ -613,13 +612,28 @@ errno_t filter_responses(struct pam_ctx *pctx,
         pam_verbosity = DEFAULT_PAM_VERBOSITY;
     }
 
-    ret = confdb_get_string_as_list(pctx->rctx->cdb, pd, CONFDB_PAM_CONF_ENTRY,
-                                    CONFDB_PAM_RESPONSE_FILTER,
-                                    &pam_filter_opts);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "[%s] not available, not fatal.\n",
-                                    CONFDB_PAM_RESPONSE_FILTER);
-        pam_filter_opts = NULL;
+    if (pctx->pam_filter_opts == NULL) {
+        ret = confdb_get_string_as_list(pctx->rctx->cdb, pctx,
+                                        CONFDB_PAM_CONF_ENTRY,
+                                        CONFDB_PAM_RESPONSE_FILTER,
+                                        &pctx->pam_filter_opts);
+        if (ret != EOK) {
+            if (ret == ENOENT) {
+                DEBUG(SSSDBG_CONF_SETTINGS, "[%s] not available, not fatal.\n",
+                                            CONFDB_PAM_RESPONSE_FILTER);
+                pctx->pam_filter_opts = talloc_zero_array(pctx, char *, 1);
+                if (pctx->pam_filter_opts == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to allocate memory for empty [%s], not fatal.\n",
+                      CONFDB_PAM_RESPONSE_FILTER);
+                }
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to read values of [%s], not fatal.\n",
+                      CONFDB_PAM_RESPONSE_FILTER);
+                pctx->pam_filter_opts = NULL;
+            }
+        }
     }
 
     resp = resp_list;
@@ -666,7 +680,7 @@ errno_t filter_responses(struct pam_ctx *pctx,
             }
         } else if (resp->type == SSS_PAM_ENV_ITEM) {
             resp->do_not_send_to_client = false;
-            ret = filter_responses_env(resp, pd, pam_filter_opts);
+            ret = filter_responses_env(resp, pd, pctx->pam_filter_opts);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "filter_responses_env failed.\n");
                 goto done;
@@ -680,7 +694,6 @@ errno_t filter_responses(struct pam_ctx *pctx,
 
     ret = EOK;
 done:
-    talloc_free(pam_filter_opts);
 
     return ret;
 }
