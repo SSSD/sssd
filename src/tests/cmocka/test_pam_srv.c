@@ -3191,9 +3191,10 @@ void test_filter_response(void **state)
     /* pd->resp_list points to the SSS_PAM_USER_INFO and pd->resp_list->next
      * to the SSS_PAM_ENV_ITEM message. */
 
+    pam_test_ctx->pctx->rctx = pam_test_ctx->rctx;
 
     /* Test CONFDB_PAM_VERBOSITY option */
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
@@ -3204,7 +3205,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_false(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
@@ -3213,7 +3214,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
@@ -3223,7 +3224,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
@@ -3233,7 +3234,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
@@ -3242,7 +3243,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
@@ -3251,7 +3252,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
@@ -3260,7 +3261,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
@@ -3269,7 +3270,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
@@ -3278,7 +3279,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
@@ -3288,7 +3289,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_false(pd->resp_list->next->do_not_send_to_client);
@@ -3297,7 +3298,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
@@ -3306,7 +3307,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
@@ -3315,7 +3316,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
@@ -3327,7 +3328,7 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    ret = filter_responses(pam_test_ctx->pctx, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
     assert_true(pd->resp_list->next->do_not_send_to_client);
