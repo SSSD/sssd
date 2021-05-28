@@ -139,7 +139,7 @@ pam_set_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                          const char *username,
                                          uint64_t value);
 
-errno_t filter_responses(struct confdb_ctx *cdb,
+errno_t filter_responses(struct pam_ctx *pctx,
                          struct response_data *resp_list,
                          struct pam_data *pd);
 
