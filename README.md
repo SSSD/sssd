@@ -27,7 +27,7 @@ Please see the [our developer documentation](https://sssd.io/contrib/building-ss
 ## Documentation
 The most up-to-date documentation can be found at https://sssd.io.
 
-Its source code is hosted at https://github.com/SSSD/sssd.github.io.
+Its source code is hosted at https://github.com/SSSD/sssd.io.
 
 ## Submitting bugs
 Please file an issue in the [SSSD github instance](https://github.com/SSSD/sssd/issues).
