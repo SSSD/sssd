@@ -6,16 +6,16 @@
 :upstream: yes
 """
 
+
+import textwrap
 import time
-import re
+from string import Template
 import pytest
-import ldap
-from constants import ds_instance_name, ds_suffix, krb_realm
+
+from constants import ds_suffix
 from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.utils import sssdTools, LdapOperations
+from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.exceptions import SSHLoginException
-from sssd.testlib.common.libkrb5 import krb5srv
-from constants import ds_instance_name
 
 
 @pytest.mark.usefixtures('setup_sssd_krb', 'create_host_keytab',
@@ -79,3 +79,163 @@ class TestsssdProxy(object):
         time.sleep(20)
         multihost.client[0].run_command(del_user)
         multihost.client[0].run_command(restore)
+
+    def test_innetgr_threads(self, multihost, backupsssdconf):
+        """
+        :title: Verify sssd is thread-safe in innetgr
+        :id: d38a8279-312d-4f52-808c-17226e7168d3
+        :customerscenario: True
+        :description:
+         SSSD was not thread safe in innetgr call when using nested netgroups
+         resulting in nfs-ganesha not working correctly
+        :setup:
+          1. Configure client to use sssd proxy files
+          2. Create /etc/netgroup file with two groups containing 1000+
+             members.
+          3. Add the group/host info to the c sources
+          4. Compile the sources using gcc
+        :steps:
+          1. Restart sssd on client and clear caches
+          2. Run first binary to verify that the setup is correct.
+          3. Run second binary to verify that the bug is fixed.
+        :expectedresults:
+          1. SSSD restarted successfully
+          2. Test binary returns 0 return code.
+          3. Test binary returns 0 return code.
+        :teardown:
+          1. Remove the net groups
+          2. Remove the sources and binaries.
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1703436
+        """
+        # SETUP
+        # Configure proxy provider
+        sssd_client = sssdTools(multihost.client[0])
+        domain_params = {'id_provider': 'proxy',
+                         'proxy_lib_name': 'files',
+                         'auth_provider': 'none'
+                         }
+        sssd_client.sssd_conf(
+            'domain/%s' % sssd_client.get_domain_section_name(),
+            domain_params
+        )
+
+        # Create the net groups in file
+        client_shortname = multihost.client[0].shortname
+        net_group1_name = "ngr"
+        net_group1 = f"{net_group1_name} "
+        net_group2 = f"{net_group1_name}2 "
+
+        # We need long enough member searching so the issue appears.
+        # This number of members reproduced failure in 2+ threads reliably.
+        for i in range(1, 4096):
+            net_group1 += "(host1%04d, user1%04d, domain1) " % (i, i)
+            net_group2 += "(host2%04d, user2%04d, domain2) " % (i, i)
+        net_group1 += f"({client_shortname}, myuser, domain6)"
+
+        multihost.client[0].transport.put_file_contents(
+            '/etc/netgroup',
+            net_group1 + "\n" + net_group2 + "\n"
+        )
+
+        # Prepare c code
+        pre = "pthread_mutex_lock(&netg_lock);"
+        post = "pthread_mutex_unlock(&netg_lock);"
+        code_template_str = textwrap.dedent("""\
+            #include <stdio.h>
+            #include <stdlib.h>
+            #include <netdb.h>
+            #include <pthread.h>
+            #define NTHREADS 256
+            #define NUM_CALLS 1000
+            static char *groups[] = {"$group"};
+            static char *hosts[] = {"$host"};
+            #define NHOSTS (sizeof(hosts)/sizeof(hosts[0]))
+            #define NGROUPS (sizeof(groups)/sizeof(groups[0]))
+            static int pass_count;
+            static int fail_count;
+            static int bogus_count;
+            static pthread_mutex_t netg_lock = PTHREAD_MUTEX_INITIALIZER;
+            static void *thread_main(void *arg)
+            {
+                unsigned long i;
+                char *host;
+                char *group;
+                int rc;
+                for (i = 0; i < NUM_CALLS; i++) {
+                    host = hosts[rand() % NHOSTS];
+                    group = groups[rand() % NGROUPS];
+                    $pre
+                    rc = innetgr(group, host, NULL, NULL);
+                    $post
+                    /* Ideally, atomic increments should be used, but
+                     * rough numbers are OK for now
+                     */
+                    if (rc == 0)
+                        fail_count++;
+                    else if (rc == 1)
+                        pass_count++;
+                    else
+                        bogus_count++;
+                }
+            }
+            int main()
+            {
+                pthread_t threads[NTHREADS];
+                int i;
+                for (i = 0; i < NTHREADS; i++)
+                    pthread_create(&threads[i], NULL, thread_main, (void *)0);
+                for (i = 0; i < NTHREADS; i++)
+                    pthread_join(threads[i], NULL);
+                printf("pass:%d, fail:%d, bogus:%d\\n",
+                        pass_count, fail_count, bogus_count);
+                if ( fail_count > 0 )
+                    exit(2);
+            }""")
+        code_template = Template(code_template_str)
+
+        # Substitute c code and upload
+        code = code_template.substitute(
+            group=net_group1_name,
+            host=client_shortname,
+            pre=pre,
+            post=post
+        )
+        multihost.client[0].transport.put_file_contents('/root/netg-lock.c',
+                                                        code)
+        code = code_template.substitute(
+            group=net_group1_name,
+            host=client_shortname,
+            pre='',
+            post=''
+        )
+        multihost.client[0].transport.put_file_contents('/root/netg-lock2.c',
+                                                        code)
+
+        # Install packages including gcc
+        sssdTools(multihost.client[0]).client_install_pkgs()
+
+        # Compile c code
+        compile_cmd = 'gcc -lpthread -o /root/netg-lock /root/netg-lock.c ' \
+                      '&& gcc -lpthread -o /root/netg-lock2 /root/netg-lock2.c'
+        gcc = multihost.client[0].run_command(compile_cmd, raiseonerr=False)
+        chmod_cmd = 'chmod +x /root/netg-lock*'
+        multihost.client[0].run_command(chmod_cmd, raiseonerr=False)
+
+        # TEST EXECUTION
+        sssd_client.clear_sssd_cache()
+        cmd1 = multihost.client[0].run_command('/root/netg-lock',
+                                               raiseonerr=False)
+        cmd2 = multihost.client[0].run_command('/root/netg-lock2',
+                                               raiseonerr=False)
+
+        # TEARDOWN
+        multihost.client[0].run_command(
+            'rm -f /root/netg-lock*; rm -f /etc/netgroup',
+            raiseonerr=False
+        )
+
+        # TEST EVALUATION
+        assert gcc.returncode == 0, 'Compiling of binaries failed!'
+        assert cmd1.returncode == 0, 'First binary failed, incorrect setup!'
+        assert cmd2.returncode == 0, 'Second binary failed, test failed!'
