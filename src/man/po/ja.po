@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-06-04 09:36+0200\n"
+"POT-Creation-Date: 2021-06-04 14:32+0200\n"
 "PO-Revision-Date: 2020-07-22 07:48-0400\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
@@ -324,7 +324,7 @@ msgstr ""
 #: sssd.conf.5.xml:133 sssd.conf.5.xml:170 sssd.conf.5.xml:355
 #: sssd.conf.5.xml:647 sssd.conf.5.xml:1001 sssd.conf.5.xml:2021
 #: sssd.conf.5.xml:2051 sssd-ldap.5.xml:962 sssd-ldap.5.xml:1060
-#: sssd-ldap.5.xml:1127 sssd-ldap.5.xml:1608 sssd-ldap.5.xml:1673
+#: sssd-ldap.5.xml:1127 sssd-ldap.5.xml:1614 sssd-ldap.5.xml:1679
 #: sssd-ipa.5.xml:341 sssd-ad.5.xml:229 sssd-ad.5.xml:343 sssd-ad.5.xml:1177
 #: sssd-ad.5.xml:1325 sssd-krb5.5.xml:342 sssd-secrets.5.xml:351
 #: sssd-secrets.5.xml:364
@@ -347,7 +347,7 @@ msgstr ""
 #: sssd.conf.5.xml:146 sssd.conf.5.xml:644 sssd.conf.5.xml:883
 #: sssd.conf.5.xml:1954 sssd.conf.5.xml:3849 sssd-ldap.5.xml:312
 #: sssd-ldap.5.xml:813 sssd-ldap.5.xml:832 sssd-ldap.5.xml:1032
-#: sssd-ldap.5.xml:1463 sssd-ldap.5.xml:1697 sssd-ipa.5.xml:151
+#: sssd-ldap.5.xml:1463 sssd-ldap.5.xml:1703 sssd-ipa.5.xml:151
 #: sssd-ipa.5.xml:253 sssd-ipa.5.xml:589 sssd-ad.5.xml:1083 sssd-krb5.5.xml:268
 #: sssd-krb5.5.xml:416 include/krb5_options.xml:29 include/krb5_options.xml:154
 msgid "Default: false"
@@ -384,7 +384,7 @@ msgstr ""
 
 #. type: Content of: outside any tag (error?)
 #: sssd.conf.5.xml:106 sssd.conf.5.xml:181 sssd-ldap.5.xml:1520
-#: sssd-ldap.5.xml:1720 sssd-systemtap.5.xml:82 sssd-systemtap.5.xml:143
+#: sssd-ldap.5.xml:1726 sssd-systemtap.5.xml:82 sssd-systemtap.5.xml:143
 #: sssd-systemtap.5.xml:236 sssd-systemtap.5.xml:274 sssd-systemtap.5.xml:330
 #: sssd-ldap-attributes.5.xml:40 sssd-ldap-attributes.5.xml:646
 #: sssd-ldap-attributes.5.xml:784 sssd-ldap-attributes.5.xml:873
@@ -1230,8 +1230,8 @@ msgstr ""
 msgid "A value of 0 disables the random offset addition."
 msgstr ""
 
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:849 sssd-ldap.5.xml:1594
+#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:849
 #, fuzzy
 #| msgid "Default: 300"
 msgid "Default: 30"
@@ -3435,7 +3435,8 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2670 sssd-ldap.5.xml:350 sssd-ipa.5.xml:269
+#: sssd.conf.5.xml:2670 sssd-ldap.5.xml:350 sssd-ldap.5.xml:1600
+#: sssd-ipa.5.xml:269
 msgid "Default: 0 (disabled)"
 msgstr "初期値: 0 (無効)"
 
@@ -7278,28 +7279,36 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1590
+msgid ""
+"Note that this random offset is also applied on the first SSSD start which "
+"delays the first sudo rules refresh. This prolongs the time when the sudo "
+"rules are not available for use."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:1596
 msgid "You can disable this offset by setting the value to 0."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1600
+#: sssd-ldap.5.xml:1606
 msgid "ldap_sudo_use_host_filter (boolean)"
 msgstr "ldap_sudo_use_host_filter (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1603
+#: sssd-ldap.5.xml:1609
 msgid ""
 "If true, SSSD will download only rules that are applicable to this machine "
 "(using the IPv4 or IPv6 host/network addresses and hostnames)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1614
+#: sssd-ldap.5.xml:1620
 msgid "ldap_sudo_hostnames (string)"
 msgstr "ldap_sudo_hostnames (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1617
+#: sssd-ldap.5.xml:1623
 msgid ""
 "Space separated list of hostnames or fully qualified domain names that "
 "should be used to filter the rules."
@@ -7308,15 +7317,15 @@ msgstr ""
 "区切り一覧です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1622
+#: sssd-ldap.5.xml:1628
 msgid ""
 "If this option is empty, SSSD will try to discover the hostname and the "
 "fully qualified domain name automatically."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1627 sssd-ldap.5.xml:1650 sssd-ldap.5.xml:1668
-#: sssd-ldap.5.xml:1686
+#: sssd-ldap.5.xml:1633 sssd-ldap.5.xml:1656 sssd-ldap.5.xml:1674
+#: sssd-ldap.5.xml:1692
 msgid ""
 "If <emphasis>ldap_sudo_use_host_filter</emphasis> is <emphasis>false</"
 "emphasis> then this option has no effect."
@@ -7325,17 +7334,17 @@ msgstr ""
 "ならば、このオプションは効果を持ちません。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1632 sssd-ldap.5.xml:1655
+#: sssd-ldap.5.xml:1638 sssd-ldap.5.xml:1661
 msgid "Default: not specified"
 msgstr "初期値: 指定なし"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1638
+#: sssd-ldap.5.xml:1644
 msgid "ldap_sudo_ip (string)"
 msgstr "ldap_sudo_ip (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1641
+#: sssd-ldap.5.xml:1647
 msgid ""
 "Space separated list of IPv4 or IPv6 host/network addresses that should be "
 "used to filter the rules."
@@ -7344,7 +7353,7 @@ msgstr ""
 "アドレスの空白区切り一覧です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1646
+#: sssd-ldap.5.xml:1652
 msgid ""
 "If this option is empty, SSSD will try to discover the addresses "
 "automatically."
@@ -7352,38 +7361,38 @@ msgstr ""
 "このオプションが空白ならば、SSSD は自動的にアドレスを検索しようとします。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1661
+#: sssd-ldap.5.xml:1667
 msgid "ldap_sudo_include_netgroups (boolean)"
 msgstr "ldap_sudo_include_netgroups (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1664
+#: sssd-ldap.5.xml:1670
 msgid ""
 "If true then SSSD will download every rule that contains a netgroup in "
 "sudoHost attribute."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1679
+#: sssd-ldap.5.xml:1685
 msgid "ldap_sudo_include_regexp (boolean)"
 msgstr "ldap_sudo_include_regexp (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1682
+#: sssd-ldap.5.xml:1688
 msgid ""
 "If true then SSSD will download every rule that contains a wildcard in "
 "sudoHost attribute."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><note><para>
-#: sssd-ldap.5.xml:1692
+#: sssd-ldap.5.xml:1698
 msgid ""
 "Using wildcard is an operation that is very costly to evaluate on the LDAP "
 "server side!"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1704
+#: sssd-ldap.5.xml:1710
 msgid ""
 "This manual page only describes attribute name mapping.  For detailed "
 "explanation of sudo related attribute semantics, see <citerefentry> "
@@ -7395,59 +7404,59 @@ msgstr ""
 "refentrytitle><manvolnum>5</manvolnum> </citerefentry> を参照してください"
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1714
+#: sssd-ldap.5.xml:1720
 msgid "AUTOFS OPTIONS"
 msgstr "AUTOFS オプション"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1716
+#: sssd-ldap.5.xml:1722
 msgid ""
 "Some of the defaults for the parameters below are dependent on the LDAP "
 "schema."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1722
+#: sssd-ldap.5.xml:1728
 msgid "ldap_autofs_map_master_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1725
+#: sssd-ldap.5.xml:1731
 msgid "The name of the automount master map in LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1728
+#: sssd-ldap.5.xml:1734
 msgid "Default: auto.master"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1739
+#: sssd-ldap.5.xml:1745
 msgid "ADVANCED OPTIONS"
 msgstr "高度なオプション"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1746
+#: sssd-ldap.5.xml:1752
 msgid "ldap_netgroup_search_base (string)"
 msgstr "ldap_netgroup_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1751
+#: sssd-ldap.5.xml:1757
 msgid "ldap_user_search_base (string)"
 msgstr "ldap_user_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1756
+#: sssd-ldap.5.xml:1762
 msgid "ldap_group_search_base (string)"
 msgstr "ldap_group_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><note>
-#: sssd-ldap.5.xml:1761
+#: sssd-ldap.5.xml:1767
 msgid "<note>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><note><para>
-#: sssd-ldap.5.xml:1763
+#: sssd-ldap.5.xml:1769
 msgid ""
 "If the option <quote>ldap_use_tokengroups</quote> is enabled, the searches "
 "against Active Directory will not be restricted and return all groups "
@@ -7456,22 +7465,22 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist>
-#: sssd-ldap.5.xml:1770
+#: sssd-ldap.5.xml:1776
 msgid "</note>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1772
+#: sssd-ldap.5.xml:1778
 msgid "ldap_sudo_search_base (string)"
 msgstr "ldap_sudo_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1777
+#: sssd-ldap.5.xml:1783
 msgid "ldap_autofs_search_base (string)"
 msgstr "ldap_autofs_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1741
+#: sssd-ldap.5.xml:1747
 msgid ""
 "These options are supported by LDAP domains, but they should be used with "
 "caution. Please include them in your configuration only if you know what you "
@@ -7480,14 +7489,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1792 sssd-simple.5.xml:131 sssd-ipa.5.xml:857
+#: sssd-ldap.5.xml:1798 sssd-simple.5.xml:131 sssd-ipa.5.xml:857
 #: sssd-ad.5.xml:1363 sssd-krb5.5.xml:467 sss_rpcidmapd.5.xml:98
 #: sssd-files.5.xml:130 sssd-session-recording.5.xml:176
 msgid "EXAMPLE"
 msgstr "例"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1794
+#: sssd-ldap.5.xml:1800
 msgid ""
 "The following example assumes that SSSD is correctly configured and LDAP is "
 "set to one of the domains in the <replaceable>[domains]</replaceable> "
@@ -7498,7 +7507,7 @@ msgstr ""
 "す。"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ldap.5.xml:1800
+#: sssd-ldap.5.xml:1806
 #, no-wrap
 msgid ""
 "[domain/LDAP]\n"
@@ -7511,7 +7520,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
-#: sssd-ldap.5.xml:1799 sssd-ldap.5.xml:1817 sssd-simple.5.xml:139
+#: sssd-ldap.5.xml:1805 sssd-ldap.5.xml:1823 sssd-simple.5.xml:139
 #: sssd-ipa.5.xml:865 sssd-ad.5.xml:1371 sssd-sudo.5.xml:56 sssd-krb5.5.xml:476
 #: sssd-files.5.xml:137 sssd-files.5.xml:148 sssd-session-recording.5.xml:182
 #: include/ldap_id_mapping.xml:105
@@ -7519,19 +7528,19 @@ msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr "<placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1811
+#: sssd-ldap.5.xml:1817
 msgid "LDAP ACCESS FILTER EXAMPLE"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1813
+#: sssd-ldap.5.xml:1819
 msgid ""
 "The following example assumes that SSSD is correctly configured and to use "
 "the ldap_access_order=lockout."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ldap.5.xml:1818
+#: sssd-ldap.5.xml:1824
 #, no-wrap
 msgid ""
 "[domain/LDAP]\n"
@@ -7547,13 +7556,13 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1833 sssd_krb5_locator_plugin.8.xml:83 sssd-simple.5.xml:148
+#: sssd-ldap.5.xml:1839 sssd_krb5_locator_plugin.8.xml:83 sssd-simple.5.xml:148
 #: sssd-ad.5.xml:1386 sssd.8.xml:238 sss_seed.8.xml:163
 msgid "NOTES"
 msgstr "注記"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:1835
+#: sssd-ldap.5.xml:1841
 msgid ""
 "The descriptions of some of the configuration options in this manual page "
 "are based on the <citerefentry> <refentrytitle>ldap.conf</refentrytitle> "
