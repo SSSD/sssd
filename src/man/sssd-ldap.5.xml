@@ -1587,11 +1587,17 @@ ldap_access_filter = (employeeType=admin)
                             seconds.
                         </para>
                         <para>
+                            Note that this random offset is also applied on the
+                            first SSSD start which delays the first sudo rules
+                            refresh. This prolongs the time when the sudo rules
+                            are not available for use.
+                        </para>
+                        <para>
                             You can disable this offset by setting the value to
                             0.
                         </para>
                         <para>
-                            Default: 30
+                            Default: 0 (disabled)
                         </para>
                     </listitem>
                 </varlistentry>
