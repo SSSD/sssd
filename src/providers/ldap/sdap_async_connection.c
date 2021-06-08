@@ -1276,8 +1276,15 @@ static void sdap_kinit_done(struct tevent_req *subreq)
 
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS,
-          "Could not get TGT: %d [%s]\n", result, sss_strerror(result));
+    if (result == EFAULT || result == EIO || result == EPERM) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Could not get TGT from server %s: %d [%s]\n",
+              fo_get_server_name(state->kdc_srv), result, sss_strerror(result));
+    } else {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Could not get TGT: %d [%s]\n", result, sss_strerror(result));
+    }
+
     tevent_req_error(req, ERR_AUTH_FAILED);
 }
 
