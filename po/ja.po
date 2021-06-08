@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-05-10 15:10+0200\n"
+"POT-Creation-Date: 2021-06-08 11:45+0200\n"
 "PO-Revision-Date: 2021-03-18 10:39+0000\n"
 "Last-Translator: Sundeep Anand <suanand@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
@@ -2031,52 +2031,52 @@ msgstr ""
 msgid "SSSD is already running\n"
 msgstr "SSSD はすでに実行中です\n"
 
-#: src/providers/krb5/krb5_child.c:3271 src/providers/ldap/ldap_child.c:639
+#: src/providers/krb5/krb5_child.c:3324 src/providers/ldap/ldap_child.c:639
 msgid "An open file descriptor for the debug logs"
 msgstr "デバッグログのオープンファイルディスクリプター"
 
-#: src/providers/krb5/krb5_child.c:3274
+#: src/providers/krb5/krb5_child.c:3327
 msgid "The user to create FAST ccache as"
 msgstr "次のように FAST ccache を作成するユーザー"
 
-#: src/providers/krb5/krb5_child.c:3276
+#: src/providers/krb5/krb5_child.c:3329
 msgid "The group to create FAST ccache as"
 msgstr "次のように FAST ccache を作成するグループ"
 
-#: src/providers/krb5/krb5_child.c:3278
+#: src/providers/krb5/krb5_child.c:3331
 msgid "Kerberos realm to use"
 msgstr "使用する Kerberos レルム"
 
-#: src/providers/krb5/krb5_child.c:3280
+#: src/providers/krb5/krb5_child.c:3333
 msgid "Requested lifetime of the ticket"
 msgstr "チケットの要求された有効期間"
 
-#: src/providers/krb5/krb5_child.c:3282
+#: src/providers/krb5/krb5_child.c:3335
 msgid "Requested renewable lifetime of the ticket"
 msgstr "チケットの要求された更新可能な有効期間"
 
-#: src/providers/krb5/krb5_child.c:3284
+#: src/providers/krb5/krb5_child.c:3337
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST のオプション ('never'、'try'、'demand')"
 
-#: src/providers/krb5/krb5_child.c:3287
+#: src/providers/krb5/krb5_child.c:3340
 msgid "Specifies the server principal to use for FAST"
 msgstr "FAST で使用するサーバープリンシパルを指定します"
 
-#: src/providers/krb5/krb5_child.c:3289
+#: src/providers/krb5/krb5_child.c:3342
 msgid "Requests canonicalization of the principal name"
 msgstr "プリンシパル名の正規化を要求します"
 
-#: src/providers/krb5/krb5_child.c:3291
+#: src/providers/krb5/krb5_child.c:3344
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "krb5_get_init_creds_password のカスタムバージョンを使用します"
 
-#: src/providers/krb5/krb5_child.c:3319 src/providers/ldap/ldap_child.c:663
+#: src/providers/krb5/krb5_child.c:3372 src/providers/ldap/ldap_child.c:663
 #, fuzzy
 msgid "talloc_asprintf failed.\n"
 msgstr "malloc は失敗しました。\n"
 
-#: src/providers/krb5/krb5_child.c:3329 src/providers/ldap/ldap_child.c:672
+#: src/providers/krb5/krb5_child.c:3382 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
 msgstr ""
 
