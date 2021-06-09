@@ -10,7 +10,6 @@ import re
 import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.exceptions import SSSDException
 
 
 @pytest.mark.usefixtures('setup_ipa_client')
@@ -236,3 +235,60 @@ class TestADTrust(object):
         rev_resorder_cmd = f'ipa config-mod --domain-resolution-order=' \
                            f'{ipa_domain}:{ad_domain}'
         multihost.master[0].run_command(rev_resorder_cmd, raiseonerr=False)
+
+    def test_nss_get_by_name_with_private_group(self, multihost):
+        """
+        :title:
+         SSSD fails nss_getby_name for IPA user with SID if the user has
+         a private group
+        :id: 45dce6b9-0d47-4b9f-9532-4da8178e5334
+        :setup:
+         1. Configure trust between IPA server and AD.
+         2. Configure client machine with SSSD integrated to IPA.
+         3. Create an user with a private group
+        :steps:
+         1. Call function getsidbyname from pysss_nss_idmap for admin.
+         2. Call function getsidbyname from pysss_nss_idmap for then user.
+        :expectedresults:
+         1. The admin SID is returned.
+         2. The user SID is returned.
+        :teardown:
+         Remove the created user.
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=1837090
+        """
+        # Create an user with a private group
+        username = 'some-user'
+        multihost.master[0].run_command(
+            f'ipa user-add {username} --first=Some --last=User',
+            raiseonerr=False
+        )
+
+        # Confirm that the user exists
+        cmd = multihost.master[0].run_command(
+            f'id  {username}',
+            raiseonerr=False
+        )
+        # First check for admin user to make sure that the setup is correct
+        check_admin_cmd = '''python3 -c "import pysss_nss_idmap; import '''\
+            '''sys; result=pysss_nss_idmap.getsidbyname('admin');'''\
+            '''print(result); result or sys.exit(2)"'''
+        cmd_adm = multihost.master[0].run_command(check_admin_cmd,
+                                                  raiseonerr=False)
+
+        # Now check for the user with the private group
+        check_user_cmd = '''python3 -c "import pysss_nss_idmap; import sys;'''\
+            '''result=pysss_nss_idmap.getsidbyname('%s');print(result); '''\
+            '''result or sys.exit(2)"''' % username
+        cmd_usr = multihost.master[0].run_command(check_user_cmd,
+                                                  raiseonerr=False)
+
+        # Remove the user afterwards
+        user_del_cmd = f'ipa user-del {username}'
+        multihost.master[0].run_command(user_del_cmd, raiseonerr=False)
+
+        # Evaluate results after cleanup is done
+        assert cmd.returncode == 0, 'Could not find the user!'
+        assert cmd_adm.returncode == 0, 'Something wrong with setup!'
+        assert cmd_usr.returncode == 0, \
+            f"pysss_nss_idmap.getsidbyname for {username} failed"
