@@ -71,7 +71,7 @@
             </citerefentry> for more details on these options.
         </para>
         <para>
-            Some Kerberos deployments allow to assocate authentication
+            Some Kerberos deployments allow to associate authentication
             indicators with a particular pre-authentication method used to
             obtain the ticket granting ticket by the user.
             <command>pam_sss_gss.so</command> allows to enforce presence of
@@ -199,7 +199,7 @@ auth sufficient pam_sss_gss.so
         <para>
             3. Authentication does not work and syslog contains "No Kerberos
             credentials available": You don't have any credentials that can be
-            used to obtain the required service ticket. Use kinit or autheticate
+            used to obtain the required service ticket. Use kinit or authenticate
             over SSSD to acquire those credentials.
         </para>
         <para>
