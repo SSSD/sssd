@@ -215,7 +215,7 @@ ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
             SSSD uses different kinds of mechanisms with more or less complex
             LDAP filters to keep the cached sudo rules up to date. The default
             configuration is set to values that should satisfy most of our
-            users, but the following paragraps contains few tips on how to fine
+            users, but the following paragraphs contain few tips on how to fine-
             tune the configuration to your requirements.
         </para>
         <para>
