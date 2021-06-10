@@ -268,6 +268,12 @@ static int kcm_process_init(TALLOC_CTX *mem_ctx,
     kctx->rctx = rctx;
     kctx->rctx->pvt_ctx = kctx;
 
+    /* KCM operates independently, getpw* recursion is not a concern */
+    ret = unsetenv("_SSS_LOOPS");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unset _SSS_LOOPS");
+    }
+
     ret = kcm_get_config(kctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error getting KCM config\n");
