@@ -481,6 +481,9 @@ def create_ad_sudousers(session_multihost, request):
     ad_group1 = 'sudo_groupx'
     ad.create_ad_nonposix_group(ad_group1)
     ad.add_user_member_of_group(ad_group1, ad_user1)
+    ad_user_a = 'sudo_usera'
+    ad_group_a = 'sudo_groupa'
+    ad.create_ad_unix_user_group(ad_user_a, ad_group_a)
 
     def remove_ad_sudousers():
         """ Remove AD sudo users and groups """
@@ -489,7 +492,8 @@ def create_ad_sudousers(session_multihost, request):
             ad_group = 'sudo_idmgroup%d' % idx
             ad.delete_ad_user_group(ad_group)
             ad.delete_ad_user_group(ad_user)
-        for object in [ad_group1, ad_group2, ad_user1]:
+        usrgrp = [ad_user1, ad_group1, ad_group2, ad_user_a, ad_group_a]
+        for object in usrgrp:
             ad.delete_ad_user_group(object)
     request.addfinalizer(remove_ad_sudousers)
 
@@ -546,9 +550,22 @@ def sudorules(session_multihost, request):
                         user.encode('utf-8'))]
     (ret, _) = win_ldap.modify_ldap(rule_dn, extra_sudo_user)
     assert ret == 'Success'
+    rule1_dn = 'cn=head_rule1,%s' % (sudo_ou)
+    sudo_identity = 'sudo_usera'
+    sudo_options = ["!requiretty", "!authenticate"]
+    win_ldap.add_sudo_rule(rule1_dn, 'ALL', sudo_cmd,
+                          sudo_identity, sudo_options)
+    user1 = 'sudo_idmuser1'
+    extra_sudo_user = [(ldap.MOD_ADD, 'sudoRunAs',
+                        user1.encode('utf-8'))]
+    (ret, _) = win_ldap.modify_ldap(rule1_dn, extra_sudo_user)
+    assert ret == 'Success'
+
 
     def delete_sudorule():
         """ Delete sudo rule """
+        (ret, _) = win_ldap.del_dn(rule1_dn)
+        assert ret == 'Success'
         for item in ['user', 'group']:
             for idx in range(1, 10):
                 rule_dn = 'cn=less_%s_rule%d,%s' % (item, idx, sudo_ou)
