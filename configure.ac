@@ -510,6 +510,7 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/lib/sifp/sss_simpleifp.doxy
                  src/config/setup.py
                  src/systemtap/sssd.stp
+                 src/tools/analyzer/Makefile
                  src/config/SSSDConfig/__init__.py])
 AC_CONFIG_FILES([sbus_generate.sh], [chmod +x sbus_generate.sh])
 AC_OUTPUT

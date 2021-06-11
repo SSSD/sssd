@@ -22,7 +22,7 @@ SUBDIRS += src/man
 endif
 
 SUBDIRS += . src/tests/cwrap src/tests/intg src/tests/test_CA \
-             src/tests/test_ECC_CA
+             src/tests/test_ECC_CA src/tools/analyzer
 
 # Some old versions of automake don't define builddir
 builddir ?= .
