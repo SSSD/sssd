@@ -199,6 +199,8 @@ Requires: sssd-common = %{version}-%{release}
 Requires: python3-sss = %{version}-%{release}
 Requires: python3-sssdconfig = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
+# required by sss_analyze
+Requires: python3-systemd
 Recommends: sssd-dbus
 
 %description tools
@@ -843,6 +845,7 @@ done
 %{_sbindir}/sss_debuglevel
 %{_sbindir}/sss_seed
 %{_sbindir}/sssctl
+%{python3_sitelib}/sssd/
 %{_mandir}/man8/sss_obfuscate.8*
 %{_mandir}/man8/sss_override.8*
 %{_mandir}/man8/sss_debuglevel.8*
