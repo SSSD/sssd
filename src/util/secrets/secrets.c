@@ -476,7 +476,7 @@ static int local_db_create(struct sss_sec_req *req)
     ret = ldb_add(req->sctx->ldb, msg);
     if (ret != LDB_SUCCESS) {
         if (ret == LDB_ERR_ENTRY_ALREADY_EXISTS) {
-            DEBUG(SSSDBG_OP_FAILURE,
+            DEBUG(SSSDBG_FUNC_DATA,
                   "Secret %s already exists\n", ldb_dn_get_linearized(msg->dn));
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
