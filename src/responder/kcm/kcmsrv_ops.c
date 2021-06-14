@@ -122,7 +122,7 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
     }
 
     if (op->fn_send == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_MINOR_FAILURE,
               "KCM op %s has no handler\n", kcm_opt_name(op));
         ret = ERR_KCM_OP_NOT_IMPLEMENTED;
         goto immediate;

@@ -195,7 +195,7 @@ static errno_t kcm_input_parse(struct kcm_reqbuf *reqbuf,
 
     op_io->op = kcm_get_opt(be16toh(opcode_be));
     if (op_io->op == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_MINOR_FAILURE,
               "Did not find a KCM operation handler for the requested opcode\n");
         return ERR_KCM_OP_NOT_IMPLEMENTED;
     }
@@ -312,7 +312,8 @@ static void kcm_reply_error(struct cli_ctx *cctx,
     errno_t ret;
     krb5_error_code kerr;
 
-    DEBUG(SSSDBG_OP_FAILURE,
+    DEBUG(retcode == ERR_KCM_OP_NOT_IMPLEMENTED ?
+              SSSDBG_MINOR_FAILURE : SSSDBG_OP_FAILURE,
           "KCM operation returns failure [%d]: %s\n",
           retcode, sss_strerror(retcode));
     kerr = sss2krb5_error(retcode);
@@ -405,8 +406,12 @@ static void kcm_cmd_request_done(struct tevent_req *req)
                        &req_ctx->op_io.reply);
     talloc_free(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "KCM operation failed [%d]: %s\n", ret, sss_strerror(ret));
+        if (ret == ERR_KCM_OP_NOT_IMPLEMENTED) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "%s\n", sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "KCM operation failed [%d]: %s\n", ret, sss_strerror(ret));
+        }
         kcm_reply_error(req_ctx->cctx, ret, &req_ctx->repbuf);
         return;
     }
