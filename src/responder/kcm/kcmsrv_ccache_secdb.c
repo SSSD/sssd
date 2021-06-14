@@ -58,7 +58,7 @@ static errno_t sec_get(TALLOC_CTX *mem_ctx,
 
     ret = sss_sec_get(tmp_ctx, req, &data, &len, &datatype);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_MINOR_FAILURE,
               "Cannot retrieve the secret [%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
