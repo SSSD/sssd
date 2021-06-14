@@ -223,7 +223,10 @@ static errno_t sss_send_pac(krb5_authdata **pac_authdata)
 
     ret = sss_pac_make_request(SSS_PAC_ADD_PAC_USER, &sss_data,
                                NULL, NULL, &errnop);
-    if (ret != NSS_STATUS_SUCCESS || errnop != 0) {
+    if (ret == NSS_STATUS_UNAVAIL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "failed to contact PAC responder\n");
+        return EIO;
+    } else if (ret != NSS_STATUS_SUCCESS || errnop != 0) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_pac_make_request failed [%d][%d].\n",
                                   ret, errnop);
         return EIO;
