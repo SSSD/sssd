@@ -716,6 +716,12 @@ enum update_steps {
     UPDATE_DONE,
 };
 
+struct certmap_req_list {
+    struct tevent_req *req;
+    struct certmap_req_list *prev;
+    struct certmap_req_list *next;
+};
+
 struct files_refresh_ctx {
     struct timeval start_passwd_refresh;
     enum refresh_task_status updating_passwd;
@@ -723,7 +729,26 @@ struct files_refresh_ctx {
     struct timeval start_group_refresh;
     enum refresh_task_status updating_groups;
     bool group_start_again;
+
+    struct certmap_req_list *certmap_req_list;
 };
+
+errno_t sf_add_certmap_req(struct files_refresh_ctx *refresh_ctx,
+                           struct tevent_req *req)
+{
+    struct certmap_req_list *certmap_req_item;
+
+    certmap_req_item = talloc_zero(refresh_ctx, struct certmap_req_list);
+    if (certmap_req_item == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to allow memory for certmap request list.\n");
+        return ENOMEM;
+    }
+    certmap_req_item->req = req;
+    DLIST_ADD(refresh_ctx->certmap_req_list, certmap_req_item);
+
+    return EOK;
+}
 
 static errno_t check_state(struct files_refresh_ctx *refresh_ctx, uint8_t flags)
 {
@@ -877,6 +902,7 @@ static struct tevent_req *sf_enum_files_send(struct files_id_ctx *id_ctx,
         }
         refresh_ctx->updating_passwd = REFRESH_NOT_RUNNIG;
         refresh_ctx->updating_groups = REFRESH_NOT_RUNNIG;
+        refresh_ctx->certmap_req_list = NULL;
     }
 
     ret = check_state(refresh_ctx, flags);
@@ -952,6 +978,8 @@ static void sf_enum_files_steps(struct tevent_context *ev,
     struct timeval now;
     struct timeval diff;
     uint32_t delay;
+    struct certmap_req_list *certmap_req_item;
+    struct certmap_req_list *certmap_req_tmp;
 
     req = talloc_get_type(data, struct tevent_req);
     state = tevent_req_data(req, struct sf_enum_files_state);
@@ -1191,6 +1219,14 @@ done:
                   "Cannot cancel transaction: %d\n", ret);
         }
         state->in_transaction = false;
+    }
+
+    DLIST_FOR_EACH_SAFE(certmap_req_item, certmap_req_tmp,
+                        id_ctx->refresh_ctx->certmap_req_list) {
+        handle_certmap(certmap_req_item->req);
+        DLIST_REMOVE(certmap_req_item,
+                     id_ctx->refresh_ctx->certmap_req_list);
+        talloc_free(certmap_req_item);
     }
 
     id_ctx->refresh_ctx->updating_passwd = REFRESH_NOT_RUNNIG;
