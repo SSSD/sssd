@@ -26,7 +26,31 @@ struct files_account_info_handler_state {
     struct dp_reply_std reply;
 
     struct files_id_ctx *id_ctx;
+    struct dp_id_data *data;
 };
+
+void handle_certmap(struct tevent_req *req)
+{
+    struct files_account_info_handler_state *state;
+    int ret;
+
+    state = tevent_req_data(req, struct files_account_info_handler_state);
+
+    ret = files_map_cert_to_user(state->id_ctx, state->data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "files_map_cert_to_user failed\n");
+    }
+
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+
+    return;
+}
 
 struct tevent_req *
 files_account_info_handler_send(TALLOC_CTX *mem_ctx,
@@ -93,12 +117,28 @@ files_account_info_handler_send(TALLOC_CTX *mem_ctx,
             ret = EINVAL;
             goto immediate;
         }
+
         if (id_ctx->sss_certmap_ctx == NULL) {
             DEBUG(SSSDBG_TRACE_ALL, "Certificate mapping not configured.\n");
             ret = EOK;
             goto immediate;
         }
 
+        /* Refresh is running, we have to wait until it is done */
+        if (id_ctx->refresh_ctx != NULL) {
+            state->data = data;
+
+            ret = sf_add_certmap_req(id_ctx->refresh_ctx, req);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to add request certmap request list.\n");
+                goto immediate;
+            }
+
+            return req;
+        }
+
+        /* No refresh is running, we have reply immediately */
         ret = files_map_cert_to_user(id_ctx, data);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "files_map_cert_to_user failed\n");

@@ -63,7 +63,11 @@ struct files_ctx *sf_init(TALLOC_CTX *mem_ctx,
                           const char **group_files,
                           struct files_id_ctx *id_ctx);
 
+errno_t sf_add_certmap_req(struct files_refresh_ctx *refresh_ctx,
+                           struct tevent_req *req);
 /* files_id.c */
+void handle_certmap(struct tevent_req *req);
+
 struct tevent_req *
 files_account_info_handler_send(TALLOC_CTX *mem_ctx,
                                struct files_id_ctx *id_ctx,
