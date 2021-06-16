@@ -548,7 +548,8 @@ static void kcm_recv(struct cli_ctx *cctx)
         DEBUG(SSSDBG_FATAL_FAILURE,
             "Failed to parse data (%d, %s), aborting client\n",
             ret, sss_strerror(ret));
-        goto fail;
+        talloc_free(cctx);
+        return;
     }
 
     /* do not read anymore, client is done sending */
@@ -559,15 +560,13 @@ static void kcm_recv(struct cli_ctx *cctx)
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to dispatch KCM operation [%d]: %s\n",
               ret, sss_strerror(ret));
-        goto fail;
+        /* Fail with reply */
+        kcm_reply_error(cctx, ret, &req->repbuf);
+        return;
     }
 
     /* Dispatched request resumes in kcm_cmd_request_done */
     return;
-
-fail:
-    /* Fail with reply */
-    kcm_reply_error(cctx, ret, &req->repbuf);
 }
 
 static int kcm_send_data(struct cli_ctx *cctx)
