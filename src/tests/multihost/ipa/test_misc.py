@@ -173,9 +173,9 @@ class Testipabz(object):
         cmd_check_ptrrecord = 'nslookup %s' % client_ip
 
         rc_arecord = multihost.client[0].run_command(cmd_check_arecord,
-                                            raiseonerr=False)
+                                                     raiseonerr=False)
         rc_ptrrecord = multihost.client[0].run_command(cmd_check_ptrrecord,
-                                                        raiseonerr=False)
+                                                       raiseonerr=False)
         assert rc_arecord.returncode == 0
         assert client_ip in rc_arecord.stdout_text
         assert rc_ptrrecord.returncode == 0
