@@ -624,8 +624,8 @@ int server_setup(const char *name, int flags,
                                          "[%s]\n", ret, strerror(ret));
             return ret;
         }
-        if (dt) debug_timestamps = 1;
-        else debug_timestamps = 0;
+        if (dt) debug_timestamps = SSSDBG_TIMESTAMP_ENABLED;
+        else debug_timestamps = SSSDBG_TIMESTAMP_DISABLED;
     }
 
     /* same for debug microseconds */
@@ -639,8 +639,8 @@ int server_setup(const char *name, int flags,
                                          "[%s]\n", ret, strerror(ret));
             return ret;
         }
-        if (dm) debug_microseconds = 1;
-        else debug_microseconds = 0;
+        if (dm) debug_microseconds = SSSDBG_MICROSECONDS_ENABLED;
+        else debug_microseconds = SSSDBG_MICROSECONDS_DISABLED;
     }
 
     ret = confdb_get_bool(ctx->confdb_ctx, conf_entry,

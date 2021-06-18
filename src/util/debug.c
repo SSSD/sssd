@@ -103,14 +103,6 @@ void _sss_debug_init(int dbg_lvl, const char *logger)
         debug_level = SSSDBG_UNRESOLVED;
     }
 
-    if (debug_timestamps == SSSDBG_TIMESTAMP_UNRESOLVED) {
-        debug_timestamps = SSSDBG_TIMESTAMP_DEFAULT;
-    }
-
-    if (debug_microseconds == SSSDBG_MICROSECONDS_UNRESOLVED) {
-        debug_microseconds = SSSDBG_MICROSECONDS_DEFAULT;
-    }
-
     sss_set_logger(logger);
 
     /* if 'FILES_LOGGER' is requested then open log file, if it wasn't
@@ -305,8 +297,8 @@ void sss_vdebug_fn(const char *file,
     }
 #endif
 
-    if (debug_timestamps) {
-        if (debug_microseconds) {
+    if (debug_timestamps == SSSDBG_TIMESTAMP_ENABLED) {
+        if (debug_microseconds == SSSDBG_MICROSECONDS_ENABLED) {
             gettimeofday(&tv, NULL);
             t = tv.tv_sec;
         } else {
@@ -320,7 +312,7 @@ void sss_vdebug_fn(const char *file,
                      tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
                      tm.tm_hour, tm.tm_min, tm.tm_sec);
         }
-        if (debug_microseconds) {
+        if (debug_microseconds == SSSDBG_MICROSECONDS_ENABLED) {
             sss_debug_backtrace_printf(level, "%s:%.6ld): ",
                                        last_time_str, tv.tv_usec);
         } else {
