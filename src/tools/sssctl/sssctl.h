@@ -47,7 +47,7 @@ enum sssctl_prompt_result
 sssctl_prompt(const char *message,
               enum sssctl_prompt_result defval);
 
-errno_t sssctl_run_command(const char *command);
+errno_t sssctl_run_command(const char *const argv[]); /* argv[0] - command */
 bool sssctl_start_sssd(bool force);
 bool sssctl_stop_sssd(bool force);
 bool sssctl_restart_sssd(bool force);

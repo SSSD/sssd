@@ -97,22 +97,36 @@ sssctl_prompt(const char *message,
     return SSSCTL_PROMPT_ERROR;
 }
 
-errno_t sssctl_run_command(const char *command)
+errno_t sssctl_run_command(const char *const argv[])
 {
     int ret;
+    int wstatus;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Running %s\n", command);
+    DEBUG(SSSDBG_TRACE_FUNC, "Running '%s'\n", argv[0]);
 
-    ret = system(command);
+    ret = fork();
     if (ret == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to execute %s\n", command);
         ERROR("Error while executing external command\n");
         return EFAULT;
-    } else if (WEXITSTATUS(ret) != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Command %s failed with [%d]\n",
-              command, WEXITSTATUS(ret));
+    }
+
+    if (ret == 0) {
+        /* cast is safe - see
+        https://pubs.opengroup.org/onlinepubs/9699919799/functions/exec.html
+        "The statement about argv[] and envp[] being constants ... "
+        */
+        execvp(argv[0], discard_const_p(char * const, argv));
         ERROR("Error while executing external command\n");
-        return EIO;
+        _exit(1);
+    } else {
+        if (waitpid(ret, &wstatus, 0) == -1) {
+            ERROR("Error while executing external command '%s'\n", argv[0]);
+            return EFAULT;
+        } else if (WEXITSTATUS(wstatus) != 0) {
+            ERROR("Command '%s' failed with [%d]\n",
+                  argv[0], WEXITSTATUS(wstatus));
+            return EIO;
+        }
     }
 
     return EOK;
@@ -132,11 +146,14 @@ static errno_t sssctl_manage_service(enum sssctl_svc_action action)
 #elif defined(HAVE_SERVICE)
     switch (action) {
     case SSSCTL_SVC_START:
-        return sssctl_run_command(SERVICE_PATH" sssd start");
+        return sssctl_run_command(
+                      (const char *[]){SERVICE_PATH, "sssd", "start", NULL});
     case SSSCTL_SVC_STOP:
-        return sssctl_run_command(SERVICE_PATH" sssd stop");
+        return sssctl_run_command(
+                      (const char *[]){SERVICE_PATH, "sssd", "stop", NULL});
     case SSSCTL_SVC_RESTART:
-        return sssctl_run_command(SERVICE_PATH" sssd restart");
+        return sssctl_run_command(
+                      (const char *[]){SERVICE_PATH, "sssd", "restart", NULL});
     }
 #endif
 

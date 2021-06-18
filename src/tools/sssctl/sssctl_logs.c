@@ -31,6 +31,7 @@
 #include <ldb.h>
 #include <popt.h>
 #include <stdio.h>
+#include <glob.h>
 
 #include "util/util.h"
 #include "tools/common/sss_process.h"
@@ -230,6 +231,7 @@ errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
 {
     struct sssctl_logs_opts opts = {0};
     errno_t ret;
+    glob_t globbuf;
 
     /* Parse command line. */
     struct poptOption options[] = {
@@ -253,8 +255,20 @@ errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
 
         sss_signal(SIGHUP);
     } else {
+        globbuf.gl_offs = 4;
+        ret = glob(LOG_PATH"/*.log", GLOB_ERR|GLOB_DOOFFS, NULL, &globbuf);
+        if (ret != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to expand log files list\n");
+            return ret;
+        }
+        globbuf.gl_pathv[0] = discard_const_p(char, "truncate");
+        globbuf.gl_pathv[1] = discard_const_p(char, "--no-create");
+        globbuf.gl_pathv[2] = discard_const_p(char, "--size");
+        globbuf.gl_pathv[3] = discard_const_p(char, "0");
+
         PRINT("Truncating log files...\n");
-        ret = sssctl_run_command("truncate --no-create --size 0 " LOG_FILES);
+        ret = sssctl_run_command((const char * const*)globbuf.gl_pathv);
+        globfree(&globbuf);
         if (ret != EOK) {
             ERROR("Unable to truncate log files\n");
             return ret;
@@ -269,8 +283,8 @@ errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
                           void *pvt)
 {
     const char *file;
-    const char *cmd;
     errno_t ret;
+    glob_t globbuf;
 
     /* Parse command line. */
     ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL, NULL, NULL,
@@ -280,13 +294,19 @@ errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
         return ret;
     }
 
-    cmd = talloc_asprintf(tool_ctx, "tar -czf %s %s", file, LOG_FILES);
-    if (cmd == NULL) {
-        ERROR("Out of memory!");
+    globbuf.gl_offs = 3;
+    ret = glob(LOG_PATH"/*.log", GLOB_ERR|GLOB_DOOFFS, NULL, &globbuf);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to expand log files list\n");
+        return ret;
     }
+    globbuf.gl_pathv[0] = discard_const_p(char, "tar");
+    globbuf.gl_pathv[1] = discard_const_p(char, "-czf");
+    globbuf.gl_pathv[2] = discard_const_p(char, file);
 
     PRINT("Archiving log files into %s...\n", file);
-    ret = sssctl_run_command(cmd);
+    ret = sssctl_run_command((const char * const*)globbuf.gl_pathv);
+    globfree(&globbuf);
     if (ret != EOK) {
         ERROR("Unable to archive log files\n");
         return ret;

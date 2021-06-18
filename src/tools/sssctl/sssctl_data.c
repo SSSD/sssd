@@ -105,15 +105,15 @@ static errno_t sssctl_backup(bool force)
         }
     }
 
-    ret = sssctl_run_command("sss_override user-export "
-                             SSS_BACKUP_USER_OVERRIDES);
+    ret = sssctl_run_command((const char *[]){"sss_override", "user-export",
+                                              SSS_BACKUP_USER_OVERRIDES, NULL});
     if (ret != EOK) {
         ERROR("Unable to export user overrides\n");
         return ret;
     }
 
-    ret = sssctl_run_command("sss_override group-export "
-                             SSS_BACKUP_GROUP_OVERRIDES);
+    ret = sssctl_run_command((const char *[]){"sss_override", "group-export",
+                                              SSS_BACKUP_GROUP_OVERRIDES, NULL});
     if (ret != EOK) {
         ERROR("Unable to export group overrides\n");
         return ret;
@@ -158,8 +158,8 @@ static errno_t sssctl_restore(bool force_start, bool force_restart)
     }
 
     if (sssctl_backup_file_exists(SSS_BACKUP_USER_OVERRIDES)) {
-        ret = sssctl_run_command("sss_override user-import "
-                                 SSS_BACKUP_USER_OVERRIDES);
+        ret = sssctl_run_command((const char *[]){"sss_override", "user-import",
+                                                  SSS_BACKUP_USER_OVERRIDES, NULL});
         if (ret != EOK) {
             ERROR("Unable to import user overrides\n");
             return ret;
@@ -167,8 +167,8 @@ static errno_t sssctl_restore(bool force_start, bool force_restart)
     }
 
     if (sssctl_backup_file_exists(SSS_BACKUP_USER_OVERRIDES)) {
-        ret = sssctl_run_command("sss_override group-import "
-                                 SSS_BACKUP_GROUP_OVERRIDES);
+        ret = sssctl_run_command((const char *[]){"sss_override", "group-import",
+                                                  SSS_BACKUP_GROUP_OVERRIDES, NULL});
         if (ret != EOK) {
             ERROR("Unable to import group overrides\n");
             return ret;
@@ -296,40 +296,19 @@ errno_t sssctl_cache_expire(struct sss_cmdline *cmdline,
                             void *pvt)
 {
     errno_t ret;
-    char *cmd_args = NULL;
-    const char *cachecmd = SSS_CACHE;
-    char *cmd = NULL;
-    int i;
 
-    if (cmdline->argc == 0) {
-        ret = sssctl_run_command(cachecmd);
-        goto done;
+    const char **args = talloc_array_size(tool_ctx,
+                                          sizeof(char *),
+                                          cmdline->argc + 2);
+    if (!args) {
+        return ENOMEM;
     }
+    memcpy(&args[1], cmdline->argv, sizeof(char *) * cmdline->argc);
+    args[0] = SSS_CACHE;
+    args[cmdline->argc + 1] = NULL;
 
-    cmd_args = talloc_strdup(tool_ctx, "");
-    if (cmd_args == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
+    ret = sssctl_run_command(args);
 
-    for (i = 0; i < cmdline->argc; i++) {
-        cmd_args = talloc_strdup_append(cmd_args, cmdline->argv[i]);
-        if (i != cmdline->argc - 1) {
-            cmd_args = talloc_strdup_append(cmd_args, " ");
-        }
-    }
-
-    cmd = talloc_asprintf(tool_ctx, "%s %s", cachecmd, cmd_args);
-    if (cmd == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sssctl_run_command(cmd);
-
-done:
-    talloc_free(cmd_args);
-    talloc_free(cmd);
-
+    talloc_free(args);
     return ret;
 }
