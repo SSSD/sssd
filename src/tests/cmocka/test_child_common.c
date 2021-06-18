@@ -163,7 +163,7 @@ static void extra_args_test(struct child_test_ctx *child_tctx,
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
     if (child_pid == 0) {
-        debug_timestamps = 1;
+        debug_timestamps = SSSDBG_TIMESTAMP_ENABLED;
 
         exec_child_ex(child_tctx,
                       child_tctx->pipefd_to_child,

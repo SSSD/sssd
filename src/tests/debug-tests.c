@@ -194,7 +194,7 @@ int test_helper_debug_check_message(int level)
     }
     msg[fsize] = '\0';
 
-    if (debug_timestamps == 1) {
+    if (debug_timestamps == SSSDBG_TIMESTAMP_ENABLED) {
         int time_hour = 0;
         int time_min = 0;
         int time_sec = 0;
@@ -344,8 +344,8 @@ START_TEST(test_debug_is_set_single_no_timestamp)
         SSSDBG_TRACE_LDB
     };
 
-    debug_timestamps = 0;
-    debug_microseconds = 0;
+    debug_timestamps = SSSDBG_TIMESTAMP_DISABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_DISABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
@@ -384,8 +384,8 @@ START_TEST(test_debug_is_set_single_timestamp)
         SSSDBG_TRACE_LDB
     };
 
-    debug_timestamps = 1;
-    debug_microseconds = 0;
+    debug_timestamps = SSSDBG_TIMESTAMP_ENABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_DISABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
@@ -428,8 +428,8 @@ START_TEST(test_debug_is_set_single_timestamp_microseconds)
         SSSDBG_TRACE_LDB
     };
 
-    debug_timestamps = 1;
-    debug_microseconds = 1;
+    debug_timestamps = SSSDBG_TIMESTAMP_ENABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_ENABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
@@ -473,8 +473,8 @@ START_TEST(test_debug_is_notset_no_timestamp)
         SSSDBG_TRACE_LDB
     };
 
-    debug_timestamps = 0;
-    debug_microseconds = 0;
+    debug_timestamps = SSSDBG_TIMESTAMP_DISABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_DISABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
@@ -515,8 +515,8 @@ START_TEST(test_debug_is_notset_timestamp)
         SSSDBG_TRACE_LDB
     };
 
-    debug_timestamps = 0;
-    debug_microseconds = 0;
+    debug_timestamps = SSSDBG_TIMESTAMP_DISABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_DISABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
@@ -557,8 +557,8 @@ START_TEST(test_debug_is_notset_timestamp_microseconds)
         SSSDBG_TRACE_LDB
     };
 
-    debug_timestamps = 0;
-    debug_microseconds = 1;
+    debug_timestamps = SSSDBG_TIMESTAMP_DISABLED;
+    debug_microseconds = SSSDBG_MICROSECONDS_ENABLED;
     debug_prg_name = "sssd";
     sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
