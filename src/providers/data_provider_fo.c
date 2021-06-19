@@ -578,6 +578,12 @@ fail:
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "Server resolution failed: [%d]: All servers down\n", ret);
+    } else if (ret == EFAULT || ret == EIO || ret == EPERM) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Server [%s] resolution failed: [%d]: %s\n",
+              state->srv ? fo_get_server_name(state->srv) : "NULL",
+              ret, sss_strerror(ret));
+
     } else {
         DEBUG(SSSDBG_TRACE_LIBS,
               "Server resolution failed: [%d]: %s\n", ret, sss_strerror(ret));
