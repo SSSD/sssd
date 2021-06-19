@@ -2448,8 +2448,8 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
 
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Unable to get GPO list: [%d](%s)\n",
-              ret, sss_strerror(ret));
+              "Unable to get GPO list from server %s: [%d](%s)\n",
+              state->ad_hostname ? state->ad_hostname : "NULL", ret, sss_strerror(ret));
         goto done;
     } else if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC,
