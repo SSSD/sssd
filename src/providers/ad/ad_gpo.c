@@ -4742,9 +4742,18 @@ static void gpo_cse_done(struct tevent_req *subreq)
     ret = ad_gpo_parse_gpo_child_response(state->buf, state->len,
                                           &sysvol_gpt_version, &child_result);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ad_gpo_parse_gpo_child_response failed: [%d][%s]\n",
-              ret, sss_strerror(ret));
+        if (ret == EINVAL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ad_gpo_parse_gpo_child_response failed: [%d][%s]. "
+                  "Broken GPO data received from AD. Check AD child logs for "
+                  "more information.\n",
+                  ret, sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ad_gpo_parse_gpo_child_response failed: [%d][%s]\n",
+                  ret, sss_strerror(ret));
+        }
+
         tevent_req_error(req, ret);
         return;
     } else if (child_result != 0){
