@@ -478,7 +478,6 @@ static void kcm_renew_tgt(struct tevent_context *ev,
 
     ctx = talloc_zero(auth_data, struct kcm_renew_auth_ctx);
     if (ctx == NULL) {
-        ret = ENOMEM;
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to allocate renew auth ctx\n");
         return;
     }
