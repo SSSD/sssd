@@ -157,7 +157,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_ENUM_IP_NETWORK:
         break;
     case CACHE_REQ_SVC_BY_NAME:
-        if (input->svc.name->input == NULL) {
+        if ((input->svc.name == NULL) || (input->svc.name->input == NULL)) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
             ret = ERR_INTERNAL;
             goto done;
