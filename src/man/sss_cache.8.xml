@@ -220,6 +220,45 @@
         </variablelist>
     </refsect1>
 
+    <refsect1 id='memcache'>
+        <title>EFFECTS ON THE FAST MEMORY CACHE</title>
+        <para>
+            <command>sss_cache</command> also invalidates the memory cache.
+            Since the memory cache is a file which is mapped into the memory of
+            each process which called SSSD to resolve users or groups the file
+            cannot be truncated. A special flag is set in the header of the file
+            to indicated that the content is invalid and then the file is
+            unlinked by SSSD's NSS responder and a new cache file is created.
+            Whenever a process is now doing a new lookup for a user or a group
+            it will see the flag, close the old memory cache file and map the
+            new one into its memory. When all processes which had opened the old
+            memory cache file have closed it while looking up a user or a group
+            the kernel can release the occupied disk space and the old memory
+            cache file is finally removed completely.
+        </para>
+        <para>
+            A special case is long running processes which are doing user or
+            group lookups only at startup, e.g. to determine the name of the
+            user the process is running as. For those lookups the memory cache
+            file is mapped into the memory of the process. But since there will
+            be no further lookups this process would never detect if the memory
+            cache file was invalidated and hence it will be kept in memory and
+            will occupy disk space until the process stops. As a result calling
+            <command>sss_cache</command> might increase the disk usage because
+            old memory cache files cannot be removed from the disk because they
+            are still mapped by long running processes.
+        </para>
+        <para>
+            A possible work-around for long running processes which are looking
+            up users and groups only at startup or very rarely is to run them
+            with the environment variable SSS_NSS_USE_MEMCACHE set to "NO" so
+            that they won't use the memory cache at all and not map the memory
+            cache file into the memory. In general a better solution is to tune
+            the cache timeout parameters so that they meet the local
+            expectations and calling <command>sss_cache</command> is not needed.
+        </para>
+    </refsect1>
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>
