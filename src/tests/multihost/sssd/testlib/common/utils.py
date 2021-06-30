@@ -554,6 +554,27 @@ class sssdTools(object):
         else:
             return(True, cmd.stdout_text)
 
+    def su_success(self, username, password='Secret123', with_password=True):
+        """Helper function for testing su access
+        :param str username: username including domain if needed
+        :param str password: password for the user
+        :param bool with_password: whether su should be with password or not
+        :return bool: True is command is successful
+        """
+        escaped = shlex.quote(username)
+        if with_password:
+            # To sun su with password we switch to user nobody first
+            su_cmd = self.multihost.run_command(
+                rf'su --shell /bin/sh nobody -c "su --shell /bin/true --'
+                rf' {escaped}"',
+                stdin_text=password, raiseonerr=False
+            )
+        else:
+            su_cmd = self.multihost.run_command(
+                rf'su - {escaped} -c whoami', raiseonerr=False
+            )
+        return su_cmd.returncode == 0
+
     def auth_from_client(self, username, password):
         """ ssh to user from client environment
         :param str username: The name of user
@@ -592,6 +613,29 @@ class sssdTools(object):
         print(cmd.stderr_text)
         print("----expect output end----")
         return cmd.returncode
+
+    def auth_from_client_key(self, user):
+        """Helper function to login over ssh with a key
+        :param str user: username including domain if needed
+        :return: bool whether login succeeded
+        """
+        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+            tfile.write('#!/usr/bin/expect\n')
+            tfile.write('set timeout 20\n')
+            tfile.write(f'set user {user}\n')
+            tfile.write('spawn ssh -o StrictHostKeyChecking=no -o'
+                        ' GSSAPIAuthentication=no -o PasswordAuthentication=no'
+                        ' -l $user localhost\n')
+            tfile.write('expect "$ "\n')
+            tfile.write('send "exit\\r"\n')
+            tfile.write('expect eof\n')
+            tfile.flush()
+            self.multihost.transport.put_file(tfile.name, '/tmp/ssh.exp')
+        expect_cmd = 'chmod +x /tmp/ssh.exp; /tmp/ssh.exp 2>&1'
+        cmd = self.multihost.run_command(expect_cmd, raiseonerr=False)
+        message = "Connection to localhost closed"
+        result = message in cmd.stdout_text
+        return result
 
     def change_user_password(self, username, login_password, current_password,
                              new_password, retype_new_password):
@@ -1599,6 +1643,99 @@ class ADOperations(object):
                                                             self.ad_basedn)
         (ret, _) = ad_conn_inst.del_dn(entrydn)
         return ret
+
+    def expire_account(self, user):
+        """ Expire User account
+
+        :param str user: Name of Windows AD user
+        :Return bool: True if user is expired else False
+        :Exceptions: None
+        """
+        try:
+            self.ad_host.run_command(
+                f"powershell 'Import-Module ActiveDirectory; "
+                f"Set-ADAccountExpiration -identity"
+                f" \"{user}\" -DateTime \"12/18/2011\"'"
+            )
+        except CalledProcessError:
+            return False
+        return True
+
+    def unexpire_account(self, user):
+        """ Un-expire User account
+        :param str user: Name of Windows AD user
+        :Return bool: True if user is unexpired else False
+        :Exceptions: None
+        """
+        try:
+            self.ad_host.run_command(
+                f"powershell 'Import-Module ActiveDirectory; "
+                f"Set-ADAccountExpiration -identity"
+                f" \"{user}\" -DateTime \"10/05/2036\"'"
+            )
+        except CalledProcessError:
+            return False
+        return True
+
+    def disable_account(self, user):
+        """ Disable User account
+        :param str user: Name of Windows AD user
+        :Return bool: True if user is disabled else False
+        :Exceptions: None
+        """
+        try:
+            self.ad_host.run_command(
+                f"powershell 'Import-Module ActiveDirectory; "
+                f"Disable-ADAccount -identity \"{user}\"'"
+            )
+        except CalledProcessError:
+            return False
+        return True
+
+    def enable_account(self, user):
+        """ Enable User account
+        :param str user: Name of Windows AD user
+        :Return bool: True if user is enabled else False
+        :Exceptions: None
+        """
+        try:
+            self.ad_host.run_command(
+                f"powershell 'Import-Module ActiveDirectory; "
+                f"Enable-ADAccount -identity \"{user}\"'"
+            )
+        except CalledProcessError:
+            return False
+        return True
+
+    def expire_account_password(self, user):
+        """ Expire account password
+        :param str user: Name of Windows AD user
+        :Return bool: True if user password is expired else False
+        :Exceptions: None
+        """
+        try:
+            self.ad_host.run_command(
+                f"powershell 'Import-Module ActiveDirectory; Set-ADUser"
+                f" -identity \"{user}\" -Replace @{{pwdLastSet=0}}'"
+            )
+        except CalledProcessError:
+            return False
+        return True
+
+    def unexpire_account_password(self, user):
+        """ Unexpire account password
+        :param str user: Name of Windows AD user
+        :Return bool: True if user password is unexpired else False
+        :Exceptions: None
+        """
+        try:
+            self.ad_host.run_command(
+                f"powershell 'Import-Module ActiveDirectory; Set-ADUser"
+                f" -identity \"{user}\" -Replace @{{pwdLastSet=-1}}'"
+            )
+        except CalledProcessError:
+            return False
+        return True
 
 
 class SSHClient(paramiko.SSHClient):
