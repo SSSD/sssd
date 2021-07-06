@@ -573,6 +573,13 @@ static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
         }
     }
 
+    if (strcmp(version, SYSDB_VERSION_0_22) == 0) {
+        ret = sysdb_upgrade_22(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
     ret = EOK;
 done:
     sysdb->ldb = save_ldb;
