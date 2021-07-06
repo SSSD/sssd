@@ -23,6 +23,7 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
+#define SYSDB_VERSION_0_23 "0.23"
 #define SYSDB_VERSION_0_22 "0.22"
 #define SYSDB_VERSION_0_21 "0.21"
 #define SYSDB_VERSION_0_20 "0.20"
@@ -46,7 +47,7 @@
 #define SYSDB_VERSION_0_2 "0.2"
 #define SYSDB_VERSION_0_1 "0.1"
 
-#define SYSDB_VERSION SYSDB_VERSION_0_22
+#define SYSDB_VERSION SYSDB_VERSION_0_23
 
 #define SYSDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
@@ -86,6 +87,7 @@
      "@IDXATTR: ccacheFile\n" \
      "@IDXATTR: ipHostNumber\n" \
      "@IDXATTR: ipNetworkNumber\n" \
+     "@IDXATTR: originalADgidNumber\n" \
      "\n" \
      "dn: @MODULES\n" \
      "@LIST: asq,memberof\n" \
@@ -180,6 +182,7 @@ int sysdb_upgrade_18(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_19(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_20(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_21(struct sysdb_ctx *sysdb, const char **ver);
+int sysdb_upgrade_22(struct sysdb_ctx *sysdb, const char **ver);
 
 int sysdb_ts_upgrade_01(struct sysdb_ctx *sysdb, const char **ver);
 

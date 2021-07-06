@@ -177,6 +177,8 @@
 #define OVERRIDE_PREFIX "override"
 #define SYSDB_DEFAULT_OVERRIDE_NAME "defaultOverrideName"
 
+#define SYSDB_ORIG_AD_GID_NUMBER "originalADgidNumber"
+
 #define SYSDB_AD_ACCOUNT_EXPIRES "adAccountExpires"
 #define SYSDB_AD_USER_ACCOUNT_CONTROL "adUserAccountControl"
 
