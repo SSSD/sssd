@@ -43,6 +43,6 @@ There are several ways to contact us:
   https://lists.fedorahosted.org/archives/list/sssd-devel@lists.fedorahosted.org/)
 * the sssd-users mailing list: [End-user discussions about the System Security Services Daemon](
   https://lists.fedorahosted.org/archives/list/sssd-users@lists.fedorahosted.org/)
-* the #sssd and #freeipa IRC channels on freenode:
-  * irc://irc.freenode.net/sssd
-  * irc://irc.freenode.net/freeipa
+* the #sssd and #freeipa IRC channels on libera.chat:
+  * irc://irc.libera.chat/sssd
+  * irc://irc.libera.chat/freeipa
