@@ -1846,9 +1846,6 @@ sssd_kcm_SOURCES += \
     src/providers/krb5/krb5_child_handler.c \
     src/providers/data_provider_opts.c \
     $(NULL)
-sssd_kcm_LDADD += \
-    $(CARES_LIBS) \
-    $(NULL)
 endif
 
 endif
