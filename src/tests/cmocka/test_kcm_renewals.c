@@ -175,6 +175,7 @@ static int teardown_kcm_renewals(void **state)
     struct test_ctx *tctx = talloc_get_type(*state, struct test_ctx);
 
     unlink(TEST_DB_FULL_PATH);
+    unlink(TEST_MKEY_FULL_PATH);
 
     rmdir(TESTS_PATH);
     talloc_free(tctx);
