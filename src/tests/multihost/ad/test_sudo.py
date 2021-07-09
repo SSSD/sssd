@@ -216,7 +216,6 @@ class TestSudo(object):
                     assert '/usr/bin/head\n' in result
         client.sssd_conf('sudo', params, action='delete')
 
-
     @classmethod
     def class_teardown(cls, multihost):
         """ Remove sudo provider from Domain section """
