@@ -554,13 +554,12 @@ def sudorules(session_multihost, request):
     sudo_identity = 'sudo_usera'
     sudo_options = ["!requiretty", "!authenticate"]
     win_ldap.add_sudo_rule(rule1_dn, 'ALL', sudo_cmd,
-                          sudo_identity, sudo_options)
+                           sudo_identity, sudo_options)
     user1 = 'sudo_idmuser1'
     extra_sudo_user = [(ldap.MOD_ADD, 'sudoRunAs',
                         user1.encode('utf-8'))]
     (ret, _) = win_ldap.modify_ldap(rule1_dn, extra_sudo_user)
     assert ret == 'Success'
-
 
     def delete_sudorule():
         """ Delete sudo rule """
