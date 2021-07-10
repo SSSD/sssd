@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-06-08 11:45+0200\n"
-"PO-Revision-Date: 2021-05-09 10:02+0000\n"
+"PO-Revision-Date: 2021-06-11 15:04+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/uk/>\n"
@@ -1877,7 +1877,7 @@ msgstr "Період автоматичного кмітливого оновл�
 
 #: src/config/SSSDConfig/sssdoptions.py:518
 msgid "Smart and full refresh random offset"
-msgstr ""
+msgstr "Випадковий кмітливий відступ і відступ повного оновлення"
 
 #: src/config/SSSDConfig/sssdoptions.py:519
 msgid "Whether to filter rules by hostname, IP addresses and network"

@@ -19,7 +19,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-06-08 11:43+0200\n"
-"PO-Revision-Date: 2021-01-29 10:40+0000\n"
+"PO-Revision-Date: 2021-06-29 14:04+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/es/>\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.4.2\n"
+"X-Generator: Weblate 4.7\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -400,15 +400,13 @@ msgstr "Predeterminado: false"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:151
-#, fuzzy
-#| msgid "debug_microseconds (bool)"
 msgid "debug_backtrace_enabled (bool)"
-msgstr "debug_microseconds (bool)"
+msgstr "debug_backtrace_enabled (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:154
 msgid "Enable debug backtrace."
-msgstr ""
+msgstr "Habilita el seguimiento de depuración."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:157
@@ -419,6 +417,11 @@ msgid ""
 "to 0 or 1 then only those error levels will trigger backtrace, otherwise up "
 "to 2)."
 msgstr ""
+"En caso de que SSSD esté corriendo en debug_level menor de 9, todo se "
+"registra en un bufer temporal en la memoria y se descarga en un archivo de "
+"registro cualquier error incluyendo `min(0x0040, debug_level)` (i.e. si "
+"debug_level se fija explícitamente a 0 o 1 estos niveles de error disparará "
+"una traza, de lo contrario hasta 2)."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:166
@@ -426,6 +429,8 @@ msgid ""
 "Feature is only supported for `logger == files` (i.e.  setting doesn't have "
 "effect for other logger types)."
 msgstr ""
+"La característica sólo se soporta para `logger == files` (i.e. la "
+"configuración no tiene efecto para otro tipo de registros)."
 
 #. type: Content of: outside any tag (error?)
 #: sssd.conf.5.xml:106 sssd.conf.5.xml:181 sssd-ldap.5.xml:1520
@@ -564,13 +569,6 @@ msgstr "dominios"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:271
-#, fuzzy
-#| msgid ""
-#| "A domain is a database containing user information. SSSD can use more "
-#| "domains at the same time, but at least one must be configured or SSSD "
-#| "won't start.  This parameter describes the list of domains in the order "
-#| "you want them to be queried.  A domain name should only consist of "
-#| "alphanumeric ASCII characters, dashes, dots and underscores."
 msgid ""
 "A domain is a database containing user information. SSSD can use more "
 "domains at the same time, but at least one must be configured or SSSD won't "
@@ -581,10 +579,10 @@ msgid ""
 msgstr ""
 "Un dominio es una base de datos que contiene información del usuario. SSSD "
 "puede usar más dominios a la vez, pero al menos se debe configurar uno o "
-"SSSD no arrancará.  Este parámetros describe la lista de dominios en el "
-"orden que usted desea que sean consultados.  Un nombre de dominio debería "
-"solo constar de caracteres ASCII alfanuméricos, guiones, puntos y guiones "
-"bajos."
+"SSSD no arrancará. Este parámetro describe la lista de dominios en el orden "
+"que usted desea que sean consultados. Se recomienda de que contenga sólo "
+"caracteres ASCII alfanuméricos, guiones, puntos y guiones bajos. El carácter "
+"\"/\" está prohibido."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:284 sssd.conf.5.xml:3300
@@ -679,6 +677,8 @@ msgid ""
 "Each domain can have an individual format string configured.  See DOMAIN "
 "SECTIONS for more info on this option."
 msgstr ""
+"Cada dominio puede tener una cadena de formato individual configurada. Vea "
+"SECCIONES DOMINIO para más información sobre esta opción."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:347
@@ -925,21 +925,15 @@ msgstr "soft_ocsp"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:510
-#, fuzzy
-#| msgid ""
-#| "(OpenSSL Version) If a connection cannot be established to an OCSP "
-#| "responder the OCSP check is skipped.  This option should be used to allow "
-#| "authentication when the system is offline and the OCSP responder cannot "
-#| "be reached."
 msgid ""
 "If a connection cannot be established to an OCSP responder the OCSP check is "
 "skipped.  This option should be used to allow authentication when the system "
 "is offline and the OCSP responder cannot be reached."
 msgstr ""
-"(Versión OpenSSL) S no se puede establecer una conexión con un contestador "
-"OCSP la comprobación OCSP es saltada. Esta opción debería ser usada para "
-"permitir la autenticación cuando el sistema no está en línea y el "
-"contestador OCSP no puede ser alcanzado."
+"Si no se puede establecer una conexión con un contestador OCSP la "
+"comprobación OCSP es saltada. Esta opción debería ser usada para permitir la "
+"autenticación cuando el sistema no está en línea y el contestador OCSP no "
+"puede ser alcanzado."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:520
