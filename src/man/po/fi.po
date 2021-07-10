@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-06-08 11:43+0200\n"
-"PO-Revision-Date: 2021-04-03 06:01+0000\n"
+"PO-Revision-Date: 2021-06-14 19:04+0000\n"
 "Last-Translator: Jan Kuparinen <copper_fin@hotmail.com>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/fi/>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.3\n"
+"X-Generator: Weblate 4.6.2\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -322,10 +322,8 @@ msgstr "Oletus:epätosi"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:151
-#, fuzzy
-#| msgid "debug_timestamps (bool)"
 msgid "debug_backtrace_enabled (bool)"
-msgstr "debug_timestamps (bool)"
+msgstr "debug_backtrace_enabled (boolean)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:154
@@ -1082,10 +1080,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:797
-#, fuzzy
-#| msgid "offline_timeout (integer)"
 msgid "offline_timeout_max (integer)"
-msgstr "offline_timeout (integeri)"
+msgstr "offline_timeout_max (integeri)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:800
@@ -1124,17 +1120,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:823
-#, fuzzy
-#| msgid "Default:"
 msgid "Default: 3600"
-msgstr "Oletus:"
+msgstr "Oletus: 3600"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:828
-#, fuzzy
-#| msgid "offline_timeout (integer)"
 msgid "offline_timeout_random_offset (integer)"
-msgstr "offline_timeout (integeri)"
+msgstr "offline_timeout_random_offset (integeri)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:831
@@ -1162,10 +1154,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:849
-#, fuzzy
-#| msgid "Default:"
 msgid "Default: 30"
-msgstr "Oletus:"
+msgstr "Oletus: 30"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:854
@@ -1516,10 +1506,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1137
-#, fuzzy
-#| msgid "enum_cache_timeout (integer)"
 msgid "memcache_timeout (integer)"
-msgstr "enum_cache_timeout (integeri)"
+msgstr "memcache_timeout (integeri)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1140
@@ -1545,10 +1533,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1162
-#, fuzzy
-#| msgid "enum_cache_timeout (integer)"
 msgid "memcache_size_passwd (integer)"
-msgstr "enum_cache_timeout (integeri)"
+msgstr "memcache_size_passwd (integeri)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1165
@@ -1572,10 +1558,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1187
-#, fuzzy
-#| msgid "enum_cache_timeout (integer)"
 msgid "memcache_size_group (integer)"
-msgstr "enum_cache_timeout (integeri)"
+msgstr "memcache_size_group (integeri)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1190
@@ -1593,10 +1577,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1212
-#, fuzzy
-#| msgid "enum_cache_timeout (integer)"
 msgid "memcache_size_initgroups (integer)"
-msgstr "enum_cache_timeout (integeri)"
+msgstr "memcache_size_initgroups (integeri)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1215
@@ -1648,10 +1630,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1271
-#, fuzzy
-#| msgid "Default: not set"
 msgid "Default: <quote>*</quote>"
-msgstr "Oletus: ei asetettu"
+msgstr "Oletus: <quote>*</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1274
@@ -2085,15 +2065,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1629
-#, fuzzy, no-wrap
-#| msgid ""
-#| "subdomain_inherit = ldap_purge_cache_timeout\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "pam_cert_verification = partial_chain\n"
 "                            "
 msgstr ""
-"subdomain_inherit = ldap_purge_cache_timeout\n"
+"pam_cert_verification = partial_chain\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -2344,15 +2321,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1838
-#, fuzzy, no-wrap
-#| msgid ""
-#| "subdomain_inherit = ldap_purge_cache_timeout\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "pam_gssapi_services = sudo, sudo-i\n"
 "                            "
 msgstr ""
-"subdomain_inherit = ldap_purge_cache_timeout\n"
+"pam_gssapi_services = sudo, sudo-i\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -2477,10 +2451,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1931
-#, fuzzy
-#| msgid "Default: not set (spaces will not be replaced)"
 msgid "Default: not set (use of authentication indicators is not required)"
-msgstr "Oletus: ei asetettu(välilyöntejä ei korvata)"
+msgstr "Oletus: ei asetettu(todennusindikaattoreiden käyttöä ei vaadita)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:1939
@@ -2893,7 +2865,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2335
 msgid "enabled"
-msgstr ""
+msgstr "käytössä"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2338
@@ -4013,10 +3985,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3422 sssd.conf.5.xml:3461
-#, fuzzy
-#| msgid "ad_gpo_cache_timeout (integer)"
 msgid "dns_resolver_server_timeout (integer)"
-msgstr "ad_gpo_cache_timeout (integeri)"
+msgstr "dns_resolver_server_timeout (integeri)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3425 sssd.conf.5.xml:3464
@@ -4041,10 +4011,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3441 sssd.conf.5.xml:3480
-#, fuzzy
-#| msgid "offline_timeout (integer)"
 msgid "dns_resolver_op_timeout (integer)"
-msgstr "offline_timeout (integeri)"
+msgstr "dns_resolver_op_timeout (integeri)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3444 sssd.conf.5.xml:3483
@@ -6712,10 +6680,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1486
-#, fuzzy
-#| msgid "debug_level (integer)"
 msgid "ldap_library_debug_level (integer)"
-msgstr "debug_level (integer)"
+msgstr "ldap_library_debug_level (integeri)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1489
@@ -7759,7 +7725,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss_gss.8.xml:96
 msgid "Print debugging information."
-msgstr ""
+msgstr "Tulosta virheenkorjaustiedot."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:104
@@ -7776,7 +7742,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss_gss.8.xml:131
 msgid "Authentication failure."
-msgstr ""
+msgstr "Tunnistautumisvirhe."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:159
@@ -10488,7 +10454,7 @@ msgstr ""
 #: sssd-ad.5.xml:506 sssd-ad.5.xml:509 sssd-ad.5.xml:512 sssd-ad.5.xml:532
 #: sssd-ad.5.xml:535 sssd-ad.5.xml:538
 msgid "present"
-msgstr ""
+msgstr "nykyinen"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
 #: sssd-ad.5.xml:507
@@ -15323,10 +15289,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:307
-#, fuzzy
-#| msgid "Default:"
 msgid "Default: NULL"
-msgstr "Oletus:"
+msgstr "Oletus: NULL"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:318
