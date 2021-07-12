@@ -803,4 +803,6 @@ errno_t create_preauth_indicator(void);
 #define N_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
 #endif
 
+errno_t sss_getenv(TALLOC_CTX *mem_ctx, const char *variable_name, char **_value);
+
 #endif /* __SSSD_UTIL_H__ */
