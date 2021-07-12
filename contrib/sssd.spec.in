@@ -14,6 +14,16 @@
 %global child_attrs 4750
 %endif
 
+%if 0%{?fedora} >= 34
+%global build_kcm_renewals 1
+%global krb5_version 1.19.1
+%elif 0%{rhel} >= 8
+%global build_kcm_renewals 1
+%global krb5_version 1.18.2
+%else
+%global build_kcm_renewals 0
+%endif
+
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python3_sitearch}/.*\.so$
 
@@ -127,6 +137,9 @@ BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
 BuildRequires: uid_wrapper
 BuildRequires: po4a
+%if %{build_kcm_renewals}
+BuildRequires: krb5-libs >= %{krb5_version}
+%endif
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -467,6 +480,9 @@ Library to map certificates to users based on rules
 Summary: An implementation of a Kerberos KCM server
 License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
+%if %{build_kcm_renewals}
+Requires: krb5-libs >= %{krb5_version}
+%endif
 %{?systemd_requires}
 
 %description kcm
