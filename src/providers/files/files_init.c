@@ -60,6 +60,9 @@ static errno_t files_init_file_sources(TALLOC_CTX *mem_ctx,
     } else {
         dfl_passwd_files = DEFAULT_PASSWD_FILE;
     }
+
+    /* getenv() returns pointer to external memory, which may change */
+    dfl_passwd_files = talloc_strdup(tmp_ctx, dfl_passwd_files);
     DEBUG(SSSDBG_TRACE_FUNC,
           "Using default passwd file: [%s].\n", dfl_passwd_files);
 
@@ -72,6 +75,9 @@ static errno_t files_init_file_sources(TALLOC_CTX *mem_ctx,
     } else {
         env_group_files = DEFAULT_GROUP_FILE;
     }
+
+    /* getenv() returns pointer to external memory, which may change */
+    env_group_files = talloc_strdup(tmp_ctx, env_group_files);
     DEBUG(SSSDBG_TRACE_FUNC,
           "Using default group file: [%s].\n", DEFAULT_GROUP_FILE);
 
