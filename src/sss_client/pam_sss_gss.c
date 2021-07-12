@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <sys/syslog.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "util/sss_format.h"
 #include "sss_client/sss_cli.h"
@@ -487,14 +488,29 @@ static int errno_to_pam(pam_handle_t *pamh, errno_t ret)
     }
 }
 
+static errno_t sss_cli_getenv(const char *variable_name, char **_value)
+{
+    char *value = getenv(variable_name);
+    if (value == NULL) {
+        return ENOENT;
+    }
+
+    *_value = strdup(value);
+    if (*_value == NULL) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
 int pam_sm_authenticate(pam_handle_t *pamh,
                         int flags,
                         int argc,
                         const char **argv)
 {
-    const char *pam_service;
-    const char *pam_user;
-    const char *ccache;
+    const char *pam_service = NULL;
+    const char *pam_user = NULL;
+    const char *ccache = NULL;
     char *username = NULL;
     char *domain = NULL;
     char *target = NULL;
@@ -511,9 +527,12 @@ int pam_sm_authenticate(pam_handle_t *pamh,
         }
     }
 
-
     /* Get non-default ccache if specified, may be NULL. */
-    ccache = getenv("KRB5CCNAME");
+    ret = sss_cli_getenv("KRB5CCNAME", &ccache);
+    if (ret != EOK) {
+        ERROR(pamh, "sss_cli_getenv() call failed [%d]: %s", ret, strerror(ret));
+        goto done;
+    }
 
     uid = getuid();
     euid = geteuid();
@@ -566,6 +585,7 @@ done:
     free(domain);
     free(target);
     free(upn);
+    free(ccache);
 
     return errno_to_pam(pamh, ret);
 }

@@ -51,38 +51,58 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
                           int flags,
                           struct ldb_context **_ldb)
 {
-    int ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    errno_t ret;
     struct ldb_context *ldb;
-    const char *mod_path;
+    const char *mod_path = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     if (_ldb == NULL) {
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     ldb = ldb_init(mem_ctx, NULL);
     if (!ldb) {
-        return EIO;
+        ret = EIO;
+        goto done;
     }
 
     ret = ldb_set_debug(ldb, ldb_debug_messages, NULL);
     if (ret != LDB_SUCCESS) {
-        return EIO;
+        ret = EIO;
+        goto done;
     }
 
-    mod_path = getenv(LDB_MODULES_PATH);
-    if (mod_path != NULL) {
+    ret = sss_getenv(tmp_ctx, LDB_MODULES_PATH, &mod_path);
+    if (ret == EOK) {
         DEBUG(SSSDBG_TRACE_ALL, "Setting ldb module path to [%s].\n", mod_path);
         ldb_set_modules_dir(ldb, mod_path);
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_ALL, "No ldb module path set in env\n");
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL, "sss_getenv() failed\n");
+        goto done;
     }
 
     ret = ldb_connect(ldb, filename, flags, NULL);
     if (ret != LDB_SUCCESS) {
-        return EIO;
+        ret = EIO;
+        goto done;
     }
 
     *_ldb = ldb;
 
-    return EOK;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static errno_t sysdb_ldb_reconnect(TALLOC_CTX *mem_ctx,

@@ -1066,3 +1066,18 @@ bool is_valid_domain_name(const char *domain)
 
     return true;
 }
+
+errno_t sss_getenv(TALLOC_CTX *mem_ctx, const char *variable_name, char **_value)
+{
+    char *value = getenv(variable_name);
+    if (value == NULL) {
+        return ENOENT;
+    }
+
+    *_value = talloc_strdup(mem_ctx, value);
+    if (*_value == NULL) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}

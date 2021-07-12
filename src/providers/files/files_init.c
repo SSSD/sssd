@@ -51,29 +51,37 @@ static errno_t files_init_file_sources(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    dfl_passwd_files = getenv("SSS_FILES_PASSWD");
-    if (dfl_passwd_files) {
+    ret = sss_getenv(tmp_ctx, "SSS_FILES_PASSWD", &dfl_passwd_files);
+    if (ret == EOK) {
         sss_log(SSS_LOG_ALERT,
                 "Defaulting to %s for the passwd file, "
                 "this should only be used for testing!\n",
                 dfl_passwd_files);
-    } else {
+    } else if (ret == ENOENT) {
         dfl_passwd_files = DEFAULT_PASSWD_FILE;
+    } else {
+        sss_log(SSS_LOG_ALERT, "sss_getenv() failed");
+        goto done;
     }
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Using default passwd file: [%s].\n", dfl_passwd_files);
+          "Using passwd file: [%s].\n",
+          dfl_passwd_files);
 
-    env_group_files = getenv("SSS_FILES_GROUP");
-    if (env_group_files) {
+    ret = sss_getenv(tmp_ctx, "SSS_FILES_GROUP", &env_group_files);
+    if (ret == EOK) {
         sss_log(SSS_LOG_ALERT,
                 "Defaulting to %s for the group file, "
                 "this should only be used for testing!\n",
                 env_group_files);
-    } else {
+    } else if (ret == ENOENT) {
         env_group_files = DEFAULT_GROUP_FILE;
+    } else {
+        sss_log(SSS_LOG_ALERT, "sss_getenv() failed");
+        goto done;
     }
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Using default group file: [%s].\n", DEFAULT_GROUP_FILE);
+          "Using group file: [%s].\n",
+          env_group_files);
 
     ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
                             CONFDB_FILES_PASSWD, dfl_passwd_files,
