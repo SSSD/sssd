@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-06-08 11:43+0200\n"
+"POT-Creation-Date: 2021-07-12 20:51+0200\n"
 "PO-Revision-Date: 2020-10-11 22:46+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
@@ -2897,8 +2897,9 @@ msgid ""
 "be authenticated."
 msgstr ""
 
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1867 sssd-ad.5.xml:1243 sss_rpcidmapd.5.xml:76
+#: sssd-files.5.xml:146
 msgid "Default: True"
 msgstr "Standard: True"
 
@@ -8698,7 +8699,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1798 sssd-simple.5.xml:131 sssd-ipa.5.xml:857
 #: sssd-ad.5.xml:1363 sssd-krb5.5.xml:467 sss_rpcidmapd.5.xml:98
-#: sssd-files.5.xml:130 sssd-session-recording.5.xml:176
+#: sssd-files.5.xml:156 sssd-session-recording.5.xml:176
 msgid "EXAMPLE"
 msgstr "EXEMPEL"
 
@@ -8735,7 +8736,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><para>
 #: sssd-ldap.5.xml:1805 sssd-ldap.5.xml:1823 sssd-simple.5.xml:139
 #: sssd-ipa.5.xml:865 sssd-ad.5.xml:1371 sssd-sudo.5.xml:56 sssd-krb5.5.xml:476
-#: sssd-files.5.xml:137 sssd-files.5.xml:148 sssd-session-recording.5.xml:182
+#: sssd-files.5.xml:163 sssd-files.5.xml:174 sssd-session-recording.5.xml:182
 #: include/ldap_id_mapping.xml:105
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr "<placeholder type=\"programlisting\" id=\"0\"/>"
@@ -9543,8 +9544,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:74
 msgid ""
-"Some Kerberos deployments allow to assocate authentication indicators with a "
-"particular pre-authentication method used to obtain the ticket granting "
+"Some Kerberos deployments allow to associate authentication indicators with "
+"a particular pre-authentication method used to obtain the ticket granting "
 "ticket by the user.  <command>pam_sss_gss.so</command> allows to enforce "
 "presence of authentication indicators in the service tickets before a "
 "particular PAM service can be accessed."
@@ -9665,7 +9666,7 @@ msgstr ""
 msgid ""
 "3. Authentication does not work and syslog contains \"No Kerberos "
 "credentials available\": You don't have any credentials that can be used to "
-"obtain the required service ticket. Use kinit or autheticate over SSSD to "
+"obtain the required service ticket. Use kinit or authenticate over SSSD to "
 "acquire those credentials."
 msgstr ""
 
@@ -14168,7 +14169,7 @@ msgid ""
 "SSSD uses different kinds of mechanisms with more or less complex LDAP "
 "filters to keep the cached sudo rules up to date. The default configuration "
 "is set to values that should satisfy most of our users, but the following "
-"paragraps contains few tips on how to fine tune the configuration to your "
+"paragraphs contain few tips on how to fine- tune the configuration to your "
 "requirements."
 msgstr ""
 
@@ -16326,6 +16327,53 @@ msgstr ""
 msgid "Restrict invalidation process only to a particular domain."
 msgstr "Begränsa invalideringsprocessen till endast en viss domän."
 
+#. type: Content of: <reference><refentry><refsect1><title>
+#: sss_cache.8.xml:224
+msgid "EFFECTS ON THE FAST MEMORY CACHE"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_cache.8.xml:226
+msgid ""
+"<command>sss_cache</command> also invalidates the memory cache.  Since the "
+"memory cache is a file which is mapped into the memory of each process which "
+"called SSSD to resolve users or groups the file cannot be truncated. A "
+"special flag is set in the header of the file to indicated that the content "
+"is invalid and then the file is unlinked by SSSD's NSS responder and a new "
+"cache file is created.  Whenever a process is now doing a new lookup for a "
+"user or a group it will see the flag, close the old memory cache file and "
+"map the new one into its memory. When all processes which had opened the old "
+"memory cache file have closed it while looking up a user or a group the "
+"kernel can release the occupied disk space and the old memory cache file is "
+"finally removed completely."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_cache.8.xml:240
+msgid ""
+"A special case is long running processes which are doing user or group "
+"lookups only at startup, e.g. to determine the name of the user the process "
+"is running as. For those lookups the memory cache file is mapped into the "
+"memory of the process. But since there will be no further lookups this "
+"process would never detect if the memory cache file was invalidated and "
+"hence it will be kept in memory and will occupy disk space until the process "
+"stops. As a result calling <command>sss_cache</command> might increase the "
+"disk usage because old memory cache files cannot be removed from the disk "
+"because they are still mapped by long running processes."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sss_cache.8.xml:252
+msgid ""
+"A possible work-around for long running processes which are looking up users "
+"and groups only at startup or very rarely is to run them with the "
+"environment variable SSS_NSS_USE_MEMCACHE set to \"NO\" so that they won't "
+"use the memory cache at all and not map the memory cache file into the "
+"memory. In general a better solution is to tune the cache timeout parameters "
+"so that they meet the local expectations and calling <command>sss_cache</"
+"command> is not needed."
+msgstr ""
+
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_debuglevel.8.xml:10 sss_debuglevel.8.xml:15
 msgid "sss_debuglevel"
@@ -17461,6 +17509,31 @@ msgstr ""
 msgid "Default: /etc/group"
 msgstr "Standard: /etc/group"
 
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
+#: sssd-files.5.xml:126
+#, fuzzy
+#| msgid "ldap_rfc2307_fallback_to_local_users (boolean)"
+msgid "fallback_to_nss (boolean)"
+msgstr "ldap_rfc2307_fallback_to_local_users (boolean)"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-files.5.xml:129
+msgid ""
+"While updating the internal data SSSD will return an error and let the "
+"client continue with the next NSS module. This helps to avoid delays when "
+"using the default system files <filename>/etc/passwd</filename> and "
+"<filename>/etc/group</filename> and the NSS configuration has 'sss' before "
+"'files' for the 'passwd' and 'group' maps."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-files.5.xml:139
+msgid ""
+"If the files provider is configured to monitor other files it makes sense to "
+"set this option to 'False' to avoid inconsistent behavior because in general "
+"there would be no other NSS module which can be used as a fallback."
+msgstr ""
+
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-files.5.xml:80
 msgid ""
@@ -17487,7 +17560,7 @@ msgstr ""
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-files.5.xml:132
+#: sssd-files.5.xml:158
 msgid ""
 "The following example assumes that SSSD is correctly configured and files is "
 "one of the domains in the <replaceable>[sssd]</replaceable> section."
@@ -17496,7 +17569,7 @@ msgstr ""
 "av domänerna i avsnittet <replaceable>[sssd]</replaceable>."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-files.5.xml:138
+#: sssd-files.5.xml:164
 #, no-wrap
 msgid ""
 "[domain/files]\n"
@@ -17506,7 +17579,7 @@ msgstr ""
 "id_provider = files\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-files.5.xml:143
+#: sssd-files.5.xml:169
 msgid ""
 "To leverage caching of local users and groups by SSSD nss_sss module must be "
 "listed before nss_files module in /etc/nsswitch.conf."
@@ -17515,7 +17588,7 @@ msgstr ""
 "modulen nss_sss listas före modulen nss_files i /etc/nsswitch.conf."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-files.5.xml:149
+#: sssd-files.5.xml:175
 #, no-wrap
 msgid ""
 "passwd:     sss files\n"

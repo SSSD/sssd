@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-06-08 11:45+0200\n"
+"POT-Creation-Date: 2021-07-12 20:53+0200\n"
 "PO-Revision-Date: 2021-07-07 15:11+0000\n"
 "Last-Translator: Olesya Gerasimenko <gammaray@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
@@ -366,7 +366,8 @@ msgstr "Путь к базе данных сертификатов с модул
 
 #: src/config/SSSDConfig/sssdoptions.py:101
 msgid "Tune certificate verification for PAM authentication."
-msgstr "Настроить проверку сертификатов для проверки подлинности с помощью PAM."
+msgstr ""
+"Настроить проверку сертификатов для проверки подлинности с помощью PAM."
 
 #: src/config/SSSDConfig/sssdoptions.py:102
 msgid "How many seconds will pam_sss wait for p11_child to finish"
@@ -496,7 +497,8 @@ msgstr "Максимальное количество секретов, кото
 
 #: src/config/SSSDConfig/sssdoptions.py:142
 msgid "The maximum number of secrets that can be stored per UID"
-msgstr "Максимальное количество секретов, которое можно хранить для каждого UID"
+msgstr ""
+"Максимальное количество секретов, которое можно хранить для каждого UID"
 
 #: src/config/SSSDConfig/sssdoptions.py:143
 msgid "The maximum payload size of a secret in kilobytes"
@@ -733,7 +735,8 @@ msgstr "Как долго следует пытаться разрешить о�
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
-msgstr "Время ожидания ответа DNS при преобразовании имён серверов (в секундах)"
+msgstr ""
+"Время ожидания ответа DNS при преобразовании имён серверов (в секундах)"
 
 #: src/config/SSSDConfig/sssdoptions.py:202
 msgid "The domain part of service discovery DNS query"
@@ -741,7 +744,8 @@ msgstr "Доменная часть DNS-запроса поиска служб"
 
 #: src/config/SSSDConfig/sssdoptions.py:203
 msgid "Override GID value from the identity provider with this value"
-msgstr "Переопределять значение GID от поставщика учётных данных этим значением"
+msgstr ""
+"Переопределять значение GID от поставщика учётных данных этим значением"
 
 #: src/config/SSSDConfig/sssdoptions.py:204
 msgid "Treat usernames as case sensitive"
@@ -823,7 +827,8 @@ msgstr "Показать предупреждение за N дней до ис�
 #: src/config/SSSDConfig/sssdoptions.py:228
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
-msgstr "Различные метки, сохранённые службой настройки realmd для этого домена."
+msgstr ""
+"Различные метки, сохранённые службой настройки realmd для этого домена."
 
 #: src/config/SSSDConfig/sssdoptions.py:229
 msgid ""
@@ -1387,7 +1392,8 @@ msgstr "Укажите область авторизации SASL"
 
 #: src/config/SSSDConfig/sssdoptions.py:383
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr "Укажите минимальное значение SSF для авторизации на LDAP с помощью SASL"
+msgstr ""
+"Укажите минимальное значение SSF для авторизации на LDAP с помощью SASL"
 
 #: src/config/SSSDConfig/sssdoptions.py:384
 msgid "Specify the maximal SSF for LDAP sasl authorization"
@@ -2141,55 +2147,55 @@ msgstr "Запущено от имени %"
 msgid "SSSD is already running\n"
 msgstr "SSSD уже выполняется\n"
 
-#: src/providers/krb5/krb5_child.c:3324 src/providers/ldap/ldap_child.c:639
+#: src/providers/krb5/krb5_child.c:3327 src/providers/ldap/ldap_child.c:639
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор открытых файлов для журнала отладки"
 
-#: src/providers/krb5/krb5_child.c:3327
+#: src/providers/krb5/krb5_child.c:3330
 msgid "The user to create FAST ccache as"
 msgstr "Пользователь, от имени которого следует создать ccache FAST"
 
-#: src/providers/krb5/krb5_child.c:3329
+#: src/providers/krb5/krb5_child.c:3332
 msgid "The group to create FAST ccache as"
 msgstr "Группа, от имени которой следует создать ccache FAST"
 
-#: src/providers/krb5/krb5_child.c:3331
+#: src/providers/krb5/krb5_child.c:3334
 msgid "Kerberos realm to use"
 msgstr "Область действия Kerberos"
 
-#: src/providers/krb5/krb5_child.c:3333
+#: src/providers/krb5/krb5_child.c:3336
 msgid "Requested lifetime of the ticket"
 msgstr "Запрашиваемое время жизни билета"
 
-#: src/providers/krb5/krb5_child.c:3335
+#: src/providers/krb5/krb5_child.c:3338
 msgid "Requested renewable lifetime of the ticket"
 msgstr "Запрашиваемое возобновляемое время жизни билета"
 
-#: src/providers/krb5/krb5_child.c:3337
+#: src/providers/krb5/krb5_child.c:3340
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "Параметры FAST («never», «try», «demand»)"
 
-#: src/providers/krb5/krb5_child.c:3340
+#: src/providers/krb5/krb5_child.c:3343
 msgid "Specifies the server principal to use for FAST"
 msgstr "Указывает участник-сервер, который следует использовать для FAST"
 
-#: src/providers/krb5/krb5_child.c:3342
+#: src/providers/krb5/krb5_child.c:3345
 msgid "Requests canonicalization of the principal name"
 msgstr "Запрашивает преобразование имени участника в каноническую форму"
 
-#: src/providers/krb5/krb5_child.c:3344
+#: src/providers/krb5/krb5_child.c:3347
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Использовать нестандартную версию krb5_get_init_creds_password"
 
-#: src/providers/krb5/krb5_child.c:3372 src/providers/ldap/ldap_child.c:663
+#: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
 msgstr "Ошибка talloc_asprintf.\n"
 
-#: src/providers/krb5/krb5_child.c:3382 src/providers/ldap/ldap_child.c:672
+#: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "Ошибка set_debug_file_from_fd.\n"
 
-#: src/providers/data_provider_be.c:732
+#: src/providers/data_provider_be.c:733
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен поставщика информации (обязательный)"
 
@@ -2909,9 +2915,9 @@ msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
-"Не удалось открыть домен %1$s. Если этот домен является поддоменом ("
-"доверенным доменом), используйте полностью определённое имя вместо параметра "
-"--domain/-d.\n"
+"Не удалось открыть домен %1$s. Если этот домен является поддоменом "
+"(доверенным доменом), используйте полностью определённое имя вместо "
+"параметра --domain/-d.\n"
 
 #: src/tools/sss_cache.c:922
 msgid "Could not open available domains\n"
@@ -3153,8 +3159,8 @@ msgstr "Создание резервной копии локальных дан
 #: src/tools/sssctl/sssctl_data.c:238
 msgid "Unable to create backup of local data, can not remove the cache.\n"
 msgstr ""
-"Не удалось создать резервную копию локальных данных, невозможно удалить кэш."
-"\n"
+"Не удалось создать резервную копию локальных данных, невозможно удалить "
+"кэш.\n"
 
 #: src/tools/sssctl/sssctl_data.c:243
 msgid "Removing cache files...\n"
