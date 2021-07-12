@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-06-08 11:45+0200\n"
+"POT-Creation-Date: 2021-07-12 20:53+0200\n"
 "PO-Revision-Date: 2021-01-29 10:40+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
@@ -2090,56 +2090,56 @@ msgstr ""
 msgid "SSSD is already running\n"
 msgstr "SSSD ya está corriendo\n"
 
-#: src/providers/krb5/krb5_child.c:3324 src/providers/ldap/ldap_child.c:639
+#: src/providers/krb5/krb5_child.c:3327 src/providers/ldap/ldap_child.c:639
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 
-#: src/providers/krb5/krb5_child.c:3327
+#: src/providers/krb5/krb5_child.c:3330
 msgid "The user to create FAST ccache as"
 msgstr "El usuario para crear FAST ccache como"
 
-#: src/providers/krb5/krb5_child.c:3329
+#: src/providers/krb5/krb5_child.c:3332
 msgid "The group to create FAST ccache as"
 msgstr "El grupo para crear FAST ccache como"
 
-#: src/providers/krb5/krb5_child.c:3331
+#: src/providers/krb5/krb5_child.c:3334
 msgid "Kerberos realm to use"
 msgstr "Reino Kerberos a usar"
 
-#: src/providers/krb5/krb5_child.c:3333
+#: src/providers/krb5/krb5_child.c:3336
 msgid "Requested lifetime of the ticket"
 msgstr "Tiempo de vida pedido del ticket"
 
-#: src/providers/krb5/krb5_child.c:3335
+#: src/providers/krb5/krb5_child.c:3338
 msgid "Requested renewable lifetime of the ticket"
 msgstr "Teimpo de vida renovable pedido del ticket"
 
-#: src/providers/krb5/krb5_child.c:3337
+#: src/providers/krb5/krb5_child.c:3340
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "Opciones FAST ('never', 'try', 'demand')"
 
-#: src/providers/krb5/krb5_child.c:3340
+#: src/providers/krb5/krb5_child.c:3343
 msgid "Specifies the server principal to use for FAST"
 msgstr "Especifica el servidor principal a usar por FAST"
 
-#: src/providers/krb5/krb5_child.c:3342
+#: src/providers/krb5/krb5_child.c:3345
 msgid "Requests canonicalization of the principal name"
 msgstr "Solicita la canonización del nombre principal"
 
-#: src/providers/krb5/krb5_child.c:3344
+#: src/providers/krb5/krb5_child.c:3347
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Usar versión personal de krb5_get_init_creds_password"
 
-#: src/providers/krb5/krb5_child.c:3372 src/providers/ldap/ldap_child.c:663
+#: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
 #, fuzzy
 msgid "talloc_asprintf failed.\n"
 msgstr "malloc falló.\n"
 
-#: src/providers/krb5/krb5_child.c:3382 src/providers/ldap/ldap_child.c:672
+#: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
 msgstr ""
 
-#: src/providers/data_provider_be.c:732
+#: src/providers/data_provider_be.c:733
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 
