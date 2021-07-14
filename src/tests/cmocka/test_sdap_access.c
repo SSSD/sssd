@@ -29,7 +29,7 @@
 #include <cmocka.h>
 #include <ldb.h>
 
-#include "tests/common_check.h"
+#include "tests/common.h"
 #include "tests/cmocka/test_expire_common.h"
 #include "tests/cmocka/test_sdap_access.h"
 

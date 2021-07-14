@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <string.h>
 #include "util/util.h"
-#include "tests/common.h"
+#include "tests/common_check.h"
 
 void sss_set_logger(const char *logger);  /* from debug.c */
 
@@ -57,7 +57,7 @@ START_TEST(test_debug_convert_old_level_old_format)
     for (old_level = 0; old_level < N_ELEMENTS(levels); old_level++) {
         expected_level |= levels[old_level];
 
-        fail_unless(debug_convert_old_level(old_level) == expected_level,
+        ck_assert_msg(debug_convert_old_level(old_level) == expected_level,
                     "Invalid conversion of %d", old_level);
     }
 }
@@ -65,55 +65,55 @@ END_TEST
 
 START_TEST(test_debug_convert_old_level_new_format)
 {
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_UNRESOLVED) == SSSDBG_FATAL_FAILURE,
         "Invalid conversion of SSSDBG_UNRESOLVED"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_FATAL_FAILURE) == SSSDBG_FATAL_FAILURE,
         "Invalid conversion of SSSDBG_FATAL_FAILURE"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_CRIT_FAILURE) == SSSDBG_CRIT_FAILURE,
         "Invalid conversion of SSSDBG_CRIT_FAILURE"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_OP_FAILURE) == SSSDBG_OP_FAILURE,
         "Invalid conversion of SSSDBG_OP_FAILURE"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_MINOR_FAILURE) == SSSDBG_MINOR_FAILURE,
         "Invalid conversion of SSSDBG_MINOR_FAILURE"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_CONF_SETTINGS) == SSSDBG_CONF_SETTINGS,
         "Invalid conversion of SSSDBG_CONF_SETTINGS"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_FUNC_DATA) == SSSDBG_FUNC_DATA,
         "Invalid conversion of SSSDBG_FUNC_DATA"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_TRACE_FUNC) == SSSDBG_TRACE_FUNC,
         "Invalid conversion of SSSDBG_TRACE_FUNC"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_TRACE_LIBS) == SSSDBG_TRACE_LIBS,
         "Invalid conversion of SSSDBG_TRACE_LIBS"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_TRACE_INTERNAL) == SSSDBG_TRACE_INTERNAL,
         "Invalid conversion of SSSDBG_TRACE_INTERNAL"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_TRACE_ALL) == SSSDBG_TRACE_ALL,
         "Invalid conversion of SSSDBG_TRACE_ALL"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_TRACE_LDB) == SSSDBG_TRACE_LDB,
         "Invalid conversion of SSSDBG_TRACE_LDB"
     );
-    fail_unless(
+    ck_assert_msg(
         debug_convert_old_level(SSSDBG_MASK_ALL) == SSSDBG_MASK_ALL,
         "Invalid conversion of SSSDBG_MASK_ALL"
     );
@@ -355,11 +355,11 @@ START_TEST(test_debug_is_set_single_no_timestamp)
         errno = 0;
         result = test_helper_debug_check_message(levels[i]);
 
-        fail_if(result == DEBUG_TEST_ERROR,
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
                 "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
                 result, strerror(errno));
 
-        fail_unless(result == EOK,
+        ck_assert_msg(result == EOK,
                     "Test of level %#.4x failed - message don't match",
                     levels[i]);
     }
@@ -396,14 +396,14 @@ START_TEST(test_debug_is_set_single_timestamp)
         errno = 0;
         result = test_helper_debug_check_message(levels[i]);
 
-        fail_if(result == DEBUG_TEST_ERROR,
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
                 "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
                 result, strerror(errno));
 
-        fail_if(result == DEBUG_TEST_NOK_TS,
+        sss_ck_fail_if_msg(result == DEBUG_TEST_NOK_TS,
                 "Test of level %#.4x failed - invalid timestamp", levels[i]);
 
-        fail_unless(result == EOK,
+        ck_assert_msg(result == EOK,
                     "Test of level %#.4x failed - message don't match",
                     levels[i]);
     }
@@ -440,14 +440,14 @@ START_TEST(test_debug_is_set_single_timestamp_microseconds)
         errno = 0;
         result = test_helper_debug_check_message(levels[i]);
 
-        fail_if(result == DEBUG_TEST_ERROR,
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
                 "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
                 result, strerror(errno));
 
-        fail_if(result == DEBUG_TEST_NOK_TS,
+        sss_ck_fail_if_msg(result == DEBUG_TEST_NOK_TS,
                 "Test of level %#.4x failed - invalid timestamp", levels[i]);
 
-        fail_unless(result == EOK,
+        ck_assert_msg(result == EOK,
                     "Test of level %#.4x failed - message don't match",
                     levels[i]);
     }
@@ -485,11 +485,11 @@ START_TEST(test_debug_is_notset_no_timestamp)
         errno = 0;
         result = test_helper_debug_is_empty_message(levels[i]);
 
-        fail_if(result == DEBUG_TEST_ERROR,
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
                 "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
                 result, strerror(errno));
 
-        fail_unless(result == EOK,
+        ck_assert_msg(result == EOK,
                     "Test of level %#.4x failed - message has been written",
                     levels[i]);
     }
@@ -527,11 +527,11 @@ START_TEST(test_debug_is_notset_timestamp)
         errno = 0;
         result = test_helper_debug_is_empty_message(levels[i]);
 
-        fail_if(result == DEBUG_TEST_ERROR,
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
                 "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
                 result, strerror(errno));
 
-        fail_unless(result == EOK,
+        ck_assert_msg(result == EOK,
                     "Test of level %#.4x failed - message has been written",
                     levels[i]);
     }
@@ -568,11 +568,11 @@ START_TEST(test_debug_is_notset_timestamp_microseconds)
         errno = 0;
         result = test_helper_debug_is_empty_message(levels[i]);
 
-        fail_if(result == DEBUG_TEST_ERROR,
+        sss_ck_fail_if_msg(result == DEBUG_TEST_ERROR,
                 "Expecting DEBUG_TEST_ERROR, got: %d, error: %s",
                 result, strerror(errno));
 
-        fail_unless(result == EOK,
+        ck_assert_msg(result == EOK,
                     "Test of level %#.4x failed - message has been written",
                     levels[i]);
     }
@@ -601,7 +601,7 @@ START_TEST(test_debug_is_set_true)
 
     for (i = 0; i < N_ELEMENTS(levels); i++) {
         result = DEBUG_IS_SET(levels[i]);
-        fail_unless(result > 0,
+        ck_assert_msg(result > 0,
                     "Test of level %#.4x failed - result is 0x%.4x",
                     levels[i], result);
     }
@@ -631,7 +631,7 @@ START_TEST(test_debug_is_set_false)
         debug_level = all_set & ~levels[i];
 
         result = DEBUG_IS_SET(levels[i]);
-        fail_unless(result == 0,
+        ck_assert_msg(result == 0,
                     "Test of level %#.4x failed - result is 0x%.4x",
                     levels[i], result);
     }

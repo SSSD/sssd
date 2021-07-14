@@ -54,24 +54,24 @@ struct krb5child_req *kr;
 
 #define RMDIR(__dir__) do { \
     ret = rmdir(__dir__); \
-    fail_unless(ret == EOK, "rmdir [%s] failed, [%d][%s].", __dir__, \
+    ck_assert_msg(ret == EOK, "rmdir [%s] failed, [%d][%s].", __dir__, \
                 errno, strerror(errno)); \
 } while(0)
 
 void setup_create_dir(void)
 {
-    fail_unless(tmp_ctx == NULL, "Talloc context already initialized.");
+    ck_assert_msg(tmp_ctx == NULL, "Talloc context already initialized.");
     tmp_ctx = talloc_new(NULL);
-    fail_unless(tmp_ctx != NULL, "Cannot create talloc context.");
+    ck_assert_msg(tmp_ctx != NULL, "Cannot create talloc context.");
 }
 
 void teardown_create_dir(void)
 {
     int ret;
-    fail_unless(tmp_ctx != NULL, "Talloc context already freed.");
+    ck_assert_msg(tmp_ctx != NULL, "Talloc context already freed.");
     ret = talloc_free(tmp_ctx);
     tmp_ctx = NULL;
-    fail_unless(ret == 0, "Cannot free talloc context.");
+    ck_assert_msg(ret == 0, "Cannot free talloc context.");
 }
 
 static void check_dir(const char *dirname, uid_t uid, gid_t gid, mode_t mode)
@@ -80,16 +80,16 @@ static void check_dir(const char *dirname, uid_t uid, gid_t gid, mode_t mode)
     int ret;
 
     ret = stat(dirname, &stat_buf);
-    fail_unless(ret == EOK, "stat failed [%d][%s].", errno, strerror(errno));
+    ck_assert_msg(ret == EOK, "stat failed [%d][%s].", errno, strerror(errno));
 
-    fail_unless(S_ISDIR(stat_buf.st_mode), "[%s] is not a directory.", dirname);
-    fail_unless(stat_buf.st_uid == uid, "uid does not match, "
+    ck_assert_msg(S_ISDIR(stat_buf.st_mode), "[%s] is not a directory.", dirname);
+    ck_assert_msg(stat_buf.st_uid == uid, "uid does not match, "
                                         "expected [%d], got [%d].",
                                         uid, stat_buf.st_uid);
-    fail_unless(stat_buf.st_gid == gid, "gid does not match, "
+    ck_assert_msg(stat_buf.st_gid == gid, "gid does not match, "
                                         "expected [%d], got [%d].",
                                         gid, stat_buf.st_gid);
-    fail_unless((stat_buf.st_mode & ~S_IFMT) == mode,
+    ck_assert_msg((stat_buf.st_mode & ~S_IFMT) == mode,
                                            "mode of [%s] does not match, "
                                            "expected [%o], got [%o].", dirname,
                                             mode, (stat_buf.st_mode & ~S_IFMT));
@@ -113,35 +113,35 @@ START_TEST(test_private_ccache_dir_in_user_dir)
     }
 
     cwd = getcwd(NULL, 0);
-    fail_unless(cwd != NULL, "getcwd failed.");
+    ck_assert_msg(cwd != NULL, "getcwd failed.");
 
     user_dir = talloc_asprintf(tmp_ctx, "%s/%s/user", cwd, TESTS_PATH);
     free(cwd);
-    fail_unless(user_dir != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(user_dir != NULL, "talloc_asprintf failed.");
     ret = mkdir(user_dir, 0700);
-    fail_unless(ret == EOK, "mkdir failed.");
+    ck_assert_msg(ret == EOK, "mkdir failed.");
     ret = chown(user_dir, uid, gid);
-    fail_unless(ret == EOK, "chown failed.");
+    ck_assert_msg(ret == EOK, "chown failed.");
 
     dn1 = talloc_asprintf(tmp_ctx, "%s/a", user_dir);
-    fail_unless(dn1 != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(dn1 != NULL, "talloc_asprintf failed.");
     dn2 = talloc_asprintf(tmp_ctx, "%s/b", dn1);
-    fail_unless(dn2 != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(dn2 != NULL, "talloc_asprintf failed.");
     dn3 = talloc_asprintf(tmp_ctx, "%s/c", dn2);
-    fail_unless(dn3 != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(dn3 != NULL, "talloc_asprintf failed.");
     filename = talloc_asprintf(tmp_ctx, "%s/ccfile", dn3);
-    fail_unless(filename != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(filename != NULL, "talloc_asprintf failed.");
 
     ret = chmod(user_dir, 0600);
-    fail_unless(ret == EOK, "chmod failed.");
+    ck_assert_msg(ret == EOK, "chmod failed.");
     ret = sss_krb5_precreate_ccache(filename, uid, gid);
-    fail_unless(ret == EINVAL, "sss_krb5_precreate_ccache does not return EINVAL "
+    ck_assert_msg(ret == EINVAL, "sss_krb5_precreate_ccache does not return EINVAL "
                                "while x-bit is missing.");
 
     ret = chmod(user_dir, 0700);
-    fail_unless(ret == EOK, "chmod failed.");
+    ck_assert_msg(ret == EOK, "chmod failed.");
     ret = sss_krb5_precreate_ccache(filename, uid, gid);
-    fail_unless(ret == EOK, "sss_krb5_precreate_ccache failed.");
+    ck_assert_msg(ret == EOK, "sss_krb5_precreate_ccache failed.");
 
     check_dir(dn3, uid, gid, 0700);
     RMDIR(dn3);
@@ -161,25 +161,25 @@ START_TEST(test_private_ccache_dir_in_wrong_user_dir)
     char *subdirname;
     char *filename;
 
-    fail_unless(getuid() == 0, "This test must be run as root.");
+    ck_assert_msg(getuid() == 0, "This test must be run as root.");
 
     cwd = getcwd(NULL, 0);
-    fail_unless(cwd != NULL, "getcwd failed.");
+    ck_assert_msg(cwd != NULL, "getcwd failed.");
 
     dirname = talloc_asprintf(tmp_ctx, "%s/%s/priv_ccdir", cwd, TESTS_PATH);
     free(cwd);
-    fail_unless(dirname != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(dirname != NULL, "talloc_asprintf failed.");
     ret = mkdir(dirname, 0700);
-    fail_unless(ret == EOK, "mkdir failed.\n");
+    ck_assert_msg(ret == EOK, "mkdir failed.\n");
     ret = chown(dirname, 12346, 12346);
-    fail_unless(ret == EOK, "chown failed.\n");
+    ck_assert_msg(ret == EOK, "chown failed.\n");
     subdirname = talloc_asprintf(tmp_ctx, "%s/subdir", dirname);
-    fail_unless(subdirname != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(subdirname != NULL, "talloc_asprintf failed.");
     filename = talloc_asprintf(tmp_ctx, "%s/ccfile", subdirname);
-    fail_unless(filename != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(filename != NULL, "talloc_asprintf failed.");
 
     ret = sss_krb5_precreate_ccache(filename, 12345, 12345);
-    fail_unless(ret == EINVAL, "Creating private ccache dir in wrong user "
+    ck_assert_msg(ret == EINVAL, "Creating private ccache dir in wrong user "
                                "dir does not failed with EINVAL.");
 
     RMDIR(dirname);
@@ -198,36 +198,36 @@ START_TEST(test_illegal_patterns)
 
     err = sss_regexp_new(NULL, ILLEGAL_PATH_PATTERN, 0, &illegal_re);
 
-    fail_unless(err == 0, "Invalid Regular Expression pattern error %d.\n", err);
-    fail_unless(illegal_re != NULL, "No error but illegal_re is NULL.\n");
+    ck_assert_msg(err == 0, "Invalid Regular Expression pattern error %d.\n", err);
+    ck_assert_msg(illegal_re != NULL, "No error but illegal_re is NULL.\n");
 
     cwd = getcwd(NULL, 0);
-    fail_unless(cwd != NULL, "getcwd failed.");
+    ck_assert_msg(cwd != NULL, "getcwd failed.");
 
     dirname = talloc_asprintf(tmp_ctx, "%s/%s/priv_ccdir", cwd, TESTS_PATH);
     free(cwd);
-    fail_unless(dirname != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(dirname != NULL, "talloc_asprintf failed.");
 
     result = expand_ccname_template(tmp_ctx, kr, "abc/./ccfile", illegal_re, true, true);
-    fail_unless(result == NULL, "expand_ccname_template allowed relative path\n");
+    ck_assert_msg(result == NULL, "expand_ccname_template allowed relative path\n");
 
     filename = talloc_asprintf(tmp_ctx, "%s/abc/./ccfile", dirname);
-    fail_unless(filename != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(filename != NULL, "talloc_asprintf failed.");
     result = expand_ccname_template(tmp_ctx, kr, filename, illegal_re, true, true);
-    fail_unless(result == NULL, "expand_ccname_template allowed "
+    ck_assert_msg(result == NULL, "expand_ccname_template allowed "
                                 "illegal pattern '/./'\n");
 
     filename = talloc_asprintf(tmp_ctx, "%s/abc/../ccfile", dirname);
-    fail_unless(filename != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(filename != NULL, "talloc_asprintf failed.");
     result = expand_ccname_template(tmp_ctx, kr, filename, illegal_re, true, true);
-    fail_unless(result == NULL, "expand_ccname_template allowed "
+    ck_assert_msg(result == NULL, "expand_ccname_template allowed "
                                 "illegal pattern '/../' in filename [%s].",
                                 filename);
 
     filename = talloc_asprintf(tmp_ctx, "%s/abc//ccfile", dirname);
-    fail_unless(filename != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(filename != NULL, "talloc_asprintf failed.");
     result = expand_ccname_template(tmp_ctx, kr, filename, illegal_re, true, true);
-    fail_unless(result == NULL, "expand_ccname_template allowed "
+    ck_assert_msg(result == NULL, "expand_ccname_template allowed "
                                 "illegal pattern '//' in filename [%s].",
                                 filename);
 
@@ -245,32 +245,32 @@ START_TEST(test_cc_dir_create)
     errno_t ret;
 
     cwd = getcwd(NULL, 0);
-    fail_unless(cwd != NULL, "getcwd failed.");
+    ck_assert_msg(cwd != NULL, "getcwd failed.");
 
     dirname = talloc_asprintf(tmp_ctx, "%s/%s/user_dir",
                               cwd, TESTS_PATH);
-    fail_unless(dirname != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(dirname != NULL, "talloc_asprintf failed.");
     residual = talloc_asprintf(tmp_ctx, "DIR:%s/%s", dirname, "ccdir");
-    fail_unless(residual != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(residual != NULL, "talloc_asprintf failed.");
 
     ret = sss_krb5_precreate_ccache(residual, uid, gid);
-    fail_unless(ret == EOK, "sss_krb5_precreate_ccache failed\n");
+    ck_assert_msg(ret == EOK, "sss_krb5_precreate_ccache failed\n");
     ret = rmdir(dirname);
     if (ret < 0) ret = errno;
-    fail_unless(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
+    ck_assert_msg(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
     talloc_free(residual);
 
     dirname = talloc_asprintf(tmp_ctx, "%s/%s/user_dir2",
                               cwd, TESTS_PATH);
-    fail_unless(dirname != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(dirname != NULL, "talloc_asprintf failed.");
     residual = talloc_asprintf(tmp_ctx, "DIR:%s/%s", dirname, "ccdir/");
-    fail_unless(residual != NULL, "talloc_asprintf failed.");
+    ck_assert_msg(residual != NULL, "talloc_asprintf failed.");
 
     ret = sss_krb5_precreate_ccache(residual, uid, gid);
-    fail_unless(ret == EOK, "sss_krb5_precreate_ccache failed\n");
+    ck_assert_msg(ret == EOK, "sss_krb5_precreate_ccache failed\n");
     ret = rmdir(dirname);
     if (ret < 0) ret = errno;
-    fail_unless(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
+    ck_assert_msg(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
     talloc_free(residual);
     free(cwd);
 }
@@ -284,36 +284,36 @@ void setup_talloc_context(void)
 
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
-    fail_unless(tmp_ctx == NULL, "Talloc context already initialized.");
+    ck_assert_msg(tmp_ctx == NULL, "Talloc context already initialized.");
     tmp_ctx = talloc_new(NULL);
-    fail_unless(tmp_ctx != NULL, "Cannot create talloc context.");
+    ck_assert_msg(tmp_ctx != NULL, "Cannot create talloc context.");
 
     kr = talloc_zero(tmp_ctx, struct krb5child_req);
-    fail_unless(kr != NULL, "Cannot create krb5child_req structure.");
+    ck_assert_msg(kr != NULL, "Cannot create krb5child_req structure.");
 
     pd = create_pam_data(tmp_ctx);
-    fail_unless(pd != NULL, "Cannot create pam_data structure.");
+    ck_assert_msg(pd != NULL, "Cannot create pam_data structure.");
 
     krb5_ctx = talloc_zero(tmp_ctx, struct krb5_ctx);
-    fail_unless(pd != NULL, "Cannot create krb5_ctx structure.");
+    ck_assert_msg(pd != NULL, "Cannot create krb5_ctx structure.");
 
     pd->user = sss_create_internal_fqname(pd, USERNAME, DOMAIN_NAME);
-    fail_unless(pd->user != NULL, "Failed to allocate memory");
+    ck_assert_msg(pd->user != NULL, "Failed to allocate memory");
     kr->uid = atoi(UID);
     kr->upn = discard_const(PRINCIPAL_NAME);
     pd->cli_pid = atoi(PID);
 
     krb5_ctx->opts = talloc_zero_array(tmp_ctx, struct dp_option, KRB5_OPTS);
-    fail_unless(krb5_ctx->opts != NULL, "Cannot created options.");
+    ck_assert_msg(krb5_ctx->opts != NULL, "Cannot created options.");
     for (i = 0; i < KRB5_OPTS; i++) {
         krb5_ctx->opts[i].opt_name = default_krb5_opts[i].opt_name;
         krb5_ctx->opts[i].type = default_krb5_opts[i].type;
         krb5_ctx->opts[i].def_val = default_krb5_opts[i].def_val;
     }
     ret = dp_opt_set_string(krb5_ctx->opts, KRB5_REALM, REALM);
-    fail_unless(ret == EOK, "Failed to set Realm");
+    ck_assert_msg(ret == EOK, "Failed to set Realm");
     ret = dp_opt_set_string(krb5_ctx->opts, KRB5_CCACHEDIR, CCACHE_DIR);
-    fail_unless(ret == EOK, "Failed to set Ccache dir");
+    ck_assert_msg(ret == EOK, "Failed to set Ccache dir");
 
     kr->homedir = HOME_DIRECTORY;
 
@@ -325,10 +325,10 @@ void setup_talloc_context(void)
 void free_talloc_context(void)
 {
     int ret;
-    fail_unless(tmp_ctx != NULL, "Talloc context already freed.");
+    ck_assert_msg(tmp_ctx != NULL, "Talloc context already freed.");
     ret = talloc_free(tmp_ctx);
     tmp_ctx = NULL;
-    fail_unless(ret == 0, "Cannot free talloc context.");
+    ck_assert_msg(ret == 0, "Cannot free talloc context.");
 }
 
 static void do_test(const char *file_template, const char *dir_template,
@@ -338,12 +338,12 @@ static void do_test(const char *file_template, const char *dir_template,
     int ret;
 
     ret = dp_opt_set_string(kr->krb5_ctx->opts, KRB5_CCACHEDIR, dir_template);
-    fail_unless(ret == EOK, "Failed to set Ccache dir");
+    ck_assert_msg(ret == EOK, "Failed to set Ccache dir");
 
     result = expand_ccname_template(tmp_ctx, kr, file_template, NULL, true, true);
 
-    fail_unless(result != NULL, "Cannot expand template [%s].", file_template);
-    fail_unless(strcmp(result, expected) == 0,
+    ck_assert_msg(result != NULL, "Cannot expand template [%s].", file_template);
+    ck_assert_msg(strcmp(result, expected) == 0,
                 "Expansion failed, result [%s], expected [%s].",
                 result, expected);
 }
@@ -372,21 +372,21 @@ START_TEST(test_case_sensitive)
     const char *expected_ci = BASE"_testuser";
 
     kr->pd->user = sss_create_internal_fqname(kr, USERNAME_CASE, DOMAIN_NAME);
-    fail_unless(kr->pd->user != NULL, "Failed to allocate memory");
+    ck_assert_msg(kr->pd->user != NULL, "Failed to allocate memory");
     ret = dp_opt_set_string(kr->krb5_ctx->opts, KRB5_CCACHEDIR, CCACHE_DIR);
-    fail_unless(ret == EOK, "Failed to set Ccache dir");
+    ck_assert_msg(ret == EOK, "Failed to set Ccache dir");
 
     result = expand_ccname_template(tmp_ctx, kr, file_template, NULL, true, true);
 
-    fail_unless(result != NULL, "Cannot expand template [%s].", file_template);
-    fail_unless(strcmp(result, expected_cs) == 0,
+    ck_assert_msg(result != NULL, "Cannot expand template [%s].", file_template);
+    ck_assert_msg(strcmp(result, expected_cs) == 0,
                 "Expansion failed, result [%s], expected [%s].",
                 result, expected_cs);
 
     result = expand_ccname_template(tmp_ctx, kr, file_template, NULL, true, false);
 
-    fail_unless(result != NULL, "Cannot expand template [%s].", file_template);
-    fail_unless(strcmp(result, expected_ci) == 0,
+    ck_assert_msg(result != NULL, "Cannot expand template [%s].", file_template);
+    ck_assert_msg(strcmp(result, expected_ci) == 0,
                 "Expansion failed, result [%s], expected [%s].",
                 result, expected_ci);
 }
@@ -428,11 +428,11 @@ START_TEST(test_ccache_dir)
     do_test(BASE"_%d", CCACHE_DIR, BASE"_"CCACHE_DIR);
 
     ret = dp_opt_set_string(kr->krb5_ctx->opts, KRB5_CCACHEDIR, BASE"_%d");
-    fail_unless(ret == EOK, "Failed to set Ccache dir");
+    ck_assert_msg(ret == EOK, "Failed to set Ccache dir");
 
     result = expand_ccname_template(tmp_ctx, kr, "%d/"FILENAME, NULL, true, true);
 
-    fail_unless(result == NULL, "Using %%d in ccache dir should fail.");
+    ck_assert_msg(result == NULL, "Using %%d in ccache dir should fail.");
 }
 END_TEST
 
@@ -444,11 +444,11 @@ START_TEST(test_pid)
     do_test(BASE"_%P", CCACHE_DIR, BASE"_"PID);
 
     ret = dp_opt_set_string(kr->krb5_ctx->opts, KRB5_CCACHEDIR, BASE"_%P");
-    fail_unless(ret == EOK, "Failed to set Ccache dir");
+    ck_assert_msg(ret == EOK, "Failed to set Ccache dir");
 
     result = expand_ccname_template(tmp_ctx, kr, "%d/"FILENAME, NULL, true, true);
 
-    fail_unless(result == NULL, "Using %%P in ccache dir should fail.");
+    ck_assert_msg(result == NULL, "Using %%P in ccache dir should fail.");
 }
 END_TEST
 
@@ -467,15 +467,15 @@ START_TEST(test_unknown_template)
 
     result = expand_ccname_template(tmp_ctx, kr, test_template, NULL, true, true);
 
-    fail_unless(result == NULL, "Unknown template [%s] should fail.",
+    ck_assert_msg(result == NULL, "Unknown template [%s] should fail.",
                 test_template);
 
     ret = dp_opt_set_string(kr->krb5_ctx->opts, KRB5_CCACHEDIR, BASE"_%X");
-    fail_unless(ret == EOK, "Failed to set Ccache dir");
+    ck_assert_msg(ret == EOK, "Failed to set Ccache dir");
     test_template = "%d/"FILENAME;
     result = expand_ccname_template(tmp_ctx, kr, test_template, NULL, true, true);
 
-    fail_unless(result == NULL, "Unknown template [%s] should fail.",
+    ck_assert_msg(result == NULL, "Unknown template [%s] should fail.",
                 test_template);
 }
 END_TEST
@@ -487,7 +487,7 @@ START_TEST(test_NULL)
 
     result = expand_ccname_template(tmp_ctx, kr, test_template, NULL, true, true);
 
-    fail_unless(result == NULL,
+    ck_assert_msg(result == NULL,
                 "Expected NULL as a result for an empty input for "
                 "NULL template");
 }
@@ -500,8 +500,8 @@ START_TEST(test_no_substitution)
 
     result = expand_ccname_template(tmp_ctx, kr, test_template, NULL, true, true);
 
-    fail_unless(result != NULL, "Cannot expand template [%s].", test_template);
-    fail_unless(strcmp(result, test_template) == 0,
+    ck_assert_msg(result != NULL, "Cannot expand template [%s].", test_template);
+    ck_assert_msg(strcmp(result, test_template) == 0,
                 "Expansion failed, result [%s], expected [%s].",
                 result, test_template);
 }
@@ -517,8 +517,8 @@ START_TEST(test_krb5_style_expansion)
     expected = BASE"/"UID"/"UID"/"UID"/"USERNAME;
     result = expand_ccname_template(tmp_ctx, kr, file_template, NULL, true, true);
 
-    fail_unless(result != NULL, "Cannot expand template [%s].", file_template);
-    fail_unless(strcmp(result, expected) == 0,
+    ck_assert_msg(result != NULL, "Cannot expand template [%s].", file_template);
+    ck_assert_msg(strcmp(result, expected) == 0,
                 "Expansion failed, result [%s], expected [%s].",
                 result, expected);
 
@@ -526,8 +526,8 @@ START_TEST(test_krb5_style_expansion)
     expected = BASE"/%{unknown}";
     result = expand_ccname_template(tmp_ctx, kr, file_template, NULL, true, true);
 
-    fail_unless(result != NULL, "Cannot expand template [%s].", file_template);
-    fail_unless(strcmp(result, expected) == 0,
+    ck_assert_msg(result != NULL, "Cannot expand template [%s].", file_template);
+    ck_assert_msg(strcmp(result, expected) == 0,
                 "Expansion failed, result [%s], expected [%s].",
                 result, expected);
 }
@@ -539,41 +539,41 @@ START_TEST(test_compare_principal_realm)
     bool different_realm;
 
     ret = compare_principal_realm(NULL, "a", &different_realm);
-    fail_unless(ret == EINVAL, "NULL upn does not cause EINVAL.");
+    ck_assert_msg(ret == EINVAL, "NULL upn does not cause EINVAL.");
 
     ret = compare_principal_realm("a", NULL, &different_realm);
-    fail_unless(ret == EINVAL, "NULL realm does not cause EINVAL.");
+    ck_assert_msg(ret == EINVAL, "NULL realm does not cause EINVAL.");
 
     ret = compare_principal_realm("a", "b", NULL);
-    fail_unless(ret == EINVAL, "NULL different_realmbool " \
+    ck_assert_msg(ret == EINVAL, "NULL different_realmbool " \
                                "does not cause EINVAL.");
 
     ret = compare_principal_realm("", "a", &different_realm);
-    fail_unless(ret == EINVAL, "Empty upn does not cause EINVAL.");
+    ck_assert_msg(ret == EINVAL, "Empty upn does not cause EINVAL.");
 
     ret = compare_principal_realm("a", "", &different_realm);
-    fail_unless(ret == EINVAL, "Empty realm does not cause EINVAL.");
+    ck_assert_msg(ret == EINVAL, "Empty realm does not cause EINVAL.");
 
     ret = compare_principal_realm("ABC", "ABC", &different_realm);
-    fail_unless(ret == EINVAL, "Short UPN does not cause EINVAL.");
+    ck_assert_msg(ret == EINVAL, "Short UPN does not cause EINVAL.");
 
     ret = compare_principal_realm("userABC", "ABC", &different_realm);
-    fail_unless(ret == EINVAL, "Missing '@' does not cause EINVAL.");
+    ck_assert_msg(ret == EINVAL, "Missing '@' does not cause EINVAL.");
 
     ret = compare_principal_realm("user@ABC", "ABC", &different_realm);
-    fail_unless(ret == EOK, "Failure with same realm");
-    fail_unless(different_realm == false, "Same realm but " \
+    ck_assert_msg(ret == EOK, "Failure with same realm");
+    ck_assert_msg(different_realm == false, "Same realm but " \
                                           "different_realm is not false.");
 
     ret = compare_principal_realm("user@ABC", "DEF", &different_realm);
-    fail_unless(ret == EOK, "Failure with different realm");
-    fail_unless(different_realm == true, "Different realm but " \
+    ck_assert_msg(ret == EOK, "Failure with different realm");
+    ck_assert_msg(different_realm == true, "Different realm but " \
                                           "different_realm is not true.");
 
     ret = compare_principal_realm("user@ABC", "REALMNAMELONGERTHANUPN",
                                  &different_realm);
-    fail_unless(ret == EOK, "Failure with long realm name.");
-    fail_unless(different_realm == true, "Realm name longer than UPN but "
+    ck_assert_msg(ret == EOK, "Failure with long realm name.");
+    ck_assert_msg(different_realm == true, "Realm name longer than UPN but "
                                          "different_realm is not true.");
 }
 END_TEST
@@ -587,20 +587,20 @@ compare_map_id_name_to_krb_primary(struct map_id_name_to_krb_primary *a,
     errno_t ret;
 
     while (a[i].id_name != NULL && a[i].krb_primary != NULL) {
-        fail_unless(i < len,
+        ck_assert_msg(i < len,
                     "Index: %d mus =t be lowwer than: %zd", i, len);
         ret = sss_utf8_case_eq((const uint8_t*)a[i].id_name,
                                (const uint8_t*)str[i*2]);
-        fail_unless(ret == EOK,
+        ck_assert_msg(ret == EOK,
                     "%s does not match %s", a[i].id_name, str[i*2]);
 
         ret = sss_utf8_case_eq((const uint8_t*)a[i].krb_primary,
                                (const uint8_t*)str[i*2+1]);
-        fail_unless(ret == EOK, "%s does not match %s",
+        ck_assert_msg(ret == EOK, "%s does not match %s",
                     a[i].krb_primary, str[i*2+1]);
         i++;
     }
-    fail_unless(len == i, "%zu != %u", len, i);
+    ck_assert_msg(len == i, "%zu != %u", len, i);
 }
 
 START_TEST(test_parse_krb5_map_user)
@@ -615,51 +615,51 @@ START_TEST(test_parse_krb5_map_user)
     {
         check_leaks_push(mem_ctx);
         ret = parse_krb5_map_user(mem_ctx, NULL, DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK,
+        ck_assert_msg(ret == EOK,
                     "parse_krb5_map_user failed with error: %d", ret);
-        fail_unless(name_to_primary[0].id_name == NULL,
+        ck_assert_msg(name_to_primary[0].id_name == NULL,
                     "id_name must be NULL. Got: %s",
                     name_to_primary[0].id_name);
-        fail_unless(name_to_primary[0].krb_primary == NULL,
+        ck_assert_msg(name_to_primary[0].krb_primary == NULL,
                     "krb_primary must be NULL. Got: %s",
                     name_to_primary[0].krb_primary);
         talloc_free(name_to_primary);
 
         ret = parse_krb5_map_user(mem_ctx, "", DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK,
+        ck_assert_msg(ret == EOK,
                     "parse_krb5_map_user failed with error: %d", ret);
-        fail_unless(name_to_primary[0].id_name == NULL,
+        ck_assert_msg(name_to_primary[0].id_name == NULL,
                     "id_name must be NULL. Got: %s",
                     name_to_primary[0].id_name);
-        fail_unless(name_to_primary[0].krb_primary == NULL,
+        ck_assert_msg(name_to_primary[0].krb_primary == NULL,
                     "krb_primary must be NULL. Got: %s",
                     name_to_primary[0].krb_primary);
         talloc_free(name_to_primary);
 
         ret = parse_krb5_map_user(mem_ctx, ",", DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK,
+        ck_assert_msg(ret == EOK,
                     "parse_krb5_map_user failed with error: %d", ret);
-        fail_unless(name_to_primary[0].id_name == NULL,
+        ck_assert_msg(name_to_primary[0].id_name == NULL,
                     "id_name must be NULL. Got: %s",
                     name_to_primary[0].id_name);
-        fail_unless(name_to_primary[0].krb_primary == NULL,
+        ck_assert_msg(name_to_primary[0].krb_primary == NULL,
                     "krb_primary must be NULL. Got: %s",
                     name_to_primary[0].krb_primary);
         talloc_free(name_to_primary);
 
         ret = parse_krb5_map_user(mem_ctx, ",,", DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK,
+        ck_assert_msg(ret == EOK,
                     "parse_krb5_map_user failed with error: %d", ret);
-        fail_unless(name_to_primary[0].id_name == NULL,
+        ck_assert_msg(name_to_primary[0].id_name == NULL,
                     "id_name must be NULL. Got: %s",
                     name_to_primary[0].id_name);
-        fail_unless(name_to_primary[0].krb_primary == NULL,
+        ck_assert_msg(name_to_primary[0].krb_primary == NULL,
                     "krb_primary must be NULL. Got: %s",
                     name_to_primary[0].krb_primary);
 
         talloc_free(name_to_primary);
 
-        fail_unless(check_leaks_pop(mem_ctx),
+        ck_assert_msg(check_leaks_pop(mem_ctx),
                     "check_leaks_pop failed");
     }
     /* valid input */
@@ -671,19 +671,19 @@ START_TEST(test_parse_krb5_map_user)
                                    "joe@testdomain", "juser@testdomain",
                                    "jdoe@testdomain", "ßlack@testdomain" };
         ret = parse_krb5_map_user(mem_ctx, p, DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK,
+        ck_assert_msg(ret == EOK,
                     "parse_krb5_map_user failed with error: %d", ret);
         compare_map_id_name_to_krb_primary(name_to_primary, expected,
                                          sizeof(expected)/sizeof(const char*)/2);
         talloc_free(name_to_primary);
 
         ret = parse_krb5_map_user(mem_ctx, p2, DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EOK,
+        ck_assert_msg(ret == EOK,
                     "parse_krb5_map_user failed with error: %d", ret);
         compare_map_id_name_to_krb_primary(name_to_primary,  expected,
                                          sizeof(expected)/sizeof(const char*)/2);
         talloc_free(name_to_primary);
-        fail_unless(check_leaks_pop(mem_ctx),
+        ck_assert_msg(check_leaks_pop(mem_ctx),
                     "check_leaks_pop failed");
     }
     /* invalid input */
@@ -691,35 +691,35 @@ START_TEST(test_parse_krb5_map_user)
         check_leaks_push(mem_ctx);
 
         ret = parse_krb5_map_user(mem_ctx, ":", DOMAIN_NAME, &name_to_primary);
-        fail_unless(ret == EINVAL,
+        ck_assert_msg(ret == EINVAL,
                     "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
         ret = parse_krb5_map_user(mem_ctx, "joe:", DOMAIN_NAME,
                                   &name_to_primary);
-        fail_unless(ret == EINVAL,
+        ck_assert_msg(ret == EINVAL,
                     "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
         ret = parse_krb5_map_user(mem_ctx, ":joe", DOMAIN_NAME,
                                   &name_to_primary);
-        fail_unless(ret == EINVAL,
+        ck_assert_msg(ret == EINVAL,
                     "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
         ret = parse_krb5_map_user(mem_ctx, "joe:,", DOMAIN_NAME,
                                   &name_to_primary);
-        fail_unless(ret == EINVAL,
+        ck_assert_msg(ret == EINVAL,
                     "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
         ret = parse_krb5_map_user(mem_ctx, ",joe", DOMAIN_NAME,
                                   &name_to_primary);
-        fail_unless(ret == EINVAL,
+        ck_assert_msg(ret == EINVAL,
                     "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
         ret = parse_krb5_map_user(mem_ctx, "joe:j:user", DOMAIN_NAME,
                                   &name_to_primary);
-        fail_unless(ret == EINVAL,
+        ck_assert_msg(ret == EINVAL,
                     "parse_krb5_map_user must fail with EINVAL got: %d", ret);
 
-        fail_unless(check_leaks_pop(mem_ctx),
+        ck_assert_msg(check_leaks_pop(mem_ctx),
                     "check_leaks_pop failed");
     }
 
@@ -729,17 +729,17 @@ END_TEST
 
 START_TEST(test_sss_krb5_realm_has_proxy)
 {
-    fail_unless(sss_krb5_realm_has_proxy(NULL) == false,
+    ck_assert_msg(sss_krb5_realm_has_proxy(NULL) == false,
                 "sss_krb5_realm_has_proxy did not return false");
 
     setenv("KRB5_CONFIG", "/dev/null", 1);
-    fail_unless(sss_krb5_realm_has_proxy("REALM") == false,
+    ck_assert_msg(sss_krb5_realm_has_proxy("REALM") == false,
                 "sss_krb5_realm_has_proxy did not return false");
 
     setenv("KRB5_CONFIG", ABS_SRC_DIR"/src/tests/krb5_proxy_check_test_data.conf", 1);
-    fail_unless(sss_krb5_realm_has_proxy("REALM") == false,
+    ck_assert_msg(sss_krb5_realm_has_proxy("REALM") == false,
                 "sss_krb5_realm_has_proxy did not return false");
-    fail_unless(sss_krb5_realm_has_proxy("REALM_PROXY") == true,
+    ck_assert_msg(sss_krb5_realm_has_proxy("REALM_PROXY") == true,
                 "sss_krb5_realm_has_proxy did not return true");
 }
 END_TEST

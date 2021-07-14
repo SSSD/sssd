@@ -29,12 +29,12 @@
 
 void ck_leak_check_setup(void)
 {
-    fail_unless(leak_check_setup() == true,
+    ck_assert_msg(leak_check_setup() == true,
                 "Cannot set up leaks test: %s\n", check_leaks_err_msg());
 }
 
 void ck_leak_check_teardown(void)
 {
-    fail_unless(leak_check_teardown() == true,
+    ck_assert_msg(leak_check_teardown() == true,
                 "Cannot tear down leaks test: %s\n", check_leaks_err_msg());
 }

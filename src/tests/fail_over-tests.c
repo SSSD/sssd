@@ -65,18 +65,18 @@ setup_test(void)
     int ret;
 
     ctx = talloc_zero(global_talloc_context, struct test_ctx);
-    fail_if(ctx == NULL, "Could not allocate memory for test context");
+    sss_ck_fail_if_msg(ctx == NULL, "Could not allocate memory for test context");
 
     ctx->ev = tevent_context_init(ctx);
     if (ctx->ev == NULL) {
         talloc_free(ctx);
-        fail("Could not init tevent context");
+        ck_abort_msg("Could not init tevent context");
     }
 
     ret = resolv_init(ctx, ctx->ev, 5, 2000, &ctx->resolv);
     if (ret != EOK) {
         talloc_free(ctx);
-        fail("Could not init resolv context");
+        ck_abort_msg("Could not init resolv context");
     }
 
     memset(&fopts, 0, sizeof(fopts));
@@ -86,7 +86,7 @@ setup_test(void)
     ctx->fo_ctx = fo_context_init(ctx, &fopts);
     if (ctx->fo_ctx == NULL) {
         talloc_free(ctx);
-        fail("Could not init fail over context");
+        ck_abort_msg("Could not init fail over context");
     }
 
     return ctx;
@@ -116,12 +116,12 @@ START_TEST(test_fo_new_service)
 
         ck_leaks_push(ctx);
         ret = fo_new_service(ctx->fo_ctx, buf, NULL, &services[i]);
-        fail_if(ret != EOK,
+        sss_ck_fail_if_msg(ret != EOK,
                 "fo_new_service failed with error: %d", ret);
     }
 
     ret = fo_new_service(ctx->fo_ctx, "service_3", NULL, &service);
-    fail_if(ret != EEXIST,
+    sss_ck_fail_if_msg(ret != EEXIST,
             "fo_new_service must return EEXIST. Got: %d", ret);
 
     for (i = 9; i >= 0; i--) {
@@ -129,16 +129,16 @@ START_TEST(test_fo_new_service)
         sprintf(buf, "service_%d", i);
 
         ret = fo_get_service(ctx->fo_ctx, buf, &service);
-        fail_if(ret != EOK,
+        sss_ck_fail_if_msg(ret != EOK,
                 "fo_get_service failed with error: %d", ret);
-        fail_if(service != services[i],
+        sss_ck_fail_if_msg(service != services[i],
                 "Unexpected service returned. %p != %p",
                 service, services[i]);
         talloc_free(service);
         ck_leaks_pop(ctx);
 
         ret = fo_get_service(ctx->fo_ctx, buf, &service);
-        fail_if(ret != ENOENT,
+        sss_ck_fail_if_msg(ret != ENOENT,
                 "fo_get_service must return ENOENT. Got: %d", ret);
     }
 
@@ -164,14 +164,14 @@ test_resolve_service_callback(struct tevent_req *req)
 
     recv_status = fo_resolve_service_recv(req, req, &server);
     talloc_free(req);
-    fail_if(recv_status != task->recv, "%s: Expected return of %d, got %"PRIu64,
+    sss_ck_fail_if_msg(recv_status != task->recv, "%s: Expected return of %d, got %"PRIu64,
             task->location, task->recv, recv_status);
     if (recv_status != EOK)
         return;
-    fail_if(server == NULL,
+    sss_ck_fail_if_msg(server == NULL,
             "fo_resolve_service_recv must not return NULL for server");
     port = fo_get_server_port(server);
-    fail_if(port != task->port, "%s: Expected port %d, got %d", task->location,
+    sss_ck_fail_if_msg(port != task->port, "%s: Expected port %d, got %d", task->location,
             task->port, port);
 
     if (task->new_port_status >= 0)
@@ -181,12 +181,12 @@ test_resolve_service_callback(struct tevent_req *req)
 
     if (fo_get_server_name(server) != NULL) {
         he = fo_get_server_hostent(server);
-        fail_if(he == NULL, "fo_get_server_hostent() returned NULL");
+        sss_ck_fail_if_msg(he == NULL, "fo_get_server_hostent() returned NULL");
         for (i = 0; he->addr_list[i]; i++) {
             char buf[256];
 
             inet_ntop(he->family, he->addr_list[i]->ipaddr, buf, sizeof(buf));
-            fail_if(strcmp(buf, "127.0.0.1") != 0 && strcmp(buf, "::1") != 0,
+            sss_ck_fail_if_msg(strcmp(buf, "127.0.0.1") != 0 && strcmp(buf, "::1") != 0,
                     "Expecting either '127.0.0.1' or '::1'. Got: %s", buf);
         }
     }
@@ -194,8 +194,8 @@ test_resolve_service_callback(struct tevent_req *req)
     if (task->new_port_status == PORT_WORKING
             && task->new_server_status == SERVER_WORKING) {
         active_server = fo_get_active_server(task->service);
-        fail_if(active_server == NULL, "Missing active server");
-        fail_if(server != active_server, "Current server is not active server");
+        sss_ck_fail_if_msg(active_server == NULL, "Missing active server");
+        sss_ck_fail_if_msg(server != active_server, "Current server is not active server");
     }
 
 }
@@ -212,7 +212,7 @@ _get_request(struct test_ctx *test_ctx, struct fo_service *service,
     struct task *task;
 
     task = talloc(test_ctx, struct task);
-    fail_if(task == NULL, "Failed to allocate memory");
+    sss_ck_fail_if_msg(task == NULL, "Failed to allocate memory");
 
     task->test_ctx = test_ctx;
     task->recv = expected_recv;
@@ -226,7 +226,7 @@ _get_request(struct test_ctx *test_ctx, struct fo_service *service,
     req = fo_resolve_service_send(test_ctx, test_ctx->ev,
                                   test_ctx->resolv,
                                   test_ctx->fo_ctx, service);
-    fail_if(req == NULL, "%s: fo_resolve_service_send() failed", location);
+    sss_ck_fail_if_msg(req == NULL, "%s: fo_resolve_service_send() failed", location);
 
     tevent_req_set_callback(req, test_resolve_service_callback, task);
     test_loop(test_ctx);
@@ -239,37 +239,37 @@ START_TEST(test_fo_resolve_service)
     int ret;
 
     ctx = setup_test();
-    fail_if(ctx == NULL, "Failed to allocate memory");
+    sss_ck_fail_if_msg(ctx == NULL, "Failed to allocate memory");
 
     /* Add service. */
     ret = fo_new_service(ctx->fo_ctx, "http", NULL, &service[0]);
-    fail_if(ret != EOK, "fo_new_service failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "fo_new_service failed with error: %d", ret);
 
     ret = fo_new_service(ctx->fo_ctx, "ldap", NULL, &service[1]);
-    fail_if(ret != EOK, "fo_new_service failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "fo_new_service failed with error: %d", ret);
 
     ret = fo_new_service(ctx->fo_ctx, "ntp", NULL, &service[2]);
-    fail_if(ret != EOK, "fo_new_service failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "fo_new_service failed with error: %d", ret);
 
     /* Add servers. */
     ret = fo_add_server(service[0], "localhost", 20, NULL, true);
-    fail_if(ret != EOK, "fo_add_server failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "fo_add_server failed with error: %d", ret);
     ret = fo_add_server(service[0], "127.0.0.1", 80, NULL, false);
-    fail_if(ret != EOK, "fo_add_server failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "fo_add_server failed with error: %d", ret);
 
     ret = fo_add_server(service[1], "localhost", 30, NULL, false);
-    fail_if(ret != EOK, "fo_add_server failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "fo_add_server failed with error: %d", ret);
     ret = fo_add_server(service[1], "127.0.0.1", 389, NULL, true);
-    fail_if(ret != EOK, "fo_add_server failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "fo_add_server failed with error: %d", ret);
     ret = fo_add_server(service[1], "127.0.0.1", 389, NULL, true);
-    fail_if(ret != EEXIST,
+    sss_ck_fail_if_msg(ret != EEXIST,
             "fo_add_server must  fail with EEXIST. Got: %d", ret);
     ret = fo_add_server(service[1], "127.0.0.1", 389, NULL, false);
-    fail_if(ret != EEXIST,
+    sss_ck_fail_if_msg(ret != EEXIST,
             "fo_add_server must  fail with EEXIST. Got: %d", ret);
 
     ret = fo_add_server(service[2], NULL, 123, NULL, true);
-    fail_if(ret != EOK, "fo_add_server failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "fo_add_server failed with error: %d", ret);
 
     /* Make requests. */
     get_request(ctx, service[0], EOK, 20, PORT_WORKING, -1);

@@ -65,20 +65,20 @@ static int setup_resolv_test(int timeout, struct resolv_test_ctx **ctx)
 
     test_ctx = talloc_zero(global_talloc_context, struct resolv_test_ctx);
     if (test_ctx == NULL) {
-        fail("Could not allocate memory for test context");
+        ck_abort_msg("Could not allocate memory for test context");
         return ENOMEM;
     }
 
     test_ctx->ev = tevent_context_init(test_ctx);
     if (test_ctx->ev == NULL) {
-        fail("Could not init tevent context");
+        ck_abort_msg("Could not init tevent context");
         talloc_free(test_ctx);
         return EFAULT;
     }
 
     ret = resolv_init(test_ctx, test_ctx->ev, timeout, 2000, &test_ctx->resolv);
     if (ret != EOK) {
-        fail("Could not init resolv context");
+        ck_abort_msg("Could not init resolv context");
         talloc_free(test_ctx);
         return ret;
     }
@@ -172,57 +172,57 @@ START_TEST(test_copy_hostent)
     struct ares_addrttl attl[] = { { addr_1, ttl_1 }, { addr_2, ttl_2 } };
 
     ctx = talloc_new(global_talloc_context);
-    fail_if(ctx == NULL, "Failed to allocate memory");
+    sss_ck_fail_if_msg(ctx == NULL, "Failed to allocate memory");
 
     ck_leaks_push(ctx);
 
     rhe = resolv_copy_hostent_ares(ctx, &he, AF_INET, &attl, 2);
 
-    fail_if(rhe == NULL, "Failed to allocate memory");
-    fail_if(strcmp(rhe->name, name),
+    sss_ck_fail_if_msg(rhe == NULL, "Failed to allocate memory");
+    sss_ck_fail_if_msg(strcmp(rhe->name, name),
             "Unexpectag value for name. Got: %s expecting: %s",
              rhe->name, name);
-    fail_if(strcmp(rhe->aliases[0], alias_1),
+    sss_ck_fail_if_msg(strcmp(rhe->aliases[0], alias_1),
             "Unexpectag value for 1st alias. Got: %s expecting: %s",
             rhe->aliases[0], alias_1);
-    fail_if(strcmp(rhe->aliases[1], alias_2),
+    sss_ck_fail_if_msg(strcmp(rhe->aliases[1], alias_2),
             "Unexpectag value for 2nd alias. Got: %s expecting: %s",
             rhe->aliases[1], alias_2);
-    fail_if(rhe->aliases[2] != NULL,
+    sss_ck_fail_if_msg(rhe->aliases[2] != NULL,
             "Just 2 aliases are expected. Got: %s", rhe->aliases[2]);
     ck_assert_int_eq(rhe->family, AF_INET);
-    fail_if(memcmp(rhe->addr_list[0]->ipaddr, &addr_1, sizeof(addr_1)),
+    sss_ck_fail_if_msg(memcmp(rhe->addr_list[0]->ipaddr, &addr_1, sizeof(addr_1)),
                    "Unexpected binary value for addr_list[0]->ipaddr");
     ck_assert_int_eq(rhe->addr_list[0]->ttl, ttl_1);
-    fail_if(memcmp(rhe->addr_list[1]->ipaddr, &addr_2, sizeof(addr_2)),
+    sss_ck_fail_if_msg(memcmp(rhe->addr_list[1]->ipaddr, &addr_2, sizeof(addr_2)),
                    "Unexpected binary value for rhe->addr_list[1]->ipaddr");
     ck_assert_int_eq(rhe->addr_list[1]->ttl, ttl_2);
-    fail_if(rhe->addr_list[2] != NULL,
+    sss_ck_fail_if_msg(rhe->addr_list[2] != NULL,
             "Just 2 ip addresses are expected. 3rd has to be NULL");
 
     talloc_zfree(rhe);
 
     rhe = resolv_copy_hostent(ctx, &he);
-    fail_if(rhe == NULL, "Failed to allocate memory");
-    fail_if(strcmp(rhe->name, name),
+    sss_ck_fail_if_msg(rhe == NULL, "Failed to allocate memory");
+    sss_ck_fail_if_msg(strcmp(rhe->name, name),
             "Unexpectag value for name. Got: %s expecting: %s",
             rhe->name, name);
-    fail_if(strcmp(rhe->aliases[0], alias_1),
+    sss_ck_fail_if_msg(strcmp(rhe->aliases[0], alias_1),
             "Unexpectag value for 1st alias. Got: %s expecting: %s",
             rhe->aliases[0], alias_1);
-    fail_if(strcmp(rhe->aliases[1], alias_2),
+    sss_ck_fail_if_msg(strcmp(rhe->aliases[1], alias_2),
             "Unexpectag value for 2nd alias. Got: %s expecting: %s",
             rhe->aliases[1], alias_2);
-    fail_if(rhe->aliases[2] != NULL,
+    sss_ck_fail_if_msg(rhe->aliases[2] != NULL,
             "Just 2 aliases are expected. Got: %s", rhe->aliases[2]);
     ck_assert_int_eq(rhe->family, AF_INET);
-    fail_if(memcmp(rhe->addr_list[0]->ipaddr, &addr_2, sizeof(addr_1)),
+    sss_ck_fail_if_msg(memcmp(rhe->addr_list[0]->ipaddr, &addr_2, sizeof(addr_1)),
                    "Unexpected binary value for addr_list[0]->ipaddr");
     ck_assert_int_eq(rhe->addr_list[0]->ttl, RESOLV_DEFAULT_TTL);
-    fail_if(memcmp(rhe->addr_list[1]->ipaddr, &addr_1, sizeof(addr_2)),
+    sss_ck_fail_if_msg(memcmp(rhe->addr_list[1]->ipaddr, &addr_1, sizeof(addr_2)),
                    "Unexpected binary value for addr_list[1]->ipaddr");
     ck_assert_int_eq(rhe->addr_list[1]->ttl, RESOLV_DEFAULT_TTL);
-    fail_if(rhe->addr_list[2] != NULL,
+    sss_ck_fail_if_msg(rhe->addr_list[2] != NULL,
             "Just 2 ip addresses are expected. 3rd has to be NULL");
 
     talloc_free(rhe);
@@ -239,37 +239,37 @@ START_TEST(test_address_to_string)
     char *ptr_addr;
 
     ctx = talloc_new(global_talloc_context);
-    fail_if(ctx == NULL, "Failed to allocate memory");
+    sss_ck_fail_if_msg(ctx == NULL, "Failed to allocate memory");
     ck_leaks_push(ctx);
 
     rhe = test_create_rhostent(ctx, "www.example.com", "1.2.3.4");
-    fail_if(rhe == NULL, "Failed to allocate memory");
+    sss_ck_fail_if_msg(rhe == NULL, "Failed to allocate memory");
 
     str_addr = resolv_get_string_address_index(ctx, rhe, 0);
-    fail_if(str_addr == NULL, "Failed to allocate memory");
-    fail_unless(strcmp(str_addr, "1.2.3.4") == 0, "Unexpected address\n");
+    sss_ck_fail_if_msg(str_addr == NULL, "Failed to allocate memory");
+    ck_assert_msg(strcmp(str_addr, "1.2.3.4") == 0, "Unexpected address\n");
     talloc_free(str_addr);
 
     ptr_addr = resolv_get_string_ptr_address(ctx, rhe->family,
                                              rhe->addr_list[0]->ipaddr);
-    fail_if(ptr_addr == NULL, "Failed to allocate memory");
-    fail_unless(strcmp(ptr_addr, "4.3.2.1.in-addr.arpa.") == 0, "Unexpected PTR address\n");
+    sss_ck_fail_if_msg(ptr_addr == NULL, "Failed to allocate memory");
+    ck_assert_msg(strcmp(ptr_addr, "4.3.2.1.in-addr.arpa.") == 0, "Unexpected PTR address\n");
     talloc_free(ptr_addr);
 
     talloc_free(rhe);
 
     rhe = test_create_rhostent(ctx, "www6.example.com", "2607:f8b0:400c:c03::6a");
-    fail_if(rhe == NULL, "Failed to allocate memory");
+    sss_ck_fail_if_msg(rhe == NULL, "Failed to allocate memory");
 
     str_addr = resolv_get_string_address_index(ctx, rhe, 0);
-    fail_if(str_addr == NULL, "resolv_get_string_address_index failed");
-    fail_unless(strcmp(str_addr, "2607:f8b0:400c:c03::6a") == 0, "Unexpected address\n");
+    sss_ck_fail_if_msg(str_addr == NULL, "resolv_get_string_address_index failed");
+    ck_assert_msg(strcmp(str_addr, "2607:f8b0:400c:c03::6a") == 0, "Unexpected address\n");
     talloc_free(str_addr);
 
     ptr_addr = resolv_get_string_ptr_address(ctx, rhe->family,
                                              rhe->addr_list[0]->ipaddr);
-    fail_if(ptr_addr == NULL, "resolv_get_string_ptr_address failed");
-    fail_unless(strcmp(ptr_addr,
+    sss_ck_fail_if_msg(ptr_addr == NULL, "resolv_get_string_ptr_address failed");
+    ck_assert_msg(strcmp(ptr_addr,
                        "a.6.0.0.0.0.0.0.0.0.0.0.0.0.0.0.3.0.c.0.c.0.0.4.0.b.8.f.7.0.6.2.ip6.arpa.") == 0, "Unexpected PTR address\n");
     talloc_free(ptr_addr);
 
@@ -323,7 +323,7 @@ START_TEST(test_resolv_ip_addr)
 
     ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
-        fail("Could not set up test");
+        ck_abort_msg("Could not set up test");
         return;
     }
 
@@ -342,7 +342,7 @@ START_TEST(test_resolv_ip_addr)
     }
 
     ck_leaks_pop(test_ctx);
-    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
+    ck_assert_msg(ret == EOK, "test_loop failed with error: %d", ret);
 
     talloc_zfree(test_ctx);
 }
@@ -393,7 +393,7 @@ START_TEST(test_resolv_localhost)
 
     ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
-        fail("Could not set up test");
+        ck_abort_msg("Could not set up test");
         return;
     }
 
@@ -412,7 +412,7 @@ START_TEST(test_resolv_localhost)
     }
 
     ck_leaks_pop(test_ctx);
-    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
+    ck_assert_msg(ret == EOK, "test_loop failed with error: %d", ret);
 
     talloc_zfree(test_ctx);
 }
@@ -451,7 +451,7 @@ START_TEST(test_resolv_negative)
 
     ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
-        fail("Could not set up test");
+        ck_abort_msg("Could not set up test");
         return;
     }
 
@@ -471,7 +471,7 @@ START_TEST(test_resolv_negative)
 
     ck_leaks_pop(test_ctx);
 
-    fail_unless(ret != EOK, "test_loop must failed but got: EOK");
+    ck_assert_msg(ret != EOK, "test_loop must failed but got: EOK");
     ck_assert_int_eq(test_ctx->error, ARES_ENOTFOUND);
     talloc_zfree(test_ctx);
 }
@@ -535,7 +535,7 @@ static void test_internet(struct tevent_req *req)
         break;
     }
     talloc_zfree(req);
-    fail_if(recv_status != EOK, "The recv function failed: %d", recv_status);
+    sss_ck_fail_if_msg(recv_status != EOK, "The recv function failed: %d", recv_status);
     DEBUG(SSSDBG_TRACE_LIBS, "recv status: %d\n", status);
 
     if (rhostent != NULL) {
@@ -557,7 +557,7 @@ START_TEST(test_resolv_internet)
 
     ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
-        fail("Could not set up test");
+        ck_abort_msg("Could not set up test");
         return;
     }
     test_ctx->tested_function = TESTING_HOSTNAME;
@@ -576,7 +576,7 @@ START_TEST(test_resolv_internet)
         ret = test_loop(test_ctx);
     }
 
-    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
+    ck_assert_msg(ret == EOK, "test_loop failed with error: %d", ret);
     ck_leaks_pop(test_ctx);
     talloc_zfree(test_ctx);
 }
@@ -589,17 +589,17 @@ START_TEST(test_resolv_internet_txt)
     struct resolv_test_ctx *test_ctx;
 
     ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
-    fail_if(ret != EOK, "Could not set up test");
+    sss_ck_fail_if_msg(ret != EOK, "Could not set up test");
     test_ctx->tested_function = TESTING_TXT;
 
     ck_leaks_push(test_ctx);
 
     req = resolv_gettxt_send(test_ctx, test_ctx->ev, test_ctx->resolv, txt_host);
-    fail_if(req == NULL, "Function resolv_gettxt_send failed");
+    sss_ck_fail_if_msg(req == NULL, "Function resolv_gettxt_send failed");
 
     tevent_req_set_callback(req, test_internet, test_ctx);
     ret = test_loop(test_ctx);
-    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
+    ck_assert_msg(ret == EOK, "test_loop failed with error: %d", ret);
 
     ck_leaks_pop(test_ctx);
 
@@ -614,17 +614,17 @@ START_TEST(test_resolv_internet_srv)
     struct resolv_test_ctx *test_ctx;
 
     ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
-    fail_if(ret != EOK, "Could not set up test");
+    sss_ck_fail_if_msg(ret != EOK, "Could not set up test");
     test_ctx->tested_function = TESTING_SRV;
 
     ck_leaks_push(test_ctx);
 
     req = resolv_getsrv_send(test_ctx, test_ctx->ev, test_ctx->resolv, srv_host);
-    fail_if(req == NULL, "Function resolv_getsrv_send failed");
+    sss_ck_fail_if_msg(req == NULL, "Function resolv_getsrv_send failed");
 
     tevent_req_set_callback(req, test_internet, test_ctx);
     ret = test_loop(test_ctx);
-    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
+    ck_assert_msg(ret == EOK, "test_loop failed with error: %d", ret);
 
     ck_leaks_pop(test_ctx);
 
@@ -664,7 +664,7 @@ START_TEST(test_resolv_free_context)
 
     ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
-        fail("Could not set up test");
+        ck_abort_msg("Could not set up test");
         return;
     }
 
@@ -673,7 +673,7 @@ START_TEST(test_resolv_free_context)
                                     default_host_dbs);
     DEBUG(SSSDBG_TRACE_LIBS, "Sent resolv_gethostbyname\n");
     if (req == NULL) {
-        fail("Error calling resolv_gethostbyname_send");
+        ck_abort_msg("Error calling resolv_gethostbyname_send");
         goto done;
     }
 
@@ -685,18 +685,18 @@ START_TEST(test_resolv_free_context)
 
     free_timer = tevent_add_timer(test_ctx->ev, test_ctx, free_tv, resolv_free_context, test_ctx->resolv);
     if (free_timer == NULL) {
-        fail("Error calling tevent_add_timer");
+        ck_abort_msg("Error calling tevent_add_timer");
         goto done;
     }
 
     terminate_timer = tevent_add_timer(test_ctx->ev, test_ctx, terminate_tv, resolv_free_done, test_ctx);
     if (terminate_timer == NULL) {
-        fail("Error calling tevent_add_timer");
+        ck_abort_msg("Error calling tevent_add_timer");
         goto done;
     }
 
     ret = test_loop(test_ctx);
-    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
+    ck_assert_msg(ret == EOK, "test_loop failed with error: %d", ret);
 
 done:
     talloc_zfree(test_ctx);
@@ -724,7 +724,7 @@ START_TEST(test_resolv_sort_srv_reply)
 
     ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
-        fail("Could not set up test");
+        ck_abort_msg("Could not set up test");
         return;
     }
 
@@ -733,7 +733,7 @@ START_TEST(test_resolv_sort_srv_reply)
     /* prepare linked list with reversed values */
     for (i = 0; i<num_replies; i++) {
         r = talloc_zero(test_ctx, struct ares_srv_reply);
-        fail_if(r == NULL, "Failed to allocate memory");
+        sss_ck_fail_if_msg(r == NULL, "Failed to allocate memory");
         r->priority = num_replies-i;
         r->weight   = i;
 
@@ -748,7 +748,7 @@ START_TEST(test_resolv_sort_srv_reply)
 
     /* do the sort */
     ret = resolv_sort_srv_reply(&replies);
-    fail_if(ret != EOK, "resolv_sort_srv_reply failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "resolv_sort_srv_reply failed with error: %d", ret);
 
     /* check if the list is sorted */
     prev = NULL;
@@ -768,7 +768,7 @@ START_TEST(test_resolv_sort_srv_reply)
     replies = NULL;
     for (i = 0; i<num_replies; i++) {
         r = talloc_zero(test_ctx, struct ares_srv_reply);
-        fail_if(r == NULL, "Failed to allocate memory");
+        sss_ck_fail_if_msg(r == NULL, "Failed to allocate memory");
         r->priority = i % 2 + 1;
         r->weight   = i;
 
@@ -783,7 +783,7 @@ START_TEST(test_resolv_sort_srv_reply)
 
     /* do the sort */
     ret = resolv_sort_srv_reply(&replies);
-    fail_if(ret != EOK, "resolv_sort_srv_reply failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "resolv_sort_srv_reply failed with error: %d", ret);
 
     /* clean up */
     prev = NULL;
@@ -811,7 +811,7 @@ START_TEST(test_resolv_sort_srv_reply_zero_weight)
 
     ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
-        fail("Could not set up test");
+        ck_abort_msg("Could not set up test");
         return;
     }
 
@@ -820,7 +820,7 @@ START_TEST(test_resolv_sort_srv_reply_zero_weight)
     /* prepare linked list */
     for (i = 0; i < num_replies; i++) {
         r = talloc_zero(test_ctx, struct ares_srv_reply);
-        fail_if(r == NULL, "Failed to allocate memory");
+        sss_ck_fail_if_msg(r == NULL, "Failed to allocate memory");
 
         r->priority = 20;
         r->priority = i <= 3 ? 10 : r->priority;
@@ -838,12 +838,12 @@ START_TEST(test_resolv_sort_srv_reply_zero_weight)
 
     /* do the sort */
     ret = resolv_sort_srv_reply(&replies);
-    fail_if(ret != EOK, "resolv_sort_srv_reply failed with error: %d", ret);
+    sss_ck_fail_if_msg(ret != EOK, "resolv_sort_srv_reply failed with error: %d", ret);
 
     /* check if the list contains all values and is sorted */
     for (i = 0, r = replies; r != NULL; r = r->next, i++) {
         if (r->next != NULL) {
-            fail_unless(r->priority <= r->next->priority,
+            ck_assert_msg(r->priority <= r->next->priority,
                         "Got unsorted values. %d <= %d",
                         r->priority, r->next->priority);
         }
@@ -876,7 +876,7 @@ START_TEST(test_resolv_free_req)
 
     ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
     if (ret != EOK) {
-        fail("Could not set up test");
+        ck_abort_msg("Could not set up test");
         return;
     }
 
@@ -886,7 +886,7 @@ START_TEST(test_resolv_free_req)
                                     default_host_dbs);
     DEBUG(SSSDBG_TRACE_LIBS, "Sent resolv_gethostbyname\n");
     if (req == NULL) {
-        fail("Error calling resolv_gethostbyname_send");
+        ck_abort_msg("Error calling resolv_gethostbyname_send");
         goto done;
     }
 
@@ -899,19 +899,19 @@ START_TEST(test_resolv_free_req)
 
     free_timer = tevent_add_timer(test_ctx->ev, test_ctx, free_tv, resolv_free_req, req);
     if (free_timer == NULL) {
-        fail("Error calling tevent_add_timer");
+        ck_abort_msg("Error calling tevent_add_timer");
         goto done;
     }
 
     terminate_timer = tevent_add_timer(test_ctx->ev, test_ctx, terminate_tv, resolv_free_done, test_ctx);
     if (terminate_timer == NULL) {
-        fail("Error calling tevent_add_timer");
+        ck_abort_msg("Error calling tevent_add_timer");
         goto done;
     }
 
     ret = test_loop(test_ctx);
     ck_leaks_pop(test_ctx);
-    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
+    ck_assert_msg(ret == EOK, "test_loop failed with error: %d", ret);
 
 done:
     talloc_zfree(test_ctx);
@@ -952,7 +952,7 @@ START_TEST(test_resolv_timeout)
 
     ret = setup_resolv_test(0, &test_ctx);
     if (ret != EOK) {
-        fail("Could not set up test");
+        ck_abort_msg("Could not set up test");
         return;
     }
 
@@ -971,7 +971,7 @@ START_TEST(test_resolv_timeout)
         ret = test_loop(test_ctx);
     }
 
-    fail_unless(ret == EOK, "test_loop failed with error: %d", ret);
+    ck_assert_msg(ret == EOK, "test_loop failed with error: %d", ret);
     talloc_zfree(test_ctx);
 }
 END_TEST

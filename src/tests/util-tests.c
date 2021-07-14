@@ -48,32 +48,32 @@ START_TEST(test_add_string_to_list)
     char **list = NULL;
 
     ret = add_string_to_list(NULL, NULL, NULL);
-    fail_unless(ret == EINVAL, "NULL input accepted");
+    ck_assert_msg(ret == EINVAL, "NULL input accepted");
 
     ret = add_string_to_list(global_talloc_context, "ABC", &list);
-    fail_unless(ret == EOK, "Adding string to non-existing list failed.");
-    fail_unless(list != NULL, "No new list created.");
-    fail_unless(list[0] != NULL, "String not added to new list.");
-    fail_unless(strcmp(list[0], "ABC") == 0,
+    ck_assert_msg(ret == EOK, "Adding string to non-existing list failed.");
+    ck_assert_msg(list != NULL, "No new list created.");
+    ck_assert_msg(list[0] != NULL, "String not added to new list.");
+    ck_assert_msg(strcmp(list[0], "ABC") == 0,
                 "Wrong string added to newly created list.");
-    fail_unless(list[1] == NULL,
+    ck_assert_msg(list[1] == NULL,
                 "Missing terminating NULL in newly created list.");
 
     ret = add_string_to_list(global_talloc_context, "DEF", &list);
-    fail_unless(ret == EOK, "Adding string to list failed.");
-    fail_unless(list != NULL, "No list returned.");
-    fail_unless(strcmp(list[0], "ABC") == 0, "Wrong first string in new list.");
-    fail_unless(strcmp(list[1], "DEF") == 0, "Wrong string added to list.");
-    fail_unless(list[2] == NULL, "Missing terminating NULL.");
+    ck_assert_msg(ret == EOK, "Adding string to list failed.");
+    ck_assert_msg(list != NULL, "No list returned.");
+    ck_assert_msg(strcmp(list[0], "ABC") == 0, "Wrong first string in new list.");
+    ck_assert_msg(strcmp(list[1], "DEF") == 0, "Wrong string added to list.");
+    ck_assert_msg(list[2] == NULL, "Missing terminating NULL.");
 
     list[0] = NULL;
     ret = add_string_to_list(global_talloc_context, "ABC", &list);
-    fail_unless(ret == EOK, "Adding string to empty list failed.");
-    fail_unless(list != NULL, "No list returned.");
-    fail_unless(list[0] != NULL, "String not added to empty list.");
-    fail_unless(strcmp(list[0], "ABC") == 0,
+    ck_assert_msg(ret == EOK, "Adding string to empty list failed.");
+    ck_assert_msg(list != NULL, "No list returned.");
+    ck_assert_msg(list[0] != NULL, "String not added to empty list.");
+    ck_assert_msg(strcmp(list[0], "ABC") == 0,
                 "Wrong string added to empty list.");
-    fail_unless(list[1] == NULL,
+    ck_assert_msg(list[1] == NULL,
                 "Missing terminating NULL in newly created list.");
 
     talloc_free(list);
@@ -90,31 +90,31 @@ START_TEST(test_string_in_list)
                     NULL};
 
     is_in = string_in_list(NULL, NULL, false);
-    fail_unless(!is_in, "NULL string is in NULL list.");
+    ck_assert_msg(!is_in, "NULL string is in NULL list.");
 
     is_in = string_in_list(NULL, empty_list, false);
-    fail_unless(!is_in, "NULL string is in empty list.");
+    ck_assert_msg(!is_in, "NULL string is in empty list.");
 
     is_in = string_in_list(NULL, list, false);
-    fail_unless(!is_in, "NULL string is in list.");
+    ck_assert_msg(!is_in, "NULL string is in list.");
 
     is_in = string_in_list("ABC", NULL, false);
-    fail_unless(!is_in, "String is in NULL list.");
+    ck_assert_msg(!is_in, "String is in NULL list.");
 
     is_in = string_in_list("ABC", empty_list, false);
-    fail_unless(!is_in, "String is in empty list.");
+    ck_assert_msg(!is_in, "String is in empty list.");
 
     is_in = string_in_list("ABC", list, false);
-    fail_unless(is_in, "String is not list.");
+    ck_assert_msg(is_in, "String is not list.");
 
     is_in = string_in_list("abc", list, false);
-    fail_unless(is_in, "String is not case in-sensitive list.");
+    ck_assert_msg(is_in, "String is not case in-sensitive list.");
 
     is_in = string_in_list("abc", list, true);
-    fail_unless(!is_in, "Wrong string found in case sensitive list.");
+    ck_assert_msg(!is_in, "Wrong string found in case sensitive list.");
 
     is_in = string_in_list("123", list, false);
-    fail_unless(!is_in, "Wrong string found in list.");
+    ck_assert_msg(!is_in, "Wrong string found in list.");
 
 }
 END_TEST
@@ -168,15 +168,15 @@ START_TEST(test_parse_args)
 
     for (i=0; tc[i].argstr != NULL; i++) {
         parsed = parse_args(tc[i].argstr);
-        fail_if(parsed == NULL && tc[i].parsed != NULL,
+        sss_ck_fail_if_msg(parsed == NULL && tc[i].parsed != NULL,
                 "Could not parse correct %d argument string '%s'\n",
                 i, tc[i].argstr);
 
         ret = diff_string_lists(test_ctx, parsed, discard_const(tc[i].parsed),
                                 &only_ret, &only_exp, &both);
-        fail_unless(ret == EOK, "diff_string_lists returned error [%d]", ret);
-        fail_unless(only_ret[0] == NULL, "The parser returned more data than expected\n");
-        fail_unless(only_exp[0] == NULL, "The parser returned less data than expected\n");
+        ck_assert_msg(ret == EOK, "diff_string_lists returned error [%d]", ret);
+        ck_assert_msg(only_ret[0] == NULL, "The parser returned more data than expected\n");
+        ck_assert_msg(only_exp[0] == NULL, "The parser returned less data than expected\n");
 
         if (parsed) {
             int parsed_len;
@@ -185,7 +185,7 @@ START_TEST(test_parse_args)
             for (parsed_len=0; parsed[parsed_len]; ++parsed_len);
             for (expected_len=0; tc[i].parsed[expected_len]; ++expected_len);
 
-            fail_unless(parsed_len == expected_len,
+            ck_assert_msg(parsed_len == expected_len,
                         "Test %d: length of 1st array [%d] != length of 2nd "
                         "array[%d]\n", i, parsed_len, expected_len);
 
@@ -228,14 +228,14 @@ START_TEST(test_diff_string_lists)
                             l1, l2,
                             &only_l1, &only_l2, &both);
 
-    fail_unless(ret == EOK, "diff_string_lists returned error [%d]", ret);
-    fail_unless(strcmp(only_l1[0], "a") == 0, "Missing \"a\" from only_l1");
-    fail_unless(only_l1[1] == NULL, "only_l1 not NULL-terminated");
-    fail_unless(strcmp(only_l2[0], "d") == 0, "Missing \"d\" from only_l2");
-    fail_unless(only_l2[1] == NULL, "only_l2 not NULL-terminated");
-    fail_unless(strcmp(both[0], "c") == 0, "Missing \"c\" from both");
-    fail_unless(strcmp(both[1], "b") == 0, "Missing \"b\" from both");
-    fail_unless(both[2] == NULL, "both not NULL-terminated");
+    ck_assert_msg(ret == EOK, "diff_string_lists returned error [%d]", ret);
+    ck_assert_msg(strcmp(only_l1[0], "a") == 0, "Missing \"a\" from only_l1");
+    ck_assert_msg(only_l1[1] == NULL, "only_l1 not NULL-terminated");
+    ck_assert_msg(strcmp(only_l2[0], "d") == 0, "Missing \"d\" from only_l2");
+    ck_assert_msg(only_l2[1] == NULL, "only_l2 not NULL-terminated");
+    ck_assert_msg(strcmp(both[0], "c") == 0, "Missing \"c\" from both");
+    ck_assert_msg(strcmp(both[1], "b") == 0, "Missing \"b\" from both");
+    ck_assert_msg(both[2] == NULL, "both not NULL-terminated");
 
     talloc_zfree(only_l1);
     talloc_zfree(only_l2);
@@ -246,12 +246,12 @@ START_TEST(test_diff_string_lists)
                             l1, l2,
                             &only_l1, &only_l2, NULL);
 
-    fail_unless(ret == EOK, "diff_string_lists returned error [%d]", ret);
-    fail_unless(strcmp(only_l1[0], "a") == 0, "Missing \"a\" from only_l1");
-    fail_unless(only_l1[1] == NULL, "only_l1 not NULL-terminated");
-    fail_unless(strcmp(only_l2[0], "d") == 0, "Missing \"d\" from only_l2");
-    fail_unless(only_l2[1] == NULL, "only_l2 not NULL-terminated");
-    fail_unless(both == NULL, "Nothing returned to both");
+    ck_assert_msg(ret == EOK, "diff_string_lists returned error [%d]", ret);
+    ck_assert_msg(strcmp(only_l1[0], "a") == 0, "Missing \"a\" from only_l1");
+    ck_assert_msg(only_l1[1] == NULL, "only_l1 not NULL-terminated");
+    ck_assert_msg(strcmp(only_l2[0], "d") == 0, "Missing \"d\" from only_l2");
+    ck_assert_msg(only_l2[1] == NULL, "only_l2 not NULL-terminated");
+    ck_assert_msg(both == NULL, "Nothing returned to both");
 
     talloc_zfree(only_l1);
     talloc_zfree(only_l2);
@@ -261,11 +261,11 @@ START_TEST(test_diff_string_lists)
                             l1, l2,
                             &only_l1, NULL, NULL);
 
-    fail_unless(ret == EOK, "diff_string_lists returned error [%d]", ret);
-    fail_unless(strcmp(only_l1[0], "a") == 0, "Missing \"a\" from only_l1");
-    fail_unless(only_l1[1] == NULL, "only_l1 not NULL-terminated");
-    fail_unless(only_l2 == NULL, "Nothing returned to only_l2");
-    fail_unless(both == NULL, "Nothing returned to both");
+    ck_assert_msg(ret == EOK, "diff_string_lists returned error [%d]", ret);
+    ck_assert_msg(strcmp(only_l1[0], "a") == 0, "Missing \"a\" from only_l1");
+    ck_assert_msg(only_l1[1] == NULL, "only_l1 not NULL-terminated");
+    ck_assert_msg(only_l2 == NULL, "Nothing returned to only_l2");
+    ck_assert_msg(both == NULL, "Nothing returned to both");
 
     talloc_zfree(only_l1);
     talloc_zfree(only_l2);
@@ -275,11 +275,11 @@ START_TEST(test_diff_string_lists)
                             l1, l2,
                             NULL, &only_l2, NULL);
 
-    fail_unless(ret == EOK, "diff_string_lists returned error [%d]", ret);
-    fail_unless(strcmp(only_l2[0], "d") == 0, "Missing \"d\" from only_l2");
-    fail_unless(only_l2[1] == NULL, "only_l2 not NULL-terminated");
-    fail_unless(only_l1 == NULL, "Nothing returned to only_l1");
-    fail_unless(both == NULL, "Nothing returned to both");
+    ck_assert_msg(ret == EOK, "diff_string_lists returned error [%d]", ret);
+    ck_assert_msg(strcmp(only_l2[0], "d") == 0, "Missing \"d\" from only_l2");
+    ck_assert_msg(only_l2[1] == NULL, "only_l2 not NULL-terminated");
+    ck_assert_msg(only_l1 == NULL, "Nothing returned to only_l1");
+    ck_assert_msg(both == NULL, "Nothing returned to both");
 
     talloc_zfree(only_l1);
     talloc_zfree(only_l2);
@@ -296,16 +296,16 @@ START_TEST(test_diff_string_lists)
                             l1, l3,
                             &only_l1, &only_l2, &both);
 
-    fail_unless(ret == EOK, "diff_string_lists returned error [%d]", ret);
-    fail_unless(strcmp(only_l1[0], "a") == 0, "Missing \"a\" from only_l1");
-    fail_unless(strcmp(only_l1[1], "b") == 0, "Missing \"b\" from only_l1");
-    fail_unless(strcmp(only_l1[2], "c") == 0, "Missing \"c\" from only_l1");
-    fail_unless(only_l1[3] == NULL, "only_l1 not NULL-terminated");
-    fail_unless(strcmp(only_l2[0], "d") == 0, "Missing \"f\" from only_l2");
-    fail_unless(strcmp(only_l2[1], "e") == 0, "Missing \"e\" from only_l2");
-    fail_unless(strcmp(only_l2[2], "f") == 0, "Missing \"d\" from only_l2");
-    fail_unless(only_l2[3] == NULL, "only_l2 not NULL-terminated");
-    fail_unless(both[0] == NULL, "both should have zero entries");
+    ck_assert_msg(ret == EOK, "diff_string_lists returned error [%d]", ret);
+    ck_assert_msg(strcmp(only_l1[0], "a") == 0, "Missing \"a\" from only_l1");
+    ck_assert_msg(strcmp(only_l1[1], "b") == 0, "Missing \"b\" from only_l1");
+    ck_assert_msg(strcmp(only_l1[2], "c") == 0, "Missing \"c\" from only_l1");
+    ck_assert_msg(only_l1[3] == NULL, "only_l1 not NULL-terminated");
+    ck_assert_msg(strcmp(only_l2[0], "d") == 0, "Missing \"f\" from only_l2");
+    ck_assert_msg(strcmp(only_l2[1], "e") == 0, "Missing \"e\" from only_l2");
+    ck_assert_msg(strcmp(only_l2[2], "f") == 0, "Missing \"d\" from only_l2");
+    ck_assert_msg(only_l2[3] == NULL, "only_l2 not NULL-terminated");
+    ck_assert_msg(both[0] == NULL, "both should have zero entries");
 
     talloc_zfree(only_l1);
     talloc_zfree(only_l2);
@@ -316,13 +316,13 @@ START_TEST(test_diff_string_lists)
                             l1, l1,
                             &only_l1, &only_l2, &both);
 
-    fail_unless(ret == EOK, "diff_string_lists returned error [%d]", ret);
-    fail_unless(only_l1[0] == NULL, "only_l1 should have zero entries");
-    fail_unless(only_l2[0] == NULL, "only_l2 should have zero entries");
-    fail_unless(strcmp(both[0], "a") == 0, "Missing \"a\" from both");
-    fail_unless(strcmp(both[1], "b") == 0, "Missing \"b\" from both");
-    fail_unless(strcmp(both[2], "c") == 0, "Missing \"c\" from both");
-    fail_unless(both[3] == NULL, "both is not NULL-terminated");
+    ck_assert_msg(ret == EOK, "diff_string_lists returned error [%d]", ret);
+    ck_assert_msg(only_l1[0] == NULL, "only_l1 should have zero entries");
+    ck_assert_msg(only_l2[0] == NULL, "only_l2 should have zero entries");
+    ck_assert_msg(strcmp(both[0], "a") == 0, "Missing \"a\" from both");
+    ck_assert_msg(strcmp(both[1], "b") == 0, "Missing \"b\" from both");
+    ck_assert_msg(strcmp(both[2], "c") == 0, "Missing \"c\" from both");
+    ck_assert_msg(both[3] == NULL, "both is not NULL-terminated");
 
     talloc_zfree(only_l1);
     talloc_zfree(only_l2);
@@ -333,13 +333,13 @@ START_TEST(test_diff_string_lists)
                             l1, NULL,
                             &only_l1, &only_l2, &both);
 
-    fail_unless(ret == EOK, "diff_string_lists returned error [%d]", ret);
-    fail_unless(strcmp(only_l1[0], "a") == 0, "Missing \"a\" from only_l1");
-    fail_unless(strcmp(only_l1[1], "b") == 0, "Missing \"b\" from only_l1");
-    fail_unless(strcmp(only_l1[2], "c") == 0, "Missing \"c\" from only_l1");
-    fail_unless(only_l1[3] == NULL, "only_l1 not NULL-terminated");
-    fail_unless(only_l2[0] == NULL, "only_l2 should have zero entries");
-    fail_unless(both[0] == NULL, "both should have zero entries");
+    ck_assert_msg(ret == EOK, "diff_string_lists returned error [%d]", ret);
+    ck_assert_msg(strcmp(only_l1[0], "a") == 0, "Missing \"a\" from only_l1");
+    ck_assert_msg(strcmp(only_l1[1], "b") == 0, "Missing \"b\" from only_l1");
+    ck_assert_msg(strcmp(only_l1[2], "c") == 0, "Missing \"c\" from only_l1");
+    ck_assert_msg(only_l1[3] == NULL, "only_l1 not NULL-terminated");
+    ck_assert_msg(only_l2[0] == NULL, "only_l2 should have zero entries");
+    ck_assert_msg(both[0] == NULL, "both should have zero entries");
 
     talloc_free(test_ctx);
 }
@@ -352,85 +352,85 @@ START_TEST(test_sss_filter_sanitize)
     char *sanitized = NULL;
 
     TALLOC_CTX *test_ctx = talloc_new(NULL);
-    fail_if (test_ctx == NULL, "Out of memory");
+    sss_ck_fail_if_msg(test_ctx == NULL, "Out of memory");
 
     const char no_specials[] = "username";
     ret = sss_filter_sanitize(test_ctx, no_specials, &sanitized);
-    fail_unless(ret == EOK, "no_specials error [%d][%s]",
+    ck_assert_msg(ret == EOK, "no_specials error [%d][%s]",
                 ret, strerror(ret));
-    fail_unless(strcmp(no_specials, sanitized)==0,
+    ck_assert_msg(strcmp(no_specials, sanitized)==0,
                 "Expected [%s], got [%s]",
                 no_specials, sanitized);
 
     const char has_asterisk[] = "*username";
     const char has_asterisk_expected[] = "\\2ausername";
     ret = sss_filter_sanitize(test_ctx, has_asterisk, &sanitized);
-    fail_unless(ret == EOK, "has_asterisk error [%d][%s]",
+    ck_assert_msg(ret == EOK, "has_asterisk error [%d][%s]",
                 ret, strerror(ret));
-    fail_unless(strcmp(has_asterisk_expected, sanitized)==0,
+    ck_assert_msg(strcmp(has_asterisk_expected, sanitized)==0,
                 "Expected [%s], got [%s]",
                 has_asterisk_expected, sanitized);
 
     const char has_lparen[] = "user(name";
     const char has_lparen_expected[] = "user\\28name";
     ret = sss_filter_sanitize(test_ctx, has_lparen, &sanitized);
-    fail_unless(ret == EOK, "has_lparen error [%d][%s]",
+    ck_assert_msg(ret == EOK, "has_lparen error [%d][%s]",
                 ret, strerror(ret));
-    fail_unless(strcmp(has_lparen_expected, sanitized)==0,
+    ck_assert_msg(strcmp(has_lparen_expected, sanitized)==0,
                 "Expected [%s], got [%s]",
                 has_lparen_expected, sanitized);
 
     const char has_rparen[] = "user)name";
     const char has_rparen_expected[] = "user\\29name";
     ret = sss_filter_sanitize(test_ctx, has_rparen, &sanitized);
-    fail_unless(ret == EOK, "has_rparen error [%d][%s]",
+    ck_assert_msg(ret == EOK, "has_rparen error [%d][%s]",
                 ret, strerror(ret));
-    fail_unless(strcmp(has_rparen_expected, sanitized)==0,
+    ck_assert_msg(strcmp(has_rparen_expected, sanitized)==0,
                 "Expected [%s], got [%s]",
                 has_rparen_expected, sanitized);
 
     const char has_backslash[] = "username\\";
     const char has_backslash_expected[] = "username\\5c";
     ret = sss_filter_sanitize(test_ctx, has_backslash, &sanitized);
-    fail_unless(ret == EOK, "has_backslash error [%d][%s]",
+    ck_assert_msg(ret == EOK, "has_backslash error [%d][%s]",
                 ret, strerror(ret));
-    fail_unless(strcmp(has_backslash_expected, sanitized)==0,
+    ck_assert_msg(strcmp(has_backslash_expected, sanitized)==0,
                 "Expected [%s], got [%s]",
                 has_backslash_expected, sanitized);
 
     const char has_all[] = "\\(user)*name";
     const char has_all_expected[] = "\\5c\\28user\\29\\2aname";
     ret = sss_filter_sanitize(test_ctx, has_all, &sanitized);
-    fail_unless(ret == EOK, "has_all error [%d][%s]",
+    ck_assert_msg(ret == EOK, "has_all error [%d][%s]",
                 ret, strerror(ret));
-    fail_unless(strcmp(has_all_expected, sanitized)==0,
+    ck_assert_msg(strcmp(has_all_expected, sanitized)==0,
                 "Expected [%s], got [%s]",
                 has_all_expected, sanitized);
 
     /* Input is reused from previous test - "\\(user)*name" */
     const char has_all_allow_asterisk_expected[] = "\\5c\\28user\\29*name";
     ret = sss_filter_sanitize_ex(test_ctx, has_all, &sanitized, "*");
-    fail_unless(ret == EOK, "has_all error [%d][%s]",
+    ck_assert_msg(ret == EOK, "has_all error [%d][%s]",
                 ret, strerror(ret));
-    fail_unless(strcmp(has_all_allow_asterisk_expected, sanitized)==0,
+    ck_assert_msg(strcmp(has_all_allow_asterisk_expected, sanitized)==0,
                 "Expected [%s], got [%s]",
                 has_all_expected, sanitized);
 
     const char has_new_line[] = "user\nname";
     const char has_new_line_expected[] = "user\\0aname";
     ret = sss_filter_sanitize(test_ctx, has_new_line, &sanitized);
-    fail_unless(ret == EOK, "has_new_line error [%d][%s]",
+    ck_assert_msg(ret == EOK, "has_new_line error [%d][%s]",
                 ret, strerror(ret));
-    fail_unless(strcmp(has_new_line_expected, sanitized) == 0,
+    ck_assert_msg(strcmp(has_new_line_expected, sanitized) == 0,
                 "Expected [%s], got [%s]",
                 has_new_line_expected, sanitized);
 
     const char has_carriage_ret[] = "user\rname";
     const char has_carriage_ret_expected[] = "user\\0dname";
     ret = sss_filter_sanitize(test_ctx, has_carriage_ret, &sanitized);
-    fail_unless(ret == EOK, "has_carriage_ret error [%d][%s]",
+    ck_assert_msg(ret == EOK, "has_carriage_ret error [%d][%s]",
                 ret, strerror(ret));
-    fail_unless(strcmp(has_carriage_ret_expected, sanitized) == 0,
+    ck_assert_msg(strcmp(has_carriage_ret_expected, sanitized) == 0,
                 "Expected [%s], got [%s]",
                 has_carriage_ret_expected, sanitized);
 
@@ -445,17 +445,17 @@ START_TEST(test_fd_nonblocking)
     errno_t ret;
 
     fd = open("/dev/null", O_RDONLY);
-    fail_unless(fd > 0,
+    ck_assert_msg(fd > 0,
                 "open failed with errno: %d", errno);
 
     flags = fcntl(fd, F_GETFL, 0);
-    fail_if(flags & O_NONBLOCK,
+    sss_ck_fail_if_msg(flags & O_NONBLOCK,
             "Unexpected flag O_NONBLOCK[%x] in [%x]", O_NONBLOCK, flags);
 
     ret = sss_fd_nonblocking(fd);
-    fail_unless(ret == EOK, "sss_fd_nonblocking failed with error: %d", ret);
+    ck_assert_msg(ret == EOK, "sss_fd_nonblocking failed with error: %d", ret);
     flags = fcntl(fd, F_GETFL, 0);
-    fail_unless(flags & O_NONBLOCK,
+    ck_assert_msg(flags & O_NONBLOCK,
                 "Flag O_NONBLOCK[%x] is missing in [%x]", O_NONBLOCK, flags);
     close(fd);
 }
@@ -463,15 +463,15 @@ END_TEST
 
 START_TEST(test_size_t_overflow)
 {
-    fail_unless(!SIZE_T_OVERFLOW(1, 1), "unexpected overflow");
-    fail_unless(!SIZE_T_OVERFLOW(SIZE_MAX, 0), "unexpected overflow");
-    fail_unless(!SIZE_T_OVERFLOW(SIZE_MAX-10, 10), "unexpected overflow");
-    fail_unless(SIZE_T_OVERFLOW(SIZE_MAX, 1), "overflow not detected");
-    fail_unless(SIZE_T_OVERFLOW(SIZE_MAX, SIZE_MAX),
+    ck_assert_msg(!SIZE_T_OVERFLOW(1, 1), "unexpected overflow");
+    ck_assert_msg(!SIZE_T_OVERFLOW(SIZE_MAX, 0), "unexpected overflow");
+    ck_assert_msg(!SIZE_T_OVERFLOW(SIZE_MAX-10, 10), "unexpected overflow");
+    ck_assert_msg(SIZE_T_OVERFLOW(SIZE_MAX, 1), "overflow not detected");
+    ck_assert_msg(SIZE_T_OVERFLOW(SIZE_MAX, SIZE_MAX),
                 "overflow not detected");
-    fail_unless(SIZE_T_OVERFLOW(SIZE_MAX, ULLONG_MAX),
+    ck_assert_msg(SIZE_T_OVERFLOW(SIZE_MAX, ULLONG_MAX),
                 "overflow not detected");
-    fail_unless(SIZE_T_OVERFLOW(SIZE_MAX, -10), "overflow not detected");
+    ck_assert_msg(SIZE_T_OVERFLOW(SIZE_MAX, -10), "overflow not detected");
 }
 END_TEST
 
@@ -483,10 +483,10 @@ START_TEST(test_utf8_talloc_str_lowercase)
 
     TALLOC_CTX *test_ctx;
     test_ctx = talloc_new(NULL);
-    fail_if(test_ctx == NULL, "Failed to allocate memory");
+    sss_ck_fail_if_msg(test_ctx == NULL, "Failed to allocate memory");
 
     lcase = sss_tc_utf8_str_tolower(test_ctx, munchen_utf8_upcase);
-    fail_if(memcmp(lcase, munchen_utf8_lowcase, strlen(lcase)),
+    sss_ck_fail_if_msg(memcmp(lcase, munchen_utf8_lowcase, strlen(lcase)),
             "Unexpected binary values");
     talloc_free(test_ctx);
 }
@@ -502,13 +502,13 @@ START_TEST(test_utf8_caseeq)
     errno_t ret;
 
     ret = sss_utf8_case_eq(munchen_utf8_upcase, munchen_utf8_lowcase);
-    fail_unless(ret == EOK, "Latin 1 Supplement comparison failed\n");
+    ck_assert_msg(ret == EOK, "Latin 1 Supplement comparison failed\n");
 
     ret = sss_utf8_case_eq(czech_utf8_upcase, czech_utf8_lowcase);
-    fail_unless(ret == EOK, "Latin Extended A comparison failed\n");
+    ck_assert_msg(ret == EOK, "Latin Extended A comparison failed\n");
 
     ret = sss_utf8_case_eq(czech_utf8_upcase, czech_utf8_lowcase_neg);
-    fail_if(ret == EOK, "Negative test succeeded\n");
+    sss_ck_fail_if_msg(ret == EOK, "Negative test succeeded\n");
 }
 END_TEST
 
@@ -519,10 +519,10 @@ START_TEST(test_utf8_check)
     bool ret;
 
     ret = sss_utf8_check(valid, strlen((const char *) valid));
-    fail_unless(ret == true, "Positive test failed\n");
+    ck_assert_msg(ret == true, "Positive test failed\n");
 
     ret = sss_utf8_check((const uint8_t *) invalid, strlen(invalid));
-    fail_unless(ret == false, "Negative test succeeded\n");
+    ck_assert_msg(ret == false, "Negative test succeeded\n");
 }
 END_TEST
 
@@ -538,7 +538,7 @@ START_TEST(test_murmurhash3_check)
                                  strlen(tests[i]),
                                  0xdeadbeef);
         for (j = 0; j < i; j++) {
-            fail_if(results[i] == results[j],
+            sss_ck_fail_if_msg(results[i] == results[j],
                     "Values have to be different. '%"PRIu32"' == '%"PRIu32"'",
                     results[i], results[j]);
         }
@@ -580,13 +580,13 @@ void setup_atomicio(void)
     mode_t old_umask;
 
     filename = strdup(FILENAME_TEMPLATE);
-    fail_unless(filename != NULL, "strdup failed");
+    ck_assert_msg(filename != NULL, "strdup failed");
 
     atio_fd = -1;
     old_umask = umask(SSS_DFL_UMASK);
     ret = mkstemp(filename);
     umask(old_umask);
-    fail_unless(ret != -1, "mkstemp failed [%d][%s]", errno, strerror(errno));
+    ck_assert_msg(ret != -1, "mkstemp failed [%d][%s]", errno, strerror(errno));
     atio_fd = ret;
 }
 
@@ -596,13 +596,13 @@ void teardown_atomicio(void)
 
     if (atio_fd != -1) {
         ret = close(atio_fd);
-        fail_unless(ret == 0, "close failed [%d][%s]", errno, strerror(errno));
+        ck_assert_msg(ret == 0, "close failed [%d][%s]", errno, strerror(errno));
     }
 
-    fail_unless(filename != NULL, "unknown filename");
+    ck_assert_msg(filename != NULL, "unknown filename");
     ret = unlink(filename);
     free(filename);
-    fail_unless(ret == 0, "unlink failed [%d][%s]", errno, strerror(errno));
+    ck_assert_msg(ret == 0, "unlink failed [%d][%s]", errno, strerror(errno));
 }
 
 START_TEST(test_atomicio_read_from_file)
@@ -614,14 +614,14 @@ START_TEST(test_atomicio_read_from_file)
     errno_t ret;
 
     fd = open("/dev/zero", O_RDONLY);
-    fail_if(fd == -1, "Cannot open /dev/zero");
+    sss_ck_fail_if_msg(fd == -1, "Cannot open /dev/zero");
 
     errno = 0;
     numread = sss_atomic_read_s(fd, buf, bufsize);
     ret = errno;
 
-    fail_unless(ret == 0, "Error %d while reading\n", ret);
-    fail_unless(numread == bufsize,
+    ck_assert_msg(ret == 0, "Error %d while reading\n", ret);
+    ck_assert_msg(numread == bufsize,
                 "Read %zd bytes expected %zd\n", numread, bufsize);
     close(fd);
 }
@@ -636,14 +636,14 @@ START_TEST(test_atomicio_read_from_small_file)
     ssize_t numread;
     errno_t ret;
 
-    fail_if(atio_fd < 0, "No fd to test?\n");
+    sss_ck_fail_if_msg(atio_fd < 0, "No fd to test?\n");
 
     errno = 0;
     numwritten = sss_atomic_write_s(atio_fd, wbuf, wsize);
     ret = errno;
 
-    fail_unless(ret == 0, "Error %d while writing\n", ret);
-    fail_unless(numwritten == wsize,
+    ck_assert_msg(ret == 0, "Error %d while writing\n", ret);
+    ck_assert_msg(numwritten == wsize,
                 "Wrote %zd bytes expected %zd\n", numwritten, wsize);
 
     fsync(atio_fd);
@@ -653,8 +653,8 @@ START_TEST(test_atomicio_read_from_small_file)
     numread = sss_atomic_read_s(atio_fd, rbuf, 64);
     ret = errno;
 
-    fail_unless(ret == 0, "Error %d while reading\n", ret);
-    fail_unless(numread == numwritten,
+    ck_assert_msg(ret == 0, "Error %d while reading\n", ret);
+    ck_assert_msg(numread == numwritten,
                 "Read %zd bytes expected %zd\n", numread, numwritten);
 }
 END_TEST
@@ -669,14 +669,14 @@ START_TEST(test_atomicio_read_from_large_file)
     ssize_t total;
     errno_t ret;
 
-    fail_if(atio_fd < 0, "No fd to test?\n");
+    sss_ck_fail_if_msg(atio_fd < 0, "No fd to test?\n");
 
     errno = 0;
     numwritten = sss_atomic_write_s(atio_fd, wbuf, wsize);
     ret = errno;
 
-    fail_unless(ret == 0, "Error %d while writing\n", ret);
-    fail_unless(numwritten == wsize,
+    ck_assert_msg(ret == 0, "Error %d while writing\n", ret);
+    ck_assert_msg(numwritten == wsize,
                 "Wrote %zd bytes expected %zd\n", numwritten, wsize);
 
     fsync(atio_fd);
@@ -688,12 +688,12 @@ START_TEST(test_atomicio_read_from_large_file)
         numread = sss_atomic_read_s(atio_fd, rbuf, 8);
         ret = errno;
 
-        fail_if(numread == -1, "Read error %d: %s\n", ret, strerror(ret));
+        sss_ck_fail_if_msg(numread == -1, "Read error %d: %s\n", ret, strerror(ret));
         total += numread;
     } while (numread != 0);
 
-    fail_unless(ret == 0, "Error %d while reading\n", ret);
-    fail_unless(total == numwritten,
+    ck_assert_msg(ret == 0, "Error %d while reading\n", ret);
+    ck_assert_msg(total == numwritten,
                 "Read %zd bytes expected %zd\n", numread, numwritten);
 }
 END_TEST
@@ -707,14 +707,14 @@ START_TEST(test_atomicio_read_exact_sized_file)
     ssize_t numread;
     errno_t ret;
 
-    fail_if(atio_fd < 0, "No fd to test?\n");
+    sss_ck_fail_if_msg(atio_fd < 0, "No fd to test?\n");
 
     errno = 0;
     numwritten = sss_atomic_write_s(atio_fd, wbuf, wsize);
     ret = errno;
 
-    fail_unless(ret == 0, "Error %d while writing\n", ret);
-    fail_unless(numwritten == wsize,
+    ck_assert_msg(ret == 0, "Error %d while writing\n", ret);
+    ck_assert_msg(numwritten == wsize,
                 "Wrote %zd bytes expected %zd\n", numwritten, wsize);
 
     fsync(atio_fd);
@@ -724,20 +724,20 @@ START_TEST(test_atomicio_read_exact_sized_file)
     numread = sss_atomic_read_s(atio_fd, rbuf, 9);
     ret = errno;
 
-    fail_unless(ret == 0, "Error %d while reading\n", ret);
-    fail_unless(numread == numwritten,
+    ck_assert_msg(ret == 0, "Error %d while reading\n", ret);
+    ck_assert_msg(numread == numwritten,
                 "Read %zd bytes expected %zd\n", numread, numwritten);
 
-    fail_unless(rbuf[8] == '\0', "String not NULL terminated?");
-    fail_unless(strcmp(wbuf, rbuf) == 0, "Read something else than wrote?");
+    ck_assert_msg(rbuf[8] == '\0', "String not NULL terminated?");
+    ck_assert_msg(strcmp(wbuf, rbuf) == 0, "Read something else than wrote?");
 
     /* We've reached end-of-file, next read must return 0 */
     errno = 0;
     numread = sss_atomic_read_s(atio_fd, rbuf, 9);
     ret = errno;
 
-    fail_unless(ret == 0, "Error %d while reading\n", ret);
-    fail_unless(numread == 0, "More data to read?");
+    ck_assert_msg(ret == 0, "Error %d while reading\n", ret);
+    ck_assert_msg(numread == 0, "More data to read?");
 }
 END_TEST
 
@@ -749,14 +749,14 @@ START_TEST(test_atomicio_read_from_empty_file)
     errno_t ret;
 
     fd = open("/dev/null", O_RDONLY);
-    fail_if(fd == -1, "Cannot open /dev/null");
+    sss_ck_fail_if_msg(fd == -1, "Cannot open /dev/null");
 
     errno = 0;
     numread = sss_atomic_read_s(fd, buf, 64);
     ret = errno;
 
-    fail_unless(ret == 0, "Error %d while reading\n", ret);
-    fail_unless(numread == 0,
+    ck_assert_msg(ret == 0, "Error %d while reading\n", ret);
+    ck_assert_msg(numread == 0,
                 "Read %zd bytes expected 0\n", numread);
     close(fd);
 }
@@ -833,17 +833,17 @@ START_TEST(test_split_on_separator)
         ret = split_on_separator(mem, sts[a].input, ',', sts[a].trim,
                                  sts[a].skip_empty, &list, &size);
 
-        fail_unless(ret == sts[a].expected_ret,
+        ck_assert_msg(ret == sts[a].expected_ret,
                     "split_on_separator failed [%d]: %s\n", ret,
                     strerror(ret));
         if (ret) {
             continue;
         }
-        fail_unless(size == sts[a].expected_size, "Returned wrong size %d "
+        ck_assert_msg(size == sts[a].expected_size, "Returned wrong size %d "
                     "(expected %d).\n", size, sts[a].expected_size);
 
         for (i = 0; str_ref = sts[a].expected_list[i], str_out = list[i]; i++) {
-            fail_unless(strcmp(str_ref, str_out) == 0,
+            ck_assert_msg(strcmp(str_ref, str_out) == 0,
                         "Expected:%s Got:%s\n", str_ref, str_out);
         }
         talloc_free(list);
@@ -914,10 +914,10 @@ START_TEST(test_check_ipv4_addr)
         /* fill sockaddr_in structure */
 
         ret = inet_pton(AF_INET, tst_data[a].str_ipaddr, &addr);
-        fail_if(ret != 1, "inet_pton failed.");
+        sss_ck_fail_if_msg(ret != 1, "inet_pton failed.");
 
         bret = check_ipv4_addr(&addr, tst_data[a].flags);
-        fail_unless(bret == tst_data[a].expected_ret,
+        ck_assert_msg(bret == tst_data[a].expected_ret,
                     "check_ipv4_addr failed (iteration %d)", a);
     }
 }
@@ -964,10 +964,10 @@ START_TEST(test_check_ipv6_addr)
         /* fill sockaddr_in structure */
 
         ret = inet_pton(AF_INET6, tst_data[a].str_ipaddr, &addr);
-        fail_if(ret != 1, "inet_pton failed.");
+        sss_ck_fail_if_msg(ret != 1, "inet_pton failed.");
 
         bret = check_ipv6_addr(&addr, tst_data[a].flags);
-        fail_unless(bret == tst_data[a].expected_ret,
+        ck_assert_msg(bret == tst_data[a].expected_ret,
                     "check_ipv6_addr failed (iteration %d)", a);
 
     }
@@ -994,7 +994,7 @@ START_TEST(test_is_host_in_domain)
 
     for (i = 0; data[i].host != NULL; i++) {
         ret = is_host_in_domain(data[i].host, data[i].domain);
-        fail_if(ret != data[i].expected, "Host: %s, Domain: %s, Expected: %d, "
+        sss_ck_fail_if_msg(ret != data[i].expected, "Host: %s, Domain: %s, Expected: %d, "
                 "Got: %d\n", data[i].host, data[i].domain,
                 data[i].expected, ret);
     }
@@ -1035,7 +1035,7 @@ static void convert_time_tz(const char* tz)
 
     if (tz) {
         ret = setenv("TZ", tz, 1);
-        fail_if(ret == -1,
+        sss_ck_fail_if_msg(ret == -1,
                 "setenv failed with errno: %d", errno);
     }
 
@@ -1044,10 +1044,10 @@ static void convert_time_tz(const char* tz)
     /* restore */
     if (orig_tz != NULL) {
         ret2 = setenv("TZ", orig_tz, 1);
-        fail_if(ret2 == -1,
+        sss_ck_fail_if_msg(ret2 == -1,
                 "setenv failed with errno: %d", errno);
     }
-    fail_unless(ret == EOK && difftime(1406894262, unix_time) == 0,
+    ck_assert_msg(ret == EOK && difftime(1406894262, unix_time) == 0,
                 "Expecting 1406894262 got: ret[%d] unix_time[%ld]",
                 ret, unix_time);
 }
@@ -1059,14 +1059,14 @@ START_TEST(test_convert_time)
     errno_t ret;
 
     ret = sss_utc_to_time_t("20150127133540P", format, &unix_time);
-    fail_unless(ret == ERR_TIMESPEC_NOT_SUPPORTED,
+    ck_assert_msg(ret == ERR_TIMESPEC_NOT_SUPPORTED,
                 "sss_utc_to_time_t must fail with %d. got: %d",
                 ERR_TIMESPEC_NOT_SUPPORTED, ret);
     ret = sss_utc_to_time_t("0Z", format, &unix_time);
-    fail_unless(ret == EINVAL,
+    ck_assert_msg(ret == EINVAL,
                 "sss_utc_to_time_t must fail with EINVAL. got: %d", ret);
     ret = sss_utc_to_time_t("000001010000Z", format, &unix_time);
-    fail_unless(ret == EINVAL,
+    ck_assert_msg(ret == EINVAL,
                 "sss_utc_to_time_t must fail with EINVAL. got: %d", ret);
 
     /* test that results are still same no matter what timezone is set */
@@ -1093,13 +1093,13 @@ START_TEST(test_sss_strerror_string_validation)
 
     for (idx = ERR_BASE; idx < ERR_LAST; ++idx) {
         error = sss_strerror(idx);
-        fail_if(error == NULL, "sss_strerror returned NULL for valid index");
+        sss_ck_fail_if_msg(error == NULL, "sss_strerror returned NULL for valid index");
 
         len = strlen(error);
-        fail_if(len == 0, "sss_strerror returned empty string");
+        sss_ck_fail_if_msg(len == 0, "sss_strerror returned empty string");
 
         last_character = error[len - 1];
-        fail_if(isalpha(last_character) == 0 && last_character != ')',
+        sss_ck_fail_if_msg(isalpha(last_character) == 0 && last_character != ')',
                 "Error string [%s] must finish with alphabetic character\n",
                 error);
     }
