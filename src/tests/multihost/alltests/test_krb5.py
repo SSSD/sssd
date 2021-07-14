@@ -10,7 +10,7 @@ from sssd.testlib.common.expect import pexpect_ssh
 from sssd.testlib.common.exceptions import SSHLoginException
 
 
-@pytest.mark.usefixtures('setup_sssd_krb')
+@pytest.mark.usefixtures('setup_sssd_krb', 'create_posix_usersgroups')
 @pytest.mark.krb5
 class TestKrbWithLogin(object):
     @pytest.mark.tier1
@@ -66,3 +66,67 @@ class TestKrbWithLogin(object):
         else:
             client.logout()
         multihost.client[0].run_command('authselect select sssd')
+
+    @pytest.mark.tier1_2
+    def test_0002_generating_lot_of(self, multihost, backupsssdconf):
+        """
+            :title: SSSD is generating lot of LDAP
+            queries in a very large environment
+            :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1772513
+            :id: 74a60320-e48b-11eb-ba19-845cf3eff344
+            :steps:
+                1. Start SSSD with any configuration
+                2. Call 'getent passwd username@domain'
+                3. Check the entry is present in data and timestamp cache
+                4. Now stop SSSD and remove the timestamp cache
+                5. Start SSSD and call 'sss_cache -E'
+                6. Call 'getent passwd username@domain'
+                7. Do the ldbsearch checks again
+            :expectedresults:
+                1. Should succeed
+                2. Should succeed
+                3. Should succeed
+                4. Should succeed
+                5. Should succeed
+                6. Should succeed
+                7. Should succeed
+        """
+        multihost.client[0].service_sssd('restart')
+        cmd = multihost.client[0].run_command('getent passwd '
+                                              'foo1@example1')
+        assert 'foo1@example1' in cmd.stdout_text
+        multihost.client[0].run_command("yum install -y ldb-tools")
+        sssd_client = multihost.client[0]
+        cmd_search1 = sssd_client.run_command("ldbsearch "
+                                              "-H /var/lib/sss/db/"
+                                              "cache_example1.ldb  -b "
+                                              "name=foo1@example1,"
+                                              "cn=users,cn=example1,"
+                                              "cn=sysdb")
+        assert 'name=foo1@example1,cn=users,cn=example1,cn=sysdb' \
+               in cmd_search1.stdout_text
+        cmd_search2 = sssd_client.run_command('ldbsearch -H '
+                                              '/var/lib/sss/db/'
+                                              'timestamps_example1.ldb '
+                                              '-b name=foo1@example1,'
+                                              'cn=users,cn=example1,'
+                                              'cn=sysdb')
+        assert "dn: name=foo1@example1,cn=users,cn=example1,cn=sysdb" in \
+               cmd_search2.stdout_text
+        multihost.client[0].run_command("rm -vf /var/lib/sss/db/"
+                                        "timestamps_example1.ldb")
+        multihost.client[0].service_sssd('restart')
+        multihost.client[0].run_command("sss_cache -E")
+        cmd = multihost.client[0].run_command('getent passwd '
+                                              'foo1@example1')
+        assert 'foo1@example1' in cmd.stdout_text
+        cmd_search1 = multihost.client[0].run_command(
+            "ldbsearch -H /var/lib/sss/db/cache_example1.ldb -b "
+            "name=foo1@example1,cn=users,cn=example1,cn=sysdb")
+        assert 'name=foo1@example1,cn=users,cn=example1,cn=sysdb' in \
+               cmd_search1.stdout_text
+        cmd_search2 = multihost.client[0].run_command(
+            'ldbsearch -H /var/lib/sss/db/timestamps_example1.ldb -b '
+            'name=foo1@example1,cn=users,cn=example1,cn=sysdb')
+        assert "dn: name=foo1@example1,cn=users,cn=example1,cn=sysdb" \
+               in cmd_search2.stdout_text
