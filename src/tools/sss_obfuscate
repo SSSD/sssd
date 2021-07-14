@@ -79,7 +79,7 @@ def main():
 
     # Obfuscate the password
     obfobj = pysss.password()
-    obfpwd = obfobj.encrypt(password, obfobj.AES_256)
+    obfpwd = obfobj.encrypt(password.rstrip(), obfobj.AES_256)
 
     # Save the obfuscated password into the domain
     try:
