@@ -1745,7 +1745,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 
                 }
 
-                if ((info.flags & CKF_REMOVABLE_DEVICE)) {
+                if ((info.flags & CKF_REMOVABLE_DEVICE) && (info.flags & CKF_TOKEN_PRESENT)) {
                     break;
                 }
             }
