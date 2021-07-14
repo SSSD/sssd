@@ -230,6 +230,11 @@ const char *sss_cmd2str(enum sss_cli_command cmd)
         return "SSS_NSS_GETIDBYSID";
     case SSS_NSS_GETORIGBYNAME:
         return "SSS_NSS_GETORIGBYNAME";
+
+    /* SUBID ranges */
+    case SSS_NSS_GET_SUBID_RANGES:
+        return "SSS_NSS_GET_SUBID_RANGES";
+
     default:
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Translation's string is missing for command [%#x].\n", cmd);

@@ -389,6 +389,19 @@ enum sdap_ipnetwork_entry_attrs {
     SDAP_OPTS_IPNETWORK /* attrs counter */
 };
 
+#ifdef BUILD_SUBID
+enum sdap_subid_range_attrs {
+    SDAP_OC_SUBID_RANGE = 0,
+    SDAP_AT_SUBID_RANGE_UID_COUNT,
+    SDAP_AT_SUBID_RANGE_GID_COUNT,
+    SDAP_AT_SUBID_RANGE_UID_NUMBER,
+    SDAP_AT_SUBID_RANGE_GID_NUMBER,
+    SDAP_AT_SUBID_RANGE_OWNER,
+
+    SDAP_OPTS_SUBID_RANGE /* attrs counter */
+};
+#endif
+
 enum sdap_autofs_map_attrs {
     SDAP_OC_AUTOFS_MAP,
     SDAP_AT_AUTOFS_MAP_NAME,
@@ -453,6 +466,9 @@ struct sdap_domain {
     struct sdap_search_base **iphost_search_bases;
     struct sdap_search_base **ipnetwork_search_bases;
     struct sdap_search_base **autofs_search_bases;
+#ifdef BUILD_SUBID
+    struct sdap_search_base **subid_ranges_search_bases;
+#endif
 
     struct sdap_domain *next, *prev;
     /* Need to modify the list from a talloc destructor */
@@ -495,6 +511,9 @@ struct sdap_options {
     struct sdap_attr_map *service_map;
     struct sdap_attr_map *iphost_map;
     struct sdap_attr_map *ipnetwork_map;
+#ifdef BUILD_SUBID
+    struct sdap_attr_map *subid_map;
+#endif
 
     /* ID-mapping support */
     struct sdap_idmap_ctx *idmap_ctx;

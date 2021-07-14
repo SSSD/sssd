@@ -446,4 +446,18 @@ errno_t users_get_handle_no_user(TALLOC_CTX *mem_ctx,
 errno_t groups_get_handle_no_group(TALLOC_CTX *mem_ctx,
                                    struct sss_domain_info *domain,
                                    int filter_type, const char *filter_value);
+
+#ifdef BUILD_SUBID
+struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sdap_id_ctx *ctx,
+                                         struct sdap_domain *sdom,
+                                         struct sdap_id_conn_ctx *conn,
+                                         const char* filter_value,
+                                         const char *extra_value);
+
+int subid_ranges_get_recv(struct tevent_req *req, int *dp_error_out,
+                          int *sdap_ret);
+#endif
+
 #endif /* _LDAP_COMMON_H_ */
