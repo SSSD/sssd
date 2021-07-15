@@ -227,7 +227,7 @@
             Since the memory cache is a file which is mapped into the memory of
             each process which called SSSD to resolve users or groups the file
             cannot be truncated. A special flag is set in the header of the file
-            to indicated that the content is invalid and then the file is
+            to indicate that the content is invalid and then the file is
             unlinked by SSSD's NSS responder and a new cache file is created.
             Whenever a process is now doing a new lookup for a user or a group
             it will see the flag, close the old memory cache file and map the
