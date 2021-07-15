@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <sys/syslog.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "util/sss_format.h"
 #include "sss_client/sss_cli.h"
@@ -492,9 +493,9 @@ int pam_sm_authenticate(pam_handle_t *pamh,
                         int argc,
                         const char **argv)
 {
-    const char *pam_service;
-    const char *pam_user;
-    const char *ccache;
+    const char *pam_service = NULL;
+    const char *pam_user = NULL;
+    const char *ccache = NULL;
     char *username = NULL;
     char *domain = NULL;
     char *target = NULL;
@@ -511,9 +512,14 @@ int pam_sm_authenticate(pam_handle_t *pamh,
         }
     }
 
-
     /* Get non-default ccache if specified, may be NULL. */
-    ccache = getenv("KRB5CCNAME");
+    /* getenv() returns pointer to external memory, which may change */
+    ccache = strdup(getenv("KRB5CCNAME"));
+    if (NULL == ccache) {
+        ERROR(pamh, "Out of memory!");
+        ret = ENOMEM;
+        goto done;
+    }
 
     uid = getuid();
     euid = geteuid();
@@ -566,6 +572,7 @@ done:
     free(domain);
     free(target);
     free(upn);
+    free(ccache);
 
     return errno_to_pam(pamh, ret);
 }
