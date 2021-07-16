@@ -340,7 +340,7 @@ int main(int argc, const char *argv[])
                                 || key_id == NULL)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "--module_name, --token_name and --key_id must be given for "
-              "authentication");
+              "authentication\n");
         goto fail;
     }
 
