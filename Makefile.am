@@ -22,7 +22,7 @@ SUBDIRS += src/man
 endif
 
 SUBDIRS += . src/tests/cwrap src/tests/intg src/tests/test_CA \
-             src/tests/test_ECC_CA
+             src/tests/test_ECC_CA src/tools/analyzer
 
 # Some old versions of automake don't define builddir
 builddir ?= .
@@ -2053,6 +2053,7 @@ sssctl_LDADD = \
     $(NULL)
 sssctl_CFLAGS = \
     $(AM_CFLAGS) \
+    -DPYTHONDIR_PATH=\"$(python3dir)/sssd\" \
     $(NULL)
 
 if BUILD_SUDO
