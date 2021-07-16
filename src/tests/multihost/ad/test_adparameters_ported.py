@@ -15,8 +15,8 @@ from sssd.testlib.common.utils import SSSDException
 from sssd.testlib.common.utils import ADOperations
 
 
-@pytest.fixture(scope="function")
-def create_plain_aduser_group(session_multihost, request):
+@pytest.fixture(scope="function", name="create_plain_aduser_group")
+def fixture_create_plain_aduser_group(session_multihost, request):
     """ Create AD user and group without posix attributes"""
     unique_num = random.randint(9999, 999999)
     ad_user = 'plainuser%d' % unique_num
@@ -29,13 +29,11 @@ def create_plain_aduser_group(session_multihost, request):
         f'adcli create-user {ad_user} -D {domainname} --display-name='
         f'"Plain {ad_user}"', stdin_text=password, raiseonerr=False
     )
-
     # Create group
     session_multihost.client[0].run_command(
         f'adcli create-group {ad_group} -D {domainname} -z '
         f'"Plain {ad_group}"', stdin_text=password, raiseonerr=False
     )
-
     # Add member
     session_multihost.client[0].run_command(
         f'adcli add-member -D {domainname} {ad_group} {ad_user}',
@@ -44,9 +42,9 @@ def create_plain_aduser_group(session_multihost, request):
 
     def remove_plain_ad_user_group():
         """ Remove windows AD user and group """
-        ad = ADOperations(session_multihost.ad[0])
-        ad.delete_ad_user_group(ad_group)
-        ad.delete_ad_user_group(ad_user)
+        ad_op = ADOperations(session_multihost.ad[0])
+        ad_op.delete_ad_user_group(ad_group)
+        ad_op.delete_ad_user_group(ad_user)
 
     request.addfinalizer(remove_plain_ad_user_group)
     return ad_user, ad_group
@@ -59,7 +57,7 @@ def change_client_hostname(session_multihost, request):
     old_hostname = cmd.stdout_text.rstrip()
     ad_domain = session_multihost.ad[0].domainname
     try:
-        new_hostname = session_multihost.client[0].external_hostname.\
+        new_hostname = session_multihost.client[0].external_hostname. \
             split('.')[0]
     except (KeyError, AttributeError):
         new_hostname = old_hostname.split('.')[0]
@@ -81,17 +79,23 @@ def change_client_hostname(session_multihost, request):
 
 @pytest.mark.adparameters
 @pytest.mark.usefixtures("change_client_hostname")
-class TestADParamsPorted():
+class TestADParamsPorted:
     """ BZ Automated Test Cases for AD Parameters ported from bash"""
 
     @pytest.fixture(autouse=True, scope="class")
     def _setup(self, session_multihost):
+        """
+        Fixture used instead of init for the test class as pytest ignores
+        classes with a constructor.
+        """
+        # pylint: disable=W0201
         self.ad_realm = session_multihost.ad[0].domainname.upper()
-        self.ad_domain_short = self.ad_realm.rsplit('.', 1)[0]
+        self.ad_realm_short = self.ad_realm.rsplit('.', 1)[0]
+        self.ad_domain = session_multihost.ad[0].domainname
 
-    @staticmethod
     @pytest.mark.tier1
-    def test_0001_ad_parameters_domain(multihost, adjoin, create_aduser_group):
+    def test_0001_ad_parameters_domain(
+            self, multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ad domain to
           AD DOMAIN1
@@ -119,50 +123,52 @@ class TestADParamsPorted():
         # Configure sssd
         multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
+        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
-        ad_realm = multihost.ad[0].domainname.upper()
-        ad_domain_short = ad_realm.rsplit('.', 1)[0]
         sssd_params = {
-           'ldap_id_mapping': 'False',
-           'ad_domain': ad_realm,
-           'debug_level': '9',
-           'use_fully_qualified_names': 'True',
-           'cache_credentials': 'True',
-           'krb5_store_password_if_offline': 'True',
-           'full_name_format': '%2$s\\%1$s'
+            'ldap_id_mapping': 'False',
+            'ad_domain': self.ad_realm,
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True',
+            'cache_credentials': 'True',
+            'krb5_store_password_if_offline': 'True',
+            'full_name_format': '%2$s\\%1$s'
         }
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
         # Search for the user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {ad_domain_short}\\\\{aduser}',
+            f'getent passwd {self.ad_realm_short}\\\\{aduser}',
             raiseonerr=False
         )
         # Search for the group
         grp_cmd = multihost.client[0].run_command(
-            f'getent group {ad_domain_short}\\\\{adgroup}',
+            f'getent group {self.ad_realm_short}\\\\{adgroup}',
             raiseonerr=False
         )
         # Run su command
         su_cmd = multihost.client[0].run_command(
-            f'su - {ad_domain_short}\\\\{aduser} -c  whoami',
+            f'su - {self.ad_realm_short}\\\\{aduser} -c  whoami',
             raiseonerr=False
         )
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log").\
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
+
+        client.restore_sssd_conf()
+        client.clear_sssd_cache()
+
         # Evaluate test results
-        assert f"Option ad_domain has value {ad_realm}" in log_str
-        assert f"Option krb5_realm set to {ad_realm}" in log_str
+        assert f"Option ad_domain has value {self.ad_realm}" in log_str
+        assert f"Option krb5_realm set to {self.ad_realm}" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found."
         assert su_cmd.returncode == 0, "The su command failed!"
 
-    @staticmethod
     @pytest.mark.tier1
-    def test_0002_ad_parameters_junk_domain(multihost, adjoin,
-                                            create_aduser_group):
+    def test_0002_ad_parameters_junk_domain(
+            self, multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ad domain to junk
           and first entry in keytab is valid bz1091957
@@ -192,7 +198,6 @@ class TestADParamsPorted():
         # Configure sssd to ad_domain = junk
         multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
-        ad_realm = multihost.ad[0].domainname.upper()
         sssd_params = {
             'ldap_id_mapping': 'False',
             'ad_domain': 'junk',
@@ -200,7 +205,7 @@ class TestADParamsPorted():
             'debug_level': '9',
             'use_fully_qualified_names': 'True',
             'cache_credentials': 'True',
-            'krb5_store_password_if_offline' : 'True',
+            'krb5_store_password_if_offline': 'True',
             'fallback_homedir': '/home/%d/%u',
             'full_name_format': '%2$s\\%1$s',
         }
@@ -209,23 +214,16 @@ class TestADParamsPorted():
 
         # Download sssd domain log
         log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log").\
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
         hostname_cmd = multihost.client[0].run_command(
-            'hostname -s',
-            raiseonerr=False
-        )
+                'hostname -s', raiseonerr=False)
         shortname = hostname_cmd.stdout_text.rstrip().upper()
 
-        ## Clean /var/log/messages so previous content does not interfere
-        #multihost.client[0].run_command('truncate --size 0 /var/log/messages',
-        #                                raiseonerr=False)
         # Run getent passwd
         multihost.client[0].run_command(
-            f'getent passwd {ad_realm}\\\\{aduser}',
-            raiseonerr=False
-        )
+                f'getent passwd {self.ad_realm}\\\\{aduser}', raiseonerr=False)
         # Download /var/log/messages
         log_msg_str = multihost.client[0].get_file_contents(
             '/var/log/messages').decode('utf-8')
@@ -233,19 +231,16 @@ class TestADParamsPorted():
         client.restore_sssd_conf()
         client.clear_sssd_cache()
         # Evaluate test results
-        assert f"No principal matching {shortname}$@JUNK found in keytab." in\
+        assert f"No principal matching {shortname}$@JUNK found in keytab." in \
                log_str
         assert "No principal matching host/*@JUNK found in keytab." in log_str
-        assert f"Selected realm: {ad_realm}" in log_str
+        assert f"Selected realm: {self.ad_realm}" in log_str
         assert "segfault" not in log_msg_str, "Segfault present in the log!"
 
     @staticmethod
     @pytest.mark.tier1
     def test_0003_ad_parameters_junk_domain_invalid_keytab(
-            multihost,
-            adjoin,
-            create_aduser_group
-    ):
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ad domain to junk
           and first entry in keytab is invalid
@@ -308,7 +303,6 @@ class TestADParamsPorted():
         )
         shortname = hostname_cmd.stdout_text.rstrip().upper()
 
-        #shortname = multihost.client[0].external_hostname.upper().split('.')[0]
         ktutil_cmd = f'echo -e "addent -password -p host/{shortname}@' \
                      f'INVALIDDOMAIN.COM -k 2 -e rc4-hmac\\nSecret123\\nrkt ' \
                      f'/etc/krb5.keytab\\nwkt /tmp/first_invalid.' \
@@ -334,7 +328,7 @@ class TestADParamsPorted():
         )
         # Download sssd log
         log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log").\
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
         # Restore keytab before test result evaluation
         multihost.client[0].run_command(
@@ -354,10 +348,7 @@ class TestADParamsPorted():
     @staticmethod
     @pytest.mark.tier1
     def test_0004_ad_parameters_valid_domain_shorthost(
-            multihost,
-            adjoin,
-            create_aduser_group
-    ):
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: ad domain is valid
           and principal should default to SHORTHOST bz892197
@@ -392,14 +383,14 @@ class TestADParamsPorted():
         ad_realm = multihost.ad[0].domainname.upper()
         ad_domain_short = ad_realm.rsplit('.', 1)[0]
         sssd_params = {
-           'ldap_id_mapping': 'False',
-           'ad_domain': multihost.ad[0].domainname,
-           'debug_level': '9',
-           'use_fully_qualified_names': 'True',
-           'cache_credentials': 'True',
-           'krb5_store_password_if_offline': 'True',
-           'fallback_homedir': '/home/%d/%u',
-           'full_name_format': '%2$s\\%1$s',
+            'ldap_id_mapping': 'False',
+            'ad_domain': multihost.ad[0].domainname,
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True',
+            'cache_credentials': 'True',
+            'krb5_store_password_if_offline': 'True',
+            'fallback_homedir': '/home/%d/%u',
+            'full_name_format': '%2$s\\%1$s',
         }
         client.sssd_conf(dom_section, sssd_params)
         # Clear cache and restart SSSD
@@ -407,7 +398,7 @@ class TestADParamsPorted():
         time.sleep(15)
         # Download sssd log
         log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log").\
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
         hostname_cmd = multihost.client[0].run_command(
@@ -415,8 +406,6 @@ class TestADParamsPorted():
             raiseonerr=False
         )
         shortname = hostname_cmd.stdout_text.rstrip().upper()
-        #shortname = multihost.client[0].external_hostname.upper().\
-        #    split('.')[0]
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
             f'getent passwd {ad_domain_short}\\\\{aduser}',
@@ -429,6 +418,7 @@ class TestADParamsPorted():
         )
         # Restore sssd config
         client.restore_sssd_conf()
+        client.clear_sssd_cache()
         # Evaluate test results
         assert f"Trying to find principal {shortname}$@{ad_realm}" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
@@ -437,10 +427,7 @@ class TestADParamsPorted():
     @staticmethod
     @pytest.mark.tier1
     def test_0005_ad_parameters_blank_domain(
-            multihost,
-            adjoin,
-            create_aduser_group
-    ):
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ad domain to blank
           should default to sssd domain
@@ -506,10 +493,11 @@ class TestADParamsPorted():
         )
         # Download sssd log
         log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log").\
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
         # Restore sssd config
         client.restore_sssd_conf()
+        client.clear_sssd_cache()
         # Evaluate test results
         assert "Option ad_domain has no value" in log_str
         assert f"Option krb5_realm set to {ad_realm}" in log_str
@@ -517,11 +505,10 @@ class TestADParamsPorted():
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert su_cmd.returncode == 0, "The su command failed!"
 
-
     @staticmethod
     @pytest.mark.tier1
-    def test_0006_ad_parameters_homedir_override_nss(multihost, adjoin,
-                                                     create_plain_aduser_group):
+    def test_0006_ad_parameters_homedir_override_nss(
+            multihost, adjoin, create_plain_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: override homedir to
           UPN and login name in nss section bz1137015
@@ -539,24 +526,19 @@ class TestADParamsPorted():
         """
         ad_domain = multihost.ad[0].domainname
 
-        hostname_cmd = multihost.client[0].run_command(
-            'hostname -s',
-            raiseonerr=False
-        )
-        shortname = hostname_cmd.stdout_text.rstrip()
         adjoin(membersw='adcli')
         # Create AD user and group
         (aduser, _) = create_plain_aduser_group
         # Configure sssd
         multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
+        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
 
         sssd_params = {
             'debug_level': '9',
             'use_fully_qualified_names': 'True',
             'cache_credentials': 'True',
-            #'ldap_id_mapping': 'False',
         }
         client.sssd_conf(dom_section, sssd_params)
         client.sssd_conf('nss', {'override_homedir': '/home/%P/%u'})
@@ -566,15 +548,17 @@ class TestADParamsPorted():
             f'getent passwd {aduser}@{ad_domain}',
             raiseonerr=False
         )
+        client.restore_sssd_conf()
+        client.clear_sssd_cache()
 
         # Evaluate test results
-        assert f'/home/{aduser}@{ad_domain.upper()}/{aduser}' in\
+        assert f'/home/{aduser}@{ad_domain.upper()}/{aduser}' in \
                usr_cmd.stdout_text
 
     @staticmethod
     @pytest.mark.tier1
-    def test_0007_ad_parameters_homedir_override_domain(multihost, adjoin,
-                                                        create_plain_aduser_group):
+    def test_0007_ad_parameters_homedir_override_domain(
+            multihost, adjoin, create_plain_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: override homedir
           to UPN and login name in domain section
@@ -591,23 +575,18 @@ class TestADParamsPorted():
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1137015
         """
         ad_domain = multihost.ad[0].domainname
-        hostname_cmd = multihost.client[0].run_command(
-            'hostname -s',
-            raiseonerr=False
-        )
-        shortname = hostname_cmd.stdout_text.rstrip()
         adjoin(membersw='adcli')
         # Create AD user and group
         (aduser, _) = create_plain_aduser_group
         # Configure sssd
         multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
+        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'debug_level': '9',
             'use_fully_qualified_names': 'True',
             'cache_credentials': 'True',
-            #'ldap_id_mapping': 'False',
             'override_homedir': '/home/%P/%u'
         }
         client.sssd_conf(dom_section, sssd_params)
@@ -618,14 +597,17 @@ class TestADParamsPorted():
             raiseonerr=False
         )
 
+        client.restore_sssd_conf()
+        client.clear_sssd_cache()
+
         # Evaluate test results
-        assert f'/home/{aduser}@{ad_domain.upper()}/{aduser}' in\
+        assert f'/home/{aduser}@{ad_domain.upper()}/{aduser}' in \
                usr_cmd.stdout_text
 
     @staticmethod
     @pytest.mark.tier1
-    def test_0008_ad_parameters_homedir_override_both(multihost, adjoin,
-                                                      create_plain_aduser_group):
+    def test_0008_ad_parameters_homedir_override_both(
+            multihost, adjoin, create_plain_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: override homedir
           in both nss and domain section
@@ -642,11 +624,6 @@ class TestADParamsPorted():
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1137015
         """
         ad_domain = multihost.ad[0].domainname
-        hostname_cmd = multihost.client[0].run_command(
-            'hostname -s',
-            raiseonerr=False
-        )
-        shortname = hostname_cmd.stdout_text.rstrip()
         adjoin(membersw='adcli')
         # Create AD user and group
         (aduser, _) = create_plain_aduser_group
@@ -674,13 +651,13 @@ class TestADParamsPorted():
         client.clear_sssd_cache()
 
         # Evaluate test results
-        assert f'/home/{aduser}/{aduser}@{ad_domain.upper()}' in\
+        assert f'/home/{aduser}/{aduser}@{ad_domain.upper()}' in \
                usr_cmd.stdout_text
 
     @staticmethod
     @pytest.mark.broken
-    def test_0009_ad_parameters_ldap_sasl_full(multihost, adjoin,
-                                               create_aduser_group):
+    def test_0009_ad_parameters_ldap_sasl_full(
+            multihost, adjoin, create_plain_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Using full principal
           bz877972
@@ -705,16 +682,14 @@ class TestADParamsPorted():
         :customerscenario: False
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=877972
         """
-        ad_domain = multihost.ad[0].domainname
-
         hostname_cmd = multihost.client[0].run_command(
-            'hostname -s',
+            'hostname',
             raiseonerr=False
         )
-        shortname = hostname_cmd.stdout_text.rstrip()
+        hostname = hostname_cmd.stdout_text.rstrip()
         adjoin(membersw='adcli')
         # Create AD user
-        (aduser, _) = create_aduser_group
+        (aduser, _) = create_plain_aduser_group
         # Configure sssd
         ad_realm = multihost.ad[0].domainname.upper()
         multihost.client[0].service_sssd('stop')
@@ -727,21 +702,25 @@ class TestADParamsPorted():
             'ad_server': multihost.ad[0].hostname,
             'use_fully_qualified_names': 'False',
             'cache_credentials': 'True',
-            #'ldap_id_mapping': 'False',
-            'ldap_sasl_authid': f'host/{shortname}.{ad_domain}@{ad_realm}',
+            'ldap_id_mapping': 'True',
+            'ldap_sasl_authid': f'host/{hostname}@{ad_realm}',
+
         }
         client.sssd_conf(dom_section, sssd_params)
+        nss_params = {
+            'filter_groups': 'root',
+            'filter_users': 'root',
+            'default_shell': '/bin/bash',
+            'override_homedir': '/home/%u',
+        }
+        client.sssd_conf('nss', nss_params)
         client.clear_sssd_cache()
         # Search for the user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}',
-            raiseonerr=False
-        )
+                f'getent passwd {aduser}', raiseonerr=False)
         # Run su command
         su_cmd = multihost.client[0].run_command(
-            f'su - {aduser} -c  whoami',
-            raiseonerr=False
-        )
+                f'su - {aduser} -c  whoami', raiseonerr=False)
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
@@ -756,29 +735,37 @@ class TestADParamsPorted():
         client.restore_sssd_conf()
         client.clear_sssd_cache()
 
-        assert f"Option ldap_sasl_authid has value host/{shortname}.{ad_domain}@{ad_realm}" in log_str
-        assert f"authid contains realm" in log_str
-        assert f"Will look for host/{shortname}.{ad_domain}@{ad_realm} in" in log_str
-        assert f"Trying to find principal host/{shortname}.{ad_domain}@{ad_realm} in keytab" in log_str
-        assert f"Principal matched to the sample (host/{shortname}.{ad_domain}@{ad_realm})" in log_str
+        assert f"Option ldap_sasl_authid has value host/{hostname}@{ad_realm}" \
+               in log_str
+        assert "authid contains realm" in log_str
+        assert f"Will look for host/{hostname}@{ad_realm} in" in log_str
+        assert f"Trying to find principal host/{hostname}@{ad_realm} in " \
+               f"keytab" in log_str
+        assert f"Principal matched to the sample (host/{hostname}@{ad_realm})" \
+               in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert su_cmd.returncode == 0, f"Su for user {aduser} failed!"
 
     @staticmethod
     @pytest.mark.broken
-    def test_0010_ad_parameters_ldap_sasl_short(multihost, adjoin,
-                                                create_aduser_group):
+    def test_0010_ad_parameters_ldap_sasl_short(
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Using short principal
         :id: 6f1cc204-0dd3-40eb-a3e2-a113cc7c2df3
         :setup:
-         1. Configure ,
+         1. Configure ldap_sasl_authid to host/<HOSTNAME>
             clear cache and restart sssd.
          2. Create an AD user.
         :steps:
-          1. Run getent passwd for the user and verify the home location.
+          1. Run getent passwd for the user.
+          2. Run su for the user.
+          3. Check sssd domain log for expected/unexpected messages:
+             <TBD>
         :expectedresults:
-          1. User is found and homedir is overridden.
+          1. User is found.
+          2. Su passes.
+          3. Expected lines are in the log.
         :customerscenario: False
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1137015
         """
@@ -803,21 +790,16 @@ class TestADParamsPorted():
             'ad_server': multihost.ad[0].hostname,
             'use_fully_qualified_names': 'False',
             'cache_credentials': 'True',
-            #'ldap_id_mapping': 'False',
             'ldap_sasl_authid': f'host/{shortname}',
         }
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
         # Search for the user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}',
-            raiseonerr=False
-        )
+                f'getent passwd {aduser}', raiseonerr=False)
         # Run su command
         su_cmd = multihost.client[0].run_command(
-            f'su - {aduser} -c  whoami',
-            raiseonerr=False
-        )
+                f'su - {aduser} -c  whoami', raiseonerr=False)
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
@@ -834,63 +816,19 @@ class TestADParamsPorted():
 
         # Evaluate test results
         assert f"Option ldap_sasl_authid has value host/{shortname}" in log_str
-        assert f"authid contains realm" not in log_str
-        assert f"Will look for host/{shortname}.{ad_domain}@{ad_realm} in" in log_str
-        assert f"Trying to find principal host/{shortname}.{ad_domain}@{ad_realm} in keytab" in log_str
-        assert f"Principal matched to the sample (host/{shortname}.{ad_domain}@{ad_realm})" in log_str
+        assert "authid contains realm" not in log_str
+        assert f"Will look for host/{shortname}.{ad_domain}@{ad_realm} in" \
+               in log_str
+        assert f"Trying to find principal host/{shortname}.{ad_domain}@" \
+               f"{ad_realm} in keytab" in log_str
+        assert f"Principal matched to the sample (host/{shortname}." \
+               f"{ad_domain}@{ad_realm})" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert su_cmd.returncode == 0, f"Su for user {aduser} failed!"
 
-# rlPhaseStartTest "Using full principal bz877972"
-#
-# default_sssd_conf
-# unindent <<<"
-#     ad_server = $AD_SERVER1
-#     ad_domain = $AD_DOMAIN1
-#     ldap_sasl_authid=host/$HOSTNAME@$AD_SERVER1_REALM
-# " >> /etc/sssd/sssd.conf
-# sssd_clear_logs
-# sssd_restart_clean
-# sssd_unprivileged_user_test
-#
-# rlAssertGrep "Option ldap_sasl_authid has value host/$HOSTNAME@$AD_SERVER1_REALM" "/var/log/sssd/sssd_$AD_DOMAIN1.log"
-# rlAssertGrep "authid contains realm \[$AD_SERVER1_REALM\]" "/var/log/sssd/sssd_$AD_DOMAIN1.log"
-# rlAssertGrep "Will look for host/$HOSTNAME@$AD_SERVER1_REALM in" "/var/log/sssd/sssd_$AD_DOMAIN1.log"
-# rlAssertGrep "Trying to find principal host/$HOSTNAME@$AD_SERVER1_REALM in keytab" "/var/log/sssd/sssd_$AD_DOMAIN1.log"
-# rlAssertGrep "Principal matched to the sample (host/$HOSTNAME@$AD_SERVER1_REALM)" "/var/log/sssd/sssd_$AD_DOMAIN1.log"
-#
-# rlRun "getent passwd testuser01-${JOBID}"
-# rlRun "su_success testuser01-${JOBID} Secret123"
-# rlPhaseEnd
-#
-#
-# rlPhaseStartTest "Using short principal"
-#
-# default_sssd_conf
-# unindent <<<"
-#     ad_server = $AD_SERVER1
-#     ad_domain = $AD_DOMAIN1
-#     ldap_sasl_authid=host/$HOSTNAME
-# " >> /etc/sssd/sssd.conf
-# sssd_clear_logs
-# sssd_restart_clean
-# sssd_unprivileged_user_test
-#
-# rlAssertGrep "Option ldap_sasl_authid set to host/$HOSTNAME" "/var/log/sssd/sssd_$AD_DOMAIN1.log"
-# rlAssertNotGrep "authid contains realm" "/var/log/sssd/sssd_$AD_DOMAIN1.log"
-# rlAssertGrep "Will look for host/$HOSTNAME@$AD_SERVER1_REALM in" "/var/log/sssd/sssd_$AD_DOMAIN1.log"
-# rlAssertGrep "Trying to find principal host/$HOSTNAME@$AD_SERVER1_REALM in keytab" "/var/log/sssd/sssd_$AD_DOMAIN1.log"
-# rlAssertGrep "Principal matched to the sample (host/$HOSTNAME@$AD_SERVER1_REALM)" "/var/log/sssd/sssd_$AD_DOMAIN1.log"
-#
-# rlRun "getent passwd testuser01-${JOBID}"
-# rlRun "su_success testuser01-${JOBID} Secret123"
-#
-# rlPhaseEnd
-
-    @staticmethod
     @pytest.mark.tier1
-    def test_0011_ad_parameters_server_resolvable(multihost, adjoin,
-                                                  create_aduser_group):
+    def test_0011_ad_parameters_server_resolvable(
+            self, multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ad server to
           resolvable hostname
@@ -917,17 +855,10 @@ class TestADParamsPorted():
           6. The lines are present in the log.
         :customerscenario: False
         """
-        ad_domain = multihost.ad[0].domainname
-        hostname_cmd = multihost.client[0].run_command(
-            'hostname -s',
-            raiseonerr=False
-        )
-        shortname = hostname_cmd.stdout_text.rstrip()
         adjoin(membersw='adcli')
         # Create AD user
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
-        ad_realm = multihost.ad[0].domainname.upper()
         multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
@@ -944,32 +875,22 @@ class TestADParamsPorted():
 
         # Search for the user and get its uid
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser} | cut -d: -f3',
-            raiseonerr=False
-        )
+                f'getent passwd {aduser} | cut -d: -f3', raiseonerr=False)
         uid = usr_cmd.stdout_text.rstrip()
 
         # Search for the group and get its gid
         grp_cmd = multihost.client[0].run_command(
-            f'getent group {adgroup} | cut -d: -f3',
-            raiseonerr=False
-        )
+                f'getent group {adgroup} | cut -d: -f3', raiseonerr=False)
         gid = grp_cmd.stdout_text.rstrip()
         # Search for the user by uid
         uid_cmd = multihost.client[0].run_command(
-            f'getent passwd {uid}',
-            raiseonerr=False
-        )
+                f'getent passwd {uid}', raiseonerr=False)
         # Search for the group by gid
         gid_cmd = multihost.client[0].run_command(
-            f'getent group {gid}',
-            raiseonerr=False
-        )
+                f'getent group {gid}', raiseonerr=False)
         # Run su command
         su_cmd = multihost.client[0].run_command(
-            f'su - {aduser} -c  whoami',
-            raiseonerr=False
-        )
+                f'su - {aduser} -c  whoami', raiseonerr=False)
 
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
@@ -979,8 +900,9 @@ class TestADParamsPorted():
         client.restore_sssd_conf()
         client.clear_sssd_cache()
 
-        assert f"Option ad_domain has value {multihost.ad[0].domainname.lower()}" in log_str
-        assert f"Option krb5_realm set to {ad_realm}" in log_str
+        assert f"Option ad_domain has value " \
+               f"{multihost.ad[0].domainname.lower()}" in log_str
+        assert f"Option krb5_realm set to {self.ad_realm}" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert uid_cmd.returncode == 0, f"User with {uid} was not found!"
@@ -989,8 +911,8 @@ class TestADParamsPorted():
 
     @staticmethod
     @pytest.mark.tier1
-    def test_0012_ad_parameters_server_unresolvable(multihost, adjoin,
-                                                    create_aduser_group):
+    def test_0012_ad_parameters_server_unresolvable(
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ad server to
           unresolvable hostname
@@ -1011,7 +933,7 @@ class TestADParamsPorted():
         """
         adjoin(membersw='adcli')
         # Create AD user
-        (aduser, adgroup) = create_aduser_group
+        (aduser, _) = create_aduser_group
         # Configure sssd
         multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
@@ -1029,9 +951,7 @@ class TestADParamsPorted():
 
         # Search for the user and get its uid
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}',
-            raiseonerr=False
-        )
+                f'getent passwd {aduser}', raiseonerr=False)
 
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
@@ -1044,13 +964,13 @@ class TestADParamsPorted():
         assert f"Failed to resolve server 'unresolved." \
                f"{multihost.ad[0].domainname.lower()}': " \
                f"Domain name not found" in log_str
-        assert f"Going offline" in log_str
+        assert "Going offline" in log_str
         assert usr_cmd.returncode == 2, f"User {aduser} was found!"
 
     @staticmethod
     @pytest.mark.tier1
-    def test_0013_ad_parameters_server_srv_record(multihost, adjoin,
-                                                  create_aduser_group):
+    def test_0013_ad_parameters_server_srv_record(
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ad server to
           blank which defaults to srv record
@@ -1072,17 +992,10 @@ class TestADParamsPorted():
           4. The line(s) are present in the log.
         :customerscenario: False
         """
-        ad_domain = multihost.ad[0].domainname
-        hostname_cmd = multihost.client[0].run_command(
-            'hostname -s',
-            raiseonerr=False
-        )
-        shortname = hostname_cmd.stdout_text.rstrip()
         adjoin(membersw='adcli')
         # Create AD user
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
-        ad_realm = multihost.ad[0].domainname.upper()
         multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
@@ -1096,24 +1009,15 @@ class TestADParamsPorted():
         }
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
-
-        # Search for the user and get its uid
+        # Search for the user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}',
-            raiseonerr=False
-        )
-        uid = usr_cmd.stdout_text.rstrip()
-
-        # Search for the group and get its gid
+                f'getent passwd {aduser}', raiseonerr=False)
+        # Search for the group
         grp_cmd = multihost.client[0].run_command(
-            f'getent group {adgroup}',
-            raiseonerr=False
-        )
+                f'getent group {adgroup}', raiseonerr=False)
         # Run su command
         su_cmd = multihost.client[0].run_command(
-            f'su - {aduser} -c  whoami',
-            raiseonerr=False
-        )
+                f'su - {aduser} -c  whoami', raiseonerr=False)
 
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
@@ -1123,15 +1027,15 @@ class TestADParamsPorted():
         client.restore_sssd_conf()
         client.clear_sssd_cache()
 
-        assert f"Marking SRV lookup of service 'AD' as 'resolved'" in log_str
+        assert "Marking SRV lookup of service 'AD' as 'resolved'" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert su_cmd.returncode == 0, "The su command failed!"
 
     @staticmethod
     @pytest.mark.tier1
-    def test_0014_ad_parameters_server_blank(multihost, adjoin,
-                                             create_aduser_group):
+    def test_0014_ad_parameters_server_blank(
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ad server to
           blank which defaults to srv record
@@ -1153,17 +1057,10 @@ class TestADParamsPorted():
           4. The line(s) are present in the log.
         :customerscenario: False
         """
-        ad_domain = multihost.ad[0].domainname
-        hostname_cmd = multihost.client[0].run_command(
-            'hostname -s',
-            raiseonerr=False
-        )
-        shortname = hostname_cmd.stdout_text.rstrip()
         adjoin(membersw='adcli')
         # Create AD user
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
-        ad_realm = multihost.ad[0].domainname.upper()
         multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
@@ -1177,25 +1074,15 @@ class TestADParamsPorted():
         }
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
-
-        # Search for the user and get its uid
+        # Search for the user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}',
-            raiseonerr=False
-        )
-        uid = usr_cmd.stdout_text.rstrip()
-
-        # Search for the group and get its gid
+                f'getent passwd {aduser}', raiseonerr=False)
+        # Search for the group
         grp_cmd = multihost.client[0].run_command(
-            f'getent group {adgroup}',
-            raiseonerr=False
-        )
+                f'getent group {adgroup}', raiseonerr=False)
         # Run su command
         su_cmd = multihost.client[0].run_command(
-            f'su - {aduser} -c  whoami',
-            raiseonerr=False
-        )
-
+                f'su - {aduser} -c  whoami', raiseonerr=False)
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
@@ -1204,21 +1091,21 @@ class TestADParamsPorted():
         client.restore_sssd_conf()
         client.clear_sssd_cache()
 
-        assert f"No AD server set, will use service discovery" in log_str
+        assert "No AD server set, will use service discovery" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert su_cmd.returncode == 0, "The su command failed!"
 
     @staticmethod
     @pytest.mark.broken
-    def test_0015_ad_parameters_ad_hostname_machine(multihost, adjoin,
-                                                    create_aduser_group):
+    def test_0015_ad_parameters_ad_hostname_machine(
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Hostname not
           identified on AD
         :id: 5f6e5a03-8617-4a93-a3e8-24efe99554f9
         :setup:
-          1. Change hostname to host1.kautest.com.
+          1. Change hostname to <hostname>.kautest.com.
           2. Create an AD user.
           3. Clear cache and restart sssd.
         :steps:
@@ -1228,8 +1115,8 @@ class TestADParamsPorted():
         :expectedresults:
           1. User is found.
           2. Log contains the expected line and does nota have unexpected one:
-             Expected: Will look for host1.kautest.com@<ad_realm>
-             Unexpected: Setting ad_hostname to [host1.kautest.com]
+             Expected: Will look for <hostname>.kautest.com@<ad_realm>
+             Unexpected: Setting ad_hostname to [<hostname>.kautest.com]
           3. User is switched successfully.
         :teardown:
           1. Remove AD user.
@@ -1241,16 +1128,16 @@ class TestADParamsPorted():
         client.backup_sssd_conf()
 
         hostname_cmd = multihost.client[0].run_command(
-            'hostname',
-            raiseonerr=False
-        )
+                'hostname', raiseonerr=False)
         old_hostname = hostname_cmd.stdout_text.rstrip()
 
+        hostname_cmd = multihost.client[0].run_command(
+                'hostname -s', raiseonerr=False)
+        shortname = hostname_cmd.stdout_text.rstrip()
+
         # Set new hostname
-        set_hostname_cmd = multihost.client[0].run_command(
-            'hostname host1.kautest.com',
-            raiseonerr=False
-        )
+        multihost.client[0].run_command(
+            f'hostname {shortname}.kautest.com', raiseonerr=False)
 
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
@@ -1259,14 +1146,14 @@ class TestADParamsPorted():
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_realm = multihost.ad[0].domainname.upper()
         sssd_params = {
-           'ldap_id_mapping': 'True',
-           'ad_domain': multihost.ad[0].domainname,
-           'ad_server': multihost.ad[0].hostname,
-           'debug_level': '9',
-           'use_fully_qualified_names': 'False',
-           'cache_credentials': 'True',
-           'krb5_store_password_if_offline': 'True',
-           'fallback_homedir': '/home/%d/%u',
+            'ad_domain': multihost.ad[0].domainname,
+            'ad_server': multihost.ad[0].hostname,
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True',
+            'cache_credentials': 'True',
+            'krb5_store_password_if_offline': 'True',
+            'fallback_homedir': '/home/%d/%u',
+            'full_name_format': '%2$s\\%1$s',
         }
         client.sssd_conf(dom_section, sssd_params)
         # Clear cache and restart SSSD
@@ -1274,40 +1161,42 @@ class TestADParamsPorted():
 
         # Download sssd log
         log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log").\
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}',
-            raiseonerr=False
-        )
+                f'getent passwd {aduser}', raiseonerr=False)
 
         # Run su
         su_cmd = multihost.client[0].run_command(
-            f'su - {aduser} -c  whoami',
+                f'su - {aduser} -c  whoami', raiseonerr=False)
+
+        # TODO: Delete this
+        multihost.client[0].run_command(
+            f"cp /var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}."
+            f"log /root/sssd_dom.log; "
+            f"cp /etc/sssd/sssd.conf /root/sssd_dom.conf",
             raiseonerr=False
         )
 
         # Reset hostname
-        set_hostname_cmd = multihost.client[0].run_command(
-            f'hostname {old_hostname}',
-            raiseonerr=False
-        )
+        multihost.client[0].run_command(
+            f'hostname {old_hostname}', raiseonerr=False)
         client.restore_sssd_conf()
         client.clear_sssd_cache()
 
         # Evaluate test results
-        assert f"Setting ad_hostname to [host1.kautest.com]" not in log_str
-        assert f"Will look for host1.kautest.com@{ad_realm}" in log_str
+        assert f"Setting ad_hostname to [{shortname}.kautest.com]" \
+               not in log_str
+        assert f"Will look for {shortname}.kautest.com@{ad_realm}" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert su_cmd.returncode == 0, "The su command failed!"
 
-
     @staticmethod
     @pytest.mark.tier1
-    def test_0016_ad_parameters_ad_hostname_valid(multihost, adjoin,
-                                                  create_aduser_group):
+    def test_0016_ad_parameters_ad_hostname_valid(
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ad hostname to
           a valid hostname
@@ -1325,7 +1214,7 @@ class TestADParamsPorted():
         :expectedresults:
           1. User is found.
           2. Group is found.
-          3. Log contains the expected lines and doesn't contain unexpected one:
+          3. Log contains the expected lines and no unexpected ones:
              Option ad_hostname has value <old_hostname>
              Trying to find principal <old_hostname>@<ad_realm>
              Will look for <old_hostname>@<ad_realm>
@@ -1341,16 +1230,12 @@ class TestADParamsPorted():
         client.backup_sssd_conf()
 
         hostname_cmd = multihost.client[0].run_command(
-            'hostname',
-            raiseonerr=False
-        )
+                'hostname', raiseonerr=False)
         old_hostname = hostname_cmd.stdout_text.rstrip()
 
         # Set new hostname
-        set_hostname_cmd = multihost.client[0].run_command(
-            'hostname host1.kautest.com',
-             raiseonerr=False
-        )
+        multihost.client[0].run_command(
+                'hostname host1.kautest.com', raiseonerr=False)
 
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
@@ -1359,15 +1244,15 @@ class TestADParamsPorted():
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_realm = multihost.ad[0].domainname.upper()
         sssd_params = {
-           'ldap_id_mapping': 'True',
-           'ad_domain': multihost.ad[0].domainname,
-           'ad_server': multihost.ad[0].hostname,
-           'ad_hostname': old_hostname,
-           'debug_level': '9',
-           'use_fully_qualified_names': 'False',
-           'cache_credentials': 'True',
-           'krb5_store_password_if_offline': 'True',
-           'fallback_homedir': '/home/%d/%u',
+            'ldap_id_mapping': 'True',
+            'ad_domain': multihost.ad[0].domainname,
+            'ad_server': multihost.ad[0].hostname,
+            'ad_hostname': old_hostname,
+            'debug_level': '9',
+            'use_fully_qualified_names': 'False',
+            'cache_credentials': 'True',
+            'krb5_store_password_if_offline': 'True',
+            'fallback_homedir': '/home/%d/%u',
         }
         client.sssd_conf(dom_section, sssd_params)
         # Clear cache and restart SSSD
@@ -1375,30 +1260,21 @@ class TestADParamsPorted():
         time.sleep(15)
         # Download sssd log
         log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log").\
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}',
-            raiseonerr=False
-        )
+                f'getent passwd {aduser}', raiseonerr=False)
         # Search for the group and get its gid
         grp_cmd = multihost.client[0].run_command(
-            f'getent group {adgroup}',
-            raiseonerr=False
-        )
+                f'getent group {adgroup}', raiseonerr=False)
         # Run su
         su_cmd = multihost.client[0].run_command(
-            f'su - {aduser} -c  whoami',
-            raiseonerr=False
-        )
-
+                f'su - {aduser} -c  whoami', raiseonerr=False)
         # Reset new hostname
-        set_hostname_cmd = multihost.client[0].run_command(
-            f'hostname {old_hostname}',
-            raiseonerr=False
-        )
+        multihost.client[0].run_command(
+                f'hostname {old_hostname}', raiseonerr=False)
 
         client.restore_sssd_conf()
         client.clear_sssd_cache()
@@ -1412,18 +1288,17 @@ class TestADParamsPorted():
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert su_cmd.returncode == 0, "The su command failed!"
 
-
     @staticmethod
     @pytest.mark.tier1
-    def test_0017_ad_parameters_krb5_keytab_nonexistent(multihost, adjoin,
-                                                        create_aduser_group):
+    def test_0017_ad_parameters_krb5_keytab_nonexistent(
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set krb5 keytab to
           non existent keytab file
         :id: 0160dc4f-02e7-40d5-a67e-8ce89fe895d0
         :setup:
           1. Set krb5 keytab to non existent keytab file.
-          2. Meve keytab elsewhere.
+          2. Move keytab elsewhere.
           2. Create an AD user.
           3. Clear cache and restart sssd.
         :steps:
@@ -1455,17 +1330,16 @@ class TestADParamsPorted():
         # Configure sssd to disable ldap_id_mapping and enable logging
         multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
-        ad_realm = multihost.ad[0].domainname.upper()
         sssd_params = {
-           'ldap_id_mapping': 'True',
-           'ad_domain': multihost.ad[0].domainname,
-           'ad_server': multihost.ad[0].hostname,
-           'krb5_keytab': '/etc/krb5.keytab.keytabdoesntexist',
-           'debug_level': '9',
-           'use_fully_qualified_names': 'False',
-           'cache_credentials': 'True',
-           'krb5_store_password_if_offline': 'True',
-           'fallback_homedir': '/home/%d/%u',
+            'ldap_id_mapping': 'True',
+            'ad_domain': multihost.ad[0].domainname,
+            'ad_server': multihost.ad[0].hostname,
+            'krb5_keytab': '/etc/krb5.keytab.keytabdoesntexist',
+            'debug_level': '9',
+            'use_fully_qualified_names': 'False',
+            'cache_credentials': 'True',
+            'krb5_store_password_if_offline': 'True',
+            'fallback_homedir': '/home/%d/%u',
         }
         client.sssd_conf(dom_section, sssd_params)
         # Clear cache and restart SSSD
@@ -1477,14 +1351,12 @@ class TestADParamsPorted():
         time.sleep(15)
         # Download sssd log
         log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log").\
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}',
-            raiseonerr=False
-        )
+                f'getent passwd {aduser}', raiseonerr=False)
         # Restore keytab
         multihost.client[0].run_command(
             'mv -f /etc/krb5.keytab.working /etc/krb5.keytab; '
@@ -1496,17 +1368,17 @@ class TestADParamsPorted():
         client.clear_sssd_cache()
 
         # Evaluate test results
-        assert f"Option krb5_keytab has value /etc/krb5.keytab." \
-               f"keytabdoesntexist" in log_str
-        assert f"Option ldap_krb5_keytab set to /etc/krb5.keytab." \
-               f"keytabdoesntexist" in log_str
-        assert f"No suitable principal found in keytab" in log_str
+        assert "Option krb5_keytab has value /etc/krb5.keytab." \
+               "keytabdoesntexist" in log_str
+        assert "Option ldap_krb5_keytab set to /etc/krb5.keytab." \
+               "keytabdoesntexist" in log_str
+        assert "No suitable principal found in keytab" in log_str
         assert usr_cmd.returncode == 2, f"User {aduser} was found."
 
     @staticmethod
     @pytest.mark.tier1
-    def test_0018_ad_parameters_krb5_keytab_elsewhere(multihost, adjoin,
-                                                      create_aduser_group):
+    def test_0018_ad_parameters_krb5_keytab_elsewhere(
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: keytab exists in
           non default location
@@ -1548,17 +1420,17 @@ class TestADParamsPorted():
         # Configure sssd to disable ldap_id_mapping and enable logging
         multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
-        ad_realm = multihost.ad[0].domainname.upper()
+
         sssd_params = {
-           'ldap_id_mapping': 'True',
-           'ad_domain': multihost.ad[0].domainname,
-           'ad_server': multihost.ad[0].hostname,
-           'krb5_keytab': '/usr/local/etc/krb5.keytab',
-           'debug_level': '9',
-           'use_fully_qualified_names': 'False',
-           'cache_credentials': 'True',
-           'krb5_store_password_if_offline': 'True',
-           'fallback_homedir': '/home/%d/%u',
+            'ldap_id_mapping': 'True',
+            'ad_domain': multihost.ad[0].domainname,
+            'ad_server': multihost.ad[0].hostname,
+            'krb5_keytab': '/usr/local/etc/krb5.keytab',
+            'debug_level': '9',
+            'use_fully_qualified_names': 'False',
+            'cache_credentials': 'True',
+            'krb5_store_password_if_offline': 'True',
+            'fallback_homedir': '/home/%d/%u',
         }
         client.sssd_conf(dom_section, sssd_params)
         # Clear cache and restart SSSD
@@ -1566,24 +1438,18 @@ class TestADParamsPorted():
         time.sleep(15)
         # Download sssd log
         log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log").\
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}',
-            raiseonerr=False
-        )
+                f'getent passwd {aduser}', raiseonerr=False)
         # Search for the group and get its gid
         grp_cmd = multihost.client[0].run_command(
-            f'getent group {adgroup}',
-            raiseonerr=False
-        )
+                f'getent group {adgroup}', raiseonerr=False)
         # Run su
         su_cmd = multihost.client[0].run_command(
-            f'su - {aduser} -c  whoami',
-            raiseonerr=False
-        )
+            f'su - {aduser} -c  whoami', raiseonerr=False)
         # Restore keytab
         multihost.client[0].run_command(
             'mv /usr/local/etc/krb5.keytab /etc/krb5.keytab; '
@@ -1595,19 +1461,18 @@ class TestADParamsPorted():
         client.clear_sssd_cache()
 
         # Evaluate test results
-        assert f"Option krb5_keytab has value /usr/local/etc/krb5.keytab" in log_str
-        assert f"Option ldap_krb5_keytab set to /usr/local/etc/krb5.keytab" in log_str
+        assert "Option krb5_keytab has value /usr/local/etc/krb5.keytab" \
+               in log_str
+        assert "Option ldap_krb5_keytab set to /usr/local/etc/krb5.keytab" \
+               in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert su_cmd.returncode == 0, "The su command failed!"
 
-
     @staticmethod
     @pytest.mark.tier1
     def test_0019_ad_parameters_ldap_id_mapping_false(
-        multihost, adjoin, create_aduser_group,
-        create_plain_aduser_group
-    ):
+            multihost, adjoin, create_aduser_group, create_plain_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ldap id
           mapping to false
@@ -1646,65 +1511,51 @@ class TestADParamsPorted():
         # Configure sssd to disable ldap_id_mapping and enable logging
         multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
-        ad_realm = multihost.ad[0].domainname.upper()
-        ad_domain_short = ad_realm.rsplit('.', 1)[0]
         sssd_params = {
-           'ldap_id_mapping': 'False',
-           'ad_domain': multihost.ad[0].domainname,
-           'ad_server': multihost.ad[0].hostname,
-           'debug_level': '9',
-           'use_fully_qualified_names': 'False',
-           'cache_credentials': 'True',
-           'krb5_store_password_if_offline': 'True',
-           'fallback_homedir': '/home/%d/%u',
+            'ldap_id_mapping': 'False',
+            'ad_domain': multihost.ad[0].domainname,
+            'ad_server': multihost.ad[0].hostname,
+            'debug_level': '9',
+            'use_fully_qualified_names': 'False',
+            'cache_credentials': 'True',
+            'krb5_store_password_if_offline': 'True',
+            'fallback_homedir': '/home/%d/%u',
         }
         client.sssd_conf(dom_section, sssd_params)
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
 
         # Get uid and gid for the aduser and adgroup
-        get_uid_cmd = f"powershell.exe -inputformat none -noprofile 'Get-ADUser -Identity {aduser} -Properties uidNumber'"
+        get_uid_cmd = f"powershell.exe -inputformat none -noprofile 'Get-" \
+                      f"ADUser -Identity {aduser} -Properties uidNumber'"
         cmd = multihost.ad[0].run_command(get_uid_cmd, raiseonerr=False)
         uid = re.findall("uidNumber.*:[^0-9]+([0-9]+)", cmd.stdout_text)[0]
-        get_gid_cmd = f"powershell.exe -inputformat none -noprofile 'Get-ADGroup -Identity {adgroup} -Properties gidNumber'"
+        get_gid_cmd = f"powershell.exe -inputformat none -noprofile 'Get-" \
+                      f"ADGroup -Identity {adgroup} -Properties gidNumber'"
         cmd = multihost.ad[0].run_command(get_gid_cmd, raiseonerr=False)
         gid = re.findall("gidNumber.*:[^0-9]+([0-9]+)", cmd.stdout_text)[0]
 
         # Search for the AD user without uid
         plain_usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {userplain}',
-            raiseonerr=False
-        )
+                f'getent passwd {userplain}', raiseonerr=False)
         # Search for the group without gid
         plain_grp_cmd = multihost.client[0].run_command(
-            f'getent group {group_plain}',
-            raiseonerr=False
-        )
+                f'getent group {group_plain}', raiseonerr=False)
         # Search for the AD user by uid
         usr_uid_cmd = multihost.client[0].run_command(
-            f'getent passwd {uid}',
-            raiseonerr=False
-        )
+                f'getent passwd {uid}', raiseonerr=False)
         # Search for the group by gid
-        grp_gid_cmd= multihost.client[0].run_command(
-            f'getent group {gid}',
-            raiseonerr=False
-        )
+        grp_gid_cmd = multihost.client[0].run_command(
+                f'getent group {gid}', raiseonerr=False)
         # Search for the user with uid
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}',
-            raiseonerr=False
-        )
+                f'getent passwd {aduser}', raiseonerr=False)
         # Search for the group with gid
         grp_cmd = multihost.client[0].run_command(
-            f'getent group {adgroup}',
-            raiseonerr=False
-        )
+                f'getent group {adgroup}', raiseonerr=False)
         # Run su
         su_cmd = multihost.client[0].run_command(
-            f'su - {aduser} -c  whoami',
-            raiseonerr=False
-        )
+                f'su - {aduser} -c  whoami', raiseonerr=False)
 
         client.restore_sssd_conf()
         client.clear_sssd_cache()
@@ -1729,18 +1580,23 @@ class TestADParamsPorted():
 # test_0024 "empty group cannot be resolved using ad matching rule bz1033084"
 # test_0025 "SSSD failover does not work bz966757"
 # test_0026 "ad group membership is empty when id mapping is off bz1130017"
-# test_0027 "enumerate nested groups if they are part of non POSIX groups bz1103487"
+# test_0027 "enumerate nested groups if they are part of non POSIX
+#            groups bz1103487"
 # test_0028 "tokengroups do not work with id provider ldap bz1120508"
 # test_0029 "Problems with tokengroups and ldap group search base bz1127266"
-# test_0030 "sssd does not work with custom value of option re expression bz1165794"
-# test_0031 "Does sssd ad use the most suitable attribute for group name bz1199445"
+# test_0030 "sssd does not work with custom value of option re expression
+#            bz1165794"
+# test_0031 "Does sssd ad use the most suitable attribute for group name
+#            bz1199445"
 # test_0032 "groups cleanup should sanitize dn of groups bz1364118"
 # test_0033 "sssd ad groups work intermittently bz1212610"
 # test_0034 "groups get deleted from the cache bz1279971"
 # test_0035 "The AD keytab renewal task leaks a file descriptor bz1340176"
-# test_0036 "SSSD fails to start when ldap user extra attrs contains mail bz1362023"
+# test_0036 "SSSD fails to start when ldap user extra attrs contains mail
+#            bz1362023"
 # test_0037 "pam sss sshd authentication failure with user from AD bz1182183"
-# test_0038 "sssd be keeps crashing if id provider equal to ad and auth provider equal to krb5 bz1396485 bz1392444"
+# test_0038 "sssd be keeps crashing if id provider equal to ad and auth
+#            provider equal to krb5 bz1396485 bz1392444"
 
 # TODO: sss_ssh_authorizedkeys
 # test_0039 "allow newlines in the public key string bz1104145"
