@@ -17,7 +17,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-07-12 20:53+0200\n"
-"PO-Revision-Date: 2021-03-18 10:39+0000\n"
+"PO-Revision-Date: 2021-07-20 07:04+0000\n"
 "Last-Translator: Sundeep Anand <suanand@redhat.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.5.1\n"
+"X-Generator: Weblate 4.7.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -44,7 +44,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Enable/disable debug backtrace"
-msgstr ""
+msgstr "Activer/Désactiver Backtrace débogage"
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Watchdog timeout before restarting service"
@@ -353,15 +353,15 @@ msgstr "Liste des uid ou noms d'utilisateurs dignes de confiance"
 msgid "List of domains accessible even for untrusted users."
 msgstr ""
 "Liste des domaines accessibles y compris par les utilisateurs non dignes de "
-"confiance"
+"confiance."
 
 #: src/config/SSSDConfig/sssdoptions.py:97
 msgid "Message printed when user account is expired."
-msgstr "Message affiché lorsque le compte a expiré"
+msgstr "Message affiché lorsque le compte a expiré."
 
 #: src/config/SSSDConfig/sssdoptions.py:98
 msgid "Message printed when user account is locked."
-msgstr "Message affiché lorsque le compte a expiré"
+msgstr "Message affiché lorsque le compte a expiré."
 
 #: src/config/SSSDConfig/sssdoptions.py:99
 msgid "Allow certificate based/Smartcard authentication."
@@ -373,9 +373,8 @@ msgstr ""
 "Chemin d'accès à la base de données des certificats des modules PKCS#11."
 
 #: src/config/SSSDConfig/sssdoptions.py:101
-#, fuzzy
 msgid "Tune certificate verification for PAM authentication."
-msgstr "Régler la vérification du certificat"
+msgstr "Régler la vérification du certificat d’authentification PAM."
 
 #: src/config/SSSDConfig/sssdoptions.py:102
 msgid "How many seconds will pam_sss wait for p11_child to finish"
@@ -420,6 +419,8 @@ msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
 msgstr ""
+"Liste des paires <PAM service>:<authentication indicator> qui doivent être "
+"appliquées pour l'accès PAM avec authentification GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:114
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -689,7 +690,7 @@ msgstr "Afficher les utilisateurs/groupes dans un format complétement qualifié
 
 #: src/config/SSSDConfig/sssdoptions.py:194
 msgid "Don't include group members in group lookups"
-msgstr "Ne pas inclure les membres des groupes dans les recherches de groupes."
+msgstr "Ne pas inclure les membres des groupes dans les recherches de groupes"
 
 #: src/config/SSSDConfig/sssdoptions.py:195
 #: src/config/SSSDConfig/sssdoptions.py:205
@@ -935,7 +936,7 @@ msgstr "Classe d'objet surchargeant les objets"
 
 #: src/config/SSSDConfig/sssdoptions.py:259
 msgid "Attribute with the reference to the original object"
-msgstr "Attribut faisant référence à l'objet originel "
+msgstr "Attribut faisant référence à l'objet originel"
 
 #: src/config/SSSDConfig/sssdoptions.py:260
 msgid "Objectclass for user override objects"
@@ -1481,7 +1482,7 @@ msgstr "Désactiver le contrôle des pages LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:405
 msgid "Disable Active Directory range retrieval"
-msgstr "Désactiver la récupération de plage Active Directory."
+msgstr "Désactiver la récupération de plage Active Directory"
 
 #: src/config/SSSDConfig/sssdoptions.py:408
 msgid "Length of time to wait for a search request"
@@ -1511,7 +1512,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:414
 msgid "Base DN for user lookups"
-msgstr "Base DN pour les recherches  d'utilisateurs"
+msgstr "Base DN pour les recherches d'utilisateurs"
 
 #: src/config/SSSDConfig/sssdoptions.py:415
 msgid "Scope of user lookups"
@@ -1877,7 +1878,7 @@ msgstr "Périodicité de rafraichissement intelligent"
 
 #: src/config/SSSDConfig/sssdoptions.py:518
 msgid "Smart and full refresh random offset"
-msgstr ""
+msgstr "Décalage aléatoire Smart ou de Rafraîchissement total"
 
 #: src/config/SSSDConfig/sssdoptions.py:519
 msgid "Whether to filter rules by hostname, IP addresses and network"
@@ -2152,15 +2153,15 @@ msgstr "Afficher le numéro de version et quitte"
 
 #: src/monitor/monitor.c:2461
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
-msgstr ""
+msgstr "Option -i|--interactive non authorisée avec -D|--daemon\n"
 
 #: src/monitor/monitor.c:2467
 msgid "Option -g is incompatible with -D or -i\n"
-msgstr ""
+msgstr "Option -g incompatible avec -D ou -i\n"
 
 #: src/monitor/monitor.c:2480
 msgid "Running under %"
-msgstr ""
+msgstr "En cours d’exécution sous %"
 
 #: src/monitor/monitor.c:2562
 msgid "SSSD is already running\n"
@@ -2196,7 +2197,7 @@ msgstr "Options FAST ('never', 'try', 'demand')"
 
 #: src/providers/krb5/krb5_child.c:3343
 msgid "Specifies the server principal to use for FAST"
-msgstr "Spécifie le principal de serveur afin d'utiliser FAST."
+msgstr "Spécifie le principal de serveur afin d'utiliser FAST"
 
 #: src/providers/krb5/krb5_child.c:3345
 msgid "Requests canonicalization of the principal name"
@@ -2207,13 +2208,12 @@ msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Utiliser la version personnalisée de krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
-#, fuzzy
 msgid "talloc_asprintf failed.\n"
-msgstr "malloc a échoué.\n"
+msgstr "Échec de talloc_asprintf.\n"
 
 #: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
-msgstr ""
+msgstr "Échec de set_debug_file_from_fd.\n"
 
 #: src/providers/data_provider_be.c:733
 msgid "Domain of the information provider (mandatory)"
@@ -2255,7 +2255,7 @@ msgstr "Erreur inattendue lors de la recherche de la description de l'erreur"
 
 #: src/sss_client/pam_sss.c:68
 msgid "Permission denied. "
-msgstr "Accès refusé."
+msgstr "Accès refusé. "
 
 #: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:785
 #: src/sss_client/pam_sss.c:796
@@ -2277,7 +2277,7 @@ msgstr "Authentifié avec les crédits mis en cache"
 
 #: src/sss_client/pam_sss.c:533
 msgid ", your cached password will expire at: "
-msgstr ", votre mot de passe en cache expirera à :"
+msgstr ", votre mot de passe en cache expirera à : "
 
 #: src/sss_client/pam_sss.c:563
 #, c-format
@@ -2292,7 +2292,7 @@ msgstr "Votre mot de passe expirera dans %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:658
 msgid "Authentication is denied until: "
-msgstr "L'authentification est refusée jusque :"
+msgstr "L'authentification est refusée jusque : "
 
 #: src/sss_client/pam_sss.c:679
 msgid "System is offline, password change not possible"
@@ -2309,7 +2309,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
 msgid "Password change failed. "
-msgstr "Échec du changement de mot de passe."
+msgstr "Échec du changement de mot de passe. "
 
 #: src/sss_client/pam_sss.c:2045
 msgid "New Password: "
@@ -2321,7 +2321,7 @@ msgstr "Retaper le nouveau mot de passe : "
 
 #: src/sss_client/pam_sss.c:2208 src/sss_client/pam_sss.c:2211
 msgid "First Factor: "
-msgstr "Premier facteur :"
+msgstr "Premier facteur : "
 
 #: src/sss_client/pam_sss.c:2209 src/sss_client/pam_sss.c:2383
 msgid "Second Factor (optional): "
@@ -2329,7 +2329,7 @@ msgstr "Deuxième facteur (facultatif) : "
 
 #: src/sss_client/pam_sss.c:2212 src/sss_client/pam_sss.c:2386
 msgid "Second Factor: "
-msgstr "Second facteur :"
+msgstr "Second facteur : "
 
 #: src/sss_client/pam_sss.c:2230
 msgid "Password: "
@@ -2662,7 +2662,7 @@ msgstr "Erreur de transaction. Impossible de modifier le groupe.\n"
 
 #: src/tools/sss_groupshow.c:616
 msgid "Magic Private "
-msgstr "Magie privée"
+msgstr "Magie privée "
 
 #: src/tools/sss_groupshow.c:615
 #, c-format
@@ -2677,7 +2677,7 @@ msgstr "%1$s GID numéro : %2$d\n"
 #: src/tools/sss_groupshow.c:620
 #, c-format
 msgid "%1$sMember users: "
-msgstr "Utilisateurs membres de %1$s :"
+msgstr "Utilisateurs membres de %1$s : "
 
 #: src/tools/sss_groupshow.c:627
 #, c-format
@@ -2826,12 +2826,12 @@ msgid ""
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
 "Définir une paire attribut/valeur. Le format est nom_attribut=valeur. Pour "
-"les attributs multi-valués, la commande remplace les valeurs déjà présentes."
+"les attributs multi-valués, la commande remplace les valeurs déjà présentes"
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
 msgid "Specify the attribute name/value pair(s)\n"
-msgstr "Indiquer les paires nom d'attributs et valeurs.\n"
+msgstr "Indiquer les paires nom d'attributs et valeurs\n"
 
 #: src/tools/sss_usermod.c:152
 msgid "Specify user to modify\n"
@@ -3003,7 +3003,7 @@ msgstr "Impossible de lire l'entrée de l'utilisateur\n"
 #: src/tools/sssctl/sssctl.c:91
 #, c-format
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
-msgstr "Entrée non valable, veuillez fournir %s ou %s\n"
+msgstr "Entrée non valable, veuillez fournir %s ou %s.\n"
 
 #: src/tools/sssctl/sssctl.c:109 src/tools/sssctl/sssctl.c:114
 msgid "Error while executing external command\n"
@@ -3149,7 +3149,7 @@ msgstr "Fichiers de configuration utilisés : %zu\n"
 #: src/tools/sssctl/sssctl_data.c:89
 #, c-format
 msgid "Unable to create backup directory [%d]: %s"
-msgstr "Impossible de créer le répertoire de sauvegarde  [%d]: %s"
+msgstr "Impossible de créer le répertoire de sauvegarde [%d]: %s"
 
 #: src/tools/sssctl/sssctl_data.c:95
 msgid "SSSD backup of local data already exists, override?"

@@ -13,7 +13,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-07-12 20:53+0200\n"
-"PO-Revision-Date: 2021-03-18 10:39+0000\n"
+"PO-Revision-Date: 2021-07-20 07:04+0000\n"
 "Last-Translator: Sundeep Anand <suanand@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_CN/>\n"
@@ -22,7 +22,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.5.1\n"
+"X-Generator: Weblate 4.7.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -39,7 +39,7 @@ msgstr "在调试日志中的时间戳中包含微秒"
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Enable/disable debug backtrace"
-msgstr ""
+msgstr "启用/禁用 debug backtrace"
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Watchdog timeout before restarting service"
@@ -329,9 +329,8 @@ msgid "Path to certificate database with PKCS#11 modules."
 msgstr "带有 PKCS＃11 模块的证书数据库的路径。"
 
 #: src/config/SSSDConfig/sssdoptions.py:101
-#, fuzzy
 msgid "Tune certificate verification for PAM authentication."
-msgstr "调整证书验证"
+msgstr "对 PAM 验证调整证书验证。"
 
 #: src/config/SSSDConfig/sssdoptions.py:102
 msgid "How many seconds will pam_sss wait for p11_child to finish"
@@ -347,12 +346,12 @@ msgstr "允许服务使用智能卡"
 
 #: src/config/SSSDConfig/sssdoptions.py:105
 msgid "Additional timeout to wait for a card if requested"
-msgstr "等待卡的额外超时，如果请求。"
+msgstr "等待卡的额外超时，如果请求"
 
 #: src/config/SSSDConfig/sssdoptions.py:106
 msgid ""
 "PKCS#11 URI to restrict the selection of devices for Smartcard authentication"
-msgstr "PKCS#11 URI，用于限制智能卡认证设备的选择。"
+msgstr "PKCS#11 URI，用于限制智能卡认证设备的选择"
 
 #: src/config/SSSDConfig/sssdoptions.py:107
 msgid "When shall the PAM responder force an initgroups request"
@@ -371,6 +370,7 @@ msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
 msgstr ""
+"<PAM service>:<authentication indicator> 对列表，它们必须强制使用 GSSAPI 身份验证进行 PAM 访问"
 
 #: src/config/SSSDConfig/sssdoptions.py:114
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -403,13 +403,13 @@ msgstr "到可信 CA 证书存储的路径"
 
 #: src/config/SSSDConfig/sssdoptions.py:127
 msgid "Allow to generate ssh-keys from certificates"
-msgstr "允许从证书中生成 ssh-keys。"
+msgstr "允许从证书中生成 ssh-keys"
 
 #: src/config/SSSDConfig/sssdoptions.py:128
 msgid ""
 "Use the following matching rules to filter the certificates for ssh-key "
 "generation"
-msgstr "使用以下匹配规则来过滤生成 ssh-key 的证书。"
+msgstr "使用以下匹配规则来过滤生成 ssh-key 的证书"
 
 #: src/config/SSSDConfig/sssdoptions.py:132
 msgid "List of UIDs or user names allowed to access the PAC responder"
@@ -1698,7 +1698,7 @@ msgstr "自动智能刷新周期"
 
 #: src/config/SSSDConfig/sssdoptions.py:518
 msgid "Smart and full refresh random offset"
-msgstr ""
+msgstr "智能和完整刷新随机偏移"
 
 #: src/config/SSSDConfig/sssdoptions.py:519
 msgid "Whether to filter rules by hostname, IP addresses and network"
@@ -1905,7 +1905,7 @@ msgstr "使用的 NSS 库的名称"
 
 #: src/config/SSSDConfig/sssdoptions.py:581
 msgid "The name of the NSS library to use for hosts and networks lookups"
-msgstr "用于查询主机和网络的 NSS 库名称。"
+msgstr "用于查询主机和网络的 NSS 库名称"
 
 #: src/config/SSSDConfig/sssdoptions.py:582
 msgid "Whether to look up canonical group name from cache if possible"
@@ -1946,7 +1946,7 @@ msgstr "刷新配置数据库，然后退出"
 
 #: src/monitor/monitor.c:2420
 msgid "Similar to --genconf, but only refreshes the given section"
-msgstr "类似于 --genconf，但只刷新指定的部分。"
+msgstr "类似于 --genconf，但只刷新指定的部分"
 
 #: src/monitor/monitor.c:2423
 msgid "Print version number and exit"
@@ -1954,15 +1954,15 @@ msgstr "显示版本号并退出"
 
 #: src/monitor/monitor.c:2461
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
-msgstr ""
+msgstr "选项 -i|--interactive 不能和 -D|--daemon 一起使用\n"
 
 #: src/monitor/monitor.c:2467
 msgid "Option -g is incompatible with -D or -i\n"
-msgstr ""
+msgstr "选项 -g 与 -D 或 -i 不兼容\n"
 
 #: src/monitor/monitor.c:2480
 msgid "Running under %"
-msgstr ""
+msgstr "运行于 % 下"
 
 #: src/monitor/monitor.c:2562
 msgid "SSSD is already running\n"
@@ -2009,13 +2009,12 @@ msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "使用自定义版本的 krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
-#, fuzzy
 msgid "talloc_asprintf failed.\n"
-msgstr "malloc 失败。\n"
+msgstr "talloc_asprintf 失败。\n"
 
 #: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
-msgstr ""
+msgstr "set_debug_file_from_fd 失败。\n"
 
 #: src/providers/data_provider_be.c:733
 msgid "Domain of the information provider (mandatory)"
@@ -2055,7 +2054,7 @@ msgstr "查找错误说明时出现意外错误"
 
 #: src/sss_client/pam_sss.c:68
 msgid "Permission denied. "
-msgstr "权限被拒绝。"
+msgstr "权限被拒绝。 "
 
 #: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:785
 #: src/sss_client/pam_sss.c:796
@@ -2104,15 +2103,15 @@ msgstr "更改 OTP 密码后，您需要注销并重新登录以获得票证"
 
 #: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
 msgid "Password change failed. "
-msgstr "更改密码失败。"
+msgstr "更改密码失败。 "
 
 #: src/sss_client/pam_sss.c:2045
 msgid "New Password: "
-msgstr "新密码："
+msgstr "新密码： "
 
 #: src/sss_client/pam_sss.c:2046
 msgid "Reenter new Password: "
-msgstr "重新输入新密码："
+msgstr "重新输入新密码： "
 
 #: src/sss_client/pam_sss.c:2208 src/sss_client/pam_sss.c:2211
 msgid "First Factor: "
@@ -2128,7 +2127,7 @@ msgstr "第二因素： "
 
 #: src/sss_client/pam_sss.c:2230
 msgid "Password: "
-msgstr "密码："
+msgstr "密码： "
 
 #: src/sss_client/pam_sss.c:2382 src/sss_client/pam_sss.c:2385
 msgid "First Factor (Current Password): "
@@ -2136,7 +2135,7 @@ msgstr "第一因素（当前密码）： "
 
 #: src/sss_client/pam_sss.c:2389
 msgid "Current Password: "
-msgstr "当前密码："
+msgstr "当前密码： "
 
 #: src/sss_client/pam_sss.c:2746
 msgid "Password expired. Change your password now."
@@ -2268,7 +2267,7 @@ msgstr "初始化工具时出错 - 没有本地域\n"
 #: src/tools/sss_groupshow.c:716 src/tools/sss_userdel.c:202
 #: src/tools/sss_usermod.c:164
 msgid "Error initializing the tools\n"
-msgstr "初始化工具出错。\n"
+msgstr "初始化工具出错\n"
 
 #: src/tools/sss_useradd.c:132 src/tools/sss_groupadd.c:97
 #: src/tools/sss_groupdel.c:91 src/tools/sss_groupmod.c:123
@@ -2426,7 +2425,7 @@ msgstr "无法修改组 - 检查成员组名称是否正确\n"
 
 #: src/tools/sss_groupmod.c:261
 msgid "Could not modify group - check if groupname is correct\n"
-msgstr " 无法修改组 - 检查组名是否正确\n"
+msgstr "无法修改组 - 检查组名是否正确\n"
 
 #: src/tools/sss_groupmod.c:265
 msgid "Transaction error. Could not modify group.\n"
@@ -2449,7 +2448,7 @@ msgstr "%1$sGID 号：%2$d\n"
 #: src/tools/sss_groupshow.c:620
 #, c-format
 msgid "%1$sMember users: "
-msgstr "%1$sMember 用户："
+msgstr "%1$sMember 用户： "
 
 #: src/tools/sss_groupshow.c:627
 #, c-format
@@ -2458,7 +2457,7 @@ msgid ""
 "%1$sIs a member of: "
 msgstr ""
 "\n"
-"%1$sIs 一个成员："
+"%1$sIs 一个成员： "
 
 #: src/tools/sss_groupshow.c:634
 #, c-format
@@ -2467,7 +2466,7 @@ msgid ""
 "%1$sMember groups: "
 msgstr ""
 "\n"
-"%1$sMember 组："
+"%1$sMember 组： "
 
 #: src/tools/sss_groupshow.c:670
 msgid "Print indirect group members recursively"
@@ -2541,7 +2540,7 @@ msgstr "没有删除主目录 - 不归用户所有\n"
 #: src/tools/sss_userdel.c:312
 #, c-format
 msgid "Cannot remove homedir: %1$s\n"
-msgstr "无法删除主目录：%1$s\n"
+msgstr "无法删除主目录： %1$s\n"
 
 #: src/tools/sss_userdel.c:326
 msgid ""
@@ -2584,9 +2583,7 @@ msgstr "删除一个属性/值对。格式为 attrname=value。"
 msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
-msgstr ""
-"将属性设置为名称/值对。格式为 attrname=value。对于多值属性，替换值的命令已存"
-"在。"
+msgstr "将属性设置为名称/值对。格式为 attrname=value。对于多值属性，替换值的命令已存在"
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
@@ -2843,12 +2840,12 @@ msgstr ""
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format
 msgid "Failed to open %s\n"
-msgstr "打开失败：%s\n"
+msgstr "打开失败： %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:123
 #, c-format
 msgid "File %1$s does not exist.\n"
-msgstr "文件 %1$s 不存在\n"
+msgstr "文件 %1$s 不存在。\n"
 
 #: src/tools/sssctl/sssctl_config.c:127
 msgid ""
@@ -3138,11 +3135,11 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_user_checks.c:232
 msgid "PAM action [auth|acct|setc|chau|open|clos], default: "
-msgstr "PAM 操作 [auth|acct|setc|chau|open|clos]，默认："
+msgstr "PAM 操作 [auth|acct|setc|chau|open|clos]，默认： "
 
 #: src/tools/sssctl/sssctl_user_checks.c:235
 msgid "PAM service, default: "
-msgstr "PAM 服务，默认："
+msgstr "PAM 服务，默认： "
 
 #: src/tools/sssctl/sssctl_user_checks.c:240
 msgid "Specify user name."
@@ -3174,7 +3171,7 @@ msgstr "使用 [%s] 进行 InfoPipe 用户查找失败。\n"
 #: src/tools/sssctl/sssctl_user_checks.c:263
 #, c-format
 msgid "pam_start failed: %s\n"
-msgstr "pam_start 失败：%s\n"
+msgstr "pam_start 失败： %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:268
 msgid ""
@@ -3187,7 +3184,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_user_checks.c:272
 #, c-format
 msgid "pam_get_item failed: %s\n"
-msgstr "pam_get_item 失败：%s\n"
+msgstr "pam_get_item 失败： %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:275
 #, c-format
