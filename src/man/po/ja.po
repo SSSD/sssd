@@ -13,16 +13,16 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2020-07-22 07:48-0400\n"
-"Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
-"Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
-"ja/)\n"
+"PO-Revision-Date: 2021-07-20 07:04+0000\n"
+"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
+"Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-manpage-master/ja/>\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Zanata 4.6.2\n"
+"X-Generator: Weblate 4.7.1\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -608,7 +608,7 @@ msgstr ""
 msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
-msgstr ""
+msgstr "内部 DNS リゾルバーを更新する必要があるときを判断するために SSSD が resolv.conf の状態を監視するかどうかを制御します。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:360
@@ -1620,7 +1620,7 @@ msgstr "get_domains_timeout (整数)"
 msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
-msgstr ""
+msgstr "サブドメインのリストが有効とみなされる時間を秒単位で指定します。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1137
@@ -2960,6 +2960,8 @@ msgid ""
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
+"セッション記録を有効にしておくべきユーザーのカンマ区切りのリストです。NSS "
+"が返すユーザー名にマッチします。つまり、スペースの置換、大文字小文字の変更などの可能性がある場合には、その後になります。"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2265 sssd-session-recording.5.xml:115
@@ -2978,6 +2980,8 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
+"セッション記録を有効にしておくべきユーザーのグループごとのカンマ区切りのリストです。NSS "
+"が返すグループ名にマッチします。つまり、スペースの置換、大文字小文字の変更などの可能性がある場合には、その後になります。"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2279 sssd.conf.5.xml:2311 sssd-session-recording.5.xml:129
@@ -3394,7 +3398,7 @@ msgstr ""
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
-msgstr ""
+msgstr "リフレッシュ後にホストの ssh 鍵を保持するには何秒かかるか。IE ホストキーを何秒キャッシュするか。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2632
@@ -3487,6 +3491,8 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
+"2-Factor-Authentication (2FA) が使用され、認証情報を保存する必要がある場合、この値は、最初の認証要素 (長期パスワード) "
+"を SHA512 ハッシュとしてキャッシュに保存する必要がある最小の長さを決定します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2715
@@ -4524,7 +4530,7 @@ msgstr "realmd_tags (文字列)"
 #: sssd.conf.5.xml:3677
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
-msgstr ""
+msgstr "このドメインのための realmd 設定サービスによって格納された様々なタグ。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3683
@@ -7113,7 +7119,7 @@ msgstr "ldap_rfc2307_fallback_to_local_users (論理値)"
 msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
-msgstr ""
+msgstr "RFC2307 スキーマを使用するサーバーの LDAP グループのメンバーとしてローカルユーザーを保持することができます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1446
@@ -7440,7 +7446,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1731
 msgid "The name of the automount master map in LDAP."
-msgstr ""
+msgstr "LDAP のオートマウントマスターマップの名前。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1734
@@ -13765,8 +13771,7 @@ msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
-"名前/値のペアに属性を指定します。形式は attrname=value です。複数の値を持つ属"
-"性の場合、コマンドがすでに存在する値に置き換えられます。"
+"名前/値のペアに属性を指定します。形式は attrname=value です。複数の値を持つ属性の場合、コマンドがすでに存在する値に置き換えられます"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:160
@@ -17766,7 +17771,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:878
 msgid "The object class of a host entry in LDAP."
-msgstr ""
+msgstr "LDAP にあるホストエントリーのオブジェクトクラスです。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:881 sssd-ldap-attributes.5.xml:978
@@ -17828,7 +17833,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:942
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr ""
+msgstr "ホストの SSH 公開鍵を含む LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:952
