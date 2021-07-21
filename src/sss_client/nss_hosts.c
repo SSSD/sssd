@@ -250,7 +250,7 @@ internal_gethostbyname2_r(const char *name, int af,
     nret = sss_nss_make_request(SSS_NSS_GETHOSTBYNAME2, &rd,
                                 &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
-        *h_errnop = NETDB_INTERNAL;
+        *h_errnop = NO_RECOVERY;
         goto out;
     }
 
@@ -380,7 +380,7 @@ _nss_sss_gethostbyaddr_r(const void *addr, socklen_t addrlen,
                                 &repbuf, &replen, errnop);
     free(data);
     if (nret != NSS_STATUS_SUCCESS) {
-        *h_errnop = NETDB_INTERNAL;
+        *h_errnop = NO_RECOVERY;
         goto out;
     }
 
@@ -500,7 +500,7 @@ internal_gethostent_r(struct hostent *result,
     nret = sss_nss_make_request(SSS_NSS_GETHOSTENT, &rd,
                                 &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
-        *h_errnop = NETDB_INTERNAL;
+        *h_errnop = NO_RECOVERY;
         return nret;
     }
 
