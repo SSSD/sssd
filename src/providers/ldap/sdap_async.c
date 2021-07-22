@@ -1659,9 +1659,14 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
     case LDAP_RES_SEARCH_ENTRY:
         ret = state->parse_cb(state->sh, reply, state->cb_data);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "reply parsing callback failed.\n");
-            tevent_req_error(req, ret);
-            return;
+            if (ret == ENOENT) {
+                DEBUG(SSSDBG_TRACE_FUNC, "reply callback found broken entry\n");
+                break;
+            } else {
+                DEBUG(SSSDBG_CRIT_FAILURE, "reply parsing callback failed.\n");
+                tevent_req_error(req, ret);
+                return;
+            }
         }
 
         sdap_unlock_next_reply(state->op);
@@ -2656,7 +2661,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
     if (!vals) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Unknown entry type, no objectClass found for DN [%s]!\n", dn);
-        ret = EINVAL;
+        ret = ENOENT;
         goto done;
     }
     for (mi =0; mi < state->num_maps; mi++) {
