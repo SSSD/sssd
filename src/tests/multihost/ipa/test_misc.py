@@ -9,7 +9,7 @@
 import pytest
 import time
 from sssd.testlib.ipa.utils import ipaTools
-from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.utils import sssdTools, SSHClient
 from sssd.testlib.common.exceptions import SSSDException
 import re
 
@@ -180,3 +180,124 @@ class Testipabz(object):
         assert client_ip in rc_arecord.stdout_text
         assert rc_ptrrecord.returncode == 0
         assert client_hostname in rc_ptrrecord.stdout_text
+
+    def test_authentication_indicators(self, multihost):
+        """
+        :title: Add support to verify authentication
+         indicators in pam_sss_gss
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1926622
+        :id: 4891ed62-7fc8-11eb-98be-002b677efe14
+        :steps:
+            1. Add pam_sss_gss configuration to /etc/sssd/sssd.conf
+            2. Add pam_sss_gss.so to /etc/pam.d/sudo
+            3. Restart SSSD
+            4. Enable SSSD debug logs
+            5. Switch to 'admin' user
+            6. obtain Kerberos ticket and check that it
+             was obtained using SPAKE pre-authentication.
+            7. Create sudo configuration that allows an admin to
+             run SUDO rules
+            8. Try 'sudo -l' as admin
+            9. As root, check content of sssd_pam.log
+            10. Check if acquired service ticket has
+             req. indicators: 0
+            11. Add pam_sss_gss configuration to /etc/sssd/sssd.conf
+            12. Check if acquired service ticket has req.
+             indicators: 2
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+            4. Should succeed
+            5. Should succeed
+            6. Should succeed
+            7. Should succeed
+            8. Should succeed
+            9. Should succeed
+            10. Should succeed
+            11. Should succeed
+            12. Should succeed
+        """
+        client = sssdTools(multihost.client[0])
+        domain_params = {'pam_gssapi_services': 'sudo, sudo-i',
+                         'pam_gssapi_indicators_map': 'hardened, '
+                                                      'sudo:pkinit, '
+                                                      'sudo-i:otp'}
+        client.sssd_conf('pam', domain_params)
+        multihost.client[0].run_command('cp -vf '
+                                        '/etc/pam.d/sudo '
+                                        '/etc/pam.d/sudo_indicators')
+        multihost.client[0].run_command("sed -i "
+                                        "'2s/^/auth sufficient "
+                                        "pam_sss_gss.so debug\\n/' "
+                                        "/etc/pam.d/sudo")
+        multihost.client[0].run_command('cp -vf '
+                                        '/etc/pam.d/sudo-i '
+                                        '/etc/pam.d/sudo-i_indicators')
+        multihost.client[0].run_command("sed -i "
+                                        "'2s/^/auth sufficient "
+                                        "pam_sss_gss.so debug\\n/' "
+                                        "/etc/pam.d/sudo-i")
+        multihost.client[0].run_command('systemctl stop sssd ; '
+                                        'rm -rf /var/log/sssd/* ; '
+                                        'rm -rf /var/lib/sss/db/* ; '
+                                        'systemctl start sssd')
+        multihost.client[0].run_command("sssctl debug-level 9")
+        ssh = SSHClient(multihost.client[0].sys_hostname,
+                        username='admin', password='Secret123')
+        (_, _, exit_status) = ssh.execute_cmd('kinit admin',
+                                              stdin='Secret123')
+        (result, errors, exit_status) = ssh.exec_command('klist')
+        (result, errors, exit_status) = ssh.execute_cmd('ipa '
+                                                        'sudocmd-add ALL2')
+        (result, errors, exit_status) = ssh.execute_cmd('ipa '
+                                                        'sudorule-add '
+                                                        'testrule2')
+        (result, errors, exit_status) = ssh.execute_cmd("ipa sudorule-add"
+                                                        "-allow-command "
+                                                        "testrule2 "
+                                                        "--sudocmds 'ALL2'")
+        (result, errors, exit_status) = ssh.execute_cmd('ipa '
+                                                        'sudorule-mod '
+                                                        'testrule2 '
+                                                        '--hostcat=all')
+        (result, errors, exit_status) = ssh.execute_cmd('ipa '
+                                                        'sudorule-add-user '
+                                                        'testrule2 '
+                                                        '--users admin')
+        (result, errors, exit_status) = ssh.execute_cmd('sudo -l')
+        ssh.close()
+        search = multihost.client[0].run_command('fgrep '
+                                                 'gssapi_ '
+                                                 '/var/log/sssd/sssd_pam.log '
+                                                 '|tail -10')
+        assert 'indicators: 0' in search.stdout_text
+        client = sssdTools(multihost.client[0])
+        domain_params = {'pam_gssapi_services': 'sudo, sudo-i',
+                         'pam_gssapi_indicators_map': 'sudo-i:hardened'}
+        client.sssd_conf('pam', domain_params)
+        multihost.client[0].run_command('systemctl stop sssd ; '
+                                        'rm -rf /var/log/sssd/* ; '
+                                        'rm -rf /var/lib/sss/db/* ; '
+                                        'systemctl start sssd')
+        ssh = SSHClient(multihost.client[0].sys_hostname,
+                        username='admin', password='Secret123')
+        (_, _, exit_status) = ssh.execute_cmd('kinit admin',
+                                              stdin='Secret123')
+        multihost.client[0].run_command("sssctl debug-level 9")
+        (result, errors, exit_status) = ssh.execute_cmd('sudo -l')
+        (result, errors, exit_status) = ssh.exec_command('klist')
+        (result, errors, exit_status) = ssh.execute_cmd('ipa '
+                                                        'sudocmd-del ALL2')
+        (result, errors, exit_status) = ssh.execute_cmd('ipa '
+                                                        'sudorule-del '
+                                                        'testrule2')
+        multihost.client[0].run_command('cp -vf /etc/pam.d/sudo_indicators '
+                                        '/etc/pam.d/sudo')
+        multihost.client[0].run_command('cp -vf /etc/pam.d/sudo-i_indicators '
+                                        '/etc/pam.d/sudo-i')
+        search = multihost.client[0].run_command('fgrep gssapi_ '
+                                                 '/var/log/sssd/sssd_pam.log'
+                                                 ' |tail -10')
+        ssh.close()
+        assert 'indicators: 2' in search.stdout_text
