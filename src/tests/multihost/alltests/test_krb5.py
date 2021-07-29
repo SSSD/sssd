@@ -70,26 +70,26 @@ class TestKrbWithLogin(object):
     @pytest.mark.tier1_2
     def test_0002_generating_lot_of(self, multihost, backupsssdconf):
         """
-            :title: SSSD is generating lot of LDAP
-            queries in a very large environment
-            :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1772513
-            :id: 74a60320-e48b-11eb-ba19-845cf3eff344
-            :steps:
-                1. Start SSSD with any configuration
-                2. Call 'getent passwd username@domain'
-                3. Check the entry is present in data and timestamp cache
-                4. Now stop SSSD and remove the timestamp cache
-                5. Start SSSD and call 'sss_cache -E'
-                6. Call 'getent passwd username@domain'
-                7. Do the ldbsearch checks again
-            :expectedresults:
-                1. Should succeed
-                2. Should succeed
-                3. Should succeed
-                4. Should succeed
-                5. Should succeed
-                6. Should succeed
-                7. Should succeed
+        :title: SSSD is generating lot of LDAP
+         queries in a very large environment
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1772513
+        :id: 74a60320-e48b-11eb-ba19-845cf3eff344
+        :steps:
+          1. Start SSSD with any configuration
+          2. Call 'getent passwd username@domain'
+          3. Check the entry is present in data and timestamp cache
+          4. Now stop SSSD and remove the timestamp cache
+          5. Start SSSD and call 'sss_cache -E'
+          6. Call 'getent passwd username@domain'
+          7. Do the ldbsearch checks again
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+          5. Should succeed
+          6. Should succeed
+          7. Should succeed
         """
         multihost.client[0].service_sssd('restart')
         cmd = multihost.client[0].run_command('getent passwd '
