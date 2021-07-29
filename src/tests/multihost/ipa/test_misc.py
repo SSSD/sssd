@@ -138,8 +138,10 @@ class Testipabz(object):
     def test_asymmetric_auth_for_nsupdate(self, multihost,
                                           create_reverse_zone):
         """
-        @Title: Support asymmetric auth for nsupdate
-        @Bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1884301
+        :title: Support asymmetric auth for nsupdate
+        :id: 2bc5c4c7-7296-434b-8f38-2b7297b32b9b
+        :requirement: dyndns
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1884301
         """
         client = sssdTools(multihost.client[0])
         client_hostname = multihost.client[0].sys_hostname
