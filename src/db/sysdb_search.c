@@ -1355,7 +1355,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
         }
 
         ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                         LDB_SCOPE_SUBTREE, attrs, fmt_filter, ul_gid);
+                         LDB_SCOPE_SUBTREE, attrs, fmt_filter, ul_gid, ul_gid, ul_gid);
         if (ret != EOK) {
             ret = sysdb_error_to_errno(ret);
             goto done;
