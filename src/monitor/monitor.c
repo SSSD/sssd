@@ -1642,6 +1642,13 @@ errno_t load_configuration(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* return EOK for genconf-section to exit 0 when no
+     * sssd configuration exists (KCM use case) */
+    if (only_section != NULL) {
+        *monitor = NULL;
+        goto done;
+    }
+
     /* Validate the configuration in the database */
     /* Read in the monitor's configuration */
     ret = get_monitor_config(ctx);
@@ -1666,7 +1673,7 @@ errno_t load_configuration(TALLOC_CTX *mem_ctx,
 
 done:
     talloc_free(cdb_file);
-    if (ret != EOK) {
+    if (ret != EOK || only_section != NULL) {
         talloc_free(ctx);
     }
     return ret;
