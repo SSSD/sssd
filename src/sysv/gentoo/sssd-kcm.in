@@ -10,7 +10,8 @@ pidfile="@pidpath@/sssd_kcm.pid"
 
 start_pre()
 {
-    "@sbindir@/sssd" --genconf-section=kcm || return $?
+    "@sbindir@/sssd" --genconf-section=kcm >/dev/null 2>/dev/null
+    return 0
 }
 
 depend()
