@@ -181,6 +181,12 @@ void sss_debug_fn(const char *file,
                   int level,
                   const char *format, ...) SSS_ATTRIBUTE_PRINTF(5, 6);
 
+/* Explicitly set new chain id. The old id is returned. */
+uint64_t sss_chain_id_set(uint64_t id);
+
+/* Get the current chain id. */
+uint64_t sss_chain_id_get(void);
+
 #define APPEND_LINE_FEED 0x1 /* can be used as a sss_vdebug_fn() flag */
 
 /* Checks whether level is set in generic debug_level.

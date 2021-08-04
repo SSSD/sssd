@@ -50,7 +50,7 @@ int debug_microseconds = SSSDBG_MICROSECONDS_UNRESOLVED;
 enum sss_logger_t sss_logger = STDERR_LOGGER;
 const char *debug_log_file = "sssd";
 FILE *_sss_debug_file;
-uint64_t debug_chain_id;
+static uint64_t debug_chain_id;
 
 const char *sss_logger_str[] = {
         [STDERR_LOGGER] = "stderr",
@@ -324,8 +324,8 @@ void sss_vdebug_fn(const char *file,
     sss_debug_backtrace_printf(level, "[%s] [%s] (%#.4x): ",
                                debug_prg_name, function, level);
 
-    if (debug_chain_id > 0) {
-        sss_debug_backtrace_printf(level, "[RID#%lu] ", debug_chain_id);
+    if (sss_chain_id_get() > 0) {
+        sss_debug_backtrace_printf(level, "[RID#%lu] ", sss_chain_id_get());
     }
 
     sss_debug_backtrace_vprintf(level, format, ap);
@@ -488,4 +488,16 @@ int rotate_debug_files(void)
 void _sss_talloc_log_fn(const char *message)
 {
     DEBUG(SSSDBG_FATAL_FAILURE, "%s\n", message);
+}
+
+uint64_t sss_chain_id_set(uint64_t id)
+{
+    uint64_t old_id = debug_chain_id;
+    debug_chain_id = id;
+    return old_id;
+}
+
+uint64_t sss_chain_id_get(void)
+{
+    return debug_chain_id;
 }

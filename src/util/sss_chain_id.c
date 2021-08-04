@@ -22,8 +22,9 @@
 
 #include <tevent.h>
 
+#include "util/debug.h"
+
 #ifdef BUILD_CHAIN_ID
-extern uint64_t debug_chain_id;
 
 static void sss_chain_id_trace_fde(struct tevent_fd *fde,
                                    enum tevent_event_trace_point point,
@@ -32,11 +33,11 @@ static void sss_chain_id_trace_fde(struct tevent_fd *fde,
     switch (point) {
     case TEVENT_EVENT_TRACE_ATTACH:
         /* Assign the current chain id when the event is created. */
-        tevent_fd_set_tag(fde, debug_chain_id);
+        tevent_fd_set_tag(fde, sss_chain_id_get());
         break;
     case TEVENT_EVENT_TRACE_BEFORE_HANDLER:
         /* Set the chain id when a handler is being called. */
-        debug_chain_id = tevent_fd_get_tag(fde);
+        sss_chain_id_set(tevent_fd_get_tag(fde));
         break;
     default:
         /* Do nothing. */
@@ -51,11 +52,11 @@ static void sss_chain_id_trace_signal(struct tevent_signal *se,
     switch (point) {
     case TEVENT_EVENT_TRACE_ATTACH:
         /* Assign the current chain id when the event is created. */
-        tevent_signal_set_tag(se, debug_chain_id);
+        tevent_signal_set_tag(se, sss_chain_id_get());
         break;
     case TEVENT_EVENT_TRACE_BEFORE_HANDLER:
         /* Set the chain id when a handler is being called. */
-        debug_chain_id = tevent_signal_get_tag(se);
+        sss_chain_id_set(tevent_signal_get_tag(se));
         break;
     default:
         /* Do nothing. */
@@ -70,11 +71,11 @@ static void sss_chain_id_trace_timer(struct tevent_timer *timer,
     switch (point) {
     case TEVENT_EVENT_TRACE_ATTACH:
         /* Assign the current chain id when the event is created. */
-        tevent_timer_set_tag(timer, debug_chain_id);
+        tevent_timer_set_tag(timer, sss_chain_id_get());
         break;
     case TEVENT_EVENT_TRACE_BEFORE_HANDLER:
         /* Set the chain id when a handler is being called. */
-        debug_chain_id = tevent_timer_get_tag(timer);
+        sss_chain_id_set(tevent_timer_get_tag(timer));
         break;
     default:
         /* Do nothing. */
@@ -89,11 +90,11 @@ static void sss_chain_id_trace_immediate(struct tevent_immediate *im,
     switch (point) {
     case TEVENT_EVENT_TRACE_ATTACH:
         /* Assign the current chain id when the event is created. */
-        tevent_immediate_set_tag(im, debug_chain_id);
+        tevent_immediate_set_tag(im, sss_chain_id_get());
         break;
     case TEVENT_EVENT_TRACE_BEFORE_HANDLER:
         /* Set the chain id when a handler is being called. */
-        debug_chain_id = tevent_immediate_get_tag(im);
+        sss_chain_id_set(tevent_immediate_get_tag(im));
         break;
     default:
         /* Do nothing. */
@@ -111,7 +112,7 @@ static void sss_chain_id_trace_loop(enum tevent_trace_point point,
          * after the event handler was finished, we need to restore chain
          * id to 0 (out of request).
          */
-        debug_chain_id = 0;
+        sss_chain_id_set(0);
         break;
     default:
         /* Do nothing. */
@@ -128,33 +129,11 @@ void sss_chain_id_setup(struct tevent_context *ev)
     tevent_set_trace_immediate_callback(ev, sss_chain_id_trace_immediate, NULL);
 }
 
-uint64_t sss_chain_id_set(uint64_t id)
-{
-    uint64_t old_id = debug_chain_id;
-    debug_chain_id = id;
-    return old_id;
-}
-
-uint64_t sss_chain_id_get(void)
-{
-    return debug_chain_id;
-}
-
 #else /* BUILD_CHAIN_ID not defined */
 
 void sss_chain_id_setup(struct tevent_context *ev)
 {
     return;
-}
-
-uint64_t sss_chain_id_set(uint64_t id)
-{
-    return 0;
-}
-
-uint64_t sss_chain_id_get(void)
-{
-    return 0;
 }
 
 #endif /* BUILD_CHAIN_ID */

@@ -26,10 +26,4 @@
 /* Setup chain id tracking on tevent context. */
 void sss_chain_id_setup(struct tevent_context *ev);
 
-/* Explicitly set new chain id. The old id is returned. */
-uint64_t sss_chain_id_set(uint64_t id);
-
-/* Get the current chain id. */
-uint64_t sss_chain_id_get(void);
-
 #endif /* _SSS_CHAIN_ID_ */
