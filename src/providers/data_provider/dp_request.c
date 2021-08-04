@@ -133,6 +133,10 @@ static errno_t dp_attach_req(struct dp_req *dp_req,
         SSS_REQ_TRACE_CID_DP_REQ(SSSDBG_TRACE_FUNC, dp_req->name,
                                  "New request. [%s CID #%u] Flags [%#.4x].",
                                  sender_name, cli_id, dp_flags);
+        if (be_is_offline(provider->be_ctx)) {
+            DEBUG(SSSDBG_TRACE_FUNC, "[CID #%u] Backend is offline! " \
+                                     "Using cached data if available\n", cli_id);
+        }
     } else {
         SSS_REQ_TRACE_CID_DP_REQ(SSSDBG_TRACE_FUNC, dp_req->name,
                                  "New request. Flags [%#.4x].",
