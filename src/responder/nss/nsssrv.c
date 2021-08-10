@@ -63,7 +63,7 @@ nss_clear_memcache(TALLOC_CTX *mem_ctx,
         if (ret == ENOENT) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   "CLEAR_MC_FLAG not found. Nothing to do.\n");
-            return ret;
+            return EOK; /* Most probably log rotation SIGHUP to monitor */
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to check existence of "CLEAR_MC_FLAG": %s.\n",
