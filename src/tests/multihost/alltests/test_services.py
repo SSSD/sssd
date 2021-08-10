@@ -41,8 +41,12 @@ class TestServices(object):
             sudoers_file = '/etc/sudoers.d/%s' % user
             multihost.client[0].put_file_contents(sudoers_file, allow_sudo)
         tools = sssdTools(multihost.client[0])
-        sssd_params = {'default_domain_suffix': 'foo'}
+        sssd_params = {'default_domain_suffix': 'foo',
+                       'domains': 'LOCAL'}
         tools.sssd_conf('sssd', sssd_params)
+        domain_section = 'domain/LOCAL'
+        domain_params = {'id_provider': 'files'}
+        tools.sssd_conf(domain_section, domain_params)
         multihost.client[0].service_sssd('restart')
         for user in users.keys():
             try:
