@@ -11,6 +11,11 @@ from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 
 
+def client_version(multihost):
+    if [int(s) for s in multihost.client[0].distro if s.isdigit()][0] >= 9:
+        return True
+
+
 @pytest.mark.usefixtures('default_sssd')
 @pytest.mark.sssctl
 class Testsssctl(object):
@@ -37,11 +42,15 @@ class Testsssctl(object):
         multihost.client[0].service_sssd('start')
         for user in users.keys():
             sssctl_cmd = 'sssctl user-show %s' % user
-            cmd = multihost.client[0].run_command(sssctl_cmd, raiseonerr=False)
-            assert 'Cache entry expiration time: Never' in cmd.stdout_text
+            cmd = multihost.client[0].run_command(sssctl_cmd,
+                                                  raiseonerr=False)
+            assert 'Cache entry expiration time: Never'\
+                   in cmd.stdout_text
 
     @pytest.mark.tier1_2
-    def test_0002_bz1599207(self, multihost, backupsssdconf, localusers):
+    def test_0002_bz1599207(self, multihost,
+                            backupsssdconf,
+                            localusers):
         """
         :title: IDM-SSSD-TC: sssctl: sssd tools do not handle the implicit
          domain
@@ -52,12 +61,22 @@ class Testsssctl(object):
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
         tools.remove_sss_cache('/var/log/sssd')
-        rm_cmd = 'rm -f %s' % SSSD_DEFAULT_CONF
-        multihost.client[0].run_command(rm_cmd, raiseonerr=False)
+        if client_version(multihost):
+            tools.sssd_conf("sssd",
+                            {'enable_files_domain': 'true'},
+                            action='update')
+        else:
+            rm_cmd = 'rm -f %s' % SSSD_DEFAULT_CONF
+            multihost.client[0].run_command(rm_cmd,
+                                            raiseonerr=False)
         multihost.client[0].service_sssd('start')
         for user in users.keys():
-            cmd = 'getent -s sss passwd %s && sssctl user-show %s' % (
-                user, user)
-            cmd = multihost.client[0].run_command(cmd, raiseonerr=False)
-            assert 'Cache entry creation date' in cmd.stdout_text and \
-                   cmd.returncode == 0
+            cmd = multihost.client[0].run_command('getent'
+                                                  ' -s sss'
+                                                  ' passwd %s '
+                                                  '&& sssctl '
+                                                  'user-show %s' %
+                                                  (user, user),
+                                                  raiseonerr=False)
+            assert 'Cache entry creation date' in \
+                   cmd.stdout_text and cmd.returncode == 0
