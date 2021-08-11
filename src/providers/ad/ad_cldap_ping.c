@@ -36,6 +36,12 @@
 #include "providers/ldap/sdap_async.h"
 #include "db/sysdb.h"
 
+#ifdef HAVE_LDAP_IS_LDAPC_URL
+#define AD_PING_PROTOCOL "cldap"
+#else
+#define AD_PING_PROTOCOL "ldap"
+#endif
+
 struct ad_cldap_ping_dc_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
@@ -76,8 +82,9 @@ static struct tevent_req *ad_cldap_ping_dc_send(TALLOC_CTX *mem_ctx,
     state->ad_domain = ad_domain;
 
     subreq = sdap_connect_host_send(state, ev, opts, be_res->resolv,
-                                    be_res->family_order, host_db, "cldap",
-                                    dc->host, dc->port, false);
+                                    be_res->family_order, host_db,
+                                    AD_PING_PROTOCOL, dc->host, dc->port,
+                                    false);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
