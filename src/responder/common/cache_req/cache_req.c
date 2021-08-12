@@ -1331,8 +1331,7 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
 
     state = tevent_req_data(req, struct cache_req_state);
 
-    if ((state->cr->cache_behavior != CACHE_REQ_CACHE_FIRST)
-        || (domain_name != NULL)) {
+    if (state->cr->cache_behavior != CACHE_REQ_CACHE_FIRST) {
 
         if (!state->first_iteration) {
             /* We're done here. */

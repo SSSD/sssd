@@ -992,6 +992,56 @@ void test_user_by_name_missing_notfound(void **state)
     assert_true(test_ctx->dp_called);
 }
 
+void test_user_by_name_missing_notfound_cache_first(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->rctx->cache_first = true;
+
+    /* Mock values. */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
+
+    /* Test. */
+    run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
+    assert_true(test_ctx->dp_called);
+}
+
+void test_user_by_name_missing_notfound_full_name(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Mock values. */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+    mock_parse_inp(users[0].short_name, TEST_DOM_NAME, ERR_OK);
+
+    /* Test. */
+    run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
+    assert_true(test_ctx->dp_called);
+}
+
+void test_user_by_name_missing_notfound_cache_first_full_name(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->rctx->cache_first = true;
+
+    /* Mock values. */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+    mock_parse_inp(users[0].short_name, TEST_DOM_NAME, ERR_OK);
+
+    /* Test. */
+    run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
+    assert_true(test_ctx->dp_called);
+}
+
 void test_user_by_name_multiple_domains_requested_domains_found(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
@@ -4255,6 +4305,9 @@ int main(int argc, const char *argv[])
         new_single_domain_test(user_by_name_ncache),
         new_single_domain_test(user_by_name_missing_found),
         new_single_domain_test(user_by_name_missing_notfound),
+        new_single_domain_test(user_by_name_missing_notfound_cache_first),
+        new_single_domain_test(user_by_name_missing_notfound_full_name),
+        new_single_domain_test(user_by_name_missing_notfound_cache_first_full_name),
         new_multi_domain_test(user_by_name_multiple_domains_found),
         new_multi_domain_test(user_by_name_multiple_domains_notfound),
         new_multi_domain_test(user_by_name_multiple_domains_parse),
