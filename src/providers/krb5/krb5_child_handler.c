@@ -88,6 +88,7 @@ static errno_t pack_authtok(struct io_buffer *buf, size_t *rp,
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+    case SSS_AUTHTOK_TYPE_OAUTH2:
         data = (char *) sss_authtok_get_data(tok);
         auth_token_length = sss_authtok_get_size(tok);
         break;
@@ -798,6 +799,10 @@ static const char *krb5_child_response_type_to_str(int32_t type)
         return "TGT lifetime info";
     case SSS_KRB5_INFO_UPN:
         return "UPN info";
+    case SSS_CHILD_KEEP_ALIVE:
+        return "Keep alive";
+    case SSS_PAM_OAUTH2_INFO:
+        return "OAuth2 info";
     }
 
     DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected response type %d\n", type);

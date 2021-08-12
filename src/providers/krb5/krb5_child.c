@@ -41,6 +41,7 @@
 #include "providers/backend.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
+#include "krb5_plugin/idp/idp.h"
 #include "sss_cli.h"
 
 #define SSSD_KRB5_CHANGEPW_PRINCIPAL "kadmin/changepw"
@@ -117,6 +118,12 @@ struct krb5_req {
 
 static krb5_context krb5_error_ctx;
 #define KRB5_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
+
+static errno_t k5c_attach_otp_info_msg(struct krb5_req *kr);
+static errno_t k5c_attach_oauth2_info_msg(struct krb5_req *kr, struct sss_idp_oauth2 *data);
+static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr);
+static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline);
+static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error);
 
 static errno_t k5c_become_user(uid_t uid, gid_t gid, bool is_posix)
 {
@@ -393,6 +400,7 @@ static krb5_error_code tokeninfo_matches_2fa(TALLOC_CTX *mem_ctx,
     *out_pin = pin;
     return 0;
 }
+
 static krb5_error_code tokeninfo_matches_pwd(TALLOC_CTX *mem_ctx,
                                          const krb5_responder_otp_tokeninfo *ti,
                                          const char *pwd, size_t len,
@@ -760,6 +768,166 @@ done:
     return kerr;
 }
 
+static errno_t krb5_req_update(struct krb5_req *dest, struct krb5_req *src)
+{
+    /* Check request validity. This should never happen, but it is better to
+     * be little paranoid. */
+    if (strcmp(dest->ccname, src->ccname) != 0) {
+        return EINVAL;
+    }
+
+    if (strcmp(dest->upn, src->upn) != 0) {
+        return EINVAL;
+    }
+
+    if (dest->uid != src->uid || dest->gid != src->gid) {
+        return EINVAL;
+    }
+
+    /* Update PAM data. */
+    talloc_free(dest->pd);
+    dest->pd = talloc_steal(dest, src->pd);
+
+    return EOK;
+}
+
+static krb5_error_code idp_oauth2_preauth(struct krb5_req *kr,
+                                          struct sss_idp_oauth2 *oauth2)
+{
+    struct krb5_req *tmpkr = NULL;
+    uint32_t offline;
+    errno_t ret;
+
+    if (oauth2->verification_uri == NULL || oauth2->user_code == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* Challenge was presented. We need to continue the authentication
+     * with this exact child process in order to maintain internal Kerberos
+     * state so we are able to respond to this particular challenge. */
+
+    ret = k5c_attach_oauth2_info_msg(kr, oauth2);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_attach_oauth2_info_msg failed.\n");
+        return ret;
+    }
+
+    ret = k5c_attach_keep_alive_msg(kr);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_attach_keep_alive_msg failed.\n");
+        return ret;
+    }
+
+    tmpkr = talloc_zero(NULL, struct krb5_req);
+    if (tmpkr == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Send reply and wait for next step. */
+    ret = k5c_send_data(kr, STDOUT_FILENO, ret);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to send reply\n");
+    }
+
+    ret = k5c_recv_data(tmpkr, STDIN_FILENO, &offline);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = krb5_req_update(kr, tmpkr);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to update krb request [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+done:
+    talloc_free(tmpkr);
+    return ret;
+}
+
+static krb5_error_code answer_idp_oauth2(krb5_context kctx,
+                                         struct krb5_req *kr,
+                                         krb5_responder_context rctx)
+{
+    enum sss_authtok_type type;
+    struct sss_idp_oauth2 *data;
+    const char *challenge;
+    const char *token;
+    size_t token_len;
+    krb5_error_code kerr;
+
+    challenge = krb5_responder_get_challenge(kctx, rctx,
+                                             SSSD_IDP_OAUTH2_QUESTION);
+    if (challenge == NULL) {
+        return ENOENT;
+    }
+
+    data = sss_idp_oauth2_decode_challenge(challenge);
+    if (data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to parse OAuth2 challenge\n");
+        return EINVAL;
+    }
+
+    if (kr->pd->cmd == SSS_PAM_PREAUTH) {
+        kerr = idp_oauth2_preauth(kr, data);
+        if (kerr != EOK) {
+            goto done;
+        }
+    }
+
+    if (kr->pd->cmd != SSS_PAM_AUTHENTICATE) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected command [%d]\n", kr->pd->cmd);
+        kerr = EINVAL;
+        goto done;
+    }
+
+    type = sss_authtok_get_type(kr->pd->authtok);
+    if (type != SSS_AUTHTOK_TYPE_OAUTH2) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected authentication token type [%s]\n",
+              sss_authtok_type_to_str(type));
+        kerr = EINVAL;
+        goto done;
+    }
+
+    kerr = sss_authtok_get_oauth2(kr->pd->authtok, &token, &token_len);
+    if (kerr != EOK) {
+        goto done;
+    }
+
+    if (strlen(data->user_code) != token_len && strcmp(data->user_code, token) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "User code do not match!\n");
+        kerr = EINVAL;
+        goto done;
+    }
+
+    /* Don't let SSSD cache the authtoken since it is single-use. */
+    kerr = pam_add_response(kr->pd, SSS_OTP, 0, NULL);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+        goto done;
+    }
+
+    /* The answer is arbitrary but we need to provide some since krb5 lib
+     * expects it. So we choose the pin. */
+    kerr = krb5_responder_set_answer(kctx, rctx, SSSD_IDP_OAUTH2_QUESTION,
+                                     data->user_code);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to set IdP answer [%d]\n", kerr);
+        goto done;
+    }
+
+    kerr = EOK;
+
+done:
+    sss_idp_oauth2_free(data);
+
+    return kerr;
+}
+
 static krb5_error_code sss_krb5_responder(krb5_context ctx,
                                           void *data,
                                           krb5_responder_context rctx)
@@ -814,6 +982,8 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
                             || sss_authtok_get_type(kr->pd->authtok)
                                                == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
                 return answer_pkinit(ctx, kr, rctx);
+            } else if (strcmp(question_list[c], SSSD_IDP_OAUTH2_QUESTION) == 0) {
+                return answer_idp_oauth2(ctx, kr, rctx);
             }
         }
     }
@@ -1160,6 +1330,85 @@ static errno_t k5c_attach_otp_info_msg(struct krb5_req *kr)
     }
 
     ret = pam_add_response(kr->pd, SSS_PAM_OTP_INFO, msg_len, msg);
+    talloc_zfree(msg);
+
+    return ret;
+}
+
+static errno_t k5c_attach_oauth2_info_msg(struct krb5_req *kr,
+                                          struct sss_idp_oauth2 *data)
+{
+    uint8_t *msg;
+    const char *curi;
+    size_t msg_len;
+    size_t uri_len = 0;
+    size_t curi_len = 0;
+    size_t user_code_len = 0;
+    size_t idx = 0;
+    errno_t ret;
+
+    if (data->verification_uri == NULL || data->user_code == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Empty oauth2 verification_uri or user_code\n");
+        return EINVAL;
+    }
+
+    msg_len = 0;
+
+    uri_len = strlen(data->verification_uri) + 1;
+    msg_len += uri_len;
+
+    if (data->verification_uri_complete != NULL) {
+        curi = data->verification_uri_complete;
+        curi_len = strlen(curi) + 1;
+    } else {
+        curi = "";
+        curi_len = 1;
+    }
+    msg_len += curi_len;
+
+    user_code_len = strlen(data->user_code) + 1;
+    msg_len += user_code_len;
+
+    msg = talloc_zero_size(NULL, msg_len);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        return ENOMEM;
+    }
+
+    memcpy(msg, data->verification_uri, uri_len);
+    idx += uri_len;
+
+    memcpy(msg + idx, curi, curi_len);
+    idx += curi_len;
+
+    memcpy(msg + idx, data->user_code, user_code_len);
+
+    ret = pam_add_response(kr->pd, SSS_PAM_OAUTH2_INFO, msg_len, msg);
+    talloc_zfree(msg);
+
+    return ret;
+}
+
+static errno_t k5c_attach_keep_alive_msg(struct krb5_req *kr)
+{
+    uint8_t *msg;
+    pid_t pid;
+    int ret;
+
+    pid = getpid();
+
+    msg = talloc_memdup(kr, &pid, sizeof(pid_t));
+    if (msg == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        return ENOMEM;
+    }
+
+    /* Indicate that the krb5 child must be kept alive to continue
+     * authentication with correct internal state of Kerberos API.
+     *
+     * Further communication must be done against the same child process */
+    ret = pam_add_response(kr->pd, SSS_CHILD_KEEP_ALIVE, sizeof(pid_t), msg);
     talloc_zfree(msg);
 
     return ret;
@@ -2401,6 +2650,7 @@ static errno_t unpack_authtok(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+    case SSS_AUTHTOK_TYPE_OAUTH2:
         ret = sss_authtok_set(tok, auth_token_type, (buf + *p),
                               auth_token_length);
         break;
@@ -3569,8 +3819,6 @@ int main(int argc, const char *argv[])
     if (ret != EOK) {
         goto done;
     }
-
-    close(STDIN_FILENO);
 
     kerr = privileged_krb5_setup(kr, offline);
     if (kerr != 0) {

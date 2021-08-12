@@ -4548,6 +4548,7 @@ krb5_child_LDADD = \
     $(KRB5_LIBS) \
     $(CLIENT_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
+    $(JANSSON_LIBS) \
     $(NULL)
 
 ldap_child_SOURCES = \
