@@ -180,6 +180,7 @@ void pam_print_data(int l, struct pam_data *pd)
           sss_authtok_type_to_str(sss_authtok_get_type(pd->newauthtok)));
     DEBUG(l, "priv: %d\n", pd->priv);
     DEBUG(l, "cli_pid: %d\n", pd->cli_pid);
+    DEBUG(l, "child_pid: %d\n", pd->child_pid);
     DEBUG(l, "logon name: %s\n", PAM_SAFE_ITEM(pd->logon_name));
     DEBUG(l, "flags: %d\n", pd->cli_flags);
 }
