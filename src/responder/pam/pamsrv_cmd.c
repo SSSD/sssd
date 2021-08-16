@@ -347,6 +347,12 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                                            body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
+                case SSS_PAM_ITEM_CHILD_PID:
+                    /* This is optional. */
+                    ret = extract_uint32_t(&pd->child_pid, size,
+                                           body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
                 case SSS_PAM_ITEM_AUTHTOK:
                     ret = extract_authtok_v2(pd->authtok,
                                              size, body, blen, &c);

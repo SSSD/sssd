@@ -377,6 +377,7 @@ enum pam_item_type {
     SSS_PAM_ITEM_NEWAUTHTOK,
     SSS_PAM_ITEM_CLI_LOCALE,
     SSS_PAM_ITEM_CLI_PID,
+    SSS_PAM_ITEM_CHILD_PID,
     SSS_PAM_ITEM_REQUESTED_DOMAINS,
     SSS_PAM_ITEM_FLAGS,
 };
@@ -496,6 +497,10 @@ enum response_type {
     SSS_PAM_PROMPT_CONFIG, /**< Contains data which controls which credentials
                             * are expected and how the user is prompted for
                             * them. */
+    SSS_CHILD_KEEP_ALIVE, /**< Indicates that the child process is kept alived
+                            * and further communication must be done with the
+                            * same child. The message is the pid of the child
+                            * process. */
 };
 
 /**

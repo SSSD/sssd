@@ -114,6 +114,11 @@ errno_t sbus_iterator_read_pam_data(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sbus_iterator_read_u(iterator, &pd->child_pid);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = sbus_iterator_read_u(iterator, &pd->client_id_num);
     if (ret != EOK) {
         goto done;
@@ -245,6 +250,11 @@ errno_t sbus_iterator_write_pam_data(DBusMessageIter *iterator,
     }
 
     ret = sbus_iterator_write_u(iterator, pd->cli_pid);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sbus_iterator_write_u(iterator, pd->child_pid);
     if (ret != EOK) {
         goto done;
     }

@@ -57,6 +57,7 @@ struct pam_data {
     struct sss_auth_token *authtok;
     struct sss_auth_token *newauthtok;
     uint32_t cli_pid;
+    uint32_t child_pid;
     char *logon_name;
     uint32_t cli_flags;
 
