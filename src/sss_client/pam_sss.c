@@ -1201,6 +1201,9 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     }
                 }
                 break;
+            case SSS_CHILD_KEEP_ALIVE:
+                memcpy(&pi->child_pid, &buf[p], len);
+                break;
             default:
                 D(("Unknown response type [%d]", type));
         }
@@ -1335,6 +1338,7 @@ static void print_pam_items(struct pam_items *pi)
     D(("Authtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_authtok)));
     D(("Newauthtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_newauthtok)));
     D(("Cli_PID: %d", pi->cli_pid));
+    D(("Child_PID: %d", pi->child_pid));
     D(("Requested domains: %s", pi->requested_domains));
     D(("Flags: %d", pi->flags));
 }
