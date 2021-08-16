@@ -510,7 +510,7 @@ int pam_sm_authenticate(pam_handle_t *pamh,
 {
     const char *pam_service = NULL;
     const char *pam_user = NULL;
-    const char *ccache = NULL;
+    char *ccache = NULL;
     char *username = NULL;
     char *domain = NULL;
     char *target = NULL;

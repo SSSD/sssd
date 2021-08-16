@@ -40,8 +40,8 @@ static errno_t files_init_file_sources(TALLOC_CTX *mem_ctx,
     int num_group_files = 0;
     const char **passwd_files = NULL;
     const char **group_files = NULL;
-    const char *dfl_passwd_files = NULL;
-    const char *env_group_files = NULL;
+    char *dfl_passwd_files = NULL;
+    char *env_group_files = NULL;
     int i;
     errno_t ret;
 
