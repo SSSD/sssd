@@ -55,6 +55,20 @@ do { \
     } \
 } while(0)
 
+static void sss_mt_lock(struct sss_cli_mc_ctx *ctx)
+{
+#if HAVE_PTHREAD
+    pthread_mutex_lock(&ctx->mutex);
+#endif
+}
+
+static void sss_mt_unlock(struct sss_cli_mc_ctx *ctx)
+{
+#if HAVE_PTHREAD
+    pthread_mutex_unlock(&ctx->mutex);
+#endif
+}
+
 errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
 {
     struct sss_mc_header h;
@@ -138,7 +152,7 @@ static errno_t sss_nss_mc_init_ctx(const char *name,
     char *file = NULL;
     int ret;
 
-    sss_nss_mc_lock();
+    sss_mt_lock(ctx);
     /* check if ctx is initialised by previous thread. */
     if (ctx->initialized != UNINITIALIZED) {
         ret = sss_nss_check_header(ctx);
@@ -189,7 +203,7 @@ done:
         sss_nss_mc_destroy_ctx(ctx);
     }
     free(file);
-    sss_nss_mc_unlock();
+    sss_mt_unlock(ctx);
 
     return ret;
 }
@@ -234,11 +248,11 @@ errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
         }
         if (ctx->initialized == RECYCLED && ctx->active_threads == 0) {
             /* just one thread should call munmap */
-            sss_nss_mc_lock();
+            sss_mt_lock(ctx);
             if (ctx->initialized == RECYCLED) {
                 sss_nss_mc_destroy_ctx(ctx);
             }
-            sss_nss_mc_unlock();
+            sss_mt_unlock(ctx);
         }
         if (need_decrement) {
             /* In case of error, we will not touch mmapped area => decrement */

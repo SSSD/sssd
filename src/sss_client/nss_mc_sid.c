@@ -30,8 +30,11 @@
 #include "util/mmap_cache.h"
 #include "idmap/sss_nss_idmap.h"
 
-static struct sss_cli_mc_ctx sid_mc_ctx = { UNINITIALIZED, -1, 0, NULL, 0, NULL, 0,
-                                            NULL, 0, 0 };
+static struct sss_cli_mc_ctx sid_mc_ctx = { UNINITIALIZED,
+#if HAVE_PTHREAD
+                                            PTHREAD_MUTEX_INITIALIZER,
+#endif
+                                            -1, 0, NULL, 0, NULL, 0, NULL, 0, 0 };
 
 static errno_t mc_get_sid_by_typed_id(uint32_t id, enum sss_id_type object_type,
                                       char **sid, uint32_t *type,
