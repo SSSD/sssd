@@ -38,6 +38,13 @@
 #include <sys/prctl.h>
 #endif
 
+static TALLOC_CTX *autofree_ctx;
+
+static void server_atexit(void)
+{
+    talloc_zfree(autofree_ctx);
+}
+
 /*******************************************************************
  Close the low 3 FDs and open dev/null in their place.
 ********************************************************************/
@@ -264,6 +271,7 @@ static void default_quit(struct tevent_context *ev,
 {
     struct main_context *ctx = talloc_get_type(private_data, struct main_context);
     talloc_free(ctx);
+
     orderly_shutdown(0);
 }
 
@@ -464,7 +472,14 @@ int server_setup(const char *name, int flags,
     char *pidfile_name;
     int cfg_debug_level = SSSDBG_INVALID;
 
-    debug_prg_name = strdup(name);
+    autofree_ctx = talloc_named_const(NULL, 0, "autofree_context");
+    if (autofree_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    atexit(server_atexit);
+
+    debug_prg_name = talloc_strdup(autofree_ctx, name);
     if (!debug_prg_name) {
         return ENOMEM;
     }
@@ -542,7 +557,7 @@ int server_setup(const char *name, int flags,
 
     /* the event context is the top level structure.
      * Everything else should hang off that */
-    event_ctx = tevent_context_init(talloc_autofree_context());
+    event_ctx = tevent_context_init(autofree_ctx);
     if (event_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "The event context initialization failed\n");
