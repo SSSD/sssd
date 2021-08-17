@@ -117,7 +117,7 @@ static void close_fd(pam_handle_t *pamh, void *ptr, int err)
 #endif /* PAM_DATA_REPLACE */
 
     D(("Closing the fd"));
-    sss_pam_close_fd();
+    sss_cli_close_socket();
 }
 
 struct cert_auth_info {

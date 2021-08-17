@@ -26,6 +26,11 @@
 #include <stdbool.h>
 #include <pwd.h>
 #include <grp.h>
+
+#include "config.h"
+#if HAVE_PTHREAD
+#include <pthread.h>
+#endif
 #include "util/mmap_cache.h"
 
 #ifndef HAVE_ERRNO_T
@@ -42,6 +47,9 @@ enum sss_mc_state {
 /* common stuff */
 struct sss_cli_mc_ctx {
     enum sss_mc_state initialized;
+#if HAVE_PTHREAD
+    pthread_mutex_t mutex;
+#endif
     int fd;
 
     uint32_t seed;          /* seed from the tables header */

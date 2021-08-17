@@ -581,7 +581,7 @@ int pam_sm_authenticate(pam_handle_t *pamh,
     }
 
 done:
-    sss_pam_close_fd();
+    sss_cli_close_socket();
     free(username);
     free(domain);
     free(target);
