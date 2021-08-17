@@ -689,7 +689,8 @@ int sss_pam_make_request(enum sss_cli_command cmd,
                          struct sss_cli_req_data *rd,
                          uint8_t **repbuf, size_t *replen,
                          int *errnop);
-void sss_pam_close_fd(void);
+
+void sss_cli_close_socket(void);
 
 /* Checks access to the PAC responder and opens the socket, if available.
  * Required for processes like krb5_child that need to open the socket
