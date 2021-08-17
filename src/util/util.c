@@ -1067,17 +1067,20 @@ bool is_valid_domain_name(const char *domain)
     return true;
 }
 
-errno_t sss_getenv(TALLOC_CTX *mem_ctx, const char *variable_name, char **_value)
+errno_t sss_getenv(TALLOC_CTX *mem_ctx,
+                   const char *variable_name,
+                   const char *default_value,
+                   char **_value)
 {
     char *value = getenv(variable_name);
-    if (value == NULL) {
+    if (value == NULL && default_value == NULL) {
         return ENOENT;
     }
 
-    *_value = talloc_strdup(mem_ctx, value);
+    *_value = talloc_strdup(mem_ctx, value != NULL ? value : default_value);
     if (*_value == NULL) {
         return ENOMEM;
     }
 
-    return EOK;
+    return value != NULL ? EOK : ENOENT;
 }

@@ -803,6 +803,12 @@ errno_t create_preauth_indicator(void);
 #define N_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
 #endif
 
-errno_t sss_getenv(TALLOC_CTX *mem_ctx, const char *variable_name, char **_value);
+/* If variable is not set, it stores a copy of default_value (if not NULL)
+ * in _value but returns ENOENT so the information is propagated to the caller.
+ */
+errno_t sss_getenv(TALLOC_CTX *mem_ctx,
+                   const char *variable_name,
+                   const char *default_value,
+                   char **_value);
 
 #endif /* __SSSD_UTIL_H__ */
