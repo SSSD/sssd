@@ -32,8 +32,11 @@
 #include "nss_mc.h"
 #include "shared/safealign.h"
 
-static struct sss_cli_mc_ctx initgr_mc_ctx = { UNINITIALIZED, -1, 0, NULL, 0, NULL, 0,
-                                               NULL, 0, 0 };
+static struct sss_cli_mc_ctx initgr_mc_ctx = { UNINITIALIZED,
+#if HAVE_PTHREAD
+                                               PTHREAD_MUTEX_INITIALIZER,
+#endif
+                                               -1, 0, NULL, 0, NULL, 0, NULL, 0, 0 };
 
 static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
                                        long int *start, long int *size,

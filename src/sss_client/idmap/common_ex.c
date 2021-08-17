@@ -22,11 +22,13 @@
 
 #include <time.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #include "sss_cli.h"
 #include "common_private.h"
 
 extern struct sss_mutex sss_nss_mtx;
+bool sss_is_lockfree_mode(void);
 
 #define SEC_FROM_MSEC(ms) ((ms) / 1000)
 #define NSEC_FROM_MSEC(ms) (((ms) % 1000) * 1000 * 1000)
@@ -45,9 +47,13 @@ extern struct sss_mutex sss_nss_mtx;
 #define TIMESPEC_TO_MS(ts) (  ((ts)->tv_sec * 1000) \
                             + ((ts)->tv_nsec) / (1000 * 1000) )
 
-static int sss_mt_timedlock(struct sss_mutex *m, struct timespec *endtime)
+static int sss_mt_timedlock(struct sss_mutex *m, const struct timespec *endtime)
 {
     int ret;
+
+    if (sss_is_lockfree_mode()) {
+        return 0;
+    }
 
     ret = pthread_mutex_timedlock(&m->mtx, endtime);
     if (ret != 0) {

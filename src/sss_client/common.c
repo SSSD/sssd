@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdatomic.h>
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -45,10 +46,6 @@
 #include "sss_cli.h"
 #include "common_private.h"
 #include "util/util_errors.h"
-
-#if HAVE_PTHREAD
-#include <pthread.h>
-#endif
 
 /*
 * Note we set MSG_NOSIGNAL to avoid
@@ -65,13 +62,13 @@
 
 /* common functions */
 
-static int sss_cli_sd = -1; /* the sss client socket descriptor */
-static struct stat sss_cli_sb; /* the sss client stat buffer */
+static __thread int sss_cli_sd = -1; /* the sss client socket descriptor */
+static __thread struct stat sss_cli_sb; /* the sss client stat buffer */
 
 #if HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR
 __attribute__((destructor))
 #endif
-static void sss_cli_close_socket(void)
+void sss_cli_close_socket(void)
 {
     if (sss_cli_sd != -1) {
         close(sss_cli_sd);
@@ -996,18 +993,6 @@ out:
     return ret;
 }
 
-void sss_pam_close_fd(void)
-{
-    sss_pam_lock();
-
-    if (sss_cli_sd != -1) {
-        close(sss_cli_sd);
-        sss_cli_sd = -1;
-    }
-
-    sss_pam_unlock();
-}
-
 enum sss_status
 sss_cli_make_request_with_checks(enum sss_cli_command cmd,
                                  struct sss_cli_req_data *rd,
@@ -1144,7 +1129,27 @@ errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len)
 }
 
 #if HAVE_PTHREAD
-typedef void (*sss_mutex_init)(void);
+bool sss_is_lockfree_mode(void)
+{
+    const char *env = NULL;
+    enum {
+        MODE_UNDEF,
+        MODE_LOCKING,
+        MODE_LOCKFREE
+    };
+    static atomic_int mode = MODE_UNDEF;
+
+    if (mode == MODE_UNDEF) {
+        env = getenv("SSS_LOCKFREE");
+        if ((env != NULL) && (strcasecmp(env, "NO") == 0)) {
+            mode = MODE_LOCKING;
+        } else {
+            mode = MODE_LOCKFREE;
+        }
+    }
+
+    return (mode == MODE_LOCKFREE);
+}
 
 struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
@@ -1156,12 +1161,20 @@ static struct sss_mutex sss_pac_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
 static void sss_mt_lock(struct sss_mutex *m)
 {
+    if (sss_is_lockfree_mode()) {
+        return;
+    }
+
     pthread_mutex_lock(&m->mtx);
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &m->old_cancel_state);
 }
 
 static void sss_mt_unlock(struct sss_mutex *m)
 {
+    if (sss_is_lockfree_mode()) {
+        return;
+    }
+
     pthread_setcancelstate(m->old_cancel_state, NULL);
     pthread_mutex_unlock(&m->mtx);
 }
