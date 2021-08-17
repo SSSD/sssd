@@ -46,10 +46,6 @@
 #include "common_private.h"
 #include "util/util_errors.h"
 
-#if HAVE_PTHREAD
-#include <pthread.h>
-#endif
-
 /*
 * Note we set MSG_NOSIGNAL to avoid
 * having to fiddle with signal masks
@@ -65,8 +61,8 @@
 
 /* common functions */
 
-static int sss_cli_sd = -1; /* the sss client socket descriptor */
-static struct stat sss_cli_sb; /* the sss client stat buffer */
+static __thread int sss_cli_sd = -1; /* the sss client socket descriptor */
+static __thread struct stat sss_cli_sb; /* the sss client stat buffer */
 
 #if HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR
 __attribute__((destructor))
@@ -1143,70 +1139,6 @@ errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len)
     return 0;
 }
 
-#if HAVE_PTHREAD
-typedef void (*sss_mutex_init)(void);
-
-struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
-
-static struct sss_mutex sss_pam_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
-
-static struct sss_mutex sss_nss_mc_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
-
-static struct sss_mutex sss_pac_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
-
-static void sss_mt_lock(struct sss_mutex *m)
-{
-    pthread_mutex_lock(&m->mtx);
-    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &m->old_cancel_state);
-}
-
-static void sss_mt_unlock(struct sss_mutex *m)
-{
-    pthread_setcancelstate(m->old_cancel_state, NULL);
-    pthread_mutex_unlock(&m->mtx);
-}
-
-/* NSS mutex wrappers */
-void sss_nss_lock(void)
-{
-    sss_mt_lock(&sss_nss_mtx);
-}
-void sss_nss_unlock(void)
-{
-    sss_mt_unlock(&sss_nss_mtx);
-}
-
-/* NSS mutex wrappers */
-void sss_pam_lock(void)
-{
-    sss_mt_lock(&sss_pam_mtx);
-}
-void sss_pam_unlock(void)
-{
-    sss_mt_unlock(&sss_pam_mtx);
-}
-
-/* NSS mutex wrappers */
-void sss_nss_mc_lock(void)
-{
-    sss_mt_lock(&sss_nss_mc_mtx);
-}
-void sss_nss_mc_unlock(void)
-{
-    sss_mt_unlock(&sss_nss_mc_mtx);
-}
-
-/* PAC mutex wrappers */
-void sss_pac_lock(void)
-{
-    sss_mt_lock(&sss_pac_mtx);
-}
-void sss_pac_unlock(void)
-{
-    sss_mt_unlock(&sss_pac_mtx);
-}
-
-#else
 
 /* sorry no mutexes available */
 void sss_nss_lock(void) { return; }
@@ -1217,7 +1149,6 @@ void sss_nss_mc_lock(void) { return; }
 void sss_nss_mc_unlock(void) { return; }
 void sss_pac_lock(void) { return; }
 void sss_pac_unlock(void) { return; }
-#endif
 
 
 errno_t sss_readrep_copy_string(const char *in,

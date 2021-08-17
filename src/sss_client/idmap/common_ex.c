@@ -26,83 +26,11 @@
 #include "sss_cli.h"
 #include "common_private.h"
 
-extern struct sss_mutex sss_nss_mtx;
-
-#define SEC_FROM_MSEC(ms) ((ms) / 1000)
-#define NSEC_FROM_MSEC(ms) (((ms) % 1000) * 1000 * 1000)
-
-/* adopted from timersub() defined in /usr/include/sys/time.h */
-#define TIMESPECSUB(a, b, result)                                             \
-  do {                                                                        \
-    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                             \
-    (result)->tv_nsec = (a)->tv_nsec - (b)->tv_nsec;                          \
-    if ((result)->tv_nsec < 0) {                                              \
-      --(result)->tv_sec;                                                     \
-      (result)->tv_nsec += 1000000000;                                        \
-    }                                                                         \
-  } while (0)
-
-#define TIMESPEC_TO_MS(ts) (  ((ts)->tv_sec * 1000) \
-                            + ((ts)->tv_nsec) / (1000 * 1000) )
-
-static int sss_mt_timedlock(struct sss_mutex *m, struct timespec *endtime)
-{
-    int ret;
-
-    ret = pthread_mutex_timedlock(&m->mtx, endtime);
-    if (ret != 0) {
-        return ret;
-    }
-    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &m->old_cancel_state);
-
-    return 0;
-}
-
 int sss_nss_timedlock(unsigned int timeout_ms, int *time_left_ms)
 {
-    int ret;
-    int left;
-    struct timespec starttime;
-    struct timespec endtime;
-    struct timespec diff;
-
-    /* make sure there is no overrun when calculating the time left */
-    if (timeout_ms > INT_MAX) {
-        timeout_ms = INT_MAX;
+    if (time_left_ms != NULL) {
+        *time_left_ms = (int)timeout_ms;
     }
 
-    ret = clock_gettime(CLOCK_REALTIME, &starttime);
-    if (ret != 0) {
-        return errno;
-    }
-    endtime.tv_sec = starttime.tv_sec + SEC_FROM_MSEC(timeout_ms);
-    endtime.tv_nsec = starttime.tv_nsec + NSEC_FROM_MSEC(timeout_ms);
-
-    ret = sss_mt_timedlock(&sss_nss_mtx, &endtime);
-
-    if (ret == 0) {
-        ret = clock_gettime(CLOCK_REALTIME, &endtime);
-        if (ret != 0) {
-            ret = errno;
-            sss_nss_unlock();
-            return ret;
-        }
-
-        if (timeout_ms == 0) {
-            *time_left_ms = 0;
-        } else {
-            TIMESPECSUB(&endtime, &starttime, &diff);
-            left = timeout_ms - TIMESPEC_TO_MS(&diff);
-            if (left <= 0) {
-                sss_nss_unlock();
-                return EIO;
-            } else if (left > SSS_CLI_SOCKET_TIMEOUT) {
-                *time_left_ms = SSS_CLI_SOCKET_TIMEOUT;
-            } else {
-                *time_left_ms = left;
-            }
-        }
-    }
-
-    return ret;
+    return 0;
 }
