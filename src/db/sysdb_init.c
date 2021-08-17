@@ -54,7 +54,7 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx = NULL;
     errno_t ret;
     struct ldb_context *ldb;
-    const char *mod_path = NULL;
+    char *mod_path = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -79,14 +79,15 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_getenv(tmp_ctx, LDB_MODULES_PATH, &mod_path);
+    ret = sss_getenv(tmp_ctx, LDB_MODULES_PATH, NULL, &mod_path);
     if (ret == EOK) {
         DEBUG(SSSDBG_TRACE_ALL, "Setting ldb module path to [%s].\n", mod_path);
         ldb_set_modules_dir(ldb, mod_path);
     } else if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_ALL, "No ldb module path set in env\n");
     } else {
-        DEBUG(SSSDBG_TRACE_ALL, "sss_getenv() failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_getenv() failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
