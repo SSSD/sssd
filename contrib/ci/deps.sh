@@ -127,7 +127,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libnl-3-dev
         libnl-route-3-dev
         libpam0g-dev
-        libpcre3-dev
+        libpcre2-dev
         libpopt-dev
         libsasl2-dev
         libselinux1-dev
