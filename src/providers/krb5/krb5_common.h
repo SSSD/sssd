@@ -136,6 +136,7 @@ struct krb5_ctx {
     bool sss_creds_password;
 
     hash_table_t *wait_queue_hash;
+    hash_table_t *io_table;
 
     enum krb5_config_type config_type;
 
