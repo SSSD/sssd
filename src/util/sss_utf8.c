@@ -25,17 +25,12 @@
 #include <string.h>
 #include <errno.h>
 
-#ifdef HAVE_LIBUNISTRING
 #include <stdlib.h>
 #include <unistr.h>
 #include <unicase.h>
-#elif defined(HAVE_GLIB2)
-#include <glib.h>
-#endif
 
 #include "sss_utf8.h"
 
-#ifdef HAVE_LIBUNISTRING
 bool sss_utf8_check(const uint8_t *s, size_t n)
 {
     if (u8_check(s, n) == NULL) {
@@ -44,17 +39,6 @@ bool sss_utf8_check(const uint8_t *s, size_t n)
     return false;
 }
 
-#elif defined(HAVE_GLIB2)
-bool sss_utf8_check(const uint8_t *s, size_t n)
-{
-    return g_utf8_validate((const gchar *)s, n, NULL);
-}
-
-#else
-#error No unicode library
-#endif
-
-#ifdef HAVE_LIBUNISTRING
 errno_t sss_utf8_case_eq(const uint8_t *s1, const uint8_t *s2)
 {
 
@@ -86,45 +70,6 @@ errno_t sss_utf8_case_eq(const uint8_t *s1, const uint8_t *s2)
     }
     return ENOMATCH;
 }
-
-#elif defined(HAVE_GLIB2)
-errno_t sss_utf8_case_eq(const uint8_t *s1, const uint8_t *s2)
-{
-    gchar *gs1;
-    gchar *gs2;
-    gssize n1, n2;
-    gint gret;
-    errno_t ret;
-
-    n1 = g_utf8_strlen((const gchar *)s1, -1);
-    n2 = g_utf8_strlen((const gchar *)s2, -1);
-
-    gs1 = g_utf8_casefold((const gchar *)s1, n1);
-    if (gs1 == NULL) {
-        return ENOMEM;
-    }
-
-    gs2 = g_utf8_casefold((const gchar *)s2, n2);
-    if (gs2 == NULL) {
-        return ENOMEM;
-    }
-
-    gret = g_utf8_collate(gs1, gs2);
-    if (gret == 0) {
-        ret = EOK;
-    } else {
-        ret = ENOMATCH;
-    }
-
-    g_free(gs1);
-    g_free(gs2);
-
-    return ret;
-}
-
-#else
-#error No unicode library
-#endif
 
 bool sss_string_equal(bool cs, const char *s1, const char *s2)
 {

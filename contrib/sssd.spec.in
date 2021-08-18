@@ -79,7 +79,6 @@ BuildRequires: findutils
 BuildRequires: gcc
 BuildRequires: gdm-pam-extensions-devel
 BuildRequires: gettext-devel
-BuildRequires: glib2-devel
 # required for p11_child smartcard tests
 BuildRequires: gnutls-utils
 BuildRequires: jansson-devel
@@ -98,6 +97,8 @@ BuildRequires: libtalloc-devel
 BuildRequires: libtdb-devel
 BuildRequires: libtevent-devel
 BuildRequires: libtool
+BuildRequires: libunistring
+BuildRequires: libunistring-devel
 BuildRequires: libuuid-devel
 BuildRequires: libxml2
 BuildRequires: libxslt
