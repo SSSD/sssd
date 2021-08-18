@@ -48,6 +48,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         curl-devel
         krb5-server
         krb5-workstation
+        libunistring-devel
     )
 
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-31* ||
@@ -175,6 +176,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         gnutls-bin
         softhsm2
         libp11-kit-dev
+        libunistring-dev
     )
     DEPS_INTGCHECK_SATISFIED=true
 fi

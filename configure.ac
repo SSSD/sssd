@@ -238,16 +238,8 @@ AM_CONDITIONAL([BUILD_WITH_LIBSECRET],
 AM_CONDITIONAL([BUILD_WITH_LIBCURL],
                [test x"$have_curlopt_unix_sockpath" = xyes])
 
-WITH_UNICODE_LIB
-AS_IF([test x$unicode_lib = xlibunistring], [
-    m4_include([src/external/libunistring.m4])
-    AC_DEFINE_UNQUOTED(HAVE_LIBUNISTRING, 1, [Using libunistring for unicode])
-    UNICODE_LIBS=$UNISTRING_LIBS
-], [
-    m4_include([src/external/glib.m4])
-    AC_DEFINE_UNQUOTED(HAVE_GLIB2, 1, [Using glib2 for unicode])
-    UNICODE_LIBS=$GLIB2_LIBS
-])
+m4_include([src/external/libunistring.m4])
+UNICODE_LIBS=$UNISTRING_LIBS
 AC_SUBST(UNICODE_LIBS)
 
 WITH_LIBNL
