@@ -50,6 +50,8 @@ struct io_buffer {
 struct child_io_fds {
     int read_from_child_fd;
     int write_to_child_fd;
+    bool child_exited;
+    bool in_use;
 };
 
 /* COMMON SIGCHLD HANDLING */
