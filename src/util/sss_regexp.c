@@ -32,7 +32,6 @@
 #define EOK 0
 #endif
 
-#ifdef HAVE_LIBPCRE2
 /*
  * sss_regexp with pcre2
  */
@@ -124,102 +123,13 @@ static int sss_regexp_pcre2_get_named_substring(sss_regexp_t *self,
     return rc;
 }
 
-#else /* !HAVE_LIBPCRE2 */
-/*
- * sss_regexp with pcre
- */
-struct _sss_regexp_t {
-    pcre *re;
-    int ovector[SSS_REGEXP_OVEC_SIZE];
-    const char *matched_string;
-    const char *subject;
-};
-
-static int sss_regexp_pcre1_destroy(sss_regexp_t *self)
-{
-    if (self->re) {
-        pcre_free(self->re);
-    }
-    if (self->matched_string) {
-        pcre_free_substring(self->matched_string);
-    }
-    return 0;
-}
-
-static int sss_regexp_pcre1_compile(sss_regexp_t *self,
-                             const char *pattern,
-                             int options)
-{
-    int errorcode;
-    const char *errormsg;
-    int erroroffset;
-
-    self->re = pcre_compile2(pattern,
-                             options,
-                             &errorcode,
-                             &errormsg,
-                             &erroroffset,
-                             NULL);
-    if (self->re == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid Regular Expression pattern "
-              "at position %d. (Error: %d [%s])\n", erroroffset, errorcode, errormsg);
-        return errorcode;
-    }
-    return EOK;
-}
-
-static int sss_regexp_pcre1_match(sss_regexp_t *self,
-                           const char *subject,
-                           int startoffset,
-                           int options)
-{
-    if (!self->re) {
-        return SSS_REGEXP_ERROR_NOMATCH;
-    }
-    self->subject = subject;
-    return pcre_exec(self->re,
-                     NULL,
-                     subject,
-                     strlen(subject),
-                     startoffset,
-                     options,
-                     self->ovector,
-                     SSS_REGEXP_OVEC_SIZE);
-}
-
-static int sss_regexp_pcre1_get_named_substring(sss_regexp_t *self,
-                                         const char *name,
-                                         const char **value)
-{
-    int rc;
-
-    if (self->matched_string) {
-        pcre_free_substring(self->matched_string);
-        self->matched_string = NULL;
-    }
-    rc = pcre_get_named_substring(self->re,
-                                  self->subject,
-                                  self->ovector,
-                                  SSS_REGEXP_OVEC_SIZE,
-                                  name,
-                                  &self->matched_string);
-    *value = self->matched_string;
-    return rc;
-}
-
-#endif /* !HAVE_LIBPCRE2 */
-
 /*
  * sss_regexp talloc destructor
  */
 static int sss_regexp_destroy(sss_regexp_t *self)
 {
     if (!self) return 0;
-#ifdef HAVE_LIBPCRE2
     return sss_regexp_pcre2_destroy(self);
-#else
-    return sss_regexp_pcre1_destroy(self);
-#endif
 }
 
 /*
@@ -239,15 +149,9 @@ int sss_regexp_new(TALLOC_CTX *mem_ctx,
     }
     talloc_set_destructor(self, sss_regexp_destroy);
 
-#ifdef HAVE_LIBPCRE2
     ret = sss_regexp_pcre2_compile(self,
                                    pattern,
                                    options);
-#else
-    ret = sss_regexp_pcre1_compile(self,
-                                   pattern,
-                                   options);
-#endif
     if (ret != EOK) {
         talloc_free(self);
         self = NULL;
@@ -266,11 +170,7 @@ int sss_regexp_match(sss_regexp_t *self,
 {
     if (!self || !self->re || !subject) return SSS_REGEXP_ERROR_NOMATCH;
 
-#ifdef HAVE_LIBPCRE2
     return sss_regexp_pcre2_match(self, subject, startoffset, options);
-#else
-    return sss_regexp_pcre1_match(self, subject, startoffset, options);
-#endif
 }
 
 
@@ -285,9 +185,6 @@ int sss_regexp_get_named_substring(sss_regexp_t *self,
         *value = NULL;
         return SSS_REGEXP_ERROR_NOMATCH;
     }
-#ifdef HAVE_LIBPCRE2
+
     return sss_regexp_pcre2_get_named_substring(self, name, value);
-#else
-    return sss_regexp_pcre1_get_named_substring(self, name, value);
-#endif
 }

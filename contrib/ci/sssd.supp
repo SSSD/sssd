@@ -60,18 +60,6 @@
 
 # False positive - pcre_free is called in sss_names_ctx_destructor
 {
-   sssd-leak-sss_names
-   Memcheck:Leak
-   fun:malloc
-   fun:pcre_compile2
-   fun:sss_regexp_pcre1_compile
-   fun:sss_regexp_new
-   fun:sss_names_init_from_args
-   ...
-}
-
-# And the same, as above, for pcre2
-{
    sssd-leak-sss_names_pcre2
    Memcheck:Leak
    fun:malloc
