@@ -16,6 +16,7 @@ from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import ADOperations
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
+from sssd.testlib.common.utils import SSHClient
 
 
 def pytest_configure():
@@ -163,6 +164,90 @@ def backupsssdconf(session_multihost, request):
     request.addfinalizer(restoresssdconf)
 
 # ====================  Class Scoped Fixtures ================
+
+
+@pytest.fixture(scope='class')
+def environment_setup(session_multihost, request):
+    """
+    Install necessary packages
+    """
+    pre_version = "sed -rn 's/.*([0-9])\.[0-9].*/\\1/p' /etc/redhat-release"
+    client = session_multihost.client[0]
+    if "Red Hat" in client.run_command("cat "
+                                       "/etc/redhat-release").stdout_text:
+        version = [int(i) for i in
+                   client.run_command(pre_version).stdout_text.split()
+                   if i.isdigit()][0]
+        if version >= 9:
+            client.run_command("yum "
+                               "--enablerepo=rhel-CRB install"
+                               " -y shadow-utils*")
+    client.run_command("yum install -y shadow-utils*")
+    client.run_command("yum install -y gcc")
+    with pytest.raises(subprocess.CalledProcessError):
+        client.run_command(f"grep subid /etc/nsswitch.conf")
+    file_location = "/src/tests/multihost/ipa/data/list_subid_ranges.c"
+    client.transport.put_file(os.getcwd() +
+                              file_location,
+                              '/tmp/list_subid_ranges.c')
+    client.run_command("gcc /tmp/list_subid_ranges.c"
+                       "  -lsubid -o /tmp/list_subid_ranges")
+
+    def remove():
+        """ Remove file """
+        for file in ['list_subid_ranges', 'list_subid_ranges.c']:
+            client.run_command(f"rm -vf /tmp/{file}")
+
+    request.addfinalizer(remove)
+
+
+@pytest.fixture(scope='class')
+def subid_generate(session_multihost, request):
+    """
+    Generate subid for user admin
+    """
+    user = "admin"
+    test_password = "Secret123"
+    ssh1 = SSHClient(session_multihost.client[0].ip,
+                     username=user, password=test_password)
+    (result, result1, exit_status) = ssh1.execute_cmd('kinit',
+                                                      stdin=test_password)
+    assert exit_status == 0
+    (result, result1, exit_status) = ssh1.exec_command(f"ipa "
+                                                       f" subid-generate"
+                                                       f"  --owner={user}")
+    ssh1.close()
+
+
+@pytest.fixture(scope='class')
+def bkp_cnfig_for_subid_files(session_multihost, request):
+    """ Back up files used in test
+        And config /etc/nsswitch.conf
+    """
+    session_multihost.client[0].run_command("cp -vf  "
+                                            "/etc/subuid "
+                                            "/tmp/subuid_bkp")
+    session_multihost.client[0].run_command("cp -vf  "
+                                            "/etc/subgid "
+                                            "/tmp/subgid_bkp")
+    session_multihost.client[0].run_command("cp -vf  "
+                                            "/etc/nsswitch.conf "
+                                            "/tmp/nsswitch.conf_bkp")
+    session_multihost.client[0].run_command("echo 'subid: sss'  "
+                                            ">> /etc/nsswitch.conf")
+
+    def restore():
+        """ Restore """
+        session_multihost.client[0].run_command("mv -vf  "
+                                                "/tmp/subuid_bkp "
+                                                "/etc/subuid")
+        session_multihost.client[0].run_command("mv -vf  "
+                                                "/tmp/subgid_bkp "
+                                                "/etc/subgid")
+        session_multihost.client[0].run_command("mv -vf  "
+                                                "/tmp/nsswitch.conf_bkp "
+                                                "/etc/nsswitch.conf")
+    request.addfinalizer(restore)
 
 
 @pytest.fixture(scope="class")
