@@ -184,6 +184,7 @@ function build_debug()
 
     status=0
     CK_FORK=no \
+    DEBUGINFOD_URLS="" \
         stage make-check-valgrind \
                 make -j $CPU_NUM check \
                      LOG_COMPILER=libtool \
