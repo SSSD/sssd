@@ -329,35 +329,41 @@ void child_handler_destroy(struct sss_child_ctx_old *ctx)
 
 /* Async communication with the child process via a pipe */
 
-struct write_pipe_state {
+struct _write_pipe_state {
     int fd;
     uint8_t *buf;
     size_t len;
+    bool safe;
     ssize_t written;
 };
 
-static void write_pipe_handler(struct tevent_context *ev,
-                               struct tevent_fd *fde,
-                               uint16_t flags, void *pvt);
+static void _write_pipe_handler(struct tevent_context *ev,
+                                struct tevent_fd *fde,
+                                uint16_t flags,
+                                void *pvt);
 
-struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,
-                                   struct tevent_context *ev,
-                                   uint8_t *buf, size_t len, int fd)
+static struct tevent_req *_write_pipe_send(TALLOC_CTX *mem_ctx,
+                                           struct tevent_context *ev,
+                                           uint8_t *buf,
+                                           size_t len,
+                                           bool safe,
+                                           int fd)
 {
     struct tevent_req *req;
-    struct write_pipe_state *state;
+    struct _write_pipe_state *state;
     struct tevent_fd *fde;
 
-    req = tevent_req_create(mem_ctx, &state, struct write_pipe_state);
+    req = tevent_req_create(mem_ctx, &state, struct _write_pipe_state);
     if (req == NULL) return NULL;
 
     state->fd = fd;
     state->buf = buf;
     state->len = len;
+    state->safe = safe;
     state->written = 0;
 
     fde = tevent_add_fd(ev, state, fd, TEVENT_FD_WRITE,
-                        write_pipe_handler, req);
+                        _write_pipe_handler, req);
     if (fde == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_fd failed.\n");
         goto fail;
@@ -370,29 +376,35 @@ fail:
     return NULL;
 }
 
-static void write_pipe_handler(struct tevent_context *ev,
-                               struct tevent_fd *fde,
-                               uint16_t flags, void *pvt)
+static void _write_pipe_handler(struct tevent_context *ev,
+                                struct tevent_fd *fde,
+                                uint16_t flags,
+                                void *pvt)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct write_pipe_state *state = tevent_req_data(req,
-                                                     struct write_pipe_state);
+    struct _write_pipe_state *state;
     errno_t ret;
+
+    state = tevent_req_data(req, struct _write_pipe_state);
 
     if (flags & TEVENT_FD_READ) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "write_pipe_done called with TEVENT_FD_READ,"
-               " this should not happen.\n");
+              "_write_pipe_done called with TEVENT_FD_READ,"
+              " this should not happen.\n");
         tevent_req_error(req, EINVAL);
         return;
     }
 
     errno = 0;
-    state->written = sss_atomic_write_s(state->fd, state->buf, state->len);
+    if (state->safe) {
+        state->written = sss_atomic_write_safe_s(state->fd, state->buf, state->len);
+    } else {
+        state->written = sss_atomic_write_s(state->fd, state->buf, state->len);
+    }
     if (state->written == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "write failed [%d][%s].\n", ret, strerror(ret));
+            "write failed [%d][%s].\n", ret, strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -409,39 +421,72 @@ static void write_pipe_handler(struct tevent_context *ev,
     return;
 }
 
-int write_pipe_recv(struct tevent_req *req)
+static int _write_pipe_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
 
-struct read_pipe_state {
+struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   uint8_t *buf,
+                                   size_t len,
+                                   int fd)
+{
+    return _write_pipe_send(mem_ctx, ev, buf, len, false, fd);
+}
+
+int write_pipe_recv(struct tevent_req *req)
+{
+    return _write_pipe_recv(req);
+}
+
+struct tevent_req *write_pipe_safe_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        uint8_t *buf,
+                                        size_t len,
+                                        int fd)
+{
+    return _write_pipe_send(mem_ctx, ev, buf, len, true, fd);
+}
+
+int write_pipe_safe_recv(struct tevent_req *req)
+{
+    return _write_pipe_recv(req);
+}
+
+struct _read_pipe_state {
     int fd;
     uint8_t *buf;
     size_t len;
+    bool safe;
 };
 
-static void read_pipe_handler(struct tevent_context *ev,
-                              struct tevent_fd *fde,
-                              uint16_t flags, void *pvt);
+static void _read_pipe_handler(struct tevent_context *ev,
+                               struct tevent_fd *fde,
+                               uint16_t flags,
+                               void *pvt);
 
-struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
-                                  struct tevent_context *ev, int fd)
+static struct tevent_req *_read_pipe_send(TALLOC_CTX *mem_ctx,
+                                          struct tevent_context *ev,
+                                          bool safe,
+                                          int fd)
 {
     struct tevent_req *req;
-    struct read_pipe_state *state;
+    struct _read_pipe_state *state;
     struct tevent_fd *fde;
 
-    req = tevent_req_create(mem_ctx, &state, struct read_pipe_state);
+    req = tevent_req_create(mem_ctx, &state, struct _read_pipe_state);
     if (req == NULL) return NULL;
 
     state->fd = fd;
     state->buf = NULL;
     state->len = 0;
+    state->safe = safe;
 
     fde = tevent_add_fd(ev, state, fd, TEVENT_FD_READ,
-                        read_pipe_handler, req);
+                        _read_pipe_handler, req);
     if (fde == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_fd failed.\n");
         goto fail;
@@ -454,27 +499,32 @@ fail:
     return NULL;
 }
 
-static void read_pipe_handler(struct tevent_context *ev,
-                              struct tevent_fd *fde,
-                              uint16_t flags, void *pvt)
+static void _read_pipe_handler(struct tevent_context *ev,
+                               struct tevent_fd *fde,
+                               uint16_t flags,
+                               void *pvt)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct read_pipe_state *state = tevent_req_data(req,
-                                                    struct read_pipe_state);
+    struct _read_pipe_state *state;
     ssize_t size;
     errno_t err;
     uint8_t buf[CHILD_MSG_CHUNK];
+    size_t len = 0;
+
+    state = tevent_req_data(req, struct _read_pipe_state);
 
     if (flags & TEVENT_FD_WRITE) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "read_pipe_done called with TEVENT_FD_WRITE,"
-                  " this should not happen.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "_read_pipe_done called with "
+              "TEVENT_FD_WRITE, this should not happen.\n");
         tevent_req_error(req, EINVAL);
         return;
     }
 
-    size = sss_atomic_read_s(state->fd,
-                buf,
-                CHILD_MSG_CHUNK);
+    if (state->safe) {
+        size = sss_atomic_read_safe_s(state->fd, buf, CHILD_MSG_CHUNK, &len);
+    } else {
+        size = sss_atomic_read_s(state->fd, buf, CHILD_MSG_CHUNK);
+    }
     if (size == -1) {
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -492,6 +542,11 @@ static void read_pipe_handler(struct tevent_context *ev,
 
         safealign_memcpy(&state->buf[state->len], buf,
                          size, &state->len);
+
+        if (state->len == len) {
+            DEBUG(SSSDBG_TRACE_FUNC, "All data received\n");
+            tevent_req_done(req);
+        }
         return;
 
     } else if (size == 0) {
@@ -507,11 +562,13 @@ static void read_pipe_handler(struct tevent_context *ev,
     }
 }
 
-int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                   uint8_t **buf, ssize_t *len)
+static errno_t _read_pipe_recv(struct tevent_req *req,
+                               TALLOC_CTX *mem_ctx,
+                               uint8_t **buf,
+                               ssize_t *len)
 {
-    struct read_pipe_state *state;
-    state = tevent_req_data(req, struct read_pipe_state);
+    struct _read_pipe_state *state;
+    state = tevent_req_data(req, struct _read_pipe_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -519,6 +576,36 @@ int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     *len = state->len;
 
     return EOK;
+}
+
+struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  int fd)
+{
+    return _read_pipe_send(mem_ctx, ev, false, fd);
+}
+
+errno_t read_pipe_recv(struct tevent_req *req,
+                       TALLOC_CTX *mem_ctx,
+                       uint8_t **_buf,
+                       ssize_t *_len)
+{
+    return _read_pipe_recv(req, mem_ctx, _buf, _len);
+}
+
+struct tevent_req *read_pipe_safe_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       int fd)
+{
+    return _read_pipe_send(mem_ctx, ev, true, fd);
+}
+
+errno_t read_pipe_safe_recv(struct tevent_req *req,
+                            TALLOC_CTX *mem_ctx,
+                            uint8_t **_buf,
+                            ssize_t *_len)
+{
+    return _read_pipe_recv(req, mem_ctx, _buf, _len);
 }
 
 static void child_invoke_callback(struct tevent_context *ev,
