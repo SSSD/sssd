@@ -48,6 +48,16 @@ static void *proxy_dlsym(void *handle,
     return funcptr;
 }
 
+static void sss_close_handle(struct sss_nss_ops *ops, const char *libname)
+{
+    if (dlclose(ops->dl_handle) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Error closing the handle for the '%s' library, error: %s.\n",
+              libname, dlerror());
+    }
+
+    ops->dl_handle = NULL;
+}
 
 errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname,
                              struct sss_nss_symbols *syms, size_t nsyms)
@@ -72,7 +82,7 @@ errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname,
 
     for (i = 0; i < nsyms; i++) {
         *(syms[i].fptr) = proxy_dlsym(ops->dl_handle, syms[i].fname,
-                                     libname);
+                                      libname);
 
         if (*(syms[i].fptr) == NULL) {
             if (syms[i].mandatory) {
@@ -80,6 +90,7 @@ errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname,
                       "mandatory symbol '%s', error: %s.\n", libpath,
                       syms[i].fname, dlerror());
                 ret = ELIBBAD;
+                sss_close_handle(ops, libname);
                 goto out;
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "Library '%s' did not provide "

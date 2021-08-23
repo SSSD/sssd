@@ -27,12 +27,14 @@
 
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
+#include "util/nss_dl_load.h"
 #include "util/strtonum.h"
 #include "util/util.h"
 #include "util/safe-format-string.h"
 #include "responder/common/responder.h"
 
 #define NAME_DOMAIN_PATTERN_OPTIONS (SSS_REGEXP_DUPNAMES | SSS_REGEXP_EXTENDED)
+#define NSS_BUFFER_SIZE 16384
 
 /* Function returns given realm name as new uppercase string */
 char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name)
@@ -572,10 +574,23 @@ sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
 
 errno_t sss_user_by_name_or_uid(const char *input, uid_t *_uid, gid_t *_gid)
 {
+    static struct sss_nss_ops nss_ops;
     uid_t uid;
     errno_t ret;
     char *endptr;
-    struct passwd *pwd;
+    struct passwd pwd = { 0 };
+    int errnop = 0;
+    enum nss_status status;
+    static char s_nss_buffer[NSS_BUFFER_SIZE];
+
+    if (!nss_ops.dl_handle) {
+        ret = sss_load_nss_pw_symbols(&nss_ops);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            return ret;
+        }
+    }
 
     /* Try if it's an ID first */
     uid = strtouint32(input, &endptr, 10);
@@ -587,26 +602,27 @@ errno_t sss_user_by_name_or_uid(const char *input, uid_t *_uid, gid_t *_gid)
             return ret;
         }
 
-        /* Nope, maybe a username? */
-        pwd = getpwnam(input);
+        status = nss_ops.getpwnam_r(input, &pwd, s_nss_buffer, NSS_BUFFER_SIZE, &errnop);
     } else {
-        pwd = getpwuid(uid);
+        status = nss_ops.getpwuid_r(uid, &pwd, s_nss_buffer, NSS_BUFFER_SIZE, &errnop);
     }
 
-    if (pwd == NULL) {
+    if (status != NSS_STATUS_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE,
               "[%s] is neither a valid UID nor a user name which could be "
-              "resolved by getpwnam().\n", input);
+              "resolved by getpwnam() [%d][%s]. status returned [%d]\n",
+              input, errnop, strerror(errnop), status);
         return EINVAL;
     }
 
     if (_uid) {
-        *_uid = pwd->pw_uid;
+        *_uid = pwd.pw_uid;
     }
 
     if (_gid) {
-        *_gid = pwd->pw_gid;
+        *_gid = pwd.pw_gid;
     }
+
     return EOK;
 }
 
