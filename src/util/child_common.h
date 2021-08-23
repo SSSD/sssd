@@ -93,13 +93,34 @@ void child_handler_destroy(struct sss_child_ctx_old *ctx);
 /* Async communication with the child process via a pipe */
 struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,
                                    struct tevent_context *ev,
-                                   uint8_t *buf, size_t len, int fd);
+                                   uint8_t *buf,
+                                   size_t len,
+                                   int fd);
 int write_pipe_recv(struct tevent_req *req);
 
 struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
-                                  struct tevent_context *ev, int fd);
-int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                   uint8_t **buf, ssize_t *len);
+                                  struct tevent_context *ev,
+                                  int fd);
+errno_t read_pipe_recv(struct tevent_req *req,
+                       TALLOC_CTX *mem_ctx,
+                       uint8_t **_buf,
+                       ssize_t *_len);
+
+/* Include buffer length in a message header, read does not wait for EOF. */
+struct tevent_req *write_pipe_safe_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        uint8_t *buf,
+                                        size_t len,
+                                        int fd);
+int write_pipe_safe_recv(struct tevent_req *req);
+
+struct tevent_req *read_pipe_safe_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       int fd);
+errno_t read_pipe_safe_recv(struct tevent_req *req,
+                            TALLOC_CTX *mem_ctx,
+                            uint8_t **_buf,
+                            ssize_t *_len);
 
 /* The pipes to communicate with the child must be nonblocking */
 void fd_nonblocking(int fd);

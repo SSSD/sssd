@@ -18,6 +18,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdint.h>
+
 #include "util/atomic_io.h"
 
 /* based on code from libssh <http://www.libssh.org> */
@@ -57,4 +59,40 @@ ssize_t sss_atomic_io_s(int fd, void *buf, size_t n, bool do_read)
     }
 
     return pos;
+}
+
+ssize_t sss_atomic_write_safe_s(int fd, void *buf, size_t len)
+{
+    uint32_t ulen = len;
+    ssize_t ret;
+
+    ret = sss_atomic_write_s(fd, &ulen, sizeof(uint32_t));
+    if (ret != sizeof(uint32_t)) {
+        errno = errno == 0 ? EIO : errno;
+        return -1;
+    }
+
+    return sss_atomic_write_s(fd, buf, len);
+}
+
+ssize_t sss_atomic_read_safe_s(int fd, void *buf, size_t buf_len, size_t *_len)
+{
+    uint32_t ulen = (uint32_t)-1;
+    ssize_t ret;
+
+    ret = sss_atomic_read_s(fd, &ulen, sizeof(uint32_t));
+    if (ret != sizeof(uint32_t)) {
+        errno = errno == 0 ? EIO : errno;
+        return -1;
+    }
+
+    if (ulen > buf_len) {
+        return ERANGE;
+    }
+
+    if (_len != NULL) {
+        *_len = ulen;
+    }
+
+    return sss_atomic_read_s(fd, buf, ulen);
 }

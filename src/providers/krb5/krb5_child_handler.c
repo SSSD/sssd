@@ -683,8 +683,8 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
     }
 
     state->io->in_use = true;
-    subreq = write_pipe_send(state, ev, buf->data, buf->size,
-                             state->io->write_to_child_fd);
+    subreq = write_pipe_safe_send(state, ev, buf->data, buf->size,
+                                  state->io->write_to_child_fd);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -707,15 +707,14 @@ static void handle_child_step(struct tevent_req *subreq)
                                                     struct handle_child_state);
     int ret;
 
-    ret = write_pipe_recv(subreq);
+    ret = write_pipe_safe_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;
     }
 
-    PIPE_FD_CLOSE(state->io->write_to_child_fd);
-
-    subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
+    subreq = read_pipe_safe_send(state, state->ev,
+                                 state->io->read_from_child_fd);
     if (!subreq) {
         ret = ENOMEM;
         goto done;
@@ -743,14 +742,12 @@ static void handle_child_done(struct tevent_req *subreq)
 
     talloc_zfree(state->timeout_handler);
 
-    ret = read_pipe_recv(subreq, state, &state->buf, &state->len);
+    ret = read_pipe_safe_recv(subreq, state, &state->buf, &state->len);
     state->io->in_use = false;
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;
     }
-
-    PIPE_FD_CLOSE(state->io->read_from_child_fd);
 
 done:
     state->io->in_use = false;

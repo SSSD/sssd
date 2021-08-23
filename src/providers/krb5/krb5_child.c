@@ -1204,7 +1204,7 @@ static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error)
     }
 
     errno = 0;
-    written = sss_atomic_write_s(fd, buf, len);
+    written = sss_atomic_write_safe_s(fd, buf, len);
     if (written == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -2962,7 +2962,7 @@ static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline)
     errno_t ret;
 
     errno = 0;
-    len = sss_atomic_read_s(fd, buf, IN_BUF_SIZE);
+    len = sss_atomic_read_safe_s(fd, buf, IN_BUF_SIZE, NULL);
     if (len == -1) {
         ret = errno;
         ret = (ret == 0) ? EINVAL: ret;
