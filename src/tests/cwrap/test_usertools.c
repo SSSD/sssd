@@ -27,6 +27,12 @@
 #include <popt.h>
 #include "util/util.h"
 #include "tests/cmocka/common_mock.h"
+#include "tests/cwrap/common_mock_nss_dl_load.h"
+
+errno_t sss_load_nss_pw_symbols(struct sss_nss_ops *ops)
+{
+    return mock_sss_load_nss_pw_symbols(ops);
+}
 
 void test_get_user_num(void **state)
 {
