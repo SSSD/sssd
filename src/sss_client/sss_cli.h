@@ -501,6 +501,13 @@ enum response_type {
                             * and further communication must be done with the
                             * same child. The message is the pid of the child
                             * process. */
+    SSS_PAM_OAUTH2_INFO,  /**< A message which contains the oauth2
+                            *  parameters for the user.
+                            * @param Three zero terminated strings:
+                            *   - verification_uri
+                            *   - verification_uri_complete
+                            *   - user_code
+                            */
 };
 
 /**

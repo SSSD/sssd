@@ -60,6 +60,9 @@ struct pam_items {
     char *otp_vendor;
     char *otp_token_id;
     char *otp_challenge;
+    char *oauth2_url;
+    char *oauth2_url_complete;
+    char *oauth2_pin;
     char *first_factor;
     bool password_prompting;
 
