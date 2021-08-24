@@ -1204,6 +1204,56 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
             case SSS_CHILD_KEEP_ALIVE:
                 memcpy(&pi->child_pid, &buf[p], len);
                 break;
+            case SSS_PAM_OAUTH2_INFO:
+                if (buf[p + (len - 1)] != '\0') {
+                    D(("oauth2 info does not end with \\0."));
+                    break;
+                }
+
+                free(pi->oauth2_url);
+                pi->oauth2_url = strdup((char *) &buf[p]);
+                if (pi->oauth2_url == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+
+                offset = strlen(pi->oauth2_url) + 1;
+                if (offset >= len) {
+                    D(("OAuth2 message size mismatch"));
+                    free(pi->oauth2_url);
+                    pi->oauth2_url = NULL;
+                    break;
+                }
+
+                free(pi->oauth2_url_complete);
+                pi->oauth2_url_complete = strdup((char *) &buf[p + offset]);
+                if (pi->oauth2_url_complete == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+
+                offset = offset + strlen(pi->oauth2_url_complete) + 1;
+                if (offset >= len) {
+                    D(("OAuth2 message size mismatch"));
+                    free(pi->oauth2_url_complete);
+                    pi->oauth2_url_complete = NULL;
+                    break;
+                }
+
+                /* This field is optional. */
+                if (pi->oauth2_url_complete[0] == '\0') {
+                    free(pi->oauth2_url_complete);
+                    pi->oauth2_url_complete = NULL;
+                }
+
+                free(pi->oauth2_pin);
+                pi->oauth2_pin = strdup((char *) &buf[p + offset]);
+                if (pi->oauth2_pin == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+
+                break;
             default:
                 D(("Unknown response type [%d]", type));
         }
