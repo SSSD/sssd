@@ -50,6 +50,7 @@ struct io_buffer {
 struct child_io_fds {
     int read_from_child_fd;
     int write_to_child_fd;
+    pid_t pid;
     bool child_exited;
     bool in_use;
 };

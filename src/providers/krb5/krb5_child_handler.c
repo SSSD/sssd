@@ -487,6 +487,19 @@ static void child_exited(int child_status,
     talloc_free(io);
 }
 
+static void child_keep_alive_timeout(struct tevent_context *ev,
+                                     struct tevent_timer *te,
+                                     struct timeval tv,
+                                     void *pvt)
+{
+    struct child_io_fds *io = talloc_get_type(pvt, struct child_io_fds);
+
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Keep alive timeout for child [%d] reached.\n",
+          io->pid);
+
+    krb5_child_terminate(io->pid);
+}
+
 static errno_t fork_child(struct tevent_context *ev,
                           struct krb5child_req *kr,
                           pid_t *_child_pid,
@@ -497,6 +510,8 @@ static errno_t fork_child(struct tevent_context *ev,
     int pipefd_from_child[2] = PIPE_INIT;
     const char **krb5_child_extra_args;
     struct child_io_fds *io;
+    struct tevent_timer *te;
+    struct timeval tv;
     char *io_key;
     pid_t pid = 0;
     errno_t ret;
@@ -557,6 +572,8 @@ static errno_t fork_child(struct tevent_context *ev,
     }
     talloc_set_destructor((void*)io, child_io_destructor);
 
+    io->pid = pid;
+
     /* Set file descriptors. */
     io->read_from_child_fd = pipefd_from_child[0];
     io->write_to_child_fd = pipefd_to_child[1];
@@ -577,6 +594,17 @@ static errno_t fork_child(struct tevent_context *ev,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to add child io to hash table "
               "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Setup child's keep alive timeout for open file descriptors. This timeout
+     * is quite big to allow additional user interactions when the child is kept
+     * alive for further communication. */
+    tv = tevent_timeval_current_ofs(300, 0);
+    te = tevent_add_timer(ev, io, tv, child_keep_alive_timeout, io);
+    if (te == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup child timeout\n");
+        ret = ENOMEM;
         goto done;
     }
 
@@ -678,7 +706,7 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
         if (state->io == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Unable to locate pipe for child pid=%s\n",
                   io_key);
-            ret = ERR_INTERNAL;
+            ret = ENOENT;
             goto fail;
         }
     }
