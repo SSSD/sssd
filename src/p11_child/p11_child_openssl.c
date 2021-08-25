@@ -1650,6 +1650,11 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 
     if (uri_str != NULL) {
         uri = p11_kit_uri_new();
+        if (uri == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_new failed.\n");
+            return ENOMEM;
+        }
+
         ret = p11_kit_uri_parse(uri_str, P11_KIT_URI_FOR_ANY, uri);
         if (ret != P11_KIT_URI_OK) {
             DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_parse failed [%d][%s].\n",
