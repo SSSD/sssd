@@ -570,8 +570,10 @@ done:
     return uri_str;
 }
 
-static int talloc_cleanup_openssl(struct p11_ctx *p11_ctx)
+static int p11_ctx_destructor(struct p11_ctx *p11_ctx)
 {
+    X509_STORE_free(p11_ctx->x509_store);
+
     CRYPTO_cleanup_all_ex_data();
 
     return 0;
@@ -583,6 +585,12 @@ errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
     int ret;
     struct p11_ctx *ctx;
 
+    ctx = talloc_zero(mem_ctx, struct p11_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        return ENOMEM;
+    }
+
     /* See https://wiki.openssl.org/index.php/Library_Initialization for
      * details. */
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -592,29 +600,24 @@ errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
 #endif
     if (ret != 1) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to initialize OpenSSL.\n");
-        return EIO;
-    }
-
-    ctx = talloc_zero(mem_ctx, struct p11_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
-        return ENOMEM;
+        ret = EIO;
+        goto done;
     }
 
     ctx->ca_db = ca_db;
     ctx->wait_for_card = wait_for_card;
-    talloc_set_destructor(ctx, talloc_cleanup_openssl);
+    talloc_set_destructor(ctx, p11_ctx_destructor);
 
     *p11_ctx = ctx;
 
-    return EOK;
-}
+    ret = EOK;
 
-static int talloc_free_x509_store(struct p11_ctx *p11_ctx)
-{
-    X509_STORE_free(p11_ctx->x509_store);
+done:
+    if (ret != EOK) {
+        talloc_free(ctx);
+    }
 
-    return 0;
+    return ret;
 }
 
 static int ensure_verify_param(X509_VERIFY_PARAM **verify_param_out)
@@ -702,7 +705,6 @@ errno_t init_verification(struct p11_ctx *p11_ctx,
 
     p11_ctx->x509_store = store;
     p11_ctx->cert_verify_opts = cert_verify_opts;
-    talloc_set_destructor(p11_ctx, talloc_free_x509_store);
 
     ret = EOK;
 
