@@ -253,6 +253,10 @@ static void krb5_child_terminate(pid_t pid)
 {
     int ret;
 
+    if (pid == 0) {
+        return;
+    }
+
     ret = kill(pid, SIGKILL);
     if (ret == -1) {
         ret = errno;
@@ -493,7 +497,7 @@ static errno_t fork_child(struct tevent_context *ev,
     const char **krb5_child_extra_args;
     struct child_io_fds *io;
     char *io_key;
-    pid_t pid;
+    pid_t pid = 0;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -596,6 +600,7 @@ done:
     if (ret != EOK) {
         PIPE_CLOSE(pipefd_from_child);
         PIPE_CLOSE(pipefd_to_child);
+        krb5_child_terminate(pid);
     }
 
     talloc_free(tmp_ctx);
