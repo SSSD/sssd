@@ -11,7 +11,7 @@ import pytest
 import paramiko
 from sssd.testlib.common.utils import SSHClient
 from sssd.testlib.common.utils import sssdTools
-from constants import ds_instance_name
+from constants import ds_instance_name, ds_suffix
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups',
@@ -119,3 +119,74 @@ class TestSudo(object):
                 multihost.master[0].run_command(journalctl_cmd)
                 pytest.fail("%s cmd failed for user %s" % ('sudo -l', 'foo1'))
             ssh.close()
+
+    @pytest.mark.tier2
+    def test_randomize_sudo_timeout(self, multihost,
+                                    backupsssdconf, sudo_rule):
+        """
+        :title: sudo: randomize sudo refresh timeouts
+        :id: 57720975-29ba-4ed7-868a-f9b784bbfed2
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1925514
+        :customerscenario: True
+        :steps:
+          1. Edit sssdconfig and specify sssd smart, full timeout option
+          2. Restart sssd with cleared logs and cache
+          3. Wait for 120 seconds
+          4. Parse logs and confirm sudo refresh timeouts are random
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
+        multihost.client[0].service_sssd('stop')
+        tools.remove_sss_cache('/var/lib/sss/db')
+        tools.remove_sss_cache('/var/log/sssd')
+        sudo_base = 'ou=sudoers,%s' % (ds_suffix)
+        sudo_uri = "ldap://%s" % multihost.master[0].sys_hostname
+        params = {'ldap_sudo_search_base': sudo_base,
+                  'ldap_uri': sudo_uri,
+                  'sudo_provider': "ldap",
+                  'ldap_sudo_full_refresh_interval': '25',
+                  'ldap_sudo_smart_refresh_interval': '15',
+                  'ldap_sudo_random_offset': '5'}
+        domain_section = 'domain/%s' % ds_instance_name
+        tools.sssd_conf(domain_section, params, action='update')
+        section = "sssd"
+        sssd_params = {'services': 'nss, pam, sudo'}
+        tools.sssd_conf(section, sssd_params, action='update')
+        multihost.client[0].service_sssd('start')
+        time.sleep(120)
+        logfile = '/var/log/sssd/sssd_%s.log' % ds_instance_name
+        tmout_ptrn = r"(SUDO.*\:\sscheduling task \d+ seconds)"
+        regex_tmout = re.compile("%s" % tmout_ptrn)
+        smart_tmout = []
+        full_tmout = []
+        log = multihost.client[0].get_file_contents(logfile).decode('utf-8')
+        for line in log.split('\n'):
+            if line:
+                if (regex_tmout.findall(line)):
+                    rfrsh_type = regex_tmout.findall(line)[0].split()[1]
+                    timeout = regex_tmout.findall(line)[0].split()[5]
+                    if rfrsh_type == 'Smart':
+                        smart_tmout.append(timeout)
+                    elif rfrsh_type == 'Full':
+                        full_tmout.append(timeout)
+        rand_intvl, same_intvl = 0, 0
+        for timeout in smart_tmout, full_tmout:
+            index = 1
+            rand_intvl, same_intvl = 0, 0
+            while index < len(timeout):
+                if timeout[index] != timeout[index-1]:
+                    rand_intvl += 1
+                else:
+                    same_intvl += 1
+                index += 1
+            assert rand_intvl > same_intvl
+        multihost.client[0].service_sssd('stop')
+        params = {'ldap_sudo_full_refresh_interval': '25',
+                  'ldap_sudo_smart_refresh_interval': '15',
+                  'ldap_sudo_random_offset': '5'}
+        tools.sssd_conf(domain_section, params, action='delete')
+        multihost.client[0].service_sssd('start')

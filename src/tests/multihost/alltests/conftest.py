@@ -424,6 +424,43 @@ def enable_multiple_responders(session_multihost, request):
     request.addfinalizer(restore_sssd_conf)
 
 
+@pytest.fixture(scope='function')
+def sudo_rule(session_multihost, request):
+    """ Create sudoers ldap entries """
+    ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
+    sudo_ou = 'ou=sudoers, %s' % ds_suffix
+    ds_rootdn = 'cn=Directory Manager'
+    ds_rootpw = 'Secret123'
+    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    try:
+        ldap_inst.org_unit('sudoers', ds_suffix)
+    except LdapException:
+        pytest.fail("already exist or failed to add sudo ou ")
+    sudo_options = ["!requiretty", "!authenticate"]
+    sudo_cmd = '/usr/bin/head'
+    sudo_user = 'foo1'
+    rule_dn = "cn=%s, %s" % (sudo_cmd, sudo_ou)
+    try:
+        ldap_inst.add_sudo_rule(rule_dn, 'ALL', '/usr/bin/head',
+                                sudo_user, sudo_options)
+    except LdapException:
+        pytest.fail("Failed to add sudo rule %s" % rule_dn)
+    else:
+        extra_user = 'foo2'
+        add_extra = [(ldap.MOD_ADD,  'sudoUser',
+                     extra_user.encode('utf-8'))]
+        (ret, _) = ldap_inst.modify_ldap(rule_dn, add_extra)
+        assert ret == 'Success'
+
+    def del_sudo_rule():
+        """ Delete sudo rule  """
+        rule_dn = 'cn=%s,%s' % (sudo_cmd, sudo_ou)
+        (_, _) = ldap_inst.del_dn(rule_dn)
+        (ret, _) = ldap_inst.del_dn(sudo_ou)
+        assert ret == 'Success'
+    request.addfinalizer(del_sudo_rule)
+
+
 testdata = [
     [(datetime.today() - timedelta(days=1)).strftime('%Y%m%d%H') + 'Z',
      'sudoNotBefore'],
