@@ -1745,8 +1745,12 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 
                 }
 
-                if ((info.flags & CKF_REMOVABLE_DEVICE) && (info.flags & CKF_TOKEN_PRESENT)) {
-                    break;
+                if ((info.flags & CKF_REMOVABLE_DEVICE)) {
+                    module = modules[c];
+                    slot_id = slots[s];
+                    if ((info.flags & CKF_TOKEN_PRESENT)) {
+                        break;
+                    }
                 }
             }
             if (s != num_slots) {
@@ -1756,7 +1760,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 
         /* When e.g. using Yubikeys the slot isn't present until the device is
          * inserted, so we should wait for a slot as well. */
-        if (p11_ctx->wait_for_card && modules[c] == NULL) {
+        if (p11_ctx->wait_for_card && module == NULL) {
             p11_kit_modules_finalize_and_release(modules);
 
             sleep(PKCS11_FINIALIZE_INITIALIZE_WAIT_TIME);
@@ -1774,18 +1778,16 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         }
     }
 
-    if (modules[c] == NULL) {
+    if (module == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "No removable slots found.\n");
         ret = EIO;
         goto done;
     }
 
-    slot_id = slots[s];
-
     if (!(info.flags & CKF_TOKEN_PRESENT)) {
         DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
         if (p11_ctx->wait_for_card) {
-            ret = wait_for_card(modules[c], &slot_id);
+            ret = wait_for_card(module, &slot_id);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
                 goto done;
@@ -1796,7 +1798,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         }
     }
 
-    rv = modules[c]->C_GetTokenInfo(slot_id, &token_info);
+    rv = module->C_GetTokenInfo(slot_id, &token_info);
     if (rv != CKR_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "C_GetTokenInfo failed.\n");
         ret = EIO;
@@ -1826,7 +1828,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         ret = ENOMEM;
         goto done;
     }
-    module = modules[c];
+
     module_file_name = p11_kit_module_get_filename(module);
 
     DEBUG(SSSDBG_TRACE_ALL, "Found [%s] in slot [%s][%d] of module [%d][%s].\n",
