@@ -2771,10 +2771,6 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         <para>
                             <quote>proxy</quote>: Support a legacy NSS provider.
                         </para>
-                        <para condition="enable_local_provider">
-                            <quote>local</quote>: SSSD internal provider for
-                            local users (DEPRECATED).
-                        </para>
                         <para>
                             <quote>files</quote>: FILES provider. See
                             <citerefentry>
@@ -2916,10 +2912,6 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             <quote>proxy</quote> for relaying authentication to some other PAM target.
-                        </para>
-                        <para condition="enable_local_provider">
-                            <quote>local</quote>: SSSD internal provider for
-                            local users
                         </para>
                         <para>
                             <quote>none</quote> disables authentication explicitly.
@@ -3544,10 +3536,6 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                     <listitem>
                         <para>
                             Treat user and group names as case sensitive.
-                            <phrase condition="enable_local_provider">
-                                At the moment, this option is not supported in
-                                the local provider.
-                            </phrase>
                             Possible option values are:
                         <variablelist>
                             <varlistentry>
@@ -3953,130 +3941,6 @@ ldap_search_base = dc=example,dc=com
 inherit_from = posixdom
 ldap_user_extra_attrs = phone:telephoneNumber
 </programlisting>
-        </refsect2>
-
-        <refsect2 id='local_domain' condition="enable_local_provider">
-            <title>The local domain section</title>
-            <para>
-                This section contains settings for domain that stores users and
-                groups in SSSD native database, that is, a domain that uses
-                <replaceable>id_provider=local</replaceable>.
-            </para>
-            <variablelist>
-                <title>Section parameters</title>
-                <varlistentry>
-                    <term>default_shell (string)</term>
-                    <listitem>
-                        <para>
-                            The default shell for users created
-                            with SSSD userspace tools.
-                        </para>
-                        <para>
-                            Default: <filename>/bin/bash</filename>
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>base_directory (string)</term>
-                    <listitem>
-                        <para>
-                            The tools append the login name to
-                            <replaceable>base_directory</replaceable> and
-                            use that as the home directory.
-                        </para>
-                        <para>
-                            Default: <filename>/home</filename>
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>create_homedir (bool)</term>
-                    <listitem>
-                        <para>
-                            Indicate if a home directory should be created by default for new users.
-                            Can be overridden on command line.
-                        </para>
-                        <para>
-                            Default: TRUE
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>remove_homedir (bool)</term>
-                    <listitem>
-                        <para>
-                            Indicate if a home directory should be removed by default for deleted users.
-                            Can be overridden on command line.
-                        </para>
-                        <para>
-                            Default: TRUE
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>homedir_umask (integer)</term>
-                    <listitem>
-                        <para>
-                            Used by
-                            <citerefentry>
-                                <refentrytitle>sss_useradd</refentrytitle>
-                                <manvolnum>8</manvolnum>
-                            </citerefentry> to specify the default permissions on a newly created
-                            home directory.
-                        </para>
-                        <para>
-                            Default: 077
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>skel_dir (string)</term>
-                    <listitem>
-                        <para>
-                            The skeleton directory, which contains files
-                            and directories to be copied in the user's
-                            home directory, when the home directory is
-                            created by
-                            <citerefentry>
-                                <refentrytitle>sss_useradd</refentrytitle>
-                                <manvolnum>8</manvolnum>
-                            </citerefentry>
-                        </para>
-                        <para>
-                            Default: <filename>/etc/skel</filename>
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>mail_dir (string)</term>
-                    <listitem>
-                        <para>
-                            The mail spool directory. This is needed to
-                            manipulate the mailbox when its corresponding
-                            user account is modified or deleted.
-                            If not specified, a default
-                            value is used.
-                        </para>
-                        <para>
-                            Default: <filename>/var/mail</filename>
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>userdel_cmd (string)</term>
-                    <listitem>
-                        <para>
-                            The command that is run after a user is removed.
-                            The command us passed the username of the user being
-                            removed as the first and only parameter. The return
-                            code of the command is not taken into account.
-                        </para>
-                        <para>
-                            Default: None, no command is run
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
         </refsect2>
 
     </refsect1>

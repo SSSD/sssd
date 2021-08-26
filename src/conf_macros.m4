@@ -452,21 +452,6 @@ AC_DEFUN([WITH_IPA_GETKEYTAB],
     AC_DEFINE_UNQUOTED(IPA_GETKEYTAB_PATH, "$IPA_GETKEYTAB_PATH", [The path to the ipa-getkeytab utility])
   ])
 
-AC_DEFUN([WITH_NSCD],
-  [ AC_ARG_WITH([nscd],
-                [AC_HELP_STRING([--with-nscd=PATH],
-                                [Path to nscd binary to attempt to flush nscd cache after local domain operations [/usr/sbin/nscd]]
-                               )
-                ]
-               )
-    NSCD_PATH="/usr/sbin/nscd"
-    if test x"$with_nscd" != x; then
-        NSCD_PATH=$with_nscd
-        AC_SUBST(NSCD_PATH)
-    fi
-    AC_DEFINE_UNQUOTED(HAVE_NSCD, $NSCD_PATH, [flush nscd cache after local domain operations])
-  ])
-
 AC_DEFUN([WITH_NSCD_CONF],
   [ AC_ARG_WITH([nscd_conf],
                 [AC_HELP_STRING([--with-nscd-conf=PATH], [Path to nscd.conf file [/etc/nscd.conf]])
@@ -909,19 +894,6 @@ AS_IF([test x$enable_files_domain = xyes],
       AC_DEFINE_UNQUOTED([ADD_FILES_DOMAIN], [1],
           [whether to build unconditionally enable files domain]))
 AM_CONDITIONAL([ADD_FILES_DOMAIN], [test x$enable_files_domain = xyes])
-
-AC_ARG_ENABLE([local-provider],
-              [AS_HELP_STRING([--enable-local-provider],
-                              [If this feature is enabled, then local-provider
-                               will be built by default [default=no]
-                               Please note this feature is deprecated and will
-                               be removed in one of the next versions of SSSD.])],
-              [enable_local_provider=$enableval],
-              [enable_local_provider=no])
-AS_IF([test x$enable_local_provider = xyes],
-      AC_DEFINE_UNQUOTED([BUILD_LOCAL_PROVIDER], [1],
-          [whether to build unconditionally enable local provider]))
-AM_CONDITIONAL([BUILD_LOCAL_PROVIDER], [test x$enable_local_provider = xyes])
 
 AC_ARG_ENABLE([gss-spnego-for-zero-maxssf],
               [AS_HELP_STRING([--enable-gss-spnego-for-zero-maxssf],

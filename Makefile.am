@@ -159,18 +159,6 @@ sbin_PROGRAMS = \
     sssctl \
     $(NULL)
 
-if BUILD_LOCAL_PROVIDER
-sbin_PROGRAMS += \
-    sss_useradd \
-    sss_userdel \
-    sss_usermod \
-    sss_groupadd \
-    sss_groupdel \
-    sss_groupmod \
-    sss_groupshow \
-    $(NULL)
-endif
-
 sssdlibexec_PROGRAMS = \
     sssd_nss \
     sssd_pam \
@@ -622,7 +610,6 @@ SSSD_RESPONDER_OBJ = \
     $(NULL)
 
 SSSD_TOOLS_OBJ = \
-    src/tools/sss_sync_ops.c \
     src/tools/tools_util.c \
     src/tools/common/sss_tools.c \
     src/tools/common/sss_process.c \
@@ -894,7 +881,6 @@ dist_noinst_HEADERS = \
     src/providers/proxy/proxy.h \
     src/providers/files/files_private.h \
     src/tools/tools_util.h \
-    src/tools/sss_sync_ops.h \
     src/resolv/async_resolv.h \
     src/tests/common.h \
     src/tests/common_check.h \
@@ -1569,7 +1555,6 @@ if BUILD_SUBID
 endif
 
 sssd_pam_SOURCES = \
-    src/responder/pam/pam_LOCAL_domain.c \
     src/responder/pam/pamsrv.c \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_p11.c \
@@ -1934,70 +1919,6 @@ dist_pamconf_DATA = \
 ######################
 # Command-line Tools #
 ######################
-sss_useradd_SOURCES = \
-    src/tools/sss_useradd.c \
-    $(SSSD_TOOLS_OBJ)
-sss_useradd_LDADD = \
-    $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    libsss_semanage.la \
-    $(NULL)
-
-sss_userdel_SOURCES = \
-    src/tools/sss_userdel.c \
-    $(SSSD_LCL_TOOLS_OBJ)
-sss_userdel_LDADD = \
-    $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(CLIENT_LIBS) \
-    libsss_semanage.la \
-    $(NULL)
-sss_userdel_CFLAGS = \
-    $(AM_CFLAGS)
-
-sss_groupadd_SOURCES = \
-    src/tools/sss_groupadd.c \
-    $(SSSD_TOOLS_OBJ)
-sss_groupadd_LDADD = \
-    $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
-
-sss_groupdel_SOURCES = \
-    src/tools/sss_groupdel.c \
-    $(SSSD_LCL_TOOLS_OBJ)
-sss_groupdel_LDADD = \
-    $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(CLIENT_LIBS)
-sss_groupdel_CFLAGS = $(AM_CFLAGS)
-
-sss_usermod_SOURCES = \
-    src/tools/sss_usermod.c \
-    $(SSSD_LCL_TOOLS_OBJ)
-sss_usermod_LDADD = \
-    $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(CLIENT_LIBS) \
-    libsss_semanage.la \
-    $(NULL)
-sss_usermod_CFLAGS = $(AM_CFLAGS)
-
-sss_groupmod_SOURCES = \
-    src/tools/sss_groupmod.c \
-    $(SSSD_LCL_TOOLS_OBJ)
-sss_groupmod_LDADD = \
-    $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(CLIENT_LIBS)
-sss_groupmod_CFLAGS = $(AM_CFLAGS)
-
-sss_groupshow_SOURCES = \
-    src/tools/sss_groupshow.c \
-    $(SSSD_TOOLS_OBJ)
-sss_groupshow_LDADD = \
-    $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
-
 sss_cache_SOURCES = \
     src/tools/sss_cache.c \
     $(SSSD_LCL_TOOLS_OBJ)
@@ -2717,7 +2638,6 @@ pam_srv_tests_SOURCES = \
     src/responder/pam/pamsrv_gssapi.c \
     src/responder/pam/pam_helpers.c \
     src/responder/pam/pamsrv_dp.c \
-    src/responder/pam/pam_LOCAL_domain.c \
     src/responder/pam/pam_prompting_config.c \
     src/sss_client/pam_sss_prompt_config.c \
     $(NULL)
@@ -4069,7 +3989,6 @@ intgcheck-prepare:
 	    --without-semanage \
 	    --with-secrets \
 	    --with-session-recording-shell=/bin/false \
-	    --enable-local-provider \
 	    --enable-files-domain \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
 	    CFLAGS="-O2 -g $$CFLAGS"; \
@@ -5131,7 +5050,6 @@ dist_sssdapiplugin_DATA = \
     src/config/etc/sssd.api.d/sssd-ad.conf \
     src/config/etc/sssd.api.d/sssd-krb5.conf \
     src/config/etc/sssd.api.d/sssd-ldap.conf \
-    src/config/etc/sssd.api.d/sssd-local.conf \
     src/config/etc/sssd.api.d/sssd-proxy.conf \
     src/config/etc/sssd.api.d/sssd-simple.conf \
     src/config/etc/sssd.api.d/sssd-files.conf
