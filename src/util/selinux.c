@@ -23,13 +23,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #ifdef HAVE_SELINUX
 #include <selinux/selinux.h>
 #include <selinux/label.h>
 #endif
 
-#include "tools/tools_util.h"
+#include "util/debug.h"
 
 #ifdef HAVE_SELINUX
 /*

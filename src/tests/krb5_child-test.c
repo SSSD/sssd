@@ -31,7 +31,6 @@
 #include <limits.h>
 
 #include "util/util.h"
-#include "src/tools/tools_util.h"
 
 /* Interfaces being tested */
 #include "providers/krb5/krb5_auth.h"

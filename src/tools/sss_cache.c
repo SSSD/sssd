@@ -26,7 +26,7 @@
 #include <sys/types.h>
 
 #include "util/util.h"
-#include "tools/sss_sync_ops.h"
+#include "tools/tools_util.h"
 #include "db/sysdb.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"

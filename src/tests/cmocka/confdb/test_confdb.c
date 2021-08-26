@@ -81,13 +81,13 @@ static int confdb_test_setup(void **state)
     assert_int_equal(ret, EOK);
 
     /* [domain/enabled_1] */
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/" TEST_DOMAIN_ENABLED_1, "id_provider", val);
     assert_int_equal(ret, EOK);
 
     /* [domain/enabled_2] */
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/" TEST_DOMAIN_ENABLED_2, "id_provider", val);
     assert_int_equal(ret, EOK);
@@ -98,7 +98,7 @@ static int confdb_test_setup(void **state)
     assert_int_equal(ret, EOK);
 
     /* [domain/enabled_3] */
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/" TEST_DOMAIN_ENABLED_3, "id_provider", val);
     assert_int_equal(ret, EOK);
@@ -109,13 +109,13 @@ static int confdb_test_setup(void **state)
     assert_int_equal(ret, EOK);
 
     /* [domain/disabled_1] */
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/" TEST_DOMAIN_DISABLED_1, "id_provider", val);
     assert_int_equal(ret, EOK);
 
     /* [domain/disabled_2] */
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/" TEST_DOMAIN_DISABLED_2, "id_provider", val);
     assert_int_equal(ret, EOK);
@@ -126,7 +126,7 @@ static int confdb_test_setup(void **state)
     assert_int_equal(ret, EOK);
 
     /* [domain/disabled_3] */
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/" TEST_DOMAIN_DISABLED_3, "id_provider", val);
     assert_int_equal(ret, EOK);

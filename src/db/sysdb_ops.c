@@ -34,28 +34,6 @@
 #define SSS_SYSDB_TS_CACHE 0x2
 #define SSS_SYSDB_BOTH_CACHE (SSS_SYSDB_CACHE | SSS_SYSDB_TS_CACHE)
 
-static uint32_t get_attr_as_uint32(struct ldb_message *msg, const char *attr)
-{
-    const struct ldb_val *v = ldb_msg_find_ldb_val(msg, attr);
-    long long int l;
-
-    if (!v || !v->data) {
-        return 0;
-    }
-
-    errno = 0;
-    l = strtoll((const char *)v->data, NULL, 10);
-    if (errno) {
-        return (uint32_t)-1;
-    }
-
-    if (l < 0 || l > ((uint32_t)(-1))) {
-        return (uint32_t)-1;
-    }
-
-    return l;
-}
-
 /*
  * The wrapper around ldb_modify that uses LDB_CONTROL_PERMISSIVE_MODIFY_OID
  * so that on adds entries that already exist are skipped and similarly
@@ -515,9 +493,7 @@ static int sysdb_search_by_name(TALLOC_CTX *mem_ctx,
         break;
     case SYSDB_GROUP:
         def_attrs[1] = SYSDB_GIDNUM;
-        if (sss_domain_is_mpg(domain) &&
-                (!local_provider_is_built()
-                 || strcasecmp(domain->provider, "local") != 0)) {
+        if (sss_domain_is_mpg(domain)) {
             /* When searching a group by name in a MPG domain, we also
              * need to search the user space in order to be able to match
              * a user private group/
@@ -1560,184 +1536,6 @@ done:
     return ret;
 }
 
-/* =Get-New-ID============================================================ */
-
-int sysdb_get_new_id(struct sss_domain_info *domain,
-                     uint32_t *_id)
-{
-    TALLOC_CTX *tmp_ctx;
-    const char *attrs_1[] = { SYSDB_NEXTID, NULL };
-    const char *attrs_2[] = { SYSDB_UIDNUM, SYSDB_GIDNUM, NULL };
-    struct ldb_dn *base_dn;
-    char *filter;
-    uint32_t new_id = 0;
-    struct ldb_message **msgs;
-    size_t count;
-    struct ldb_message *msg;
-    uint32_t id;
-    int ret;
-    int i;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    if (!local_provider_is_built()
-            || strcasecmp(domain->provider, "local") != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Generating new ID is only supported in the local domain!\n");
-        return ENOTSUP;
-    }
-
-    base_dn = sysdb_domain_dn(tmp_ctx, domain);
-    if (!base_dn) {
-        talloc_zfree(tmp_ctx);
-        return ENOMEM;
-    }
-
-    ret = ldb_transaction_start(domain->sysdb->ldb);
-    if (ret) {
-        talloc_zfree(tmp_ctx);
-        ret = sysdb_error_to_errno(ret);
-        return ret;
-    }
-
-    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, base_dn, LDB_SCOPE_BASE,
-                             SYSDB_NEXTID_FILTER, attrs_1, &count, &msgs);
-    switch (ret) {
-    case EOK:
-        new_id = get_attr_as_uint32(msgs[0], SYSDB_NEXTID);
-        if (new_id == (uint32_t)(-1)) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Invalid Next ID in domain %s\n", domain->name);
-            ret = ERANGE;
-            goto done;
-        }
-
-        if (new_id < domain->id_min) {
-            new_id = domain->id_min;
-        }
-
-        if ((domain->id_max != 0) && (new_id > domain->id_max)) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Failed to allocate new id, out of range (%u/%u)\n",
-                      new_id, domain->id_max);
-            ret = ERANGE;
-            goto done;
-        }
-        break;
-
-    case ENOENT:
-        /* looks like the domain is not initialized yet, use min_id */
-        new_id = domain->id_min;
-        break;
-
-    default:
-        goto done;
-    }
-    talloc_zfree(msgs);
-    count = 0;
-
-    /* verify the id is actually really free.
-     * search all entries with id >= new_id and < max_id */
-    if (domain->id_max) {
-        filter = talloc_asprintf(tmp_ctx,
-                                 "(|(&(%s>=%u)(%s<=%u))(&(%s>=%u)(%s<=%u)))",
-                                 SYSDB_UIDNUM, new_id,
-                                 SYSDB_UIDNUM, domain->id_max,
-                                 SYSDB_GIDNUM, new_id,
-                                 SYSDB_GIDNUM, domain->id_max);
-    }
-    else {
-        filter = talloc_asprintf(tmp_ctx,
-                                 "(|(%s>=%u)(%s>=%u))",
-                                 SYSDB_UIDNUM, new_id,
-                                 SYSDB_GIDNUM, new_id);
-    }
-    if (!filter) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Error: Out of memory\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, base_dn, LDB_SCOPE_SUBTREE,
-                             filter, attrs_2, &count, &msgs);
-    switch (ret) {
-    /* if anything was found, find the maximum and increment past it */
-    case EOK:
-        for (i = 0; i < count; i++) {
-            id = get_attr_as_uint32(msgs[i], SYSDB_UIDNUM);
-            if (id != (uint32_t)(-1)) {
-                if (id > new_id) new_id = id;
-            }
-            id = get_attr_as_uint32(msgs[i], SYSDB_GIDNUM);
-            if (id != (uint32_t)(-1)) {
-                if (id > new_id) new_id = id;
-            }
-        }
-
-        new_id++;
-
-        /* check again we are not falling out of range */
-        if ((domain->id_max != 0) && (new_id > domain->id_max)) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Failed to allocate new id, out of range (%u/%u)\n",
-                      new_id, domain->id_max);
-            ret = ERANGE;
-            goto done;
-        }
-        break;
-
-    case ENOENT:
-        break;
-
-    default:
-        goto done;
-    }
-
-    talloc_zfree(msgs);
-    count = 0;
-
-    /* finally store the new next id */
-    msg = ldb_msg_new(tmp_ctx);
-    if (!msg) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Error: Out of memory\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    msg->dn = base_dn;
-
-    ret = sysdb_replace_ulong(msg, SYSDB_NEXTID, new_id + 1);
-    if (ret) {
-        goto done;
-    }
-
-    ret = ldb_modify(domain->sysdb->ldb, msg);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "ldb_modify failed: [%s](%d)[%s]\n",
-              ldb_strerror(ret), ret, ldb_errstring(domain->sysdb->ldb));
-    }
-    ret = sysdb_error_to_errno(ret);
-
-    *_id = new_id;
-
-done:
-    if (ret == EOK) {
-        ret = ldb_transaction_commit(domain->sysdb->ldb);
-        ret = sysdb_error_to_errno(ret);
-    } else {
-        ldb_transaction_cancel(domain->sysdb->ldb);
-    }
-    if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
-    }
-    talloc_zfree(tmp_ctx);
-    return ret;
-}
-
-
 /* =Add-Basic-User-NO-CHECKS============================================== */
 
 int sysdb_add_basic_user(struct sss_domain_info *domain,
@@ -2020,9 +1818,7 @@ int sysdb_add_user(struct sss_domain_info *domain,
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
-    struct sysdb_attrs *id_attrs;
     struct ldb_message_element *el = NULL;
-    uint32_t id;
     int ret;
     bool posix;
 
@@ -2080,18 +1876,15 @@ int sysdb_add_user(struct sss_domain_info *domain,
             goto done;
         }
 
-        if (!local_provider_is_built()
-                || strcasecmp(domain->provider, "local") != 0) {
-            ret = sysdb_search_group_by_gid(tmp_ctx, domain, uid, NULL, &msg);
-            if (ret != ENOENT) {
-                if (ret == EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                        "Group with GID [%"SPRIgid"] already exists in an "
-                        "MPG domain\n", gid);
-                    ret = EEXIST;
-                }
-                goto done;
+        ret = sysdb_search_group_by_gid(tmp_ctx, domain, uid, NULL, &msg);
+        if (ret != ENOENT) {
+            if (ret == EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                    "Group with GID [%"SPRIgid"] already exists in an "
+                    "MPG domain\n", gid);
+                ret = EEXIST;
             }
+            goto done;
         }
     }
 
@@ -2137,25 +1930,9 @@ int sysdb_add_user(struct sss_domain_info *domain,
     }
 
     if (uid == 0 && posix == true) {
-        ret = sysdb_get_new_id(domain, &id);
-        if (ret) goto done;
-
-        id_attrs = sysdb_new_attrs(tmp_ctx);
-        if (!id_attrs) {
-            ret = ENOMEM;
-            goto done;
-        }
-        ret = sysdb_attrs_add_uint32(id_attrs, SYSDB_UIDNUM, id);
-        if (ret) goto done;
-
-        if (sss_domain_is_mpg(domain)) {
-            ret = sysdb_attrs_add_uint32(id_attrs, SYSDB_GIDNUM, id);
-            if (ret) goto done;
-        }
-
-        ret = sysdb_set_user_attr(domain, name, id_attrs, SYSDB_MOD_REP);
-        /* continue on success, to commit additional attrs */
-        if (ret) goto done;
+        DEBUG(SSSDBG_OP_FAILURE, "Can't store posix user with uid=0.\n");
+        ret = EINVAL;
+        goto done;
     }
 
     if (!now) {
@@ -2264,7 +2041,6 @@ int sysdb_add_group(struct sss_domain_info *domain,
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
-    uint32_t id;
     int ret;
     bool posix;
 
@@ -2307,22 +2083,19 @@ int sysdb_add_group(struct sss_domain_info *domain,
             goto done;
         }
 
-        if (!local_provider_is_built()
-                || strcasecmp(domain->provider, "local") != 0) {
-            ret = sysdb_search_user_by_uid(tmp_ctx, domain, gid, NULL, &msg);
-            if (ret != ENOENT) {
-                if (ret == EOK) {
-                    DEBUG(SSSDBG_TRACE_LIBS,
-                          "User with the same UID exists in MPG domain: "
-                          "[%"SPRIgid"].\n", gid);
-                    ret = EEXIST;
-                } else {
-                    DEBUG(SSSDBG_TRACE_LIBS,
-                          "sysdb_search_user_by_uid failed for gid: "
-                          "[%"SPRIgid"].\n", gid);
-                }
-                goto done;
+        ret = sysdb_search_user_by_uid(tmp_ctx, domain, gid, NULL, &msg);
+        if (ret != ENOENT) {
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      "User with the same UID exists in MPG domain: "
+                      "[%"SPRIgid"].\n", gid);
+                ret = EEXIST;
+            } else {
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      "sysdb_search_user_by_uid failed for gid: "
+                      "[%"SPRIgid"].\n", gid);
             }
+            goto done;
         }
     }
 
@@ -2382,17 +2155,9 @@ int sysdb_add_group(struct sss_domain_info *domain,
     }
 
     if (posix && gid == 0) {
-        ret = sysdb_get_new_id(domain, &id);
-        if (ret) {
-            DEBUG(SSSDBG_TRACE_LIBS, "sysdb_get_new_id failed.\n");
-            goto done;
-        }
-
-        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, id);
-        if (ret) {
-            DEBUG(SSSDBG_TRACE_LIBS, "Failed to add new gid.\n");
-            goto done;
-        }
+        DEBUG(SSSDBG_OP_FAILURE, "Can't store posix user with gid=0.\n");
+        ret = EINVAL;
+        goto done;
     }
 
     if (!now) {

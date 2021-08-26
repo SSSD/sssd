@@ -25,7 +25,6 @@
 #include "db/sysdb.h"
 #include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
-#include "tools/tools_util.h"
 
 #define SSS_BACKUP_DIR SSS_STATEDIR "/backup"
 #define SSS_BACKUP_USER_OVERRIDES SSS_BACKUP_DIR "/sssd_user_overrides.bak"

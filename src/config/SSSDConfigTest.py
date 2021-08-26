@@ -129,7 +129,6 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         #Validate domain list
         domains = sssdconfig.list_domains()
-        self.assertTrue('LOCAL' in domains)
         self.assertTrue('LDAP' in domains)
         self.assertTrue('PROXY' in domains)
         self.assertTrue('IPA' in domains)
@@ -162,45 +161,6 @@ class SSSDConfigTestValid(unittest.TestCase):
         junk_domain = sssdconfig.new_domain('junk')
         providers = junk_domain.list_providers()
         self.assertTrue('ldap' in providers.keys())
-
-    def testCreateNewLocalConfig(self):
-        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
-
-        sssdconfig.new_config()
-
-        local_domain = sssdconfig.new_domain('LOCAL')
-        local_domain.add_provider('local', 'id')
-        local_domain.set_option('debug_level', 1)
-        local_domain.set_option('default_shell', '/bin/tcsh')
-        local_domain.set_active(True)
-        sssdconfig.save_domain(local_domain)
-
-        of = self.tmp_dir + '/testCreateNewLocalConfig.conf'
-
-        #Ensure the output file doesn't exist
-        try:
-            os.unlink(of)
-        except:
-            pass
-
-        #Write out the file
-        sssdconfig.write(of)
-
-        #Verify that the output file has the correct permissions
-        mode = os.stat(of)[ST_MODE]
-
-        #Output files should not be readable or writable by
-        #non-owners, and should not be executable by anyone
-        self.assertFalse(S_IMODE(mode) & 0o177)
-
-        # try to import saved configuration file
-        config = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                       srcdir + "/etc/sssd.api.d")
-        config.import_config(configfile=of)
-
-        #Remove the output file
-        os.unlink(of)
 
     def testCreateNewLDAPConfig(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -687,35 +647,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                         "list_options is requiring a %s" %
                         options['max_id'][1])
 
-        # Add a provider and verify that the new options appear
-        domain.add_provider('local', 'id')
-        control_list.extend(
-            ['default_shell',
-             'base_directory',
-             'create_homedir',
-             'remove_homedir',
-             'homedir_umask',
-             'skel_dir',
-             'mail_dir',
-             'userdel_cmd'])
-
-        options = domain.list_options()
-
-        self.assertTrue(type(options) == dict,
-                        "Options should be a dictionary")
-
-        # Ensure that all of the expected defaults are there
-        for option in control_list:
-            self.assertTrue(option in options.keys(),
-                            "Option [%s] missing" %
-                            option)
-
-        # Ensure that there aren't any unexpected options listed
-        for option in options.keys():
-            self.assertTrue(option in control_list,
-                            'Option [%s] unexpectedly found' %
-                            option)
-
         # Add a provider that has global options and verify that
         # The new options appear.
         domain.add_provider('krb5', 'auth')
@@ -857,7 +788,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                     'session', 'hostid', 'subdomains'],
             'ad': ['id', 'auth', 'access', 'chpass', 'sudo', 'autofs',
                    'subdomains', 'resolver'],
-            'local': ['id', 'auth', 'chpass'],
             'ldap': ['id', 'auth', 'access', 'chpass', 'sudo', 'autofs',
                      'resolver'],
             'krb5': ['auth', 'access', 'chpass'],
@@ -946,7 +876,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
 
         # Positive Test
-        domain.add_provider('local', 'id')
+        domain.add_provider('proxy', 'id')
 
         # Negative Test - No such backend type
         self.assertRaises(SSSDConfig.NoSuchProviderError,
@@ -1070,35 +1000,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                         "list_options is requiring a %s" %
                         options['max_id'][1])
 
-        # Add a provider and verify that the new options appear
-        domain.add_provider('local', 'id')
-        control_list.extend(
-            ['default_shell',
-             'base_directory',
-             'create_homedir',
-             'remove_homedir',
-             'homedir_umask',
-             'skel_dir',
-             'mail_dir',
-             'userdel_cmd'])
-
-        options = domain.list_options()
-
-        self.assertTrue(type(options) == dict,
-                        "Options should be a dictionary")
-
-        # Ensure that all of the expected defaults are there
-        for option in control_list:
-            self.assertTrue(option in options.keys(),
-                            "Option [%s] missing" %
-                            option)
-
-        # Ensure that there aren't any unexpected options listed
-        for option in options.keys():
-            self.assertTrue(option in control_list,
-                            'Option [%s] unexpectedly found' %
-                            option)
-
         # Add a provider that has global options and verify that
         # The new options appear.
         domain.add_provider('krb5', 'auth')
@@ -1145,11 +1046,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                             'Option [%s] unexpectedly found' %
                             option)
 
-        # Remove the local ID provider and add an LDAP one
+        # Add an LDAP one
         # LDAP ID providers can also use the krb5_realm
-        domain.remove_provider('id')
-        self.assertFalse('id_provider' in domain.options)
-
         domain.add_provider('ldap', 'id')
 
         # Set the krb5_realm option and the ldap_uri option
@@ -1166,9 +1064,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         self.assertEqual(domain.get_option('krb5_realm'),
                          'EXAMPLE.COM')
         self.assertFalse('ldap_uri' in domain.options)
-
-        # Put the LOCAL provider back
-        domain.add_provider('local', 'id')
 
         # Remove the auth domain and verify that the options
         # revert to the backup_list
@@ -1309,7 +1204,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'sudo',
             'domain/PROXY',
             'domain/IPA',
-            'domain/LOCAL',
             'domain/LDAP',
             'domain/INVALIDPROVIDER',
             'domain/INVALIDOPTION',
@@ -1392,7 +1286,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         #Validate domain list
         domains = sssdconfig.list_domains()
-        self.assertTrue('LOCAL' in domains)
         self.assertTrue('LDAP' in domains)
         self.assertTrue('PROXY' in domains)
         self.assertTrue('IPA' in domains)
@@ -1407,13 +1300,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # Verify domain attributes
         proxy_domain = sssdconfig.get_domain('PROXY')
         domain_opts = proxy_domain.list_options()
-        self.assertTrue('debug_level' in domain_opts.keys())
-        self.assertTrue('id_provider' in domain_opts.keys())
-        self.assertTrue('auth_provider' in domain_opts.keys())
-
-        # Verify domain attributes
-        local_domain = sssdconfig.get_domain('LOCAL')
-        domain_opts = local_domain.list_options()
         self.assertTrue('debug_level' in domain_opts.keys())
         self.assertTrue('id_provider' in domain_opts.keys())
         self.assertTrue('auth_provider' in domain_opts.keys())
@@ -1738,8 +1624,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         sssdconfig.import_config(srcdir + '/testconfigs/sssd-valid.conf')
 
         control_list = [
-            'IPA',
-            'LOCAL']
+            'IPA']
         active_domains = sssdconfig.list_active_domains()
         self.assertTrue(isinstance(active_domains, list))
 
@@ -1791,7 +1676,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         control_list = [
             'IPA',
-            'LOCAL',
             'PROXY',
             'LDAP',
             'INVALIDPROVIDER',
@@ -2142,7 +2026,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         with open(srcdir + "/testconfigs/sssd-valid.conf", "r") as f:
             data = sssdconfig.parse(f)
 
-        self.assertEqual(len(data), 10)
+        self.assertEqual(len(data), 9)
         self.assertEqual(data[-1], {'name': "sudo",
                                     'type': "section",
                                     'value': [{'type': 'option',

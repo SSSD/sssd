@@ -30,8 +30,6 @@
 #include "util/util.h"
 #include "util/sss_python.h"
 #include "db/sysdb.h"
-#include "tools/tools_util.h"
-#include "tools/sss_sync_ops.h"
 #include "util/crypto/sss_crypto.h"
 
 

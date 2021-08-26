@@ -22,88 +22,11 @@
 #include "config.h"
 
 #include <ctype.h>
-#include <stdio.h>
-#include <talloc.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 
 #include "util/util.h"
-#include "tools/tools_util.h"
 
-#ifndef NSCD_RELOAD_ARG
-#define NSCD_RELOAD_ARG "-i"
-#endif
-
-#if defined(NSCD_PATH) && defined(HAVE_NSCD)
-int flush_nscd_cache(enum nscd_db flush_db)
-{
-    const char *service;
-    pid_t nscd_pid;
-    int ret, status;
-
-    switch(flush_db) {
-        case NSCD_DB_PASSWD:
-            service = "passwd";
-            break;
-
-        case NSCD_DB_GROUP:
-            service = "group";
-            break;
-
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown nscd database\n");
-            ret = EINVAL;
-            goto done;
-    }
-
-    nscd_pid = fork();
-    switch (nscd_pid) {
-    case 0:
-        execl(NSCD_PATH, NSCD_PATH, NSCD_RELOAD_ARG, service, NULL);
-        /* if this returns it is an error */
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "execl(3) failed: %d(%s)\n", errno, strerror(errno));
-        exit(errno);
-    case -1:
-        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed\n");
-        ret = EFAULT;
-        break;
-    default:
-        do {
-            errno = 0;
-            ret = waitpid(nscd_pid, &status, 0);
-        } while (ret == -1 && errno == EINTR);
-        if (ret > 0) {
-            if (WIFEXITED(status)) {
-                ret = WEXITSTATUS(status);
-                if (ret > 0) {
-                    /* The flush fails if nscd is not running, so do not care
-                    * about the return code */
-                    DEBUG(SSSDBG_TRACE_INTERNAL,
-                          "Error flushing cache, is nscd running?\n");
-                }
-            }
-        } else {
-            DEBUG(SSSDBG_FUNC_DATA,
-                  "Failed to wait for children %d\n", nscd_pid);
-            ret = EIO;
-        }
-    }
-
-done:
-    return ret;
-}
-
-#else   /* defined(NSCD_PATH) && defined(HAVE_NSCD) */
-int flush_nscd_cache(enum nscd_db flush_db)
-{
-    return EOK;
-}
-#endif
 
 /* NSCD config file parse and check */
-
 static unsigned int sss_nscd_check_service(char* svc_name)
 {
     struct sss_nscd_db {
@@ -147,7 +70,7 @@ errno_t sss_nscd_parse_conf(const char *conf_path)
     fp = fopen(conf_path, "r");
     if (fp == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Couldn't open NSCD configuration "
-                    "file [%s]\n", NSCD_CONF_PATH);
+                    "file [%s]\n", conf_path);
         return ENOENT;
     }
 
@@ -204,7 +127,7 @@ errno_t sss_nscd_parse_conf(const char *conf_path)
     if (ret) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Reading NSCD configuration file [%s] "
               "ended with failure [%d]: %s.\n",
-              NSCD_CONF_PATH, ret, strerror(ret));
+              conf_path, ret, strerror(ret));
         ret = ENOENT;
         goto done;
     }

@@ -2379,14 +2379,9 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         }
     }
 
-    if (!NEED_CHECK_AUTH_PROVIDER(preq->domain->provider) ) {
-        preq->callback = pam_reply;
-        ret = LOCAL_pam_handler(preq);
-    } else {
-        preq->callback = pam_reply;
-        ret = pam_dp_send_req(preq);
-        DEBUG(SSSDBG_CONF_SETTINGS, "pam_dp_send_req returned %d\n", ret);
-    }
+    preq->callback = pam_reply;
+    ret = pam_dp_send_req(preq);
+    DEBUG(SSSDBG_CONF_SETTINGS, "pam_dp_send_req returned %d\n", ret);
 
     if (ret != EOK) {
         preq->pd->pam_status = PAM_SYSTEM_ERR;
