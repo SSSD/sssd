@@ -1569,11 +1569,11 @@ done:
     return ret;
 }
 
-static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id)
+static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id,
+                             CK_SLOT_INFO *info)
 {
     CK_FLAGS wait_flags = 0;
     CK_RV rv;
-    CK_SLOT_INFO info;
 
     do {
         rv = module->C_WaitForSlotEvent(wait_flags, slot_id, NULL);
@@ -1589,7 +1589,7 @@ static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id)
             sleep(10);
         }
 
-        rv = module->C_GetSlotInfo(*slot_id, &info);
+        rv = module->C_GetSlotInfo(*slot_id, info);
         if (rv != CKR_OK) {
             DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotInfo failed\n");
             return EIO;
@@ -1597,13 +1597,13 @@ static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id)
         DEBUG(SSSDBG_TRACE_ALL,
               "Description [%s] Manufacturer [%s] flags [%lu] "
               "removable [%s] token present [%s].\n",
-              info.slotDescription, info.manufacturerID, info.flags,
-              (info.flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
-              (info.flags & CKF_TOKEN_PRESENT) ? "true": "false");
+              info->slotDescription, info->manufacturerID, info->flags,
+              (info->flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
+              (info->flags & CKF_TOKEN_PRESENT) ? "true": "false");
 
         /* Check if really a token is present */
-        if ((info.flags & CKF_REMOVABLE_DEVICE)
-                && (info.flags & CKF_TOKEN_PRESENT)) {
+        if ((info->flags & CKF_REMOVABLE_DEVICE)
+                && (info->flags & CKF_TOKEN_PRESENT)) {
             break;
         }
     } while (true);
@@ -1794,7 +1794,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     if (!(info.flags & CKF_TOKEN_PRESENT)) {
         DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
         if (p11_ctx->wait_for_card) {
-            ret = wait_for_card(module, &slot_id);
+            ret = wait_for_card(module, &slot_id, &info);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
                 goto done;
