@@ -46,15 +46,12 @@ FILES_CONDS = ;enable_files_domain
 else
 FILES_CONDS = ;no_enable_files_domain
 endif
-if BUILD_LOCAL_PROVIDER
-LOCAL_PROVIDER_CONDS = ;enable_local_provider
-endif
 if BUILD_KCM_RENEWAL
 KCM_RENEWAL_CONDS = ;enable_kcm_renewal
 endif
 
 
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SEC_CONDS)$(SYSTEMD_CONDS)$(FILES_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(LOCAL_PROVIDER_CONDS)$(KCM_RENEWAL_CONDS)
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SEC_CONDS)$(SYSTEMD_CONDS)$(FILES_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(KCM_RENEWAL_CONDS)
 
 
 #Special Rules:
@@ -76,13 +73,6 @@ man_MANS = \
     pam_sss.8 pam_sss_gss.8 sss_obfuscate.8 sss_cache.8 sss_debuglevel.8 \
 	sss_seed.8 sss_override.8 idmap_sss.8 sssctl.8 sssd-session-recording.5 \
     $(NULL)
-
-if BUILD_LOCAL_PROVIDER
-man_MANS += \
-	sss_useradd.8 sss_userdel.8 sss_usermod.8 \
-	sss_groupadd.8 sss_groupdel.8 sss_groupmod.8 \
-	sss_groupshow.8
-endif
 
 if BUILD_SAMBA
 man_MANS += sssd-ipa.5 sssd-ad.5

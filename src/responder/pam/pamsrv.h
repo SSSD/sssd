@@ -101,8 +101,6 @@ struct sss_cmd_table *get_pam_cmds(void);
 errno_t
 pam_dp_send_req(struct pam_auth_req *preq);
 
-int LOCAL_pam_handler(struct pam_auth_req *preq);
-
 errno_t p11_child_init(struct pam_ctx *pctx);
 
 struct cert_auth_info;

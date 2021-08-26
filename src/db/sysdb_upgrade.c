@@ -406,12 +406,6 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
         struct ldb_dn *groups_dn;
         int i;
 
-        /* skip local */
-        if (local_provider_is_built()
-                && strcasecmp(dom->provider, "local") == 0) {
-            continue;
-        }
-
         /* create new dom db */
         ret = sysdb_domain_init_internal(tmp_ctx, dom,
                                          db_path, false, &sysdb);

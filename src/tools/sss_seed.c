@@ -33,7 +33,6 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
-#include "tools/sss_sync_ops.h"
 #include "confdb/confdb.h"
 
 #ifndef BUFSIZE

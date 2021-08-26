@@ -760,18 +760,10 @@ static errno_t get_entry_as_bool(struct ldb_message *msg,
 }
 
 
-/* The default UID/GID for domains is 1. This wouldn't work well with
- * the local provider */
+/* The default UID/GID for domains is 1. */
 static uint32_t confdb_get_min_id(struct sss_domain_info *domain)
 {
-    uint32_t defval = SSSD_MIN_ID;
-
-    if (domain && local_provider_is_built()
-            && strcasecmp(domain->provider, "local") == 0) {
-        defval = SSSD_LOCAL_MINID;
-    }
-
-    return defval;
+    return SSSD_MIN_ID;
 }
 
 static errno_t init_cached_auth_timeout(struct confdb_ctx *cdb,
@@ -985,56 +977,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         tmp = "false";
     }
 
-    if (strcasecmp(domain->provider, "local") == 0) {
-        if (!local_provider_is_built()) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "ID provider 'local' no longer supported, disabling\n");
-            ret = EINVAL;
-            goto done;
-        }
-    }
-
     domain->mpg_mode = str_to_domain_mpg_mode(tmp);
-
-    if (local_provider_is_built()
-            && strcasecmp(domain->provider, "local") == 0) {
-        /* If this is the local provider, we need to ensure that
-         * no other provider was specified for other types, since
-         * the local provider cannot load them.
-         */
-        tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                          CONFDB_DOMAIN_AUTH_PROVIDER,
-                                          NULL);
-        if (tmp && strcasecmp(tmp, "local") != 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Local ID provider does not support [%s] as an AUTH provider.\n", tmp);
-            ret = EINVAL;
-            goto done;
-        }
-
-        tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                          CONFDB_DOMAIN_ACCESS_PROVIDER,
-                                          NULL);
-        if (tmp && strcasecmp(tmp, "permit") != 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Local ID provider does not support [%s] as an ACCESS provider.\n", tmp);
-            ret = EINVAL;
-            goto done;
-        }
-
-        tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                          CONFDB_DOMAIN_CHPASS_PROVIDER,
-                                          NULL);
-        if (tmp && strcasecmp(tmp, "local") != 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Local ID provider does not support [%s] as a CHPASS provider.\n", tmp);
-            ret = EINVAL;
-            goto done;
-        }
-
-        /* The LOCAL provider use always Magic Private Groups */
-        domain->mpg_mode = MPG_ENABLED;
-    }
 
     domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
                                                CONFDB_DOMAIN_TIMEOUT, 0);
@@ -1477,15 +1420,6 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
             domain->case_sensitive = true;
             domain->case_preserve = true;
         }
-    }
-
-    if (domain->case_sensitive == false &&
-        local_provider_is_built() &&
-        strcasecmp(domain->provider, "local") == 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-             "Local ID provider does not support the case insensitive flag\n");
-        ret = EINVAL;
-        goto done;
     }
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],

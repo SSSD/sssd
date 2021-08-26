@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-07-12 20:51+0200\n"
+"POT-Creation-Date: 2021-08-24 13:40+0200\n"
 "PO-Revision-Date: 2020-10-11 22:46+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
@@ -19,12 +19,10 @@ msgstr ""
 "X-Generator: Weblate 4.2.2\n"
 
 #. type: Content of: <reference><title>
-#: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
-#: pam_sss_gss.8.xml:5 sssd_krb5_locator_plugin.8.xml:5 sssd-simple.5.xml:5
-#: sss-certmap.5.xml:5 sssd-ipa.5.xml:5 sssd-ad.5.xml:5 sssd-sudo.5.xml:5
-#: sssd.8.xml:5 sss_obfuscate.8.xml:5 sss_override.8.xml:5 sss_useradd.8.xml:5
-#: sssd-krb5.5.xml:5 sss_groupadd.8.xml:5 sss_userdel.8.xml:5
-#: sss_groupdel.8.xml:5 sss_groupshow.8.xml:5 sss_usermod.8.xml:5
+#: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
+#: sssd_krb5_locator_plugin.8.xml:5 sssd-simple.5.xml:5 sss-certmap.5.xml:5
+#: sssd-ipa.5.xml:5 sssd-ad.5.xml:5 sssd-sudo.5.xml:5 sssd.8.xml:5
+#: sss_obfuscate.8.xml:5 sss_override.8.xml:5 sssd-krb5.5.xml:5
 #: sss_cache.8.xml:5 sss_debuglevel.8.xml:5 sss_seed.8.xml:5 sssd-ifp.5.xml:5
 #: sss_rpcidmapd.5.xml:5 sss_ssh_authorizedkeys.1.xml:5
 #: sss_ssh_knownhostsproxy.1.xml:5 idmap_sss.8.xml:5 sssctl.8.xml:5
@@ -32,108 +30,6 @@ msgstr ""
 #: sssd-kcm.8.xml:5 sssd-systemtap.5.xml:5 sssd-ldap-attributes.5.xml:5
 msgid "SSSD Manual pages"
 msgstr "SSSD manualsidor"
-
-#. type: Content of: <reference><refentry><refnamediv><refname>
-#: sss_groupmod.8.xml:10 sss_groupmod.8.xml:15
-msgid "sss_groupmod"
-msgstr "sss_groupmod"
-
-#. type: Content of: <reference><refentry><refmeta><manvolnum>
-#: sss_groupmod.8.xml:11 pam_sss.8.xml:12 pam_sss_gss.8.xml:12
-#: sssd_krb5_locator_plugin.8.xml:11 sssd.8.xml:11 sss_obfuscate.8.xml:11
-#: sss_override.8.xml:11 sss_useradd.8.xml:11 sss_groupadd.8.xml:11
-#: sss_userdel.8.xml:11 sss_groupdel.8.xml:11 sss_groupshow.8.xml:11
-#: sss_usermod.8.xml:11 sss_cache.8.xml:11 sss_debuglevel.8.xml:11
-#: sss_seed.8.xml:11 idmap_sss.8.xml:11 sssctl.8.xml:11 sssd-kcm.8.xml:11
-msgid "8"
-msgstr "8"
-
-#. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sss_groupmod.8.xml:16
-msgid "modify a group"
-msgstr "ändra en grupp"
-
-#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
-#: sss_groupmod.8.xml:21
-msgid ""
-"<command>sss_groupmod</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
-msgstr ""
-"<command>sss_groupmod</command> <arg choice='opt'> <replaceable>flaggor</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GRUPP</replaceable></"
-"arg>"
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:30 sssd-ldap.5.xml:21 pam_sss.8.xml:63
-#: pam_sss_gss.8.xml:30 sssd_krb5_locator_plugin.8.xml:20 sssd-simple.5.xml:22
-#: sss-certmap.5.xml:21 sssd-ipa.5.xml:21 sssd-ad.5.xml:21 sssd-sudo.5.xml:21
-#: sssd.8.xml:29 sss_obfuscate.8.xml:30 sss_override.8.xml:30
-#: sss_useradd.8.xml:30 sssd-krb5.5.xml:21 sss_groupadd.8.xml:30
-#: sss_userdel.8.xml:30 sss_groupdel.8.xml:30 sss_groupshow.8.xml:30
-#: sss_usermod.8.xml:30 sss_cache.8.xml:29 sss_debuglevel.8.xml:30
-#: sss_seed.8.xml:31 sssd-ifp.5.xml:21 sss_ssh_authorizedkeys.1.xml:30
-#: sss_ssh_knownhostsproxy.1.xml:31 idmap_sss.8.xml:20 sssctl.8.xml:30
-#: sssd-files.5.xml:21 sssd-secrets.5.xml:21 sssd-session-recording.5.xml:21
-#: sssd-kcm.8.xml:21 sssd-systemtap.5.xml:21 sssd-ldap-attributes.5.xml:21
-msgid "DESCRIPTION"
-msgstr "BESKRIVNING"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sss_groupmod.8.xml:32
-msgid ""
-"<command>sss_groupmod</command> modifies the group to reflect the changes "
-"that are specified on the command line."
-msgstr ""
-"<command>sss_groupmod</command> ändrar gruppen till att avspegla ändringarna "
-"som anges på kommandoraden."
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sss_groupmod.8.xml:39 pam_sss.8.xml:70 pam_sss_gss.8.xml:89 sssd.8.xml:42
-#: sss_obfuscate.8.xml:58 sss_useradd.8.xml:39 sss_groupadd.8.xml:39
-#: sss_userdel.8.xml:39 sss_groupdel.8.xml:39 sss_groupshow.8.xml:39
-#: sss_usermod.8.xml:39 sss_cache.8.xml:39 sss_seed.8.xml:42
-#: sss_ssh_authorizedkeys.1.xml:123 sss_ssh_knownhostsproxy.1.xml:62
-msgid "OPTIONS"
-msgstr "FLAGGOR"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_groupmod.8.xml:43 sss_usermod.8.xml:77
-msgid ""
-"<option>-a</option>,<option>--append-group</option> <replaceable>GROUPS</"
-"replaceable>"
-msgstr ""
-"<option>-a</option>,<option>--append-group</option> <replaceable>GRUPPER</"
-"replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_groupmod.8.xml:48
-msgid ""
-"Append this group to groups specified by the <replaceable>GROUPS</"
-"replaceable> parameter.  The <replaceable>GROUPS</replaceable> parameter is "
-"a comma separated list of group names."
-msgstr ""
-"Lägg till denna grupp till grupperna som anges av parametern "
-"<replaceable>GRUPPER</replaceable>.  Parametern <replaceable>GRUPPER</"
-"replaceable> är en kommaseparerad lista av gruppnamn."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_groupmod.8.xml:57 sss_usermod.8.xml:91
-msgid ""
-"<option>-r</option>,<option>--remove-group</option> <replaceable>GROUPS</"
-"replaceable>"
-msgstr ""
-"<option>-r</option>,<option>--remove-group</option> <replaceable>GRUPPER</"
-"replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_groupmod.8.xml:62
-msgid ""
-"Remove this group from groups specified by the <replaceable>GROUPS</"
-"replaceable> parameter."
-msgstr ""
-"Ta bort denna grupp från grupperna som anges av parametern "
-"<replaceable>GRUPPER</replaceable>."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.conf.5.xml:10 sssd.conf.5.xml:16
@@ -371,10 +267,10 @@ msgstr ""
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:146 sssd.conf.5.xml:644 sssd.conf.5.xml:883
-#: sssd.conf.5.xml:1966 sssd.conf.5.xml:3861 sssd-ldap.5.xml:312
+#: sssd.conf.5.xml:1966 sssd.conf.5.xml:3849 sssd-ldap.5.xml:312
 #: sssd-ldap.5.xml:813 sssd-ldap.5.xml:832 sssd-ldap.5.xml:1032
 #: sssd-ldap.5.xml:1463 sssd-ldap.5.xml:1703 sssd-ipa.5.xml:151
-#: sssd-ipa.5.xml:253 sssd-ipa.5.xml:589 sssd-ad.5.xml:1083 sssd-krb5.5.xml:268
+#: sssd-ipa.5.xml:253 sssd-ipa.5.xml:603 sssd-ad.5.xml:1083 sssd-krb5.5.xml:268
 #: sssd-krb5.5.xml:416 include/krb5_options.xml:29 include/krb5_options.xml:154
 msgid "Default: false"
 msgstr "Standard: false"
@@ -443,7 +339,7 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:193 sssd.conf.5.xml:1221 sssd.conf.5.xml:1647
-#: sssd.conf.5.xml:3877 sssd-ldap.5.xml:684 include/ldap_id_mapping.xml:264
+#: sssd.conf.5.xml:3865 sssd-ldap.5.xml:684 include/ldap_id_mapping.xml:264
 msgid "Default: 10"
 msgstr "Standard: 10"
 
@@ -457,8 +353,8 @@ msgstr "SPECIALSEKTIONER"
 msgid "The [sssd] section"
 msgstr "Sektionen [sssd]"
 
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><title>
-#: sssd.conf.5.xml:215 sssd.conf.5.xml:3966
+#. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><title>
+#: sssd.conf.5.xml:215
 msgid "Section parameters"
 msgstr "Sektionsparametrar"
 
@@ -533,8 +429,8 @@ msgstr ""
 "dataleverantörskrasch eller -omstart innan de ger upp"
 
 #. type: Content of: <refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:263 sssd.conf.5.xml:726 sssd.conf.5.xml:3455
-#: sssd.conf.5.xml:3494 include/failover.xml:100
+#: sssd.conf.5.xml:263 sssd.conf.5.xml:726 sssd.conf.5.xml:3447
+#: sssd.conf.5.xml:3486 include/failover.xml:100
 msgid "Default: 3"
 msgstr "Standard: 3"
 
@@ -568,7 +464,7 @@ msgstr ""
 "understrykningstecken."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:284 sssd.conf.5.xml:3300
+#: sssd.conf.5.xml:284 sssd.conf.5.xml:3292
 msgid "re_expression (string)"
 msgstr "re_expression (sträng)"
 
@@ -593,12 +489,12 @@ msgstr ""
 "för mer information om dessa reguljära uttryck."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:301 sssd.conf.5.xml:3348
+#: sssd.conf.5.xml:301 sssd.conf.5.xml:3340
 msgid "full_name_format (string)"
 msgstr "full_name_format (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:304 sssd.conf.5.xml:3351
+#: sssd.conf.5.xml:304 sssd.conf.5.xml:3343
 msgid ""
 "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
 "manvolnum> </citerefentry>-compatible format that describes how to compose a "
@@ -609,32 +505,32 @@ msgstr ""
 "samman ett fullständigt kvalificerat namn från namn- och domänkomponenter."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:315 sssd.conf.5.xml:3362
+#: sssd.conf.5.xml:315 sssd.conf.5.xml:3354
 msgid "%1$s"
 msgstr "%1$s"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:316 sssd.conf.5.xml:3363
+#: sssd.conf.5.xml:316 sssd.conf.5.xml:3355
 msgid "user name"
 msgstr "användarnamn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:319 sssd.conf.5.xml:3366
+#: sssd.conf.5.xml:319 sssd.conf.5.xml:3358
 msgid "%2$s"
 msgstr "%2$s"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:322 sssd.conf.5.xml:3369
+#: sssd.conf.5.xml:322 sssd.conf.5.xml:3361
 msgid "domain name as specified in the SSSD config file."
 msgstr "domännamn som det anges i SSSD-konfigurationsfilen."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:328 sssd.conf.5.xml:3375
+#: sssd.conf.5.xml:328 sssd.conf.5.xml:3367
 msgid "%3$s"
 msgstr "%3$s"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:331 sssd.conf.5.xml:3378
+#: sssd.conf.5.xml:331 sssd.conf.5.xml:3370
 msgid ""
 "domain flat name. Mostly usable for Active Directory domains, both directly "
 "configured or discovered via IPA trusts."
@@ -643,7 +539,7 @@ msgstr ""
 "direkt konfigurerade eller hittade via IPA-förtroenden."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:312 sssd.conf.5.xml:3359
+#: sssd.conf.5.xml:312 sssd.conf.5.xml:3351
 msgid ""
 "The following expansions are supported: <placeholder type=\"variablelist\" "
 "id=\"0\"/>"
@@ -1179,7 +1075,7 @@ msgstr ""
 "användarnamn kan överlappa mellan domäner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:692 sssd.conf.5.xml:1659 sssd.conf.5.xml:3927
+#: sssd.conf.5.xml:692 sssd.conf.5.xml:1659 sssd.conf.5.xml:3915
 #: sssd-ad.5.xml:164 sssd-ad.5.xml:304 sssd-ad.5.xml:318
 msgid "Default: Not set"
 msgstr "Standard: inte satt"
@@ -1939,7 +1835,7 @@ msgstr ""
 "minnet."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1196 sssd.conf.5.xml:3515 sssd-ldap.5.xml:453
+#: sssd.conf.5.xml:1196 sssd.conf.5.xml:3507 sssd-ldap.5.xml:453
 #: sssd-ldap.5.xml:495 include/failover.xml:116 include/krb5_options.xml:11
 msgid "Default: 6"
 msgstr "Standard: 6"
@@ -2330,7 +2226,7 @@ msgstr ""
 "<emphasis>pwd_expiration_warning</emphasis> för en viss domän."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1474 sssd.conf.5.xml:3709 sssd-ldap.5.xml:549 sssd.8.xml:79
+#: sssd.conf.5.xml:1474 sssd.conf.5.xml:3697 sssd-ldap.5.xml:549 sssd.8.xml:79
 msgid "Default: 0"
 msgstr "Standard: 0"
 
@@ -2406,7 +2302,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1534 sssd.conf.5.xml:1559 sssd.conf.5.xml:1578
-#: sssd.conf.5.xml:1781 sssd.conf.5.xml:2493 sssd.conf.5.xml:3638
+#: sssd.conf.5.xml:1781 sssd.conf.5.xml:2493 sssd.conf.5.xml:3626
 #: sssd-ldap.5.xml:1091
 msgid "Default: none"
 msgstr "Standard: none"
@@ -2503,7 +2399,7 @@ msgid "The path to the certificate database."
 msgstr "Sökvägen till certifikatdatabasen."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1603 sssd.conf.5.xml:2113 sssd.conf.5.xml:4165
+#: sssd.conf.5.xml:1603 sssd.conf.5.xml:2113 sssd.conf.5.xml:4029
 msgid "Default:"
 msgstr "Standard:"
 
@@ -2825,7 +2721,7 @@ msgid "Default: no_session"
 msgstr "Standard: no_session"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:1818 sssd.conf.5.xml:4104
+#: sssd.conf.5.xml:1818 sssd.conf.5.xml:3968
 #, fuzzy
 #| msgid "pam_app_services (string)"
 msgid "pam_gssapi_services"
@@ -2868,7 +2764,7 @@ msgstr ""
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1836 sssd.conf.5.xml:3632 sssd-secrets.5.xml:448
+#: sssd.conf.5.xml:1836 sssd.conf.5.xml:3620 sssd-secrets.5.xml:448
 msgid "Example: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr "Exempel: <placeholder type=\"programlisting\" id=\"0\"/>"
 
@@ -2878,7 +2774,7 @@ msgid "Default: - (GSSAPI authentication is disabled)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:1847 sssd.conf.5.xml:4105
+#: sssd.conf.5.xml:1847 sssd.conf.5.xml:3969
 msgid "pam_gssapi_check_upn"
 msgstr ""
 
@@ -3656,7 +3552,7 @@ msgid "FALSE = No enumerations for this domain"
 msgstr "FALSE = Inga uppräkningar för denna domän"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2429 sssd.conf.5.xml:2699 sssd.conf.5.xml:2875
+#: sssd.conf.5.xml:2429 sssd.conf.5.xml:2699 sssd.conf.5.xml:2871
 msgid "Default: FALSE"
 msgstr "Standard: FALSE"
 
@@ -4101,14 +3997,6 @@ msgstr "<quote>proxy</quote>: Stöd en tidigare NSS-leverantör."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2775
 msgid ""
-"<quote>local</quote>: SSSD internal provider for local users (DEPRECATED)."
-msgstr ""
-"<quote>local</quote>: SSSD:s interna leverantör för lokala användare "
-"(FÖRÅLDRAT)."
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2779
-msgid ""
 "<quote>files</quote>: FILES provider. See <citerefentry> <refentrytitle>sssd-"
 "files</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> for more "
 "information on how to mirror local users and groups into SSSD."
@@ -4118,7 +4006,7 @@ msgstr ""
 "information om hur lokala användare och grupper kan speglas in i SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2787
+#: sssd.conf.5.xml:2783
 msgid ""
 "<quote>ldap</quote>: LDAP provider. See <citerefentry> <refentrytitle>sssd-"
 "ldap</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> for more "
@@ -4129,8 +4017,8 @@ msgstr ""
 "information om att konfigurera LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2795 sssd.conf.5.xml:2901 sssd.conf.5.xml:2956
-#: sssd.conf.5.xml:3019
+#: sssd.conf.5.xml:2791 sssd.conf.5.xml:2897 sssd.conf.5.xml:2948
+#: sssd.conf.5.xml:3011
 msgid ""
 "<quote>ipa</quote>: FreeIPA and Red Hat Enterprise Identity Management "
 "provider. See <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
@@ -4143,8 +4031,8 @@ msgstr ""
 "konfigurera FreeIPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2804 sssd.conf.5.xml:2910 sssd.conf.5.xml:2965
-#: sssd.conf.5.xml:3028
+#: sssd.conf.5.xml:2800 sssd.conf.5.xml:2906 sssd.conf.5.xml:2957
+#: sssd.conf.5.xml:3020
 msgid ""
 "<quote>ad</quote>: Active Directory provider. See <citerefentry> "
 "<refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4155,12 +4043,12 @@ msgstr ""
 "citerefentry> för mer information om att konfigurera Active Directory."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2815
+#: sssd.conf.5.xml:2811
 msgid "use_fully_qualified_names (bool)"
 msgstr "use_fully_qualified_names (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2818
+#: sssd.conf.5.xml:2814
 msgid ""
 "Use the full name and domain (as formatted by the domain's full_name_format) "
 "as the user's login name reported to NSS."
@@ -4169,7 +4057,7 @@ msgstr ""
 "full_name_format) som användarens inloggningsnamn rapporterat till NSS."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2823
+#: sssd.conf.5.xml:2819
 msgid ""
 "If set to TRUE, all requests to this domain must use fully qualified names. "
 "For example, if used in LOCAL domain that contains a \"test\" user, "
@@ -4183,7 +4071,7 @@ msgstr ""
 "command> skulle det."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2831
+#: sssd.conf.5.xml:2827
 msgid ""
 "NOTE: This option has no effect on netgroup lookups due to their tendency to "
 "include nested netgroups without qualified names. For netgroups, all domains "
@@ -4195,7 +4083,7 @@ msgstr ""
 "namn begärs."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2838
+#: sssd.conf.5.xml:2834
 msgid ""
 "Default: FALSE (TRUE for trusted domain/sub-domains or if "
 "default_domain_suffix is used)"
@@ -4204,17 +4092,17 @@ msgstr ""
 "default_domain_suffix används)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2845
+#: sssd.conf.5.xml:2841
 msgid "ignore_group_members (bool)"
 msgstr "ignore_group_members (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2848
+#: sssd.conf.5.xml:2844
 msgid "Do not return group members for group lookups."
 msgstr "Returnera inte gruppmedlemmar för gruppuppslagningar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2851
+#: sssd.conf.5.xml:2847
 msgid ""
 "If set to TRUE, the group membership attribute is not requested from the "
 "ldap server, and group members are not returned when processing group lookup "
@@ -4233,7 +4121,7 @@ msgstr ""
 "som om den vore tom."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2869
+#: sssd.conf.5.xml:2865
 msgid ""
 "Enabling this option can also make access provider checks for group "
 "membership significantly faster, especially for groups containing many "
@@ -4244,12 +4132,12 @@ msgstr ""
 "innehåller många medlemmar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2880
+#: sssd.conf.5.xml:2876
 msgid "auth_provider (string)"
 msgstr "auth_provider (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2883
+#: sssd.conf.5.xml:2879
 msgid ""
 "The authentication provider used for the domain.  Supported auth providers "
 "are:"
@@ -4258,7 +4146,7 @@ msgstr ""
 "är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2887 sssd.conf.5.xml:2949
+#: sssd.conf.5.xml:2883 sssd.conf.5.xml:2941
 msgid ""
 "<quote>ldap</quote> for native LDAP authentication. See <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4269,7 +4157,7 @@ msgstr ""
 "citerefentry> för mer information om att konfigurera LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2894
+#: sssd.conf.5.xml:2890
 msgid ""
 "<quote>krb5</quote> for Kerberos authentication. See <citerefentry> "
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4280,7 +4168,7 @@ msgstr ""
 "citerefentry> för mer information om att konfigurera Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2918
+#: sssd.conf.5.xml:2914
 msgid ""
 "<quote>proxy</quote> for relaying authentication to some other PAM target."
 msgstr ""
@@ -4288,17 +4176,12 @@ msgstr ""
 "PAM-mål."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2921
-msgid "<quote>local</quote>: SSSD internal provider for local users"
-msgstr "<quote>local</quote>: SSSD:s interna leverantör för lokala användare"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2925
+#: sssd.conf.5.xml:2917
 msgid "<quote>none</quote> disables authentication explicitly."
 msgstr "<quote>none</quote> avaktiverar explicit autentisering."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2928
+#: sssd.conf.5.xml:2920
 msgid ""
 "Default: <quote>id_provider</quote> is used if it is set and can handle "
 "authentication requests."
@@ -4307,12 +4190,12 @@ msgstr ""
 "autentiseringsbegäranden."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2934
+#: sssd.conf.5.xml:2926
 msgid "access_provider (string)"
 msgstr "access_provider (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2937
+#: sssd.conf.5.xml:2929
 msgid ""
 "The access control provider used for the domain.  There are two built-in "
 "access providers (in addition to any included in installed backends)  "
@@ -4323,7 +4206,7 @@ msgstr ""
 "Interna specialleverantörer är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2943
+#: sssd.conf.5.xml:2935
 msgid ""
 "<quote>permit</quote> always allow access. It's the only permitted access "
 "provider for a local domain."
@@ -4332,12 +4215,12 @@ msgstr ""
 "åtkomstleverantören för en lokal domän."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2946
+#: sssd.conf.5.xml:2938
 msgid "<quote>deny</quote> always deny access."
 msgstr "<quote>deny</quote> neka alltid åtkomst."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2973
+#: sssd.conf.5.xml:2965
 msgid ""
 "<quote>simple</quote> access control based on access or deny lists. See "
 "<citerefentry> <refentrytitle>sssd-simple</refentrytitle> <manvolnum>5</"
@@ -4350,7 +4233,7 @@ msgstr ""
 "konfigurera åtkomstmodulen simple."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2980
+#: sssd.conf.5.xml:2972
 msgid ""
 "<quote>krb5</quote>: .k5login based access control.  See <citerefentry> "
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum></"
@@ -4361,24 +4244,24 @@ msgstr ""
 "citerefentry> för mer information om att konfigurera Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2987
+#: sssd.conf.5.xml:2979
 msgid "<quote>proxy</quote> for relaying access control to another PAM module."
 msgstr ""
 "<quote>proxy</quote> för att skicka vidare åtkomstkontroll till någon annan "
 "PAM-modul."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2990
+#: sssd.conf.5.xml:2982
 msgid "Default: <quote>permit</quote>"
 msgstr "Standard: <quote>permit</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2995
+#: sssd.conf.5.xml:2987
 msgid "chpass_provider (string)"
 msgstr "chpass_provider (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2998
+#: sssd.conf.5.xml:2990
 msgid ""
 "The provider which should handle change password operations for the domain.  "
 "Supported change password providers are:"
@@ -4387,7 +4270,7 @@ msgstr ""
 "av lösenordsändring som stödjs är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3003
+#: sssd.conf.5.xml:2995
 msgid ""
 "<quote>ldap</quote> to change a password stored in a LDAP server. See "
 "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
@@ -4398,7 +4281,7 @@ msgstr ""
 "manvolnum> </citerefentry> för mer information om att konfigurera LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3011
+#: sssd.conf.5.xml:3003
 msgid ""
 "<quote>krb5</quote> to change the Kerberos password. See <citerefentry> "
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4409,7 +4292,7 @@ msgstr ""
 "citerefentry> för mer information om att konfigurera Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3036
+#: sssd.conf.5.xml:3028
 msgid ""
 "<quote>proxy</quote> for relaying password changes to some other PAM target."
 msgstr ""
@@ -4417,12 +4300,12 @@ msgstr ""
 "annat PAM-mål."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3040
+#: sssd.conf.5.xml:3032
 msgid "<quote>none</quote> disallows password changes explicitly."
 msgstr "<quote>none</quote> tillåter uttryckligen inte lösenordsändringar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3043
+#: sssd.conf.5.xml:3035
 msgid ""
 "Default: <quote>auth_provider</quote> is used if it is set and can handle "
 "change password requests."
@@ -4431,18 +4314,18 @@ msgstr ""
 "hantera begäranden om ändring av lösenord."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3050
+#: sssd.conf.5.xml:3042
 msgid "sudo_provider (string)"
 msgstr "sudo_provider (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3053
+#: sssd.conf.5.xml:3045
 msgid "The SUDO provider used for the domain.  Supported SUDO providers are:"
 msgstr ""
 "SUDO-leverantören som används för domänen.  SUDO-leverantörer som stödjs är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3057
+#: sssd.conf.5.xml:3049
 msgid ""
 "<quote>ldap</quote> for rules stored in LDAP. See <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4453,7 +4336,7 @@ msgstr ""
 "citerefentry> för mer information om att konfigurera LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3065
+#: sssd.conf.5.xml:3057
 msgid ""
 "<quote>ipa</quote> the same as <quote>ldap</quote> but with IPA default "
 "settings."
@@ -4462,7 +4345,7 @@ msgstr ""
 "standardsinställningar för IPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3069
+#: sssd.conf.5.xml:3061
 msgid ""
 "<quote>ad</quote> the same as <quote>ldap</quote> but with AD default "
 "settings."
@@ -4471,18 +4354,18 @@ msgstr ""
 "standardsinställningar för AD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3073
+#: sssd.conf.5.xml:3065
 msgid "<quote>none</quote> disables SUDO explicitly."
 msgstr "<quote>none</quote> avaktiverar explicit SUDO."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3076 sssd.conf.5.xml:3162 sssd.conf.5.xml:3232
-#: sssd.conf.5.xml:3257 sssd.conf.5.xml:3293
+#: sssd.conf.5.xml:3068 sssd.conf.5.xml:3154 sssd.conf.5.xml:3224
+#: sssd.conf.5.xml:3249 sssd.conf.5.xml:3285
 msgid "Default: The value of <quote>id_provider</quote> is used if it is set."
 msgstr "Standard: värdet på <quote>id_provider</quote> används om det är satt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3080
+#: sssd.conf.5.xml:3072
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
@@ -4499,7 +4382,7 @@ msgstr ""
 "<manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3095
+#: sssd.conf.5.xml:3087
 msgid ""
 "<emphasis>NOTE:</emphasis> Sudo rules are periodically downloaded in the "
 "background unless the sudo provider is explicitly disabled. Set "
@@ -4512,12 +4395,12 @@ msgstr ""
 "relaterad aktivitet i SSSD om du inte vill använda sudo med SSSD alls."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3105
+#: sssd.conf.5.xml:3097
 msgid "selinux_provider (string)"
 msgstr "selinux_provider (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3108
+#: sssd.conf.5.xml:3100
 msgid ""
 "The provider which should handle loading of selinux settings. Note that this "
 "provider will be called right after access provider ends.  Supported selinux "
@@ -4528,7 +4411,7 @@ msgstr ""
 "åtkomstleverantören avslutar.  Selinux-leverantörer som stödjs är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3114
+#: sssd.conf.5.xml:3106
 msgid ""
 "<quote>ipa</quote> to load selinux settings from an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
@@ -4539,14 +4422,14 @@ msgstr ""
 "manvolnum> </citerefentry> för mer information om att konfigurera IPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3122
+#: sssd.conf.5.xml:3114
 msgid "<quote>none</quote> disallows fetching selinux settings explicitly."
 msgstr ""
 "<quote>none</quote> tillåter uttryckligen inte att hämta selinux-"
 "inställningar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3125
+#: sssd.conf.5.xml:3117
 msgid ""
 "Default: <quote>id_provider</quote> is used if it is set and can handle "
 "selinux loading requests."
@@ -4555,12 +4438,12 @@ msgstr ""
 "begäranden om inläsning av selinux."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3131
+#: sssd.conf.5.xml:3123
 msgid "subdomains_provider (string)"
 msgstr "subdomains_provider (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3134
+#: sssd.conf.5.xml:3126
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider.  Supported subdomain providers are:"
@@ -4569,7 +4452,7 @@ msgstr ""
 "alltid vara samma som id_provider.  Underdomänsleverantörer som stödjs är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3140
+#: sssd.conf.5.xml:3132
 msgid ""
 "<quote>ipa</quote> to load a list of subdomains from an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
@@ -4581,7 +4464,7 @@ msgstr ""
 "konfigurera IPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3149
+#: sssd.conf.5.xml:3141
 msgid ""
 "<quote>ad</quote> to load a list of subdomains from an Active Directory "
 "server. See <citerefentry> <refentrytitle>sssd-ad</refentrytitle> "
@@ -4594,17 +4477,17 @@ msgstr ""
 "konfigurera AD-leverantören."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3158
+#: sssd.conf.5.xml:3150
 msgid "<quote>none</quote> disallows fetching subdomains explicitly."
 msgstr "<quote>none</quote> tillåter uttryckligen inte att hämta underdomäner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3168
+#: sssd.conf.5.xml:3160
 msgid "session_provider (string)"
 msgstr "session_provider (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3171
+#: sssd.conf.5.xml:3163
 msgid ""
 "The provider which configures and manages user session related tasks. The "
 "only user session task currently provided is the integration with Fleet "
@@ -4616,14 +4499,14 @@ msgstr ""
 "med IPA.  Sessionsleverantörer som stödjs är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3178
+#: sssd.conf.5.xml:3170
 msgid "<quote>ipa</quote> to allow performing user session related tasks."
 msgstr ""
 "<quote>ipa</quote> för att utföra uppgifter relaterade till "
 "användarsessioner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3182
+#: sssd.conf.5.xml:3174
 msgid ""
 "<quote>none</quote> does not perform any kind of user session related tasks."
 msgstr ""
@@ -4631,7 +4514,7 @@ msgstr ""
 "användarsessioner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3186
+#: sssd.conf.5.xml:3178
 msgid ""
 "Default: <quote>id_provider</quote> is used if it is set and can perform "
 "session related tasks."
@@ -4640,7 +4523,7 @@ msgstr ""
 "sessionsrelaterade uppgifter."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3190
+#: sssd.conf.5.xml:3182
 msgid ""
 "<emphasis>NOTE:</emphasis> In order to have this feature working as expected "
 "SSSD must be running as \"root\" and not as the unprivileged user."
@@ -4650,12 +4533,12 @@ msgstr ""
 "användaren."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3198
+#: sssd.conf.5.xml:3190
 msgid "autofs_provider (string)"
 msgstr "autofs_provider (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3201
+#: sssd.conf.5.xml:3193
 msgid ""
 "The autofs provider used for the domain.  Supported autofs providers are:"
 msgstr ""
@@ -4663,7 +4546,7 @@ msgstr ""
 "är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3205
+#: sssd.conf.5.xml:3197
 msgid ""
 "<quote>ldap</quote> to load maps stored in LDAP. See <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4674,7 +4557,7 @@ msgstr ""
 "citerefentry> för mer information om att konfigurera LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3212
+#: sssd.conf.5.xml:3204
 msgid ""
 "<quote>ipa</quote> to load maps stored in an IPA server. See <citerefentry> "
 "<refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4685,7 +4568,7 @@ msgstr ""
 "manvolnum> </citerefentry> för mer information om att konfigurera IPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3220
+#: sssd.conf.5.xml:3212
 msgid ""
 "<quote>ad</quote> to load maps stored in an AD server. See <citerefentry> "
 "<refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4697,17 +4580,17 @@ msgstr ""
 "leverantören."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3229
+#: sssd.conf.5.xml:3221
 msgid "<quote>none</quote> disables autofs explicitly."
 msgstr "<quote>none</quote> avaktiverar explicit autofs."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3239
+#: sssd.conf.5.xml:3231
 msgid "hostid_provider (string)"
 msgstr "hostid_provider (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3242
+#: sssd.conf.5.xml:3234
 msgid ""
 "The provider used for retrieving host identity information.  Supported "
 "hostid providers are:"
@@ -4716,7 +4599,7 @@ msgstr ""
 "leverantörer som stödjs är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3246
+#: sssd.conf.5.xml:3238
 msgid ""
 "<quote>ipa</quote> to load host identity stored in an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
@@ -4727,17 +4610,17 @@ msgstr ""
 "manvolnum> </citerefentry> för mer information om att konfigurera IPA."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3254
+#: sssd.conf.5.xml:3246
 msgid "<quote>none</quote> disables hostid explicitly."
 msgstr "<quote>none</quote> avaktiverar explicit värd-id:n."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3264
+#: sssd.conf.5.xml:3256
 msgid "resolver_provider (string)"
 msgstr "resolver_provider (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3267
+#: sssd.conf.5.xml:3259
 msgid ""
 "The provider which should handle hosts and networks lookups. Supported "
 "resolver providers are:"
@@ -4746,7 +4629,7 @@ msgstr ""
 "Uppslagsleverantörer som stödjs är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3271
+#: sssd.conf.5.xml:3263
 msgid ""
 "<quote>proxy</quote> to forward lookups to another NSS library. See "
 "<quote>proxy_resolver_lib_name</quote>"
@@ -4755,7 +4638,7 @@ msgstr ""
 "bibliotek. Se <quote>proxy_resolver_lib_name</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3275
+#: sssd.conf.5.xml:3267
 msgid ""
 "<quote>ldap</quote> to fetch hosts and networks stored in LDAP. See "
 "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
@@ -4766,7 +4649,7 @@ msgstr ""
 "manvolnum> </citerefentry> för mer information om att konfigurera LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3282
+#: sssd.conf.5.xml:3274
 msgid ""
 "<quote>ad</quote> to fetch hosts and networks stored in AD. See "
 "<citerefentry> <refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</"
@@ -4779,13 +4662,13 @@ msgstr ""
 "leverantören."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3290
+#: sssd.conf.5.xml:3282
 msgid "<quote>none</quote> disallows fetching hosts and networks explicitly."
 msgstr ""
 "<quote>none</quote> tillåter uttryckligen inte att hämta värdar och nätverk."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3303
+#: sssd.conf.5.xml:3295
 msgid ""
 "Regular expression for this domain that describes how to parse the string "
 "containing user name and domain into these components.  The \"domain\" can "
@@ -4800,7 +4683,7 @@ msgstr ""
 "(NetBIOS) namnet på domänen."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3312
+#: sssd.conf.5.xml:3304
 msgid ""
 "Default for the AD and IPA provider: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
 "\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;[^@]+)@(?P&lt;domain&gt;.+$))|(^(?"
@@ -4813,22 +4696,22 @@ msgstr ""
 "användarnamn:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:3317
+#: sssd.conf.5.xml:3309
 msgid "username"
 msgstr "användarnamn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:3320
+#: sssd.conf.5.xml:3312
 msgid "username@domain.name"
 msgstr "användarnamn@domän.namn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:3323
+#: sssd.conf.5.xml:3315
 msgid "domain\\username"
 msgstr "domän\\användarnamn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3326
+#: sssd.conf.5.xml:3318
 msgid ""
 "While the first two correspond to the general default the third one is "
 "introduced to allow easy integration of users from Windows domains."
@@ -4837,7 +4720,7 @@ msgstr ""
 "tredje för att tillåta enkel integration av användare från Windows-domäner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3331
+#: sssd.conf.5.xml:3323
 msgid ""
 "Default: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</quote> "
 "which translates to \"the name is everything up to the <quote>@</quote> "
@@ -4848,7 +4731,7 @@ msgstr ""
 "quote>, sedan är domänen allting efter det”"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3337
+#: sssd.conf.5.xml:3329
 msgid ""
 "NOTE: Some Active Directory groups, typically those used for MS Exchange "
 "contain an <quote>@</quote> sign in the name, which clashes with the default "
@@ -4863,17 +4746,17 @@ msgstr ""
 "P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3388
+#: sssd.conf.5.xml:3380
 msgid "Default: <quote>%1$s@%2$s</quote>."
 msgstr "Standard: <quote>%1$s@%2$s</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3394
+#: sssd.conf.5.xml:3386
 msgid "lookup_family_order (string)"
 msgstr "lookup_family_order (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3397
+#: sssd.conf.5.xml:3389
 msgid ""
 "Provides the ability to select preferred address family to use when "
 "performing DNS lookups."
@@ -4882,46 +4765,46 @@ msgstr ""
 "uppslagningar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3401
+#: sssd.conf.5.xml:3393
 msgid "Supported values:"
 msgstr "Värden som stödjs:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3404
+#: sssd.conf.5.xml:3396
 msgid "ipv4_first: Try looking up IPv4 address, if that fails, try IPv6"
 msgstr ""
 "ipv4_first: Försök slå upp IPv4-adresser, om det misslyckas, prova IPv6"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3407
+#: sssd.conf.5.xml:3399
 msgid "ipv4_only: Only attempt to resolve hostnames to IPv4 addresses."
 msgstr "ipv4_only: Försök endast slå upp värdnamn som IPv4-adresser."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3410
+#: sssd.conf.5.xml:3402
 msgid "ipv6_first: Try looking up IPv6 address, if that fails, try IPv4"
 msgstr ""
 "ipv6_first: Försök slå upp IPv6-adresser, om det misslyckas, prova IPv4"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3413
+#: sssd.conf.5.xml:3405
 msgid "ipv6_only: Only attempt to resolve hostnames to IPv6 addresses."
 msgstr "ipv6_only: Försök endast slå upp värdnamn som IPv6-adresser."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3416
+#: sssd.conf.5.xml:3408
 msgid "Default: ipv4_first"
 msgstr "Standard: ipv4_first"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3422 sssd.conf.5.xml:3461
+#: sssd.conf.5.xml:3414 sssd.conf.5.xml:3453
 #, fuzzy
 #| msgid "dns_resolver_timeout (integer)"
 msgid "dns_resolver_server_timeout (integer)"
 msgstr "dns_resolver_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3425 sssd.conf.5.xml:3464
+#: sssd.conf.5.xml:3417 sssd.conf.5.xml:3456
 #, fuzzy
 #| msgid ""
 #| "Time in milliseconds that sets how long would SSSD talk to a single DNS "
@@ -4934,8 +4817,8 @@ msgstr ""
 "server före den provar nästa."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3430 sssd.conf.5.xml:3450 sssd.conf.5.xml:3469
-#: sssd.conf.5.xml:3489 sssd.conf.5.xml:3510
+#: sssd.conf.5.xml:3422 sssd.conf.5.xml:3442 sssd.conf.5.xml:3461
+#: sssd.conf.5.xml:3481 sssd.conf.5.xml:3502
 msgid ""
 "Please see the section <quote>FAILOVER</quote> for more information about "
 "the service resolution."
@@ -4943,20 +4826,20 @@ msgstr ""
 "Se avsnittet <quote>RESERVER</quote> för mer information om tjänstevalet."
 
 #. type: Content of: <refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3435 sssd.conf.5.xml:3474 sssd-ldap.5.xml:563
+#: sssd.conf.5.xml:3427 sssd.conf.5.xml:3466 sssd-ldap.5.xml:563
 #: include/failover.xml:84
 msgid "Default: 1000"
 msgstr "Standard: 1000"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3441 sssd.conf.5.xml:3480
+#: sssd.conf.5.xml:3433 sssd.conf.5.xml:3472
 #, fuzzy
 #| msgid "dns_resolver_timeout (integer)"
 msgid "dns_resolver_op_timeout (integer)"
 msgstr "dns_resolver_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3444 sssd.conf.5.xml:3483
+#: sssd.conf.5.xml:3436 sssd.conf.5.xml:3475
 #, fuzzy
 #| msgid ""
 #| "Time in seconds to tell how long would SSSD try to resolve single DNS "
@@ -4972,12 +4855,12 @@ msgstr ""
 "värdnamn eller upptäcktsdomän."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3500
+#: sssd.conf.5.xml:3492
 msgid "dns_resolver_timeout (integer)"
 msgstr "dns_resolver_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3503
+#: sssd.conf.5.xml:3495
 msgid ""
 "Defines the amount of time (in seconds) to wait for a reply from the "
 "internal fail over service before assuming that the service is unreachable. "
@@ -4989,12 +4872,12 @@ msgstr ""
 "nås kommer domänen fortsätta att fungera i frånkopplat läge."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3521
+#: sssd.conf.5.xml:3513
 msgid "dns_discovery_domain (string)"
 msgstr "dns_discovery_domain (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3524
+#: sssd.conf.5.xml:3516
 msgid ""
 "If service discovery is used in the back end, specifies the domain part of "
 "the service discovery DNS query."
@@ -5003,52 +4886,52 @@ msgstr ""
 "fråga om tjänsteupptäckt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3528
+#: sssd.conf.5.xml:3520
 msgid "Default: Use the domain part of machine's hostname"
 msgstr "Standard: använd domändelen av maskinens värdnamn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3534
+#: sssd.conf.5.xml:3526
 msgid "override_gid (integer)"
 msgstr "override_gid (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3537
+#: sssd.conf.5.xml:3529
 msgid "Override the primary GID value with the one specified."
 msgstr "Ersätt det primära GID-värdet med det angivna."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3543
+#: sssd.conf.5.xml:3535
 msgid "case_sensitive (string)"
 msgstr "case_sensitive (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3554
+#: sssd.conf.5.xml:3542
 msgid "True"
 msgstr "True"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3557
+#: sssd.conf.5.xml:3545
 msgid "Case sensitive. This value is invalid for AD provider."
 msgstr "Skiftlägeskänsligt. Detta värde är inte giltigt för AD-leverantörer."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3563
+#: sssd.conf.5.xml:3551
 msgid "False"
 msgstr "False"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3565
+#: sssd.conf.5.xml:3553
 msgid "Case insensitive."
 msgstr "Skiftlägesokänsligt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3569
+#: sssd.conf.5.xml:3557
 msgid "Preserving"
 msgstr "Preserving"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3572
+#: sssd.conf.5.xml:3560
 msgid ""
 "Same as False (case insensitive), but does not lowercase names in the result "
 "of NSS operations. Note that name aliases (and in case of services also "
@@ -5059,44 +4942,43 @@ msgstr ""
 "tjänster även protokollnamn) fortfarande skiftas ner i utdata."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3580
+#: sssd.conf.5.xml:3568
 msgid ""
 "If you want to set this value for trusted domain with IPA provider, you need "
 "to set it on both the client and SSSD on the server."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3546
+#: sssd.conf.5.xml:3538
+#, fuzzy
+#| msgid ""
+#| "The available options are: <placeholder type=\"variablelist\" id=\"0\"/>"
 msgid ""
-"Treat user and group names as case sensitive.  <phrase condition="
-"\"enable_local_provider\"> At the moment, this option is not supported in "
-"the local provider.  </phrase> Possible option values are: <placeholder type="
-"\"variablelist\" id=\"0\"/>"
-msgstr ""
-"Behandla användar- och gruppnamn som skiftlägeskänsliga.  <phrase condition="
-"\"enable_local_provider\">För tillfället stödjs inte detta alternativ för "
-"den lokala leverantören. </phrase> Möjliga värden på alternativet är: "
+"Treat user and group names as case sensitive.  Possible option values are: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
+msgstr ""
+"De tillgängliga alternativen är: <placeholder type=\"variablelist\" id=\"0\"/"
+">"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3590
+#: sssd.conf.5.xml:3578
 msgid ""
 "This option can be also set per subdomain or inherited via "
 "<emphasis>subdomain_inherit</emphasis>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3595
+#: sssd.conf.5.xml:3583
 msgid "Default: True (False for AD provider)"
 msgstr "Standard: True (False för AD-leverantören)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3601
+#: sssd.conf.5.xml:3589
 msgid "subdomain_inherit (string)"
 msgstr "subdomain_inherit (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3604
+#: sssd.conf.5.xml:3592
 msgid ""
 "Specifies a list of configuration parameters that should be inherited by a "
 "subdomain. Please note that only selected parameters can be inherited.  "
@@ -5107,27 +4989,27 @@ msgstr ""
 "följande alternativ ärvas:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3610
+#: sssd.conf.5.xml:3598
 msgid "ignore_group_members"
 msgstr "ignore_group_members"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3613
+#: sssd.conf.5.xml:3601
 msgid "ldap_purge_cache_timeout"
 msgstr "ldap_purge_cache_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3616 sssd-ldap.5.xml:390
+#: sssd.conf.5.xml:3604 sssd-ldap.5.xml:390
 msgid "ldap_use_tokengroups"
 msgstr "ldap_use_tokengroups"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3619
+#: sssd.conf.5.xml:3607
 msgid "ldap_user_principal"
 msgstr "ldap_user_principal"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3622
+#: sssd.conf.5.xml:3610
 msgid ""
 "ldap_krb5_keytab (the value of krb5_keytab will be used if ldap_krb5_keytab "
 "is not set explicitly)"
@@ -5136,21 +5018,21 @@ msgstr ""
 "ldap_krb5_keytab sätts särskilt)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3626
+#: sssd.conf.5.xml:3614
 #, fuzzy
 #| msgid "auto_private_groups (string)"
 msgid "auto_private_groups"
 msgstr "auto_private_groups (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3629
+#: sssd.conf.5.xml:3617
 #, fuzzy
 #| msgid "Case insensitive."
 msgid "case_sensitive"
 msgstr "Skiftlägesokänsligt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd.conf.5.xml:3634
+#: sssd.conf.5.xml:3622
 #, no-wrap
 msgid ""
 "subdomain_inherit = ldap_purge_cache_timeout\n"
@@ -5160,28 +5042,28 @@ msgstr ""
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3641
+#: sssd.conf.5.xml:3629
 msgid "Note: This option only works with the IPA and AD provider."
 msgstr ""
 "Observera: detta alternativ fungerar endast med leverantörerna IPA och AD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3648
+#: sssd.conf.5.xml:3636
 msgid "subdomain_homedir (string)"
 msgstr "subdomain_homedir (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3659
+#: sssd.conf.5.xml:3647
 msgid "%F"
 msgstr "%F"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3660
+#: sssd.conf.5.xml:3648
 msgid "flat (NetBIOS) name of a subdomain."
 msgstr "platt (NetBIOS) namn på en underdomän."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3651
+#: sssd.conf.5.xml:3639
 msgid ""
 "Use this homedir as default value for all subdomains within this domain in "
 "IPA AD trust.  See <emphasis>override_homedir</emphasis> for info about "
@@ -5196,36 +5078,36 @@ msgstr ""
 "\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3665
+#: sssd.conf.5.xml:3653
 msgid ""
 "The value can be overridden by <emphasis>override_homedir</emphasis> option."
 msgstr ""
 "Värdet kan åsidosättas av alternativet <emphasis>override_homedir</emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3669
+#: sssd.conf.5.xml:3657
 msgid "Default: <filename>/home/%d/%u</filename>"
 msgstr "Standard: <filename>/home/%d/%u</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3674
+#: sssd.conf.5.xml:3662
 msgid "realmd_tags (string)"
 msgstr "realmd_tags (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3677
+#: sssd.conf.5.xml:3665
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
 "Diverse taggar lagrade av realmd-konfigurationstjänsten för denna domän."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3683
+#: sssd.conf.5.xml:3671
 msgid "cached_auth_timeout (int)"
 msgstr "cached_auth_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3686
+#: sssd.conf.5.xml:3674
 msgid ""
 "Specifies time in seconds since last successful online authentication for "
 "which user will be authenticated using cached credentials while SSSD is in "
@@ -5238,7 +5120,7 @@ msgstr ""
 "uppkopplad autentisering."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3694
+#: sssd.conf.5.xml:3682
 msgid ""
 "This option's value is inherited by all trusted domains. At the moment it is "
 "not possible to set a different value per trusted domain."
@@ -5247,12 +5129,12 @@ msgstr ""
 "inte möjligt att ange olika värden för varje betrodd domän."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3699
+#: sssd.conf.5.xml:3687
 msgid "Special value 0 implies that this feature is disabled."
 msgstr "Specialvärdet 0 betyder att denna funktion är avaktiverad."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3703
+#: sssd.conf.5.xml:3691
 msgid ""
 "Please note that if <quote>cached_auth_timeout</quote> is longer than "
 "<quote>pam_id_timeout</quote> then the back end could be called to handle "
@@ -5263,17 +5145,17 @@ msgstr ""
 "<quote>initgroups.</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3714
+#: sssd.conf.5.xml:3702
 msgid "auto_private_groups (string)"
 msgstr "auto_private_groups (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3720
+#: sssd.conf.5.xml:3708
 msgid "true"
 msgstr "true"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3723
+#: sssd.conf.5.xml:3711
 msgid ""
 "Create user's private group unconditionally from user's UID number.  The GID "
 "number is ignored in this case."
@@ -5282,7 +5164,7 @@ msgstr ""
 "GID-numret ignoreras i detta läge."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3727
+#: sssd.conf.5.xml:3715
 msgid ""
 "NOTE: Because the GID number and the user private group are inferred from "
 "the UID number, it is not supported to have multiple entries with the same "
@@ -5295,12 +5177,12 @@ msgstr ""
 "framtvingar unika nummer över hela ID-rymden."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3736
+#: sssd.conf.5.xml:3724
 msgid "false"
 msgstr "false"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3739
+#: sssd.conf.5.xml:3727
 msgid ""
 "Always use the user's primary GID number. The GID number must refer to a "
 "group object in the LDAP database."
@@ -5309,12 +5191,12 @@ msgstr ""
 "ett gruppobjekt i LDAP-databasen."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3745
+#: sssd.conf.5.xml:3733
 msgid "hybrid"
 msgstr "hybrid"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3748
+#: sssd.conf.5.xml:3736
 msgid ""
 "A primary group is autogenerated for user entries whose UID and GID numbers "
 "have the same value and at the same time the GID number does not correspond "
@@ -5329,7 +5211,7 @@ msgstr ""
 "upp till det gruppobjektet."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3761
+#: sssd.conf.5.xml:3749
 msgid ""
 "If the UID and GID of a user are different, then the GID must correspond to "
 "a group entry, otherwise the GID is simply not resolvable."
@@ -5338,7 +5220,7 @@ msgstr ""
 "kan GID:t helt enkelt inte slås upp."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3768
+#: sssd.conf.5.xml:3756
 msgid ""
 "This feature is useful for environments that wish to stop maintaining a "
 "separate group objects for the user private groups, but also wish to retain "
@@ -5349,7 +5231,7 @@ msgstr ""
 "befintliga användarnas privata grupper."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3717
+#: sssd.conf.5.xml:3705
 msgid ""
 "This option takes any of three available values: <placeholder type="
 "\"variablelist\" id=\"0\"/>"
@@ -5358,7 +5240,7 @@ msgstr ""
 "\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3780
+#: sssd.conf.5.xml:3768
 msgid ""
 "For subdomains, the default value is False for subdomains that use assigned "
 "POSIX IDs and True for subdomains that use automatic ID-mapping."
@@ -5368,7 +5250,7 @@ msgstr ""
 "översättning."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd.conf.5.xml:3788
+#: sssd.conf.5.xml:3776
 #, no-wrap
 msgid ""
 "[domain/forest.domain/sub.domain]\n"
@@ -5378,7 +5260,7 @@ msgstr ""
 "auto_private_groups = false\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd.conf.5.xml:3794
+#: sssd.conf.5.xml:3782
 #, no-wrap
 msgid ""
 "[domain/forest.domain]\n"
@@ -5390,7 +5272,7 @@ msgstr ""
 "auto_private_groups = false\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3785
+#: sssd.conf.5.xml:3773
 msgid ""
 "The value of auto_private_groups can either be set per subdomains in a "
 "subsection, for example: <placeholder type=\"programlisting\" id=\"0\"/> or "
@@ -5415,17 +5297,17 @@ msgstr ""
 "replaceable>]</quote> <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3809
+#: sssd.conf.5.xml:3797
 msgid "proxy_pam_target (string)"
 msgstr "proxy_pam_target (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3812
+#: sssd.conf.5.xml:3800
 msgid "The proxy target PAM proxies to."
 msgstr "Proxymålet PAM är en proxy för."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3815
+#: sssd.conf.5.xml:3803
 msgid ""
 "Default: not set by default, you have to take an existing pam configuration "
 "or create a new one and add the service name here."
@@ -5434,12 +5316,12 @@ msgstr ""
 "eller skapa en ny och lägga till tjänstenamnet här."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3823
+#: sssd.conf.5.xml:3811
 msgid "proxy_lib_name (string)"
 msgstr "proxy_lib_name (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3826
+#: sssd.conf.5.xml:3814
 msgid ""
 "The name of the NSS library to use in proxy domains. The NSS functions "
 "searched for in the library are in the form of _nss_$(libName)_$(function), "
@@ -5450,12 +5332,12 @@ msgstr ""
 "exempel _nss_files_getpwent."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3836
+#: sssd.conf.5.xml:3824
 msgid "proxy_resolver_lib_name (string)"
 msgstr "proxy_resolver_lib_name (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3839
+#: sssd.conf.5.xml:3827
 msgid ""
 "The name of the NSS library to use for hosts and networks lookups in proxy "
 "domains. The NSS functions searched for in the library are in the form of "
@@ -5466,12 +5348,12 @@ msgstr ""
 "_nss_$(libName)_$(function), till exempel _nss_dns_gethostbyname2_r."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3850
+#: sssd.conf.5.xml:3838
 msgid "proxy_fast_alias (boolean)"
 msgstr "proxy_fast_alias (boolean)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3853
+#: sssd.conf.5.xml:3841
 msgid ""
 "When a user or group is looked up by name in the proxy provider, a second "
 "lookup by ID is performed to \"canonicalize\" the name in case the requested "
@@ -5484,12 +5366,12 @@ msgstr ""
 "SSSD att utföra ID-uppslagningen från cachen av prestandaskäl."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3867
+#: sssd.conf.5.xml:3855
 msgid "proxy_max_children (integer)"
 msgstr "proxy_max_children (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3870
+#: sssd.conf.5.xml:3858
 msgid ""
 "This option specifies the number of pre-forked proxy children. It is useful "
 "for high-load SSSD environments where sssd may run out of available child "
@@ -5501,7 +5383,7 @@ msgstr ""
 "begäranden skulle köas upp."
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:3805
+#: sssd.conf.5.xml:3793
 msgid ""
 "Options valid for proxy domains.  <placeholder type=\"variablelist\" id="
 "\"0\"/>"
@@ -5510,12 +5392,12 @@ msgstr ""
 "\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd.conf.5.xml:3886
+#: sssd.conf.5.xml:3874
 msgid "Application domains"
 msgstr "Programdomäner"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:3888
+#: sssd.conf.5.xml:3876
 msgid ""
 "SSSD, with its D-Bus interface (see <citerefentry> <refentrytitle>sssd-ifp</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>) is appealing to "
@@ -5544,7 +5426,7 @@ msgstr ""
 "traditionell SSSD-domän."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:3908
+#: sssd.conf.5.xml:3896
 msgid ""
 "Please note that the application domain must still be explicitly enabled in "
 "the <quote>domains</quote> parameter so that the lookup order between the "
@@ -5555,17 +5437,17 @@ msgstr ""
 "programdomänen och dess POSIX-syskondomän sätts korrekt."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><title>
-#: sssd.conf.5.xml:3914
+#: sssd.conf.5.xml:3902
 msgid "Application domain parameters"
 msgstr "Programdomänparametrar"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3916
+#: sssd.conf.5.xml:3904
 msgid "inherit_from (string)"
 msgstr "inherit_from (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3919
+#: sssd.conf.5.xml:3907
 msgid ""
 "The SSSD POSIX-type domain the application domain inherits all settings "
 "from. The application domain can moreover add its own settings to the "
@@ -5578,7 +5460,7 @@ msgstr ""
 "quote>domänens inställningar."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:3933
+#: sssd.conf.5.xml:3921
 msgid ""
 "The following example illustrates the use of an application domain. In this "
 "setup, the POSIX domain is connected to an LDAP server and is used by the OS "
@@ -5593,7 +5475,7 @@ msgstr ""
 "attributet telefon nåbart via D-Bus-gränssnittet."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><programlisting>
-#: sssd.conf.5.xml:3941
+#: sssd.conf.5.xml:3929
 #, no-wrap
 msgid ""
 "[sssd]\n"
@@ -5626,184 +5508,13 @@ msgstr ""
 "inherit_from = posixdom\n"
 "ldap_user_extra_attrs = telefon:telephoneNumber\n"
 
-#. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd.conf.5.xml:3959
-msgid "The local domain section"
-msgstr "Den lokala domänsektionen"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:3961
-msgid ""
-"This section contains settings for domain that stores users and groups in "
-"SSSD native database, that is, a domain that uses "
-"<replaceable>id_provider=local</replaceable>."
-msgstr ""
-"Denna sektion innehåller inställningar för domänen som lagrar användare och "
-"grupper i SSSD:s egna databas, det vill säga, en domän som använder "
-"<replaceable>id_provider=local</replaceable>."
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3968
-msgid "default_shell (string)"
-msgstr "default_shell (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3971
-msgid "The default shell for users created with SSSD userspace tools."
-msgstr ""
-"Standardskalet för användare som skapas med SSSD:s verktyg för "
-"användarrymden."
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3975
-msgid "Default: <filename>/bin/bash</filename>"
-msgstr "Standard: <filename>/bin/bash</filename>"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3980
-msgid "base_directory (string)"
-msgstr "base_directory (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3983
-msgid ""
-"The tools append the login name to <replaceable>base_directory</replaceable> "
-"and use that as the home directory."
-msgstr ""
-"Verktygen lägger till inloggningsnamnet till <replaceable>base_directory</"
-"replaceable> och använder det som hemkatalogen."
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3988
-msgid "Default: <filename>/home</filename>"
-msgstr "Standard: <filename>/home</filename>"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3993
-msgid "create_homedir (bool)"
-msgstr "create_homedir (bool)"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3996
-msgid ""
-"Indicate if a home directory should be created by default for new users.  "
-"Can be overridden on command line."
-msgstr ""
-"Indikera om en hemkatalog skall skapas som standard för nya användare.  Kan "
-"åsidosättas på kommandoraden."
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4000 sssd.conf.5.xml:4012
-msgid "Default: TRUE"
-msgstr "Standard: TRUE"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4005
-msgid "remove_homedir (bool)"
-msgstr "remove_homedir (bool)"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4008
-msgid ""
-"Indicate if a home directory should be removed by default for deleted "
-"users.  Can be overridden on command line."
-msgstr ""
-"Indikera om en hemkatalog skall tas bort som standard för raderade "
-"användare.  Kan åsidosättas på kommandoraden."
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4017
-msgid "homedir_umask (integer)"
-msgstr "homedir_umask (heltal)"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4020
-msgid ""
-"Used by <citerefentry> <refentrytitle>sss_useradd</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry> to specify the default permissions "
-"on a newly created home directory."
-msgstr ""
-"Används av <citerefentry> <refentrytitle>sss_useradd</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry> för att ange standardrättigheterna "
-"på en nyskapad hemkatalog."
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4028
-msgid "Default: 077"
-msgstr "Standard: 077"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4033
-msgid "skel_dir (string)"
-msgstr "skel_dir (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4036
-msgid ""
-"The skeleton directory, which contains files and directories to be copied in "
-"the user's home directory, when the home directory is created by "
-"<citerefentry> <refentrytitle>sss_useradd</refentrytitle> <manvolnum>8</"
-"manvolnum> </citerefentry>"
-msgstr ""
-"Skelettkatalogen, som innehåller filer och kataloger som skall kopieras till "
-"användarens hemkatalog, när hemkatalogen skapas av <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle> <manvolnum>8</manvolnum> </"
-"citerefentry>"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4046
-msgid "Default: <filename>/etc/skel</filename>"
-msgstr "Standard: <filename>/etc/skel</filename>"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4051
-msgid "mail_dir (string)"
-msgstr "mail_dir (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4054
-msgid ""
-"The mail spool directory. This is needed to manipulate the mailbox when its "
-"corresponding user account is modified or deleted.  If not specified, a "
-"default value is used."
-msgstr ""
-"Brevlådekatalogen.  Detta behövs för att hantera brevlådan när det "
-"motsvarande användarkontot ändras eller raderas.  Om inte angivet används "
-"ett standardvärde."
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4061
-msgid "Default: <filename>/var/mail</filename>"
-msgstr "Standard: <filename>/var/mail</filename>"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4066
-msgid "userdel_cmd (string)"
-msgstr "userdel_cmd (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4069
-msgid ""
-"The command that is run after a user is removed.  The command us passed the "
-"username of the user being removed as the first and only parameter. The "
-"return code of the command is not taken into account."
-msgstr ""
-"Kommandot att köra efter att en användare tagits bort.  Kommandot får "
-"användarnamnet på användaren som tas bort som första och enda parameter.  "
-"Ingen hänsyn tas till returkoden från kommandot."
-
-#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4075
-msgid "Default: None, no command is run"
-msgstr "Standard: Inget, inget kommando körs"
-
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4085
+#: sssd.conf.5.xml:3949
 msgid "TRUSTED DOMAIN SECTION"
 msgstr "SEKTIONEN BETRODDA DOMÄNER"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4087
+#: sssd.conf.5.xml:3951
 msgid ""
 "Some options used in the domain section can also be used in the trusted "
 "domain section, that is, in a section called <quote>[domain/"
@@ -5820,57 +5531,57 @@ msgstr ""
 "alternativ i sektionen för betrodda domäner är:"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4094
+#: sssd.conf.5.xml:3958
 msgid "ldap_search_base,"
 msgstr "ldap_search_base,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4095
+#: sssd.conf.5.xml:3959
 msgid "ldap_user_search_base,"
 msgstr "ldap_user_search_base,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4096
+#: sssd.conf.5.xml:3960
 msgid "ldap_group_search_base,"
 msgstr "ldap_group_search_base,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4097
+#: sssd.conf.5.xml:3961
 msgid "ldap_netgroup_search_base,"
 msgstr "ldap_netgroup_search_base,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4098
+#: sssd.conf.5.xml:3962
 msgid "ldap_service_search_base,"
 msgstr "ldap_service_search_base,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4099
+#: sssd.conf.5.xml:3963
 msgid "ldap_sasl_mech,"
 msgstr "ldap_sasl_mech,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4100
+#: sssd.conf.5.xml:3964
 msgid "ad_server,"
 msgstr "ad_server,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4101
+#: sssd.conf.5.xml:3965
 msgid "ad_backup_server,"
 msgstr "ad_backup_server,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4102
+#: sssd.conf.5.xml:3966
 msgid "ad_site,"
 msgstr "ad_site,"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4103 sssd-ipa.5.xml:811
+#: sssd.conf.5.xml:3967 sssd-ipa.5.xml:825
 msgid "use_fully_qualified_names"
 msgstr "use_fully_qualified_names"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4107
+#: sssd.conf.5.xml:3971
 msgid ""
 "For more details about these options see their individual description in the "
 "manual page."
@@ -5879,12 +5590,12 @@ msgstr ""
 "manualsidan."
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4113
+#: sssd.conf.5.xml:3977
 msgid "CERTIFICATE MAPPING SECTION"
 msgstr "CERTIFIKATSMAPPNINGSSEKTION"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4115
+#: sssd.conf.5.xml:3979
 msgid ""
 "To allow authentication with Smartcards and certificates SSSD must be able "
 "to map certificates to users. This can be done by adding the full "
@@ -5906,7 +5617,7 @@ msgstr ""
 "fallet när lokala tjänster använder PAM för autentisering."
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4129
+#: sssd.conf.5.xml:3993
 msgid ""
 "To make the mapping more flexible mapping and matching rules were added to "
 "SSSD (see <citerefentry> <refentrytitle>sss-certmap</refentrytitle> "
@@ -5918,7 +5629,7 @@ msgstr ""
 "detaljer)."
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4138
+#: sssd.conf.5.xml:4002
 msgid ""
 "A mapping and matching rule can be added to the SSSD configuration in a "
 "section on its own with a name like <quote>[certmap/"
@@ -5931,12 +5642,12 @@ msgstr ""
 "replaceable>]</quote>.  I denna sektion är följande alternativ tillåtna:"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4145
+#: sssd.conf.5.xml:4009
 msgid "matchrule (string)"
 msgstr "matchrule (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4148
+#: sssd.conf.5.xml:4012
 msgid ""
 "Only certificates from the Smartcard which matches this rule will be "
 "processed, all others are ignored."
@@ -5945,7 +5656,7 @@ msgstr ""
 "alla andra ignoreras."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4152
+#: sssd.conf.5.xml:4016
 msgid ""
 "Default: KRB5:&lt;EKU&gt;clientAuth, i.e. only certificates which have the "
 "Extended Key Usage <quote>clientAuth</quote>"
@@ -5954,17 +5665,17 @@ msgstr ""
 "Extended Key Usage <quote>clientAuth</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4159
+#: sssd.conf.5.xml:4023
 msgid "maprule (string)"
 msgstr "maprule (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4162
+#: sssd.conf.5.xml:4026
 msgid "Defines how the user is found for a given certificate."
 msgstr "Definierar hur användaren hittas för ett givet certifikat."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4168
+#: sssd.conf.5.xml:4032
 msgid ""
 "LDAP:(userCertificate;binary={cert!bin})  for LDAP based providers like "
 "<quote>ldap</quote>, <quote>AD</quote> or <quote>ipa</quote>."
@@ -5973,7 +5684,7 @@ msgstr ""
 "<quote>ldap</quote>, <quote>AD</quote> eller <quote>ipa</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4174
+#: sssd.conf.5.xml:4038
 msgid ""
 "The RULE_NAME for the <quote>files</quote> provider which tries to find a "
 "user with the same name."
@@ -5982,12 +5693,12 @@ msgstr ""
 "användare med samma namn."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4183
+#: sssd.conf.5.xml:4047
 msgid "domains (string)"
 msgstr "domains (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4186
+#: sssd.conf.5.xml:4050
 msgid ""
 "Comma separated list of domain names the rule should be applied. By default "
 "a rule is only valid in the domain configured in sssd.conf. If the provider "
@@ -6000,17 +5711,17 @@ msgstr ""
 "lägga till regeln till underdomäner också."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4193
+#: sssd.conf.5.xml:4057
 msgid "Default: the configured domain in sssd.conf"
 msgstr "Standard: den konfigurerade domänen i sssd.conf"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4198
+#: sssd.conf.5.xml:4062
 msgid "priority (integer)"
 msgstr "priority (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4201
+#: sssd.conf.5.xml:4065
 msgid ""
 "Unsigned integer value defining the priority of the rule. The higher the "
 "number the lower the priority.  <quote>0</quote> stands for the highest "
@@ -6021,12 +5732,12 @@ msgstr ""
 "prioriteten medan <quote>4294967295</quote> är den lägsta."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4207
+#: sssd.conf.5.xml:4071
 msgid "Default: the lowest priority"
 msgstr "Standard: den lägsta prioriteten"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4213
+#: sssd.conf.5.xml:4077
 msgid ""
 "To make the configuration simple and reduce the amount of configuration "
 "options the <quote>files</quote> provider has some special properties:"
@@ -6036,7 +5747,7 @@ msgstr ""
 "speciella egenskaper:"
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4219
+#: sssd.conf.5.xml:4083
 msgid ""
 "if maprule is not set the RULE_NAME name is assumed to be the name of the "
 "matching user"
@@ -6045,7 +5756,7 @@ msgstr ""
 "användaren"
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4225
+#: sssd.conf.5.xml:4089
 msgid ""
 "if a maprule is used both a single user name or a template like "
 "<quote>{subject_rfc822_name.short_name}</quote> must be in braces like e.g. "
@@ -6058,17 +5769,17 @@ msgstr ""
 "short_name})</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4234
+#: sssd.conf.5.xml:4098
 msgid "the <quote>domains</quote> option is ignored"
 msgstr "alternativet <quote>domains</quote> ignoreras"
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4242
+#: sssd.conf.5.xml:4106
 msgid "PROMPTING CONFIGURATION SECTION"
 msgstr "SEKTIONEN FÖR FRÅGEKONFIGURATION"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4244
+#: sssd.conf.5.xml:4108
 msgid ""
 "If a special file (<filename>/var/lib/sss/pubconf/pam_preauth_available</"
 "filename>)  exists SSSD's PAM module pam_sss will ask SSSD to figure out "
@@ -6083,7 +5794,7 @@ msgstr ""
 "tillämpliga kreditiv."
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4252
+#: sssd.conf.5.xml:4116
 msgid ""
 "With the growing number of authentication methods and the possibility that "
 "there are multiple ones for a single user the heuristic used by pam_sss to "
@@ -6096,22 +5807,22 @@ msgstr ""
 "användarfall. Följande alternativ bör ge en bättre flexibilitet här."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4264
+#: sssd.conf.5.xml:4128
 msgid "[prompting/password]"
 msgstr "[prompting/password]"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4267
+#: sssd.conf.5.xml:4131
 msgid "password_prompt"
 msgstr "password_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4268
+#: sssd.conf.5.xml:4132
 msgid "to change the string of the password prompt"
 msgstr "för att ändra strängen i lösenordsfrågan"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4266
+#: sssd.conf.5.xml:4130
 msgid ""
 "to configure password prompting, allowed options are: <placeholder type="
 "\"variablelist\" id=\"0\"/>"
@@ -6120,37 +5831,37 @@ msgstr ""
 "type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4276
+#: sssd.conf.5.xml:4140
 msgid "[prompting/2fa]"
 msgstr "[prompting/2fa]"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4280
+#: sssd.conf.5.xml:4144
 msgid "first_prompt"
 msgstr "first_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4281
+#: sssd.conf.5.xml:4145
 msgid "to change the string of the prompt for the first factor"
 msgstr "för att ändra strängen som frågar efter den första faktorn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4284
+#: sssd.conf.5.xml:4148
 msgid "second_prompt"
 msgstr "second_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4285
+#: sssd.conf.5.xml:4149
 msgid "to change the string of the prompt for the second factor"
 msgstr "för att ändra strängen som frågar efter den andra faktorn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4288
+#: sssd.conf.5.xml:4152
 msgid "single_prompt"
 msgstr "single_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4289
+#: sssd.conf.5.xml:4153
 #, fuzzy
 #| msgid ""
 #| "boolean value, if True there will be only a single prompt using the value "
@@ -6167,7 +5878,7 @@ msgstr ""
 "sträng"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4278
+#: sssd.conf.5.xml:4142
 msgid ""
 "to configure two-factor authentication prompting, allowed options are: "
 "<placeholder type=\"variablelist\" id=\"0\"/> If the second factor is "
@@ -6176,7 +5887,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4259
+#: sssd.conf.5.xml:4123
 msgid ""
 "Each supported authentication method has its own configuration subsection "
 "under <quote>[prompting/...]</quote>. Currently there are: <placeholder type="
@@ -6188,7 +5899,7 @@ msgstr ""
 ">"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4306
+#: sssd.conf.5.xml:4170
 msgid ""
 "It is possible to add a subsection for specific PAM services, e.g. "
 "<quote>[prompting/password/sshd]</quote> to individual change the prompting "
@@ -6199,12 +5910,12 @@ msgstr ""
 "enskilt för denna tjänst."
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4313 pam_sss_gss.8.xml:157 idmap_sss.8.xml:43
+#: sssd.conf.5.xml:4177 pam_sss_gss.8.xml:157 idmap_sss.8.xml:43
 msgid "EXAMPLES"
 msgstr "EXEMPEL"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd.conf.5.xml:4319
+#: sssd.conf.5.xml:4183
 #, no-wrap
 msgid ""
 "[sssd]\n"
@@ -6258,7 +5969,7 @@ msgstr ""
 "enumerate = False\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4315
+#: sssd.conf.5.xml:4179
 msgid ""
 "1. The following example shows a typical SSSD config. It does not describe "
 "configuration of the domains themselves - refer to documentation on "
@@ -6270,7 +5981,7 @@ msgstr ""
 "domäner för fler detaljer. <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd.conf.5.xml:4352
+#: sssd.conf.5.xml:4216
 #, no-wrap
 msgid ""
 "[domain/ipa.com/child.ad.com]\n"
@@ -6280,7 +5991,7 @@ msgstr ""
 "use_fully_qualified_names = false\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4346
+#: sssd.conf.5.xml:4210
 msgid ""
 "2. The following example shows configuration of IPA AD trust where the AD "
 "forest consists of two domains in a parent-child structure.  Suppose IPA "
@@ -6296,7 +6007,7 @@ msgstr ""
 "\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd.conf.5.xml:4366
+#: sssd.conf.5.xml:4230
 #, no-wrap
 msgid ""
 "[certmap/my.domain/rule_name]\n"
@@ -6318,7 +6029,7 @@ msgstr ""
 "matchrule = &lt;ISSUER&gt;^CN=My-CA,DC=MIN,DC=DOMÄN$&lt;SUBJECT&gt;^CN=User.Name,DC=MIN,DC=DOMÄN$\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4357
+#: sssd.conf.5.xml:4221
 msgid ""
 "3. The following example shows the configuration for two certificate mapping "
 "rules. The first is valid for the configured domain <quote>my.domain</quote> "
@@ -6346,6 +6057,19 @@ msgstr "sssd-ldap"
 #: sssd-ldap.5.xml:17
 msgid "SSSD LDAP provider"
 msgstr "SSSD LDAP-leverantör"
+
+#. type: Content of: <reference><refentry><refsect1><title>
+#: sssd-ldap.5.xml:21 pam_sss.8.xml:63 pam_sss_gss.8.xml:30
+#: sssd_krb5_locator_plugin.8.xml:20 sssd-simple.5.xml:22 sss-certmap.5.xml:21
+#: sssd-ipa.5.xml:21 sssd-ad.5.xml:21 sssd-sudo.5.xml:21 sssd.8.xml:29
+#: sss_obfuscate.8.xml:30 sss_override.8.xml:30 sssd-krb5.5.xml:21
+#: sss_cache.8.xml:29 sss_debuglevel.8.xml:30 sss_seed.8.xml:31
+#: sssd-ifp.5.xml:21 sss_ssh_authorizedkeys.1.xml:30
+#: sss_ssh_knownhostsproxy.1.xml:31 idmap_sss.8.xml:20 sssctl.8.xml:30
+#: sssd-files.5.xml:21 sssd-secrets.5.xml:21 sssd-session-recording.5.xml:21
+#: sssd-kcm.8.xml:21 sssd-systemtap.5.xml:21 sssd-ldap-attributes.5.xml:21
+msgid "DESCRIPTION"
+msgstr "BESKRIVNING"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:23
@@ -6861,8 +6585,8 @@ msgid "Optional. Use the given string as search base for host objects."
 msgstr "Frivillig. Använd den givna strängen som en sökbas för värdobjekt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:411 sssd-ipa.5.xml:389 sssd-ipa.5.xml:408 sssd-ipa.5.xml:427
-#: sssd-ipa.5.xml:446
+#: sssd-ldap.5.xml:411 sssd-ipa.5.xml:403 sssd-ipa.5.xml:422 sssd-ipa.5.xml:441
+#: sssd-ipa.5.xml:460
 msgid ""
 "See <quote>ldap_search_base</quote> for information about configuring "
 "multiple search bases."
@@ -6871,7 +6595,7 @@ msgstr ""
 "multipla sökbaser."
 
 #. type: Content of: <listitem><para>
-#: sssd-ldap.5.xml:416 sssd-ipa.5.xml:394 include/ldap_search_bases.xml:27
+#: sssd-ldap.5.xml:416 sssd-ipa.5.xml:408 include/ldap_search_bases.xml:27
 msgid "Default: the value of <emphasis>ldap_search_base</emphasis>"
 msgstr "Standard: värdet på <emphasis>ldap_search_base</emphasis>"
 
@@ -7615,7 +7339,7 @@ msgstr ""
 "<quote>krb5_server</quote> istället."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1010 sssd-ipa.5.xml:458 sssd-krb5.5.xml:103
+#: sssd-ldap.5.xml:1010 sssd-ipa.5.xml:472 sssd-krb5.5.xml:103
 msgid "krb5_realm (string)"
 msgstr "krb5_realm (sträng)"
 
@@ -8697,7 +8421,7 @@ msgstr ""
 "\"variablelist\" id=\"1\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:1798 sssd-simple.5.xml:131 sssd-ipa.5.xml:857
+#: sssd-ldap.5.xml:1798 sssd-simple.5.xml:131 sssd-ipa.5.xml:871
 #: sssd-ad.5.xml:1363 sssd-krb5.5.xml:467 sss_rpcidmapd.5.xml:98
 #: sssd-files.5.xml:156 sssd-session-recording.5.xml:176
 msgid "EXAMPLE"
@@ -8735,7 +8459,7 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
 #: sssd-ldap.5.xml:1805 sssd-ldap.5.xml:1823 sssd-simple.5.xml:139
-#: sssd-ipa.5.xml:865 sssd-ad.5.xml:1371 sssd-sudo.5.xml:56 sssd-krb5.5.xml:476
+#: sssd-ipa.5.xml:879 sssd-ad.5.xml:1371 sssd-sudo.5.xml:56 sssd-krb5.5.xml:476
 #: sssd-files.5.xml:163 sssd-files.5.xml:174 sssd-session-recording.5.xml:182
 #: include/ldap_id_mapping.xml:105
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
@@ -8805,6 +8529,14 @@ msgstr ""
 msgid "pam_sss"
 msgstr "pam_sss"
 
+#. type: Content of: <reference><refentry><refmeta><manvolnum>
+#: pam_sss.8.xml:12 pam_sss_gss.8.xml:12 sssd_krb5_locator_plugin.8.xml:11
+#: sssd.8.xml:11 sss_obfuscate.8.xml:11 sss_override.8.xml:11
+#: sss_cache.8.xml:11 sss_debuglevel.8.xml:11 sss_seed.8.xml:11
+#: idmap_sss.8.xml:11 sssctl.8.xml:11 sssd-kcm.8.xml:11
+msgid "8"
+msgstr "8"
+
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: pam_sss.8.xml:17
 msgid "PAM module for SSSD"
@@ -8849,6 +8581,13 @@ msgstr ""
 "<command>pam_sss.so</command> är PAM-gränssnittet till System Security "
 "Services daemon (SSSD).  Fel och resultat loggas via <command>syslog(3)</"
 "command> med funktionen LOG_AUTHPRIV."
+
+#. type: Content of: <reference><refentry><refsect1><title>
+#: pam_sss.8.xml:70 pam_sss_gss.8.xml:89 sssd.8.xml:42 sss_obfuscate.8.xml:58
+#: sss_cache.8.xml:39 sss_seed.8.xml:42 sss_ssh_authorizedkeys.1.xml:123
+#: sss_ssh_knownhostsproxy.1.xml:62
+msgid "OPTIONS"
+msgstr "FLAGGOR"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:74
@@ -11565,92 +11304,119 @@ msgstr ""
 "skrivbordsprofilrelaterade objekt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:354 sssd-ipa.5.xml:367
+#: sssd-ipa.5.xml:354 sssd-ipa.5.xml:381
 msgid "Default: Use base DN"
 msgstr "Standard: använd bas-DN"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:360
+#, fuzzy
+#| msgid "ipa_subdomains_search_base (string)"
+msgid "ipa_subid_ranges_search_base (string)"
+msgstr "ipa_subdomains_search_base (sträng)"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ipa.5.xml:363
+#, fuzzy
+#| msgid ""
+#| "Optional. Use the given string as search base for Desktop Profile related "
+#| "objects."
+msgid ""
+"Optional. Use the given string as search base for subordinate ranges related "
+"objects."
+msgstr ""
+"Frivillig.  Använd den givna strängen som sökbas för "
+"skrivbordsprofilrelaterade objekt."
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ipa.5.xml:367
+#, fuzzy
+#| msgid "Default: the value of <emphasis>cn=trusts,%basedn</emphasis>"
+msgid "Default: the value of <emphasis>cn=subids,%basedn</emphasis>"
+msgstr "Standard: värdet på <emphasis>cn=trusts,%basedn</emphasis>"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
+#: sssd-ipa.5.xml:374
 msgid "ipa_hbac_search_base (string)"
 msgstr "ipa_hbac_search_base (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:363
+#: sssd-ipa.5.xml:377
 msgid "Optional. Use the given string as search base for HBAC related objects."
 msgstr ""
 "Frivillig.  Använd den givna strängen som sökbas för HBAC-relaterade objekt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:373
+#: sssd-ipa.5.xml:387
 msgid "ipa_host_search_base (string)"
 msgstr "ipa_host_search_base (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:376
+#: sssd-ipa.5.xml:390
 msgid "Deprecated. Use ldap_host_search_base instead."
 msgstr "Undanbedes.  Använd ldap_host_search_base istället."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:382
+#: sssd-ipa.5.xml:396
 msgid "ipa_selinux_search_base (string)"
 msgstr "ipa_selinux_search_base (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:385
+#: sssd-ipa.5.xml:399
 msgid "Optional. Use the given string as search base for SELinux user maps."
 msgstr ""
 "Frivillig.  Använd den givna strängen som en sökbas för SELinux-"
 "användaröversättningar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:401
+#: sssd-ipa.5.xml:415
 msgid "ipa_subdomains_search_base (string)"
 msgstr "ipa_subdomains_search_base (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:404
+#: sssd-ipa.5.xml:418
 msgid "Optional. Use the given string as search base for trusted domains."
 msgstr ""
 "Frivillig.  Använd den givna strängen som en sökbas för betrodda domäner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:413
+#: sssd-ipa.5.xml:427
 msgid "Default: the value of <emphasis>cn=trusts,%basedn</emphasis>"
 msgstr "Standard: värdet på <emphasis>cn=trusts,%basedn</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:420
+#: sssd-ipa.5.xml:434
 msgid "ipa_master_domain_search_base (string)"
 msgstr "ipa_master_domain_search_base (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:423
+#: sssd-ipa.5.xml:437
 msgid "Optional. Use the given string as search base for master domain object."
 msgstr ""
 "Frivillig.  Använd den givna strängen som en sökbas för huvuddomänobjekt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:432
+#: sssd-ipa.5.xml:446
 msgid "Default: the value of <emphasis>cn=ad,cn=etc,%basedn</emphasis>"
 msgstr "Standard: värdet av <emphasis>cn=ad,cn=etc,%basedn</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:439
+#: sssd-ipa.5.xml:453
 msgid "ipa_views_search_base (string)"
 msgstr "ipa_views_search_base (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:442
+#: sssd-ipa.5.xml:456
 msgid "Optional. Use the given string as search base for views containers."
 msgstr "Frivillig.  Använd den givna strängen som en sökbas för vybehållare."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:451
+#: sssd-ipa.5.xml:465
 msgid "Default: the value of <emphasis>cn=views,cn=accounts,%basedn</emphasis>"
 msgstr "Standard: värdet av <emphasis>cn=views,cn=accounts,%basedn</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:461
+#: sssd-ipa.5.xml:475
 msgid ""
 "The name of the Kerberos realm. This is optional and defaults to the value "
 "of <quote>ipa_domain</quote>."
@@ -11659,7 +11425,7 @@ msgstr ""
 "värdet av <quote>ipa_domain</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:465
+#: sssd-ipa.5.xml:479
 msgid ""
 "The name of the Kerberos realm has a special meaning in IPA - it is "
 "converted into the base DN to use for performing LDAP operations."
@@ -11668,12 +11434,12 @@ msgstr ""
 "till bas-DN:en för att användas när LDAP-operationer utförs."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:473 sssd-ad.5.xml:1334
+#: sssd-ipa.5.xml:487 sssd-ad.5.xml:1334
 msgid "krb5_confd_path (string)"
 msgstr "krb5_confd_path (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:476 sssd-ad.5.xml:1337
+#: sssd-ipa.5.xml:490 sssd-ad.5.xml:1337
 msgid ""
 "Absolute path of a directory where SSSD should place Kerberos configuration "
 "snippets."
@@ -11682,7 +11448,7 @@ msgstr ""
 "för Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:480 sssd-ad.5.xml:1341
+#: sssd-ipa.5.xml:494 sssd-ad.5.xml:1341
 msgid ""
 "To disable the creation of the configuration snippets set the parameter to "
 "'none'."
@@ -11691,7 +11457,7 @@ msgstr ""
 "”none”."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:484 sssd-ad.5.xml:1345
+#: sssd-ipa.5.xml:498 sssd-ad.5.xml:1345
 msgid ""
 "Default: not set (krb5.include.d subdirectory of SSSD's pubconf directory)"
 msgstr ""
@@ -11699,12 +11465,12 @@ msgstr ""
 "katalog)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:491
+#: sssd-ipa.5.xml:505
 msgid "ipa_deskprofile_refresh (integer)"
 msgstr "ipa_deskprofile_refresh (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:494
+#: sssd-ipa.5.xml:508
 msgid ""
 "The amount of time between lookups of the Desktop Profile rules against the "
 "IPA server. This will reduce the latency and load on the IPA server if there "
@@ -11715,17 +11481,17 @@ msgstr ""
 "görs många begäranden om skrivbordsprofiler under en kort tid."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:501 sssd-ipa.5.xml:531 sssd-ipa.5.xml:547 sssd-ad.5.xml:576
+#: sssd-ipa.5.xml:515 sssd-ipa.5.xml:545 sssd-ipa.5.xml:561 sssd-ad.5.xml:576
 msgid "Default: 5 (seconds)"
 msgstr "Standard: 5 (sekunder)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:507
+#: sssd-ipa.5.xml:521
 msgid "ipa_deskprofile_request_interval (integer)"
 msgstr "ipa_deskprofile_request_interval (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:510
+#: sssd-ipa.5.xml:524
 msgid ""
 "The amount of time between lookups of the Desktop Profile rules against the "
 "IPA server in case the last request did not return any rule."
@@ -11734,17 +11500,17 @@ msgstr ""
 "den senaste förfrågan inte returnerade någon regel."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:515
+#: sssd-ipa.5.xml:529
 msgid "Default: 60 (minutes)"
 msgstr "Standard: 60 (minuter)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:521
+#: sssd-ipa.5.xml:535
 msgid "ipa_hbac_refresh (integer)"
 msgstr "ipa_hbac_refresh (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:524
+#: sssd-ipa.5.xml:538
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server. "
 "This will reduce the latency and load on the IPA server if there are many "
@@ -11755,12 +11521,12 @@ msgstr ""
 "begäranden om åtkomstkontroll under en kort tid."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:537
+#: sssd-ipa.5.xml:551
 msgid "ipa_hbac_selinux (integer)"
 msgstr "ipa_hbac_selinux (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:540
+#: sssd-ipa.5.xml:554
 msgid ""
 "The amount of time between lookups of the SELinux maps against the IPA "
 "server. This will reduce the latency and load on the IPA server if there are "
@@ -11771,12 +11537,12 @@ msgstr ""
 "många begäranden om användarinloggningar under en kort tid."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:553
+#: sssd-ipa.5.xml:567
 msgid "ipa_server_mode (boolean)"
 msgstr "ipa_server_mode (boolean)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:556
+#: sssd-ipa.5.xml:570
 msgid ""
 "This option will be set by the IPA installer (ipa-server-install) "
 "automatically and denotes if SSSD is running on an IPA server or not."
@@ -11785,7 +11551,7 @@ msgstr ""
 "och markerar om SSSD kör på en IPA-server eller inte."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:561
+#: sssd-ipa.5.xml:575
 msgid ""
 "On an IPA server SSSD will lookup users and groups from trusted domains "
 "directly while on a client it will ask an IPA server."
@@ -11794,7 +11560,7 @@ msgstr ""
 "domäner direkt medan på en klient kommer den att fråga en IPA-server."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:566
+#: sssd-ipa.5.xml:580
 msgid ""
 "NOTE: There are currently some assumptions that must be met when SSSD is "
 "running on an IPA server."
@@ -11803,7 +11569,7 @@ msgstr ""
 "kör på en IPA-server."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:571
+#: sssd-ipa.5.xml:585
 msgid ""
 "The <quote>ipa_server</quote> option must be configured to point to the IPA "
 "server itself. This is already the default set by the IPA installer, so no "
@@ -11814,7 +11580,7 @@ msgstr ""
 "installeraren, så det behövs inga manuella ändringar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:580
+#: sssd-ipa.5.xml:594
 msgid ""
 "The <quote>full_name_format</quote> option must not be tweaked to only print "
 "short names for users from trusted domains."
@@ -11823,52 +11589,52 @@ msgstr ""
 "skriva korta namn på användare från betrodda domäner."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:595
+#: sssd-ipa.5.xml:609
 msgid "ipa_automount_location (string)"
 msgstr "ipa_automount_location (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:598
+#: sssd-ipa.5.xml:612
 msgid "The automounter location this IPA client will be using"
 msgstr "Automonteringsplatsen denna IPA-klient kommer använda"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:601
+#: sssd-ipa.5.xml:615
 msgid "Default: The location named \"default\""
 msgstr "Standard: platsen som heter ”default”"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd-ipa.5.xml:609
+#: sssd-ipa.5.xml:623
 msgid "VIEWS AND OVERRIDES"
 msgstr "VYER OCH ÅSIDOSÄTTANDEN"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:618
+#: sssd-ipa.5.xml:632
 msgid "ipa_view_class (string)"
 msgstr "ipa_view_class (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:621
+#: sssd-ipa.5.xml:635
 msgid "Objectclass of the view container."
 msgstr "Objektklass för vybehållaren."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:624
+#: sssd-ipa.5.xml:638
 msgid "Default: nsContainer"
 msgstr "Standard: nsContainer"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:630
+#: sssd-ipa.5.xml:644
 msgid "ipa_view_name (string)"
 msgstr "ipa_view_name (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:633
+#: sssd-ipa.5.xml:647
 msgid "Name of the attribute holding the name of the view."
 msgstr "Namn på attributet som har namnet på vyn."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:637 sssd-ldap-attributes.5.xml:496
+#: sssd-ipa.5.xml:651 sssd-ldap-attributes.5.xml:496
 #: sssd-ldap-attributes.5.xml:813 sssd-ldap-attributes.5.xml:894
 #: sssd-ldap-attributes.5.xml:991 sssd-ldap-attributes.5.xml:1049
 #: sssd-ldap-attributes.5.xml:1207 sssd-ldap-attributes.5.xml:1252
@@ -11876,27 +11642,27 @@ msgid "Default: cn"
 msgstr "Standard: cn"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:643
+#: sssd-ipa.5.xml:657
 msgid "ipa_override_object_class (string)"
 msgstr "ipa_override_object_class (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:646
+#: sssd-ipa.5.xml:660
 msgid "Objectclass of the override objects."
 msgstr "Objektklass för åsidosättande objekt."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:649
+#: sssd-ipa.5.xml:663
 msgid "Default: ipaOverrideAnchor"
 msgstr "Standard: ipaOverrideAnchor"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:655
+#: sssd-ipa.5.xml:669
 msgid "ipa_anchor_uuid (string)"
 msgstr "ipa_anchor_uuid (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:658
+#: sssd-ipa.5.xml:672
 msgid ""
 "Name of the attribute containing the reference to the original object in a "
 "remote domain."
@@ -11905,17 +11671,17 @@ msgstr ""
 "fjärrdomän."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:662
+#: sssd-ipa.5.xml:676
 msgid "Default: ipaAnchorUUID"
 msgstr "Standard: ipaAnchorUUID"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:668
+#: sssd-ipa.5.xml:682
 msgid "ipa_user_override_object_class (string)"
 msgstr "ipa_user_override_object_class (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:671
+#: sssd-ipa.5.xml:685
 msgid ""
 "Name of the objectclass for user overrides. It is used to determine if the "
 "found override object is related to a user or a group."
@@ -11925,57 +11691,57 @@ msgstr ""
 "eller en grupp."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:676
+#: sssd-ipa.5.xml:690
 msgid "User overrides can contain attributes given by"
 msgstr "Användaråsidosättanden kan innehålla attribut givna av"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:679
+#: sssd-ipa.5.xml:693
 msgid "ldap_user_name"
 msgstr "ldap_user_name"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:682
+#: sssd-ipa.5.xml:696
 msgid "ldap_user_uid_number"
 msgstr "ldap_user_uid_number"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:685
+#: sssd-ipa.5.xml:699
 msgid "ldap_user_gid_number"
 msgstr "ldap_user_gid_number"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:688
+#: sssd-ipa.5.xml:702
 msgid "ldap_user_gecos"
 msgstr "ldap_user_gecos"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:691
+#: sssd-ipa.5.xml:705
 msgid "ldap_user_home_directory"
 msgstr "ldap_user_home_directory"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:694
+#: sssd-ipa.5.xml:708
 msgid "ldap_user_shell"
 msgstr "ldap_user_shell"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:697
+#: sssd-ipa.5.xml:711
 msgid "ldap_user_ssh_public_key"
 msgstr "ldap_user_ssh_public_key"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:702
+#: sssd-ipa.5.xml:716
 msgid "Default: ipaUserOverride"
 msgstr "Standard: ipaUserOverride"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:708
+#: sssd-ipa.5.xml:722
 msgid "ipa_group_override_object_class (string)"
 msgstr "ipa_group_override_object_class (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:711
+#: sssd-ipa.5.xml:725
 msgid ""
 "Name of the objectclass for group overrides. It is used to determine if the "
 "found override object is related to a user or a group."
@@ -11985,27 +11751,27 @@ msgstr ""
 "grupp."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:716
+#: sssd-ipa.5.xml:730
 msgid "Group overrides can contain attributes given by"
 msgstr "Gruppåsidosättanden kan innehålla attribut givna av"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:719
+#: sssd-ipa.5.xml:733
 msgid "ldap_group_name"
 msgstr "ldap_group_name"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:722
+#: sssd-ipa.5.xml:736
 msgid "ldap_group_gid_number"
 msgstr "ldap_group_gid_number"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:727
+#: sssd-ipa.5.xml:741
 msgid "Default: ipaGroupOverride"
 msgstr "Standard: ipaGroupOverride"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd-ipa.5.xml:611
+#: sssd-ipa.5.xml:625
 msgid ""
 "SSSD can handle views and overrides which are offered by FreeIPA 4.1 and "
 "later version. Since all paths and objectclasses are fixed on the server "
@@ -12020,12 +11786,12 @@ msgstr ""
 "standardvärden.  <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ipa.5.xml:739
+#: sssd-ipa.5.xml:753
 msgid "SUBDOMAINS PROVIDER"
 msgstr "UNDERDOMÄNSLEVERANTÖR"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:741
+#: sssd-ipa.5.xml:755
 msgid ""
 "The IPA subdomains provider behaves slightly differently if it is configured "
 "explicitly or implicitly."
@@ -12034,7 +11800,7 @@ msgstr ""
 "explicit eller implicit."
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:745
+#: sssd-ipa.5.xml:759
 msgid ""
 "If the option 'subdomains_provider = ipa' is found in the domain section of "
 "sssd.conf, the IPA subdomains provider is configured explicitly, and all "
@@ -12045,7 +11811,7 @@ msgstr ""
 "av underdomäner skickas till IPA-servern om nödvändigt."
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:751
+#: sssd-ipa.5.xml:765
 msgid ""
 "If the option 'subdomains_provider' is not set in the domain section of sssd."
 "conf but there is the option 'id_provider = ipa', the IPA subdomains "
@@ -12064,12 +11830,12 @@ msgstr ""
 "blir uppkopplad aktiveras underdomänsleverantören igen."
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ipa.5.xml:762
+#: sssd-ipa.5.xml:776
 msgid "TRUSTED DOMAINS CONFIGURATION"
 msgstr "KONFIGURATION AV BETRODDA DOMÄNER"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ipa.5.xml:770
+#: sssd-ipa.5.xml:784
 #, no-wrap
 msgid ""
 "[domain/ipa.domain.com/ad.domain.com]\n"
@@ -12079,7 +11845,7 @@ msgstr ""
 "ad_server = dc.ad.domain.com\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:764
+#: sssd-ipa.5.xml:778
 msgid ""
 "Some configuration options can also be set for a trusted domain.  A trusted "
 "domain configuration can be set using the trusted domain subsection as shown "
@@ -12094,7 +11860,7 @@ msgstr ""
 "\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:775
+#: sssd-ipa.5.xml:789
 msgid ""
 "For more details, see the <citerefentry> <refentrytitle>sssd.conf</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page."
@@ -12103,7 +11869,7 @@ msgstr ""
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:782
+#: sssd-ipa.5.xml:796
 msgid ""
 "Different configuration options are tunable for a trusted domain depending "
 "on whether you are configuring SSSD on an IPA server or an IPA client."
@@ -12112,61 +11878,61 @@ msgstr ""
 "på huruvida man konfigurerar SSSD på en IPA-server eller en IPA-klient."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd-ipa.5.xml:787
+#: sssd-ipa.5.xml:801
 msgid "OPTIONS TUNABLE ON IPA MASTERS"
 msgstr "ALTERNATIV ATT STÄLLA IN PÅ IPA-MASTRAR"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd-ipa.5.xml:789
+#: sssd-ipa.5.xml:803
 msgid ""
 "The following options can be set in a subdomain section on an IPA master:"
 msgstr ""
 "Följande alternativ kan sättas i ett underdomänsavsnitt på en IPA-master:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:793 sssd-ipa.5.xml:823
+#: sssd-ipa.5.xml:807 sssd-ipa.5.xml:837
 msgid "ad_server"
 msgstr "ad_server"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:796
+#: sssd-ipa.5.xml:810
 msgid "ad_backup_server"
 msgstr "ad_backup_server"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:799 sssd-ipa.5.xml:826
+#: sssd-ipa.5.xml:813 sssd-ipa.5.xml:840
 msgid "ad_site"
 msgstr "ad_site"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:802
+#: sssd-ipa.5.xml:816
 msgid "ldap_search_base"
 msgstr "ldap_search_base"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:805
+#: sssd-ipa.5.xml:819
 msgid "ldap_user_search_base"
 msgstr "ldap_user_search_base"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd-ipa.5.xml:808
+#: sssd-ipa.5.xml:822
 msgid "ldap_group_search_base"
 msgstr "ldap_group_search_base"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd-ipa.5.xml:817
+#: sssd-ipa.5.xml:831
 msgid "OPTIONS TUNABLE ON IPA CLIENTS"
 msgstr "ALTERNATIV ATT STÄLLA IN PÅ IPA-KLIENTER"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd-ipa.5.xml:819
+#: sssd-ipa.5.xml:833
 msgid ""
 "The following options can be set in a subdomain section on an IPA client:"
 msgstr ""
 "Följande alternativ kan sättas i ett underdomänsavsnitt på en IPA-klient:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd-ipa.5.xml:831
+#: sssd-ipa.5.xml:845
 msgid ""
 "Note that if both options are set, only <quote>ad_server</quote> is "
 "evaluated."
@@ -12175,7 +11941,7 @@ msgstr ""
 "quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd-ipa.5.xml:835
+#: sssd-ipa.5.xml:849
 msgid ""
 "Since any request for a user or a group identity from a trusted domain "
 "triggered from an IPA client is resolved by the IPA server, the "
@@ -12198,7 +11964,7 @@ msgstr ""
 "<manvolnum>8</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ipa.5.xml:859
+#: sssd-ipa.5.xml:873
 msgid ""
 "The following example assumes that SSSD is correctly configured and example."
 "com is one of the domains in the <replaceable>[sssd]</replaceable> section. "
@@ -12209,7 +11975,7 @@ msgstr ""
 "exempel visar endast alternativ som är specifika för leverantören ipa."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ipa.5.xml:866
+#: sssd-ipa.5.xml:880
 #, no-wrap
 msgid ""
 "[domain/example.com]\n"
@@ -14944,212 +14710,6 @@ msgid "<option>--debug</option> <replaceable>LEVEL</replaceable>"
 msgstr "<option>--debug</option> <replaceable>NIVÅ</replaceable>"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
-#: sss_useradd.8.xml:10 sss_useradd.8.xml:15
-msgid "sss_useradd"
-msgstr "sss_useradd"
-
-#. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sss_useradd.8.xml:16
-msgid "create a new user"
-msgstr "skapa en ny användare"
-
-#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
-#: sss_useradd.8.xml:21
-msgid ""
-"<command>sss_useradd</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-"arg>"
-msgstr ""
-"<command>sss_useradd</command> <arg choice='opt'> <replaceable>flaggor</"
-"replaceable> </arg> <arg choice='plain'><replaceable>INLOGGNINGSNAMN</"
-"replaceable></arg>"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sss_useradd.8.xml:32
-msgid ""
-"<command>sss_useradd</command> creates a new user account using the values "
-"specified on the command line plus the default values from the system."
-msgstr ""
-"<command>sss_useradd</command> skapar ett nytt användarkonto med värdena som "
-"anges på kommandoraden plus standardvärden från systemet."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_useradd.8.xml:43 sss_seed.8.xml:76
-msgid ""
-"<option>-u</option>,<option>--uid</option> <replaceable>UID</replaceable>"
-msgstr ""
-"<option>-u</option>,<option>--uid</option> <replaceable>AID</replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:48
-msgid ""
-"Set the UID of the user to the value of <replaceable>UID</replaceable>.  If "
-"not given, it is chosen automatically."
-msgstr ""
-"Sätt AID:t för användaren till värdet av <replaceable>AID</replaceable>.  Om "
-"det inte anges väljs det automatiskt."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_useradd.8.xml:55 sss_usermod.8.xml:43 sss_seed.8.xml:100
-msgid ""
-"<option>-c</option>,<option>--gecos</option> <replaceable>COMMENT</"
-"replaceable>"
-msgstr ""
-"<option>-c</option>,<option>--gecos</option> <replaceable>KOMMENTAR</"
-"replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:60 sss_usermod.8.xml:48 sss_seed.8.xml:105
-msgid ""
-"Any text string describing the user. Often used as the field for the user's "
-"full name."
-msgstr ""
-"Godtycklig textsträng som beskriver användaren.  Ofta använt som ett fält "
-"för användarens fullständiga namn."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_useradd.8.xml:67 sss_usermod.8.xml:55 sss_seed.8.xml:112
-msgid ""
-"<option>-h</option>,<option>--home</option> <replaceable>HOME_DIR</"
-"replaceable>"
-msgstr ""
-"<option>-h</option>,<option>--home</option> <replaceable>HEMKATALOG</"
-"replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:72
-msgid ""
-"The home directory of the user account.  The default is to append the "
-"<replaceable>LOGIN</replaceable> name to <filename>/home</filename> and use "
-"that as the home directory.  The base that is prepended before "
-"<replaceable>LOGIN</replaceable> is tunable with <quote>user_defaults/"
-"baseDirectory</quote> setting in sssd.conf."
-msgstr ""
-"Hemkatalogen för användarkontot.  Standardvärde är att lägga till namnet "
-"<replaceable>INLOGGNINGSNAMN</replaceable> till <filename>/home</filename> "
-"och använda det som hemkatalog.  Basen som läggs till före "
-"<replaceable>INLOGGNINGSNAMN</replaceable> kan ställas in med inställningen "
-"<quote>user_defaults/baseDirectory</quote> i sssd.conf."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_useradd.8.xml:82 sss_usermod.8.xml:66 sss_seed.8.xml:124
-msgid ""
-"<option>-s</option>,<option>--shell</option> <replaceable>SHELL</replaceable>"
-msgstr ""
-"<option>-s</option>,<option>--shell</option> <replaceable>SKAL</replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:87
-msgid ""
-"The user's login shell. The default is currently <filename>/bin/bash</"
-"filename>.  The default can be changed with <quote>user_defaults/"
-"defaultShell</quote> setting in sssd.conf."
-msgstr ""
-"Användarens inloggningsskal.  Standard är för närvarande <filename>/bin/"
-"bash</filename>.  Standardvärdet kan ändras med inställningen "
-"<quote>user_defaults/defaultShell</quote> i sssd.conf."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_useradd.8.xml:96
-msgid ""
-"<option>-G</option>,<option>--groups</option> <replaceable>GROUPS</"
-"replaceable>"
-msgstr ""
-"<option>-G</option>,<option>--groups</option> <replaceable>GRUPPER</"
-"replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:101
-msgid "A list of existing groups this user is also a member of."
-msgstr "En lista av befintliga grupper denna användare också är en medlem i."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_useradd.8.xml:107
-msgid "<option>-m</option>,<option>--create-home</option>"
-msgstr "<option>-m</option>,<option>--create-home</option>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:111
-msgid ""
-"Create the user's home directory if it does not exist. The files and "
-"directories contained in the skeleton directory (which can be defined with "
-"the -k option or in the config file) will be copied to the home directory."
-msgstr ""
-"Skapa användarens hemkatalog om den inte redan finns.  Filerna och "
-"katalogerna som finns i skelettkatalogen (som kan definieras med flaggan -k "
-"eller i konfigurationsfilen) kommer kopieras till hemkatalogen."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_useradd.8.xml:121
-msgid "<option>-M</option>,<option>--no-create-home</option>"
-msgstr "<option>-M</option>,<option>--no-create-home</option>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:125
-msgid ""
-"Do not create the user's home directory. Overrides configuration settings."
-msgstr ""
-"Skapa inte användarens hemkatalog.  Åsidosätter konfigurationsinställningar."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_useradd.8.xml:132
-msgid ""
-"<option>-k</option>,<option>--skel</option> <replaceable>SKELDIR</"
-"replaceable>"
-msgstr ""
-"<option>-k</option>,<option>--skel</option> <replaceable>SKELKAT</"
-"replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:137
-msgid ""
-"The skeleton directory, which contains files and directories to be copied in "
-"the user's home directory, when the home directory is created by "
-"<command>sss_useradd</command>."
-msgstr ""
-"Skelettkatalogen, som innehåller filer och kataloger som skall kopieras till "
-"användarens hemkatalog, när hemkatalogen skapas av <command>sss_useradd</"
-"command>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:143
-msgid ""
-"Special files (block devices, character devices, named pipes and unix "
-"sockets) will not be copied."
-msgstr ""
-"Specialfiler (blockenheter, teckenenheter, namngivna rör och unix-uttag) "
-"kommer inte kopieras."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:147
-msgid ""
-"This option is only valid if the <option>-m</option> (or <option>--create-"
-"home</option>) option is specified, or creation of home directories is set "
-"to TRUE in the configuration."
-msgstr ""
-"Denna flagga är endast giltig om flaggan <option>-m</option> (eller "
-"<option>--create-home</option>) anges, eller att skapandet av hemkataloger "
-"är satt till TRUE i konfigurationen."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_useradd.8.xml:156 sss_usermod.8.xml:124
-msgid ""
-"<option>-Z</option>,<option>--selinux-user</option> "
-"<replaceable>SELINUX_USER</replaceable>"
-msgstr ""
-"<option>-Z</option>,<option>--selinux-user</option> <replaceable>SELINUX-"
-"ANVÄNDARE</replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_useradd.8.xml:161
-msgid ""
-"The SELinux user for the user's login. If not specified, the system default "
-"will be used."
-msgstr ""
-"SELinux-användaren för användarens inloggning.  Om det inte anges används "
-"systemstandarden."
-
-#. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-krb5.5.xml:10 sssd-krb5.5.xml:16
 msgid "sssd-krb5"
 msgstr "sssd-krb5"
@@ -15750,335 +15310,6 @@ msgstr ""
 "krb5_realm = EXAMPLE.COM\n"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
-#: sss_groupadd.8.xml:10 sss_groupadd.8.xml:15
-msgid "sss_groupadd"
-msgstr "sss_groupadd"
-
-#. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sss_groupadd.8.xml:16
-msgid "create a new group"
-msgstr "skapa en ny grupp"
-
-#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
-#: sss_groupadd.8.xml:21
-msgid ""
-"<command>sss_groupadd</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
-msgstr ""
-"<command>sss_groupadd</command> <arg choice='opt'> <replaceable>flaggor</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GRUPP</replaceable></"
-"arg>"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sss_groupadd.8.xml:32
-msgid ""
-"<command>sss_groupadd</command> creates a new group. These groups are "
-"compatible with POSIX groups, with the additional feature that they can "
-"contain other groups as members."
-msgstr ""
-"<command>sss_groupadd</command> skapar en ny grupp.  Dessa grupper är "
-"kompatibla med POSIX-grupper, med den ytterligare funktionen att de kan "
-"innehålla andra grupper som medlemmar."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_groupadd.8.xml:43 sss_seed.8.xml:88
-msgid ""
-"<option>-g</option>,<option>--gid</option> <replaceable>GID</replaceable>"
-msgstr ""
-"<option>-g</option>,<option>--gid</option> <replaceable>GID</replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_groupadd.8.xml:48
-msgid ""
-"Set the GID of the group to the value of <replaceable>GID</replaceable>.  If "
-"not given, it is chosen automatically."
-msgstr ""
-"Sätt GID:t för gruppen till värdet av <replaceable>GID</replaceable>.  Om "
-"det inte anges väljs det automatiskt."
-
-#. type: Content of: <reference><refentry><refnamediv><refname>
-#: sss_userdel.8.xml:10 sss_userdel.8.xml:15
-msgid "sss_userdel"
-msgstr "sss_userdel"
-
-#. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sss_userdel.8.xml:16
-msgid "delete a user account"
-msgstr "ta bort ett användarkonto"
-
-#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
-#: sss_userdel.8.xml:21
-msgid ""
-"<command>sss_userdel</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-"arg>"
-msgstr ""
-"<command>sss_userdel</command> <arg choice='opt'> <replaceable>flaggor</"
-"replaceable> </arg> <arg choice='plain'><replaceable>INLOGGNINGSNAMN</"
-"replaceable></arg>"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sss_userdel.8.xml:32
-msgid ""
-"<command>sss_userdel</command> deletes a user identified by login name "
-"<replaceable>LOGIN</replaceable> from the system."
-msgstr ""
-"<command>sss_userdel</command> tar bort en användare identifierad av "
-"inloggningsnamnet <replaceable>INLOGGNINGSNAMN</replaceable> från systemet."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_userdel.8.xml:44
-msgid "<option>-r</option>,<option>--remove</option>"
-msgstr "<option>-r</option>,<option>--remove</option>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_userdel.8.xml:48
-msgid ""
-"Files in the user's home directory will be removed along with the home "
-"directory itself and the user's mail spool. Overrides the configuration."
-msgstr ""
-"Filer i användarens hemkatalog kommer tas bort tillsammans med själva "
-"hemkatalogen och användarens brevlåda.  Åsidosätter konfigurationen."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_userdel.8.xml:56
-msgid "<option>-R</option>,<option>--no-remove</option>"
-msgstr "<option>-R</option>,<option>--no-remove</option>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_userdel.8.xml:60
-msgid ""
-"Files in the user's home directory will NOT be removed along with the home "
-"directory itself and the user's mail spool. Overrides the configuration."
-msgstr ""
-"Filer i användarens hemkatalog kommer INTE tas bort tillsammans med själva "
-"hemkatalogen och användarens brevlåda.  Åsidosätter konfigurationen."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_userdel.8.xml:68
-msgid "<option>-f</option>,<option>--force</option>"
-msgstr "<option>-f</option>,<option>--force</option>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_userdel.8.xml:72
-msgid ""
-"This option forces <command>sss_userdel</command> to remove the user's home "
-"directory and mail spool, even if they are not owned by the specified user."
-msgstr ""
-"Denna flagga tvingar <command>sss_userdel</command> att ta bort användarens "
-"hemkatalog och brevlåda, även om de inte ägs av den angivna användaren."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_userdel.8.xml:80
-msgid "<option>-k</option>,<option>--kick</option>"
-msgstr "<option>-k</option>,<option>--kick</option>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_userdel.8.xml:84
-msgid "Before actually deleting the user, terminate all his processes."
-msgstr "Före användaren faktiskt tas bort, döda alla hans processer."
-
-#. type: Content of: <reference><refentry><refnamediv><refname>
-#: sss_groupdel.8.xml:10 sss_groupdel.8.xml:15
-msgid "sss_groupdel"
-msgstr "sss_groupdel"
-
-#. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sss_groupdel.8.xml:16
-msgid "delete a group"
-msgstr "ta bort en grupp"
-
-#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
-#: sss_groupdel.8.xml:21
-msgid ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
-msgstr ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>flaggor</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GRUPP</replaceable></"
-"arg>"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sss_groupdel.8.xml:32
-msgid ""
-"<command>sss_groupdel</command> deletes a group identified by its name "
-"<replaceable>GROUP</replaceable> from the system."
-msgstr ""
-"<command>sss_groupdel</command> tar bort en grupp identifierad av sitt namn "
-"<replaceable>GRUPP</replaceable> från systemet."
-
-#. type: Content of: <reference><refentry><refnamediv><refname>
-#: sss_groupshow.8.xml:10 sss_groupshow.8.xml:15
-msgid "sss_groupshow"
-msgstr "sss_groupshow"
-
-#. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sss_groupshow.8.xml:16
-msgid "print properties of a group"
-msgstr "skriv ut egenskaperna hos en grupp"
-
-#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
-#: sss_groupshow.8.xml:21
-msgid ""
-"<command>sss_groupshow</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
-msgstr ""
-"<command>sss_groupshow</command> <arg choice='opt'> <replaceable>flaggor</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GRUPP</replaceable></"
-"arg>"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sss_groupshow.8.xml:32
-msgid ""
-"<command>sss_groupshow</command> displays information about a group "
-"identified by its name <replaceable>GROUP</replaceable>. The information "
-"includes the group ID number, members of the group and the parent group."
-msgstr ""
-"<command>sss_groupshow</command> visar information om en grupp identifierad "
-"av sitt namn <replaceable>GRUPP</replaceable>.  Informationen inkluderar "
-"grupp-ID-numret, medlemmar i gruppen och föräldragruppen."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_groupshow.8.xml:43
-msgid "<option>-R</option>,<option>--recursive</option>"
-msgstr "<option>-R</option>,<option>--recursive</option>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_groupshow.8.xml:47
-msgid ""
-"Also print indirect group members in a tree-like hierarchy.  Note that this "
-"also affects printing parent groups - without <option>R</option>, only the "
-"direct parent will be printed."
-msgstr ""
-"Skriv även ut indirekta gruppmedlemmar i en trädliknande hierarki.  "
-"Observera att detta även påverkar utskriften av föräldragrupper – utan "
-"<option>R</option> kommer endast den direkta föräldern skrivas ut."
-
-#. type: Content of: <reference><refentry><refnamediv><refname>
-#: sss_usermod.8.xml:10 sss_usermod.8.xml:15
-msgid "sss_usermod"
-msgstr "sss_usermod"
-
-#. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sss_usermod.8.xml:16
-msgid "modify a user account"
-msgstr "ändra ett användarkonto"
-
-#. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
-#: sss_usermod.8.xml:21
-msgid ""
-"<command>sss_usermod</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-"arg>"
-msgstr ""
-"<command>sss_usermod</command> <arg choice='opt'> <replaceable>flaggor</"
-"replaceable> </arg> <arg choice='plain'><replaceable>INLOGGNINGSNAMN</"
-"replaceable></arg>"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sss_usermod.8.xml:32
-msgid ""
-"<command>sss_usermod</command> modifies the account specified by "
-"<replaceable>LOGIN</replaceable> to reflect the changes that are specified "
-"on the command line."
-msgstr ""
-"<command>sss_usermod</command> ändrar kontot som anges av "
-"<replaceable>INLOGGNINGSNAMN</replaceable> till att avspegla ändringarna som "
-"anges på kommandoraden."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_usermod.8.xml:60
-msgid "The home directory of the user account."
-msgstr "Användarkontots hemkatalog."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_usermod.8.xml:71
-msgid "The user's login shell."
-msgstr "Användarens inloggningsskal."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_usermod.8.xml:82
-msgid ""
-"Append this user to groups specified by the <replaceable>GROUPS</"
-"replaceable> parameter.  The <replaceable>GROUPS</replaceable> parameter is "
-"a comma separated list of group names."
-msgstr ""
-"Lägg till denna användare till grupperna som anges av parametern "
-"<replaceable>GRUPPER</replaceable>.  Parametern <replaceable>GRUPPER</"
-"replaceable> är en kommaseparerad lista av gruppnamn."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_usermod.8.xml:96
-msgid ""
-"Remove this user from groups specified by the <replaceable>GROUPS</"
-"replaceable> parameter."
-msgstr ""
-"Ta bort denna användare från grupperna som anges av parametern "
-"<replaceable>GRUPPER</replaceable>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_usermod.8.xml:103
-msgid "<option>-l</option>,<option>--lock</option>"
-msgstr "<option>-l</option>,<option>--lock</option>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_usermod.8.xml:107
-msgid "Lock the user account. The user won't be able to log in."
-msgstr "Lås användarkontot.  Användare kommer inte kunna logga in."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_usermod.8.xml:114
-msgid "<option>-u</option>,<option>--unlock</option>"
-msgstr "<option>-u</option>,<option>--unlock</option>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_usermod.8.xml:118
-msgid "Unlock the user account."
-msgstr "Lås upp användarkontot."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_usermod.8.xml:129
-msgid "The SELinux user for the user's login."
-msgstr "SELinux-användaren för användarens inloggning."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_usermod.8.xml:135
-msgid "<option>--addattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--addattr</option> <replaceable>ATTR_NAMN_VÄRDE</replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_usermod.8.xml:140
-msgid "Add an attribute/value pair. The format is attrname=value."
-msgstr "Lägg till ett attribut/värde-par. Formatet är attrnamn=värde."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_usermod.8.xml:147
-msgid "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--setattr</option> <replaceable>ATTR_NAMN_VÄRDE</replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_usermod.8.xml:152
-msgid ""
-"Set an attribute to a name/value pair. The format is attrname=value. For "
-"multi-valued attributes, the command replaces the values already present"
-msgstr ""
-"Sätt ett attribut till ett namn/värde-par. Formatet är attrnamn=värde. För "
-"flervärda attribut ersätter kommandot de värden som redan finns"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_usermod.8.xml:160
-msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--delattr</option> <replaceable>ATTR_NAMN_VÄRDE</replaceable>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_usermod.8.xml:165
-msgid "Delete an attribute/value pair. The format is attrname=value."
-msgstr "Ta bort ett attribut/värde-par. Formatet är attrnamn=värde."
-
-#. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_cache.8.xml:10 sss_cache.8.xml:15
 msgid "sss_cache"
 msgstr "sss_cache"
@@ -16338,7 +15569,7 @@ msgid ""
 "<command>sss_cache</command> also invalidates the memory cache.  Since the "
 "memory cache is a file which is mapped into the memory of each process which "
 "called SSSD to resolve users or groups the file cannot be truncated. A "
-"special flag is set in the header of the file to indicated that the content "
+"special flag is set in the header of the file to indicate that the content "
 "is invalid and then the file is unlinked by SSSD's NSS responder and a new "
 "cache file is created.  Whenever a process is now doing a new lookup for a "
 "user or a group it will see the flag, close the old memory cache file and "
@@ -16480,21 +15711,69 @@ msgstr ""
 "Användarnamnet på posten som skall skapas eller ändras i cachen.  Flaggan "
 "<replaceable>ANVÄNDARE</replaceable> måste anges."
 
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_seed.8.xml:76
+msgid ""
+"<option>-u</option>,<option>--uid</option> <replaceable>UID</replaceable>"
+msgstr ""
+"<option>-u</option>,<option>--uid</option> <replaceable>AID</replaceable>"
+
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_seed.8.xml:81
 msgid "Set the UID of the user to <replaceable>UID</replaceable>."
 msgstr "Sätt användarens UID till <replaceable>UID</replaceable>."
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_seed.8.xml:88
+msgid ""
+"<option>-g</option>,<option>--gid</option> <replaceable>GID</replaceable>"
+msgstr ""
+"<option>-g</option>,<option>--gid</option> <replaceable>GID</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_seed.8.xml:93
 msgid "Set the GID of the user to <replaceable>GID</replaceable>."
 msgstr "Sätt användarens GID till <replaceable>GID</replaceable>."
 
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_seed.8.xml:100
+msgid ""
+"<option>-c</option>,<option>--gecos</option> <replaceable>COMMENT</"
+"replaceable>"
+msgstr ""
+"<option>-c</option>,<option>--gecos</option> <replaceable>KOMMENTAR</"
+"replaceable>"
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_seed.8.xml:105
+msgid ""
+"Any text string describing the user. Often used as the field for the user's "
+"full name."
+msgstr ""
+"Godtycklig textsträng som beskriver användaren.  Ofta använt som ett fält "
+"för användarens fullständiga namn."
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_seed.8.xml:112
+msgid ""
+"<option>-h</option>,<option>--home</option> <replaceable>HOME_DIR</"
+"replaceable>"
+msgstr ""
+"<option>-h</option>,<option>--home</option> <replaceable>HEMKATALOG</"
+"replaceable>"
+
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_seed.8.xml:117
 msgid ""
 "Set the home directory of the user to <replaceable>HOME_DIR</replaceable>."
 msgstr "Sätt användarens hemkatalog till <replaceable>HEMKAT</replaceable>."
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_seed.8.xml:124
+msgid ""
+"<option>-s</option>,<option>--shell</option> <replaceable>SHELL</replaceable>"
+msgstr ""
+"<option>-s</option>,<option>--shell</option> <replaceable>SKAL</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_seed.8.xml:129
@@ -22366,6 +21645,56 @@ msgstr ""
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
+#, fuzzy
+#| msgid ""
+#| "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</"
+#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase condition="
+#| "\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
+#| "<manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase condition="
+#| "\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
+#| "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
+#| "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
+#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <phrase condition="
+#| "\"enable_local_provider\"> <citerefentry> <refentrytitle>sss_groupadd</"
+#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
+#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
+#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
+#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, </phrase> "
+#| "<citerefentry> <refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</"
+#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
+#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
+#| "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> "
+#| "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
+#| "<manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
+#| "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
+#| "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
+#| "manvolnum> </citerefentry>, </phrase> <citerefentry> "
+#| "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> <phrase condition="
+#| "\"with_stap\"> <citerefentry> <refentrytitle>sssd-systemtap</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> </phrase>"
 msgid ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
@@ -22387,18 +21716,7 @@ msgid ""
 "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_cache</"
 "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <phrase condition=\"enable_local_provider\"> <citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, </phrase> <citerefentry> <refentrytitle>sss_obfuscate</"
+"citerefentry>, <citerefentry> <refentrytitle>sss_obfuscate</"
 "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_seed</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sssd_krb5_locator_plugin</"
@@ -23063,6 +22381,570 @@ msgid ""
 msgstr ""
 "Anger om värdens och användarens huvudman skall göras kanonisk.  Denna "
 "funktion är tillgänglig med MIT Kerberos 1.7 och senare versioner."
+
+#~ msgid "sss_groupmod"
+#~ msgstr "sss_groupmod"
+
+#~ msgid "modify a group"
+#~ msgstr "ändra en grupp"
+
+#~ msgid ""
+#~ "<command>sss_groupmod</command> <arg choice='opt'> <replaceable>options</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
+#~ "arg>"
+#~ msgstr ""
+#~ "<command>sss_groupmod</command> <arg choice='opt'> <replaceable>flaggor</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>GRUPP</replaceable></"
+#~ "arg>"
+
+#~ msgid ""
+#~ "<command>sss_groupmod</command> modifies the group to reflect the changes "
+#~ "that are specified on the command line."
+#~ msgstr ""
+#~ "<command>sss_groupmod</command> ändrar gruppen till att avspegla "
+#~ "ändringarna som anges på kommandoraden."
+
+#~ msgid ""
+#~ "<option>-a</option>,<option>--append-group</option> <replaceable>GROUPS</"
+#~ "replaceable>"
+#~ msgstr ""
+#~ "<option>-a</option>,<option>--append-group</option> <replaceable>GRUPPER</"
+#~ "replaceable>"
+
+#~ msgid ""
+#~ "Append this group to groups specified by the <replaceable>GROUPS</"
+#~ "replaceable> parameter.  The <replaceable>GROUPS</replaceable> parameter "
+#~ "is a comma separated list of group names."
+#~ msgstr ""
+#~ "Lägg till denna grupp till grupperna som anges av parametern "
+#~ "<replaceable>GRUPPER</replaceable>.  Parametern <replaceable>GRUPPER</"
+#~ "replaceable> är en kommaseparerad lista av gruppnamn."
+
+#~ msgid ""
+#~ "<option>-r</option>,<option>--remove-group</option> <replaceable>GROUPS</"
+#~ "replaceable>"
+#~ msgstr ""
+#~ "<option>-r</option>,<option>--remove-group</option> <replaceable>GRUPPER</"
+#~ "replaceable>"
+
+#~ msgid ""
+#~ "Remove this group from groups specified by the <replaceable>GROUPS</"
+#~ "replaceable> parameter."
+#~ msgstr ""
+#~ "Ta bort denna grupp från grupperna som anges av parametern "
+#~ "<replaceable>GRUPPER</replaceable>."
+
+#~ msgid ""
+#~ "<quote>local</quote>: SSSD internal provider for local users (DEPRECATED)."
+#~ msgstr ""
+#~ "<quote>local</quote>: SSSD:s interna leverantör för lokala användare "
+#~ "(FÖRÅLDRAT)."
+
+#~ msgid "<quote>local</quote>: SSSD internal provider for local users"
+#~ msgstr ""
+#~ "<quote>local</quote>: SSSD:s interna leverantör för lokala användare"
+
+#~ msgid ""
+#~ "Treat user and group names as case sensitive.  <phrase condition="
+#~ "\"enable_local_provider\"> At the moment, this option is not supported in "
+#~ "the local provider.  </phrase> Possible option values are: <placeholder "
+#~ "type=\"variablelist\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Behandla användar- och gruppnamn som skiftlägeskänsliga.  <phrase "
+#~ "condition=\"enable_local_provider\">För tillfället stödjs inte detta "
+#~ "alternativ för den lokala leverantören. </phrase> Möjliga värden på "
+#~ "alternativet är: <placeholder type=\"variablelist\" id=\"0\"/>"
+
+#~ msgid "The local domain section"
+#~ msgstr "Den lokala domänsektionen"
+
+#~ msgid ""
+#~ "This section contains settings for domain that stores users and groups in "
+#~ "SSSD native database, that is, a domain that uses "
+#~ "<replaceable>id_provider=local</replaceable>."
+#~ msgstr ""
+#~ "Denna sektion innehåller inställningar för domänen som lagrar användare "
+#~ "och grupper i SSSD:s egna databas, det vill säga, en domän som använder "
+#~ "<replaceable>id_provider=local</replaceable>."
+
+#~ msgid "default_shell (string)"
+#~ msgstr "default_shell (sträng)"
+
+#~ msgid "The default shell for users created with SSSD userspace tools."
+#~ msgstr ""
+#~ "Standardskalet för användare som skapas med SSSD:s verktyg för "
+#~ "användarrymden."
+
+#~ msgid "Default: <filename>/bin/bash</filename>"
+#~ msgstr "Standard: <filename>/bin/bash</filename>"
+
+#~ msgid "base_directory (string)"
+#~ msgstr "base_directory (sträng)"
+
+#~ msgid ""
+#~ "The tools append the login name to <replaceable>base_directory</"
+#~ "replaceable> and use that as the home directory."
+#~ msgstr ""
+#~ "Verktygen lägger till inloggningsnamnet till <replaceable>base_directory</"
+#~ "replaceable> och använder det som hemkatalogen."
+
+#~ msgid "Default: <filename>/home</filename>"
+#~ msgstr "Standard: <filename>/home</filename>"
+
+#~ msgid "create_homedir (bool)"
+#~ msgstr "create_homedir (bool)"
+
+#~ msgid ""
+#~ "Indicate if a home directory should be created by default for new users.  "
+#~ "Can be overridden on command line."
+#~ msgstr ""
+#~ "Indikera om en hemkatalog skall skapas som standard för nya användare.  "
+#~ "Kan åsidosättas på kommandoraden."
+
+#~ msgid "Default: TRUE"
+#~ msgstr "Standard: TRUE"
+
+#~ msgid "remove_homedir (bool)"
+#~ msgstr "remove_homedir (bool)"
+
+#~ msgid ""
+#~ "Indicate if a home directory should be removed by default for deleted "
+#~ "users.  Can be overridden on command line."
+#~ msgstr ""
+#~ "Indikera om en hemkatalog skall tas bort som standard för raderade "
+#~ "användare.  Kan åsidosättas på kommandoraden."
+
+#~ msgid "homedir_umask (integer)"
+#~ msgstr "homedir_umask (heltal)"
+
+#~ msgid ""
+#~ "Used by <citerefentry> <refentrytitle>sss_useradd</refentrytitle> "
+#~ "<manvolnum>8</manvolnum> </citerefentry> to specify the default "
+#~ "permissions on a newly created home directory."
+#~ msgstr ""
+#~ "Används av <citerefentry> <refentrytitle>sss_useradd</refentrytitle> "
+#~ "<manvolnum>8</manvolnum> </citerefentry> för att ange "
+#~ "standardrättigheterna på en nyskapad hemkatalog."
+
+#~ msgid "Default: 077"
+#~ msgstr "Standard: 077"
+
+#~ msgid "skel_dir (string)"
+#~ msgstr "skel_dir (sträng)"
+
+#~ msgid ""
+#~ "The skeleton directory, which contains files and directories to be copied "
+#~ "in the user's home directory, when the home directory is created by "
+#~ "<citerefentry> <refentrytitle>sss_useradd</refentrytitle> <manvolnum>8</"
+#~ "manvolnum> </citerefentry>"
+#~ msgstr ""
+#~ "Skelettkatalogen, som innehåller filer och kataloger som skall kopieras "
+#~ "till användarens hemkatalog, när hemkatalogen skapas av <citerefentry> "
+#~ "<refentrytitle>sss_useradd</refentrytitle> <manvolnum>8</manvolnum> </"
+#~ "citerefentry>"
+
+#~ msgid "Default: <filename>/etc/skel</filename>"
+#~ msgstr "Standard: <filename>/etc/skel</filename>"
+
+#~ msgid "mail_dir (string)"
+#~ msgstr "mail_dir (sträng)"
+
+#~ msgid ""
+#~ "The mail spool directory. This is needed to manipulate the mailbox when "
+#~ "its corresponding user account is modified or deleted.  If not specified, "
+#~ "a default value is used."
+#~ msgstr ""
+#~ "Brevlådekatalogen.  Detta behövs för att hantera brevlådan när det "
+#~ "motsvarande användarkontot ändras eller raderas.  Om inte angivet används "
+#~ "ett standardvärde."
+
+#~ msgid "Default: <filename>/var/mail</filename>"
+#~ msgstr "Standard: <filename>/var/mail</filename>"
+
+#~ msgid "userdel_cmd (string)"
+#~ msgstr "userdel_cmd (sträng)"
+
+#~ msgid ""
+#~ "The command that is run after a user is removed.  The command us passed "
+#~ "the username of the user being removed as the first and only parameter. "
+#~ "The return code of the command is not taken into account."
+#~ msgstr ""
+#~ "Kommandot att köra efter att en användare tagits bort.  Kommandot får "
+#~ "användarnamnet på användaren som tas bort som första och enda parameter.  "
+#~ "Ingen hänsyn tas till returkoden från kommandot."
+
+#~ msgid "Default: None, no command is run"
+#~ msgstr "Standard: Inget, inget kommando körs"
+
+#~ msgid "sss_useradd"
+#~ msgstr "sss_useradd"
+
+#~ msgid "create a new user"
+#~ msgstr "skapa en ny användare"
+
+#~ msgid ""
+#~ "<command>sss_useradd</command> <arg choice='opt'> <replaceable>options</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
+#~ "arg>"
+#~ msgstr ""
+#~ "<command>sss_useradd</command> <arg choice='opt'> <replaceable>flaggor</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>INLOGGNINGSNAMN</"
+#~ "replaceable></arg>"
+
+#~ msgid ""
+#~ "<command>sss_useradd</command> creates a new user account using the "
+#~ "values specified on the command line plus the default values from the "
+#~ "system."
+#~ msgstr ""
+#~ "<command>sss_useradd</command> skapar ett nytt användarkonto med värdena "
+#~ "som anges på kommandoraden plus standardvärden från systemet."
+
+#~ msgid ""
+#~ "Set the UID of the user to the value of <replaceable>UID</replaceable>.  "
+#~ "If not given, it is chosen automatically."
+#~ msgstr ""
+#~ "Sätt AID:t för användaren till värdet av <replaceable>AID</replaceable>.  "
+#~ "Om det inte anges väljs det automatiskt."
+
+#~ msgid ""
+#~ "The home directory of the user account.  The default is to append the "
+#~ "<replaceable>LOGIN</replaceable> name to <filename>/home</filename> and "
+#~ "use that as the home directory.  The base that is prepended before "
+#~ "<replaceable>LOGIN</replaceable> is tunable with <quote>user_defaults/"
+#~ "baseDirectory</quote> setting in sssd.conf."
+#~ msgstr ""
+#~ "Hemkatalogen för användarkontot.  Standardvärde är att lägga till namnet "
+#~ "<replaceable>INLOGGNINGSNAMN</replaceable> till <filename>/home</"
+#~ "filename> och använda det som hemkatalog.  Basen som läggs till före "
+#~ "<replaceable>INLOGGNINGSNAMN</replaceable> kan ställas in med "
+#~ "inställningen <quote>user_defaults/baseDirectory</quote> i sssd.conf."
+
+#~ msgid ""
+#~ "The user's login shell. The default is currently <filename>/bin/bash</"
+#~ "filename>.  The default can be changed with <quote>user_defaults/"
+#~ "defaultShell</quote> setting in sssd.conf."
+#~ msgstr ""
+#~ "Användarens inloggningsskal.  Standard är för närvarande <filename>/bin/"
+#~ "bash</filename>.  Standardvärdet kan ändras med inställningen "
+#~ "<quote>user_defaults/defaultShell</quote> i sssd.conf."
+
+#~ msgid ""
+#~ "<option>-G</option>,<option>--groups</option> <replaceable>GROUPS</"
+#~ "replaceable>"
+#~ msgstr ""
+#~ "<option>-G</option>,<option>--groups</option> <replaceable>GRUPPER</"
+#~ "replaceable>"
+
+#~ msgid "A list of existing groups this user is also a member of."
+#~ msgstr ""
+#~ "En lista av befintliga grupper denna användare också är en medlem i."
+
+#~ msgid "<option>-m</option>,<option>--create-home</option>"
+#~ msgstr "<option>-m</option>,<option>--create-home</option>"
+
+#~ msgid ""
+#~ "Create the user's home directory if it does not exist. The files and "
+#~ "directories contained in the skeleton directory (which can be defined "
+#~ "with the -k option or in the config file) will be copied to the home "
+#~ "directory."
+#~ msgstr ""
+#~ "Skapa användarens hemkatalog om den inte redan finns.  Filerna och "
+#~ "katalogerna som finns i skelettkatalogen (som kan definieras med flaggan -"
+#~ "k eller i konfigurationsfilen) kommer kopieras till hemkatalogen."
+
+#~ msgid "<option>-M</option>,<option>--no-create-home</option>"
+#~ msgstr "<option>-M</option>,<option>--no-create-home</option>"
+
+#~ msgid ""
+#~ "Do not create the user's home directory. Overrides configuration settings."
+#~ msgstr ""
+#~ "Skapa inte användarens hemkatalog.  Åsidosätter "
+#~ "konfigurationsinställningar."
+
+#~ msgid ""
+#~ "<option>-k</option>,<option>--skel</option> <replaceable>SKELDIR</"
+#~ "replaceable>"
+#~ msgstr ""
+#~ "<option>-k</option>,<option>--skel</option> <replaceable>SKELKAT</"
+#~ "replaceable>"
+
+#~ msgid ""
+#~ "The skeleton directory, which contains files and directories to be copied "
+#~ "in the user's home directory, when the home directory is created by "
+#~ "<command>sss_useradd</command>."
+#~ msgstr ""
+#~ "Skelettkatalogen, som innehåller filer och kataloger som skall kopieras "
+#~ "till användarens hemkatalog, när hemkatalogen skapas av "
+#~ "<command>sss_useradd</command>."
+
+#~ msgid ""
+#~ "Special files (block devices, character devices, named pipes and unix "
+#~ "sockets) will not be copied."
+#~ msgstr ""
+#~ "Specialfiler (blockenheter, teckenenheter, namngivna rör och unix-uttag) "
+#~ "kommer inte kopieras."
+
+#~ msgid ""
+#~ "This option is only valid if the <option>-m</option> (or <option>--create-"
+#~ "home</option>) option is specified, or creation of home directories is "
+#~ "set to TRUE in the configuration."
+#~ msgstr ""
+#~ "Denna flagga är endast giltig om flaggan <option>-m</option> (eller "
+#~ "<option>--create-home</option>) anges, eller att skapandet av "
+#~ "hemkataloger är satt till TRUE i konfigurationen."
+
+#~ msgid ""
+#~ "<option>-Z</option>,<option>--selinux-user</option> "
+#~ "<replaceable>SELINUX_USER</replaceable>"
+#~ msgstr ""
+#~ "<option>-Z</option>,<option>--selinux-user</option> <replaceable>SELINUX-"
+#~ "ANVÄNDARE</replaceable>"
+
+#~ msgid ""
+#~ "The SELinux user for the user's login. If not specified, the system "
+#~ "default will be used."
+#~ msgstr ""
+#~ "SELinux-användaren för användarens inloggning.  Om det inte anges används "
+#~ "systemstandarden."
+
+#~ msgid "sss_groupadd"
+#~ msgstr "sss_groupadd"
+
+#~ msgid "create a new group"
+#~ msgstr "skapa en ny grupp"
+
+#~ msgid ""
+#~ "<command>sss_groupadd</command> <arg choice='opt'> <replaceable>options</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
+#~ "arg>"
+#~ msgstr ""
+#~ "<command>sss_groupadd</command> <arg choice='opt'> <replaceable>flaggor</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>GRUPP</replaceable></"
+#~ "arg>"
+
+#~ msgid ""
+#~ "<command>sss_groupadd</command> creates a new group. These groups are "
+#~ "compatible with POSIX groups, with the additional feature that they can "
+#~ "contain other groups as members."
+#~ msgstr ""
+#~ "<command>sss_groupadd</command> skapar en ny grupp.  Dessa grupper är "
+#~ "kompatibla med POSIX-grupper, med den ytterligare funktionen att de kan "
+#~ "innehålla andra grupper som medlemmar."
+
+#~ msgid ""
+#~ "Set the GID of the group to the value of <replaceable>GID</replaceable>.  "
+#~ "If not given, it is chosen automatically."
+#~ msgstr ""
+#~ "Sätt GID:t för gruppen till värdet av <replaceable>GID</replaceable>.  Om "
+#~ "det inte anges väljs det automatiskt."
+
+#~ msgid "sss_userdel"
+#~ msgstr "sss_userdel"
+
+#~ msgid "delete a user account"
+#~ msgstr "ta bort ett användarkonto"
+
+#~ msgid ""
+#~ "<command>sss_userdel</command> <arg choice='opt'> <replaceable>options</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
+#~ "arg>"
+#~ msgstr ""
+#~ "<command>sss_userdel</command> <arg choice='opt'> <replaceable>flaggor</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>INLOGGNINGSNAMN</"
+#~ "replaceable></arg>"
+
+#~ msgid ""
+#~ "<command>sss_userdel</command> deletes a user identified by login name "
+#~ "<replaceable>LOGIN</replaceable> from the system."
+#~ msgstr ""
+#~ "<command>sss_userdel</command> tar bort en användare identifierad av "
+#~ "inloggningsnamnet <replaceable>INLOGGNINGSNAMN</replaceable> från "
+#~ "systemet."
+
+#~ msgid "<option>-r</option>,<option>--remove</option>"
+#~ msgstr "<option>-r</option>,<option>--remove</option>"
+
+#~ msgid ""
+#~ "Files in the user's home directory will be removed along with the home "
+#~ "directory itself and the user's mail spool. Overrides the configuration."
+#~ msgstr ""
+#~ "Filer i användarens hemkatalog kommer tas bort tillsammans med själva "
+#~ "hemkatalogen och användarens brevlåda.  Åsidosätter konfigurationen."
+
+#~ msgid "<option>-R</option>,<option>--no-remove</option>"
+#~ msgstr "<option>-R</option>,<option>--no-remove</option>"
+
+#~ msgid ""
+#~ "Files in the user's home directory will NOT be removed along with the "
+#~ "home directory itself and the user's mail spool. Overrides the "
+#~ "configuration."
+#~ msgstr ""
+#~ "Filer i användarens hemkatalog kommer INTE tas bort tillsammans med "
+#~ "själva hemkatalogen och användarens brevlåda.  Åsidosätter "
+#~ "konfigurationen."
+
+#~ msgid "<option>-f</option>,<option>--force</option>"
+#~ msgstr "<option>-f</option>,<option>--force</option>"
+
+#~ msgid ""
+#~ "This option forces <command>sss_userdel</command> to remove the user's "
+#~ "home directory and mail spool, even if they are not owned by the "
+#~ "specified user."
+#~ msgstr ""
+#~ "Denna flagga tvingar <command>sss_userdel</command> att ta bort "
+#~ "användarens hemkatalog och brevlåda, även om de inte ägs av den angivna "
+#~ "användaren."
+
+#~ msgid "<option>-k</option>,<option>--kick</option>"
+#~ msgstr "<option>-k</option>,<option>--kick</option>"
+
+#~ msgid "Before actually deleting the user, terminate all his processes."
+#~ msgstr "Före användaren faktiskt tas bort, döda alla hans processer."
+
+#~ msgid "sss_groupdel"
+#~ msgstr "sss_groupdel"
+
+#~ msgid "delete a group"
+#~ msgstr "ta bort en grupp"
+
+#~ msgid ""
+#~ "<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
+#~ "arg>"
+#~ msgstr ""
+#~ "<command>sss_groupdel</command> <arg choice='opt'> <replaceable>flaggor</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>GRUPP</replaceable></"
+#~ "arg>"
+
+#~ msgid ""
+#~ "<command>sss_groupdel</command> deletes a group identified by its name "
+#~ "<replaceable>GROUP</replaceable> from the system."
+#~ msgstr ""
+#~ "<command>sss_groupdel</command> tar bort en grupp identifierad av sitt "
+#~ "namn <replaceable>GRUPP</replaceable> från systemet."
+
+#~ msgid "sss_groupshow"
+#~ msgstr "sss_groupshow"
+
+#~ msgid "print properties of a group"
+#~ msgstr "skriv ut egenskaperna hos en grupp"
+
+#~ msgid ""
+#~ "<command>sss_groupshow</command> <arg choice='opt'> <replaceable>options</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
+#~ "arg>"
+#~ msgstr ""
+#~ "<command>sss_groupshow</command> <arg choice='opt'> <replaceable>flaggor</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>GRUPP</replaceable></"
+#~ "arg>"
+
+#~ msgid ""
+#~ "<command>sss_groupshow</command> displays information about a group "
+#~ "identified by its name <replaceable>GROUP</replaceable>. The information "
+#~ "includes the group ID number, members of the group and the parent group."
+#~ msgstr ""
+#~ "<command>sss_groupshow</command> visar information om en grupp "
+#~ "identifierad av sitt namn <replaceable>GRUPP</replaceable>.  "
+#~ "Informationen inkluderar grupp-ID-numret, medlemmar i gruppen och "
+#~ "föräldragruppen."
+
+#~ msgid "<option>-R</option>,<option>--recursive</option>"
+#~ msgstr "<option>-R</option>,<option>--recursive</option>"
+
+#~ msgid ""
+#~ "Also print indirect group members in a tree-like hierarchy.  Note that "
+#~ "this also affects printing parent groups - without <option>R</option>, "
+#~ "only the direct parent will be printed."
+#~ msgstr ""
+#~ "Skriv även ut indirekta gruppmedlemmar i en trädliknande hierarki.  "
+#~ "Observera att detta även påverkar utskriften av föräldragrupper – utan "
+#~ "<option>R</option> kommer endast den direkta föräldern skrivas ut."
+
+#~ msgid "sss_usermod"
+#~ msgstr "sss_usermod"
+
+#~ msgid "modify a user account"
+#~ msgstr "ändra ett användarkonto"
+
+#~ msgid ""
+#~ "<command>sss_usermod</command> <arg choice='opt'> <replaceable>options</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
+#~ "arg>"
+#~ msgstr ""
+#~ "<command>sss_usermod</command> <arg choice='opt'> <replaceable>flaggor</"
+#~ "replaceable> </arg> <arg choice='plain'><replaceable>INLOGGNINGSNAMN</"
+#~ "replaceable></arg>"
+
+#~ msgid ""
+#~ "<command>sss_usermod</command> modifies the account specified by "
+#~ "<replaceable>LOGIN</replaceable> to reflect the changes that are "
+#~ "specified on the command line."
+#~ msgstr ""
+#~ "<command>sss_usermod</command> ändrar kontot som anges av "
+#~ "<replaceable>INLOGGNINGSNAMN</replaceable> till att avspegla ändringarna "
+#~ "som anges på kommandoraden."
+
+#~ msgid "The home directory of the user account."
+#~ msgstr "Användarkontots hemkatalog."
+
+#~ msgid "The user's login shell."
+#~ msgstr "Användarens inloggningsskal."
+
+#~ msgid ""
+#~ "Append this user to groups specified by the <replaceable>GROUPS</"
+#~ "replaceable> parameter.  The <replaceable>GROUPS</replaceable> parameter "
+#~ "is a comma separated list of group names."
+#~ msgstr ""
+#~ "Lägg till denna användare till grupperna som anges av parametern "
+#~ "<replaceable>GRUPPER</replaceable>.  Parametern <replaceable>GRUPPER</"
+#~ "replaceable> är en kommaseparerad lista av gruppnamn."
+
+#~ msgid ""
+#~ "Remove this user from groups specified by the <replaceable>GROUPS</"
+#~ "replaceable> parameter."
+#~ msgstr ""
+#~ "Ta bort denna användare från grupperna som anges av parametern "
+#~ "<replaceable>GRUPPER</replaceable>."
+
+#~ msgid "<option>-l</option>,<option>--lock</option>"
+#~ msgstr "<option>-l</option>,<option>--lock</option>"
+
+#~ msgid "Lock the user account. The user won't be able to log in."
+#~ msgstr "Lås användarkontot.  Användare kommer inte kunna logga in."
+
+#~ msgid "<option>-u</option>,<option>--unlock</option>"
+#~ msgstr "<option>-u</option>,<option>--unlock</option>"
+
+#~ msgid "Unlock the user account."
+#~ msgstr "Lås upp användarkontot."
+
+#~ msgid "The SELinux user for the user's login."
+#~ msgstr "SELinux-användaren för användarens inloggning."
+
+#~ msgid "<option>--addattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
+#~ msgstr ""
+#~ "<option>--addattr</option> <replaceable>ATTR_NAMN_VÄRDE</replaceable>"
+
+#~ msgid "Add an attribute/value pair. The format is attrname=value."
+#~ msgstr "Lägg till ett attribut/värde-par. Formatet är attrnamn=värde."
+
+#~ msgid "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
+#~ msgstr ""
+#~ "<option>--setattr</option> <replaceable>ATTR_NAMN_VÄRDE</replaceable>"
+
+#~ msgid ""
+#~ "Set an attribute to a name/value pair. The format is attrname=value. For "
+#~ "multi-valued attributes, the command replaces the values already present"
+#~ msgstr ""
+#~ "Sätt ett attribut till ett namn/värde-par. Formatet är attrnamn=värde. "
+#~ "För flervärda attribut ersätter kommandot de värden som redan finns"
+
+#~ msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
+#~ msgstr ""
+#~ "<option>--delattr</option> <replaceable>ATTR_NAMN_VÄRDE</replaceable>"
+
+#~ msgid "Delete an attribute/value pair. The format is attrname=value."
+#~ msgstr "Ta bort ett attribut/värde-par. Formatet är attrnamn=värde."
 
 #~ msgid "Default: /etc/krb5.keytab"
 #~ msgstr "Standard: /etc/krb5.keytab"

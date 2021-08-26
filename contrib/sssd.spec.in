@@ -203,10 +203,7 @@ Requires: libsss_certmap = %{version}-%{release}
 Recommends: sssd-dbus
 
 %description tools
-Provides userspace tools for manipulating users, groups, and nested groups in
-SSSD when using id_provider = local in /etc/sssd/sssd.conf.
-
-Also provides several other administrative tools:
+Provides several administrative tools:
     * sss_debuglevel to change the debug level on the fly
     * sss_seed which pre-creates a user entry for use in kickstarts
     * sss_obfuscate for generating an obfuscated LDAP password
@@ -228,11 +225,8 @@ Requires: sssd-common = %{version}-%{release}
 %{?python_provide:%python_provide python3-sss}
 
 %description -n python3-sss
-Provides python3 module for manipulating users, groups, and nested groups in
-SSSD when using id_provider = local in /etc/sssd/sssd.conf.
-
-Also provides several other useful python3 bindings:
-    * function for retrieving list of groups user belongs to.
+Provides python3 bindings:
+    * function for retrieving list of groups user belongs to
     * class for obfuscation of passwords
 
 %package -n python3-sss-murmur

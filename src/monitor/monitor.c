@@ -649,13 +649,6 @@ static int service_signal(struct mt_svc *svc,
     struct sbus_connection *conn;
     struct tevent_req *req;
 
-    if (svc->provider
-            && (local_provider_is_built()
-                && strcasecmp(svc->provider, "local") == 0)) {
-        /* The local provider requires no signaling */
-        return EOK;
-    }
-
     conn = svc->mt_ctx->sbus_conn;
 
     if (!svc->conn) {
@@ -762,32 +755,6 @@ static int check_domain_ranges(struct sss_domain_info *domains)
             other = get_next_domain(other, 0);
         }
         dom = get_next_domain(dom, 0);
-    }
-
-    return EOK;
-}
-
-static int check_local_domain_unique(struct sss_domain_info *domains)
-{
-    uint8_t count = 0;
-
-    struct sss_domain_info *dom = domains;
-
-    while (dom) {
-        if (local_provider_is_built()
-                && strcasecmp(dom->provider, "local") == 0) {
-            count++;
-        }
-
-        if (count > 1) {
-            break;
-        }
-
-        dom = get_next_domain(dom, 0);
-    }
-
-    if (count > 1) {
-        return EINVAL;
     }
 
     return EOK;
@@ -1000,12 +967,6 @@ static int get_monitor_config(struct mt_ctx *ctx)
     ret = confdb_get_domains(ctx->cdb, &ctx->domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured.\n");
-        return ret;
-    }
-
-    ret = check_local_domain_unique(ctx->domains);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "More than one local domain configured.\n");
         return ret;
     }
 
@@ -1331,17 +1292,6 @@ static int add_new_provider(struct mt_ctx *ctx,
     }
     svc->restarts = restarts;
 
-    if (local_provider_is_built()
-            && strcasecmp(svc->provider, "local") == 0) {
-        /* The LOCAL provider requires no back-end currently
-         * We'll add it to the service list, but we don't need
-         * to poll it.
-         */
-        svc->svc_started = true;
-        DLIST_ADD(ctx->svc_list, svc);
-        return ENOENT;
-    }
-
     ret = start_service(svc);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,"Failed to start service '%s'\n", svc->name);
@@ -1422,11 +1372,6 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
              * unregister the service from the monitor as
              * it may lead to a double-free here. */
             talloc_set_destructor(svc->conn, NULL);
-        }
-
-        if (svc->pid == 0) {
-            /* The local provider has no PID */
-            continue;
         }
 
         killed = false;
@@ -2143,31 +2088,9 @@ static void monitor_sbus_connected(struct tevent_req *req)
          *  providers are up and running or when the timeout
          *  expires) */
         ret = add_services_startup_timeout(ctx);
-        if (ret != EOK) {
-            goto done;
-        }
-    } else if (ctx->services != NULL) {
-        int i;
-
-        ctx->services_started = true;
-
-        /* No providers start services immediately
-         * Normally this means only LOCAL is configured */
-        for (i = 0; ctx->services[i]; i++) {
-            ret = add_new_service(ctx, ctx->services[i], 0);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-    }
-
-    /* When the only provider set up is the local one (num_providers == 0) and
-     * there's no responder explicitly set up it means that we should notify
-     * systemd that SSSD is ready right now as any other provider/responder
-     * would be able to do so and the SSSD would end up hitting a systemd
-     * timeout! */
-    if (num_providers == 0 && ctx->services == NULL) {
-        ret = notify_startup();
+    } else {
+        DEBUG(SSSDBG_FATAL_FAILURE, "No providers configured.");
+        ret = ERR_INVALID_CONFIG;
     }
 
 done:

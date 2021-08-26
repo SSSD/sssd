@@ -230,11 +230,8 @@ def files_multiple_sources_nocreate(request):
 def proxy_to_files_domain_only(request):
     conf = unindent("""\
         [sssd]
-        domains             = proxy, local
+        domains             = proxy
         services            = nss
-
-        [domain/local]
-        id_provider = local
 
         [domain/proxy]
         id_provider = proxy
@@ -263,12 +260,8 @@ def no_sssd_domain(request):
 def no_files_domain(request):
     conf = unindent("""\
         [sssd]
-        domains             = local
         services            = nss
         enable_files_domain = true
-
-        [domain/local]
-        id_provider = local
 
         [domain/disabled.files]
         id_provider = files
@@ -283,12 +276,15 @@ def no_files_domain(request):
 def disabled_files_domain(request):
     conf = unindent("""\
         [sssd]
-        domains             = local
+        domains             = proxy
         services            = nss
         enable_files_domain = false
 
-        [domain/local]
-        id_provider = local
+        [domain/proxy]
+        id_provider = proxy
+        proxy_lib_name = files
+        auth_provider = none
+        resolver_provider = none
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -1146,17 +1142,6 @@ def test_proxy_to_files_domain_only(add_user_with_canary,
     """
     Test that implicit_files domain is not started together with proxy to files
     """
-    local_user1 = dict(name='user1', passwd='*', uid=10009, gid=10009,
-                       gecos='user1', dir='/home/user1', shell='/bin/bash')
-
-    # Add a user with a different UID than the one in files
-    subprocess.check_call(
-        ["sss_useradd", "-u", "10009", "-M", USER1["name"]])
-
-    res, user = call_sssd_getpwnam(USER1["name"])
-    assert res == NssReturnCode.SUCCESS
-    assert user == local_user1
-
     res, _ = call_sssd_getpwnam("{0}@implicit_files".format(USER1["name"]))
     assert res == NssReturnCode.NOTFOUND
 
@@ -1164,14 +1149,7 @@ def test_proxy_to_files_domain_only(add_user_with_canary,
 def test_no_files_domain(add_user_with_canary, no_files_domain):
     """
     Test that if no files domain is configured, sssd will add the implicit one
-    before any explicitly configured domains
     """
-    # Add a user with a different UID than the one in files
-    subprocess.check_call(
-        ["sss_useradd", "-u", "10009", "-M", USER1["name"]])
-
-    # Even though the local domain is the only one configured,
-    # files will be resolved first
     res, user = sssd_getpwnam_sync(USER1["name"])
     assert res == NssReturnCode.SUCCESS
     assert user == USER1
@@ -1179,8 +1157,7 @@ def test_no_files_domain(add_user_with_canary, no_files_domain):
 
 def test_disable_files_domain(add_user_with_canary, disabled_files_domain):
     """
-    Test that if no files domain is configured, sssd will add the implicit one
-    before any explicitly configured domains
+    Test disabled files domain
     """
     # The local user will not be resolvable through nss_sss now
     res, user = sssd_getpwnam_sync(USER1["name"])

@@ -45,7 +45,6 @@
 #define CONFDB_DEFAULT_CONFIG_DIR_NAME "conf.d"
 #define CONFDB_DEFAULT_CONFIG_DIR SSSD_CONF_DIR"/"CONFDB_DEFAULT_CONFIG_DIR_NAME
 #define SSSD_MIN_ID 1
-#define SSSD_LOCAL_MINID 1000
 #define CONFDB_DEFAULT_SHELL_FALLBACK "/bin/sh"
 #define CONFDB_FALLBACK_CONFIG \
     "[sssd]\n" \
@@ -254,16 +253,6 @@
 #define CONFDB_DOMAIN_TYPE_APP "application"
 #define CONFDB_DOMAIN_INHERIT_FROM "inherit_from"
 #define CONFDB_DOMAIN_FALLBACK_TO_NSS "fallback_to_nss"
-
-/* Local Provider */
-#define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
-#define CONFDB_LOCAL_DEFAULT_BASEDIR "base_directory"
-#define CONFDB_LOCAL_CREATE_HOMEDIR  "create_homedir"
-#define CONFDB_LOCAL_REMOVE_HOMEDIR  "remove_homedir"
-#define CONFDB_LOCAL_UMASK           "homedir_umask"
-#define CONFDB_LOCAL_SKEL_DIR        "skel_dir"
-#define CONFDB_LOCAL_MAIL_DIR        "mail_dir"
-#define CONFDB_LOCAL_USERDEL_CMD     "userdel_cmd"
 
 /* Proxy Provider */
 #define CONFDB_PROXY_LIBNAME "proxy_lib_name"

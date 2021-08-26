@@ -72,19 +72,14 @@ def create_sssd_fixture(request):
 
 
 @pytest.fixture
-def local_domain_only(request):
+def files_domain_only(request):
     conf = unindent("""\
         [sssd]
-        domains = LOCAL
         services = nss, pac
+        enable_files_domain = true
 
         [nss]
         memcache_timeout = 0
-
-        [domain/LOCAL]
-        id_provider = local
-        min_id = 10000
-        max_id = 20000
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -107,7 +102,7 @@ def timeout_handler(signum, frame):
 
 @pytest.mark.skipif(not have_sssd_responder("sssd_pac"),
                     reason="No PAC responder, skipping")
-def test_multithreaded_pac_client(local_domain_only, sssd_pac_test_client):
+def test_multithreaded_pac_client(files_domain_only, sssd_pac_test_client):
     """
     Test for ticket
     https://github.com/SSSD/sssd/issues/4544

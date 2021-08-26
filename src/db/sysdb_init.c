@@ -158,24 +158,17 @@ int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
                       char **_ts_file)
 {
     char *ldb_file;
-    char *ts_file = NULL;
+    char *ts_file;
 
-    /* special case for the local domain */
-    if (local_provider_is_built()
-            && strcasecmp(provider, "local") == 0) {
-        ldb_file = talloc_asprintf(mem_ctx, "%s/"LOCAL_SYSDB_FILE,
-                                   base_path);
-    } else {
-        ldb_file = talloc_asprintf(mem_ctx, "%s/"CACHE_SYSDB_FILE,
-                                   base_path, name);
-        ts_file = talloc_asprintf(mem_ctx, "%s/"CACHE_TIMESTAMPS_FILE,
-                                  base_path, name);
-        if (ts_file == NULL) {
-            talloc_free(ldb_file);
-            return ENOMEM;
-        }
-    }
+    ldb_file = talloc_asprintf(mem_ctx, "%s/"CACHE_SYSDB_FILE,
+                               base_path, name);
     if (!ldb_file) {
+        return ENOMEM;
+    }
+    ts_file = talloc_asprintf(mem_ctx, "%s/"CACHE_TIMESTAMPS_FILE,
+                              base_path, name);
+    if (!ts_file) {
+        talloc_free(ldb_file);
         return ENOMEM;
     }
 

@@ -413,9 +413,6 @@ bool is_socket_activated(void);
 /* Returns true if the responder has been dbus-activated */
 bool is_dbus_activated(void);
 
-/* Returns true if SSSD was built with local provider support */
-bool local_provider_is_built(void);
-
 /**
  * @brief Add two list of strings
  *
@@ -539,13 +536,6 @@ bool is_valid_domain_name(const char *domain);
 int sss_rand(void);
 
 /* from nscd.c */
-enum nscd_db {
-    NSCD_DB_PASSWD,
-    NSCD_DB_GROUP
-};
-
-int flush_nscd_cache(enum nscd_db flush_db);
-
 errno_t sss_nscd_parse_conf(const char *conf_path);
 
 /* from sss_tc_utf8.c */

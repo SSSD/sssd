@@ -1452,12 +1452,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
-        /* skip local domain, it doesn't have a backend */
-        if (local_provider_is_built()
-                && strcasecmp(dom->provider, "local") == 0) {
-            continue;
-        }
-
         ret = sss_dp_init(rctx, conn_name, svc_name, dom);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,

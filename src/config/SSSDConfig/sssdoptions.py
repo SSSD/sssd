@@ -565,15 +565,6 @@ class SSSDOptions(object):
         'simple_deny_groups': _('Comma separated list of groups that are explicitly denied access. This applies only '
                                 'to groups within this SSSD domain. Local groups are not evaluated.'),
 
-        # [provider/local/id]
-        'base_directory': _('Base for home directories'),
-        'create_homedir': _('Indicate if a home directory should be created for new users.'),
-        'remove_homedir': _('Indicate if a home directory should be removed for deleted users.'),
-        'homedir_umask': _('Specify the default permissions on a newly created home directory.'),
-        'skel_dir': _('The skeleton directory.'),
-        'mail_dir': _('The mail spool directory.'),
-        'userdel_cmd': _('The command that is run after a user is removed.'),
-
         # [provider/proxy]
         'proxy_max_children': _('The number of preforked proxy children.'),
 

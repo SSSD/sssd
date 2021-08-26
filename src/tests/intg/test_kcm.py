@@ -134,11 +134,11 @@ def create_sssd_kcm_fixture(sock_path, request):
 def create_sssd_conf(kcm_path, ccache_storage, max_secrets=MAX_SECRETS):
     return unindent("""\
         [sssd]
-        domains = local
+        domains = files
         services = nss
 
-        [domain/local]
-        id_provider = local
+        [domain/files]
+        id_provider = files
 
         [kcm]
         socket_path = {kcm_path}
@@ -192,7 +192,7 @@ def common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf):
 @pytest.fixture
 def setup_for_kcm_mem(request, kdc_instance):
     """
-    Just set up the local provider for tests and enable the KCM
+    Just set up the files provider for tests and enable the KCM
     responder
     """
     kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
@@ -211,7 +211,7 @@ def setup_secrets(request):
 @pytest.fixture
 def setup_for_kcm_sec(request, kdc_instance):
     """
-    Just set up the local provider for tests and enable the KCM
+    Just set up the files provider for tests and enable the KCM
     responder
     """
     sec_resp_path = os.path.join(config.LIBEXEC_PATH, "sssd", "sssd_secrets")

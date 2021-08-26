@@ -1093,7 +1093,7 @@ START_TEST(test_user_group_by_name)
         return;
     }
 
-    /* setup_sysdb_tests creates local provider and we need to handle
+    /* setup_sysdb_tests creates files provider and we need to handle
      * ldap provider differently with auto_private_groups.
      */
     test_ctx->domain->provider = discard_const_p(char, "ldap");
@@ -1832,25 +1832,6 @@ START_TEST (test_sysdb_remove_nonexistent_group)
     talloc_free(test_ctx);
 }
 END_TEST
-
-#ifdef BUILD_LOCAL_PROVIDER
-START_TEST (test_sysdb_get_new_id)
-{
-    struct sysdb_test_ctx *test_ctx;
-    int ret;
-    uint32_t id;
-
-    /* Setup */
-    ret = setup_sysdb_tests(&test_ctx);
-    sss_ck_fail_if_msg(ret != EOK, "Cannot setup sysdb tests\n");
-
-    test_ctx->domain->provider = discard_const_p(char, "local");
-    ret = sysdb_get_new_id(test_ctx->domain, &id);
-    sss_ck_fail_if_msg(ret != EOK, "Cannot get new ID\n");
-    sss_ck_fail_if_msg(id != test_ctx->domain->id_min);
-}
-END_TEST
-#endif
 
 START_TEST (test_sysdb_store_custom)
 {
@@ -7808,11 +7789,6 @@ Suite *create_sysdb_suite(void)
     Suite *s = suite_create("sysdb");
 
     TCase *tc_sysdb = tcase_create("SYSDB Tests");
-
-#ifdef BUILD_LOCAL_PROVIDER
-    /* test getting next id works */
-    tcase_add_test(tc_sysdb, test_sysdb_get_new_id);
-#endif
 
     /* Add a user with an automatic ID */
     tcase_add_test(tc_sysdb, test_sysdb_user_new_id);
