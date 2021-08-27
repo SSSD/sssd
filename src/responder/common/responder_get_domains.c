@@ -795,8 +795,11 @@ static void sss_dp_get_account_domain_done(struct tevent_req *subreq)
     }
 
     if (state->dp_error != DP_ERR_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Data Provider Error: %u, %u\n",
-              (unsigned int)state->dp_error, (unsigned int)state->error);
+        DEBUG(state->error == ERR_GET_ACCT_DOM_NOT_SUPPORTED ? SSSDBG_TRACE_INTERNAL
+                                                             : SSSDBG_IMPORTANT_INFO,
+              "Data Provider Error: %u, %u [%s]\n",
+              (unsigned int)state->dp_error, (unsigned int)state->error,
+              sss_strerror(state->error));
         tevent_req_error(req, state->error ? state->error : EIO);
         return;
     }
