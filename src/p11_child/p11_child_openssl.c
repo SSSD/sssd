@@ -1716,9 +1716,14 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                     goto done;
                 }
                 DEBUG(SSSDBG_TRACE_ALL,
-                      "Description [%s] Manufacturer [%s] flags [%lu] "
+                      "Description [%.*s] Manufacturer [%.*s] flags [%lu] "
                       "removable [%s] token present [%s].\n",
-                      info.slotDescription, info.manufacturerID, info.flags,
+                      (int) p11_kit_space_strlen(info.slotDescription,
+                                                 sizeof(info.slotDescription)),
+                      info.slotDescription,
+                      (int) p11_kit_space_strlen(info.manufacturerID,
+                                                 sizeof(info.manufacturerID)),
+                      info.manufacturerID, info.flags,
                       (info.flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
                       (info.flags & CKF_TOKEN_PRESENT) ? "true": "false");
 
@@ -1741,7 +1746,9 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                         ret = EIO;
                         goto done;
                     }
-                    DEBUG(SSSDBG_TRACE_ALL, "Token label [%s].\n",
+                    DEBUG(SSSDBG_TRACE_ALL, "Token label [%.*s].\n",
+                          (int) p11_kit_space_strlen(token_info.label,
+                                                     sizeof(token_info.label)),
                           token_info.label);
 
                     if (p11_kit_uri_match_token_info(uri, &token_info) != 1) {
