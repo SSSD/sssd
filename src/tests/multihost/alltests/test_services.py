@@ -8,9 +8,15 @@
 from __future__ import print_function
 import pytest
 import paramiko
+import subprocess
 import re
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.utils import SSHClient
+
+
+def exceute_cmd(multihost, command):
+    cmd = multihost.client[0].run_command(command)
+    return cmd
 
 
 @pytest.mark.usefixtures('default_sssd')
@@ -153,3 +159,40 @@ class TestServices(object):
         group_restore = "cp -vf /etc/group_bkp /etc/group"
         multihost.client[0].run_command(group_restore, raiseonerr=False)
         assert status == "PASS"
+
+    @pytest.mark.tier1_2
+    def test_0006_bz1909755(self, multihost, backupsssdconf):
+        """
+        :title: Suppress log message "[sssd] [service_signal_done]
+         (0x0010): Unable to signal service [2]:
+         No such file or directory" during logrote
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1909755
+        :customerscenario: true
+        :id: a4f5d404-070b-11ec-8055-845cf3eff344
+        :steps:
+          1. Find main sssd process id
+          2. Send SIGHUP
+          3. There should not be any logs for
+            Unable to signal service .* No such
+            file or directory
+            modifyTimestamp in the filter
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
+        sssd_params = {'domains': 'LOCAL'}
+        tools.sssd_conf('sssd', sssd_params)
+        domain_section = 'domain/LOCAL'
+        domain_params = {'id_provider': 'files'}
+        tools.sssd_conf(domain_section, domain_params)
+        multihost.client[0].service_sssd('restart')
+        proces_id = int(exceute_cmd(multihost,
+                                    "pidof sssd").stdout_text.split()[0])
+        exceute_cmd(multihost, f"kill -1 {proces_id}")
+        with pytest.raises(subprocess.CalledProcessError):
+            exceute_cmd(multihost, 'grep -ri "Unable '
+                                   'to signal service .* No '
+                                   'such file or directory" '
+                                   '/var/log/sssd')
