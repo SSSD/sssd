@@ -150,7 +150,6 @@ WITH_PYTHON3_BINDINGS
 WITH_CIFS_PLUGIN_PATH
 WITH_WINBIND_PLUGIN_PATH
 WITH_SELINUX
-WITH_NSCD
 WITH_IPA_GETKEYTAB
 WITH_SEMANAGE
 WITH_AD_GPO_DEFAULT
@@ -171,7 +170,6 @@ WITH_NFS
 WITH_NFS_LIB_PATH
 WITH_SSSD_USER
 SSSD_RUNSTATEDIR
-WITH_SECRETS
 WITH_SECRETS_DB_PATH
 WITH_KCM
 
@@ -214,16 +212,11 @@ m4_include([src/external/service.m4])
 m4_include([src/external/test_ca.m4])
 m4_include([src/external/ax_valgrind_check.m4])
 
-AS_IF([test x$with_secrets = xyes], [
-    m4_include([src/external/libhttp_parser.m4])
-    m4_include([src/external/libcurl.m4])
-])
-
 AS_IF([test x$with_kcm = xyes], [
     m4_include([src/external/libuuid.m4])
 ])
 
-AS_IF([test x$with_kcm = xyes -o x$with_secrets = xyes], [
+AS_IF([test x$with_kcm = xyes], [
     BUILD_WITH_LIBSECRET=1
     AC_DEFINE_UNQUOTED(BUILD_WITH_LIBSECRET, 1, [libsecret will be built])
     m4_include([src/external/libjansson.m4])
@@ -231,11 +224,6 @@ AS_IF([test x$with_kcm = xyes -o x$with_secrets = xyes], [
 
 AM_CONDITIONAL([BUILD_WITH_LIBSECRET],
                [test x"$BUILD_WITH_LIBSECRET" != "x"])
-
-# This variable is defined by external/libcurl.m4, but conditionals
-# must be always evaluated
-AM_CONDITIONAL([BUILD_WITH_LIBCURL],
-               [test x"$have_curlopt_unix_sockpath" = xyes])
 
 m4_include([src/external/libunistring.m4])
 UNICODE_LIBS=$UNISTRING_LIBS

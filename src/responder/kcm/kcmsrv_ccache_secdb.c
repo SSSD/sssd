@@ -505,7 +505,7 @@ static errno_t ccdb_secdb_init(struct kcm_ccdb *db,
     errno_t ret;
     struct sss_sec_hive_config **kcm_section_quota;
     struct sss_sec_quota_opt dfl_kcm_nest_level = {
-        .opt_name = CONFDB_SEC_CONTAINERS_NEST_LEVEL,
+        .opt_name = CONFDB_KCM_CONTAINERS_NEST_LEVEL,
         .default_value = DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
     };
     struct sss_sec_quota_opt dfl_kcm_max_secrets = {

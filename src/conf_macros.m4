@@ -831,24 +831,6 @@ AC_DEFUN([SSSD_RUNSTATEDIR],
     fi
   ])
 
-AC_DEFUN([WITH_SECRETS],
-  [ AC_ARG_WITH([secrets],
-                [AC_HELP_STRING([--with-secrets],
-                                [Whether to build with secrets support [no]
-                                 Please note this feature is deprecated and will
-                                 be removed in one of the next versions of SSSD.]
-                               )
-                ],
-                [with_secrets=$withval],
-                with_secrets=no
-               )
-
-    if test x"$with_secrets" = xyes; then
-        AC_DEFINE(BUILD_SECRETS, 1, [whether to build with SECRETS support])
-    fi
-    AM_CONDITIONAL([BUILD_SECRETS], [test x"$with_secrets" = xyes])
-  ])
-
 AC_DEFUN([WITH_KCM],
   [ AC_ARG_WITH([kcm],
                 [AC_HELP_STRING([--with-kcm],

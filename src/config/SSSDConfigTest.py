@@ -1356,7 +1356,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'ssh',
             'pac',
             'ifp',
-            'secrets',
             'session_recording']
         for section in control_list:
             self.assertTrue(sssdconfig.has_section(section),
@@ -1451,7 +1450,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'ssh',
             'pac',
             'ifp',
-            'secrets',
             'session_recording']
         service_list = sssdconfig.list_services()
         for service in control_list:

@@ -1,8 +1,7 @@
 /*
    SSSD
 
-   KCM Server - ccache JSON (un)marshalling for storing ccaches in
-                sssd-secrets
+   KCM Server - ccache JSON (un)marshalling for storing ccaches
 
    Copyright (C) Red Hat, 2017
 

@@ -193,9 +193,6 @@ polkit_rulesdir = $(polkitdir)
 dist_polkit_rules_DATA = contrib/sssd-pcsc.rules
 endif
 endif
-if BUILD_SECRETS
-sssdlibexec_PROGRAMS += sssd_secrets
-endif
 if BUILD_KCM
 sssdlibexec_PROGRAMS += sssd_kcm
 dist_sssdkcmdata_DATA = contrib/kcm_default_ccache
@@ -537,7 +534,6 @@ AM_CPPFLAGS = \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
     -DSSS_PAC_SOCKET_NAME=\"$(pipepath)/pac\" \
     -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
-    -DSSS_SEC_SOCKET_NAME=\"$(runstatedir)/secrets.socket\" \
     -DSSS_SUDO_SOCKET_NAME=\"$(pipepath)/sudo\" \
     -DSSS_AUTOFS_SOCKET_NAME=\"$(pipepath)/autofs\" \
     -DSSS_SSH_SOCKET_NAME=\"$(pipepath)/ssh\" \
@@ -716,7 +712,6 @@ dist_noinst_HEADERS = \
     src/util/util_creds.h \
     src/util/inotify.h \
     src/util/sss_iobuf.h \
-    src/util/tev_curl.h \
     src/util/secrets/secrets.h \
     src/util/secrets/sec_pvt.h \
     src/util/nss_dl_load.h \
@@ -759,10 +754,6 @@ dist_noinst_HEADERS = \
     src/responder/ifp/ifp_iface/ifp_iface_types.h \
     src/responder/ifp/ifp_iface/ifp_iface_async.h \
     src/responder/ifp/ifp_iface/ifp_iface_sync.h \
-    src/responder/secrets/secsrv.h \
-    src/responder/secrets/secsrv_private.h \
-    src/responder/secrets/secsrv_local.h \
-    src/responder/secrets/secsrv_proxy.h \
     src/responder/kcm/kcm_renew.h \
     src/responder/kcm/kcmsrv_pvt.h \
     src/responder/kcm/kcmsrv_ccache.h \
@@ -1762,33 +1753,6 @@ src/responder/ifp/org.freedesktop.sssd.infopipe.service: src/responder/ifp/org.f
 
 endif
 
-if BUILD_SECRETS
-sssd_secrets_SOURCES = \
-    src/responder/secrets/secsrv.c \
-    src/responder/secrets/secsrv_cmd.c \
-    src/responder/secrets/providers.c \
-    src/responder/secrets/local.c \
-    src/responder/secrets/proxy.c \
-    src/util/sss_sockets.c \
-    src/util/sss_iobuf.c \
-    src/util/tev_curl.c \
-    $(SSSD_RESPONDER_OBJ) \
-    $(NULL)
-sssd_secrets_LDADD = \
-    $(LIBADD_DL) \
-    $(HTTP_PARSER_LIBS) \
-    $(JANSSON_LIBS) \
-    $(TDB_LIBS) \
-    $(SSSD_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(CURL_LIBS) \
-    libsss_iface.la \
-    libsss_sbus.la \
-    libsss_secrets.la \
-    $(NULL)
-endif
-
 if BUILD_KCM
 sssd_kcm_SOURCES = \
     src/responder/kcm/kcm.c \
@@ -1825,16 +1789,6 @@ sssd_kcm_LDADD = \
     libsss_sbus.la \
     libsss_secrets.la \
     $(NULL)
-
-if BUILD_SECRETS
-sssd_kcm_SOURCES += \
-    src/responder/kcm/kcmsrv_ccache_secrets.c \
-    src/util/tev_curl.c \
-    $(NULL)
-sssd_kcm_LDADD += \
-    $(CURL_LIBS) \
-    $(NULL)
-endif
 
 if BUILD_KCM_RENEWAL
 sssd_kcm_SOURCES += \
@@ -3923,9 +3877,6 @@ endif
 if BUILD_AUTOFS
 noinst_PROGRAMS += autofs_test_client
 endif
-if BUILD_WITH_LIBCURL
-noinst_PROGRAMS += tcurl-test-tool
-endif
 if BUILD_PAC_RESPONDER
     noinst_PROGRAMS += sssd_pac_test_client
 endif
@@ -3937,23 +3888,6 @@ autofs_test_client_SOURCES = \
     src/sss_client/common.c
 autofs_test_client_CFLAGS = $(AM_CFLAGS)
 autofs_test_client_LDADD = -lpopt $(CLIENT_LIBS)
-endif
-
-if BUILD_WITH_LIBCURL
-tcurl_test_tool_SOURCES = \
-    src/tests/tcurl_test_tool.c \
-    src/util/tev_curl.c \
-    src/util/sss_iobuf.c \
-    $(NULL)
-tcurl_test_tool_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(CURL_CFLAGS) \
-    $(NULL)
-tcurl_test_tool_LDADD = \
-    $(CURL_LIBS) \
-    $(SSSD_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(NULL)
 endif
 
 if BUILD_KRB5_LOCALAUTH_PLUGIN
@@ -3987,7 +3921,6 @@ intgcheck-prepare:
 	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
 	    --enable-intgcheck-reqs \
 	    --without-semanage \
-	    --with-secrets \
 	    --with-session-recording-shell=/bin/false \
 	    --enable-files-domain \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
@@ -5005,12 +4938,6 @@ if BUILD_PAC_RESPONDER
         src/sysv/systemd/sssd-pac.service \
         $(NULL)
 endif
-if BUILD_SECRETS
-    systemdunit_DATA += \
-        src/sysv/systemd/sssd-secrets.socket \
-        src/sysv/systemd/sssd-secrets.service \
-        $(NULL)
-endif
 if BUILD_SSH
     systemdunit_DATA += \
         src/sysv/systemd/sssd-ssh.socket \
@@ -5082,8 +5009,6 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-pam.socket.in \
     src/sysv/systemd/sssd-pam-priv.socket.in \
     src/sysv/systemd/sssd-pam.service.in \
-    src/sysv/systemd/sssd-secrets.socket.in \
-    src/sysv/systemd/sssd-secrets.service.in \
     src/sysv/systemd/sssd-autofs.socket.in \
     src/sysv/systemd/sssd-autofs.service.in \
     src/sysv/systemd/sssd-ifp.service.in \
@@ -5120,16 +5045,6 @@ src/sysv/systemd/sssd-pam-priv.socket: src/sysv/systemd/sssd-pam-priv.socket.in 
 src/sysv/systemd/sssd-pam.service: src/sysv/systemd/sssd-pam.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
-
-if BUILD_SECRETS
-src/sysv/systemd/sssd-secrets.socket: src/sysv/systemd/sssd-secrets.socket.in Makefile
-	@$(MKDIR_P) src/sysv/systemd/
-	$(replace_script)
-
-src/sysv/systemd/sssd-secrets.service: src/sysv/systemd/sssd-secrets.service.in Makefile
-	@$(MKDIR_P) src/sysv/systemd/
-	$(replace_script)
-endif
 
 if BUILD_AUTOFS
 src/sysv/systemd/sssd-autofs.socket: src/sysv/systemd/sssd-autofs.socket.in Makefile
@@ -5178,25 +5093,9 @@ src/sysv/systemd/sssd-sudo.service: src/sysv/systemd/sssd-sudo.service.in Makefi
 endif
 
 if BUILD_KCM
-if BUILD_SECRETS
-kcm_socket_requires = Requires=sssd-secrets.socket
-else
-kcm_socket_requires =
-endif
-
-kcm_edit_cmd = $(edit_cmd) \
-        -e 's|@kcm_socket_requires[@]|$(kcm_socket_requires)|g'
-
-kcm_replace_script = \
-    @rm -f $@ $@.tmp; \
-    srcdir=''; \
-        test -f ./$@.in || srcdir=$(srcdir)/; \
-        $(kcm_edit_cmd) $${srcdir}$@.in >$@.tmp; \
-    mv $@.tmp $@
-
 src/sysv/systemd/sssd-kcm.socket: src/sysv/systemd/sssd-kcm.socket.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
-	$(kcm_replace_script)
+	$(replace_script)
 
 src/sysv/systemd/sssd-kcm.service: src/sysv/systemd/sssd-kcm.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
@@ -5452,8 +5351,6 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-ssh.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-sudo.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-sudo.service
-	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.socket
-	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.service
 	rm -f $(builddir)/src/tools/wrappers/sss_debuglevel

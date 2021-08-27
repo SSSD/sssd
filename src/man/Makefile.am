@@ -24,9 +24,6 @@ endif
 if BUILD_IFP
 IFP_CONDS = ;with_ifp
 endif
-if BUILD_SECRETS
-SEC_CONDS = ;with_secrets
-endif
 if BUILD_KCM
 KCM_CONDS = ;with_kcm
 endif
@@ -51,7 +48,7 @@ KCM_RENEWAL_CONDS = ;enable_kcm_renewal
 endif
 
 
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SEC_CONDS)$(SYSTEMD_CONDS)$(FILES_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(KCM_RENEWAL_CONDS)
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SYSTEMD_CONDS)$(FILES_CONDS)$(KCM_CONDS)$(STAP_CONDS)$(KCM_RENEWAL_CONDS)
 
 
 #Special Rules:
@@ -88,10 +85,6 @@ endif
 
 if BUILD_IFP
 man_MANS += sssd-ifp.5
-endif
-
-if BUILD_SECRETS
-man_MANS += sssd-secrets.5
 endif
 
 if BUILD_KCM

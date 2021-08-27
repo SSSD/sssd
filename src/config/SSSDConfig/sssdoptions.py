@@ -134,29 +134,6 @@ class SSSDOptions(object):
         # [ifp]
         'user_attributes': _('List of user attributes the InfoPipe is allowed to publish'),
 
-        # [secrets]
-        'provider': _('The provider where the secrets will be stored in'),
-        'containers_nest_level': _('The maximum allowed number of nested containers'),
-        'max_secrets': _('The maximum number of secrets that can be stored'),
-        'max_uid_secrets': _('The maximum number of secrets that can be stored per UID'),
-        'max_payload_size': _('The maximum payload size of a secret in kilobytes'),
-        # secrets - proxy
-        'proxy_url': _('The URL Custodia server is listening on'),
-        'auth_type': _('The method to use when authenticating to a Custodia server'),
-        'auth_header_name': _('The name of the headers that will be added into a HTTP request with the value defined '
-                              'in auth_header_value'),
-        'auth_header_value': _('The value sssd-secrets would use for auth_header_name'),
-        'forward_headers': _('The list of the headers to forward to the Custodia server together with the request'),
-        'username': _('The username to use when authenticating to a Custodia server using basic_auth'),
-        'password': _('The password to use when authenticating to a Custodia server using basic_auth'),
-        'verify_peer': _('If true peer\'s certificate is verified if proxy_url uses https protocol'),
-        'verify_host': _('If false peer\'s certificate may contain different hostname than proxy_url when https '
-                         'protocol is used'),
-        'capath': _('Path to directory where certificate authority certificates are stored'),
-        'cacert': _('Path to file containing server\'s CA certificate'),
-        'cert': _('Path to file containing client\'s certificate'),
-        'key': _('Path to file containing client\'s private key'),
-
         # [session_recording]
         'scope': _('One of the following strings specifying the scope of session recording: none - No users are '
                    'recorded. some - Users/groups specified by users and groups options are recorded. all - All users '

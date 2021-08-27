@@ -44,7 +44,6 @@ errno_t kcm_renew_all_tgts(TALLOC_CTX *mem_ctx,
                            struct kcm_ccache **cc_list);
 
 const struct kcm_ccdb_ops ccdb_mem_ops;
-const struct kcm_ccdb_ops ccdb_sec_ops;
 const struct kcm_ccdb_ops ccdb_secdb_ops;
 
 struct test_ctx {

@@ -32,8 +32,6 @@ import kdc
 import krb5utils
 import config
 from util import unindent
-from test_secrets import create_sssd_secrets_fixture
-from secrets import SecretsLocalClient
 from intg.files_ops import passwd_ops_setup
 
 MAX_SECRETS = 10
@@ -201,31 +199,6 @@ def setup_for_kcm_mem(request, kdc_instance):
 
 
 @pytest.fixture
-def setup_secrets(request):
-    kcm_env = dict(os.environ)
-    # Tell sssd-secrets it's root talking
-    kcm_env['SSSD_INTG_SECRETS_PEER'] = '0'
-    create_sssd_secrets_fixture(request, env=kcm_env)
-
-
-@pytest.fixture
-def setup_for_kcm_sec(request, kdc_instance):
-    """
-    Just set up the files provider for tests and enable the KCM
-    responder
-    """
-    sec_resp_path = os.path.join(config.LIBEXEC_PATH, "sssd", "sssd_secrets")
-    if not os.access(sec_resp_path, os.X_OK):
-        # It would be cleaner to use pytest.mark.skipif on the package level
-        # but upstream insists on supporting RHEL-6.
-        pytest.skip("No Secrets responder, skipping")
-
-    kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
-    sssd_conf = create_sssd_conf(kcm_path, "secrets")
-    return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
-
-
-@pytest.fixture
 def setup_for_kcm_secdb(request, kdc_instance):
     """
     Set up the KCM responder backed by libsss_secrets
@@ -281,12 +254,6 @@ def test_kcm_mem_init_list_destroy(setup_for_kcm_mem):
     kcm_init_list_destroy(testenv)
 
 
-def test_kcm_sec_init_list_destroy(setup_for_kcm_sec,
-                                   setup_secrets):
-    testenv = setup_for_kcm_sec
-    kcm_init_list_destroy(testenv)
-
-
 def test_kcm_secdb_init_list_destroy(setup_for_kcm_secdb):
     testenv = setup_for_kcm_secdb
     kcm_init_list_destroy(testenv)
@@ -313,12 +280,6 @@ def kcm_overwrite(testenv):
 
 def test_kcm_mem_overwrite(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
-    kcm_overwrite(testenv)
-
-
-def test_kcm_sec_overwrite(setup_for_kcm_sec,
-                           setup_secrets):
-    testenv = setup_for_kcm_sec
     kcm_overwrite(testenv)
 
 
@@ -407,12 +368,6 @@ def test_kcm_mem_collection_init_list_destroy(setup_for_kcm_mem):
     collection_init_list_destroy(testenv)
 
 
-def test_kcm_sec_collection_init_list_destroy(setup_for_kcm_sec,
-                                              setup_secrets):
-    testenv = setup_for_kcm_sec
-    collection_init_list_destroy(testenv)
-
-
 def test_kcm_secdb_collection_init_list_destroy(setup_for_kcm_secdb):
     testenv = setup_for_kcm_secdb
     collection_init_list_destroy(testenv)
@@ -465,12 +420,6 @@ def exercise_kswitch(testenv):
 
 def test_kcm_mem_kswitch(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
-    exercise_kswitch(testenv)
-
-
-def test_kcm_sec_kswitch(setup_for_kcm_sec,
-                         setup_secrets):
-    testenv = setup_for_kcm_sec
     exercise_kswitch(testenv)
 
 
@@ -528,12 +477,6 @@ def test_kcm_mem_subsidiaries(setup_for_kcm_mem):
     exercise_subsidiaries(testenv)
 
 
-def test_kcm_sec_subsidiaries(setup_for_kcm_sec,
-                              setup_secrets):
-    testenv = setup_for_kcm_sec
-    exercise_subsidiaries(testenv)
-
-
 def test_kcm_secdb_subsidiaries(setup_for_kcm_secdb):
     testenv = setup_for_kcm_secdb
     exercise_subsidiaries(testenv)
@@ -558,80 +501,13 @@ def test_kcm_mem_kdestroy_nocache(setup_for_kcm_mem):
     exercise_subsidiaries(testenv)
 
 
-def test_kcm_sec_kdestroy_nocache(setup_for_kcm_sec,
-                                  setup_secrets):
-    testenv = setup_for_kcm_sec
-    exercise_subsidiaries(testenv)
-
-
 def test_kcm_secdb_kdestroy_nocache(setup_for_kcm_secdb):
     testenv = setup_for_kcm_secdb
     exercise_subsidiaries(testenv)
 
 
-def test_kcm_sec_parallel_klist(setup_for_kcm_sec,
-                                setup_secrets):
-    """
-    Test that parallel operations from a single UID are handled well.
-    Regression test for https://github.com/SSSD/sssd/issues/4402
-    """
-    testenv = setup_for_kcm_sec
-
-    testenv.k5kdc.add_principal("alice", "alicepw")
-    out, _, _ = testenv.k5util.kinit("alice", "alicepw")
-    assert out == 0
-
-    processes = []
-    for i in range(0, 10):
-        p = testenv.k5util.spawn_in_env(['klist', '-A'])
-        processes.append(p)
-
-    for p in processes:
-        rc = p.wait()
-        assert rc == 0
-
-
 def get_secrets_socket():
     return os.path.join(config.RUNSTATEDIR, "secrets.socket")
-
-
-@pytest.fixture
-def secrets_cli(request):
-    sock_path = get_secrets_socket()
-    cli = SecretsLocalClient(sock_path=sock_path)
-    return cli
-
-
-def test_kcm_secrets_quota(setup_for_kcm_sec,
-                           setup_secrets,
-                           secrets_cli):
-    testenv = setup_for_kcm_sec
-    cli = secrets_cli
-
-    # Make sure the secrets store is depleted first
-    sec_value = "value"
-    for i in range(MAX_SECRETS):
-        cli.set_secret(str(i), sec_value)
-
-    with pytest.raises(HTTPError) as err507:
-        cli.set_secret(str(MAX_SECRETS), sec_value)
-    assert str(err507.value).startswith("507")
-
-    # We should still be able to store KCM ccaches, but no more
-    # than MAX_SECRETS
-    for i in range(MAX_SECRETS):
-        princ = "%s%d" % ("kcmtest", i)
-        testenv.k5kdc.add_principal(princ, princ)
-
-    for i in range(MAX_SECRETS-1):
-        princ = "%s%d" % ("kcmtest", i)
-        out, _, _ = testenv.k5util.kinit(princ, princ)
-        assert out == 0
-
-    # we stored 0 to MAX_SECRETS-1, storing another one must fail
-    princ = "%s%d" % ("kcmtest", MAX_SECRETS)
-    out, _, _ = testenv.k5util.kinit(princ, princ)
-    assert out != 0
 
 
 @pytest.mark.skipif(not have_kcm_renewal(),

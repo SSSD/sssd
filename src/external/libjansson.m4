@@ -13,6 +13,6 @@ AS_IF([test x"$found_jansson" != xyes],
                       [-L$sss_extra_libdir -ljanson])],
         [AC_MSG_ERROR([
 You must have the header file jansson.h installed to build sssd
-with secrets and KCM responder. If you want to build sssd without these
-responders then specify --without-secrets --without-kcm when running configure.
+with KCM responder. If you want to build sssd without this
+responder then specify --without-kcm when running configure.
 ])])])

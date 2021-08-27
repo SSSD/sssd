@@ -104,7 +104,6 @@ struct err_string error_to_str[] = {
     { "The user is not handled by SSSD" }, /* ERR_NON_SSSD_USER */
     { "The internal name format cannot be parsed" }, /* ERR_WRONG_NAME_FORMAT */
     { "The maximum level of nested containers has been reached" }, /* ERR_SEC_INVALID_CONTAINERS_NEST_LEVEL */
-    { "No proxy server for secrets available"}, /* ERR_SEC_NO_PROXY */
     { "The maximum number of stored secrets has been reached" }, /* ERR_SEC_INVALID_TOO_MANY_SECRETS */
     { "The secret payload size is too large" }, /* ERR_SEC_PAYLOAD_SIZE_IS_TOO_LARGE */
     { "No authentication method available" }, /* ERR_NO_AUTH_METHOD_AVAILABLE */

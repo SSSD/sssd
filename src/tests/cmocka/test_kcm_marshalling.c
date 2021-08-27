@@ -39,7 +39,6 @@
 #define TEST_SEC_KEY_NOSEP        TEST_UUID_STR"+0"
 
 const struct kcm_ccdb_ops ccdb_mem_ops;
-const struct kcm_ccdb_ops ccdb_sec_ops;
 const struct kcm_ccdb_ops ccdb_secdb_ops;
 
 struct kcm_marshalling_test_ctx {
