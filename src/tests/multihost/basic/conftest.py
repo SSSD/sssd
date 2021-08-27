@@ -124,8 +124,6 @@ def setup_sssd(session_multihost, request):
     sssdConfig.set('nss', 'debug_level', '9')
     sssdConfig.add_section('pam')
     sssdConfig.set('pam', 'debug_level', '9')
-    sssdConfig.add_section('secrets')
-    sssdConfig.set('secrets', 'debug_level', '9')
     sssdConfig.add_section('kcm')
     sssdConfig.set('kcm', 'debug_level', '9')
     temp_fd, temp_file_path = tempfile.mkstemp(suffix='conf', prefix='sssd')

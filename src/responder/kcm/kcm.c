@@ -108,16 +108,12 @@ static errno_t kcm_get_ccdb_be(struct kcm_ctx *kctx)
     DEBUG(SSSDBG_CONF_SETTINGS, "KCM database type: %s\n", str_db);
     if (strcasecmp(str_db, "memory") == 0) {
         kctx->cc_be = CCDB_BE_MEMORY;
-        return EOK;
     } else if (strcasecmp(str_db, "secdb") == 0) {
         kctx->cc_be = CCDB_BE_SECDB;
-        return EOK;
-    } else if (strcasecmp(str_db, "secrets") == 0) {
-        kctx->cc_be = CCDB_BE_SECRETS;
-        return EOK;
+    } else {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unexpected KCM database type %s\n", str_db);
     }
 
-    DEBUG(SSSDBG_FATAL_FAILURE, "Unexpected KCM database type %s\n", str_db);
     return EOK;
 }
 

@@ -62,18 +62,6 @@ static bool peer_is_private_pam(int fd)
     return NULL != strstr(unix_socket->sun_path, "private/pam");
 }
 
-static uid_t fake_secret_peer(uid_t orig_id)
-{
-    char *val;
-
-    val = getenv("SSSD_INTG_SECRETS_PEER");
-    if (val == NULL) {
-        return orig_id;
-    }
-
-    return atoi(val);
-}
-
 static void fake_peer_uid_gid(uid_t *uid, gid_t *gid)
 {
     char *val;
@@ -114,8 +102,6 @@ int getsockopt(int sockfd, int level, int optname,
         cr = optval;
         if (cr->uid != 0 && is_dbus_socket(sockfd)) {
             cr->uid = 0;
-        } else if (is_secrets_socket(sockfd)) {
-            cr->uid = fake_secret_peer(cr->uid);
         } else if (peer_is_private_pam(sockfd)) {
             fake_peer_uid_gid(&cr->uid, &cr->gid);
         }

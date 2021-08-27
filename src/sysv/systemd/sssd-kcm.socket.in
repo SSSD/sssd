@@ -1,7 +1,6 @@
 [Unit]
 Description=SSSD Kerberos Cache Manager responder socket
 Documentation=man:sssd-kcm(8)
-@kcm_socket_requires@
 
 [Socket]
 ListenStream=@runstatedir@/.heim_org.h5l.kcm-socket

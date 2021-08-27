@@ -21,8 +21,6 @@ dist_noinst_DATA = \
     test_session_recording.py \
     test_ts_cache.py \
     test_netgroup.py \
-    secrets.py \
-    test_secrets.py \
     test_sssctl.py \
     files_ops.py \
     test_files_ops.py \
