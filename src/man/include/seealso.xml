@@ -31,12 +31,6 @@
                     <manvolnum>5</manvolnum>
                 </citerefentry>,
             </phrase>
-            <phrase condition="with_secrets">
-                <citerefentry>
-                    <refentrytitle>sssd-secrets</refentrytitle>
-                    <manvolnum>5</manvolnum>
-                </citerefentry>,
-            </phrase>
             <citerefentry>
                 <refentrytitle>sssd-session-recording</refentrytitle>
                 <manvolnum>5</manvolnum>

@@ -264,17 +264,11 @@
 #define CONFDB_FILES_PASSWD "passwd_files"
 #define CONFDB_FILES_GROUP "group_files"
 
-/* Secrets Service */
-#define CONFDB_SEC_CONF_ENTRY "config/secrets"
-#define CONFDB_SEC_CONTAINERS_NEST_LEVEL "containers_nest_level"
-#define CONFDB_SEC_MAX_SECRETS "max_secrets"
-#define CONFDB_SEC_MAX_UID_SECRETS "max_uid_secrets"
-#define CONFDB_SEC_MAX_PAYLOAD_SIZE "max_payload_size"
-
 /* KCM Service */
 #define CONFDB_KCM_CONF_ENTRY "config/kcm"
 #define CONFDB_KCM_SOCKET "socket_path"
 #define CONFDB_KCM_DB "ccache_storage" /* Undocumented on purpose */
+#define CONFDB_KCM_CONTAINERS_NEST_LEVEL "containers_nest_level"
 #define CONFDB_KCM_MAX_CCACHES "max_ccaches"
 #define CONFDB_KCM_MAX_UID_CCACHES "max_uid_ccaches"
 #define CONFDB_KCM_MAX_CCACHE_SIZE "max_ccache_size"

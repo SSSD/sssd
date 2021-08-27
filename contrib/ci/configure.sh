@@ -40,7 +40,6 @@ if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ||
         "--disable-cifs-idmap-plugin"
         "--with-syslog=syslog"
         "--without-python3-bindings"
-        "--without-secrets"
         "--without-kcm"
     )
 fi

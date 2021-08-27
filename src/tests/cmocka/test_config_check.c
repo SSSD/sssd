@@ -241,8 +241,6 @@ void config_check_test_good_sections(void **state)
                      "[domain/testdom.test]\n"
                      "[domain/testdom.test/testsubdom.testdom.test]\n"
                      "[application/myapp]\n"
-                     "[secrets]\n"
-                     "[secrets/users/1000]\n"
                      "[ssh]\n"
                      "[ifp]\n"
                      "[pac]\n"
