@@ -140,7 +140,7 @@ cache_req_common_process_dp_reply(struct cache_req *cr,
     }
 
     if (err_maj) {
-        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr,
+        CACHE_REQ_DEBUG(SSSDBG_IMPORTANT_INFO, cr,
                         "Data Provider Error: %u, %u, %s\n",
                         (unsigned int)err_maj, (unsigned int)err_min, err_msg);
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
