@@ -132,9 +132,17 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
     struct sdap_domain *sdom, *sditer;
     errno_t ret;
 
-    for (dom = get_next_domain(parent, SSS_GND_DESCEND);
+    for (dom = get_next_domain(parent, SSS_GND_DESCEND|SSS_GND_INCLUDE_DISABLED);
          dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-         dom = get_next_domain(dom, 0)) {
+         dom = get_next_domain(dom, SSS_GND_INCLUDE_DISABLED)) {
+
+        /* Always create sdap domain object for the forest root, even if it is
+         * disabled so that we can connect later to discover trusted domains
+         * in the forest. */
+        if (sss_domain_get_state(dom) == DOM_DISABLED
+                && !sss_domain_is_forest_root(dom)) {
+            continue;
+        }
 
         DLIST_FOR_EACH(sditer, sdom_list) {
             if (sditer->dom == dom) {
