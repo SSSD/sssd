@@ -217,13 +217,8 @@ AS_IF([test x$with_kcm = xyes], [
 ])
 
 AS_IF([test x$with_kcm = xyes], [
-    BUILD_WITH_LIBSECRET=1
-    AC_DEFINE_UNQUOTED(BUILD_WITH_LIBSECRET, 1, [libsecret will be built])
     m4_include([src/external/libjansson.m4])
 ])
-
-AM_CONDITIONAL([BUILD_WITH_LIBSECRET],
-               [test x"$BUILD_WITH_LIBSECRET" != "x"])
 
 m4_include([src/external/libunistring.m4])
 UNICODE_LIBS=$UNISTRING_LIBS
