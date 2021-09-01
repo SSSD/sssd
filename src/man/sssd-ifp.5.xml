@@ -56,6 +56,11 @@
                             startup.
                         </para>
                         <para>
+                            Local user names are required, i.e. accessible via
+                            <quote>files</quote> service of
+                            <filename>nsswitch.conf</filename>.
+                        </para>
+                        <para>
                             Default: 0 (only the root user is allowed to access
                             the InfoPipe responder)
                         </para>

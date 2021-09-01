@@ -424,6 +424,12 @@
                                 </phrase>
                             </para>
                             <para>
+                                Both a user name and a uid can be used but the
+                                user should be a local one, i.e. accessible via
+                                <quote>files</quote> service of
+                                <filename>nsswitch.conf</filename>.
+                            </para>
+                            <para>
                                 Default: not set, process will run as root
                             </para>
                         </listitem>
@@ -2161,6 +2167,11 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             user names that are allowed to access the PAC
                             responder. User names are resolved to UIDs at
                             startup.
+                        </para>
+                        <para>
+                            Local user names are required, i.e. accessible via
+                            <quote>files</quote> service of
+                            <filename>nsswitch.conf</filename>.
                         </para>
                         <para>
                             Default: 0 (only the root user is allowed to access
