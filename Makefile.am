@@ -712,8 +712,8 @@ dist_noinst_HEADERS = \
     src/util/util_creds.h \
     src/util/inotify.h \
     src/util/sss_iobuf.h \
-    src/util/secrets/secrets.h \
-    src/util/secrets/sec_pvt.h \
+    src/responder/kcm/secrets/secrets.h \
+    src/responder/kcm/secrets/sec_pvt.h \
     src/util/nss_dl_load.h \
     src/monitor/monitor.h \
     src/responder/common/responder.h \
@@ -1296,27 +1296,6 @@ libsss_util_la_LIBADD += stap_generated_probes.lo
 endif
 libsss_util_la_LDFLAGS = -avoid-version
 
-if BUILD_WITH_LIBSECRET
-pkglib_LTLIBRARIES += libsss_secrets.la
-libsss_secrets_la_SOURCES = \
-    src/util/secrets/secrets.c \
-    src/util/secrets/config.c \
-    $(NULL)
-libsss_secrets_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NULL)
-libsss_secrets_la_LIBADD = \
-    $(TALLOC_LIBS) \
-    $(LDB_LIBS) \
-    libsss_crypt.la \
-    libsss_debug.la \
-    libsss_util.la \
-    $(NULL)
-libsss_secrets_la_LDFLAGS = \
-    -avoid-version \
-    $(NULL)
-endif
-
 pkglib_LTLIBRARIES += libsss_semanage.la
 libsss_semanage_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1765,6 +1744,8 @@ sssd_kcm_SOURCES = \
     src/responder/kcm/kcmsrv_ccache_secdb.c \
     src/responder/kcm/kcmsrv_ops.c \
     src/responder/kcm/kcmsrv_op_queue.c \
+    src/responder/kcm/secrets/secrets.c \
+    src/responder/kcm/secrets/config.c \
     src/util/sss_sockets.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
@@ -1787,7 +1768,6 @@ sssd_kcm_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
-    libsss_secrets.la \
     $(NULL)
 
 if BUILD_KCM_RENEWAL
@@ -3840,8 +3820,8 @@ test_kcm_renewals_SOURCES = \
 	src/responder/kcm/kcmsrv_ccache_json.c \
 	src/util/sss_krb5.c \
 	src/util/sss_iobuf.c \
-	src/util/secrets/secrets.c \
-	src/util/secrets/config.c \
+	src/responder/kcm/secrets/secrets.c \
+	src/responder/kcm/secrets/config.c \
 	src/providers/krb5/krb5_child_handler.c \
 	src/providers/krb5/krb5_opts.c \
 	src/providers/data_provider_opts.c \
@@ -5160,9 +5140,6 @@ endif
 	$(INSTALL) -d -m 0711 $(DESTDIR)$(sssdconfdir) \
                           $(DESTDIR)$(sssdconfdir)/conf.d \
                           $(DESTDIR)$(sssdconfdir)/pki
-if BUILD_WITH_LIBSECRET
-	$(MKDIR_P) $(DESTDIR)$(secdbpath)
-endif
 
 if HAVE_DOXYGEN
 docs:
@@ -5278,6 +5255,7 @@ if BUILD_SAMBA
 endif
 if BUILD_KCM
 	$(MKDIR_P) $(DESTDIR)/$(sssdkcmdatadir)
+	$(MKDIR_P) $(DESTDIR)$(secdbpath)
 endif
 
 uninstall-hook:

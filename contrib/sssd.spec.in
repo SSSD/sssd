@@ -939,7 +939,6 @@ done
 %{_unitdir}/sssd-kcm.socket
 %{_unitdir}/sssd-kcm.service
 %{_mandir}/man8/sssd-kcm.8*
-%{_libdir}/%{name}/libsss_secrets.so
 
 %if 0%{?rhel}
 %pre common
