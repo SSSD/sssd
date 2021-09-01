@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-07-12 20:53+0200\n"
-"PO-Revision-Date: 2021-07-17 04:04+0000\n"
+"PO-Revision-Date: 2021-09-01 13:04+0000\n"
 "Last-Translator: simmon <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.7.1\n"
+"X-Generator: Weblate 4.8\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -30,39 +30,39 @@ msgstr "디버그 기록에 시간표시 포함"
 
 #: src/config/SSSDConfig/sssdoptions.py:23
 msgid "Include microseconds in timestamps in debug logs"
-msgstr ""
+msgstr "디버그 기록에서 시간표기에는 마이크로초를 표시합니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Enable/disable debug backtrace"
-msgstr ""
+msgstr "디버그 역추적 활성화/비활성화"
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Watchdog timeout before restarting service"
-msgstr ""
+msgstr "서비스를 재시작 하기 전에 와치독 시간초과"
 
 #: src/config/SSSDConfig/sssdoptions.py:26
 msgid "Command to start service"
-msgstr ""
+msgstr "서비스 시작 명령"
 
 #: src/config/SSSDConfig/sssdoptions.py:27
 msgid "Number of times to attempt connection to Data Providers"
-msgstr ""
+msgstr "자료(데이타) 공급자에 대한 연결 시도 횟수"
 
 #: src/config/SSSDConfig/sssdoptions.py:28
 msgid "The number of file descriptors that may be opened by this responder"
-msgstr ""
+msgstr "이 응답자에 의해 열 수 있는 파일 설명자 수"
 
 #: src/config/SSSDConfig/sssdoptions.py:29
 msgid "Idle time before automatic disconnection of a client"
-msgstr ""
+msgstr "클라이언트의 자동 연결 해제 전 유휴 시간"
 
 #: src/config/SSSDConfig/sssdoptions.py:30
 msgid "Idle time before automatic shutdown of the responder"
-msgstr ""
+msgstr "응답자의 자동 종료 전 유휴 시간"
 
 #: src/config/SSSDConfig/sssdoptions.py:31
 msgid "Always query all the caches before querying the Data Providers"
-msgstr ""
+msgstr "자료 공급자를 질의(쿼리)하기 전에 항상 모든 캐쉬를 질의합니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:32
 msgid ""
@@ -71,28 +71,30 @@ msgid ""
 "is in seconds and calculated by the following: offline_timeout + "
 "random_offset."
 msgstr ""
+"SSSD가 오프라인 방식으로 전환되면 연결이 끊긴 시간에 따라 온라인으로 돌아가기 전에 시간이 늘어납니다. 이 값은 초 단위이며 다음에 "
+"의해 계산됩니다: offline_timeout + random_offset."
 
 #: src/config/SSSDConfig/sssdoptions.py:38
 msgid ""
 "Indicates what is the syntax of the config file. SSSD 0.6.0 and later use "
 "version 2."
-msgstr ""
+msgstr "config 파일의 구문이 무엇인지 나타냅니다. SSSD 0.6.0과 그 이상은 버전 2를 사용합니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:39
 msgid "SSSD Services to start"
-msgstr ""
+msgstr "시작 하려는 SSD 서비스"
 
 #: src/config/SSSDConfig/sssdoptions.py:40
 msgid "SSSD Domains to start"
-msgstr ""
+msgstr "시작하려는 SSSD 도메인"
 
 #: src/config/SSSDConfig/sssdoptions.py:41
 msgid "Timeout for messages sent over the SBUS"
-msgstr ""
+msgstr "SBUS를 통해 전송된 메시지에 시간초과"
 
 #: src/config/SSSDConfig/sssdoptions.py:42
 msgid "Regex to parse username and domain"
-msgstr ""
+msgstr "사용자 이름과 도메인을 구문 분석하는 정규식"
 
 #: src/config/SSSDConfig/sssdoptions.py:43
 msgid "Printf-compatible format for displaying fully-qualified names"
@@ -558,7 +560,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:188
 msgid "Enable or disable the domain"
-msgstr ""
+msgstr "도메인 활성화 또는 비활성화"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Minimum user ID"
@@ -2062,7 +2064,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
 msgid "Password change failed. "
-msgstr ""
+msgstr "비밀번호 변경에 실패함. "
 
 #: src/sss_client/pam_sss.c:2045
 msgid "New Password: "
@@ -2070,19 +2072,19 @@ msgstr "신규 비밀번호: "
 
 #: src/sss_client/pam_sss.c:2046
 msgid "Reenter new Password: "
-msgstr ""
+msgstr "신규 비밀번호 재입력: "
 
 #: src/sss_client/pam_sss.c:2208 src/sss_client/pam_sss.c:2211
 msgid "First Factor: "
-msgstr ""
+msgstr "첫 번째 요인: "
 
 #: src/sss_client/pam_sss.c:2209 src/sss_client/pam_sss.c:2383
 msgid "Second Factor (optional): "
-msgstr ""
+msgstr "두 번째 요인(선택적인): "
 
 #: src/sss_client/pam_sss.c:2212 src/sss_client/pam_sss.c:2386
 msgid "Second Factor: "
-msgstr ""
+msgstr "두 번째 요인: "
 
 #: src/sss_client/pam_sss.c:2230
 msgid "Password: "
@@ -2183,7 +2185,7 @@ msgstr "홈 디렉토리"
 
 #: src/tools/sss_useradd.c:52 src/tools/sss_usermod.c:52
 msgid "Login shell"
-msgstr ""
+msgstr "로그인 쉘"
 
 #: src/tools/sss_useradd.c:53
 msgid "Groups"

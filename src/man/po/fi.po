@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-08-24 13:40+0200\n"
-"PO-Revision-Date: 2021-06-14 19:04+0000\n"
+"POT-Creation-Date: 2021-07-12 20:51+0200\n"
+"PO-Revision-Date: 2021-09-01 13:04+0000\n"
 "Last-Translator: Jan Kuparinen <copper_fin@hotmail.com>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/fi/>\n"
@@ -13,7 +13,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.6.2\n"
+"X-Generator: Weblate 4.8\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -10239,7 +10239,7 @@ msgstr ""
 #: sssd-ad.5.xml:503 sssd-ad.5.xml:506 sssd-ad.5.xml:509 sssd-ad.5.xml:529
 #: sssd-ad.5.xml:532 sssd-ad.5.xml:535
 msgid "missing"
-msgstr ""
+msgstr "puuttuu"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
 #: sssd-ad.5.xml:504
