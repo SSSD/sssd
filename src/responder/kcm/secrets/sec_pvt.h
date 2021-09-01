@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-#include "util/secrets/secrets.h"
+#include "secrets.h"
 
 #define SSS_SEC_BASEPATH            "/secrets/"
 #define SSS_SEC_KCM_BASEPATH        "/kcm/"

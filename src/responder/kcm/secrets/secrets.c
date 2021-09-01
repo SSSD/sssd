@@ -29,8 +29,8 @@
 #include "util/util.h"
 #include "util/strtonum.h"
 #include "util/crypto/sss_crypto.h"
-#include "util/secrets/sec_pvt.h"
-#include "util/secrets/secrets.h"
+#include "sec_pvt.h"
+#include "secrets.h"
 
 #define KCM_PEER_UID            0
 #define MKEY_SIZE               (256 / 8)

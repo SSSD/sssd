@@ -25,7 +25,7 @@
 #include <stdio.h>
 
 #include "util/util.h"
-#include "util/secrets/secrets.h"
+#include "secrets/secrets.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/sss_krb5.h"
 #include "util/strtonum.h"

@@ -20,7 +20,7 @@
 */
 
 #include "util/util.h"
-#include "util/secrets/secrets.h"
+#include "secrets.h"
 
 errno_t sss_sec_get_quota(struct confdb_ctx *cdb,
                           const char *section_config_path,
