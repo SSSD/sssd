@@ -18,8 +18,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-08-24 13:40+0200\n"
-"PO-Revision-Date: 2021-06-29 14:04+0000\n"
+"POT-Creation-Date: 2021-07-12 20:51+0200\n"
+"PO-Revision-Date: 2021-07-29 15:04+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/es/>\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.7\n"
+"X-Generator: Weblate 4.7.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -869,6 +869,8 @@ msgstr "sha512"
 #: sssd.conf.5.xml:532
 msgid "Default: sha1 (to allow compatibility with RFC5019-compliant responder)"
 msgstr ""
+"Predeterminado: sha1 (para permitir la compatibilidad con el contestador que "
+"cumple el RFC50190)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:538
@@ -887,7 +889,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:546
 msgid "partial_chain"
-msgstr ""
+msgstr "partial_chain"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:548
@@ -896,6 +898,10 @@ msgid ""
 "chain cannot be built to a self-signed trust-anchor, provided it is possible "
 "to construct a chain to a trusted certificate that might not be self-signed."
 msgstr ""
+"Permite la verificación exitosa incluso si la cadena <replaceable>complete</"
+"replaceable> no se puede construir a un ancla de autoconfianza firmado, "
+"siempre que sea posible construir una cadena a un certificado de confianza "
+"que puede no estar autofirmado."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:557
@@ -920,17 +926,12 @@ msgstr "ocsp_default_responder_signing_cert=NAME"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:571
-#, fuzzy
-#| msgid ""
-#| "(OpenSSL version) This option is currently ignored. All needed "
-#| "certificates must be available in the PEM file given by pam_cert_db_path."
 msgid ""
 "This option is currently ignored. All needed certificates must be available "
 "in the PEM file given by pam_cert_db_path."
 msgstr ""
-"(Versión OpenSSL) Esta opción se ignora actualmente. Todos los certificados "
-"necesarios deben estar disponibles en el fichero PEM indicado por "
-"pam_cert_db_path."
+"Esta opción se ignora actualmente. Todos los certificados necesarios deben "
+"estar disponibles en el fichero PEM indicado por pam_cert_db_path."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:579
@@ -939,22 +940,16 @@ msgstr "crl_file=/PATH/TO/CRL/FILE"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:581
-#, fuzzy
-#| msgid ""
-#| "(OpenSSL Version) Use the Certificate Revocation List (CRL) from the "
-#| "given file during the verification of the certificate. The CRL must be "
-#| "given in PEM format, see <citerefentry> <refentrytitle>crl</"
-#| "refentrytitle> <manvolnum>1ssl</manvolnum> </citerefentry> for details."
 msgid ""
 "Use the Certificate Revocation List (CRL) from the given file during the "
 "verification of the certificate. The CRL must be given in PEM format, see "
 "<citerefentry> <refentrytitle>crl</refentrytitle> <manvolnum>1ssl</"
 "manvolnum> </citerefentry> for details."
 msgstr ""
-"(Versión OpenSSL) Usa la Lista de Revocación de Certificado (CRL) del "
-"fichero dado durante la verificación del certificado. La CRL se debe dar en "
-"formato PEM, vea detalles en <citerefentry> <refentrytitle>crl</"
-"refentrytitle> <manvolnum>1ssl</manvolnum> </citerefentry>."
+"Usa la Lista de Revocación de Certificado (CRL) del fichero dado durante la "
+"verificación del certificado. La CRL se debe dar en formato PEM, vea "
+"detalles en <citerefentry> <refentrytitle>crl</refentrytitle> "
+"<manvolnum>1ssl</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:594
@@ -963,21 +958,15 @@ msgstr "soft_crl"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:597
-#, fuzzy
-#| msgid ""
-#| "(OpenSSL Version) If a Certificate Revocation List (CRL) is expired "
-#| "ignore the CRL checks for the related certificates. This option should be "
-#| "used to allow authentication when the system is offline and the CRL "
-#| "cannot be renewed."
 msgid ""
 "If a Certificate Revocation List (CRL)  is expired ignore the CRL checks for "
 "the related certificates. This option should be used to allow authentication "
 "when the system is offline and the CRL cannot be renewed."
 msgstr ""
-"(Versión OpenSSL) Si una Lista de Revocación de Certificado (CRL) expira "
-"ignora las comprobaciones CRL para los certificados relacionados. Esta "
-"opción debería ser usada para permitir la autenticación cuando el sistema "
-"está fuera de linea y la CRL no puede ser renovada."
+"Si una Lista de Revocación de Certificado (CRL) expira ignora las "
+"comprobaciones CRL para los certificados relacionados. Esta opción debería "
+"ser usada para permitir la autenticación cuando el sistema está fuera de "
+"linea y la CRL no puede ser renovada."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:493
@@ -1196,10 +1185,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:760
-#, fuzzy
-#| msgid "Default: 300"
 msgid "Default: 60, KCM: 300"
-msgstr "Predeterminado: 300"
+msgstr "Predeterminado: 60, KCM: 300"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:765
@@ -1208,11 +1195,6 @@ msgstr "offline_timeout (entero)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:768
-#, fuzzy
-#| msgid ""
-#| "When SSSD switches to offline mode the amount of time before it tries to "
-#| "go back online will increase based upon the time spent disconnected.  "
-#| "This value is in seconds and calculated by the following:"
 msgid ""
 "When SSSD switches to offline mode the amount of time before it tries to go "
 "back online will increase based upon the time spent disconnected.  By "
@@ -1223,8 +1205,11 @@ msgid ""
 msgstr ""
 "Cuando SSSD conmuta al modo fuera de línea la cantidad tiempo antes de que "
 "intente volver a estar en línea se incrementará en base al tiempo que ha "
-"estado desconectado.  Este valor es en segundos y se calcula mediante lo "
-"siguiente:"
+"estado desconectado. De modo predeterminado SSSD utiliza un comportamiento "
+"incremental para calcular el retraso entre reintentos. De este modo, el "
+"tiempo de espera para un reintento dado no será más largo que el tiempo de "
+"los anteriores. Después de cada intento fracasado para estar en línea, el "
+"nuevo intervalo se calcula mediante lo siguiente:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:779 sssd.conf.5.xml:835
@@ -1232,6 +1217,8 @@ msgid ""
 "new_delay = Minimum(old_delay * 2, offline_timeout_max) + random[0..."
 "offline_timeout_random_offset]"
 msgstr ""
+"new_delay = Minimum(old_delay * 2, offline_timeout_max) + random[0..."
+"offline_timeout_random_offset]"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:782
@@ -1240,6 +1227,10 @@ msgid ""
 "value is 3600.  The offline_timeout_random_offset default value is 30.  The "
 "end result is amount of seconds before next retry."
 msgstr ""
+"El valor predeterminado de offline_timeout es 60. El valor predeterminado de "
+"offline_timeout_max es 3600. El valor predeterminado de "
+"offline_timeout_random_offset es 30. El resultado final es la cantidad de "
+"segundos antes del próximo reintento."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:788

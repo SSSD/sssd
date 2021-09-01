@@ -13,7 +13,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-07-12 20:53+0200\n"
-"PO-Revision-Date: 2021-03-24 13:01+0000\n"
+"PO-Revision-Date: 2021-08-08 16:04+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/sv/>\n"
@@ -22,7 +22,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.5.1\n"
+"X-Generator: Weblate 4.7.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -39,7 +39,7 @@ msgstr "Inkludera mikrosekunder i tidsstämplar i felsökningsloggar"
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Enable/disable debug backtrace"
-msgstr ""
+msgstr "Aktivera/avaktivera felsökningsspårning"
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Watchdog timeout before restarting service"
@@ -348,9 +348,8 @@ msgid "Path to certificate database with PKCS#11 modules."
 msgstr "Sökväg till certifikatdatabasen med PKCS#11-moduler."
 
 #: src/config/SSSDConfig/sssdoptions.py:101
-#, fuzzy
 msgid "Tune certificate verification for PAM authentication."
-msgstr "Trimma certifikatverifikation"
+msgstr "Trimma certifikatverifikation för PAM-autentisering."
 
 #: src/config/SSSDConfig/sssdoptions.py:102
 msgid "How many seconds will pam_sss wait for p11_child to finish"
@@ -391,6 +390,8 @@ msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
 msgstr ""
+"Lista av par <PAM-tjänst>:<autentiseringsindikator> som måste upprätthållas "
+"för PAM-åtkomst med GSSAPI-autentisering"
 
 #: src/config/SSSDConfig/sssdoptions.py:114
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -1793,7 +1794,7 @@ msgstr "Intervall mellan automatisk smart omläsning"
 
 #: src/config/SSSDConfig/sssdoptions.py:518
 msgid "Smart and full refresh random offset"
-msgstr ""
+msgstr "Förskjutning mellan smart och fullständig omläsning"
 
 #: src/config/SSSDConfig/sssdoptions.py:519
 msgid "Whether to filter rules by hostname, IP addresses and network"
@@ -2059,15 +2060,15 @@ msgstr "Skriv ut versionsnumret och avsluta"
 
 #: src/monitor/monitor.c:2461
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
-msgstr ""
+msgstr "Flaggan -i|--interactive är inte tillåten tillsammans med -D|--daemon\n"
 
 #: src/monitor/monitor.c:2467
 msgid "Option -g is incompatible with -D or -i\n"
-msgstr ""
+msgstr "Flaggan -g är inkompatibel med -D eller -i\n"
 
 #: src/monitor/monitor.c:2480
 msgid "Running under %"
-msgstr ""
+msgstr "Kör under %"
 
 #: src/monitor/monitor.c:2562
 msgid "SSSD is already running\n"
@@ -2114,13 +2115,12 @@ msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Använd en anpassad version av krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
-#, fuzzy
 msgid "talloc_asprintf failed.\n"
-msgstr "malloc misslyckades.\n"
+msgstr "talloc_asprintf misslyckades.\n"
 
 #: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
-msgstr ""
+msgstr "set_debug_file_from_fd misslyckades.\n"
 
 #: src/providers/data_provider_be.c:733
 msgid "Domain of the information provider (mandatory)"
