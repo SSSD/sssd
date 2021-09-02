@@ -188,6 +188,7 @@ if BUILD_SEMANAGE
 sssdlibexec_PROGRAMS += selinux_child
 endif
 sssdlibexec_PROGRAMS += p11_child
+sssdlibexec_PROGRAMS += oidc_child
 if SSSD_USER
 if HAVE_POLKIT_RULES_D
 polkit_rulesdir = $(polkitdir)
@@ -905,6 +906,7 @@ dist_noinst_HEADERS = \
     src/shared/murmurhash3.h \
     src/shared/safealign.h \
     src/p11_child/p11_child.h \
+    src/oidc_child/oidc_child_util.h \
     $(NULL)
 
 
@@ -4668,6 +4670,30 @@ p11_child_LDADD += \
     $(P11_KIT_LIBS) \
     $(CRYPTO_LIBS) \
     $(SSL_LIBS) \
+    $(NULL)
+
+oidc_child_SOURCES = \
+    src/oidc_child/oidc_child.c \
+    src/oidc_child/oidc_child_curl.c \
+    src/oidc_child/oidc_child_json.c \
+    src/util/atomic_io.c \
+    src/util/memory.c \
+    src/util/strtonum.c \
+    $(NULL)
+oidc_child_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(JANSSON_CFLAGS) \
+    $(JOSE_CFLAGS) \
+    $(CURL_CFLAGS) \
+    $(NULL)
+oidc_child_LDADD = \
+    libsss_debug.la \
+    $(TALLOC_LIBS) \
+    $(POPT_LIBS) \
+    $(JANSSON_LIBS) \
+    $(JOSE_LIBS) \
+    $(CURL_LIBS) \
     $(NULL)
 
 memberof_la_SOURCES = \
