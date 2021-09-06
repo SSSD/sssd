@@ -41,12 +41,10 @@
 
 static errno_t sec_get(TALLOC_CTX *mem_ctx,
                        struct sss_sec_req *req,
-                       struct sss_iobuf **_buf,
-                       char **_datatype)
+                       struct sss_iobuf **_buf)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
-    char *datatype;
     uint8_t *data;
     size_t len;
     struct sss_iobuf *buf;
@@ -56,21 +54,11 @@ static errno_t sec_get(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sss_sec_get(tmp_ctx, req, &data, &len, &datatype);
+    ret = sss_sec_get(tmp_ctx, req, &data, &len);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Cannot retrieve the secret [%d]: %s\n", ret, sss_strerror(ret));
         goto done;
-    }
-
-    if (strcmp(datatype, "simple") == 0) {
-        /* The secret is stored in b64 encoding, we need to decode it first. */
-        data = sss_base64_decode(tmp_ctx, (const char*)data, &len);
-        if (data == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot decode secret from base64\n");
-            ret = EIO;
-            goto done;
-        }
     }
 
     buf = sss_iobuf_init_steal(tmp_ctx, data, len);
@@ -81,9 +69,6 @@ static errno_t sec_get(TALLOC_CTX *mem_ctx,
     }
 
     *_buf = talloc_steal(mem_ctx, buf);
-    if (_datatype != NULL) {
-        *_datatype = talloc_steal(mem_ctx, datatype);
-    }
 
     ret = EOK;
 
@@ -99,7 +84,7 @@ static errno_t sec_put(TALLOC_CTX *mem_ctx,
     errno_t ret;
 
     ret = sss_sec_put(req, sss_iobuf_get_data(buf), sss_iobuf_get_size(buf),
-                      SSS_SEC_PLAINTEXT, "binary");
+                      SSS_SEC_PLAINTEXT);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot write the secret [%d]: %s\n", ret, sss_strerror(ret));
@@ -115,7 +100,7 @@ static errno_t sec_update(TALLOC_CTX *mem_ctx,
     errno_t ret;
 
     ret = sss_sec_update(req, sss_iobuf_get_data(buf), sss_iobuf_get_size(buf),
-                         SSS_SEC_PLAINTEXT, "binary");
+                         SSS_SEC_PLAINTEXT);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot write the secret [%d]: %s\n", ret, sss_strerror(ret));
@@ -455,7 +440,6 @@ static errno_t secdb_get_cc(TALLOC_CTX *mem_ctx,
     struct kcm_ccache *cc = NULL;
     struct sss_sec_req *sreq = NULL;
     struct sss_iobuf *ccbuf;
-    char *datatype;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) {
@@ -469,23 +453,23 @@ static errno_t secdb_get_cc(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sec_get(tmp_ctx, sreq, &ccbuf, &datatype);
+    ret = sec_get(tmp_ctx, sreq, &ccbuf);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot get the secret [%d][%s]\n", ret, sss_strerror(ret));
         goto done;
     }
 
-    if (strcmp(datatype, "binary") == 0) {
-        ret = sec_kv_to_ccache_binary(tmp_ctx, secdb_key, ccbuf, client, &cc);
-    } else {
-        ret = sec_kv_to_ccache_json(tmp_ctx, secdb_key,
-                                    (const char *)sss_iobuf_get_data(ccbuf),
-                                    client, &cc);
-    }
+    ret = sec_kv_to_ccache_binary(tmp_ctx, secdb_key, ccbuf, client, &cc);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot convert %s data to ccache "
-              "[%d]: %s\n", datatype, ret, sss_strerror(ret));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot convert data to ccache [%d]: %s, "
+              "deleting this entry\n", ret, sss_strerror(ret));
+        ret = sss_sec_delete(sreq);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to delete entry: [%d]: %s",
+                  ret, sss_strerror(ret));
+        }
+        ret = ENOENT;
         goto done;
     }
 
@@ -723,7 +707,7 @@ static struct tevent_req *ccdb_secdb_set_default_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    ret = sss_sec_get(state, sreq, (uint8_t**)&cur_default, NULL, NULL);
+    ret = sss_sec_get(state, sreq, (uint8_t**)&cur_default, NULL);
     if (ret == ENOENT) {
         ret = sec_put(state, sreq, iobuf);
     } else if (ret == EOK) {
@@ -781,7 +765,7 @@ static struct tevent_req *ccdb_secdb_get_default_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    ret = sec_get(state, sreq, &dfl_iobuf, NULL);
+    ret = sec_get(state, sreq, &dfl_iobuf);
     if (ret == ENOENT) {
         uuid_clear(state->uuid);
         ret = EOK;

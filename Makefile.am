@@ -1739,7 +1739,6 @@ sssd_kcm_SOURCES = \
     src/responder/kcm/kcmsrv_ccache.c \
     src/responder/kcm/kcmsrv_ccache_binary.c \
     src/responder/kcm/kcmsrv_ccache_mem.c \
-    src/responder/kcm/kcmsrv_ccache_json.c \
     src/responder/kcm/kcmsrv_ccache_key.c \
     src/responder/kcm/kcmsrv_ccache_secdb.c \
     src/responder/kcm/kcmsrv_ops.c \
@@ -3771,7 +3770,6 @@ if BUILD_KCM
 test_kcm_marshalling_SOURCES = \
     src/tests/cmocka/test_kcm_marshalling.c \
     src/responder/kcm/kcmsrv_ccache_binary.c \
-    src/responder/kcm/kcmsrv_ccache_json.c \
     src/responder/kcm/kcmsrv_ccache_key.c \
     src/responder/kcm/kcmsrv_ccache.c \
     src/util/sss_krb5.c \
@@ -3817,7 +3815,6 @@ test_kcm_renewals_SOURCES = \
 	src/responder/kcm/kcmsrv_ccache.c \
 	src/responder/kcm/kcmsrv_ccache_key.c \
 	src/responder/kcm/kcmsrv_ccache_binary.c \
-	src/responder/kcm/kcmsrv_ccache_json.c \
 	src/util/sss_krb5.c \
 	src/util/sss_iobuf.c \
 	src/responder/kcm/secrets/secrets.c \

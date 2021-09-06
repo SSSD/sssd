@@ -108,20 +108,17 @@ errno_t sss_sec_list(TALLOC_CTX *mem_ctx,
 errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
                     struct sss_sec_req *req,
                     uint8_t **_secret,
-                    size_t *_secret_len,
-                    char **_datatype);
+                    size_t *_secret_len);
 
 errno_t sss_sec_put(struct sss_sec_req *req,
                     uint8_t *secret,
                     size_t secret_len,
-                    enum sss_sec_enctype enctype,
-                    const char *datatype);
+                    enum sss_sec_enctype enctype);
 
 errno_t sss_sec_update(struct sss_sec_req *req,
                        uint8_t *secret,
                        size_t secret_len,
-                       enum sss_sec_enctype enctype,
-                       const char *datatype);
+                       enum sss_sec_enctype enctype);
 
 errno_t sss_sec_create_container(struct sss_sec_req *req);
 
