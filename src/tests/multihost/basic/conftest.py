@@ -303,7 +303,7 @@ def files_domain_users_class(request, session_multihost):
     for user in no_home_users:
         useradd_cmd = "useradd --no-create-home %s" % (user)
         session_multihost.master[0].run_command(useradd_cmd)
-        usermod_cmd = "usermod -d '' %s" % (user)
+        usermod_cmd = "usermod -d /tmp %s" % (user)
         session_multihost.master[0].run_command(usermod_cmd)
 
     def teardown_files_domain_users():

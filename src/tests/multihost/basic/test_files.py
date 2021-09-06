@@ -53,11 +53,11 @@ class TestImplicitFilesProvider(object):
         cmd = multihost.master[0].run_command('getent passwd -s sss')
         assert len(cmd.stdout_text) == 0
 
-    def test_no_homedir_no_slash(self, multihost):
+    def test_updated_homedir(self, multihost):
         """
-        :title: files: Test that sssd returns an empty value with no homedir
-        :id: 58010941-f1d6-453f-86f7-ade11dc81bb5
+        :title: files: Test that homedir is updated
+        :id: a9a0a911-1818-40d1-b897-0397ef107fd4
         """
         exit_status, output = get_sss_user(multihost, 'no_home_user')
         assert exit_status == 0
-        assert ":/:" not in output
+        assert ":/tmp:" in output
