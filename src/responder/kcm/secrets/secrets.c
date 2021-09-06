@@ -38,8 +38,8 @@
 #define SECRETS_BASEDN  "cn=secrets"
 #define KCM_BASEDN      "cn=kcm"
 
-#define LOCAL_SIMPLE_FILTER "(|(type=simple)(type=binary))"
-#define LOCAL_CONTAINER_FILTER "(type=container)"
+#define LOCAL_CONTAINER_FILTER     "(type=container)"
+#define LOCAL_NON_CONTAINER_FILTER "(!"LOCAL_CONTAINER_FILTER")"
 
 #define SEC_ATTR_SECRET  "secret"
 #define SEC_ATTR_ENCTYPE "enctype"
@@ -278,7 +278,7 @@ static int local_db_check_number_of_secrets(TALLOC_CTX *mem_ctx,
     }
 
     ret = ldb_search(req->sctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
-                     attrs, LOCAL_SIMPLE_FILTER);
+                     attrs, LOCAL_NON_CONTAINER_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "ldb_search returned %d: %s\n", ret, ldb_strerror(ret));
@@ -359,7 +359,7 @@ static int local_db_check_peruid_number_of_secrets(TALLOC_CTX *mem_ctx,
     }
 
     ret = ldb_search(req->sctx->ldb, tmp_ctx, &res, cli_basedn, LDB_SCOPE_SUBTREE,
-                     attrs, LOCAL_SIMPLE_FILTER);
+                     attrs, LOCAL_NON_CONTAINER_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "ldb_search returned %d: %s\n", ret, ldb_strerror(ret));
@@ -988,7 +988,7 @@ errno_t sss_sec_list_cc_uuids(TALLOC_CTX *mem_ctx,
     dn = ldb_dn_new(tmp_ctx, sec->ldb, "cn=persistent,cn=kcm");
 
     ret = ldb_search(sec->ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
-           attrs, "%s", "(!(type=container))");
+           attrs, LOCAL_NON_CONTAINER_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "ldb_search returned [%d]: %s\n", ret, ldb_strerror(ret));
@@ -1069,11 +1069,11 @@ errno_t sss_sec_list(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Listing keys at [%s]\n", req->path);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Searching for [%s] at [%s] with scope=subtree\n",
-          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(req->req_dn));
+          "Searching at [%s] with scope=subtree\n",
+          ldb_dn_get_linearized(req->req_dn));
 
     ret = ldb_search(req->sctx->ldb, tmp_ctx, &res, req->req_dn, LDB_SCOPE_SUBTREE,
-                     attrs, "%s", LOCAL_SIMPLE_FILTER);
+                     attrs, LOCAL_NON_CONTAINER_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "ldb_search returned [%d]: %s\n", ret, ldb_strerror(ret));
@@ -1114,18 +1114,14 @@ done:
 errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
                     struct sss_sec_req *req,
                     uint8_t **_secret,
-                    size_t *_secret_len,
-                    char **_datatype)
+                    size_t *_secret_len)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *attrs[] = { SEC_ATTR_SECRET, SEC_ATTR_ENCTYPE,
-                                   SEC_ATTR_TYPE, NULL };
+    static const char *attrs[] = { SEC_ATTR_SECRET, SEC_ATTR_ENCTYPE, NULL };
     struct ldb_result *res;
     const struct ldb_val *attr_secret;
     const char *attr_enctype;
-    const char *attr_datatype;
     enum sss_sec_enctype enctype;
-    char *datatype;
     uint8_t *secret;
     size_t secret_len;
     int ret;
@@ -1140,11 +1136,11 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
     if (!tmp_ctx) return ENOMEM;
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Searching for [%s] at [%s] with scope=base\n",
-          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(req->req_dn));
+          "Searching at [%s] with scope=base\n",
+          ldb_dn_get_linearized(req->req_dn));
 
     ret = ldb_search(req->sctx->ldb, tmp_ctx, &res, req->req_dn, LDB_SCOPE_BASE,
-                     attrs, "%s", LOCAL_SIMPLE_FILTER);
+                     attrs, LOCAL_NON_CONTAINER_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "ldb_search returned [%d]: %s\n", ret, ldb_strerror(ret));
@@ -1180,18 +1176,6 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
                         attr_secret->length, enctype, &secret, &secret_len);
     if (ret) goto done;
 
-    if (_datatype != NULL) {
-        attr_datatype = ldb_msg_find_attr_as_string(res->msgs[0], SEC_ATTR_TYPE,
-                                                    "simple");
-        datatype = talloc_strdup(tmp_ctx, attr_datatype);
-        if (datatype == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        *_datatype = talloc_steal(mem_ctx, datatype);
-    }
-
     *_secret = talloc_steal(mem_ctx, secret);
 
     if (_secret_len) {
@@ -1208,8 +1192,7 @@ done:
 errno_t sss_sec_put(struct sss_sec_req *req,
                     uint8_t *secret,
                     size_t secret_len,
-                    enum sss_sec_enctype enctype,
-                    const char *datatype)
+                    enum sss_sec_enctype enctype)
 {
     struct ldb_message *msg;
     struct ldb_val enc_secret;
@@ -1269,14 +1252,6 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_string(msg, SEC_ATTR_TYPE, datatype);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "ldb_msg_add_string failed adding type:%s [%d]: %s\n",
-              datatype, ret, sss_strerror(ret));
-        goto done;
-    }
-
     ret = ldb_msg_add_string(msg, SEC_ATTR_ENCTYPE,
                              sss_sec_enctype_to_str(enctype));
     if (ret != EOK) {
@@ -1325,8 +1300,7 @@ done:
 errno_t sss_sec_update(struct sss_sec_req *req,
                        uint8_t *secret,
                        size_t secret_len,
-                       enum sss_sec_enctype enctype,
-                       const char *datatype)
+                       enum sss_sec_enctype enctype)
 {
     struct ldb_message *msg;
     struct ldb_val enc_secret;
@@ -1400,22 +1374,6 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding enctype [%d]: %s\n",
               ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = ldb_msg_add_empty(msg, SEC_ATTR_TYPE, LDB_FLAG_MOD_REPLACE, NULL);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "ldb_msg_add_empty failed: [%s]\n", ldb_strerror(ret));
-        ret = EIO;
-        goto done;
-    }
-
-    ret = ldb_msg_add_string(msg, SEC_ATTR_TYPE, datatype);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "ldb_msg_add_string failed adding type:%s [%d]: %s\n",
-              datatype, ret, sss_strerror(ret));
         goto done;
     }
 
