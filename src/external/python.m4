@@ -73,7 +73,7 @@ AC_DEFUN([SSS_CLEAN_PYTHON_VARIABLES],
 [
     unset pyexecdir pkgpyexecdir pythondir pgkpythondir
     unset PYTHON PYTHON_CFLAGS PYTHON_LIBS PYTHON_INCLUDES
-    unset PYTHON_PREFIX PYTHON_EXEC_PREFIX PYTHON_VERSION PYTHON_CONFIG
+    unset PYTHON_VERSION PYTHON_CONFIG
 
     dnl removed cached variables, required for reusing of AM_PATH_PYTHON
     unset am_cv_pathless_PYTHON ac_cv_path_PYTHON am_cv_python_version
