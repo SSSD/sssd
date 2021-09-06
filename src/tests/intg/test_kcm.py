@@ -141,9 +141,6 @@ def create_sssd_conf(kcm_path, ccache_storage, max_secrets=MAX_SECRETS):
         [kcm]
         socket_path = {kcm_path}
         ccache_storage = {ccache_storage}
-
-        [secrets]
-        max_secrets = {max_secrets}
     """).format(**locals())
 
 
@@ -165,9 +162,6 @@ def create_sssd_conf_renewals(kcm_path, ccache_storage, renew_lifetime,
         krb5_renewable_lifetime = {renew_lifetime}
         krb5_lifetime = {lifetime}
         krb5_renew_interval = {renew_interval}
-
-        [secrets]
-        max_secrets = {max_secrets}
     """).format(**locals())
 
 
