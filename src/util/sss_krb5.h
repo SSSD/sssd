@@ -201,4 +201,6 @@ krb5_error_code sss_krb5_init_context(krb5_context *context);
 
 void get_krb5_data_from_cred(struct sss_iobuf *iobuf, krb5_data *k5data);
 
+bool sss_krb5_creds_compare(krb5_context kctx, krb5_creds *a, krb5_creds *b);
+
 #endif /* __SSS_KRB5_H__ */
