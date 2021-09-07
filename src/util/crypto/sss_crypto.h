@@ -60,18 +60,4 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
 int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
                          char **password);
 
-enum encmethod {
-    AES256CBC_HMAC_SHA256,
-    NUM_ENCMETHODS
-};
-
-int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
-                const uint8_t *key, size_t keylen,
-                const uint8_t *plaintext, size_t plainlen,
-                uint8_t **ciphertext, size_t *cipherlen);
-int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
-                const uint8_t *key, size_t keylen,
-                const uint8_t *ciphertext, size_t cipherlen,
-                uint8_t **plaintext, size_t *plainlen);
-
 #endif /* _SSS_CRYPTO_H_ */

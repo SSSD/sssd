@@ -951,7 +951,6 @@ SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
                     src/util/crypto/libcrypto/crypto_hmac_sha1.c \
                     src/util/crypto/libcrypto/crypto_sha512crypt.c \
                     src/util/crypto/libcrypto/crypto_obfuscate.c \
-                    src/util/crypto/libcrypto/crypto_nite.c \
                     src/util/crypto/libcrypto/crypto_prng.c \
                     src/util/atomic_io.c \
                     src/util/memory.c \
