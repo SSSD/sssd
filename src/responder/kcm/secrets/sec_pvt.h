@@ -29,25 +29,13 @@
 
 #include "secrets.h"
 
-#define SSS_SEC_BASEPATH            "/secrets/"
-#define SSS_SEC_KCM_BASEPATH        "/kcm/"
-
-struct sss_sec_data {
-    uint8_t *data;
-    size_t length;
-};
-
 struct sss_sec_ctx {
     struct ldb_context *ldb;
-    struct sss_sec_data master_key;
 
-    struct sss_sec_quota *quota_secrets;
     struct sss_sec_quota *quota_kcm;
 };
 
 struct sss_sec_req {
-    char *mapped_path;
-
     char *path;
     const char *basedn;
     struct ldb_dn *req_dn;

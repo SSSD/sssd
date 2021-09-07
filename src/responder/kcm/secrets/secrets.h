@@ -32,10 +32,6 @@
 
 #define DEFAULT_SEC_CONTAINERS_NEST_LEVEL 4
 
-#define DEFAULT_SEC_MAX_SECRETS      1024
-#define DEFAULT_SEC_MAX_UID_SECRETS  256
-#define DEFAULT_SEC_MAX_PAYLOAD_SIZE 16
-
 /* The number of secrets in the /kcm hive should be quite small,
  * but the secret size must be large because one secret in the /kcm
  * hive holds the whole ccache which consists of several credentials
@@ -43,12 +39,6 @@
 #define DEFAULT_SEC_KCM_MAX_SECRETS      0          /* unlimited */
 #define DEFAULT_SEC_KCM_MAX_UID_SECRETS  64
 #define DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE 65536
-
-enum sss_sec_enctype {
-    SSS_SEC_PLAINTEXT,
-    SSS_SEC_MASTERKEY,
-    SSS_SEC_ENCTYPE_SENTINEL
-};
 
 struct sss_sec_ctx;
 
@@ -66,25 +56,9 @@ struct sss_sec_quota {
     int containers_nest_level;
 };
 
-struct sss_sec_hive_config {
-    const char *hive_name;
-    struct sss_sec_quota quota;
-};
-
-errno_t sss_sec_map_path(TALLOC_CTX *mem_ctx,
-                         const char *url,
-                         uid_t client,
-                         char **_mapped_path);
-
 errno_t sss_sec_init(TALLOC_CTX *mem_ctx,
-                     struct sss_sec_hive_config **config_list,
+                     struct sss_sec_quota *quota,
                      struct sss_sec_ctx **_sec_ctx);
-
-errno_t sss_sec_init_with_path(TALLOC_CTX *mem_ctx,
-                               struct sss_sec_hive_config **config_list,
-                               const char *dbpath,
-                               const char *mkeypath,
-                               struct sss_sec_ctx **_sec_ctx);
 
 errno_t sss_sec_new_req(TALLOC_CTX *mem_ctx,
                         struct sss_sec_ctx *sec_ctx,
@@ -112,17 +86,13 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
 
 errno_t sss_sec_put(struct sss_sec_req *req,
                     uint8_t *secret,
-                    size_t secret_len,
-                    enum sss_sec_enctype enctype);
+                    size_t secret_len);
 
 errno_t sss_sec_update(struct sss_sec_req *req,
                        uint8_t *secret,
-                       size_t secret_len,
-                       enum sss_sec_enctype enctype);
+                       size_t secret_len);
 
 errno_t sss_sec_create_container(struct sss_sec_req *req);
-
-bool sss_sec_req_is_list(struct sss_sec_req *req);
 
 
 errno_t sss_sec_get_quota(struct confdb_ctx *cdb,
@@ -132,13 +102,5 @@ errno_t sss_sec_get_quota(struct confdb_ctx *cdb,
                           struct sss_sec_quota_opt *dfl_max_num_uid_secrets,
                           struct sss_sec_quota_opt *dfl_max_payload,
                           struct sss_sec_quota *quota);
-
-errno_t sss_sec_get_hive_config(struct confdb_ctx *cdb,
-                                const char *hive_name,
-                                struct sss_sec_quota_opt *dfl_max_containers_nest_level,
-                                struct sss_sec_quota_opt *dfl_max_num_secrets,
-                                struct sss_sec_quota_opt *dfl_max_num_uid_secrets,
-                                struct sss_sec_quota_opt *dfl_max_payload,
-                                struct sss_sec_hive_config *hive_config);
 
 #endif /* __SECRETS_H_ */

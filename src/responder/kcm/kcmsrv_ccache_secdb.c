@@ -34,7 +34,7 @@
 #include "responder/kcm/kcm_renew.h"
 #include "providers/krb5/krb5_ccache.h"
 
-#define KCM_SECDB_URL        "/kcm/persistent"
+#define KCM_SECDB_URL        "persistent"
 #define KCM_SECDB_BASE_FMT    KCM_SECDB_URL"/%"SPRIuid"/"
 #define KCM_SECDB_CCACHE_FMT  KCM_SECDB_BASE_FMT"ccache/"
 #define KCM_SECDB_DFL_FMT     KCM_SECDB_BASE_FMT"default"
@@ -83,8 +83,7 @@ static errno_t sec_put(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
 
-    ret = sss_sec_put(req, sss_iobuf_get_data(buf), sss_iobuf_get_size(buf),
-                      SSS_SEC_PLAINTEXT);
+    ret = sss_sec_put(req, sss_iobuf_get_data(buf), sss_iobuf_get_size(buf));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot write the secret [%d]: %s\n", ret, sss_strerror(ret));
@@ -99,8 +98,7 @@ static errno_t sec_update(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
 
-    ret = sss_sec_update(req, sss_iobuf_get_data(buf), sss_iobuf_get_size(buf),
-                         SSS_SEC_PLAINTEXT);
+    ret = sss_sec_update(req, sss_iobuf_get_data(buf), sss_iobuf_get_size(buf));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot write the secret [%d]: %s\n", ret, sss_strerror(ret));
@@ -487,7 +485,7 @@ static errno_t ccdb_secdb_init(struct kcm_ccdb *db,
 {
     struct ccdb_secdb *secdb = NULL;
     errno_t ret;
-    struct sss_sec_hive_config **kcm_section_quota;
+    struct sss_sec_quota *kcm_quota;
     struct sss_sec_quota_opt dfl_kcm_nest_level = {
         .opt_name = CONFDB_KCM_CONTAINERS_NEST_LEVEL,
         .default_value = DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
@@ -511,21 +509,11 @@ static errno_t ccdb_secdb_init(struct kcm_ccdb *db,
         return ENOMEM;
     }
 
-    kcm_section_quota = talloc_zero_array(secdb,
-                                          struct sss_sec_hive_config *,
-                                          2);
-    if (kcm_section_quota == NULL) {
+    kcm_quota = talloc_zero(secdb, struct sss_sec_quota);
+    if (kcm_quota == NULL) {
         talloc_free(secdb);
         return ENOMEM;
     }
-
-    kcm_section_quota[0] = talloc_zero(kcm_section_quota,
-                                       struct sss_sec_hive_config);
-    if (kcm_section_quota[0] == NULL) {
-        talloc_free(secdb);
-        return ENOMEM;
-    }
-    kcm_section_quota[0]->hive_name = "kcm";
 
     ret = sss_sec_get_quota(cdb,
                             confdb_service_path,
@@ -533,7 +521,7 @@ static errno_t ccdb_secdb_init(struct kcm_ccdb *db,
                             &dfl_kcm_max_secrets,
                             &dfl_kcm_max_uid_secrets,
                             &dfl_kcm_max_payload_size,
-                            &kcm_section_quota[0]->quota);
+                            kcm_quota);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to get KCM global quotas [%d]: %s\n",
@@ -542,17 +530,17 @@ static errno_t ccdb_secdb_init(struct kcm_ccdb *db,
         return ret;
     }
 
-    if (kcm_section_quota[0]->quota.max_uid_secrets > 0) {
+    if (kcm_quota->max_uid_secrets > 0) {
         /* Even cn=default is considered a secret that adds up to
          * the quota. To avoid off-by-one-confusion, increase
          * the quota by two to 1) account for the cn=default object
          * and 2) always allow writing to cn=defaults even if we
          * are exactly at the quota limit
          */
-        kcm_section_quota[0]->quota.max_uid_secrets += 2;
+       kcm_quota->max_uid_secrets += 2;
     }
 
-    ret = sss_sec_init(db, kcm_section_quota, &secdb->sctx);
+    ret = sss_sec_init(db, kcm_quota, &secdb->sctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot initialize the security database\n");
