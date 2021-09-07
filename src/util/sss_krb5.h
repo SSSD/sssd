@@ -199,8 +199,6 @@ krb5_error_code sss_krb5_unmarshal_princ(TALLOC_CTX *mem_ctx,
 
 krb5_error_code sss_krb5_init_context(krb5_context *context);
 
-errno_t get_krb5_data_from_cred(TALLOC_CTX *mem_ctx,
-                                struct sss_iobuf *iobuf,
-                                krb5_data *k5data);
+void get_krb5_data_from_cred(struct sss_iobuf *iobuf, krb5_data *k5data);
 
 #endif /* __SSS_KRB5_H__ */
