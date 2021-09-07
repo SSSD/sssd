@@ -1375,3 +1375,16 @@ krb5_error_code sss_krb5_init_context(krb5_context *context)
 
     return kerr;
 }
+
+bool sss_krb5_creds_compare(krb5_context kctx, krb5_creds *a, krb5_creds *b)
+{
+    if (!krb5_principal_compare(kctx, a->client, b->client)) {
+        return false;
+    }
+
+    if (!krb5_principal_compare(kctx, a->server, b->server)) {
+        return false;
+    }
+
+    return true;
+}
