@@ -253,10 +253,91 @@ static struct kcm_cred *kcm_cred_dup(TALLOC_CTX *mem_ctx,
     return dup;
 }
 
+#ifdef HAVE_KRB5_UNMARSHAL_CREDENTIALS
+static krb5_creds *kcm_cred_to_krb5(krb5_context kctx, struct kcm_cred *kcm_crd)
+{
+    krb5_error_code kerr;
+    krb5_creds *kcrd;
+    krb5_data data;
+
+    get_krb5_data_from_cred(kcm_crd->cred_blob, &data);
+
+    kerr = krb5_unmarshal_credentials(kctx, &data, &kcrd);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unmarshal credentials\n");
+        return NULL;
+    }
+
+    return kcrd;
+}
+#endif
+
+static errno_t
+kcm_cc_remove_duplicates(struct kcm_ccache *cc,
+                         struct kcm_cred *kcm_crd)
+{
+#ifdef HAVE_KRB5_UNMARSHAL_CREDENTIALS
+    struct kcm_cred *p, *q;
+    krb5_error_code kerr;
+    krb5_context kctx;
+    krb5_creds *kcrd_cc;
+    krb5_creds *kcrd;
+    errno_t ret;
+    bool bret;
+
+    kerr = krb5_init_context(&kctx);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to init krb5 context\n");
+        return EIO;
+    }
+
+    kcrd = kcm_cred_to_krb5(kctx, kcm_crd);
+    if (kcrd == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to convert kcm cred to krb5\n");
+        goto done;
+    }
+
+    DLIST_FOR_EACH_SAFE(p, q, cc->creds) {
+        kcrd_cc = kcm_cred_to_krb5(kctx, p);
+        if (kcrd_cc == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to convert kcm cred to krb5\n");
+            goto done;
+        }
+
+        bret = sss_krb5_creds_compare(kctx, kcrd, kcrd_cc);
+        krb5_free_creds(kctx, kcrd_cc);
+        if (!bret) {
+            continue;
+        }
+
+        /* This cred is the same ticket. We will replace it with the new one. */
+        DLIST_REMOVE(cc->creds, p);
+    }
+
+    ret = EOK;
+
+done:
+    krb5_free_creds(kctx, kcrd);
+    krb5_free_context(kctx);
+
+    return ret;
+#else
+    return EOK;
+#endif
+}
+
 /* Add a cred to ccache */
 errno_t kcm_cc_store_creds(struct kcm_ccache *cc,
                            struct kcm_cred *crd)
 {
+    errno_t ret;
+
+    ret = kcm_cc_remove_duplicates(cc, crd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to remove duplicate credentials "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+    }
+
     DLIST_ADD(cc->creds, crd);
     talloc_steal(cc, crd);
     return EOK;
@@ -314,10 +395,7 @@ krb5_creds **kcm_cc_unmarshal(TALLOC_CTX *mem_ctx,
 #else
     TALLOC_CTX *tmp_ctx;
     struct kcm_cred *cred;
-    krb5_data cred_data;
     krb5_creds **cred_list;
-    errno_t ret;
-    krb5_error_code kerr;
     int i = 0;
     int count = 0;
 
@@ -333,12 +411,9 @@ krb5_creds **kcm_cc_unmarshal(TALLOC_CTX *mem_ctx,
     cred_list = talloc_zero_array(tmp_ctx, krb5_creds *, count + 1);
 
     for (cred = kcm_cc_get_cred(cc); cred != NULL; cred = kcm_cc_next_cred(cred), i++) {
-        get_krb5_data_from_cred(cred->cred_blob, &cred_data);
-
-        kerr = krb5_unmarshal_credentials(krb_context, &cred_data,
-                                          &cred_list[i]);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unmarshal credentials\n");
+        cred_list[i] = kcm_cred_to_krb5(krb_context, cred);
+        if (cred_list[i] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to convert kcm cred to krb5\n");
             goto done;
         }
     }
