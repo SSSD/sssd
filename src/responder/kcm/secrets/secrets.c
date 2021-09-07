@@ -33,35 +33,15 @@
 #include "secrets.h"
 
 #define KCM_PEER_UID            0
-#define MKEY_SIZE               (256 / 8)
 
-#define SECRETS_BASEDN  "cn=secrets"
 #define KCM_BASEDN      "cn=kcm"
 
 #define LOCAL_CONTAINER_FILTER     "(type=container)"
 #define LOCAL_NON_CONTAINER_FILTER "(!"LOCAL_CONTAINER_FILTER")"
 
 #define SEC_ATTR_SECRET  "secret"
-#define SEC_ATTR_ENCTYPE "enctype"
 #define SEC_ATTR_TYPE    "type"
 #define SEC_ATTR_CTIME   "creationTime"
-
-typedef int (*url_mapper_fn)(TALLOC_CTX *mem_ctx,
-                             const char *url,
-                             uid_t client,
-                             char **mapped_path);
-
-struct url_pfx_router {
-    const char *prefix;
-    url_mapper_fn mapper_fn;
-};
-
-static struct sss_sec_quota default_sec_quota = {
-    .max_secrets = DEFAULT_SEC_MAX_SECRETS,
-    .max_uid_secrets = DEFAULT_SEC_MAX_UID_SECRETS,
-    .max_payload_size = DEFAULT_SEC_MAX_PAYLOAD_SIZE,
-    .containers_nest_level = DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
-};
 
 static struct sss_sec_quota default_kcm_quota = {
     .max_secrets = DEFAULT_SEC_KCM_MAX_SECRETS,
@@ -69,139 +49,6 @@ static struct sss_sec_quota default_kcm_quota = {
     .max_payload_size = DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE,
     .containers_nest_level = DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
 };
-
-static const char *sss_sec_enctype_to_str(enum sss_sec_enctype enctype)
-{
-    switch (enctype) {
-    case SSS_SEC_PLAINTEXT:
-        return "plaintext";
-    case SSS_SEC_MASTERKEY:
-        return "masterkey";
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: unknown encryption type %d\n",
-                enctype);
-        return "unknown";
-    }
-}
-
-static enum sss_sec_enctype sss_sec_str_to_enctype(const char *str)
-{
-    if (strcmp("plaintext", str) == 0) {
-        return SSS_SEC_PLAINTEXT;
-    }
-
-    if (strcmp("masterkey", str) == 0) {
-        return SSS_SEC_MASTERKEY;
-    }
-
-    return SSS_SEC_ENCTYPE_SENTINEL;
-}
-
-static int local_decrypt(struct sss_sec_ctx *sctx,
-                         TALLOC_CTX *mem_ctx,
-                         uint8_t *secret,
-                         size_t secret_len,
-                         enum sss_sec_enctype enctype,
-                         uint8_t **_output,
-                         size_t *_output_len)
-{
-    struct sss_sec_data _secret;
-    uint8_t *output;
-    size_t output_len;
-    int ret;
-
-    switch (enctype) {
-    case SSS_SEC_PLAINTEXT:
-        output = talloc_memdup(mem_ctx, secret, secret_len);
-        output_len = secret_len;
-        break;
-    case SSS_SEC_MASTERKEY:
-        _secret.data = (uint8_t *)sss_base64_decode(mem_ctx,
-                                                    (const char *)secret,
-                                                    &_secret.length);
-        if (!_secret.data) {
-            DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed\n");
-            return EINVAL;
-        }
-
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Decrypting with masterkey\n");
-        ret = sss_decrypt(mem_ctx, AES256CBC_HMAC_SHA256,
-                          sctx->master_key.data,
-                          sctx->master_key.length,
-                          _secret.data, _secret.length,
-                          &output, &output_len);
-        talloc_free(_secret.data);
-        if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "sss_decrypt failed [%d]: %s\n", ret, sss_strerror(ret));
-            return ret;
-        }
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown encryption type '%d'\n", enctype);
-        return EINVAL;
-    }
-
-    if (output == NULL) {
-        return ENOMEM;
-    }
-
-    *_output = output;
-    *_output_len = output_len;
-
-    return EOK;
-}
-
-static int local_encrypt(struct sss_sec_ctx *sec_ctx,
-                         TALLOC_CTX *mem_ctx,
-                         uint8_t *secret,
-                         size_t secret_len,
-                         enum sss_sec_enctype enctype,
-                         uint8_t **_output,
-                         size_t *_output_len)
-{
-    struct sss_sec_data _secret;
-    uint8_t *output;
-    size_t output_len;
-    char *b64;
-    int ret;
-
-    switch (enctype) {
-    case SSS_SEC_PLAINTEXT:
-        output = talloc_memdup(mem_ctx, secret, secret_len);
-        output_len = secret_len;
-        break;
-    case SSS_SEC_MASTERKEY:
-        ret = sss_encrypt(mem_ctx, AES256CBC_HMAC_SHA256,
-                          sec_ctx->master_key.data,
-                          sec_ctx->master_key.length,
-                          secret, secret_len,
-                          &_secret.data, &_secret.length);
-        if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                "sss_encrypt failed [%d]: %s\n", ret, sss_strerror(ret));
-            return ret;
-        }
-
-        b64 = sss_base64_encode(mem_ctx, _secret.data, _secret.length);
-        output = (uint8_t*)b64;
-        output_len = strlen(b64) + 1;
-        talloc_free(_secret.data);
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown encryption type '%d'\n", enctype);
-        return EINVAL;
-    }
-
-    if (output == NULL) {
-        return ENOMEM;
-    }
-
-    *_output = output;
-    *_output_len = output_len;
-
-    return EOK;
-}
 
 static int local_db_check_containers(TALLOC_CTX *mem_ctx,
                                      struct sss_sec_ctx *sec_ctx,
@@ -494,216 +341,10 @@ done:
     return ret;
 }
 
-static int sec_map_url_to_user_path(TALLOC_CTX *mem_ctx,
-                                    const char *url,
-                                    uid_t client,
-                                    char **mapped_path)
-{
-    /* change path to be user specific */
-    *mapped_path =
-        talloc_asprintf(mem_ctx, SSS_SEC_BASEPATH"users/%"SPRIuid"/%s",
-                        client,
-                        &url[sizeof(SSS_SEC_BASEPATH) - 1]);
-    if (!*mapped_path) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to map request to user specific url\n");
-        return ENOMEM;
-    }
-
-    DEBUG(SSSDBG_TRACE_LIBS,
-          "User-specific secrets path is [%s]\n", *mapped_path);
-    return EOK;
-}
-
-static int kcm_map_url_to_path(TALLOC_CTX *mem_ctx,
-                               const char *url,
-                               uid_t client,
-                               char **mapped_path)
-{
-    if (client != KCM_PEER_UID) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "UID %"SPRIuid" is not allowed to access "
-              "the "SSS_SEC_KCM_BASEPATH" hive\n",
-              client);
-        return EPERM;
-    }
-
-    *mapped_path = talloc_strdup(mem_ctx, url);
-    if (!*mapped_path) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to map request to user specific url\n");
-        return ENOMEM;
-    }
-
-    DEBUG(SSSDBG_TRACE_LIBS,
-          "User-specific KCM path is [%s]\n", *mapped_path);
-    return EOK;
-}
-
-static struct url_pfx_router secrets_url_mapping[] = {
-    { SSS_SEC_BASEPATH, sec_map_url_to_user_path },
-    { SSS_SEC_KCM_BASEPATH, kcm_map_url_to_path },
-    { NULL, NULL },
-};
-
-errno_t sss_sec_map_path(TALLOC_CTX *mem_ctx,
-                         const char *url,
-                         uid_t client,
-                         char **_mapped_path)
-{
-    url_mapper_fn mapper_fn = NULL;
-    errno_t ret;
-
-    if (url == NULL || _mapped_path == NULL) {
-        return EINVAL;
-    }
-
-    for (int i = 0; secrets_url_mapping[i].prefix != NULL; i++) {
-        if (strncasecmp(url,
-                        secrets_url_mapping[i].prefix,
-                        strlen(secrets_url_mapping[i].prefix)) == 0) {
-            DEBUG(SSSDBG_TRACE_LIBS,
-                  "Mapping prefix %s\n", secrets_url_mapping[i].prefix);
-            mapper_fn = secrets_url_mapping[i].mapper_fn;
-            break;
-        }
-    }
-
-    if (mapper_fn == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Path [%s] does not start with any allowed prefix\n",
-              url);
-        return EPERM;
-    }
-
-    ret = mapper_fn(mem_ctx, url, client, _mapped_path);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to map the user path [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
-    return ret;
-}
-
-static int generate_master_key(const char *filename, size_t size)
-{
-    uint8_t buf[size];
-    ssize_t rsize;
-    int ret;
-    int fd;
-
-    ret = sss_generate_csprng_buffer(buf, size);
-    if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "generate_csprng_buffer failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
-    fd = open(filename, O_CREAT|O_EXCL|O_WRONLY, 0600);
-    if (fd == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE,
-              "open(%s) failed [%d]: %s\n",
-              filename, ret, strerror(ret));
-        return ret;
-    }
-
-    rsize = sss_atomic_write_s(fd, buf, size);
-    close(fd);
-    if (rsize != size) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sss_atomic_write_s failed [%d]: %s\n",
-              ret, strerror(ret));
-
-        ret = unlink(filename);
-        /* non-fatal failure */
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Failed to remove file: %s - %d [%s]!\n",
-                  filename, ret, sss_strerror(ret));
-        }
-        return EFAULT;
-    }
-
-    return EOK;
-}
-
-static errno_t lcl_read_mkey(TALLOC_CTX *mem_ctx,
-                             const char *mkeypath,
-                             struct sss_sec_data *master_key)
-{
-    int mfd;
-    ssize_t size;
-    errno_t ret;
-    const char *mkey = mkeypath;
-
-    master_key->data = talloc_size(mem_ctx, MKEY_SIZE);
-    if (master_key->data == NULL) {
-        return ENOMEM;
-    }
-
-    master_key->length = MKEY_SIZE;
-
-    ret = check_and_open_readonly(mkey, &mfd, 0, 0,
-                                  S_IFREG|S_IRUSR|S_IWUSR, 0);
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, "No master key, generating a new one..\n");
-
-        ret = generate_master_key(mkey, MKEY_SIZE);
-        if (ret) return EFAULT;
-        ret = check_and_open_readonly(mkey, &mfd, 0, 0,
-                                      S_IFREG|S_IRUSR|S_IWUSR, 0);
-    }
-    if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot generate a master key: %d\n", ret);
-        return EFAULT;
-    }
-
-    size = sss_atomic_read_s(mfd, master_key->data,
-                             master_key->length);
-    close(mfd);
-    if (size < 0 || size != master_key->length) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot read a master key: %d\n", ret);
-        return EIO;
-    }
-
-    return EOK;
-}
-
-static int set_quotas(struct sss_sec_ctx *sec_ctx,
-                      struct sss_sec_hive_config **config_list)
-{
-    sec_ctx->quota_secrets = &default_sec_quota;
-    sec_ctx->quota_kcm = &default_kcm_quota;
-
-    if (config_list == NULL) {
-        DEBUG(SSSDBG_TRACE_LIBS, "No custom quota set, using defaults\n");
-        return EOK;
-    }
-
-    for (int i = 0; config_list[i] != NULL; i++) {
-        if (strcasecmp(config_list[i]->hive_name, "kcm") == 0) {
-            sec_ctx->quota_kcm = &config_list[i]->quota;
-        } else if (strcasecmp(config_list[i]->hive_name, "secrets") == 0) {
-            sec_ctx->quota_secrets = &config_list[i]->quota;
-        } else {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Uknown hive %s, skipping\n", config_list[i]->hive_name);
-        }
-    }
-
-    return EOK;
-}
-
+/* non static since it is used in test_kcm_renewals.c */
 errno_t sss_sec_init_with_path(TALLOC_CTX *mem_ctx,
-                               struct sss_sec_hive_config **config_list,
+                               struct sss_sec_quota *quota,
                                const char *dbpath,
-                               const char *mkeypath,
                                struct sss_sec_ctx **_sec_ctx)
 {
     struct sss_sec_ctx *sec_ctx;
@@ -725,10 +366,11 @@ errno_t sss_sec_init_with_path(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = set_quotas(sec_ctx, config_list);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to set quotas\n");
-        /* Not fatal */
+    if (quota) {
+        sec_ctx->quota_kcm = quota;
+    } else {
+        DEBUG(SSSDBG_TRACE_LIBS, "No custom quota set, using defaults\n");
+        sec_ctx->quota_kcm = &default_kcm_quota;
     }
 
     sec_ctx->ldb = ldb_init(sec_ctx, NULL);
@@ -747,12 +389,6 @@ errno_t sss_sec_init_with_path(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = lcl_read_mkey(sec_ctx, mkeypath, &sec_ctx->master_key);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot get the master key\n");
-        goto done;
-    }
-
     ret = EOK;
     *_sec_ctx = talloc_steal(mem_ctx, sec_ctx);
 done:
@@ -761,14 +397,13 @@ done:
 }
 
 errno_t sss_sec_init(TALLOC_CTX *mem_ctx,
-                     struct sss_sec_hive_config **config_list,
+                     struct sss_sec_quota *quota,
                      struct sss_sec_ctx **_sec_ctx)
 {
     const char *dbpath = SECRETS_DB_PATH"/secrets.ldb";
-    const char *mkeypath = SECRETS_DB_PATH"/.secrets.mkey";
     errno_t ret;
 
-    ret = sss_sec_init_with_path(mem_ctx, config_list, dbpath, mkeypath, _sec_ctx);
+    ret = sss_sec_init_with_path(mem_ctx, quota, dbpath, _sec_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize secdb [%d]: %s\n",
                                    ret, sss_strerror(ret));
@@ -856,58 +491,19 @@ errno_t sss_sec_new_req(TALLOC_CTX *mem_ctx,
     }
     req->sctx = sec_ctx;
 
-    ret = sss_sec_map_path(req, url, client, &req->mapped_path);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Mapping URL to path failed\n");
-        goto done;
-    }
-
-    if (req->mapped_path == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "The path was not mapped properly!\n");
-        ret = EINVAL;
-        goto done;
-    }
-
     /* drop the prefix and select a basedn instead */
-    if (strncmp(req->mapped_path,
-                SSS_SEC_BASEPATH,
-                sizeof(SSS_SEC_BASEPATH) - 1) == 0) {
-
-        if (geteuid() != 0 && client != geteuid()) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Only root can impersonate other users\n");
-            ret = EPERM;
-            goto done;
-        }
-
-        req->path = talloc_strdup(req,
-                                     req->mapped_path + (sizeof(SSS_SEC_BASEPATH) - 1));
-        req->basedn = SECRETS_BASEDN;
-        req->quota = sec_ctx->quota_secrets;
-    } else if (strncmp(req->mapped_path,
-                       SSS_SEC_KCM_BASEPATH,
-                       sizeof(SSS_SEC_KCM_BASEPATH) - 1) == 0) {
-
-        if (geteuid() != KCM_PEER_UID && client != KCM_PEER_UID) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "UID %"SPRIuid" is not allowed to access "
-                  "the "SSS_SEC_KCM_BASEPATH" hive\n",
-                  client);
-            ret = EPERM;
-            goto done;
-        }
-
-        req->path = talloc_strdup(req,
-                                  req->mapped_path + (sizeof(SSS_SEC_KCM_BASEPATH) - 1));
-        req->basedn = KCM_BASEDN;
-        req->quota = sec_ctx->quota_kcm;
-    } else {
-        ret = EINVAL;
+    if (geteuid() != KCM_PEER_UID && client != KCM_PEER_UID) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "UID %"SPRIuid" is not allowed to access the KCM hive\n",
+              client);
+        ret = EPERM;
         goto done;
     }
 
+    req->basedn = KCM_BASEDN;
+    req->quota = sec_ctx->quota_kcm;
+    req->path = talloc_strdup(req, url);
     if (req->path == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to map request to local db path\n");
         ret = ENOMEM;
         goto done;
     }
@@ -1117,13 +713,9 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
                     size_t *_secret_len)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *attrs[] = { SEC_ATTR_SECRET, SEC_ATTR_ENCTYPE, NULL };
+    static const char *attrs[] = { SEC_ATTR_SECRET, NULL };
     struct ldb_result *res;
     const struct ldb_val *attr_secret;
-    const char *attr_enctype;
-    enum sss_sec_enctype enctype;
-    uint8_t *secret;
-    size_t secret_len;
     int ret;
 
     if (req == NULL || _secret == NULL) {
@@ -1163,23 +755,20 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
     }
 
     attr_secret = ldb_msg_find_ldb_val(res->msgs[0], SEC_ATTR_SECRET);
-    if (!attr_secret) {
+    if ((!attr_secret) || (attr_secret->length == 0)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "The 'secret' attribute is missing\n");
         ret = ENOENT;
         goto done;
     }
 
-    attr_enctype = ldb_msg_find_attr_as_string(res->msgs[0], SEC_ATTR_ENCTYPE,
-                                               "plaintext");
-    enctype = sss_sec_str_to_enctype(attr_enctype);
-    ret = local_decrypt(req->sctx, tmp_ctx, attr_secret->data,
-                        attr_secret->length, enctype, &secret, &secret_len);
-    if (ret) goto done;
-
-    *_secret = talloc_steal(mem_ctx, secret);
+    *_secret = talloc_memdup(mem_ctx, attr_secret->data, attr_secret->length);
+    if (*_secret == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     if (_secret_len) {
-        *_secret_len = secret_len;
+        *_secret_len = attr_secret->length;
     }
 
     ret = EOK;
@@ -1191,11 +780,10 @@ done:
 
 errno_t sss_sec_put(struct sss_sec_req *req,
                     uint8_t *secret,
-                    size_t secret_len,
-                    enum sss_sec_enctype enctype)
+                    size_t secret_len)
 {
     struct ldb_message *msg;
-    struct ldb_val enc_secret;
+    struct ldb_val secret_val;
     int ret;
 
     if (req == NULL || secret == NULL) {
@@ -1244,24 +832,14 @@ errno_t sss_sec_put(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = local_encrypt(req->sctx, msg, secret, secret_len, enctype,
-                        &enc_secret.data, &enc_secret.length);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "local_encrypt failed [%d]: %s\n", ret, sss_strerror(ret));
+    secret_val.length = secret_len;
+    secret_val.data = talloc_memdup(req->sctx, secret, secret_len);
+    if (!secret_val.data) {
+        ret = ENOMEM;
         goto done;
     }
 
-    ret = ldb_msg_add_string(msg, SEC_ATTR_ENCTYPE,
-                             sss_sec_enctype_to_str(enctype));
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "ldb_msg_add_string failed adding enctype [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = ldb_msg_add_value(msg, SEC_ATTR_SECRET, &enc_secret, NULL);
+    ret = ldb_msg_add_value(msg, SEC_ATTR_SECRET, &secret_val, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_msg_add_string failed adding secret [%d]: %s\n",
@@ -1299,11 +877,10 @@ done:
 
 errno_t sss_sec_update(struct sss_sec_req *req,
                        uint8_t *secret,
-                       size_t secret_len,
-                       enum sss_sec_enctype enctype)
+                       size_t secret_len)
 {
     struct ldb_message *msg;
-    struct ldb_val enc_secret;
+    struct ldb_val secret_val;
     int ret;
 
     if (req == NULL || secret == NULL) {
@@ -1352,28 +929,10 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = local_encrypt(req->sctx, msg, secret, secret_len, enctype,
-                        &enc_secret.data, &enc_secret.length);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "local_encrypt failed [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = ldb_msg_add_empty(msg, SEC_ATTR_ENCTYPE, LDB_FLAG_MOD_REPLACE, NULL);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "ldb_msg_add_empty failed: [%s]\n", ldb_strerror(ret));
-        ret = EIO;
-        goto done;
-    }
-
-    ret = ldb_msg_add_string(msg, SEC_ATTR_ENCTYPE,
-                             sss_sec_enctype_to_str(enctype));
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "ldb_msg_add_string failed adding enctype [%d]: %s\n",
-              ret, sss_strerror(ret));
+    secret_val.length = secret_len;
+    secret_val.data = talloc_memdup(req->sctx, secret, secret_len);
+    if (!secret_val.data) {
+        ret = ENOMEM;
         goto done;
     }
 
@@ -1386,7 +945,7 @@ errno_t sss_sec_update(struct sss_sec_req *req,
         goto done;
     }
 
-    ret = ldb_msg_add_value(msg, SEC_ATTR_SECRET, &enc_secret, NULL);
+    ret = ldb_msg_add_value(msg, SEC_ATTR_SECRET, &secret_val, NULL);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "ldb_msg_add_string failed: [%s]\n", ldb_strerror(ret));
@@ -1497,17 +1056,4 @@ errno_t sss_sec_create_container(struct sss_sec_req *req)
 
     req->path[plen - 1] = '\0';
     return local_db_create(req);
-}
-
-bool sss_sec_req_is_list(struct sss_sec_req *req)
-{
-    if (req == NULL || req->mapped_path == NULL) {
-        return false;
-    }
-
-    if (req->mapped_path[strlen(req->mapped_path) - 1] == '/') {
-        return true;
-    }
-
-    return false;
 }
