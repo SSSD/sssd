@@ -333,12 +333,7 @@ krb5_creds **kcm_cc_unmarshal(TALLOC_CTX *mem_ctx,
     cred_list = talloc_zero_array(tmp_ctx, krb5_creds *, count + 1);
 
     for (cred = kcm_cc_get_cred(cc); cred != NULL; cred = kcm_cc_next_cred(cred), i++) {
-        ret = get_krb5_data_from_cred(tmp_ctx, cred->cred_blob, &cred_data);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to convert cred to krb5_data"
-                                       "[%d]: %s\n", ret, sss_strerror(ret));
-            goto done;
-        }
+        get_krb5_data_from_cred(cred->cred_blob, &cred_data);
 
         kerr = krb5_unmarshal_credentials(krb_context, &cred_data,
                                           &cred_list[i]);
