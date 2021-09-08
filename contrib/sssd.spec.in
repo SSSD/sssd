@@ -17,7 +17,7 @@
 %if 0%{?fedora} >= 34
 %global build_kcm_renewals 1
 %global krb5_version 1.19.1
-%elif 0%{rhel} >= 8
+%elif 0%{?rhel} >= 8
 %global build_kcm_renewals 1
 %global krb5_version 1.18.2
 %else
