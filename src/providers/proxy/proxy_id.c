@@ -908,6 +908,10 @@ handle_getgr_result(enum nss_status status, struct group *grp,
                     struct sss_domain_info *dom,
                     bool *delete_group)
 {
+    if (delete_group) {
+        *delete_group = false;
+    }
+
     switch (status) {
     case NSS_STATUS_TRYAGAIN:
         DEBUG(SSSDBG_MINOR_FAILURE, "Buffer too small\n");
@@ -915,7 +919,9 @@ handle_getgr_result(enum nss_status status, struct group *grp,
 
     case NSS_STATUS_NOTFOUND:
         DEBUG(SSSDBG_MINOR_FAILURE, "Group not found.\n");
-        *delete_group = true;
+        if (delete_group) {
+            *delete_group = true;
+        }
         break;
 
     case NSS_STATUS_SUCCESS:
@@ -927,7 +933,9 @@ handle_getgr_result(enum nss_status status, struct group *grp,
         if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Group filtered out! (id out of range)\n");
-            *delete_group = true;
+            if (delete_group) {
+                *delete_group = true;
+            }
             break;
         }
         break;
@@ -1488,6 +1496,141 @@ fail:
     return ret;
 }
 
+static int remove_group_members(struct proxy_id_ctx *ctx,
+                                struct sss_domain_info *dom,
+                                const struct passwd *pwd,
+                                long int num_gids,
+                                const gid_t *gids,
+                                long int num_cached_gids,
+                                const gid_t *cached_gids)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    int i = 0, j = 0;
+    int ret = EOK;
+    const char *groupname = NULL;
+    const char *username = NULL;
+    bool group_found = false;
+    struct ldb_result *res = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    username = sss_create_internal_fqname(tmp_ctx, pwd->pw_name, dom->name);
+    if (username == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create fqdn '%s'\n", pwd->pw_name);
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < num_cached_gids; i++) {
+        group_found = false;
+        /* group 0 is the primary group so it can be skipped */
+        for (j = 1; j < num_gids; j++) {
+            if (cached_gids[i] == gids[j]) {
+                group_found = true;
+                break;
+            }
+        }
+
+        if (!group_found) {
+            ret = sysdb_getgrgid(tmp_ctx, dom, cached_gids[i], &res);
+            if (ret != EOK || res->count != 1) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_getgrgid failed for GID [%d].\n", cached_gids[i]);
+                continue;
+            }
+
+            groupname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+            if (groupname == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Attribute is missing but this should never happen!\n");
+                continue;
+            }
+
+            ret = sysdb_remove_group_member(dom, groupname,
+                                            username,
+                                            SYSDB_MEMBER_USER, false);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Could not remove member [%s] from group [%s]\n",
+                      username, groupname);
+                continue;
+            }
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static int get_cached_user_groups(struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *dom,
+                                  const struct passwd *pwd,
+                                  unsigned int *_num_cached_gids,
+                                  gid_t **_cached_gids)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    int ret = EOK;
+    int i = 0, j = 0;
+    gid_t gid = 0;
+    gid_t *cached_gids = NULL;
+    const char *username = NULL;
+    struct ldb_result *res = NULL;
+
+    if (_num_cached_gids == NULL || _cached_gids == NULL) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        goto done;
+    }
+
+    username = sss_create_internal_fqname(tmp_ctx, pwd->pw_name, dom->name);
+    if (username == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create fqdn '%s'\n", pwd->pw_name);
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_initgroups(tmp_ctx, dom, username, &res);
+    /* the first element is the user itself so it can be skipped */
+    if (ret == EOK && res->count > 1) {
+        cached_gids = talloc_array(tmp_ctx, gid_t, res->count - 1);
+
+        for (i = 1; i < res->count; i++) {
+            gid = ldb_msg_find_attr_as_uint(res->msgs[i], SYSDB_GIDNUM, 0);
+            if (gid != 0) {
+                cached_gids[j] = gid;
+                j++;
+            }
+        }
+
+        *_num_cached_gids = j;
+        *_cached_gids = talloc_steal(sysdb, cached_gids);
+    } else if (ret == EOK) {
+        *_num_cached_gids = 0;
+        *_cached_gids = NULL;
+    } else {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+
+    return ret;
+}
+
 static int get_initgr_groups_process(TALLOC_CTX *memctx,
                                      struct proxy_id_ctx *ctx,
                                      struct sysdb_ctx *sysdb,
@@ -1503,6 +1646,8 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
     int ret;
     int i;
     time_t now;
+    gid_t *cached_gids = NULL;
+    unsigned int num_cached_gids = 0;
 
     num_gids = 0;
     limit = 4096;
@@ -1552,6 +1697,16 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
     case NSS_STATUS_SUCCESS:
         DEBUG(SSSDBG_CONF_SETTINGS, "User [%s] appears to be member of %lu "
               "groups\n", pwd->pw_name, num_gids);
+
+        ret = get_cached_user_groups(sysdb, dom, pwd, &num_cached_gids, &cached_gids);
+        if (ret) {
+            return ret;
+        }
+        ret = remove_group_members(ctx, dom, pwd, num_gids, gids, num_cached_gids, cached_gids);
+        talloc_free(cached_gids);
+        if (ret) {
+            return ret;
+        }
 
         now = time(NULL);
         for (i = 0; i < num_gids; i++) {
