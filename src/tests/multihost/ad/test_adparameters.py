@@ -8,12 +8,12 @@
 from __future__ import print_function
 import time
 import random
+import re
 import pytest
 import paramiko
-import re
+
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.utils import SSHClient
-from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 
 
 @pytest.mark.adparameters
@@ -692,8 +692,9 @@ class TestBugzillaAutomation(object):
         multihost.client[0].run_command(remove_pcap)
         assert status == 'PASS'
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0018_bz1734040(self, multihost, adjoin):
+    def test_0018_bz1734040(multihost, adjoin, create_aduser_group):
         """
         :title: ad_parameters: sssd crash in ad_get_account_domain_search
         :id: dcca509e-b316-4010-a173-20f541dafd52
@@ -702,28 +703,44 @@ class TestBugzillaAutomation(object):
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0])
-        domain_name = client.get_domain_section_name()
         client.backup_sssd_conf()
         client.remove_sss_cache('/var/log/sssd')
-        sssdcfg = multihost.client[0].get_file_contents(SSSD_DEFAULT_CONF)
-        sssdcfg = re.sub(b'ad_domain = %s' % domain_name.encode('utf-8'),
-                         b'ad_domain = example.com \ndebug_level = 9', sssdcfg)
-        multihost.client[0].put_file_contents(SSSD_DEFAULT_CONF, sssdcfg)
+        domain_name = client.get_domain_section_name()
+        dom_section = 'domain/%s' % domain_name
+        client.sssd_conf(dom_section, {'debug_level': '9'})
+        client.sssd_conf('sssd', {'debug_level': '9'})
+
+        # Configure local files domain
+        local_params = {'id_provider': 'files', 'debug_level': '9'}
+        client.sssd_conf('domain/local', local_params)
+
+        # Make SSSD AD offline
+        multihost.client[0].run_command(
+            'which iptables || yum install -y iptables',
+            raiseonerr=False
+        )
+        multihost.client[0].run_command(
+            f'iptables -F; iptables -A INPUT -s {multihost.ad[0].ip} -j DROP;'
+            f'iptables -A OUTPUT -d {multihost.ad[0].ip} -j DROP',
+            raiseonerr=False
+        )
+
         client.clear_sssd_cache()
-        cmd = multihost.client[0].run_command('getent passwd 0',
-                                              raiseonerr=True)
-        if cmd.returncode != 0:
-            status = 'FAIL'
-        else:
-            status = 'PASS'
-        time.sleep(10)
+        (aduser, _) = create_aduser_group
+
+        # This one should fail as AD is offline and caches are cleaned up
+        multihost.client[0].run_command(
+            f'getent passwd {aduser}@{multihost.ad[0].domainname}',
+            raiseonerr=False)
+
+        time.sleep(15)
         domain_log = '/var/log/sssd/sssd_%s.log' % domain_name
         log = multihost.client[0].get_file_contents(domain_log).decode('utf-8')
-        msg = 'Flags\s.0x0001.'
+        msg = r'Account.*Flags\s.0x0001.'
         find = re.compile(r'%s' % msg)
-        if not find.search(log):
-            status = 'FAIL'
-        else:
-            status = 'PASS'
+
+        # Teardown
+        multihost.client[0].run_command('iptables -F', raiseonerr=False)
         client.restore_sssd_conf()
-        assert status == 'PASS'
+
+        assert find.search(log), "Expected log record is missing."
