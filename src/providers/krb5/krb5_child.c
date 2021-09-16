@@ -3430,8 +3430,11 @@ int main(int argc, const char *argv[])
      * default and the 'sssd' user is allowed with the help of the
      * sssd-pcsc.rules policy-kit rule. So those IDs are a suitable choice. We
      * can only call switch_creds() because after the TGT is returned we have
-     * to switch to the IDs of the user to store the TGT. */
-    if (IS_SC_AUTHTOK(kr->pd->authtok)) {
+     * to switch to the IDs of the user to store the TGT.
+     * If we are offline we have to switch to the user's credentials directly
+     * to make sure the empty ccache is created with the expected
+     * ownership. */
+    if (IS_SC_AUTHTOK(kr->pd->authtok) && !offline) {
         kerr = switch_creds(kr, kr->fast_uid, kr->fast_gid, 0, NULL,
                             &kr->pcsc_saved_creds);
     } else {
