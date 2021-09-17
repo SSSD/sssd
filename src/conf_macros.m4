@@ -889,3 +889,5 @@ AC_ARG_ENABLE([gss-spnego-for-zero-maxssf],
 AS_IF([test x$enable_gss_spnego_for_zero_maxssf = xyes],
       AC_DEFINE_UNQUOTED([ALLOW_GSS_SPNEGO_FOR_ZERO_MAXSSF], [1],
                          [whether to use GSS-SPNEGO if maxssf is 0 (zero)]))
+
+AC_DEFINE_UNQUOTED(KRB5_KDC_RUNDIR, RUNDIR "/krb5kdc", [Path to KRB5 KDC run directory])

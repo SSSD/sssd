@@ -68,6 +68,7 @@ struct so {
     { "sssd_krb5_localauth_plugin.so", { LIBPFX"sssd_krb5_localauth_plugin.so",
                                        NULL } },
 #endif
+    { "sssd_krb5_idp_plugin.so", { LIBPFX"sssd_krb5_idp_plugin.so", NULL } },
 #ifdef HAVE_PAC_RESPONDER
     { "sssd_pac_plugin.so", { LIBPFX"sssd_pac_plugin.so", NULL } },
 #endif
