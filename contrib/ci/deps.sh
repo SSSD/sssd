@@ -120,6 +120,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libglib2.0-dev
         libini-config-dev
         libkeyutils-dev
+        libkrad-dev
         libkrb5-dev
         libldap2-dev
         libldb-dev
