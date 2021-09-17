@@ -294,6 +294,7 @@ if HAVE_CMOCKA
         sss_certmap_test \
         test_sssd_krb5_locator_plugin \
         test_confdb \
+        test_krb5_idp_plugin \
         $(NULL)
 
 
@@ -3814,6 +3815,18 @@ test_kcm_queue_LDADD = \
     libsss_sbus.la \
     $(NULL)
 
+test_krb5_idp_plugin_SOURCES = \
+    src/tests/cmocka/test_krb5_idp_plugin.c \
+    src/krb5_plugin/idp/idp_utils.c \
+    $(NULL)
+test_krb5_idp_plugin_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_krb5_idp_plugin_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(JANSSON_LIBS) \
+    $(NULL)
+
 if BUILD_KCM_RENEWAL
 test_kcm_renewals_SOURCES = \
 	$(TEST_MOCK_RESP_OBJ) \
@@ -4519,6 +4532,7 @@ krb5_child_SOURCES = \
     src/util/become_user.c \
     src/util/util_errors.c \
     src/sss_client/common.c \
+    src/krb5_plugin/idp/idp_utils.c \
     $(NULL)
 krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4705,7 +4719,34 @@ sssd_krb5_localauth_plugin_la_LDFLAGS = \
     -module
 endif
 
+krb5_plugindir = @appmodpath@
 dist_krb5snippets_DATA = contrib/enable_sssd_conf_dir
+
+krb5_plugin_LTLIBRARIES = \
+    sssd_krb5_idp_plugin.la \
+    $(NULL)
+
+sssd_krb5_idp_plugin_la_SOURCES = \
+    src/krb5_plugin/idp/idp_clpreauth.c \
+    src/krb5_plugin/idp/idp_kdcpreauth.c \
+    src/krb5_plugin/idp/idp_utils.c \
+    $(NULL)
+sssd_krb5_idp_plugin_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(KRB5_CFLAGS) \
+    $(NULL)
+sssd_krb5_idp_plugin_la_LIBADD = \
+    $(KRB5_LIBS) \
+    $(KRAD_LIBS) \
+    $(JANSSON_LIBS) \
+    $(NULL)
+sssd_krb5_idp_plugin_la_LDFLAGS = \
+    -avoid-version \
+    -module \
+    $(NULL)
+
+dist_noinst_HEADERS += src/krb5_plugin/idp/idp.h
+dist_krb5snippets_DATA += src/krb5_plugin/idp/sssd_enable_idp
 
 sssd_pac_plugin_la_SOURCES = \
     src/sss_client/sssd_pac.c \
@@ -5134,6 +5175,7 @@ installsssddirs::
     $(DESTDIR)$(sudolibdir) \
     $(DESTDIR)$(autofslibdir) \
     $(DESTDIR)$(pipepath)/private \
+    $(DESTDIR)$(krb5snippetsdir) \
     $(SSSD_USER_DIRS) \
     $(NULL);
 if SSSD_USER

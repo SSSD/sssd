@@ -309,6 +309,7 @@ License: GPLv3+
 Requires: samba-client-libs >= %{samba_package_version}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
+Requires: sssd-idp = %{version}-%{release}
 Requires: libipa_hbac%{?_isa} = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
 Recommends: bind-utils
@@ -500,6 +501,15 @@ Requires: krb5-libs >= %{krb5_version}
 An implementation of a Kerberos KCM server. Use this package if you want to
 use the KCM: Kerberos credentials cache.
 
+%package idp
+Summary: Kerberos plugins for external identity providers.
+License: GPLv3+
+Requires: sssd-common = %{version}-%{release}
+
+%description idp
+This package provides Kerberos plugins that are required to enable
+authentication against external identity providers.
+
 %prep
 %autosetup -p1
 
@@ -565,6 +575,10 @@ install -m644 src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d
 cp $RPM_BUILD_ROOT/%{_datadir}/sssd-kcm/kcm_default_ccache \
    $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/kcm_default_ccache
+
+# Enable krb5 idp plugins by default (when sssd-idp package is installed)
+cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_idp \
+   $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/sssd_enable_idp
 
 # krb5 configuration snippet
 cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/enable_sssd_conf_dir \
@@ -965,6 +979,11 @@ done
 %{_unitdir}/sssd-kcm.socket
 %{_unitdir}/sssd-kcm.service
 %{_mandir}/man8/sssd-kcm.8*
+
+%files idp
+%{_libdir}/%{name}/modules/sssd_krb5_idp_plugin.so
+%{_datadir}/sssd/krb5-snippets/sssd_enable_idp
+%config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_idp
 
 %if 0%{?rhel}
 %pre common

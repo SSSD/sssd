@@ -1,0 +1,14 @@
+# Enable SSSD OAuth2 Kerberos preauthentication plugins.
+#
+# This will allow you to obtain Kerberos TGT through OAuth2 authentication.
+#
+# To disable the OAuth2 plugin, comment out the following lines.
+
+[plugins]
+ clpreauth = {
+  module = idp:/usr/lib64/sssd/modules/sssd_krb5_idp_plugin.so
+ }
+
+ kdcpreauth = {
+  module = idp:/usr/lib64/sssd/modules/sssd_krb5_idp_plugin.so
+ }
