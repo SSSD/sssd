@@ -425,10 +425,37 @@ def enable_multiple_responders(session_multihost, request):
 
 
 @pytest.fixture(scope='function')
+def sssd_sudo_conf(session_multihost, request):
+    """ Configure basic sudo parameters in sssd.conf """
+    tools = sssdTools(session_multihost.client[0])
+    session_multihost.client[0].service_sssd('stop')
+    tools.remove_sss_cache('/var/lib/sss/db/')
+    tools.remove_sss_cache('/var/log/sssd')
+    ldap_uri = f'ldap://{session_multihost.master[0].sys_hostname}'
+    section = "sssd"
+    sssd_params = {'services': 'nss, pam, sudo'}
+    tools.sssd_conf(section, sssd_params)
+    sudo_base = f'ou=sudoers,{ds_suffix}'
+    params = {'ldap_sudo_search_base': sudo_base,
+              'sudo_provider': 'ldap'}
+    domain_section = f'domain/{ds_instance_name}'
+    tools.sssd_conf(domain_section, params, action='update')
+    ret = session_multihost.client[0].service_sssd('start')
+
+    def restore_sssd_conf():
+        """ Restore sssd.conf """
+        services = 'nss, pam'
+        sssd_params = {'services': services}
+        tools.sssd_conf('sssd', sssd_params)
+        tools.sssd_conf(domain_section, params, action='delete')
+    request.addfinalizer(restore_sssd_conf)
+
+
+@pytest.fixture(scope='function')
 def sudo_rule(session_multihost, request):
     """ Create sudoers ldap entries """
-    ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
-    sudo_ou = 'ou=sudoers, %s' % ds_suffix
+    ldap_uri = f'ldap://{session_multihost.master[0].sys_hostname}'
+    sudo_ou = f'ou=sudoers,{ds_suffix}'
     ds_rootdn = 'cn=Directory Manager'
     ds_rootpw = 'Secret123'
     ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
@@ -439,12 +466,12 @@ def sudo_rule(session_multihost, request):
     sudo_options = ["!requiretty", "!authenticate"]
     sudo_cmd = '/usr/bin/head'
     sudo_user = 'foo1'
-    rule_dn = "cn=%s, %s" % (sudo_cmd, sudo_ou)
+    rule_dn = f'cn={sudo_cmd},{sudo_ou}'
     try:
         ldap_inst.add_sudo_rule(rule_dn, 'ALL', '/usr/bin/head',
                                 sudo_user, sudo_options)
     except LdapException:
-        pytest.fail("Failed to add sudo rule %s" % rule_dn)
+        pytest.fail(f"Failed to add sudo rule {rule_dn}")
     else:
         extra_user = 'foo2'
         add_extra = [(ldap.MOD_ADD,  'sudoUser',
@@ -454,7 +481,7 @@ def sudo_rule(session_multihost, request):
 
     def del_sudo_rule():
         """ Delete sudo rule  """
-        rule_dn = 'cn=%s,%s' % (sudo_cmd, sudo_ou)
+        rule_dn = f'cn={sudo_cmd},{sudo_ou}'
         (_, _) = ldap_inst.del_dn(rule_dn)
         (ret, _) = ldap_inst.del_dn(sudo_ou)
         assert ret == 'Success'

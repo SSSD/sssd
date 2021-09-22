@@ -184,9 +184,67 @@ class TestSudo(object):
                     same_intvl += 1
                 index += 1
             assert rand_intvl > same_intvl
+
+    @pytest.mark.tier2
+    def test_improve_refresh_timers_sudo_timeout(self, multihost,
+                                                 backupsssdconf,
+                                                 sssd_sudo_conf,
+                                                 sudo_rule):
+        """
+        :title: sudo: improve sudo full and smart refresh timeouts
+        :id: 3860d1b9-28fc-4d44-9537-caf28ab033c8
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1925505
+        :customerscenario: True
+        :steps:
+          1. Edit sssdconfig and specify sssd smart, full timeout option
+          2. Restart sssd with cleared logs and cache
+          3. Wait for 40 seconds
+          4. Parse logs and confirm sudo full refresh and smart refresh
+             timeout are not running at same time
+          5. If sudo full refresh and smart refresh timer are scheduled at
+             same time then smart refresh is rescheduled to the next cycle
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+          5. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
-        params = {'ldap_sudo_full_refresh_interval': '25',
-                  'ldap_sudo_smart_refresh_interval': '15',
-                  'ldap_sudo_random_offset': '5'}
-        tools.sssd_conf(domain_section, params, action='delete')
+        tools.remove_sss_cache('/var/lib/sss/db')
+        tools.remove_sss_cache('/var/log/sssd')
+        params = {'ldap_sudo_full_refresh_interval': '10',
+                  'ldap_sudo_random_offset': '0',
+                  'ldap_sudo_smart_refresh_interval': '5'}
+        domain_section = f'domain/{ds_instance_name}'
+        tools.sssd_conf(domain_section, params, action='update')
         multihost.client[0].service_sssd('start')
+        time.sleep(40)
+        logfile = f'/var/log/sssd/sssd_{ds_instance_name}.log'
+        tmout_ptrn = f'(SUDO.*Refresh.*executing)'
+        rschdl_ptrn = f'(SUDO.*Refresh.*rescheduling)'
+        regex_tmout = re.compile(f'{tmout_ptrn}')
+        rgx_rs_tstmp = re.compile(f'{rschdl_ptrn}')
+        full_rfsh_tstmp = []
+        smrt_rfsh_tstmp = []
+        rschdl_tstmp = []
+        log = multihost.client[0].get_file_contents(logfile).decode('utf-8')
+        for line in log.split('\n'):
+            if (regex_tmout.findall(line)):
+                dt_time = line.split('):')[0]
+                tstmp = dt_time.split()[1]
+                ref_type = line.split()[7]
+                if ref_type == 'Smart':
+                    smrt_rfsh_tstmp.append(tstmp)
+                elif ref_type == 'Full':
+                    full_rfsh_tstmp.append(tstmp)
+            if (rgx_rs_tstmp.findall(line)):
+                dt_time = line.split('):')[0]
+                tstmp = dt_time.split()[1]
+                rschdl_tstmp.append(tstmp)
+        for tm_stamp in full_rfsh_tstmp:
+            if tm_stamp in smrt_rfsh_tstmp:
+                assert tm_stamp in rschdl_tstmp
+            else:
+                assert tm_stamp not in smrt_rfsh_tstmp
