@@ -425,6 +425,33 @@ def enable_multiple_responders(session_multihost, request):
 
 
 @pytest.fixture(scope='function')
+def sssd_sudo_conf(session_multihost, request):
+    """ Configure basic sudo parameters in sssd.conf """
+    tools = sssdTools(session_multihost.client[0])
+    session_multihost.client[0].service_sssd('stop')
+    tools.remove_sss_cache('/var/lib/sss/db/')
+    tools.remove_sss_cache('/var/log/sssd')
+    ldap_uri = 'ldap://%s' % session_multihost.master[0].sys_hostname
+    section = "sssd"
+    sssd_params = {'services': 'nss, pam, sudo'}
+    tools.sssd_conf(section, sssd_params)
+    sudo_base = 'ou=sudoers,%s' % ds_suffix
+    params = {'ldap_sudo_search_base': sudo_base,
+              'sudo_provider': 'ldap'}
+    domain_section = 'domain/%s' % ds_instance_name
+    tools.sssd_conf(domain_section, params, action='update')
+    ret = session_multihost.client[0].service_sssd('start')
+
+    def restore_sssd_conf():
+        """ Restore sssd.conf """
+        services = 'nss, pam'
+        sssd_params = {'services': services}
+        tools.sssd_conf('sssd', sssd_params)
+        tools.sssd_conf(domain_section, params, action='delete')
+    request.addfinalizer(restore_sssd_conf)
+
+
+@pytest.fixture(scope='function')
 def sudo_rule(session_multihost, request):
     """ Create sudoers ldap entries """
     ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
