@@ -36,6 +36,8 @@
 
 #include "util/util.h"
 
+#define DEBUG_CHAIN_ID_FMT "[RID#%lu] "
+
 /* from debug_backtrace.h */
 void sss_debug_backtrace_init(void);
 void sss_debug_backtrace_vprintf(int level, const char *format, va_list ap);
@@ -267,6 +269,9 @@ void sss_vdebug_fn(const char *file,
                    const char *format,
                    va_list ap)
 {
+    char chain_id_fmt_fixed[256];
+    char *chain_id_fmt_dyn = NULL;
+    char *result_fmt;
     static time_t last_time;
     static char last_time_str[128];
     struct timeval tv;
@@ -287,7 +292,26 @@ void sss_vdebug_fn(const char *file,
          * searchable.
          */
         va_copy(ap_fallback, ap);
-        ret = journal_send(file, line, function, level, format, ap);
+        if (debug_chain_id > 0) {
+            result_fmt = chain_id_fmt_fixed;
+            ret = snprintf(chain_id_fmt_fixed, sizeof(chain_id_fmt_fixed),
+                           DEBUG_CHAIN_ID_FMT"%s", debug_chain_id, format);
+            if (ret < 0) {
+                return;
+            } else if (ret >= sizeof(chain_id_fmt_fixed)) {
+                ret = asprintf(&chain_id_fmt_dyn, DEBUG_CHAIN_ID_FMT"%s",
+                               debug_chain_id, format);
+                if (ret < 0) {
+                    return;
+                }
+                result_fmt = chain_id_fmt_dyn;
+            }
+
+            ret = journal_send(file, line, function, level, result_fmt, ap);
+            free(chain_id_fmt_dyn);
+        } else {
+            ret = journal_send(file, line, function, level, format, ap);
+        }
         if (ret != EOK) {
             /* Emergency fallback, send to STDERR */
             vfprintf(stderr, format, ap_fallback);
@@ -325,7 +349,7 @@ void sss_vdebug_fn(const char *file,
                                debug_prg_name, function, level);
 
     if (debug_chain_id > 0) {
-        sss_debug_backtrace_printf(level, "[RID#%lu] ", debug_chain_id);
+        sss_debug_backtrace_printf(level, DEBUG_CHAIN_ID_FMT, debug_chain_id);
     }
 
     sss_debug_backtrace_vprintf(level, format, ap);
