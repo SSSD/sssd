@@ -93,6 +93,8 @@ class TestOffline(object):
         find_id = multihost.client[0].run_command("id foo1@example1")
         assert find_id.returncode == 0
         hostname = multihost.master[0].external_hostname
+        multihost.client[0].run_command("yum install iptables-services -y")
+        multihost.client[0].run_command("systemctl start iptables")
         block_ip = multihost.client[0].run_command(f'iptables'
                                                    f' -I OUTPUT '
                                                    f'-d {hostname}'
