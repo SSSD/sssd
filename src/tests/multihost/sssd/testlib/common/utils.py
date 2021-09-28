@@ -16,6 +16,7 @@ try:
 except ImportError:
     import configparser as ConfigParser
 from subprocess import CalledProcessError
+import subprocess
 try:
     from StringIO import StringIO
 except ImportError:
@@ -177,42 +178,42 @@ class sssdTools(object):
                        'filter output %s -p tcp -m tcp ' \
                        '--dport=%s -j drop' % (max_rule_num, port)
             try:
-                self.multihost.run_command(fw_block, raiseonerr=false)
-            except subprocess.calledprocesserror:
+                self.multihost.run_command(fw_block, raiseonerr=False)
+            except subprocess.CalledProcessError:
                 pytest.fail("unable to block %s port" % port)
             else:
-                self.multihost.run_command(fw_rld, raiseonerr=false)
+                self.multihost.run_command(fw_rld, raiseonerr=False)
         elif action.lower() == 'open' and port in port_and_rule_num:
             fw_open = 'firewall-cmd --permanent --direct --remove-rule ' \
                   'ipv4 filter output %s -p tcp -m tcp ' \
                   '--dport=%s -j drop' % (port_and_rule_num[port], port)
             try:
-                cmd = self.multihost.run_command(fw_open, raiseonerr=false)
-            except subprocess.calledprocesserror:
+                cmd = self.multihost.run_command(fw_open, raiseonerr=False)
+            except subprocess.CalledProcessError:
                 pytest.fail("unable to open %s port" % port)
             else:
-                self.multihost.run_command(fw_rld, raiseonerr=false)
+                self.multihost.run_command(fw_rld, raiseonerr=False)
         elif action.lower() == 'allowall' and not rule_allow_all:
             fw_alw_rest = 'firewall-cmd --permanent --direct --add-rule ' \
                           'ipv4 filter output %s -j accept' % (max_rule_num)
             try:
-                cmd = self.multihost.run_command(fw_alw_rest, raiseonerr=false)
-            except subprocess.calledprocesserror:
+                cmd = self.multihost.run_command(fw_alw_rest, raiseonerr=False)
+            except subprocess.CalledProcessError:
                 pytest.fail("unable to run cmd")
             else:
-                self.multihost.run_command(fw_rld, raiseonerr=false)
+                self.multihost.run_command(fw_rld, raiseonerr=False)
         elif action.lower() == 'delall' and isinstance(rule_allow_all, int):
             fw_del_alw = 'firewall-cmd --permanent --direct --remove-rule ' \
                          'ipv4 filter output %s -j accept' % (rule_allow_all)
             try:
-                cmd = self.multihost.run_command(fw_del_alw, raiseonerr=false)
-            except subprocess.calledprocesserror:
+                cmd = self.multihost.run_command(fw_del_alw, raiseonerr=False)
+            except subprocess.CalledProcessError:
                 pytest.fail("unable to run cmd")
             else:
-                self.multihost.run_command(fw_rld, raiseonerr=false)
+                self.multihost.run_command(fw_rld, raiseonerr=False)
         else:
             print("failed to execute")
-            return false
+            return False
 
     def config_authconfig(self, hostname, domainname):
         """ Run authconfig to configure Kerberos and SSSD auth on remote host
