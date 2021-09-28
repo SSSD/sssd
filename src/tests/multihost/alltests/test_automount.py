@@ -488,9 +488,12 @@ class Testautofsresponder(object):
         for service in ['sssd', 'autofs']:
             client.service_ctrl("stop", service)
         client.service_ctrl("start", "firewalld")
-        client.firewall_port(636, 'BLOCK')
-        client.firewall_port(389, 'BLOCK')
-        client.firewall_port('ALL', 'allowall')
+        multihost.client[0].run_command("iptables -A "
+                                        "OUTPUT -p tcp "
+                                        "--dport 636 -j DROP")
+        multihost.client[0].run_command("iptables -A "
+                                        "OUTPUT -p tcp "
+                                        "--dport 389 -j DROP")
         client.clear_sssd_cache()
         time.sleep(5)
         cmdy = 'id foo1@%s' % domain_name
@@ -507,6 +510,4 @@ class Testautofsresponder(object):
         client.service_ctrl("stop", "firewalld")
         time.sleep(60)
         cmd2 = client.service_ctrl("start", "autofs")
-        cmd = 'dnf remove -y firewalld'
-        multihost.client[0].run_command(cmd, raiseonerr=True)
         assert cmd2 == 0
