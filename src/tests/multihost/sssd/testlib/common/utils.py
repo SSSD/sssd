@@ -63,7 +63,7 @@ class sssdTools(object):
         pkgs = 'adcli realmd samba samba-common-tools krb5-workstation '\
                'oddjob oddjob-mkhomedir ldb-tools samba-winbind '\
                'samba-winbind-clients autofs nfs-utils authconfig '\
-               'authselect cifs-utils openldap-clients '\
+               'authselect cifs-utils openldap-clients firewalld '\
                'tcpdump wireshark-cli expect rsyslog gcc gcc-c++ pam-devel '\
                'tdb-tools libkcapi-hmaccalc'
         sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
