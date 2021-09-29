@@ -160,6 +160,17 @@ static void sbus_issue_request_done(struct tevent_req *subreq)
     }
 
     if (ret == EOK) {
+        /* sbus_reply decreases the refcount of @reply. This usuall means that
+         * refcount drops to zero and the message is freed. However, under
+         * special circumstances the refcount is increased inside libdbus,
+         * the refcount will be 1 when we leave the function and we drop it
+         * to zero in talloc_free(state) later in this function. This will
+         * leave an invalid message to be send inside dbus connection and
+         * eventually crash.
+         *
+         * Increasing the refcount here makes sure that the refcount is always
+         * correct. */
+        dbus_message_ref(reply);
         sbus_reply(state->conn, reply);
     } else {
         sbus_errno_to_error(state, ret, &error_name, &error_msg);
