@@ -279,11 +279,14 @@ def create_conf_fixture(request, contents):
     request.addfinalizer(cleanup_conf_file)
 
 
-def create_sssd_process():
+def create_sssd_process(krb5_conf_path=None):
     """Start the SSSD process"""
-    os.environ["SSS_FILES_PASSWD"] = os.environ["NSS_WRAPPER_PASSWD"]
-    os.environ["SSS_FILES_GROUP"] = os.environ["NSS_WRAPPER_GROUP"]
-    if subprocess.call(["sssd", "-D", "--logger=files"]) != 0:
+    my_env = os.environ.copy()
+    my_env["SSS_FILES_PASSWD"] = os.environ["NSS_WRAPPER_PASSWD"]
+    my_env["SSS_FILES_GROUP"] = os.environ["NSS_WRAPPER_GROUP"]
+    if krb5_conf_path is not None:
+        my_env['KRB5_CONFIG'] = krb5_conf_path
+    if subprocess.call(["sssd", "-D", "--logger=files"], env=my_env) != 0:
         raise Exception("sssd start failed")
 
 
@@ -314,9 +317,9 @@ def cleanup_sssd_process():
             raise ex
 
 
-def create_sssd_fixture(request):
+def create_sssd_fixture(request, krb5_conf_path=None):
     """Start SSSD and add teardown for stopping it and removing its state"""
-    create_sssd_process()
+    create_sssd_process(krb5_conf_path)
     request.addfinalizer(cleanup_sssd_process)
 
 
@@ -733,7 +736,8 @@ def setup_krb5(request, kdc_instance, passwd_ops_setup):
     """
     conf = format_pam_krb5_auth(config, kdc_instance)
     create_conf_fixture(request, conf)
-    create_sssd_fixture(request)
+    create_sssd_fixture(request, kdc_instance.krb5_conf_path)
+
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
     kdc_instance.add_principal("user1", "Secret123User1")
@@ -798,7 +802,8 @@ def setup_krb5_domains(request, kdc_instance, passwd_ops_setup):
     """
     conf = format_pam_krb5_auth_domains(config, kdc_instance)
     create_conf_fixture(request, conf)
-    create_sssd_fixture(request)
+    create_sssd_fixture(request, kdc_instance.krb5_conf_path)
+
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
     kdc_instance.add_principal("user1", "Secret123User1")

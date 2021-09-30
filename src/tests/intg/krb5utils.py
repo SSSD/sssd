@@ -38,7 +38,7 @@ class Krb5Utils(object):
         self.krb5_conf_path = krb5_conf_path
 
     def spawn_in_env(self, args, stdin=None, extra_env=None):
-        my_env = os.environ
+        my_env = os.environ.copy()
         my_env['KRB5_CONFIG'] = self.krb5_conf_path
 
         if 'KRB5CCNAME' in my_env:
