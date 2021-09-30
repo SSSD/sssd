@@ -76,7 +76,7 @@ class KDC(object):
         self._create_kdb()
 
     def get_krb5_env(self):
-        my_env = os.environ
+        my_env = os.environ.copy()
         my_env['KRB5_CONFIG'] = self.krb5_conf_path
         my_env['KRB5_KDC_PROFILE'] = self.kdc_conf_path
         return my_env
