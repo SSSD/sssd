@@ -85,7 +85,7 @@ def create_conf_fixture(request, contents):
     request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
 
 
-def create_sssd_kcm_fixture(sock_path, request):
+def create_sssd_kcm_fixture(sock_path, krb5_conf_path, request):
     if subprocess.call(['sssd', "--genconf"]) != 0:
         raise Exception("failed to regenerate confdb")
 
@@ -99,7 +99,9 @@ def create_sssd_kcm_fixture(sock_path, request):
     assert kcm_pid >= 0
 
     if kcm_pid == 0:
-        if subprocess.call([resp_path, "--uid=0", "--gid=0"]) != 0:
+        my_env = os.environ.copy()
+        my_env["KRB5_CONFIG"] = krb5_conf_path
+        if subprocess.call([resp_path, "--uid=0", "--gid=0"], env=my_env) != 0:
             print("sssd_kcm failed to start")
             sys.exit(99)
     else:
@@ -174,7 +176,7 @@ def common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf):
     kdc_instance.add_config({'kcm_socket': kcm_socket_include})
 
     create_conf_fixture(request, sssd_conf)
-    create_sssd_kcm_fixture(kcm_path, request)
+    create_sssd_kcm_fixture(kcm_path, kdc_instance.krb5_conf_path, request)
 
     k5util = krb5utils.Krb5Utils(kdc_instance.krb5_conf_path)
 
