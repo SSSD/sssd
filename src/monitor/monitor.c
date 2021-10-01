@@ -158,7 +158,6 @@ struct mt_ctx {
     int started_services;
     struct mt_svc *svc_list;
     struct config_file_ctx *file_ctx;
-    int service_id_timeout;
     bool check_children;
     bool services_started;
     struct netlink_ctx *nlctx;
@@ -899,16 +898,6 @@ static int get_monitor_config(struct mt_ctx *ctx)
     int timeout_seconds;
     char *badsrv = NULL;
     int i;
-
-    ret = confdb_get_int(ctx->cdb,
-                         CONFDB_MONITOR_CONF_ENTRY,
-                         CONFDB_MONITOR_SBUS_TIMEOUT,
-                         10, &timeout_seconds);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ctx->service_id_timeout = timeout_seconds * 1000; /* service_id_timeout is in ms */
 
     ret = confdb_get_string_as_list(ctx->cdb, ctx,
                                     CONFDB_MONITOR_CONF_ENTRY,
