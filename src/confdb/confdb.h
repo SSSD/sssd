@@ -67,7 +67,6 @@
 
 /* Monitor */
 #define CONFDB_MONITOR_CONF_ENTRY "config/sssd"
-#define CONFDB_MONITOR_SBUS_TIMEOUT "sbus_timeout"
 #define CONFDB_MONITOR_ACTIVE_SERVICES "services"
 #define CONFDB_MONITOR_ACTIVE_DOMAINS "domains"
 #define CONFDB_MONITOR_RESOLV_CONF "monitor_resolv_conf"

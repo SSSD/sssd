@@ -104,9 +104,6 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertEqual(new_options['domains'][0], list)
         self.assertEqual(new_options['domains'][1], str)
 
-        self.assertTrue('sbus_timeout' in new_options)
-        self.assertEqual(new_options['sbus_timeout'][0], int)
-
         self.assertTrue('re_expression' in new_options)
         self.assertEqual(new_options['re_expression'][0], str)
 
@@ -331,7 +328,6 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'services',
             'domains',
             'timeout',
-            'sbus_timeout',
             're_expression',
             'full_name_format',
             'krb5_rcache_dir',
