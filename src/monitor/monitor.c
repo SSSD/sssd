@@ -655,7 +655,7 @@ static int service_signal(struct mt_svc *svc,
          * order a service to reload that hasn't started
          * yet.
          */
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_IMPORTANT_INFO,
               "Could not signal service [%s].\n", svc->name);
         return EIO;
     }
@@ -684,8 +684,8 @@ static void service_signal_done(struct tevent_req *req)
         return;
     }
 
-    DEBUG(SSSDBG_FATAL_FAILURE, "Unable to signal service [%d]: %s\n",
-          ret, sss_strerror(ret));
+    DEBUG(ret == ENOENT ? SSSDBG_MINOR_FAILURE : SSSDBG_OP_FAILURE,
+          "Unable to signal service [%d]: %s\n", ret, sss_strerror(ret));
 }
 
 static int service_signal_dns_reload(struct mt_svc *svc)
@@ -1363,14 +1363,14 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
         }
 
         killed = false;
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_IMPORTANT_INFO,
               "Terminating [%s][%d]\n", svc->name, svc->pid);
         do {
             errno = 0;
             kret = kill(-svc->pid, SIGTERM);
             if (kret < 0) {
                 error = errno;
-                DEBUG(SSSDBG_CRIT_FAILURE, "Couldn't kill [%s][%d]: [%s]\n",
+                DEBUG(SSSDBG_MINOR_FAILURE, "Couldn't terminate [%s][%d]: [%s]\n",
                           svc->name, svc->pid, strerror(error));
             }
 
@@ -1384,7 +1384,7 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
                     if (error == ECHILD) {
                         killed = true;
                     } else if (error != EINTR) {
-                        DEBUG(SSSDBG_FATAL_FAILURE,
+                        DEBUG(SSSDBG_IMPORTANT_INFO,
                               "[%d][%s] while waiting for [%s]\n",
                                   error, strerror(error), svc->name);
                         /* Forcibly kill this child */
@@ -1394,13 +1394,13 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
                 } else if (pid != 0) {
                     error = 0;
                     if (WIFEXITED(status)) {
-                        DEBUG(SSSDBG_CRIT_FAILURE,
+                        DEBUG(SSSDBG_IMPORTANT_INFO,
                               "Child [%s] exited gracefully\n", svc->name);
                     } else if (WIFSIGNALED(status)) {
-                        DEBUG(SSSDBG_CRIT_FAILURE,
+                        DEBUG(SSSDBG_IMPORTANT_INFO,
                               "Child [%s] terminated with a signal\n", svc->name);
                     } else {
-                        DEBUG(SSSDBG_CRIT_FAILURE,
+                        DEBUG(SSSDBG_IMPORTANT_INFO,
                               "Child [%s] did not exit cleanly\n", svc->name);
                         /* Forcibly kill this child */
                         kill(-svc->pid, SIGKILL);
