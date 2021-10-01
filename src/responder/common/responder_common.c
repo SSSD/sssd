@@ -640,9 +640,9 @@ static void accept_fd_handler(struct tevent_context *ev,
 
     rctx->client_id_num++;
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Client [CID #%u][cmd %s][%p][%d] connected%s!\n",
-          rctx->client_id_num, cctx->cmd_line, cctx, cctx->cfd,
-          accept_ctx->is_private ? " to privileged pipe" : "");
+          "Client [CID #%u][cmd %s][uid %u][%p][%d] connected%s!\n",
+          rctx->client_id_num, cctx->cmd_line, cli_creds_get_uid(cctx->creds),
+          cctx, cctx->cfd, accept_ctx->is_private ? " to privileged pipe" : "");
 
     return;
 }
