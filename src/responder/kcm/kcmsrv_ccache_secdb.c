@@ -867,24 +867,25 @@ static errno_t ccdb_secdb_get_cc_for_uuid(TALLOC_CTX *mem_ctx,
         cli_cred.ucred.gid = pwd->pw_gid;
 
         ret = key_by_uuid(tmp_ctx, secdb->sctx, &cli_cred, uuid, &secdb_key);
-        if (ret == ENOENT) {
-            ret = EOK;
-            goto done;
-        } else if (ret != EOK) {
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "key_by_uuid() failed for uuid = '%s'", uuid_str);
             goto done;
         }
 
         ret = secdb_get_cc(cc_list, secdb->sctx, secdb_key, &cli_cred,
                            &cc_list[real_count]);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to get ccache [%d]: %s\n",
-                                       ret, sss_strerror(ret));
-            goto done;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to get ccache [%d]: %s\n", ret, sss_strerror(ret));
+            /* probably ccache in old format was met and purged, just skip */
+            continue;
         }
 
         if (cc_list[real_count] == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to get cc [%s] and [%s]\n",
-                                     uuid_list[i], uid_list[i]);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to get cc for uuid = '%s' and uid = %s\n",
+                  uuid_list[i], uid_list[i]);
             ret = EIO;
             goto done;
         }
@@ -1069,7 +1070,11 @@ static struct tevent_req *ccdb_secdb_getbyuuid_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = secdb_get_cc(state, secdb->sctx, secdb_key, client, &state->cc);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        state->cc = NULL;
+        ret = EOK;
+        goto immediate;
+    } else if (ret != EOK) {
         goto immediate;
     }
 
@@ -1130,7 +1135,11 @@ static struct tevent_req *ccdb_secdb_getbyname_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = secdb_get_cc(state, secdb->sctx, secdb_key, client, &state->cc);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        state->cc = NULL;
+        ret = EOK;
+        goto immediate;
+    } else if (ret != EOK) {
         goto immediate;
     }
 
@@ -1398,7 +1407,10 @@ static struct tevent_req *ccdb_secdb_mod_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = secdb_get_cc(state, secdb->sctx, secdb_key, client, &cc);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ret = ERR_NO_CREDS;
+        goto immediate;
+    } else if (ret != EOK) {
         goto immediate;
     }
 
@@ -1474,7 +1486,10 @@ static struct tevent_req *ccdb_secdb_store_cred_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = secdb_get_cc(state, secdb->sctx, secdb_key, client, &cc);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ret = ERR_NO_CREDS;
+        goto immediate;
+    } else if (ret != EOK) {
         goto immediate;
     }
 
