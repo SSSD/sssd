@@ -115,7 +115,7 @@ class Testsssctl(object):
         ps_cmd = "> /var/log/sssd/sssd.log"
         multihost.client[0].run_command(ps_cmd)
         ps_cmd = "useradd user1_test"
-        multihost.client[0].run_command(ps_cmd)
+        multihost.client[0].run_command(ps_cmd, raiseonerr=False)
         ps_cmd = "usermod -a -G wheel user1_test"
         cmd = multihost.client[0].run_command(ps_cmd)
         assert 'No domains configured, fatal error!' \
