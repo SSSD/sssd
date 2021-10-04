@@ -855,12 +855,6 @@ static errno_t ccdb_secdb_get_cc_for_uuid(TALLOC_CTX *mem_ctx,
     for (size_t i = 0; i < uuid_list_count; i++) {
         struct passwd *pwd;
 
-        cc_list[i] = talloc_zero(cc_list, struct kcm_ccache);
-        if (cc_list[i] == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
         ret = split_on_separator(tmp_ctx, uuid_list[i], ':', true, true,
                                  &list, NULL);
         if (ret != EOK) {
