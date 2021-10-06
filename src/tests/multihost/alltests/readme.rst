@@ -20,6 +20,7 @@ Following are the pytest markers used
 * krb5: Tests related to krb5
 * kcm: Tests related to kcm
 * ldapextraattrs: Tests related to Ldap Extra attributes
+* localoverrides: Tests related to Local Overrides
 * multidomain: Tests related to SSSD Multiple Domains
 * netgroup: Tests related to netgroup
 * offline: Tests related to ldap offline suite
