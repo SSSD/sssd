@@ -180,13 +180,13 @@ def set_ssh_key_ldap(session_multihost, user, pubkey, operation="replace"):
     return cmd.returncode == 0
 
 
+@pytest.mark.tier1_2
 @pytest.mark.adparameters
 @pytest.mark.usefixtures("change_client_hostname")
 class TestADParamsPorted:
     """ BZ Automated Test Cases for AD Parameters ported from bash"""
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0001_ad_parameters_domain(
             multihost, adjoin, create_aduser_group):
         """
@@ -260,7 +260,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0002_ad_parameters_junk_domain(
             multihost, adjoin, create_aduser_group):
         """
@@ -333,7 +332,6 @@ class TestADParamsPorted:
         assert "segfault" not in log_msg_str, "Segfault present in the log!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0003_ad_parameters_junk_domain_invalid_keytab(
             multihost, adjoin, create_aduser_group):
         """
@@ -450,7 +448,6 @@ class TestADParamsPorted:
         assert "Option krb5_realm set to JUNK" in log_str
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0004_ad_parameters_valid_domain_shorthost(
             multihost, adjoin, create_aduser_group):
         """
@@ -527,7 +524,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0005_ad_parameters_blank_domain(
             multihost, adjoin, create_aduser_group):
         """
@@ -607,7 +603,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0006_ad_parameters_homedir_override_nss(
             multihost, adjoin, create_plain_aduser_group):
         """
@@ -657,7 +652,6 @@ class TestADParamsPorted:
                usr_cmd.stdout_text
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0007_ad_parameters_homedir_override_domain(
             multihost, adjoin, create_plain_aduser_group):
         """
@@ -706,7 +700,6 @@ class TestADParamsPorted:
                usr_cmd.stdout_text
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0008_ad_parameters_homedir_override_both(
             multihost, adjoin, create_plain_aduser_group):
         """
@@ -756,7 +749,6 @@ class TestADParamsPorted:
                usr_cmd.stdout_text
 
     @staticmethod
-    @pytest.mark.tier1
     @pytest.mark.skip(reason="The ldap sasl authid just does not work.")
     def test_0009_ad_parameters_ldap_sasl_full(
             multihost, adjoin, create_aduser_group, fetch_ca_cert):
@@ -859,7 +851,6 @@ class TestADParamsPorted:
         assert su_result, f"Su for user {aduser} failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     @pytest.mark.skip(reason="The ldap sasl authid just does not work.")
     def test_0010_ad_parameters_ldap_sasl_short(
             multihost, adjoin, create_aduser_group):
@@ -947,7 +938,6 @@ class TestADParamsPorted:
         assert su_result, f"Su for user {aduser} failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0011_ad_parameters_server_resolvable(
             multihost, adjoin, create_aduser_group):
         """
@@ -1031,7 +1021,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0012_ad_parameters_server_unresolvable(
             multihost, adjoin, create_aduser_group):
         """
@@ -1089,7 +1078,6 @@ class TestADParamsPorted:
         assert usr_cmd.returncode == 2, f"User {aduser} was found!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0013_ad_parameters_server_srv_record(
             multihost, adjoin, create_aduser_group):
         """
@@ -1153,7 +1141,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0014_ad_parameters_server_blank(
             multihost, adjoin, create_aduser_group):
         """
@@ -1216,7 +1203,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0015_ad_parameters_ad_hostname_machine(
             multihost, adjoin, create_aduser_group):
         """
@@ -1298,7 +1284,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0016_ad_parameters_ad_hostname_valid(
             multihost, adjoin, create_aduser_group):
         """
@@ -1391,7 +1376,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0017_ad_parameters_krb5_keytab_nonexistent(
             multihost, adjoin, create_aduser_group):
         """
@@ -1478,7 +1462,6 @@ class TestADParamsPorted:
         assert usr_cmd.returncode == 2, f"User {aduser} was found."
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0018_ad_parameters_krb5_keytab_elsewhere(
             multihost, adjoin, create_aduser_group):
         """
@@ -1571,7 +1554,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0019_ad_parameters_ldap_id_mapping_false(
             multihost, adjoin, create_aduser_group, create_plain_aduser_group
     ):
@@ -1671,7 +1653,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0020_ad_parameters_ssh_change_password(
             multihost, adjoin, create_aduser_group
     ):
@@ -1735,7 +1716,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0021_ad_parameters_ssh_change_password_logon(
             multihost, adjoin, create_aduser_group
     ):
@@ -1811,7 +1791,6 @@ class TestADParamsPorted:
         assert "system error" not in log_str
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0022_ad_parameters_account_disabled(
             multihost, adjoin, create_aduser_group):
         """
@@ -1891,7 +1870,6 @@ class TestADParamsPorted:
         assert "The user account is disabled on the AD server" in log_str
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0023_ad_parameters_account_expired(
             multihost, adjoin, create_aduser_group):
         """
@@ -1969,7 +1947,6 @@ class TestADParamsPorted:
         assert f"{aduser}: 13 (User account has expired)" in log_str
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0024_ad_parameters_getgrgid_nested(
             multihost, adjoin, create_plain_aduser_group):
         """
@@ -2055,7 +2032,6 @@ class TestADParamsPorted:
         assert test3_cmd.returncode == 0, "Gid of expected group missing."
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0025_ad_parameters_empty_group(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: empty group cannot
@@ -2114,7 +2090,6 @@ class TestADParamsPorted:
         assert getent_cmd.returncode == 0, "Group not found!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0026_ad_parameters_dns_failover(
             multihost, adjoin, create_plain_aduser_group):
         """
@@ -2192,7 +2167,6 @@ class TestADParamsPorted:
         assert getent_cmd.returncode == 0, "User not found."
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0027_ad_parameters_group_membership_empty(
             multihost, adjoin, create_aduser_group):
         """
@@ -2270,7 +2244,6 @@ class TestADParamsPorted:
         assert aduser in grp_cmd.stdout_text, f"{aduser} not in getent out."
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0028_ad_parameters_nested_in_nonposix_group(
             multihost, adjoin, create_aduser_group):
         """
@@ -2345,7 +2318,6 @@ class TestADParamsPorted:
         assert group_2 in usr_cmd.stdout_text, f"{group_2} not in id output."
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0029_ad_parameters_tokengroups_with_ldap(
             multihost, adjoin, create_aduser_group):
         """
@@ -2413,7 +2385,6 @@ class TestADParamsPorted:
                not in log_str
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0030_ad_parameters_tokengroups_searchbase(
             multihost, adjoin, create_aduser_group):
         """
@@ -2513,7 +2484,6 @@ class TestADParamsPorted:
                not in log_str
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0031_ad_parameters_custom_re(
                 multihost, adjoin, create_aduser_group):
         """
@@ -2579,7 +2549,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0032_ad_parameters_group_name_attribute(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Does sssd ad use
@@ -2662,7 +2631,6 @@ class TestADParamsPorted:
         assert grp2_cmd.returncode == 0, f"{test_group_mod} was not found."
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0033_ad_parameters_group_cleanup_sanitize(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: groups cleanup
@@ -2759,7 +2727,6 @@ class TestADParamsPorted:
                f' with [5]: Input/output error' not in log_str
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0034_ad_parameters_group_work_intermittently(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: sssd ad groups
@@ -2846,7 +2813,6 @@ class TestADParamsPorted:
             assert group in usr2_cmd.stdout_text, "{group} is missing.(3)"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0035_ad_parameters_delete_cache(
                 multihost, adjoin, create_aduser_group):
         """
@@ -2975,7 +2941,6 @@ class TestADParamsPorted:
         assert usr_cmd_4.returncode == 0, f"{user2} is not in domain users"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0036_ad_parameters_renewal_leaks_descriptors(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: The AD keytab
@@ -3048,7 +3013,6 @@ class TestADParamsPorted:
                                 f" stable:{stable}, final: {final}."
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0037_ad_parameters_extra_attrs_mail(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: SSSD fails to start
@@ -3091,7 +3055,6 @@ class TestADParamsPorted:
         client.clear_sssd_cache()
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0038_ad_parameters_authentication_failure_invalid_keytab(
             multihost, adjoin, create_aduser_group):
         """
@@ -3217,7 +3180,6 @@ class TestADParamsPorted:
                          f"{ad_domain}", log_str)
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0039_ad_parameters_auth_krb5(
             multihost, adjoin, create_aduser_group):
         """
@@ -3287,7 +3249,6 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0040_ad_parameters_newline_ssh_key(
             multihost, adjoin, create_aduser_group):
         """
@@ -3409,7 +3370,6 @@ class TestADParamsPorted:
                          " ending newline."
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0041_ad_parameters_sss_ssh_knownhostsproxy(
             multihost, adjoin, create_aduser_group):
         """
@@ -3508,7 +3468,6 @@ class TestADParamsPorted:
                          log_str)
 
     @staticmethod
-    @pytest.mark.tier1
     def test_0042_ad_parameters_nonroot_user_sssd(
                 multihost, adjoin, create_aduser_group):
         """
