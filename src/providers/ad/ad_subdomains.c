@@ -46,6 +46,7 @@
 #define AD_AT_TRUST_PARTNER "trustPartner"
 #define AD_AT_TRUST_ATTRS   "trustAttributes"
 #define AD_AT_DOMAIN_NAME   "cn"
+#define AD_AT_TRUST_DIRECTION   "trustDirection"
 
 /* trustType=2 denotes uplevel (NT5 and later) trusted domains. See
  * http://msdn.microsoft.com/en-us/library/windows/desktop/ms680342%28v=vs.85%29.aspx
@@ -68,6 +69,12 @@
 
 /* do not refresh more often than every 5 seconds for now */
 #define AD_SUBDOMAIN_REFRESH_LIMIT 5
+
+/* Flags of trustAttributes attribute, see MS-ADTS 6.1.6.7.9 for details */
+#define TRUST_ATTRIBUTE_WITHIN_FOREST 0x00000020
+
+/* Flags for trustDirection attribute, see MS-ADTS 6.1.6.7.12 for details */
+#define TRUST_DIRECTION_OUTBOUND 0x00000002
 
 static void
 ad_disable_gc(struct ad_options *ad_options)
@@ -646,6 +653,85 @@ done:
     return ret;
 }
 
+/* When reading trusted domains from the local DC we are basically interested
+ * in domains from the local forest we are trusting, i.e. users from this
+ * domain can connect to us. To not unnecessarily bloat the list of domains
+ * and make multi-domain searches slow we filter domains from other forest and
+ * domains we do not trust.
+ * In future we might add config options to broaden the scope and allow more
+ * domains.
+ * If ad_filter_domains() returns successfully with EOK in input array is not
+ * valid anymore and should be freed by the caller. */
+static errno_t ad_filter_domains(TALLOC_CTX *mem_ctx,
+                                 struct sysdb_attrs **subdomains,
+                                 size_t num_subdomains,
+                                 struct sysdb_attrs ***_sd_out,
+                                 size_t *_num_sd_out)
+{
+    int ret;
+    size_t c;
+    uint32_t tmp_uint32_t;
+    const char *value;
+    struct sysdb_attrs **sd_out;
+    size_t num_sd_out = 0;
+
+    sd_out = talloc_zero_array(mem_ctx, struct sysdb_attrs *,
+                               num_subdomains + 1);
+    if (sd_out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to allocate memory for sub-domain list.\n");
+        return ENOMEM;
+    }
+
+    for (c = 0; c < num_subdomains; c++) {
+        ret = sysdb_attrs_get_string(subdomains[c], AD_AT_TRUST_PARTNER,
+                                     &value);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            talloc_free(sd_out);
+            return ret;
+        }
+
+        /* Ignore direct trusts to domains from other forests
+         * (TRUST_ATTRIBUTE_WITHIN_FOREST is not set) or domains we do not
+         * trust (TRUST_DIRECTION_OUTBOUND is not set) */
+
+        tmp_uint32_t = 0;
+        ret = sysdb_attrs_get_uint32_t(subdomains[c], AD_AT_TRUST_ATTRS,
+                                       &tmp_uint32_t);
+        if (ret != EOK
+                || (tmp_uint32_t & TRUST_ATTRIBUTE_WITHIN_FOREST) == 0) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "TRUST_ATTRIBUTE_WITHIN_FOREST not set for [%s].\n",
+                  value);
+            continue;
+        }
+
+        tmp_uint32_t = 0;
+        ret = sysdb_attrs_get_uint32_t(subdomains[c], AD_AT_TRUST_DIRECTION,
+                                       &tmp_uint32_t);
+        if (ret != EOK
+                || (tmp_uint32_t & TRUST_DIRECTION_OUTBOUND) == 0) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "TRUST_DIRECTION_OUTBOUND not set for [%s].\n",
+                  value);
+            continue;
+        }
+
+        sd_out[num_sd_out] = subdomains[c];
+        num_sd_out++;
+    }
+
+    for (c = 0; c < num_sd_out; c++) {
+        sd_out[c] = talloc_steal(sd_out, sd_out[c]);
+    }
+
+    *_sd_out = sd_out;
+    *_num_sd_out = num_sd_out;
+
+    return EOK;
+}
+
 /* How many times we keep a domain not found during searches before it will be
  * removed. */
 #define MAX_NOT_FOUND 6
@@ -1125,7 +1211,7 @@ static void ad_get_slave_domain_connect_done(struct tevent_req *subreq)
     errno_t ret;
     const char *attrs[] = { AD_AT_FLATNAME, AD_AT_TRUST_PARTNER,
                             AD_AT_SID, AD_AT_TRUST_TYPE,
-                            AD_AT_TRUST_ATTRS, NULL };
+                            AD_AT_TRUST_ATTRS, AD_AT_TRUST_DIRECTION, NULL };
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_get_slave_domain_state);
@@ -1333,7 +1419,7 @@ ad_get_root_domain_send(TALLOC_CTX *mem_ctx,
     struct sdap_options *opts;
     errno_t ret;
     const char *attrs[] = { AD_AT_FLATNAME, AD_AT_TRUST_PARTNER,
-                            AD_AT_SID, AD_AT_TRUST_TYPE,
+                            AD_AT_SID, AD_AT_TRUST_TYPE, AD_AT_TRUST_DIRECTION,
                             AD_AT_TRUST_ATTRS, AD_AT_DOMAIN_NAME, NULL };
 
     req = tevent_req_create(mem_ctx, &state, struct ad_get_root_domain_state);
@@ -1411,13 +1497,15 @@ static void ad_get_root_domain_done(struct tevent_req *subreq)
     struct ad_get_root_domain_state *state;
     errno_t ret;
     bool has_changes = false;
+    struct sysdb_attrs **unfiltered_reply;
+    size_t unfiltered_reply_count;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_get_root_domain_state);
 
     ret = sdap_search_bases_return_first_recv(subreq, state,
-                                              &state->reply_count,
-                                              &state->reply);
+                                              &unfiltered_reply_count,
+                                              &unfiltered_reply);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to lookup forest root information "
@@ -1425,7 +1513,13 @@ static void ad_get_root_domain_done(struct tevent_req *subreq)
         goto done;
     }
 
-    find_domain(state->reply_count, state->reply, state->forest);
+    ret = ad_filter_domains(state, unfiltered_reply, unfiltered_reply_count,
+                            &state->reply, &state->reply_count);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to filter list of returned domains.\n");
+        goto done;
+    }
 
     if (state->reply_count == 0
             || find_domain(state->reply_count, state->reply,
