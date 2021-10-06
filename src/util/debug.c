@@ -269,9 +269,6 @@ void sss_vdebug_fn(const char *file,
                    const char *format,
                    va_list ap)
 {
-    char chain_id_fmt_fixed[256];
-    char *chain_id_fmt_dyn = NULL;
-    char *result_fmt;
     static time_t last_time;
     static char last_time_str[128];
     struct timeval tv;
@@ -279,6 +276,9 @@ void sss_vdebug_fn(const char *file,
     time_t t;
 
 #ifdef WITH_JOURNALD
+    char chain_id_fmt_fixed[256];
+    char *chain_id_fmt_dyn = NULL;
+    char *result_fmt;
     errno_t ret;
     va_list ap_fallback;
 
