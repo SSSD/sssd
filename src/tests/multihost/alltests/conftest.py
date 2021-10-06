@@ -371,6 +371,28 @@ def create_ssh_keys(session_multihost, request):
     request.addfinalizer(remove_keys)
 
 
+@pytest.fixture(scope="function")
+def local_useradd(session_multihost, request):
+    tool = sssdTools(session_multihost.client[0])
+    users = ['test1', 'user1']
+    groups = ['localgrp', 'l_grp1', 'l_grp2', 'l_grp3']
+    for user in users:
+        cmd = f'useradd {user}'
+        session_multihost.client[0].run_command(cmd)
+    for grp in groups:
+        cmd = f'groupadd {grp}'
+        session_multihost.client[0].run_command(cmd)
+
+    def remove_local_users():
+        for user in users:
+            cmd = f'userdel -rf {user}'
+            session_multihost.client[0].run_command(cmd)
+        for grp in groups:
+            cmd = f'groupdel {grp}'
+            session_multihost.client[0].run_command(cmd)
+    request.addfinalizer(remove_local_users)
+
+
 @pytest.fixture(scope='function')
 def enable_multiple_responders(session_multihost, request):
     """ Enable multiple responders to sssd services """
@@ -787,6 +809,28 @@ def setup_sssd_failover(session_multihost, request):
                      'debug_level': '9'}
     tools.sssd_conf(domain_section, domain_params)
     start_sssd = 'systemctl restart sssd'
+    session_multihost.client[0].run_command(start_sssd)
+
+    def removesssd():
+        """ Remove sssd configuration """
+        stop_sssd = 'systemctl stop sssd'
+        session_multihost.client[0].run_command(stop_sssd)
+        removeconf = 'rm -f %s' % (SSSD_DEFAULT_CONF)
+        session_multihost.client[0].run_command(removeconf)
+    request.addfinalizer(removesssd)
+
+
+@pytest.fixture(scope='class')
+def setup_sssd_files(session_multihost, request):
+    """ Configure sssd.conf """
+    tools = sssdTools(session_multihost.client[0])
+    sssd_params = {'domains': 'files'}
+    tools.sssd_conf('sssd', sssd_params)
+    domain_section = 'domain/%s' % 'files'
+    domain_params = { 'id_provider': 'files',
+                     'debug_level': '9'}
+    tools.sssd_conf(domain_section, domain_params)
+    start_sssd = 'systemctl start sssd'
     session_multihost.client[0].run_command(start_sssd)
 
     def removesssd():
