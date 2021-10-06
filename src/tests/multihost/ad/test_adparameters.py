@@ -636,7 +636,7 @@ class TestBugzillaAutomation(object):
         multihost.client[0].run_command(cmd, raiseonerr=True)
         cmd = 'dnf remove -y firewalld'
         multihost.client[0].run_command(cmd, raiseonerr=True)
-        cert_restr = 'mv /etc/openldap/ldap.conf_bk /etc/openldap.conf'
+        cert_restr = 'mv /etc/openldap.conf_bk /etc/openldap/ldap.conf'
         cmd = multihost.client[0].run_command(cert_restr, raiseonerr=False)
         multihost.client[0].service_sssd('stop')
         client.sssd_conf(domain_section, sssd_params, action='delete')
