@@ -448,10 +448,238 @@ static void dp_req_initgr_pp_set_initgr_timestamp(struct dp_initgr_ctx *ctx,
     }
 }
 
+
+struct dp_sr_resolve_groups_state {
+    struct data_provider *provider;
+    struct dp_initgr_ctx *initgroups_ctx;
+    struct dp_reply_std reply;
+
+    uint32_t *resolve_gids; /* Groups needing resolution */
+    int resolve_gnum;
+    int num_iter;
+    uint32_t gnum;
+};
+
+static errno_t dp_sr_resolve_groups_check(struct dp_sr_resolve_groups_state *state);
+static errno_t dp_sr_resolve_groups_next(struct tevent_req *req);
+static void dp_sr_resolve_groups_done(struct tevent_req *subreq);
+
+struct tevent_req *
+dp_sr_resolve_groups_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct dp_reply_std reply,
+                          struct data_provider *provider,
+                          struct dp_initgr_ctx *initgr_ctx)
+{
+
+    struct dp_sr_resolve_groups_state *state;
+    struct tevent_req *req;
+    int ret;
+    struct session_recording_conf sr_conf;
+
+    req = tevent_req_create(mem_ctx, &state, struct dp_sr_resolve_groups_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    if (initgr_ctx->username == NULL) {
+        ret = EOK;
+        goto done;
+    }
+
+    sr_conf = provider->be_ctx->sr_conf;
+
+    /* Only proceed if scope is applicable: 'some' or 'all' with groups to resolve */
+    if ((sr_conf.scope == SESSION_RECORDING_SCOPE_SOME && sr_conf.groups != NULL)
+         || (sr_conf.scope == SESSION_RECORDING_SCOPE_ALL && sr_conf.exclude_groups != NULL)) {
+        state->provider = provider;
+        state->initgroups_ctx = initgr_ctx;
+        state->reply = reply;
+        state->gnum = initgr_ctx->gnum;
+
+        /* Check if group is intermediate(has gidNumber and isPosix == False) */
+        state->resolve_gids = talloc_zero_array(state, uint32_t, initgr_ctx->gnum + 1);
+        if (state->resolve_gids == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_sr_resolve_groups_check(state);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed checking groups to resolve\n");
+            goto done;
+        }
+
+        state->num_iter = 0;
+        ret = dp_sr_resolve_groups_next(req);
+        if (ret == EAGAIN) {
+            /* async processing */
+            return req;
+        }
+    } else {
+        ret = EOK;
+        goto done;
+    }
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static errno_t dp_sr_resolve_groups_next(struct tevent_req *req)
+{
+    struct dp_sr_resolve_groups_state *state;
+    struct tevent_req *subreq;
+    struct dp_id_data *ar;
+    uint32_t gid;
+
+    state = tevent_req_data(req, struct dp_sr_resolve_groups_state);
+
+    if (state->num_iter >= state->resolve_gnum) {
+        return EOK;
+    }
+
+    gid = state->resolve_gids[state->num_iter];
+
+    ar = talloc_zero(state, struct dp_id_data);
+    if (ar == NULL) {
+        return ENOMEM;
+    }
+
+    ar->entry_type = BE_REQ_GROUP;
+    ar->filter_type = BE_FILTER_IDNUM;
+    ar->filter_value = talloc_asprintf(ar, "%llu", (unsigned long long) gid);
+    ar->domain = talloc_strdup(ar, state->initgroups_ctx->domain_info->name);
+    if (!ar->domain || !ar->filter_value) {
+        return ENOMEM;
+    }
+
+    subreq = dp_req_send(state, state->provider, ar->domain,
+                         "DP Resolve Group", 0, NULL,
+                         DPT_ID, DPM_ACCOUNT_HANDLER, 0, ar, NULL);
+    if (!subreq) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, dp_sr_resolve_groups_done, req);
+
+    state->num_iter++;
+    return EAGAIN;
+}
+
+static void dp_sr_resolve_groups_done(struct tevent_req *subreq)
+{
+    struct dp_sr_resolve_groups_state *state;
+    struct tevent_req *req;
+    struct dp_reply_std *reply;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct dp_sr_resolve_groups_state);
+
+    ret = dp_req_recv_ptr(state, subreq, struct dp_reply_std, &reply);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Try next group */
+    ret = dp_sr_resolve_groups_next(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    return;
+}
+
+errno_t dp_sr_resolve_groups_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req)
+{
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+static errno_t
+dp_sr_resolve_groups_check(struct dp_sr_resolve_groups_state *state)
+{
+    errno_t ret;
+    struct ldb_message *group;
+    struct ldb_result *res;
+    struct sss_domain_info *domain_info;
+    const char *group_attrs[] = { SYSDB_NAME, SYSDB_POSIX,
+                                  SYSDB_GIDNUM, NULL };
+    uint32_t gid;
+    const char *name;
+    const char *val;
+
+    domain_info = state->initgroups_ctx->domain_info;
+
+    ret = sysdb_initgroups(state, domain_info, state->initgroups_ctx->username, &res);
+    if (ret == ENOENT || (ret == EOK && res->count == 0)) {
+        return EOK;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get initgroups [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    /* Get GID */
+    for (int i = 0; i < res->count; i++) {
+        gid = sss_view_ldb_msg_find_attr_as_uint64(domain_info,
+                                                   res->msgs[i],
+                                                   SYSDB_GIDNUM, 0);
+        if (gid == 0) {
+            continue;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Checking if group needs to be resolved: [%d]\n",
+                                gid);
+
+        /* Check the cache by GID again and fetch the name */
+        ret = sysdb_search_group_by_gid(state, state->initgroups_ctx->domain_info, gid,
+                                        group_attrs, &group);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Could not look up group by gid [%"SPRIgid"]: [%d][%s]\n",
+                  gid, ret, sss_strerror(ret));
+            continue;
+        }
+
+        name = ldb_msg_find_attr_as_string(group, SYSDB_NAME, NULL);
+        if (!name) {
+            DEBUG(SSSDBG_OP_FAILURE, "No group name\n");
+            continue;
+        }
+
+        val = ldb_msg_find_attr_as_string(group, SYSDB_POSIX, NULL);
+
+        /* Group needs to be resolved */
+        if ((strcasecmp(val, "FALSE") == 0) && gid > 0) {
+            state->resolve_gids[state->resolve_gnum] = gid;
+            state->resolve_gnum++;
+        }
+    }
+
+    return EOK;
+}
+
+
 struct dp_get_account_info_state {
     const char *request_name;
     bool initgroups;
 
+    struct tevent_context *ev;
     struct data_provider *provider;
     struct dp_id_data *data;
     struct dp_reply_std reply;
@@ -460,6 +688,7 @@ struct dp_get_account_info_state {
 
 static void dp_get_account_info_request_done(struct tevent_req *subreq);
 static errno_t dp_get_account_info_initgroups_step(struct tevent_req *req);
+static void dp_get_account_info_initgroups_resolv_done(struct tevent_req *subreq);
 static void dp_get_account_info_done(struct tevent_req *subreq);
 
 struct tevent_req *
@@ -491,6 +720,7 @@ dp_get_account_info_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    state->ev = ev;
     state->provider = provider;
     state->request_name = "Account";
     state->initgroups = false;
@@ -572,13 +802,45 @@ static errno_t dp_get_account_info_initgroups_step(struct tevent_req *req)
 {
     struct dp_get_account_info_state *state;
     struct tevent_req *subreq;
-    errno_t ret;
 
     state = tevent_req_data(req, struct dp_get_account_info_state);
 
     if (state->initgroups == false) {
         return EOK;
     }
+
+    /* Create subrequest to handle SR data */
+    subreq = dp_sr_resolve_groups_send(state, state->ev, state->reply,
+                                       state->provider, state->initgr_ctx);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, dp_get_account_info_initgroups_resolv_done, req);
+
+    return EAGAIN;
+}
+
+
+static void dp_get_account_info_initgroups_resolv_done(struct tevent_req *subreq)
+{
+    struct dp_get_account_info_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct dp_get_account_info_state);
+
+    ret = dp_sr_resolve_groups_recv(state, subreq);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    dp_req_initgr_pp_set_initgr_timestamp(state->initgr_ctx, &state->reply);
+    dp_req_initgr_pp_sr_overlay(state->provider, state->initgr_ctx);
 
     if (state->initgr_ctx->username != NULL) {
         /* There is no point in contacting NSS responder if user did
@@ -592,19 +854,15 @@ static errno_t dp_get_account_info_initgroups_step(struct tevent_req *req)
                      state->initgr_ctx->groups);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
-            return ENOMEM;
+            ret = ENOMEM;
+            tevent_req_error(req, ret);
+            return;
         }
 
         tevent_req_set_callback(subreq, dp_get_account_info_done, req);
-        ret = EAGAIN;
     } else {
-        ret = EOK;
+        tevent_req_done(req);
     }
-
-    dp_req_initgr_pp_set_initgr_timestamp(state->initgr_ctx, &state->reply);
-    dp_req_initgr_pp_sr_overlay(state->provider, state->initgr_ctx);
-
-    return ret;
 }
 
 static void dp_get_account_info_done(struct tevent_req *subreq)
