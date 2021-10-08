@@ -130,6 +130,7 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
                        struct be_resolv_ctx *be_res,
                        enum host_database *host_dbs,
                        struct sdap_options *opts,
+                       struct ad_options *ad_options,
                        const char *hostname,
                        const char *ad_domain,
                        const char *ad_site_override)
@@ -147,6 +148,7 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
     ctx->host_dbs = host_dbs;
     ctx->opts = opts;
     ctx->renew_site = true;
+    ctx->ad_options = ad_options;
 
     ctx->hostname = talloc_strdup(ctx, hostname);
     if (ctx->hostname == NULL) {
@@ -164,18 +166,20 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
-        ctx->current_site = talloc_strdup(ctx, ad_site_override);
-        if (ctx->current_site == NULL) {
+        ctx->ad_options->current_site = talloc_strdup(ctx->ad_options,
+                                                      ad_site_override);
+        if (ctx->ad_options->current_site == NULL) {
             goto fail;
         }
     } else {
-        ret = sysdb_get_site(ctx, be_ctx->domain, &ctx->current_site);
+        ret = sysdb_get_site(ctx->ad_options, be_ctx->domain,
+                             &ctx->ad_options->current_site);
         if (ret != EOK) {
             /* Not fatal. */
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Unable to get current site from cache [%d]: %s\n",
                   ret, sss_strerror(ret));
-            ctx->current_site = NULL;
+            ctx->ad_options->current_site = NULL;
         }
     }
 
@@ -203,34 +207,35 @@ ad_srv_plugin_ctx_switch_site(struct ad_srv_plugin_ctx *ctx,
 
     /* Switch forest. */
     if (new_forest != NULL
-        && (ctx->current_forest == NULL
-            || strcmp(ctx->current_forest, new_forest) != 0)) {
-        forest = talloc_strdup(ctx, new_forest);
+        && (ctx->ad_options->current_forest == NULL
+            || strcmp(ctx->ad_options->current_forest, new_forest) != 0)) {
+        forest = talloc_strdup(ctx->ad_options, new_forest);
         if (forest == NULL) {
             return ENOMEM;
         }
 
-        talloc_zfree(ctx->current_forest);
-        ctx->current_forest = forest;
+        talloc_zfree(ctx->ad_options->current_forest);
+        ctx->ad_options->current_forest = forest;
     }
 
     if (new_site == NULL) {
         return EOK;
     }
 
-    if (ctx->current_site != NULL && strcmp(ctx->current_site, new_site) == 0) {
+    if (ctx->ad_options->current_site != NULL
+                    && strcmp(ctx->ad_options->current_site, new_site) == 0) {
         return EOK;
     }
 
-    site = talloc_strdup(ctx, new_site);
+    site = talloc_strdup(ctx->ad_options, new_site);
     if (site == NULL) {
         return ENOMEM;
     }
 
-    talloc_zfree(ctx->current_site);
-    ctx->current_site = site;
+    talloc_zfree(ctx->ad_options->current_site);
+    ctx->ad_options->current_site = site;
 
-    ret = sysdb_set_site(ctx->be_ctx->domain, ctx->current_site);
+    ret = sysdb_set_site(ctx->be_ctx->domain, ctx->ad_options->current_site);
     if (ret != EOK) {
         /* Not fatal. */
         DEBUG(SSSDBG_MINOR_FAILURE, "Unable to store site information "
