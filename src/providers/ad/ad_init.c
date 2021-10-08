@@ -208,6 +208,7 @@ static errno_t ad_init_srv_plugin(struct be_ctx *be_ctx,
 
     srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx, be_ctx->be_res,
                                      default_host_dbs, ad_options->id,
+                                     ad_options,
                                      hostname, ad_domain,
                                      ad_site_override);
     if (srv_ctx == NULL) {
