@@ -26,11 +26,10 @@ struct ad_srv_plugin_ctx {
     struct be_resolv_ctx *be_res;
     enum host_database *host_dbs;
     struct sdap_options *opts;
+    struct ad_options *ad_options;
     const char *hostname;
     const char *ad_domain;
     const char *ad_site_override;
-    const char *current_site;
-    const char *current_forest;
 
     bool renew_site;
 };
@@ -41,6 +40,7 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
                        struct be_resolv_ctx *be_res,
                        enum host_database *host_dbs,
                        struct sdap_options *opts,
+                       struct ad_options *ad_options,
                        const char *hostname,
                        const char *ad_domain,
                        const char *ad_site_override);

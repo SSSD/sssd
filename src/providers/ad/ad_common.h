@@ -111,6 +111,10 @@ struct ad_options {
     /* Dynamic DNS updates */
     struct be_resolv_ctx *be_res;
     struct be_nsupdate_ctx *dyndns_ctx;
+
+    /* Discovered site and forest names */
+    const char *current_site;
+    const char *current_forest;
 };
 
 errno_t

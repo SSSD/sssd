@@ -608,10 +608,12 @@ struct tevent_req *ad_cldap_ping_send(TALLOC_CTX *mem_ctx,
     }
 
     if (!srv_ctx->renew_site) {
-        state->site = talloc_strdup(state, srv_ctx->current_site);
-        state->forest = talloc_strdup(state, srv_ctx->current_forest);
-        if ((srv_ctx->current_site != NULL && state->site == NULL)
-                || (srv_ctx->current_forest != NULL && state->forest == NULL)) {
+        state->site = talloc_strdup(state, srv_ctx->ad_options->current_site);
+        state->forest = talloc_strdup(state,
+                                      srv_ctx->ad_options->current_forest);
+        if ((srv_ctx->ad_options->current_site != NULL && state->site == NULL)
+                || (srv_ctx->ad_options->current_forest != NULL
+                                    && state->forest == NULL)) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to copy current site or forest name.\n");
             ret = ENOMEM;
@@ -636,9 +638,10 @@ struct tevent_req *ad_cldap_ping_send(TALLOC_CTX *mem_ctx,
     state->discovery_domain = discovery_domain;
 
     /* If possible, lookup the information in the current site first. */
-    if (srv_ctx->current_site != NULL) {
+    if (srv_ctx->ad_options->current_site != NULL) {
         state->all_tried = false;
-        domain = ad_site_dns_discovery_domain(state, srv_ctx->current_site,
+        domain = ad_site_dns_discovery_domain(state,
+                                              srv_ctx->ad_options->current_site,
                                               discovery_domain);
         if (domain == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!");
