@@ -1428,7 +1428,12 @@ ad_get_root_domain_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (forest != NULL && strcasecmp(domain, forest) == 0) {
+    if (forest == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Name of forest root domain not available, l"
+                                 "using cached data, if available.\n");
+        ret = EINVAL;
+        goto immediately;
+    } else if (strcasecmp(domain, forest) == 0) {
         state->root_id_ctx = sd_ctx->ad_id_ctx;
         state->root_domain_attrs = NULL;
         ret = EOK;
