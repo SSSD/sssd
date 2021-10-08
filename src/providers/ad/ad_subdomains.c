@@ -2092,6 +2092,23 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
         return;
     }
 
+    if (state->forest == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Forest name was not found, using the one "
+                                    "which was already discovered [%s].\n",
+                                    state->ad_options->current_forest != NULL ?
+                                        state->ad_options->current_forest :
+                                        "- not available-");
+        if (state->ad_options->current_forest != NULL) {
+            state->forest = talloc_strdup(state,
+                                          state->ad_options->current_forest);
+            if (state->forest == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to copy forest name.\n");
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+        }
+    }
+
     realm = dp_opt_get_cstring(state->ad_options->basic, AD_KRB5_REALM);
     if (realm == NULL) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Missing realm.\n");
