@@ -342,6 +342,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx, be_ctx->be_res,
                                      default_host_dbs,
                                      ad_id_ctx->ad_options->id,
+                                     ad_id_ctx->ad_options,
                                      id_ctx->server_mode->hostname,
                                      ad_domain,
                                      ad_site_override);
