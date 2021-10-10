@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-07-12 20:53+0200\n"
-"PO-Revision-Date: 2021-08-08 16:04+0000\n"
+"PO-Revision-Date: 2021-10-05 17:05+0000\n"
 "Last-Translator: Oğuz Ersen <oguzersen@protonmail.com>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/tr/>\n"
@@ -19,7 +19,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n>1);\n"
-"X-Generator: Weblate 4.7.2\n"
+"X-Generator: Weblate 4.8\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -194,7 +194,7 @@ msgstr "SSSD'nin açıkça yok sayması gereken gruplar"
 
 #: src/config/SSSDConfig/sssdoptions.py:65
 msgid "Should filtered users appear in groups"
-msgstr "Filtrelenen kullanıcıların gruplarda görünüp görünmeyeceği"
+msgstr "Filtrelenen kullanıcılar gruplarda görünmeli mi"
 
 #: src/config/SSSDConfig/sssdoptions.py:66
 msgid "The value of the password field the NSS provider should return"
@@ -241,7 +241,7 @@ msgstr "Sağlayıcı bir tane listelemiyorsa kullanılacak kabuk"
 
 #: src/config/SSSDConfig/sssdoptions.py:74
 msgid "How long will be in-memory cache records valid"
-msgstr "Bellek içi önbellek kayıtlarının ne kadar süreyle geçerli olacağı"
+msgstr "Bellek içi önbellek kayıtları ne kadar süreyle geçerli olacak"
 
 #: src/config/SSSDConfig/sssdoptions.py:75
 msgid ""
@@ -296,81 +296,92 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:87
 msgid "How long to allow cached logins between online logins (days)"
 msgstr ""
+"Çevrim içi oturum açma işlemleri arasında önbelleğe alınmış oturum açma "
+"işlemlerine ne kadar süreyle izin verilecek (gün)"
 
 #: src/config/SSSDConfig/sssdoptions.py:88
 msgid "How many failed logins attempts are allowed when offline"
 msgstr ""
+"Çevrim dışıyken kaç tane başarısız oturum açma girişimine izin verilecek"
 
 #: src/config/SSSDConfig/sssdoptions.py:90
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
+"offline_failed_login_attempts değerine ulaşıldıktan sonra oturum açmanın "
+"reddedileceği süre (dakika)"
 
 #: src/config/SSSDConfig/sssdoptions.py:91
 msgid "What kind of messages are displayed to the user during authentication"
-msgstr ""
+msgstr "Kimlik doğrulama sırasında kullanıcıya ne tür mesajlar gösterilecek"
 
 #: src/config/SSSDConfig/sssdoptions.py:92
 msgid "Filter PAM responses sent to the pam_sss"
-msgstr ""
+msgstr "pam_sss'ye gönderilen PAM yanıtlarını filtrele"
 
 #: src/config/SSSDConfig/sssdoptions.py:93
 msgid "How many seconds to keep identity information cached for PAM requests"
-msgstr ""
+msgstr "PAM istekleri için kimlik bilgileri kaç saniye önbellekte tutulacak"
 
 #: src/config/SSSDConfig/sssdoptions.py:94
 msgid "How many days before password expiration a warning should be displayed"
-msgstr ""
+msgstr "Parola süresinin dolmasına kaç gün kala bir uyarı görüntülenmeli"
 
 #: src/config/SSSDConfig/sssdoptions.py:95
 msgid "List of trusted uids or user's name"
-msgstr ""
+msgstr "Güvenilen kullanıcı kimliklerinin veya adlarının listesi"
 
 #: src/config/SSSDConfig/sssdoptions.py:96
 msgid "List of domains accessible even for untrusted users."
 msgstr ""
+"Güvenilmeyen kullanıcılar için bile erişilebilen etki alanı adlarının "
+"listesi."
 
 #: src/config/SSSDConfig/sssdoptions.py:97
 msgid "Message printed when user account is expired."
-msgstr ""
+msgstr "Kullanıcı hesabının süresi dolduğunda görüntülenen mesaj."
 
 #: src/config/SSSDConfig/sssdoptions.py:98
 msgid "Message printed when user account is locked."
-msgstr ""
+msgstr "Kullanıcı hesabı kilitlendiğinde görüntülenen mesaj."
 
 #: src/config/SSSDConfig/sssdoptions.py:99
 msgid "Allow certificate based/Smartcard authentication."
-msgstr ""
+msgstr "Sertifika tabanlı/Akıllı kart kimlik doğrulamasına izin ver."
 
 #: src/config/SSSDConfig/sssdoptions.py:100
 msgid "Path to certificate database with PKCS#11 modules."
-msgstr ""
+msgstr "PKCS#11 modüllerine sahip sertifika veri tabanının yolu."
 
 #: src/config/SSSDConfig/sssdoptions.py:101
 msgid "Tune certificate verification for PAM authentication."
-msgstr ""
+msgstr "PAM kimlik doğrulaması için sertifika doğrulamasını ayarla."
 
 #: src/config/SSSDConfig/sssdoptions.py:102
 msgid "How many seconds will pam_sss wait for p11_child to finish"
-msgstr ""
+msgstr "pam_sss, p11_child'in bitmesi için kaç saniye bekleyecek"
 
 #: src/config/SSSDConfig/sssdoptions.py:103
 msgid "Which PAM services are permitted to contact application domains"
 msgstr ""
+"Hangi PAM hizmetlerinin uygulama etki alanlarıyla iletişim kurmasına izin "
+"verilecek"
 
 #: src/config/SSSDConfig/sssdoptions.py:104
 msgid "Allowed services for using smartcards"
-msgstr ""
+msgstr "Akıllı kartları kullanmak için izin verilen hizmetler"
 
 #: src/config/SSSDConfig/sssdoptions.py:105
 msgid "Additional timeout to wait for a card if requested"
-msgstr ""
+msgstr "İstendiğinde kart beklemek için ek zaman aşımı"
 
 #: src/config/SSSDConfig/sssdoptions.py:106
 msgid ""
 "PKCS#11 URI to restrict the selection of devices for Smartcard authentication"
 msgstr ""
+"Akıllı kart kimlik doğrulaması için aygıt seçimini kısıtlamak için PKCS#11 "
+"URI'si"
 
 #: src/config/SSSDConfig/sssdoptions.py:107
 msgid "When shall the PAM responder force an initgroups request"
