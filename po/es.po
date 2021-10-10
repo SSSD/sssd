@@ -19,7 +19,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-07-12 20:53+0200\n"
-"PO-Revision-Date: 2021-01-29 10:40+0000\n"
+"PO-Revision-Date: 2021-09-27 18:04+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.4.2\n"
+"X-Generator: Weblate 4.8\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -46,7 +46,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Enable/disable debug backtrace"
-msgstr ""
+msgstr "Habilitar/deshabilitar el rastreo de depuración"
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Watchdog timeout before restarting service"
@@ -298,6 +298,8 @@ msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr ""
+"Especifica el tiempo en segundos por los cuales la lista de subdominios será "
+"considerada válida."
 
 #: src/config/SSSDConfig/sssdoptions.py:82
 msgid ""
@@ -305,6 +307,9 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
+"La entrada a la cache puede ser fijada automáticamente para actualizar "
+"entradas en segundo plano si hay peticiones más allá de un porcentanje del "
+"valor de entry_cache_timeout para el dominio."
 
 #: src/config/SSSDConfig/sssdoptions.py:87
 msgid "How long to allow cached logins between online logins (days)"
@@ -367,9 +372,8 @@ msgid "Path to certificate database with PKCS#11 modules."
 msgstr "Ruta a la base de datos de certificados con módulos PKCS#11."
 
 #: src/config/SSSDConfig/sssdoptions.py:101
-#, fuzzy
 msgid "Tune certificate verification for PAM authentication."
-msgstr "Ajustar la verificación del cetificado"
+msgstr "Ajustar la verificación de certificado para autenticación PAM."
 
 #: src/config/SSSDConfig/sssdoptions.py:102
 msgid "How many seconds will pam_sss wait for p11_child to finish"
@@ -397,21 +401,23 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:107
 msgid "When shall the PAM responder force an initgroups request"
-msgstr ""
+msgstr "Cuando deberá el respondedor PAM forzar una petición initgroups"
 
 #: src/config/SSSDConfig/sssdoptions.py:108
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
-msgstr ""
+msgstr "Lista de servicios PAM que tienen permitido autenticar con GSSAPI."
 
 #: src/config/SSSDConfig/sssdoptions.py:109
 msgid "Whether to match authenticated UPN with target user"
-msgstr ""
+msgstr "Ya sea para hacer coincidir el UPN autenticado con el usuario objetivo"
 
 #: src/config/SSSDConfig/sssdoptions.py:110
 msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
 msgstr ""
+"La lista de pares <PAM service>:<authentication indicator> que se debe hacer "
+"cumplir para el acceso PAM con autenticación GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:114
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -449,13 +455,15 @@ msgstr "Ruta al almacenamiento de los certificados CA de confianza"
 
 #: src/config/SSSDConfig/sssdoptions.py:127
 msgid "Allow to generate ssh-keys from certificates"
-msgstr ""
+msgstr "Permite generar claves ssh desde certificados"
 
 #: src/config/SSSDConfig/sssdoptions.py:128
 msgid ""
 "Use the following matching rules to filter the certificates for ssh-key "
 "generation"
 msgstr ""
+"Usar las siguientes reglas de coincidencia para filtrar los certificados "
+"para la generación de clave ssh"
 
 #: src/config/SSSDConfig/sssdoptions.py:132
 msgid "List of UIDs or user names allowed to access the PAC responder"
@@ -570,6 +578,10 @@ msgid ""
 "- No users are recorded. some - Users/groups specified by users and groups "
 "options are recorded. all - All users are recorded."
 msgstr ""
+"Una de las siguientes cadenas especifica el alcance del registro de sesión: "
+"none - No se registran los usuarios. some - Usuarios/grupos especificados "
+"por las opciones usuarios y grupos se registran. all - Se registran todos "
+"los usuarios."
 
 #: src/config/SSSDConfig/sssdoptions.py:165
 msgid ""
@@ -577,6 +589,10 @@ msgid ""
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
+"Una lista separada por comas de usuarios que deberían tener el registro de "
+"sesión habilitado. Coincide con los nombres de usuario que son devueltos por "
+"NSS. I.e. después de las posibles sustituciones de espacios, cambios de mayú"
+"sculas/minúsculas, etc."
 
 #: src/config/SSSDConfig/sssdoptions.py:167
 msgid ""

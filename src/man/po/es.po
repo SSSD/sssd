@@ -19,7 +19,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2021-07-29 15:04+0000\n"
+"PO-Revision-Date: 2021-09-27 18:04+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/es/>\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.7.2\n"
+"X-Generator: Weblate 4.8\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -3321,10 +3321,10 @@ msgid ""
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
-"Una lista separada por comas de usuarios que deberían tener la grabación de "
-"sesión habilitada. Coincide con los nombres de usuario que son devueltos por "
-"NSS. I.e. después de las posibles sustituciones de espacios, cambios de "
-"mayúsculas/minúsculas, etc."
+"Una lista separada por comas de usuarios que deberían tener el registro de "
+"sesión habilitado. Coincide con los nombres de usuario que son devueltos por "
+"NSS. I.e. después de las posibles sustituciones de espacios, cambios de mayú"
+"sculas/minúsculas, etc."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2265 sssd-session-recording.5.xml:115
