@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2021-08-31 08:41+0000\n"
+"PO-Revision-Date: 2021-09-17 22:04+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
@@ -2668,8 +2668,6 @@ msgstr "Standard: no_session"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:1818 sssd.conf.5.xml:3968
-#, fuzzy
-#| msgid "pam_app_services (string)"
 msgid "pam_gssapi_services"
 msgstr "pam_gssapi_services"
 
@@ -4771,17 +4769,11 @@ msgstr "Standard: ipv4_first"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3414 sssd.conf.5.xml:3453
-#, fuzzy
-#| msgid "dns_resolver_timeout (integer)"
 msgid "dns_resolver_server_timeout (integer)"
 msgstr "dns_resolver_server_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3417 sssd.conf.5.xml:3456
-#, fuzzy
-#| msgid ""
-#| "Time in milliseconds that sets how long would SSSD talk to a single DNS "
-#| "server before trying next one."
 msgid ""
 "Defines the amount of time (in milliseconds)  SSSD would try to talk to DNS "
 "server before trying next DNS server."
@@ -4806,18 +4798,11 @@ msgstr "Standard: 1000"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3433 sssd.conf.5.xml:3472
-#, fuzzy
-#| msgid "dns_resolver_timeout (integer)"
 msgid "dns_resolver_op_timeout (integer)"
 msgstr "dns_resolver_op_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3436 sssd.conf.5.xml:3475
-#, fuzzy
-#| msgid ""
-#| "Time in seconds to tell how long would SSSD try to resolve single DNS "
-#| "query (e.g. resolution of a hostname or an SRV record) before trying the "
-#| "next hostname or discovery domain."
 msgid ""
 "Defines the amount of time (in seconds) to wait to resolve single DNS query "
 "(e.g. resolution of a hostname or an SRV record)  before try next hostname "
@@ -4925,15 +4910,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3538
-#, fuzzy
-#| msgid ""
-#| "The available options are: <placeholder type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "Treat user and group names as case sensitive.  Possible option values are: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"De tillgängliga alternativen är: <placeholder type=\"variablelist\" id=\"0\"/"
-">"
+"Behandla användar- och gruppnamn som skiftlägeskänsliga. De tillgängliga "
+"värdena på alternativen är: <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3578
@@ -4996,15 +4978,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3614
-#, fuzzy
-#| msgid "auto_private_groups (string)"
 msgid "auto_private_groups"
 msgstr "auto_private_groups"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3617
-#, fuzzy
-#| msgid "Case insensitive."
 msgid "case_sensitive"
 msgstr "case_sensitive"
 
@@ -5839,11 +5817,6 @@ msgstr "single_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4153
-#, fuzzy
-#| msgid ""
-#| "boolean value, if True there will be only a single prompt using the value "
-#| "of first_prompt where it is expected that both factors are entered as a "
-#| "single string"
 msgid ""
 "boolean value, if True there will be only a single prompt using the value of "
 "first_prompt where it is expected that both factors are entered as a single "
@@ -11335,30 +11308,22 @@ msgstr "Standard: använd bas-DN"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:360
-#, fuzzy
-#| msgid "ipa_subdomains_search_base (string)"
 msgid "ipa_subid_ranges_search_base (string)"
-msgstr "ipa_subdomains_search_base (sträng)"
+msgstr "ipa_subid_ranges_search_base (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:363
-#, fuzzy
-#| msgid ""
-#| "Optional. Use the given string as search base for Desktop Profile related "
-#| "objects."
 msgid ""
 "Optional. Use the given string as search base for subordinate ranges related "
 "objects."
 msgstr ""
-"Frivillig.  Använd den givna strängen som sökbas för "
-"skrivbordsprofilrelaterade objekt."
+"Frivillig. Använd den givna strängen som sökbas för "
+"underordningsintervallsrelaterade objekt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:367
-#, fuzzy
-#| msgid "Default: the value of <emphasis>cn=trusts,%basedn</emphasis>"
 msgid "Default: the value of <emphasis>cn=subids,%basedn</emphasis>"
-msgstr "Standard: värdet på <emphasis>cn=trusts,%basedn</emphasis>"
+msgstr "Standard: värdet på <emphasis>cn=subids,%basedn</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:374
@@ -21743,56 +21708,6 @@ msgstr ""
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase condition="
-#| "\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase condition="
-#| "\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
-#| "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <phrase condition="
-#| "\"enable_local_provider\"> <citerefentry> <refentrytitle>sss_groupadd</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, </phrase> "
-#| "<citerefentry> <refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> "
-#| "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
-#| "<manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
-#| "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
-#| "manvolnum> </citerefentry>, </phrase> <citerefentry> "
-#| "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> <phrase condition="
-#| "\"with_stap\"> <citerefentry> <refentrytitle>sssd-systemtap</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> </phrase>"
 msgid ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
@@ -21832,52 +21747,44 @@ msgid ""
 "citerefentry> </phrase>"
 msgstr ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd."
+"conf</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"krb5</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"ipa</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase condition="
-"\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase condition="
-"\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry>, </phrase> <citerefentry> "
-"<refentrytitle>sssd-session-recording</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_cache</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"files</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
+"condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase "
+"condition=\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
+"<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> "
 "<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <phrase condition=\"enable_local_provider\"> <citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, </phrase> <citerefentry> <refentrytitle>sss_obfuscate</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> "
+"<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> "
 "<refentrytitle>sss_seed</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd_krb5_locator_plugin</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <phrase condition="
-"\"with_ssh\"> <citerefentry> <refentrytitle>sss_ssh_authorizedkeys</"
-"refentrytitle> <manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> "
+"<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> <citerefentry> "
+"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>8</"
+"manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
 "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
 "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>.  <citerefentry> "
-"<refentrytitle>sss_rpcidmapd</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> <phrase condition=\"with_stap\"> <citerefentry> "
-"<refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> </phrase>"
+"manvolnum> </citerefentry>, </phrase> <citerefentry> "
+"<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> <phrase condition=\"with_stap\"> "
+"<citerefentry> <refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> </phrase>"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:3

@@ -1,22 +1,22 @@
 # Zdenek <chmelarz@gmail.com>, 2017. #zanata
-# Pavel Borecki <pavel.borecki@gmail.com>, 2018. #zanata
-# Pavel Borecki <pavel.borecki@gmail.com>, 2019. #zanata
+# Pavel Borecki <pavel.borecki@gmail.com>, 2018. #zanata, 2021.
+# Pavel Borecki <pavel.borecki@gmail.com>, 2019. #zanata, 2021.
 # Pavel Brezina <pbrezina@redhat.com>, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-07-12 20:53+0200\n"
-"PO-Revision-Date: 2020-08-12 10:01+0000\n"
-"Last-Translator: Pavel Brezina <pbrezina@redhat.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"master/cs/>\n"
+"PO-Revision-Date: 2021-09-23 13:04+0000\n"
+"Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.1.1\n"
+"X-Generator: Weblate 4.8\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -33,11 +33,11 @@ msgstr "Zahrnout do časových značek v ladících záznamech mikrosekundy"
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Enable/disable debug backtrace"
-msgstr ""
+msgstr "Zap/vyp. ladící zpětné volání funkce (backtrace)"
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Watchdog timeout before restarting service"
-msgstr "Časová prodleva resetátoru (watchdog) před restartováním služby "
+msgstr "Časová prodleva resetátoru (watchdog) před restartováním služby"
 
 #: src/config/SSSDConfig/sssdoptions.py:26
 msgid "Command to start service"
@@ -320,16 +320,15 @@ msgstr "Zpráva vypisovaná když je účet uživatele uzamčen."
 
 #: src/config/SSSDConfig/sssdoptions.py:99
 msgid "Allow certificate based/Smartcard authentication."
-msgstr "Umožnit ověřování založené na certifikátu/Smartcard"
+msgstr "Umožnit ověřování založené na certifikátu/Smartcard."
 
 #: src/config/SSSDConfig/sssdoptions.py:100
 msgid "Path to certificate database with PKCS#11 modules."
 msgstr "Popis umístění databáze certifikátů s PKCS#11 moduly."
 
 #: src/config/SSSDConfig/sssdoptions.py:101
-#, fuzzy
 msgid "Tune certificate verification for PAM authentication."
-msgstr "Vyladit ověřování certifikátu"
+msgstr "Vyladit ověřování certifikátu pro PAM ověřování."
 
 #: src/config/SSSDConfig/sssdoptions.py:102
 msgid "How many seconds will pam_sss wait for p11_child to finish"
@@ -497,7 +496,7 @@ msgid ""
 "when https protocol is used"
 msgstr ""
 "Pokud není nastaveno, certifikát protějšku může obsahovat rozdílný název "
-"stroje než  proxy_url když je použit https protokol"
+"stroje než proxy_url když je použit https protokol"
 
 #: src/config/SSSDConfig/sssdoptions.py:156
 msgid "Path to directory where certificate authority certificates are stored"
@@ -595,9 +594,8 @@ msgid "Whether the domain is usable by the OS or by applications"
 msgstr "Zda je doména použitelná pro operační systém nebo aplikace"
 
 #: src/config/SSSDConfig/sssdoptions.py:188
-#, fuzzy
 msgid "Enable or disable the domain"
-msgstr "Zapnout nebo vypnout implicitní doménu soubory"
+msgstr "Povolit nebo zakázat doménu"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Minimum user ID"
@@ -1282,7 +1280,7 @@ msgstr "Zadejte minimální SSF pro LDAP sasl ověřování"
 
 #: src/config/SSSDConfig/sssdoptions.py:384
 msgid "Specify the maximal SSF for LDAP sasl authorization"
-msgstr ""
+msgstr "Zadejte minimální SSF pro LDAP sasl ověřování"
 
 #: src/config/SSSDConfig/sssdoptions.py:385
 msgid "Kerberos service keytab"
@@ -1957,11 +1955,11 @@ msgstr "PAM vrstvy, které použít"
 
 #: src/config/SSSDConfig/sssdoptions.py:588
 msgid "Path of passwd file sources."
-msgstr "Popis umístění souborových zdrojů passwd"
+msgstr "Popis umístění souborových zdrojů passwd."
 
 #: src/config/SSSDConfig/sssdoptions.py:589
 msgid "Path of group file sources."
-msgstr "Popis umístění souborových zdrojů group"
+msgstr "Popis umístění souborových zdrojů group."
 
 #: src/monitor/monitor.c:2408
 msgid "Become a daemon (default)"
@@ -1990,7 +1988,7 @@ msgstr "Podobné s --genconf, ale znovu načte pouze danou sekci"
 
 #: src/monitor/monitor.c:2423
 msgid "Print version number and exit"
-msgstr "Vypsat "
+msgstr "Vypsat číslo verze a skončit"
 
 #: src/monitor/monitor.c:2461
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
@@ -2049,9 +2047,8 @@ msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Použít uživatelsky určenou verzi krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
-#, fuzzy
 msgid "talloc_asprintf failed.\n"
-msgstr "malloc se nezdařilo.\n"
+msgstr "talloc_asprintf se nezdařilo.\n"
 
 #: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
@@ -2095,12 +2092,12 @@ msgstr "Neočekávaná chyba při hledání popisu chyby"
 
 #: src/sss_client/pam_sss.c:68
 msgid "Permission denied. "
-msgstr "Přístup odepřen."
+msgstr "Přístup odepřen. "
 
 #: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:785
 #: src/sss_client/pam_sss.c:796
 msgid "Server message: "
-msgstr "Zpráva ze serveru:"
+msgstr "Zpráva ze serveru: "
 
 # auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId:
 # po/ipa
@@ -2118,7 +2115,7 @@ msgstr "Přihlášeni přihlašovacími údaji z mezipaměti"
 
 #: src/sss_client/pam_sss.c:533
 msgid ", your cached password will expire at: "
-msgstr ", platnost mezipaměti skončí v:"
+msgstr ", platnost mezipaměti hesel skončí v: "
 
 #: src/sss_client/pam_sss.c:563
 #, c-format
@@ -2132,7 +2129,7 @@ msgstr "Platnost vašeho hesla skončí v %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:658
 msgid "Authentication is denied until: "
-msgstr "Ověření odepřeno do:"
+msgstr "Ověření odepřeno do: "
 
 #: src/sss_client/pam_sss.c:679
 msgid "System is offline, password change not possible"
@@ -2147,27 +2144,27 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
 msgid "Password change failed. "
-msgstr "Změna hesla se nezdařila."
+msgstr "Změna hesla se nezdařila. "
 
 #: src/sss_client/pam_sss.c:2045
 msgid "New Password: "
-msgstr "Nové heslo:"
+msgstr "Nové heslo: "
 
 #: src/sss_client/pam_sss.c:2046
 msgid "Reenter new Password: "
-msgstr "Zopakování nového hesla:"
+msgstr "Zopakování nového hesla: "
 
 #: src/sss_client/pam_sss.c:2208 src/sss_client/pam_sss.c:2211
 msgid "First Factor: "
-msgstr "Hlavní faktor:"
+msgstr "Hlavní faktor: "
 
 #: src/sss_client/pam_sss.c:2209 src/sss_client/pam_sss.c:2383
 msgid "Second Factor (optional): "
-msgstr "Druhý faktor (volitelné):"
+msgstr "Druhý faktor (volitelné): "
 
 #: src/sss_client/pam_sss.c:2212 src/sss_client/pam_sss.c:2386
 msgid "Second Factor: "
-msgstr "Druhý faktor:"
+msgstr "Druhý faktor: "
 
 # auto translated by TM merge from project: anaconda, version: f25, DocId:
 # main
@@ -2177,11 +2174,11 @@ msgstr "Heslo: "
 
 #: src/sss_client/pam_sss.c:2382 src/sss_client/pam_sss.c:2385
 msgid "First Factor (Current Password): "
-msgstr "Hlavní faktor (stávající heslo):"
+msgstr "Hlavní faktor (stávající heslo): "
 
 #: src/sss_client/pam_sss.c:2389
 msgid "Current Password: "
-msgstr "Stávající heslo:"
+msgstr "Stávající heslo: "
 
 #: src/sss_client/pam_sss.c:2746
 msgid "Password expired. Change your password now."
@@ -2242,14 +2239,14 @@ msgid "The path to the proxy command must be absolute\n"
 msgstr "Je třeba, aby popis umístění příkazu proxy byl úplný\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:326
-#, fuzzy, c-format
+#, c-format
 msgid "sss_ssh_knownhostsproxy: unable to proxy data: %s\n"
-msgstr "sss_ssh_knownhostsproxy: Nedaří se přeložit název stroje %s\n"
+msgstr "sss_ssh_knownhostsproxy: nedaří se proxy data: %s\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:330
-#, fuzzy, c-format
+#, c-format
 msgid "sss_ssh_knownhostsproxy: connect to host %s port %d: %s\n"
-msgstr "sss_ssh_knownhostsproxy: Nedaří se přeložit název stroje %s\n"
+msgstr "sss_ssh_knownhostsproxy: připojit k hostiteli %s port %d: %s\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:334
 #, c-format
@@ -2365,9 +2362,7 @@ msgstr ""
 #: src/tools/sss_useradd.c:239
 #, c-format
 msgid "Cannot create user's home directory: %1$s\n"
-msgstr ""
-"Domovskou složku uživatele se nedaří vytvořit: %1$s\n"
-"\n"
+msgstr "Domovskou složku uživatele se nedaří vytvořit: %1$s\n"
 
 #: src/tools/sss_useradd.c:250
 #, c-format
@@ -2482,7 +2477,6 @@ msgid ""
 msgstr ""
 "Skupinu %1$s se nedaří najít v místní doméně, jsou dovoleny pouze skupiny z "
 "místní domény\n"
-"\n"
 
 #: src/tools/sss_groupmod.c:257
 msgid "Could not modify group - check if member group names are correct\n"
@@ -2500,7 +2494,7 @@ msgstr "Chyba transakce. Skupinu se nedaří změnit.\n"
 
 #: src/tools/sss_groupshow.c:616
 msgid "Magic Private "
-msgstr "Magické soukromé"
+msgstr "Magické soukromé "
 
 #: src/tools/sss_groupshow.c:615
 #, c-format
@@ -2593,7 +2587,7 @@ msgstr "VAROVÁNÍ: uživatel (uid %1$lu) byl při mazání stále přihlášen.
 
 #: src/tools/sss_userdel.c:278
 msgid "Cannot determine if the user was logged in on this platform"
-msgstr "Nedaří se zjistit zda uživatel byl přihlášen na této platformě."
+msgstr "Nedaří se zjistit zda uživatel byl přihlášen na této platformě"
 
 #: src/tools/sss_userdel.c:283
 msgid "Error while checking if the user was logged in\n"
@@ -2646,11 +2640,11 @@ msgstr "Odemknout účet"
 
 #: src/tools/sss_usermod.c:57
 msgid "Add an attribute/value pair. The format is attrname=value."
-msgstr "Přidat dvojici atribut a hodnota. Formát je nazevatributu=hodnota."
+msgstr "Přidat dvojici atribut /hodnota. Formát je nazevatributu=hodnota."
 
 #: src/tools/sss_usermod.c:58
 msgid "Delete an attribute/value pair. The format is attrname=value."
-msgstr "Smazat dvojici atribut a hodnota. Formát je nazevatributu=hodnota."
+msgstr "Smazat dvojici atribut/hodnota. Formát je nazevatributu=hodnota."
 
 #: src/tools/sss_usermod.c:59
 msgid ""
@@ -2854,7 +2848,7 @@ msgstr "Je třeba, aby bylo SSSD restartováno. Restartovat ho nyní?"
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
 msgid " %s is not present in cache.\n"
-msgstr "%s se nenachází v mezipaměti.\n"
+msgstr " %s se nenachází v mezipaměti.\n"
 
 # auto translated by TM merge from project: libosinfo, version: master, DocId:
 # libosinfo
@@ -2923,12 +2917,12 @@ msgstr ""
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format
 msgid "Failed to open %s\n"
-msgstr ""
+msgstr "Nepodařilo se otevřít %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:123
 #, c-format
 msgid "File %1$s does not exist.\n"
-msgstr ""
+msgstr "soubor %1$s neexistuje.\n"
 
 #: src/tools/sssctl/sssctl_config.c:127
 msgid ""
@@ -2969,7 +2963,7 @@ msgstr "Zprávy vytvořené při slučování nastavení: %zu\n"
 #: src/tools/sssctl/sssctl_config.c:185
 #, c-format
 msgid "Used configuration snippet files: %zu\n"
-msgstr ""
+msgstr "Použité soubory s útržky nastavení: %zu\n"
 
 #: src/tools/sssctl/sssctl_data.c:89
 #, c-format
@@ -3266,7 +3260,6 @@ msgid ""
 "\n"
 msgstr ""
 "zkoušení pam_authenticate\n"
-"\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:272
