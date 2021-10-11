@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-07-12 20:51+0200\n"
+"POT-Creation-Date: 2021-10-11 14:54+0200\n"
 "PO-Revision-Date: 2021-09-17 22:04+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
@@ -26,8 +26,8 @@ msgstr ""
 #: sss_cache.8.xml:5 sss_debuglevel.8.xml:5 sss_seed.8.xml:5 sssd-ifp.5.xml:5
 #: sss_rpcidmapd.5.xml:5 sss_ssh_authorizedkeys.1.xml:5
 #: sss_ssh_knownhostsproxy.1.xml:5 idmap_sss.8.xml:5 sssctl.8.xml:5
-#: sssd-files.5.xml:5 sssd-secrets.5.xml:5 sssd-session-recording.5.xml:5
-#: sssd-kcm.8.xml:5 sssd-systemtap.5.xml:5 sssd-ldap-attributes.5.xml:5
+#: sssd-files.5.xml:5 sssd-session-recording.5.xml:5 sssd-kcm.8.xml:5
+#: sssd-systemtap.5.xml:5 sssd-ldap-attributes.5.xml:5
 msgid "SSSD Manual pages"
 msgstr "SSSD manualsidor"
 
@@ -40,8 +40,8 @@ msgstr "sssd.conf"
 #: sssd.conf.5.xml:11 sssd-ldap.5.xml:11 sssd-simple.5.xml:11
 #: sss-certmap.5.xml:11 sssd-ipa.5.xml:11 sssd-ad.5.xml:11 sssd-sudo.5.xml:11
 #: sssd-krb5.5.xml:11 sssd-ifp.5.xml:11 sss_rpcidmapd.5.xml:27
-#: sssd-files.5.xml:11 sssd-secrets.5.xml:11 sssd-session-recording.5.xml:11
-#: sssd-systemtap.5.xml:11 sssd-ldap-attributes.5.xml:11
+#: sssd-files.5.xml:11 sssd-session-recording.5.xml:11 sssd-systemtap.5.xml:11
+#: sssd-ldap-attributes.5.xml:11
 msgid "5"
 msgstr "5"
 
@@ -49,8 +49,8 @@ msgstr "5"
 #: sssd.conf.5.xml:12 sssd-ldap.5.xml:12 sssd-simple.5.xml:12
 #: sss-certmap.5.xml:12 sssd-ipa.5.xml:12 sssd-ad.5.xml:12 sssd-sudo.5.xml:12
 #: sssd-krb5.5.xml:12 sssd-ifp.5.xml:12 sss_rpcidmapd.5.xml:28
-#: sssd-files.5.xml:12 sssd-secrets.5.xml:12 sssd-session-recording.5.xml:12
-#: sssd-kcm.8.xml:12 sssd-systemtap.5.xml:12 sssd-ldap-attributes.5.xml:12
+#: sssd-files.5.xml:12 sssd-session-recording.5.xml:12 sssd-kcm.8.xml:12
+#: sssd-systemtap.5.xml:12 sssd-ldap-attributes.5.xml:12
 msgid "File Formats and Conventions"
 msgstr "Filformat och konventioner"
 
@@ -240,14 +240,13 @@ msgstr ""
 "Lägg till en tidsstämpel till felsökningsmeddelanden.  Om journald är "
 "aktiverat för SSSD-felsökningsloggning ignoreras denna flagga."
 
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:133 sssd.conf.5.xml:170 sssd.conf.5.xml:355
 #: sssd.conf.5.xml:647 sssd.conf.5.xml:1001 sssd.conf.5.xml:2033
 #: sssd.conf.5.xml:2063 sssd-ldap.5.xml:962 sssd-ldap.5.xml:1060
 #: sssd-ldap.5.xml:1127 sssd-ldap.5.xml:1614 sssd-ldap.5.xml:1679
 #: sssd-ipa.5.xml:341 sssd-ad.5.xml:229 sssd-ad.5.xml:343 sssd-ad.5.xml:1177
-#: sssd-ad.5.xml:1325 sssd-krb5.5.xml:342 sssd-secrets.5.xml:351
-#: sssd-secrets.5.xml:364
+#: sssd-ad.5.xml:1325 sssd-krb5.5.xml:342
 msgid "Default: true"
 msgstr "Standard: true"
 
@@ -720,10 +719,9 @@ msgstr ""
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:460 sssd-ldap.5.xml:772 sssd-ldap.5.xml:784
 #: sssd-ldap.5.xml:876 sssd-ad.5.xml:897 sssd-ad.5.xml:972 sssd-krb5.5.xml:452
-#: sssd-secrets.5.xml:339 sssd-secrets.5.xml:377 sssd-secrets.5.xml:390
-#: sssd-secrets.5.xml:404 sssd-secrets.5.xml:415 sssd-ldap-attributes.5.xml:470
-#: sssd-ldap-attributes.5.xml:959 include/ldap_id_mapping.xml:205
-#: include/ldap_id_mapping.xml:216 include/krb5_options.xml:139
+#: sssd-ldap-attributes.5.xml:470 sssd-ldap-attributes.5.xml:959
+#: include/ldap_id_mapping.xml:205 include/ldap_id_mapping.xml:216
+#: include/krb5_options.xml:139
 msgid "Default: not set"
 msgstr "Standard: inte satt"
 
@@ -2709,8 +2707,8 @@ msgstr ""
 "pam_gssapi_services = sudo, sudo-i\n"
 "                            "
 
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1836 sssd.conf.5.xml:3620 sssd-secrets.5.xml:448
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:1836 sssd.conf.5.xml:3620
 msgid "Example: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr "Exempel: <placeholder type=\"programlisting\" id=\"0\"/>"
 
@@ -2840,8 +2838,8 @@ msgid ""
 "otp -- pre-authentication using integrated two-factor authentication (2FA or "
 "one-time password, OTP) in IPA."
 msgstr ""
-"otp — förautentisering med användning av integrerad tvåfaktorautentisering ("
-"2FA eller engångslösenord, OTP) i IPA."
+"otp — förautentisering med användning av integrerad tvåfaktorautentisering "
+"(2FA eller engångslösenord, OTP) i IPA."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1927
@@ -3387,8 +3385,8 @@ msgstr ""
 "Aktivera eller avaktivera uttryckligen domänen. Om <quote>true</quote> är "
 "domänen alltid <quote>aktiverad</quote>. Om <quote>false</quote> är domänen "
 "alltid <quote>avaktiverad</quote>. Om denna flagga inte är satt är domänen "
-"aktiverad endast om den är listad i domänflaggan i sektionen "
-"<quote>[sssd]</quote>."
+"aktiverad endast om den är listad i domänflaggan i sektionen <quote>[sssd]</"
+"quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2350
@@ -6021,8 +6019,8 @@ msgstr "SSSD LDAP-leverantör"
 #: sss_cache.8.xml:29 sss_debuglevel.8.xml:30 sss_seed.8.xml:31
 #: sssd-ifp.5.xml:21 sss_ssh_authorizedkeys.1.xml:30
 #: sss_ssh_knownhostsproxy.1.xml:31 idmap_sss.8.xml:20 sssctl.8.xml:30
-#: sssd-files.5.xml:21 sssd-secrets.5.xml:21 sssd-session-recording.5.xml:21
-#: sssd-kcm.8.xml:21 sssd-systemtap.5.xml:21 sssd-ldap-attributes.5.xml:21
+#: sssd-files.5.xml:21 sssd-session-recording.5.xml:21 sssd-kcm.8.xml:21
+#: sssd-systemtap.5.xml:21 sssd-ldap-attributes.5.xml:21
 msgid "DESCRIPTION"
 msgstr "BESKRIVNING"
 
@@ -6068,7 +6066,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:49 sssd-simple.5.xml:69 sssd-ipa.5.xml:81 sssd-ad.5.xml:115
 #: sssd-krb5.5.xml:63 sssd-ifp.5.xml:44 sssd-files.5.xml:78
-#: sssd-secrets.5.xml:120 sssd-session-recording.5.xml:58 sssd-kcm.8.xml:202
+#: sssd-session-recording.5.xml:58 sssd-kcm.8.xml:202
 msgid "CONFIGURATION OPTIONS"
 msgstr "KONFIGURATIONSALTERNATIV"
 
@@ -6092,8 +6090,8 @@ msgstr ""
 "angivet kommer tjänsteupptäckt användas.  För mer information, se avsnittet "
 "<quote>TJÄNSTEUPPTÄCKT</quote>."
 
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:76 sssd-secrets.5.xml:264
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:76
 msgid "The format of the URI must match the format defined in RFC 2732:"
 msgstr "Formatet på URI:n måste stämma med formatet som definieras i RFC 2732:"
 
@@ -8620,8 +8618,8 @@ msgid ""
 msgstr ""
 "Observera att detta alternativ kanske inte fungerar som förväntat ifall "
 "programmet som anropar PAM hanterar användardialogen själv. Ett typiskt "
-"exempel är <command>sshd</command> med "
-"<option>PasswordAuthentication</option>."
+"exempel är <command>sshd</command> med <option>PasswordAuthentication</"
+"option>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:127
@@ -9237,10 +9235,10 @@ msgid ""
 "manvolnum> </citerefentry> for more details on these options."
 msgstr ""
 "För att aktivera GSSAPI-autentisering i SSSD, sätt alternativet "
-"<option>pam_gssapi_services</option> i [pam] eller domänsektionen i "
-"sssd.conf. Tjänstekreditiven behöver lagras i SSSD:s keytab (de finns där "
-"redan om man använder leverantören ipa eller ad). Keytab-platsen kan anges "
-"med alternativet <option>krb5_keytab</option>. Se <citerefentry> "
+"<option>pam_gssapi_services</option> i [pam] eller domänsektionen i sssd."
+"conf. Tjänstekreditiven behöver lagras i SSSD:s keytab (de finns där redan "
+"om man använder leverantören ipa eller ad). Keytab-platsen kan anges med "
+"alternativet <option>krb5_keytab</option>. Se <citerefentry> "
 "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> och <citerefentry> <refentrytitle>sssd-krb5</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> för fler detaljer om dessa "
@@ -9330,8 +9328,8 @@ msgid ""
 "And then enable the module in desired PAM stack (e.g. /etc/pam.d/sudo and /"
 "etc/pam.d/sudo-i)."
 msgstr ""
-"Aktivera sedan modulen i den önskande PAM-stacken (t.ex. /etc/pam.d/sudo och "
-"/etc/pam.d/sudo-i)."
+"Aktivera sedan modulen i den önskande PAM-stacken (t.ex. /etc/pam.d/sudo "
+"och /etc/pam.d/sudo-i)."
 
 #. type: Content of: <reference><refentry><refsect1><programlisting>
 #: pam_sss_gss.8.xml:173
@@ -10630,8 +10628,8 @@ msgid ""
 "Example: (|(userPrincipalName={subject_nt_principal})"
 "(samAccountName={subject_nt_principal.short_name}))"
 msgstr ""
-"Exempel: (|(userPrincipalName={subject_nt_principal})(samAccountName={subject"
-"_nt_principal.short_name}))"
+"Exempel: (|(userPrincipalName={subject_nt_principal})"
+"(samAccountName={subject_nt_principal.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:503
@@ -16944,1009 +16942,6 @@ msgstr ""
 "group:      sss files\n"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
-#: sssd-secrets.5.xml:10 sssd-secrets.5.xml:16
-msgid "sssd-secrets"
-msgstr "sssd-secrets"
-
-#. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sssd-secrets.5.xml:17
-msgid "SSSD Secrets responder"
-msgstr "SSSD Secrets-respondent"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:23
-msgid ""
-"This manual page describes the configuration of the Secrets responder for "
-"<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
-"</citerefentry>.  For a detailed syntax reference, refer to the <quote>FILE "
-"FORMAT</quote> section of the <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page."
-msgstr ""
-"Denna manualsida beskriver konfigurationen av Secrets-respondenten till "
-"<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
-"</citerefentry>.  För en detaljerad referens om syntaxen, se avsnittet "
-"<quote>FILFORMAT</quote> i manualsidan <citerefentry> <refentrytitle>sssd."
-"conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:36
-msgid ""
-"Many system and user applications need to store private information such as "
-"passwords or service keys and have no good way to properly deal with them. "
-"The simple approach is to embed these <quote>secrets</quote> into "
-"configuration files potentially ending up exposing sensitive key material to "
-"backups, config management system and in general making it harder to secure "
-"data."
-msgstr ""
-"Många system och användarprogram behöver lagra privat information såsom "
-"lösenord eller tjänstenycklar och har inget bra sätt att ta hand om dem "
-"ordentligt.  Den enkla vägen är att bädda in dessa <quote>hemligheter</"
-"quote> i konfigurationsfiler där de potentiellt kan komma att exponera "
-"känslig nyckelinformation till säkerhetskopior, "
-"konfigurationshanteringssystem och gör det i allmänhet svårare att säkra "
-"datan."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:45
-msgid ""
-"The <ulink url=\"https://github.com/latchset/custodia\">custodia</ulink> "
-"project was born to deal with this problem in cloud like environments, but "
-"we found the idea compelling even at a single system level. As a security "
-"service, SSSD is ideal to host this capability while offering the same API "
-"via a UNIX Socket. This will make it possible to use local calls and have "
-"them transparently routed to a local or a remote key management store like "
-"IPA Vault for storage, escrow and recovery."
-msgstr ""
-"Projektet <ulink url=\"https://github.com/latchset/custodia\">custodia</"
-"ulink> föddes för att ta hand om detta problem i molnlika miljöer, men vi "
-"tyckte att idén var övertygande även på nivån av enstaka system.  Som en "
-"säkerhetstjänst är SSSD ideal för att hantera denna funktionalitet och "
-"samtidigt erbjuda samma API via ett UNIX-uttag.  Detta kommer göra det "
-"möjligt att använda lokala anrop och få dem dirigerade transparent till ett "
-"lokalt eller fjärran nyckelhanteringslager såsom IPA Vault för lagring, "
-"deponering och återhämtning."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:55
-msgid ""
-"The secrets are simple key-value pairs. Each user's secrets are namespaced "
-"using their user ID, which means the secrets will never collide between "
-"users. Secrets can be stored inside <quote>containers</quote> which can be "
-"nested."
-msgstr ""
-"Hemligheterna är enkla nyckel-värde-par.  Varje användares hemligheter "
-"ligger i en namnrymd efter deras användar-ID, vilket betyder att hemligheter "
-"aldrig kommer kollidera mellan användare.  Hemligheter kan lagras inuti "
-"<quote>behållare</quote> som kan nästas."
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:69
-msgid "secrets"
-msgstr "secrets"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:70
-msgid "secrets for general usage"
-msgstr "hemligheter för allmän användning"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:73
-msgid "kcm"
-msgstr "kcm"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:75
-msgid ""
-"used by the <citerefentry> <refentrytitle>sssd-kcm</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry> service."
-msgstr ""
-"används av tjänsten <citerefentry> <refentrytitle>sssd-kcm</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry>."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:61
-msgid ""
-"Since the secrets responder can be used both externally to store general "
-"secrets, as described in the rest of this man page, but also internally by "
-"other SSSD components to store their secret material, some configuration "
-"options, like quotas can be configured per <quote>hive</quote> in a "
-"configuration subsection named after the hive. The currently supported hives "
-"are: <placeholder type=\"variablelist\" id=\"0\"/>"
-msgstr ""
-"Eftersom secrets-respondenten kan användas både externt för att lagra "
-"allmänna hemligheter, såsom beskrives i resten av den här manualsidan, men "
-"också internt av andra SSSD-komponenter för att lagra deras material kan "
-"några konfigurationsalternativ, som kvoter konfigureras per <quote>svärm</"
-"quote> i ett konfigurationsavsnitt namngivet efter svärmen.  De svärmar som "
-"stödjs för närvarande är: <placeholder type=\"variablelist\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-secrets.5.xml:89
-msgid "USING THE SECRETS RESPONDER"
-msgstr "ANVÄNDA SECRETS-RESPONDENTEN"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:91
-msgid ""
-"The UNIX socket the SSSD responder listens on is located at <filename>/var/"
-"run/secrets.socket</filename>."
-msgstr ""
-"UNIX-uttaget SSSD-respondenten lyssnar på finns på <filename>/var/run/"
-"secrets.socket</filename>."
-
-#. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-secrets.5.xml:110
-#, no-wrap
-msgid ""
-"systemctl start sssd-secrets.socket\n"
-"systemctl enable sssd-secrets.socket\n"
-"systemctl enable sssd-secrets.service\n"
-"            "
-msgstr ""
-"systemctl start sssd-secrets.socket\n"
-"systemctl enable sssd-secrets.socket\n"
-"systemctl enable sssd-secrets.service\n"
-"            "
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:95
-msgid ""
-"The secrets responder is socket-activated by <citerefentry> "
-"<refentrytitle>systemd</refentrytitle> <manvolnum>1</manvolnum> </"
-"citerefentry>.  Unlike other SSSD responders, it cannot be started by adding "
-"the <quote>secrets</quote> string to the <quote>service</quote> directive.  "
-"The systemd socket unit is called <quote>sssd-secrets.socket</quote> and the "
-"corresponding service file is called <quote>sssd-secrets.service</quote>. In "
-"order for the service to be socket-activated, make sure the socket is "
-"enabled and active and the service is enabled: <placeholder type="
-"\"programlisting\" id=\"0\"/> Please note your distribution may already "
-"configure the units for you."
-msgstr ""
-"Secrets-respondenten är uttagsaktiverad av <citerefentry> "
-"<refentrytitle>systemd</refentrytitle> <manvolnum>1</manvolnum> </"
-"citerefentry>.  Till skillnad mot andra SSSD-respondenter, kan den inte "
-"startas genom att lägga till strängen <quote>secrets</quote> till direktivet "
-"<quote>service</quote>.  Systemd-uttagsenheten heter <quote>sssd-secrets."
-"socket</quote> och den motsvarande tjänstefilen heter <quote>sssd-secrets."
-"service</quote>.  För att tjänsten skall vara uttagsaktiverad, se till att "
-"uttaget är aktiverat och aktivt och att tjänsten är aktiverad: <placeholder "
-"type=\"programlisting\" id=\"0\"/>  Observera att din distribution redan kan "
-"ha konfigurerat enheterna åt dig."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:122
-msgid ""
-"The generic SSSD responder options such as <quote>debug_level</quote> or "
-"<quote>fd_limit</quote> are accepted by the secrets responder.  Please refer "
-"to the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> manual page for a complete list. In addition, "
-"there are some secrets-specific options as well."
-msgstr ""
-"De allmänna alternativen för SSSD-respondenter såsom <quote>debug_level</"
-"quote> eller <quote>fd_limit</quote> accepteras av secrets-respondenten.  Se "
-"manualsidan <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> för en fullständig lista.  Dessutom "
-"finns det några secrets-specifika alternativ också."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:132
-msgid ""
-"The secrets responder is configured with a global <quote>[secrets]</quote> "
-"section and an optional per-user <quote>[secrets/users/$uid]</quote> section "
-"in <filename>sssd.conf</filename>. Please note that some options, notably as "
-"the provider type, can only be specified in the per-user subsections."
-msgstr ""
-"Secrets-respondenten är konfigurerad i ett globalt avsnitt <quote>[secrets]</"
-"quote> och ett valfritt avsnitt per användare <quote>[secrets/users/$uid]</"
-"quote> i <filename>sssd.conf</filename>. Observera att några alternativ, "
-"speciellt leverantörstypen, bara kan anges i underavsnitt per användare."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:141
-msgid "provider (string)"
-msgstr "provider (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:157
-msgid "local"
-msgstr "local"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:160
-msgid ""
-"The secrets are stored in a local database, encrypted at rest with a master "
-"key. The local provider does not have any additional config options at the "
-"moment."
-msgstr ""
-"Hemligheterna sparas i en lokal databas, krypterad i vila med en "
-"huvudnyckel.  Den lokala leverantören har inte några ytterligare "
-"konfigurationsalternativ för tillfället."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:168
-msgid "proxy"
-msgstr "proxy"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:171
-msgid ""
-"The secrets responder forwards the requests to a Custodia server. The proxy "
-"provider supports several additional options (see below)."
-msgstr ""
-"Secrets-respondenten vidarebefordrar begäranden till en Custodia-server.  "
-"Proxy-leverantören stödjer flera ytterligare alternativ (se nedan)."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:144
-msgid ""
-"This option specifies where should the secrets be stored. The secrets "
-"responder can configure a per-user subsections (e.g. <quote>[secrets/"
-"users/123]</quote> - see bottom of this manual page for a full example using "
-"Custodia for a particular user) that define which provider store the secrets "
-"for this particular user. The per-user subsections should contain all "
-"options for that user's provider. Please note that currently the global "
-"provider is always local, the proxy provider can only be specified in a per-"
-"user section. The following providers are supported: <placeholder type="
-"\"variablelist\" id=\"0\"/>"
-msgstr ""
-"Alternativet anger var hemligheterna skall sparas.  Secrets-respondenten kan "
-"konfigurera ett underavsnitt per användare (t.ex. <quote>[secrets/"
-"users/123]</quote> – se slutet av denna manualsida för ett fullständigt "
-"exempel som använder Custodia för en viss användare) som definierar vilken "
-"leverantör som sparar hemligheterna för denna specifika användare.  "
-"Underavsnittet per användare skall innehålla alla alternativ för den "
-"användarens leverantör.  Observera att för närvarande är alltid den globala "
-"leverantören lokal, proxy-leverantören kan endast anges i ett avsnitt per "
-"användare.  Följande leverantörer stödjs: <placeholder type=\"variablelist\" "
-"id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:180
-msgid "Default: local"
-msgstr "Standard: local"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:186
-msgid ""
-"The following options affect only the secrets <quote>hive</quote> and "
-"therefore should be set in a per-hive subsection. Setting the option to 0 "
-"means \"unlimited\"."
-msgstr ""
-"Följande alternativ påverkar endast hemlighets-<quote>svärmen</quote> och "
-"skall därför sättas i ett underavsnitt per svärm.  Att sätta alternativet "
-"till 0 betyder ”obegränsat”."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:192
-msgid "containers_nest_level (integer)"
-msgstr "containers_nest_level (heltal)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:195
-msgid "This option specifies the maximum allowed number of nested containers."
-msgstr ""
-"Detta alternativ specificerar det maximala antalet tillåtna nästade "
-"behållare."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:199
-msgid "Default: 4"
-msgstr "Standard: 4"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:204
-msgid "max_secrets (integer)"
-msgstr "max_secrets (heltal)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:207
-msgid ""
-"This option specifies the maximum number of secrets that can be stored in "
-"the hive."
-msgstr ""
-"Detta alternativ anger det maximala antalet hemligheter som kan sparas i "
-"svärmen."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:211
-msgid "Default: 1024 (secrets hive), 256 (kcm hive)"
-msgstr "Standard: 1024 (secrets-svärm), 256 (kcm-svärm)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:216
-msgid "max_uid_secrets (integer)"
-msgstr "max_uid_secrets (heltal)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:219
-msgid ""
-"This option specifies the maximum number of secrets that can be stored per-"
-"UID in the hive."
-msgstr ""
-"Detta alternativ anger det maximala antalet hemligheter som kan sparas per "
-"AID i svärmen."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:223
-msgid "Default: 256 (secrets hive), 64 (kcm hive)"
-msgstr "Standard: 256 (secrets-svärm), 64 (kcm-svärm)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:228
-msgid "max_payload_size (integer)"
-msgstr "max_payload_size (heltal)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:231
-msgid ""
-"This option specifies the maximum payload size allowed for a secret payload "
-"in kilobytes."
-msgstr ""
-"Detta alternativ anger den maximala laststorleken som tillåts för en "
-"hemlighetslast i kilobyte."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:235
-msgid "Default: 16 (secrets hive), 65536 (64 MiB) (kcm hive)"
-msgstr "Standard: 16 (secrets-svärm), 65536 (64 MiB) (kcm-svärm)"
-
-#. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-secrets.5.xml:244
-#, no-wrap
-msgid ""
-"[secrets/secrets]\n"
-"max_payload_size = 128\n"
-"\n"
-"[secrets/kcm]\n"
-"max_payload_size = 256\n"
-"            "
-msgstr ""
-"[secrets/secrets]\n"
-"max_payload_size = 128\n"
-"\n"
-"[secrets/kcm]\n"
-"max_payload_size = 256\n"
-"            "
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:241
-msgid ""
-"For example, to adjust quotas differently for both the <quote>secrets</"
-"quote> and the <quote>kcm</quote> hives, configure the following: "
-"<placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-"Till exempel, för att justera kvoter olika för både svärmen <quote>secrets</"
-"quote> och <quote>kcm</quote>, konfigurera följande: <placeholder type="
-"\"programlisting\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:252
-msgid ""
-"The following options are only applicable for configurations that use the "
-"<quote>proxy</quote> provider."
-msgstr ""
-"Följande alternativ är endast användbara för konfigurationer som använder "
-"leverantören <quote>proxy</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:257
-msgid "proxy_url (string)"
-msgstr "proxy_url (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:260
-msgid ""
-"The URL the Custodia server is listening on. At the moment, http and https "
-"protocols are supported."
-msgstr ""
-"URL:en Custodia-servern lyssnar på.  För tillfället stödjs protokollen http "
-"och https."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:267
-msgid "http[s]://&lt;host&gt;[:port]"
-msgstr "http[s]://&lt;värd&gt;[:port]"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:270
-msgid "Example: http://localhost:8080"
-msgstr "Exempel: http://localhost:8080"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:275
-msgid "auth_type (string)"
-msgstr "auth_type (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:278
-msgid ""
-"The method to use when authenticating to a Custodia server. The following "
-"authentication methods are supported:"
-msgstr ""
-"Metoden att använda vid autentisering mot en Custodia-server.  Följande "
-"autentiseringsmetoder stödjs:"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:283
-msgid "basic_auth"
-msgstr "basic_auth"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:286
-msgid ""
-"Authenticate with a username and a password as set in the <quote>username</"
-"quote> and <quote>password</quote> options."
-msgstr ""
-"Autentisera med ett användarnamn och lösenord som satts i alternativen "
-"<quote>username</quote> och <quote>password</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:293
-msgid "header"
-msgstr "header"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:296
-msgid ""
-"Authenticate with HTTP header value as defined in the "
-"<quote>auth_header_name</quote> and <quote>auth_header_value</quote> "
-"configuration options."
-msgstr ""
-"Autentisera med ett HTTP-huvudvärde som det är definierat i "
-"konfigurationsalternativen <quote>auth_header_name</quote> och "
-"<quote>auth_header_value</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:307
-msgid "auth_header_name (string)"
-msgstr "auth_header_name (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:310
-msgid ""
-"If set, the secrets responder would put a header with this name into the "
-"HTTP request with the value defined in the <quote>auth_header_value</quote> "
-"configuration option."
-msgstr ""
-"Om satt kommer secrets-respondenten lägga in ett huvud med detta namn i HTTP-"
-"begäranden med värdet som definieras i konfigurationsalternativet "
-"<quote>auth_header_value</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:315
-msgid "Example: MYSECRETNAME"
-msgstr "Exempel: MITTHEMLIGANAMN"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:320
-msgid "auth_header_value (string)"
-msgstr "auth_header_value (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:323
-msgid ""
-"The value sssd-secrets would use for the <quote>auth_header_name</quote>."
-msgstr ""
-"Värdet sssd-secrets kommer använda till <quote>auth_header_name</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:327
-msgid "Example: mysecret"
-msgstr "Exempel: minhemlighet"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:332
-msgid "forward_headers (list of strings)"
-msgstr "forward_headers (lista av strängar)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:335
-msgid ""
-"The list of HTTP headers to forward to the Custodia server together with the "
-"request."
-msgstr ""
-"Listan över HTTP-huvuden att vidarebefordra till Custodia-servern "
-"tillsammans med begäran."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:344
-msgid "verify_peer (boolean)"
-msgstr "verify_peer (boolean)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:347
-msgid ""
-"Whether peer's certificate should be verified and valid if HTTPS protocol is "
-"used with the proxy provider."
-msgstr ""
-"Huruvida motpartens certifikat skall verifieras och vara giltigt om HTTPS-"
-"protokollet används med proxy-leverantören."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:356
-msgid "verify_host (boolean)"
-msgstr "verify_host (boolean)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:359
-msgid ""
-"Whether peer's hostname must match with hostname in its certificate if HTTPS "
-"protocol is used with the proxy provider."
-msgstr ""
-"Huruvida motpartens värdnamn måste stämma med värdnamnet i dess certifikat "
-"om HTTPS-protokollet används med proxy-leverantören."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:369
-msgid "capath (string)"
-msgstr "capath (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:372
-msgid ""
-"Path to directory containing stored certificate authority certificates. "
-"System default path is used if this option is not set."
-msgstr ""
-"Sökväg till katalogen som innehåller lagrade certifikatutfärdares "
-"certifikat.  Systemets standardsökväg används om detta alternativ inte är "
-"satt."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:382
-msgid "cacert (string)"
-msgstr "cacert (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:385
-msgid ""
-"Path to file containing server's certificate authority certificate. If this "
-"option is not set then the CA's certificate is looked up in <quote>capath</"
-"quote>."
-msgstr ""
-"Sökväg till filen som innehåller serverns certifikatauktoritetscertifikat.  "
-"Om detta alternativ inte är satt, då slås CA:ns certifikat upp i "
-"<quote>capath</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:395
-msgid "cert (string)"
-msgstr "cert (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:398
-msgid ""
-"Path to file containing client's certificate if required by the server. This "
-"file may also contain private key or the private key may be in separate file "
-"set with <quote>key</quote>."
-msgstr ""
-"Sökväg till filen som innehåller klientens certifikat om det krävs av "
-"servern.  Denna fil kan också innehålla en privat nyckel eller så kan den "
-"privata nyckeln finnas i en separat fil som anges med <quote>key</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:409
-msgid "key (string)"
-msgstr "key (sträng)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:412
-msgid "Path to file containing client's private key."
-msgstr "Sökväg till filen som innehåller klientens privata nyckel."
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-secrets.5.xml:422
-msgid "USING THE REST API"
-msgstr "ATT ANVÄNDA REST-API:ET"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:424
-msgid ""
-"This section lists the available commands and includes examples using the "
-"<citerefentry> <refentrytitle>curl</refentrytitle> <manvolnum>1</manvolnum> "
-"</citerefentry> utility.  All requests towards the proxy provider must set "
-"the Content Type header to <quote>application/json</quote>. In addition, the "
-"local provider also supports Content Type set to <quote>application/octet-"
-"stream</quote>.  Secrets stored with requests that set the Content Type "
-"header to <quote>application/octet-stream</quote> are base64-encoded when "
-"stored and decoded when retrieved, so it's not possible to store a secret "
-"with one Content Type and retrieve with another.  The secret URI must begin "
-"with <filename>/secrets/</filename>."
-msgstr ""
-"Detta avsnitt listar tillgängliga kommandon och inkluderar exempel som "
-"använder verktyget <citerefentry> <refentrytitle>curl</refentrytitle> "
-"<manvolnum>1</manvolnum> </citerefentry>.  Alla begäranden av proxy-"
-"leverantören måste sätta huvudet Content Type till <quote>application/json</"
-"quote>.  Dessutom stödjer den lokala leverantören även att Content Type "
-"sätts till <quote>application/octet-stream</quote>.  Hemligheter sparade med "
-"begäranden som sätter huvudet Content Type till <quote>application/octet-"
-"stream</quote> base64-kodas när de lagras och avkodas när de hämtas, så det "
-"är inte möjligt att lagra en hemlighet med en Content Type och hämta med en "
-"annan.  URI:n för hemligheter måste börja med <filename>/secrets/</filename>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:441
-msgid "Listing secrets"
-msgstr "Lista hemligheter"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:444
-msgid ""
-"To list the available secrets, send a HTTP GET request with a trailing slash "
-"appended to the container path."
-msgstr ""
-"För att lista de tillgängliga hemligheterna, skicka en HTTP GET-begäran med "
-"ett avslutande snedstreck tillagt på behållarsökvägen."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:450
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:458
-msgid "Retrieving a secret"
-msgstr "Hämta en hemlighet"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:461
-msgid ""
-"To read a value of a single secret, send a HTTP GET request without a "
-"trailing slash. The last portion of the URI is the name of the secret."
-msgstr ""
-"För att läsa värdet på en enskild hemlighet, skicka en HTTP GET-begäran utan "
-"ett avslutande snedstreck.  Den sista delen av URI:n är namnet på "
-"hemligheten."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:468
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/foo\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/apa\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:473
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/octet-stream\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/bar\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/octet-stream\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/bepa\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:466
-msgid ""
-"Examples: <placeholder type=\"programlisting\" id=\"0\"/> <placeholder type="
-"\"programlisting\" id=\"1\"/>"
-msgstr ""
-"Exempel: <placeholder type=\"programlisting\" id=\"0\"/> <placeholder type="
-"\"programlisting\" id=\"1\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:481
-msgid "Setting a secret"
-msgstr "Spara en hemlighet"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:484
-msgid ""
-"To set a secret using the <quote>application/json</quote> type, send a HTTP "
-"PUT request with a JSON payload that includes type and value. The type "
-"should be set to \"simple\" and the value should be set to the secret value. "
-"If a secret with that name already exists, the response is a 409 HTTP error."
-msgstr ""
-"För att spara en hemlighet med typen <quote>application/json</quote>, skicka "
-"en HTTP PUT-begäran med en JSON-last som innehåller typ och värde.  Typen "
-"skall sättas till ”simple” och värdet skall sättas till hemlighetens värde.  "
-"Om en hemlighet med det namnet redan finns blir svaret ett 409 HTTP-fel."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:492
-msgid ""
-"The <quote>application/json</quote> type just sends the secret as the "
-"message payload."
-msgstr ""
-"Typen <quote>application/json</quote> skickar bara hemligheten som "
-"meddelandets last."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:501
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPUT http://localhost/secrets/foo \\\n"
-"     -d'{\"type\":\"simple\",\"value\":\"foosecret\"}'\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPUT http://localhost/secrets/apa \\\n"
-"     -d'{\"type\":\"simple\",\"value\":\"hemligapa\"}'\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:507
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/octet-stream\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPUT http://localhost/secrets/bar \\\n"
-"     -d'barsecret'\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/octet-stream\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPUT http://localhost/secrets/bepa \\\n"
-"     -d'hemligbepa'\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:496
-msgid ""
-"The following example sets a secret named 'foo' to a value of 'foosecret' "
-"and a secret named 'bar' to a value of 'barsecret' using a different Content "
-"Type.  <placeholder type=\"programlisting\" id=\"0\"/> <placeholder type="
-"\"programlisting\" id=\"1\"/>"
-msgstr ""
-"Följande exempel sparar en hemlighet som heter ”apa” till värdet ”hemligapa” "
-"och en hemlighet som heter ”bepa” till värdet ”hemligbepa” genom att använda "
-"en annan Content Type.  <placeholder type=\"programlisting\" id=\"0\"/> "
-"<placeholder type=\"programlisting\" id=\"1\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:516
-msgid "Creating a container"
-msgstr "Att skapa en behållare"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:519
-msgid ""
-"Containers provide an additional namespace for this user's secrets. To "
-"create a container, send a HTTP POST request, whose URI ends with the "
-"container name. Please note the URI must end with a trailing slash."
-msgstr ""
-"Behållare tillhandahåller en ytterligare namnrymd för denna användares "
-"hemligheter.  För att skapa en behållare, skicka en HTTP POST-begäran, vars "
-"URI slutar med behållarnamnet.  Observera att URI:n måste sluta med ett "
-"avslutande snedstreck."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:529
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPOST http://localhost/secrets/mycontainer/\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPOST http://localhost/secrets/minbeh%C3%A5llare/\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:526
-msgid ""
-"The following example creates a container named 'mycontainer': <placeholder "
-"type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-"Följande exempel skapar en behållare som heter ”minbehållare”:<placeholder "
-"type=\"programlisting\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:538
-#, no-wrap
-msgid ""
-"http://localhost/secrets/mycontainer/mysecret\n"
-"                        "
-msgstr ""
-"http://localhost/secrets/minbeh%C3%A5llare/minhemlighet\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:535
-msgid ""
-"To manipulate secrets under this container, just nest the secrets underneath "
-"the container path: <placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-"För att hantera hemligheter under den här behållaren, nästa bara hemligheter "
-"under behållarsökvägen: <placeholder type=\"programlisting\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:544
-msgid "Deleting a secret or a container"
-msgstr "Radera en hemlighet eller behållare"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:547
-msgid ""
-"To delete a secret or a container, send a HTTP DELETE request with a path to "
-"the secret or the container."
-msgstr ""
-"För att radera en hemlighet eller behållare, skicka en HTTP DELETE-begäran "
-"med en sökväg till hemligheten eller behållaren."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:553
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XDELETE http://localhost/secrets/foo\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XDELETE http://localhost/secrets/apa\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:551
-msgid ""
-"The following example deletes a secret named 'foo'.  <placeholder type="
-"\"programlisting\" id=\"0\"/>"
-msgstr ""
-"Följande exempel raderar en hemlighet som heter ”apa”:<placeholder type="
-"\"programlisting\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-secrets.5.xml:563
-msgid "EXAMPLE CUSTODIA AND PROXY PROVIDER CONFIGURATION"
-msgstr "EXEMPEL PÅ KONFIGURATION AV CUSTODIA- OCH PROXY-LEVERANTÖRER"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:565
-msgid ""
-"For testing the proxy provider, you need to set up a Custodia server to "
-"proxy requests to. Please always consult the Custodia documentation, the "
-"configuration directives might change with different Custodia versions."
-msgstr ""
-"För att testa proxy-leverantören behöver du sätta upp en Custodia-server att "
-"vidarebefordra begäranden till.  Se till att läsa dokumentationen till "
-"Custodia, konfigurationsdirektiven kan ändras med olika Custodia-versioner."
-
-#. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-secrets.5.xml:576
-#, no-wrap
-msgid ""
-"[global]\n"
-"server_version = \"Secret/0.0.7\"\n"
-"server_url = http://localhost:8080/\n"
-"auditlog = /var/log/custodia.log\n"
-"debug = True\n"
-"\n"
-"[store:simple]\n"
-"handler = custodia.store.sqlite.SqliteStore\n"
-"dburi = /var/lib/custodia.db\n"
-"table = secrets\n"
-"\n"
-"[auth:header]\n"
-"handler = custodia.httpd.authenticators.SimpleHeaderAuth\n"
-"header = MYSECRETNAME\n"
-"value = mysecretkey\n"
-"\n"
-"[authz:paths]\n"
-"handler = custodia.httpd.authorizers.SimplePathAuthz\n"
-"paths = /secrets\n"
-"\n"
-"[/]\n"
-"handler = custodia.root.Root\n"
-"store = simple\n"
-"            "
-msgstr ""
-"[global]\n"
-"server_version = \"Secret/0.0.7\"\n"
-"server_url = http://localhost:8080/\n"
-"auditlog = /var/log/custodia.log\n"
-"debug = True\n"
-"\n"
-"[store:simple]\n"
-"handler = custodia.store.sqlite.SqliteStore\n"
-"dburi = /var/lib/custodia.db\n"
-"table = secrets\n"
-"\n"
-"[auth:header]\n"
-"handler = custodia.httpd.authenticators.SimpleHeaderAuth\n"
-"header = MITTHEMLIGANAMN\n"
-"value = minhemliganyckel\n"
-"\n"
-"[authz:paths]\n"
-"handler = custodia.httpd.authorizers.SimplePathAuthz\n"
-"paths = /secrets\n"
-"\n"
-"[/]\n"
-"handler = custodia.root.Root\n"
-"store = simple\n"
-"            "
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:570
-msgid ""
-"This configuration will set up a Custodia server listening on http://"
-"localhost:8080, allowing anyone with header named MYSECRETNAME set to "
-"mysecretkey to communicate with the Custodia server.  Place the contents "
-"into a file (for example, <replaceable>custodia.conf</replaceable>): "
-"<placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-"Denna konfiguration kommer sätta upp en Custodia-server som lyssnar på "
-"http://localhost:8080, tillåter vem som helst med ett huvud med namnet "
-"MITTHEMLIGANAMN satt till minhemliganyckel att kommunicera med Custodia-"
-"servern.  Placera innehållet i en fil (till exempel, <replaceable>custodia."
-"conf</replaceable>): <placeholder type=\"programlisting\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:602
-msgid ""
-"Then run the <replaceable>custodia</replaceable> command, pointing it at the "
-"config file as a command line argument."
-msgstr ""
-"Kör sedan kommandot <replaceable>custodia</replaceable> och peka det på "
-"konfigurationsfilen som ett kommandoradsargument."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:606
-msgid ""
-"Please note that currently it's not possible to proxy all requests globally "
-"to a Custodia instance. Instead, per-user subsections for user IDs that "
-"should proxy requests to Custodia must be defined. The following example "
-"illustrates a configuration, where the user with UID 123 would proxy their "
-"requests to Custodia, but all other user's requests would be handled by a "
-"local provider."
-msgstr ""
-"Observera att det för närvarande inte är möjligt att vidarebefordra alla "
-"begäranden globalt till en Custodia-instans.  Istället måste underavsnitt "
-"per användare för användar-ID:n som skall skicka vidare begäranden till "
-"Custodia definieras.  Följande exempel illustrerar en konfiguration där "
-"användaren med AID 123 skulle skicka vidare sina begäranden till Custodia, "
-"men alla andra användares begäranden skulle hanteras av en lokal leverantör."
-
-#. type: Content of: <reference><refentry><refsect1><programlisting>
-#: sssd-secrets.5.xml:614
-#, no-wrap
-msgid ""
-"[secrets]\n"
-"\n"
-"[secrets/users/123]\n"
-"provider = proxy\n"
-"proxy_url = http://localhost:8080/secrets/\n"
-"auth_type = header\n"
-"auth_header_name = MYSECRETNAME\n"
-"auth_header_value = mysecretkey\n"
-"        "
-msgstr ""
-"[secrets]\n"
-"\n"
-"[secrets/users/123]\n"
-"provider = proxy\n"
-"proxy_url = http://localhost:8080/secrets/\n"
-"auth_type = header\n"
-"auth_header_name = MITTHEMLIGANAMN\n"
-"auth_header_value = minhemliganyckel\n"
-"        "
-
-#. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-session-recording.5.xml:10 sssd-session-recording.5.xml:16
 msgid "sssd-session-recording"
 msgstr "sssd-session-recording"
@@ -21708,7 +20703,81 @@ msgstr ""
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
+#, fuzzy
+#| msgid ""
+#| "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</"
+#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase condition="
+#| "\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
+#| "<manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase condition="
+#| "\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
+#| "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
+#| "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
+#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
+#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
+#| "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> "
+#| "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
+#| "<manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
+#| "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
+#| "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
+#| "manvolnum> </citerefentry>, </phrase> <citerefentry> "
+#| "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> <phrase condition="
+#| "\"with_stap\"> <citerefentry> <refentrytitle>sssd-systemtap</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> </phrase>"
 msgid ""
+"<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase condition="
+"\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>, </phrase> <citerefentry> "
+"<refentrytitle>sssd-session-recording</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_cache</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_obfuscate</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_seed</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd_krb5_locator_plugin</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <phrase condition="
+"\"with_ssh\"> <citerefentry> <refentrytitle>sss_ssh_authorizedkeys</"
+"refentrytitle> <manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
+"manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
+"<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>.  <citerefentry> "
+"<refentrytitle>sss_rpcidmapd</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> <phrase condition=\"with_stap\"> <citerefentry> "
+"<refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> </phrase>"
+msgstr ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
 "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
@@ -21745,46 +20814,6 @@ msgid ""
 "citerefentry> <phrase condition=\"with_stap\"> <citerefentry> "
 "<refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> </phrase>"
-msgstr ""
-"<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd."
-"conf</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-"
-"krb5</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-"
-"ipa</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-"
-"files</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
-"condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase "
-"condition=\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
-"<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
-"<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
-"<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
-"<refentrytitle>sss_seed</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
-"<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
-"manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> <citerefentry> "
-"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>8</"
-"manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
-"manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
-"<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry>, </phrase> <citerefentry> "
-"<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> <phrase condition=\"with_stap\"> "
-"<citerefentry> <refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> </phrase>"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:3
@@ -22397,6 +21426,818 @@ msgid ""
 msgstr ""
 "Anger om värdens och användarens huvudman skall göras kanonisk.  Denna "
 "funktion är tillgänglig med MIT Kerberos 1.7 och senare versioner."
+
+#~ msgid "sssd-secrets"
+#~ msgstr "sssd-secrets"
+
+#~ msgid "SSSD Secrets responder"
+#~ msgstr "SSSD Secrets-respondent"
+
+#~ msgid ""
+#~ "This manual page describes the configuration of the Secrets responder for "
+#~ "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
+#~ "manvolnum> </citerefentry>.  For a detailed syntax reference, refer to "
+#~ "the <quote>FILE FORMAT</quote> section of the <citerefentry> "
+#~ "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+#~ "citerefentry> manual page."
+#~ msgstr ""
+#~ "Denna manualsida beskriver konfigurationen av Secrets-respondenten till "
+#~ "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
+#~ "manvolnum> </citerefentry>.  För en detaljerad referens om syntaxen, se "
+#~ "avsnittet <quote>FILFORMAT</quote> i manualsidan <citerefentry> "
+#~ "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+#~ "citerefentry>."
+
+#~ msgid ""
+#~ "Many system and user applications need to store private information such "
+#~ "as passwords or service keys and have no good way to properly deal with "
+#~ "them. The simple approach is to embed these <quote>secrets</quote> into "
+#~ "configuration files potentially ending up exposing sensitive key material "
+#~ "to backups, config management system and in general making it harder to "
+#~ "secure data."
+#~ msgstr ""
+#~ "Många system och användarprogram behöver lagra privat information såsom "
+#~ "lösenord eller tjänstenycklar och har inget bra sätt att ta hand om dem "
+#~ "ordentligt.  Den enkla vägen är att bädda in dessa <quote>hemligheter</"
+#~ "quote> i konfigurationsfiler där de potentiellt kan komma att exponera "
+#~ "känslig nyckelinformation till säkerhetskopior, "
+#~ "konfigurationshanteringssystem och gör det i allmänhet svårare att säkra "
+#~ "datan."
+
+#~ msgid ""
+#~ "The <ulink url=\"https://github.com/latchset/custodia\">custodia</ulink> "
+#~ "project was born to deal with this problem in cloud like environments, "
+#~ "but we found the idea compelling even at a single system level. As a "
+#~ "security service, SSSD is ideal to host this capability while offering "
+#~ "the same API via a UNIX Socket. This will make it possible to use local "
+#~ "calls and have them transparently routed to a local or a remote key "
+#~ "management store like IPA Vault for storage, escrow and recovery."
+#~ msgstr ""
+#~ "Projektet <ulink url=\"https://github.com/latchset/custodia\">custodia</"
+#~ "ulink> föddes för att ta hand om detta problem i molnlika miljöer, men vi "
+#~ "tyckte att idén var övertygande även på nivån av enstaka system.  Som en "
+#~ "säkerhetstjänst är SSSD ideal för att hantera denna funktionalitet och "
+#~ "samtidigt erbjuda samma API via ett UNIX-uttag.  Detta kommer göra det "
+#~ "möjligt att använda lokala anrop och få dem dirigerade transparent till "
+#~ "ett lokalt eller fjärran nyckelhanteringslager såsom IPA Vault för "
+#~ "lagring, deponering och återhämtning."
+
+#~ msgid ""
+#~ "The secrets are simple key-value pairs. Each user's secrets are "
+#~ "namespaced using their user ID, which means the secrets will never "
+#~ "collide between users. Secrets can be stored inside <quote>containers</"
+#~ "quote> which can be nested."
+#~ msgstr ""
+#~ "Hemligheterna är enkla nyckel-värde-par.  Varje användares hemligheter "
+#~ "ligger i en namnrymd efter deras användar-ID, vilket betyder att "
+#~ "hemligheter aldrig kommer kollidera mellan användare.  Hemligheter kan "
+#~ "lagras inuti <quote>behållare</quote> som kan nästas."
+
+#~ msgid "secrets"
+#~ msgstr "secrets"
+
+#~ msgid "secrets for general usage"
+#~ msgstr "hemligheter för allmän användning"
+
+#~ msgid "kcm"
+#~ msgstr "kcm"
+
+#~ msgid ""
+#~ "used by the <citerefentry> <refentrytitle>sssd-kcm</refentrytitle> "
+#~ "<manvolnum>8</manvolnum> </citerefentry> service."
+#~ msgstr ""
+#~ "används av tjänsten <citerefentry> <refentrytitle>sssd-kcm</"
+#~ "refentrytitle> <manvolnum>8</manvolnum> </citerefentry>."
+
+#~ msgid ""
+#~ "Since the secrets responder can be used both externally to store general "
+#~ "secrets, as described in the rest of this man page, but also internally "
+#~ "by other SSSD components to store their secret material, some "
+#~ "configuration options, like quotas can be configured per <quote>hive</"
+#~ "quote> in a configuration subsection named after the hive. The currently "
+#~ "supported hives are: <placeholder type=\"variablelist\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Eftersom secrets-respondenten kan användas både externt för att lagra "
+#~ "allmänna hemligheter, såsom beskrives i resten av den här manualsidan, "
+#~ "men också internt av andra SSSD-komponenter för att lagra deras material "
+#~ "kan några konfigurationsalternativ, som kvoter konfigureras per "
+#~ "<quote>svärm</quote> i ett konfigurationsavsnitt namngivet efter "
+#~ "svärmen.  De svärmar som stödjs för närvarande är: <placeholder type="
+#~ "\"variablelist\" id=\"0\"/>"
+
+#~ msgid "USING THE SECRETS RESPONDER"
+#~ msgstr "ANVÄNDA SECRETS-RESPONDENTEN"
+
+#~ msgid ""
+#~ "The UNIX socket the SSSD responder listens on is located at <filename>/"
+#~ "var/run/secrets.socket</filename>."
+#~ msgstr ""
+#~ "UNIX-uttaget SSSD-respondenten lyssnar på finns på <filename>/var/run/"
+#~ "secrets.socket</filename>."
+
+#, no-wrap
+#~ msgid ""
+#~ "systemctl start sssd-secrets.socket\n"
+#~ "systemctl enable sssd-secrets.socket\n"
+#~ "systemctl enable sssd-secrets.service\n"
+#~ "            "
+#~ msgstr ""
+#~ "systemctl start sssd-secrets.socket\n"
+#~ "systemctl enable sssd-secrets.socket\n"
+#~ "systemctl enable sssd-secrets.service\n"
+#~ "            "
+
+#~ msgid ""
+#~ "The secrets responder is socket-activated by <citerefentry> "
+#~ "<refentrytitle>systemd</refentrytitle> <manvolnum>1</manvolnum> </"
+#~ "citerefentry>.  Unlike other SSSD responders, it cannot be started by "
+#~ "adding the <quote>secrets</quote> string to the <quote>service</quote> "
+#~ "directive.  The systemd socket unit is called <quote>sssd-secrets.socket</"
+#~ "quote> and the corresponding service file is called <quote>sssd-secrets."
+#~ "service</quote>. In order for the service to be socket-activated, make "
+#~ "sure the socket is enabled and active and the service is enabled: "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/> Please note your "
+#~ "distribution may already configure the units for you."
+#~ msgstr ""
+#~ "Secrets-respondenten är uttagsaktiverad av <citerefentry> "
+#~ "<refentrytitle>systemd</refentrytitle> <manvolnum>1</manvolnum> </"
+#~ "citerefentry>.  Till skillnad mot andra SSSD-respondenter, kan den inte "
+#~ "startas genom att lägga till strängen <quote>secrets</quote> till "
+#~ "direktivet <quote>service</quote>.  Systemd-uttagsenheten heter "
+#~ "<quote>sssd-secrets.socket</quote> och den motsvarande tjänstefilen heter "
+#~ "<quote>sssd-secrets.service</quote>.  För att tjänsten skall vara "
+#~ "uttagsaktiverad, se till att uttaget är aktiverat och aktivt och att "
+#~ "tjänsten är aktiverad: <placeholder type=\"programlisting\" id=\"0\"/>  "
+#~ "Observera att din distribution redan kan ha konfigurerat enheterna åt dig."
+
+#~ msgid ""
+#~ "The generic SSSD responder options such as <quote>debug_level</quote> or "
+#~ "<quote>fd_limit</quote> are accepted by the secrets responder.  Please "
+#~ "refer to the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+#~ "<manvolnum>5</manvolnum> </citerefentry> manual page for a complete list. "
+#~ "In addition, there are some secrets-specific options as well."
+#~ msgstr ""
+#~ "De allmänna alternativen för SSSD-respondenter såsom <quote>debug_level</"
+#~ "quote> eller <quote>fd_limit</quote> accepteras av secrets-respondenten.  "
+#~ "Se manualsidan <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+#~ "<manvolnum>5</manvolnum> </citerefentry> för en fullständig lista.  "
+#~ "Dessutom finns det några secrets-specifika alternativ också."
+
+#~ msgid ""
+#~ "The secrets responder is configured with a global <quote>[secrets]</"
+#~ "quote> section and an optional per-user <quote>[secrets/users/$uid]</"
+#~ "quote> section in <filename>sssd.conf</filename>. Please note that some "
+#~ "options, notably as the provider type, can only be specified in the per-"
+#~ "user subsections."
+#~ msgstr ""
+#~ "Secrets-respondenten är konfigurerad i ett globalt avsnitt "
+#~ "<quote>[secrets]</quote> och ett valfritt avsnitt per användare "
+#~ "<quote>[secrets/users/$uid]</quote> i <filename>sssd.conf</filename>. "
+#~ "Observera att några alternativ, speciellt leverantörstypen, bara kan "
+#~ "anges i underavsnitt per användare."
+
+#~ msgid "provider (string)"
+#~ msgstr "provider (sträng)"
+
+#~ msgid "local"
+#~ msgstr "local"
+
+#~ msgid ""
+#~ "The secrets are stored in a local database, encrypted at rest with a "
+#~ "master key. The local provider does not have any additional config "
+#~ "options at the moment."
+#~ msgstr ""
+#~ "Hemligheterna sparas i en lokal databas, krypterad i vila med en "
+#~ "huvudnyckel.  Den lokala leverantören har inte några ytterligare "
+#~ "konfigurationsalternativ för tillfället."
+
+#~ msgid "proxy"
+#~ msgstr "proxy"
+
+#~ msgid ""
+#~ "The secrets responder forwards the requests to a Custodia server. The "
+#~ "proxy provider supports several additional options (see below)."
+#~ msgstr ""
+#~ "Secrets-respondenten vidarebefordrar begäranden till en Custodia-server.  "
+#~ "Proxy-leverantören stödjer flera ytterligare alternativ (se nedan)."
+
+#~ msgid ""
+#~ "This option specifies where should the secrets be stored. The secrets "
+#~ "responder can configure a per-user subsections (e.g. <quote>[secrets/"
+#~ "users/123]</quote> - see bottom of this manual page for a full example "
+#~ "using Custodia for a particular user) that define which provider store "
+#~ "the secrets for this particular user. The per-user subsections should "
+#~ "contain all options for that user's provider. Please note that currently "
+#~ "the global provider is always local, the proxy provider can only be "
+#~ "specified in a per-user section. The following providers are supported: "
+#~ "<placeholder type=\"variablelist\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Alternativet anger var hemligheterna skall sparas.  Secrets-respondenten "
+#~ "kan konfigurera ett underavsnitt per användare (t.ex. <quote>[secrets/"
+#~ "users/123]</quote> – se slutet av denna manualsida för ett fullständigt "
+#~ "exempel som använder Custodia för en viss användare) som definierar "
+#~ "vilken leverantör som sparar hemligheterna för denna specifika "
+#~ "användare.  Underavsnittet per användare skall innehålla alla alternativ "
+#~ "för den användarens leverantör.  Observera att för närvarande är alltid "
+#~ "den globala leverantören lokal, proxy-leverantören kan endast anges i ett "
+#~ "avsnitt per användare.  Följande leverantörer stödjs: <placeholder type="
+#~ "\"variablelist\" id=\"0\"/>"
+
+#~ msgid "Default: local"
+#~ msgstr "Standard: local"
+
+#~ msgid ""
+#~ "The following options affect only the secrets <quote>hive</quote> and "
+#~ "therefore should be set in a per-hive subsection. Setting the option to 0 "
+#~ "means \"unlimited\"."
+#~ msgstr ""
+#~ "Följande alternativ påverkar endast hemlighets-<quote>svärmen</quote> och "
+#~ "skall därför sättas i ett underavsnitt per svärm.  Att sätta alternativet "
+#~ "till 0 betyder ”obegränsat”."
+
+#~ msgid "containers_nest_level (integer)"
+#~ msgstr "containers_nest_level (heltal)"
+
+#~ msgid ""
+#~ "This option specifies the maximum allowed number of nested containers."
+#~ msgstr ""
+#~ "Detta alternativ specificerar det maximala antalet tillåtna nästade "
+#~ "behållare."
+
+#~ msgid "Default: 4"
+#~ msgstr "Standard: 4"
+
+#~ msgid "max_secrets (integer)"
+#~ msgstr "max_secrets (heltal)"
+
+#~ msgid ""
+#~ "This option specifies the maximum number of secrets that can be stored in "
+#~ "the hive."
+#~ msgstr ""
+#~ "Detta alternativ anger det maximala antalet hemligheter som kan sparas i "
+#~ "svärmen."
+
+#~ msgid "Default: 1024 (secrets hive), 256 (kcm hive)"
+#~ msgstr "Standard: 1024 (secrets-svärm), 256 (kcm-svärm)"
+
+#~ msgid "max_uid_secrets (integer)"
+#~ msgstr "max_uid_secrets (heltal)"
+
+#~ msgid ""
+#~ "This option specifies the maximum number of secrets that can be stored "
+#~ "per-UID in the hive."
+#~ msgstr ""
+#~ "Detta alternativ anger det maximala antalet hemligheter som kan sparas "
+#~ "per AID i svärmen."
+
+#~ msgid "Default: 256 (secrets hive), 64 (kcm hive)"
+#~ msgstr "Standard: 256 (secrets-svärm), 64 (kcm-svärm)"
+
+#~ msgid "max_payload_size (integer)"
+#~ msgstr "max_payload_size (heltal)"
+
+#~ msgid ""
+#~ "This option specifies the maximum payload size allowed for a secret "
+#~ "payload in kilobytes."
+#~ msgstr ""
+#~ "Detta alternativ anger den maximala laststorleken som tillåts för en "
+#~ "hemlighetslast i kilobyte."
+
+#~ msgid "Default: 16 (secrets hive), 65536 (64 MiB) (kcm hive)"
+#~ msgstr "Standard: 16 (secrets-svärm), 65536 (64 MiB) (kcm-svärm)"
+
+#, no-wrap
+#~ msgid ""
+#~ "[secrets/secrets]\n"
+#~ "max_payload_size = 128\n"
+#~ "\n"
+#~ "[secrets/kcm]\n"
+#~ "max_payload_size = 256\n"
+#~ "            "
+#~ msgstr ""
+#~ "[secrets/secrets]\n"
+#~ "max_payload_size = 128\n"
+#~ "\n"
+#~ "[secrets/kcm]\n"
+#~ "max_payload_size = 256\n"
+#~ "            "
+
+#~ msgid ""
+#~ "For example, to adjust quotas differently for both the <quote>secrets</"
+#~ "quote> and the <quote>kcm</quote> hives, configure the following: "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Till exempel, för att justera kvoter olika för både svärmen "
+#~ "<quote>secrets</quote> och <quote>kcm</quote>, konfigurera följande: "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/>"
+
+#~ msgid ""
+#~ "The following options are only applicable for configurations that use the "
+#~ "<quote>proxy</quote> provider."
+#~ msgstr ""
+#~ "Följande alternativ är endast användbara för konfigurationer som använder "
+#~ "leverantören <quote>proxy</quote>."
+
+#~ msgid "proxy_url (string)"
+#~ msgstr "proxy_url (sträng)"
+
+#~ msgid ""
+#~ "The URL the Custodia server is listening on. At the moment, http and "
+#~ "https protocols are supported."
+#~ msgstr ""
+#~ "URL:en Custodia-servern lyssnar på.  För tillfället stödjs protokollen "
+#~ "http och https."
+
+#~ msgid "http[s]://&lt;host&gt;[:port]"
+#~ msgstr "http[s]://&lt;värd&gt;[:port]"
+
+#~ msgid "Example: http://localhost:8080"
+#~ msgstr "Exempel: http://localhost:8080"
+
+#~ msgid "auth_type (string)"
+#~ msgstr "auth_type (sträng)"
+
+#~ msgid ""
+#~ "The method to use when authenticating to a Custodia server. The following "
+#~ "authentication methods are supported:"
+#~ msgstr ""
+#~ "Metoden att använda vid autentisering mot en Custodia-server.  Följande "
+#~ "autentiseringsmetoder stödjs:"
+
+#~ msgid "basic_auth"
+#~ msgstr "basic_auth"
+
+#~ msgid ""
+#~ "Authenticate with a username and a password as set in the "
+#~ "<quote>username</quote> and <quote>password</quote> options."
+#~ msgstr ""
+#~ "Autentisera med ett användarnamn och lösenord som satts i alternativen "
+#~ "<quote>username</quote> och <quote>password</quote>."
+
+#~ msgid "header"
+#~ msgstr "header"
+
+#~ msgid ""
+#~ "Authenticate with HTTP header value as defined in the "
+#~ "<quote>auth_header_name</quote> and <quote>auth_header_value</quote> "
+#~ "configuration options."
+#~ msgstr ""
+#~ "Autentisera med ett HTTP-huvudvärde som det är definierat i "
+#~ "konfigurationsalternativen <quote>auth_header_name</quote> och "
+#~ "<quote>auth_header_value</quote>."
+
+#~ msgid "auth_header_name (string)"
+#~ msgstr "auth_header_name (sträng)"
+
+#~ msgid ""
+#~ "If set, the secrets responder would put a header with this name into the "
+#~ "HTTP request with the value defined in the <quote>auth_header_value</"
+#~ "quote> configuration option."
+#~ msgstr ""
+#~ "Om satt kommer secrets-respondenten lägga in ett huvud med detta namn i "
+#~ "HTTP-begäranden med värdet som definieras i konfigurationsalternativet "
+#~ "<quote>auth_header_value</quote>."
+
+#~ msgid "Example: MYSECRETNAME"
+#~ msgstr "Exempel: MITTHEMLIGANAMN"
+
+#~ msgid "auth_header_value (string)"
+#~ msgstr "auth_header_value (sträng)"
+
+#~ msgid ""
+#~ "The value sssd-secrets would use for the <quote>auth_header_name</quote>."
+#~ msgstr ""
+#~ "Värdet sssd-secrets kommer använda till <quote>auth_header_name</quote>."
+
+#~ msgid "Example: mysecret"
+#~ msgstr "Exempel: minhemlighet"
+
+#~ msgid "forward_headers (list of strings)"
+#~ msgstr "forward_headers (lista av strängar)"
+
+#~ msgid ""
+#~ "The list of HTTP headers to forward to the Custodia server together with "
+#~ "the request."
+#~ msgstr ""
+#~ "Listan över HTTP-huvuden att vidarebefordra till Custodia-servern "
+#~ "tillsammans med begäran."
+
+#~ msgid "verify_peer (boolean)"
+#~ msgstr "verify_peer (boolean)"
+
+#~ msgid ""
+#~ "Whether peer's certificate should be verified and valid if HTTPS protocol "
+#~ "is used with the proxy provider."
+#~ msgstr ""
+#~ "Huruvida motpartens certifikat skall verifieras och vara giltigt om HTTPS-"
+#~ "protokollet används med proxy-leverantören."
+
+#~ msgid "verify_host (boolean)"
+#~ msgstr "verify_host (boolean)"
+
+#~ msgid ""
+#~ "Whether peer's hostname must match with hostname in its certificate if "
+#~ "HTTPS protocol is used with the proxy provider."
+#~ msgstr ""
+#~ "Huruvida motpartens värdnamn måste stämma med värdnamnet i dess "
+#~ "certifikat om HTTPS-protokollet används med proxy-leverantören."
+
+#~ msgid "capath (string)"
+#~ msgstr "capath (sträng)"
+
+#~ msgid ""
+#~ "Path to directory containing stored certificate authority certificates. "
+#~ "System default path is used if this option is not set."
+#~ msgstr ""
+#~ "Sökväg till katalogen som innehåller lagrade certifikatutfärdares "
+#~ "certifikat.  Systemets standardsökväg används om detta alternativ inte är "
+#~ "satt."
+
+#~ msgid "cacert (string)"
+#~ msgstr "cacert (sträng)"
+
+#~ msgid ""
+#~ "Path to file containing server's certificate authority certificate. If "
+#~ "this option is not set then the CA's certificate is looked up in "
+#~ "<quote>capath</quote>."
+#~ msgstr ""
+#~ "Sökväg till filen som innehåller serverns "
+#~ "certifikatauktoritetscertifikat.  Om detta alternativ inte är satt, då "
+#~ "slås CA:ns certifikat upp i <quote>capath</quote>."
+
+#~ msgid "cert (string)"
+#~ msgstr "cert (sträng)"
+
+#~ msgid ""
+#~ "Path to file containing client's certificate if required by the server. "
+#~ "This file may also contain private key or the private key may be in "
+#~ "separate file set with <quote>key</quote>."
+#~ msgstr ""
+#~ "Sökväg till filen som innehåller klientens certifikat om det krävs av "
+#~ "servern.  Denna fil kan också innehålla en privat nyckel eller så kan den "
+#~ "privata nyckeln finnas i en separat fil som anges med <quote>key</quote>."
+
+#~ msgid "key (string)"
+#~ msgstr "key (sträng)"
+
+#~ msgid "Path to file containing client's private key."
+#~ msgstr "Sökväg till filen som innehåller klientens privata nyckel."
+
+#~ msgid "USING THE REST API"
+#~ msgstr "ATT ANVÄNDA REST-API:ET"
+
+#~ msgid ""
+#~ "This section lists the available commands and includes examples using the "
+#~ "<citerefentry> <refentrytitle>curl</refentrytitle> <manvolnum>1</"
+#~ "manvolnum> </citerefentry> utility.  All requests towards the proxy "
+#~ "provider must set the Content Type header to <quote>application/json</"
+#~ "quote>. In addition, the local provider also supports Content Type set to "
+#~ "<quote>application/octet-stream</quote>.  Secrets stored with requests "
+#~ "that set the Content Type header to <quote>application/octet-stream</"
+#~ "quote> are base64-encoded when stored and decoded when retrieved, so it's "
+#~ "not possible to store a secret with one Content Type and retrieve with "
+#~ "another.  The secret URI must begin with <filename>/secrets/</filename>."
+#~ msgstr ""
+#~ "Detta avsnitt listar tillgängliga kommandon och inkluderar exempel som "
+#~ "använder verktyget <citerefentry> <refentrytitle>curl</refentrytitle> "
+#~ "<manvolnum>1</manvolnum> </citerefentry>.  Alla begäranden av proxy-"
+#~ "leverantören måste sätta huvudet Content Type till <quote>application/"
+#~ "json</quote>.  Dessutom stödjer den lokala leverantören även att Content "
+#~ "Type sätts till <quote>application/octet-stream</quote>.  Hemligheter "
+#~ "sparade med begäranden som sätter huvudet Content Type till "
+#~ "<quote>application/octet-stream</quote> base64-kodas när de lagras och "
+#~ "avkodas när de hämtas, så det är inte möjligt att lagra en hemlighet med "
+#~ "en Content Type och hämta med en annan.  URI:n för hemligheter måste "
+#~ "börja med <filename>/secrets/</filename>."
+
+#~ msgid "Listing secrets"
+#~ msgstr "Lista hemligheter"
+
+#~ msgid ""
+#~ "To list the available secrets, send a HTTP GET request with a trailing "
+#~ "slash appended to the container path."
+#~ msgstr ""
+#~ "För att lista de tillgängliga hemligheterna, skicka en HTTP GET-begäran "
+#~ "med ett avslutande snedstreck tillagt på behållarsökvägen."
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/\n"
+#~ "                        "
+
+#~ msgid "Retrieving a secret"
+#~ msgstr "Hämta en hemlighet"
+
+#~ msgid ""
+#~ "To read a value of a single secret, send a HTTP GET request without a "
+#~ "trailing slash. The last portion of the URI is the name of the secret."
+#~ msgstr ""
+#~ "För att läsa värdet på en enskild hemlighet, skicka en HTTP GET-begäran "
+#~ "utan ett avslutande snedstreck.  Den sista delen av URI:n är namnet på "
+#~ "hemligheten."
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/foo\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/apa\n"
+#~ "                        "
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/octet-stream\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/bar\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/octet-stream\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/bepa\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "Examples: <placeholder type=\"programlisting\" id=\"0\"/> <placeholder "
+#~ "type=\"programlisting\" id=\"1\"/>"
+#~ msgstr ""
+#~ "Exempel: <placeholder type=\"programlisting\" id=\"0\"/> <placeholder "
+#~ "type=\"programlisting\" id=\"1\"/>"
+
+#~ msgid "Setting a secret"
+#~ msgstr "Spara en hemlighet"
+
+#~ msgid ""
+#~ "To set a secret using the <quote>application/json</quote> type, send a "
+#~ "HTTP PUT request with a JSON payload that includes type and value. The "
+#~ "type should be set to \"simple\" and the value should be set to the "
+#~ "secret value. If a secret with that name already exists, the response is "
+#~ "a 409 HTTP error."
+#~ msgstr ""
+#~ "För att spara en hemlighet med typen <quote>application/json</quote>, "
+#~ "skicka en HTTP PUT-begäran med en JSON-last som innehåller typ och "
+#~ "värde.  Typen skall sättas till ”simple” och värdet skall sättas till "
+#~ "hemlighetens värde.  Om en hemlighet med det namnet redan finns blir "
+#~ "svaret ett 409 HTTP-fel."
+
+#~ msgid ""
+#~ "The <quote>application/json</quote> type just sends the secret as the "
+#~ "message payload."
+#~ msgstr ""
+#~ "Typen <quote>application/json</quote> skickar bara hemligheten som "
+#~ "meddelandets last."
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPUT http://localhost/secrets/foo \\\n"
+#~ "     -d'{\"type\":\"simple\",\"value\":\"foosecret\"}'\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPUT http://localhost/secrets/apa \\\n"
+#~ "     -d'{\"type\":\"simple\",\"value\":\"hemligapa\"}'\n"
+#~ "                        "
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/octet-stream\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPUT http://localhost/secrets/bar \\\n"
+#~ "     -d'barsecret'\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/octet-stream\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPUT http://localhost/secrets/bepa \\\n"
+#~ "     -d'hemligbepa'\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "The following example sets a secret named 'foo' to a value of 'foosecret' "
+#~ "and a secret named 'bar' to a value of 'barsecret' using a different "
+#~ "Content Type.  <placeholder type=\"programlisting\" id=\"0\"/> "
+#~ "<placeholder type=\"programlisting\" id=\"1\"/>"
+#~ msgstr ""
+#~ "Följande exempel sparar en hemlighet som heter ”apa” till värdet "
+#~ "”hemligapa” och en hemlighet som heter ”bepa” till värdet ”hemligbepa” "
+#~ "genom att använda en annan Content Type.  <placeholder type="
+#~ "\"programlisting\" id=\"0\"/> <placeholder type=\"programlisting\" id="
+#~ "\"1\"/>"
+
+#~ msgid "Creating a container"
+#~ msgstr "Att skapa en behållare"
+
+#~ msgid ""
+#~ "Containers provide an additional namespace for this user's secrets. To "
+#~ "create a container, send a HTTP POST request, whose URI ends with the "
+#~ "container name. Please note the URI must end with a trailing slash."
+#~ msgstr ""
+#~ "Behållare tillhandahåller en ytterligare namnrymd för denna användares "
+#~ "hemligheter.  För att skapa en behållare, skicka en HTTP POST-begäran, "
+#~ "vars URI slutar med behållarnamnet.  Observera att URI:n måste sluta med "
+#~ "ett avslutande snedstreck."
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPOST http://localhost/secrets/mycontainer/\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPOST http://localhost/secrets/minbeh%C3%A5llare/\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "The following example creates a container named 'mycontainer': "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Följande exempel skapar en behållare som heter ”minbehållare”:"
+#~ "<placeholder type=\"programlisting\" id=\"0\"/>"
+
+#, no-wrap
+#~ msgid ""
+#~ "http://localhost/secrets/mycontainer/mysecret\n"
+#~ "                        "
+#~ msgstr ""
+#~ "http://localhost/secrets/minbeh%C3%A5llare/minhemlighet\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "To manipulate secrets under this container, just nest the secrets "
+#~ "underneath the container path: <placeholder type=\"programlisting\" id="
+#~ "\"0\"/>"
+#~ msgstr ""
+#~ "För att hantera hemligheter under den här behållaren, nästa bara "
+#~ "hemligheter under behållarsökvägen: <placeholder type=\"programlisting\" "
+#~ "id=\"0\"/>"
+
+#~ msgid "Deleting a secret or a container"
+#~ msgstr "Radera en hemlighet eller behållare"
+
+#~ msgid ""
+#~ "To delete a secret or a container, send a HTTP DELETE request with a path "
+#~ "to the secret or the container."
+#~ msgstr ""
+#~ "För att radera en hemlighet eller behållare, skicka en HTTP DELETE-"
+#~ "begäran med en sökväg till hemligheten eller behållaren."
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XDELETE http://localhost/secrets/foo\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XDELETE http://localhost/secrets/apa\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "The following example deletes a secret named 'foo'.  <placeholder type="
+#~ "\"programlisting\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Följande exempel raderar en hemlighet som heter ”apa”:<placeholder type="
+#~ "\"programlisting\" id=\"0\"/>"
+
+#~ msgid "EXAMPLE CUSTODIA AND PROXY PROVIDER CONFIGURATION"
+#~ msgstr "EXEMPEL PÅ KONFIGURATION AV CUSTODIA- OCH PROXY-LEVERANTÖRER"
+
+#~ msgid ""
+#~ "For testing the proxy provider, you need to set up a Custodia server to "
+#~ "proxy requests to. Please always consult the Custodia documentation, the "
+#~ "configuration directives might change with different Custodia versions."
+#~ msgstr ""
+#~ "För att testa proxy-leverantören behöver du sätta upp en Custodia-server "
+#~ "att vidarebefordra begäranden till.  Se till att läsa dokumentationen "
+#~ "till Custodia, konfigurationsdirektiven kan ändras med olika Custodia-"
+#~ "versioner."
+
+#, no-wrap
+#~ msgid ""
+#~ "[global]\n"
+#~ "server_version = \"Secret/0.0.7\"\n"
+#~ "server_url = http://localhost:8080/\n"
+#~ "auditlog = /var/log/custodia.log\n"
+#~ "debug = True\n"
+#~ "\n"
+#~ "[store:simple]\n"
+#~ "handler = custodia.store.sqlite.SqliteStore\n"
+#~ "dburi = /var/lib/custodia.db\n"
+#~ "table = secrets\n"
+#~ "\n"
+#~ "[auth:header]\n"
+#~ "handler = custodia.httpd.authenticators.SimpleHeaderAuth\n"
+#~ "header = MYSECRETNAME\n"
+#~ "value = mysecretkey\n"
+#~ "\n"
+#~ "[authz:paths]\n"
+#~ "handler = custodia.httpd.authorizers.SimplePathAuthz\n"
+#~ "paths = /secrets\n"
+#~ "\n"
+#~ "[/]\n"
+#~ "handler = custodia.root.Root\n"
+#~ "store = simple\n"
+#~ "            "
+#~ msgstr ""
+#~ "[global]\n"
+#~ "server_version = \"Secret/0.0.7\"\n"
+#~ "server_url = http://localhost:8080/\n"
+#~ "auditlog = /var/log/custodia.log\n"
+#~ "debug = True\n"
+#~ "\n"
+#~ "[store:simple]\n"
+#~ "handler = custodia.store.sqlite.SqliteStore\n"
+#~ "dburi = /var/lib/custodia.db\n"
+#~ "table = secrets\n"
+#~ "\n"
+#~ "[auth:header]\n"
+#~ "handler = custodia.httpd.authenticators.SimpleHeaderAuth\n"
+#~ "header = MITTHEMLIGANAMN\n"
+#~ "value = minhemliganyckel\n"
+#~ "\n"
+#~ "[authz:paths]\n"
+#~ "handler = custodia.httpd.authorizers.SimplePathAuthz\n"
+#~ "paths = /secrets\n"
+#~ "\n"
+#~ "[/]\n"
+#~ "handler = custodia.root.Root\n"
+#~ "store = simple\n"
+#~ "            "
+
+#~ msgid ""
+#~ "This configuration will set up a Custodia server listening on http://"
+#~ "localhost:8080, allowing anyone with header named MYSECRETNAME set to "
+#~ "mysecretkey to communicate with the Custodia server.  Place the contents "
+#~ "into a file (for example, <replaceable>custodia.conf</replaceable>): "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Denna konfiguration kommer sätta upp en Custodia-server som lyssnar på "
+#~ "http://localhost:8080, tillåter vem som helst med ett huvud med namnet "
+#~ "MITTHEMLIGANAMN satt till minhemliganyckel att kommunicera med Custodia-"
+#~ "servern.  Placera innehållet i en fil (till exempel, "
+#~ "<replaceable>custodia.conf</replaceable>): <placeholder type="
+#~ "\"programlisting\" id=\"0\"/>"
+
+#~ msgid ""
+#~ "Then run the <replaceable>custodia</replaceable> command, pointing it at "
+#~ "the config file as a command line argument."
+#~ msgstr ""
+#~ "Kör sedan kommandot <replaceable>custodia</replaceable> och peka det på "
+#~ "konfigurationsfilen som ett kommandoradsargument."
+
+#~ msgid ""
+#~ "Please note that currently it's not possible to proxy all requests "
+#~ "globally to a Custodia instance. Instead, per-user subsections for user "
+#~ "IDs that should proxy requests to Custodia must be defined. The following "
+#~ "example illustrates a configuration, where the user with UID 123 would "
+#~ "proxy their requests to Custodia, but all other user's requests would be "
+#~ "handled by a local provider."
+#~ msgstr ""
+#~ "Observera att det för närvarande inte är möjligt att vidarebefordra alla "
+#~ "begäranden globalt till en Custodia-instans.  Istället måste underavsnitt "
+#~ "per användare för användar-ID:n som skall skicka vidare begäranden till "
+#~ "Custodia definieras.  Följande exempel illustrerar en konfiguration där "
+#~ "användaren med AID 123 skulle skicka vidare sina begäranden till "
+#~ "Custodia, men alla andra användares begäranden skulle hanteras av en "
+#~ "lokal leverantör."
+
+#, no-wrap
+#~ msgid ""
+#~ "[secrets]\n"
+#~ "\n"
+#~ "[secrets/users/123]\n"
+#~ "provider = proxy\n"
+#~ "proxy_url = http://localhost:8080/secrets/\n"
+#~ "auth_type = header\n"
+#~ "auth_header_name = MYSECRETNAME\n"
+#~ "auth_header_value = mysecretkey\n"
+#~ "        "
+#~ msgstr ""
+#~ "[secrets]\n"
+#~ "\n"
+#~ "[secrets/users/123]\n"
+#~ "provider = proxy\n"
+#~ "proxy_url = http://localhost:8080/secrets/\n"
+#~ "auth_type = header\n"
+#~ "auth_header_name = MITTHEMLIGANAMN\n"
+#~ "auth_header_value = minhemliganyckel\n"
+#~ "        "
 
 #~ msgid "sss_groupmod"
 #~ msgstr "sss_groupmod"

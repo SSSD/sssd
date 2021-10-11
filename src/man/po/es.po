@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-07-12 20:51+0200\n"
+"POT-Creation-Date: 2021-10-11 14:54+0200\n"
 "PO-Revision-Date: 2021-09-27 18:04+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
@@ -38,8 +38,8 @@ msgstr ""
 #: sss_cache.8.xml:5 sss_debuglevel.8.xml:5 sss_seed.8.xml:5 sssd-ifp.5.xml:5
 #: sss_rpcidmapd.5.xml:5 sss_ssh_authorizedkeys.1.xml:5
 #: sss_ssh_knownhostsproxy.1.xml:5 idmap_sss.8.xml:5 sssctl.8.xml:5
-#: sssd-files.5.xml:5 sssd-secrets.5.xml:5 sssd-session-recording.5.xml:5
-#: sssd-kcm.8.xml:5 sssd-systemtap.5.xml:5 sssd-ldap-attributes.5.xml:5
+#: sssd-files.5.xml:5 sssd-session-recording.5.xml:5 sssd-kcm.8.xml:5
+#: sssd-systemtap.5.xml:5 sssd-ldap-attributes.5.xml:5
 msgid "SSSD Manual pages"
 msgstr "Páginas de manual de SSSD"
 
@@ -52,8 +52,8 @@ msgstr "sssd.conf"
 #: sssd.conf.5.xml:11 sssd-ldap.5.xml:11 sssd-simple.5.xml:11
 #: sss-certmap.5.xml:11 sssd-ipa.5.xml:11 sssd-ad.5.xml:11 sssd-sudo.5.xml:11
 #: sssd-krb5.5.xml:11 sssd-ifp.5.xml:11 sss_rpcidmapd.5.xml:27
-#: sssd-files.5.xml:11 sssd-secrets.5.xml:11 sssd-session-recording.5.xml:11
-#: sssd-systemtap.5.xml:11 sssd-ldap-attributes.5.xml:11
+#: sssd-files.5.xml:11 sssd-session-recording.5.xml:11 sssd-systemtap.5.xml:11
+#: sssd-ldap-attributes.5.xml:11
 msgid "5"
 msgstr "5"
 
@@ -61,8 +61,8 @@ msgstr "5"
 #: sssd.conf.5.xml:12 sssd-ldap.5.xml:12 sssd-simple.5.xml:12
 #: sss-certmap.5.xml:12 sssd-ipa.5.xml:12 sssd-ad.5.xml:12 sssd-sudo.5.xml:12
 #: sssd-krb5.5.xml:12 sssd-ifp.5.xml:12 sss_rpcidmapd.5.xml:28
-#: sssd-files.5.xml:12 sssd-secrets.5.xml:12 sssd-session-recording.5.xml:12
-#: sssd-kcm.8.xml:12 sssd-systemtap.5.xml:12 sssd-ldap-attributes.5.xml:12
+#: sssd-files.5.xml:12 sssd-session-recording.5.xml:12 sssd-kcm.8.xml:12
+#: sssd-systemtap.5.xml:12 sssd-ldap-attributes.5.xml:12
 msgid "File Formats and Conventions"
 msgstr "Formatos de archivo y convenciones"
 
@@ -258,14 +258,13 @@ msgstr ""
 "Añade una sello de tiempo a los mensajes de depuración.  Si journald está "
 "habilitado para el registro de la depuración SSSD esta opción se ignora."
 
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:133 sssd.conf.5.xml:170 sssd.conf.5.xml:355
 #: sssd.conf.5.xml:647 sssd.conf.5.xml:1001 sssd.conf.5.xml:2033
 #: sssd.conf.5.xml:2063 sssd-ldap.5.xml:962 sssd-ldap.5.xml:1060
 #: sssd-ldap.5.xml:1127 sssd-ldap.5.xml:1614 sssd-ldap.5.xml:1679
 #: sssd-ipa.5.xml:341 sssd-ad.5.xml:229 sssd-ad.5.xml:343 sssd-ad.5.xml:1177
-#: sssd-ad.5.xml:1325 sssd-krb5.5.xml:342 sssd-secrets.5.xml:351
-#: sssd-secrets.5.xml:364
+#: sssd-ad.5.xml:1325 sssd-krb5.5.xml:342
 msgid "Default: true"
 msgstr "Predeterminado: true"
 
@@ -747,10 +746,9 @@ msgstr ""
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:460 sssd-ldap.5.xml:772 sssd-ldap.5.xml:784
 #: sssd-ldap.5.xml:876 sssd-ad.5.xml:897 sssd-ad.5.xml:972 sssd-krb5.5.xml:452
-#: sssd-secrets.5.xml:339 sssd-secrets.5.xml:377 sssd-secrets.5.xml:390
-#: sssd-secrets.5.xml:404 sssd-secrets.5.xml:415 sssd-ldap-attributes.5.xml:470
-#: sssd-ldap-attributes.5.xml:959 include/ldap_id_mapping.xml:205
-#: include/ldap_id_mapping.xml:216 include/krb5_options.xml:139
+#: sssd-ldap-attributes.5.xml:470 sssd-ldap-attributes.5.xml:959
+#: include/ldap_id_mapping.xml:205 include/ldap_id_mapping.xml:216
+#: include/krb5_options.xml:139
 msgid "Default: not set"
 msgstr "Predeterminado: no definido"
 
@@ -2781,8 +2779,8 @@ msgstr ""
 "pam_p11_allowed_services = +my_pam_service, -login\n"
 "                            "
 
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1836 sssd.conf.5.xml:3620 sssd-secrets.5.xml:448
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:1836 sssd.conf.5.xml:3620
 msgid "Example: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr "Ejemplo: <placeholder type=\"programlisting\" id=\"0\"/>"
 
@@ -3323,8 +3321,8 @@ msgid ""
 msgstr ""
 "Una lista separada por comas de usuarios que deberían tener el registro de "
 "sesión habilitado. Coincide con los nombres de usuario que son devueltos por "
-"NSS. I.e. después de las posibles sustituciones de espacios, cambios de mayú"
-"sculas/minúsculas, etc."
+"NSS. I.e. después de las posibles sustituciones de espacios, cambios de "
+"mayúsculas/minúsculas, etc."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2265 sssd-session-recording.5.xml:115
@@ -6069,8 +6067,8 @@ msgstr "Proveedor SSSD LDAP"
 #: sss_cache.8.xml:29 sss_debuglevel.8.xml:30 sss_seed.8.xml:31
 #: sssd-ifp.5.xml:21 sss_ssh_authorizedkeys.1.xml:30
 #: sss_ssh_knownhostsproxy.1.xml:31 idmap_sss.8.xml:20 sssctl.8.xml:30
-#: sssd-files.5.xml:21 sssd-secrets.5.xml:21 sssd-session-recording.5.xml:21
-#: sssd-kcm.8.xml:21 sssd-systemtap.5.xml:21 sssd-ldap-attributes.5.xml:21
+#: sssd-files.5.xml:21 sssd-session-recording.5.xml:21 sssd-kcm.8.xml:21
+#: sssd-systemtap.5.xml:21 sssd-ldap-attributes.5.xml:21
 msgid "DESCRIPTION"
 msgstr "DESCRIPCION"
 
@@ -6116,7 +6114,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:49 sssd-simple.5.xml:69 sssd-ipa.5.xml:81 sssd-ad.5.xml:115
 #: sssd-krb5.5.xml:63 sssd-ifp.5.xml:44 sssd-files.5.xml:78
-#: sssd-secrets.5.xml:120 sssd-session-recording.5.xml:58 sssd-kcm.8.xml:202
+#: sssd-session-recording.5.xml:58 sssd-kcm.8.xml:202
 msgid "CONFIGURATION OPTIONS"
 msgstr "OPCIONES DE CONFIGURACIÓN"
 
@@ -6141,8 +6139,8 @@ msgstr ""
 "especificada, se habilita el descubridor de servicio. Para más información, "
 "vea la sección <quote>DESCUBRIDOR DE SERVICIOS</quote>"
 
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:76 sssd-secrets.5.xml:264
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:76
 msgid "The format of the URI must match the format defined in RFC 2732:"
 msgstr ""
 "El formato de la URI debe coincidir con el formato definido en RFC 2732:"
@@ -16318,767 +16316,6 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
-#: sssd-secrets.5.xml:10 sssd-secrets.5.xml:16
-msgid "sssd-secrets"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sssd-secrets.5.xml:17
-msgid "SSSD Secrets responder"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:23
-msgid ""
-"This manual page describes the configuration of the Secrets responder for "
-"<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
-"</citerefentry>.  For a detailed syntax reference, refer to the <quote>FILE "
-"FORMAT</quote> section of the <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:36
-msgid ""
-"Many system and user applications need to store private information such as "
-"passwords or service keys and have no good way to properly deal with them. "
-"The simple approach is to embed these <quote>secrets</quote> into "
-"configuration files potentially ending up exposing sensitive key material to "
-"backups, config management system and in general making it harder to secure "
-"data."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:45
-msgid ""
-"The <ulink url=\"https://github.com/latchset/custodia\">custodia</ulink> "
-"project was born to deal with this problem in cloud like environments, but "
-"we found the idea compelling even at a single system level. As a security "
-"service, SSSD is ideal to host this capability while offering the same API "
-"via a UNIX Socket. This will make it possible to use local calls and have "
-"them transparently routed to a local or a remote key management store like "
-"IPA Vault for storage, escrow and recovery."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:55
-msgid ""
-"The secrets are simple key-value pairs. Each user's secrets are namespaced "
-"using their user ID, which means the secrets will never collide between "
-"users. Secrets can be stored inside <quote>containers</quote> which can be "
-"nested."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:69
-msgid "secrets"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:70
-msgid "secrets for general usage"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:73
-msgid "kcm"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:75
-msgid ""
-"used by the <citerefentry> <refentrytitle>sssd-kcm</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry> service."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:61
-msgid ""
-"Since the secrets responder can be used both externally to store general "
-"secrets, as described in the rest of this man page, but also internally by "
-"other SSSD components to store their secret material, some configuration "
-"options, like quotas can be configured per <quote>hive</quote> in a "
-"configuration subsection named after the hive. The currently supported hives "
-"are: <placeholder type=\"variablelist\" id=\"0\"/>"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-secrets.5.xml:89
-msgid "USING THE SECRETS RESPONDER"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:91
-msgid ""
-"The UNIX socket the SSSD responder listens on is located at <filename>/var/"
-"run/secrets.socket</filename>."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-secrets.5.xml:110
-#, no-wrap
-msgid ""
-"systemctl start sssd-secrets.socket\n"
-"systemctl enable sssd-secrets.socket\n"
-"systemctl enable sssd-secrets.service\n"
-"            "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:95
-msgid ""
-"The secrets responder is socket-activated by <citerefentry> "
-"<refentrytitle>systemd</refentrytitle> <manvolnum>1</manvolnum> </"
-"citerefentry>.  Unlike other SSSD responders, it cannot be started by adding "
-"the <quote>secrets</quote> string to the <quote>service</quote> directive.  "
-"The systemd socket unit is called <quote>sssd-secrets.socket</quote> and the "
-"corresponding service file is called <quote>sssd-secrets.service</quote>. In "
-"order for the service to be socket-activated, make sure the socket is "
-"enabled and active and the service is enabled: <placeholder type="
-"\"programlisting\" id=\"0\"/> Please note your distribution may already "
-"configure the units for you."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:122
-msgid ""
-"The generic SSSD responder options such as <quote>debug_level</quote> or "
-"<quote>fd_limit</quote> are accepted by the secrets responder.  Please refer "
-"to the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> manual page for a complete list. In addition, "
-"there are some secrets-specific options as well."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:132
-msgid ""
-"The secrets responder is configured with a global <quote>[secrets]</quote> "
-"section and an optional per-user <quote>[secrets/users/$uid]</quote> section "
-"in <filename>sssd.conf</filename>. Please note that some options, notably as "
-"the provider type, can only be specified in the per-user subsections."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:141
-msgid "provider (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:157
-msgid "local"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:160
-msgid ""
-"The secrets are stored in a local database, encrypted at rest with a master "
-"key. The local provider does not have any additional config options at the "
-"moment."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:168
-msgid "proxy"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:171
-msgid ""
-"The secrets responder forwards the requests to a Custodia server. The proxy "
-"provider supports several additional options (see below)."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:144
-msgid ""
-"This option specifies where should the secrets be stored. The secrets "
-"responder can configure a per-user subsections (e.g. <quote>[secrets/"
-"users/123]</quote> - see bottom of this manual page for a full example using "
-"Custodia for a particular user) that define which provider store the secrets "
-"for this particular user. The per-user subsections should contain all "
-"options for that user's provider. Please note that currently the global "
-"provider is always local, the proxy provider can only be specified in a per-"
-"user section. The following providers are supported: <placeholder type="
-"\"variablelist\" id=\"0\"/>"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:180
-msgid "Default: local"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:186
-msgid ""
-"The following options affect only the secrets <quote>hive</quote> and "
-"therefore should be set in a per-hive subsection. Setting the option to 0 "
-"means \"unlimited\"."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:192
-msgid "containers_nest_level (integer)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:195
-msgid "This option specifies the maximum allowed number of nested containers."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:199
-msgid "Default: 4"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:204
-msgid "max_secrets (integer)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:207
-msgid ""
-"This option specifies the maximum number of secrets that can be stored in "
-"the hive."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:211
-msgid "Default: 1024 (secrets hive), 256 (kcm hive)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:216
-msgid "max_uid_secrets (integer)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:219
-msgid ""
-"This option specifies the maximum number of secrets that can be stored per-"
-"UID in the hive."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:223
-msgid "Default: 256 (secrets hive), 64 (kcm hive)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:228
-msgid "max_payload_size (integer)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:231
-msgid ""
-"This option specifies the maximum payload size allowed for a secret payload "
-"in kilobytes."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:235
-msgid "Default: 16 (secrets hive), 65536 (64 MiB) (kcm hive)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-secrets.5.xml:244
-#, no-wrap
-msgid ""
-"[secrets/secrets]\n"
-"max_payload_size = 128\n"
-"\n"
-"[secrets/kcm]\n"
-"max_payload_size = 256\n"
-"            "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:241
-msgid ""
-"For example, to adjust quotas differently for both the <quote>secrets</"
-"quote> and the <quote>kcm</quote> hives, configure the following: "
-"<placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:252
-msgid ""
-"The following options are only applicable for configurations that use the "
-"<quote>proxy</quote> provider."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:257
-msgid "proxy_url (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:260
-msgid ""
-"The URL the Custodia server is listening on. At the moment, http and https "
-"protocols are supported."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:267
-msgid "http[s]://&lt;host&gt;[:port]"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:270
-msgid "Example: http://localhost:8080"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:275
-msgid "auth_type (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:278
-msgid ""
-"The method to use when authenticating to a Custodia server. The following "
-"authentication methods are supported:"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:283
-msgid "basic_auth"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:286
-msgid ""
-"Authenticate with a username and a password as set in the <quote>username</"
-"quote> and <quote>password</quote> options."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:293
-msgid "header"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:296
-msgid ""
-"Authenticate with HTTP header value as defined in the "
-"<quote>auth_header_name</quote> and <quote>auth_header_value</quote> "
-"configuration options."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:307
-msgid "auth_header_name (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:310
-msgid ""
-"If set, the secrets responder would put a header with this name into the "
-"HTTP request with the value defined in the <quote>auth_header_value</quote> "
-"configuration option."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:315
-msgid "Example: MYSECRETNAME"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:320
-msgid "auth_header_value (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:323
-msgid ""
-"The value sssd-secrets would use for the <quote>auth_header_name</quote>."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:327
-msgid "Example: mysecret"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:332
-msgid "forward_headers (list of strings)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:335
-msgid ""
-"The list of HTTP headers to forward to the Custodia server together with the "
-"request."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:344
-msgid "verify_peer (boolean)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:347
-msgid ""
-"Whether peer's certificate should be verified and valid if HTTPS protocol is "
-"used with the proxy provider."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:356
-msgid "verify_host (boolean)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:359
-msgid ""
-"Whether peer's hostname must match with hostname in its certificate if HTTPS "
-"protocol is used with the proxy provider."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:369
-msgid "capath (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:372
-msgid ""
-"Path to directory containing stored certificate authority certificates. "
-"System default path is used if this option is not set."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:382
-msgid "cacert (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:385
-msgid ""
-"Path to file containing server's certificate authority certificate. If this "
-"option is not set then the CA's certificate is looked up in <quote>capath</"
-"quote>."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:395
-msgid "cert (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:398
-msgid ""
-"Path to file containing client's certificate if required by the server. This "
-"file may also contain private key or the private key may be in separate file "
-"set with <quote>key</quote>."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:409
-msgid "key (string)"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:412
-msgid "Path to file containing client's private key."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-secrets.5.xml:422
-msgid "USING THE REST API"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:424
-msgid ""
-"This section lists the available commands and includes examples using the "
-"<citerefentry> <refentrytitle>curl</refentrytitle> <manvolnum>1</manvolnum> "
-"</citerefentry> utility.  All requests towards the proxy provider must set "
-"the Content Type header to <quote>application/json</quote>. In addition, the "
-"local provider also supports Content Type set to <quote>application/octet-"
-"stream</quote>.  Secrets stored with requests that set the Content Type "
-"header to <quote>application/octet-stream</quote> are base64-encoded when "
-"stored and decoded when retrieved, so it's not possible to store a secret "
-"with one Content Type and retrieve with another.  The secret URI must begin "
-"with <filename>/secrets/</filename>."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:441
-msgid "Listing secrets"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:444
-msgid ""
-"To list the available secrets, send a HTTP GET request with a trailing slash "
-"appended to the container path."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:450
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/\n"
-"                        "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:458
-msgid "Retrieving a secret"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:461
-msgid ""
-"To read a value of a single secret, send a HTTP GET request without a "
-"trailing slash. The last portion of the URI is the name of the secret."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:468
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/foo\n"
-"                        "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:473
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/octet-stream\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/bar\n"
-"                        "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:466
-msgid ""
-"Examples: <placeholder type=\"programlisting\" id=\"0\"/> <placeholder type="
-"\"programlisting\" id=\"1\"/>"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:481
-msgid "Setting a secret"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:484
-msgid ""
-"To set a secret using the <quote>application/json</quote> type, send a HTTP "
-"PUT request with a JSON payload that includes type and value. The type "
-"should be set to \"simple\" and the value should be set to the secret value. "
-"If a secret with that name already exists, the response is a 409 HTTP error."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:492
-msgid ""
-"The <quote>application/json</quote> type just sends the secret as the "
-"message payload."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:501
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPUT http://localhost/secrets/foo \\\n"
-"     -d'{\"type\":\"simple\",\"value\":\"foosecret\"}'\n"
-"                        "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:507
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/octet-stream\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPUT http://localhost/secrets/bar \\\n"
-"     -d'barsecret'\n"
-"                        "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:496
-msgid ""
-"The following example sets a secret named 'foo' to a value of 'foosecret' "
-"and a secret named 'bar' to a value of 'barsecret' using a different Content "
-"Type.  <placeholder type=\"programlisting\" id=\"0\"/> <placeholder type="
-"\"programlisting\" id=\"1\"/>"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:516
-msgid "Creating a container"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:519
-msgid ""
-"Containers provide an additional namespace for this user's secrets. To "
-"create a container, send a HTTP POST request, whose URI ends with the "
-"container name. Please note the URI must end with a trailing slash."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:529
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPOST http://localhost/secrets/mycontainer/\n"
-"                        "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:526
-msgid ""
-"The following example creates a container named 'mycontainer': <placeholder "
-"type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:538
-#, no-wrap
-msgid ""
-"http://localhost/secrets/mycontainer/mysecret\n"
-"                        "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:535
-msgid ""
-"To manipulate secrets under this container, just nest the secrets underneath "
-"the container path: <placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:544
-msgid "Deleting a secret or a container"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:547
-msgid ""
-"To delete a secret or a container, send a HTTP DELETE request with a path to "
-"the secret or the container."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:553
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XDELETE http://localhost/secrets/foo\n"
-"                        "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:551
-msgid ""
-"The following example deletes a secret named 'foo'.  <placeholder type="
-"\"programlisting\" id=\"0\"/>"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-secrets.5.xml:563
-msgid "EXAMPLE CUSTODIA AND PROXY PROVIDER CONFIGURATION"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:565
-msgid ""
-"For testing the proxy provider, you need to set up a Custodia server to "
-"proxy requests to. Please always consult the Custodia documentation, the "
-"configuration directives might change with different Custodia versions."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-secrets.5.xml:576
-#, no-wrap
-msgid ""
-"[global]\n"
-"server_version = \"Secret/0.0.7\"\n"
-"server_url = http://localhost:8080/\n"
-"auditlog = /var/log/custodia.log\n"
-"debug = True\n"
-"\n"
-"[store:simple]\n"
-"handler = custodia.store.sqlite.SqliteStore\n"
-"dburi = /var/lib/custodia.db\n"
-"table = secrets\n"
-"\n"
-"[auth:header]\n"
-"handler = custodia.httpd.authenticators.SimpleHeaderAuth\n"
-"header = MYSECRETNAME\n"
-"value = mysecretkey\n"
-"\n"
-"[authz:paths]\n"
-"handler = custodia.httpd.authorizers.SimplePathAuthz\n"
-"paths = /secrets\n"
-"\n"
-"[/]\n"
-"handler = custodia.root.Root\n"
-"store = simple\n"
-"            "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:570
-msgid ""
-"This configuration will set up a Custodia server listening on http://"
-"localhost:8080, allowing anyone with header named MYSECRETNAME set to "
-"mysecretkey to communicate with the Custodia server.  Place the contents "
-"into a file (for example, <replaceable>custodia.conf</replaceable>): "
-"<placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:602
-msgid ""
-"Then run the <replaceable>custodia</replaceable> command, pointing it at the "
-"config file as a command line argument."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:606
-msgid ""
-"Please note that currently it's not possible to proxy all requests globally "
-"to a Custodia instance. Instead, per-user subsections for user IDs that "
-"should proxy requests to Custodia must be defined. The following example "
-"illustrates a configuration, where the user with UID 123 would proxy their "
-"requests to Custodia, but all other user's requests would be handled by a "
-"local provider."
-msgstr ""
-
-#. type: Content of: <reference><refentry><refsect1><programlisting>
-#: sssd-secrets.5.xml:614
-#, no-wrap
-msgid ""
-"[secrets]\n"
-"\n"
-"[secrets/users/123]\n"
-"provider = proxy\n"
-"proxy_url = http://localhost:8080/secrets/\n"
-"auth_type = header\n"
-"auth_header_name = MYSECRETNAME\n"
-"auth_header_value = mysecretkey\n"
-"        "
-msgstr ""
-
-#. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-session-recording.5.xml:10 sssd-session-recording.5.xml:16
 msgid "sssd-session-recording"
 msgstr ""
@@ -20550,8 +19787,6 @@ msgid ""
 "citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
 "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase condition="
 "\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase condition="
-"\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>, </phrase> <citerefentry> "
 "<refentrytitle>sssd-session-recording</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_cache</"
