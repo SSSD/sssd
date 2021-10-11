@@ -895,7 +895,6 @@ static int get_service_user(struct mt_ctx *ctx)
 static int get_monitor_config(struct mt_ctx *ctx)
 {
     int ret;
-    int timeout_seconds;
     char *badsrv = NULL;
     int i;
 
