@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-07-12 20:51+0200\n"
+"POT-Creation-Date: 2021-10-11 14:54+0200\n"
 "PO-Revision-Date: 2021-08-12 08:03+0000\n"
 "Last-Translator: Olesya Gerasimenko <gammaray@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
@@ -29,8 +29,8 @@ msgstr ""
 #: sss_cache.8.xml:5 sss_debuglevel.8.xml:5 sss_seed.8.xml:5 sssd-ifp.5.xml:5
 #: sss_rpcidmapd.5.xml:5 sss_ssh_authorizedkeys.1.xml:5
 #: sss_ssh_knownhostsproxy.1.xml:5 idmap_sss.8.xml:5 sssctl.8.xml:5
-#: sssd-files.5.xml:5 sssd-secrets.5.xml:5 sssd-session-recording.5.xml:5
-#: sssd-kcm.8.xml:5 sssd-systemtap.5.xml:5 sssd-ldap-attributes.5.xml:5
+#: sssd-files.5.xml:5 sssd-session-recording.5.xml:5 sssd-kcm.8.xml:5
+#: sssd-systemtap.5.xml:5 sssd-ldap-attributes.5.xml:5
 msgid "SSSD Manual pages"
 msgstr "Справка по SSSD"
 
@@ -43,8 +43,8 @@ msgstr "sssd.conf"
 #: sssd.conf.5.xml:11 sssd-ldap.5.xml:11 sssd-simple.5.xml:11
 #: sss-certmap.5.xml:11 sssd-ipa.5.xml:11 sssd-ad.5.xml:11 sssd-sudo.5.xml:11
 #: sssd-krb5.5.xml:11 sssd-ifp.5.xml:11 sss_rpcidmapd.5.xml:27
-#: sssd-files.5.xml:11 sssd-secrets.5.xml:11 sssd-session-recording.5.xml:11
-#: sssd-systemtap.5.xml:11 sssd-ldap-attributes.5.xml:11
+#: sssd-files.5.xml:11 sssd-session-recording.5.xml:11 sssd-systemtap.5.xml:11
+#: sssd-ldap-attributes.5.xml:11
 msgid "5"
 msgstr "5"
 
@@ -52,8 +52,8 @@ msgstr "5"
 #: sssd.conf.5.xml:12 sssd-ldap.5.xml:12 sssd-simple.5.xml:12
 #: sss-certmap.5.xml:12 sssd-ipa.5.xml:12 sssd-ad.5.xml:12 sssd-sudo.5.xml:12
 #: sssd-krb5.5.xml:12 sssd-ifp.5.xml:12 sss_rpcidmapd.5.xml:28
-#: sssd-files.5.xml:12 sssd-secrets.5.xml:12 sssd-session-recording.5.xml:12
-#: sssd-kcm.8.xml:12 sssd-systemtap.5.xml:12 sssd-ldap-attributes.5.xml:12
+#: sssd-files.5.xml:12 sssd-session-recording.5.xml:12 sssd-kcm.8.xml:12
+#: sssd-systemtap.5.xml:12 sssd-ldap-attributes.5.xml:12
 msgid "File Formats and Conventions"
 msgstr "Форматы файлов и рекомендации"
 
@@ -249,14 +249,13 @@ msgstr ""
 "Добавить к сообщениям отладки отметку времени. Если для журнала отладки SSSD "
 "включена служба journald, этот параметр игнорируется."
 
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:133 sssd.conf.5.xml:170 sssd.conf.5.xml:355
 #: sssd.conf.5.xml:647 sssd.conf.5.xml:1001 sssd.conf.5.xml:2033
 #: sssd.conf.5.xml:2063 sssd-ldap.5.xml:962 sssd-ldap.5.xml:1060
 #: sssd-ldap.5.xml:1127 sssd-ldap.5.xml:1614 sssd-ldap.5.xml:1679
 #: sssd-ipa.5.xml:341 sssd-ad.5.xml:229 sssd-ad.5.xml:343 sssd-ad.5.xml:1177
-#: sssd-ad.5.xml:1325 sssd-krb5.5.xml:342 sssd-secrets.5.xml:351
-#: sssd-secrets.5.xml:364
+#: sssd-ad.5.xml:1325 sssd-krb5.5.xml:342
 msgid "Default: true"
 msgstr "По умолчанию: true"
 
@@ -742,10 +741,9 @@ msgstr ""
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:460 sssd-ldap.5.xml:772 sssd-ldap.5.xml:784
 #: sssd-ldap.5.xml:876 sssd-ad.5.xml:897 sssd-ad.5.xml:972 sssd-krb5.5.xml:452
-#: sssd-secrets.5.xml:339 sssd-secrets.5.xml:377 sssd-secrets.5.xml:390
-#: sssd-secrets.5.xml:404 sssd-secrets.5.xml:415 sssd-ldap-attributes.5.xml:470
-#: sssd-ldap-attributes.5.xml:959 include/ldap_id_mapping.xml:205
-#: include/ldap_id_mapping.xml:216 include/krb5_options.xml:139
+#: sssd-ldap-attributes.5.xml:470 sssd-ldap-attributes.5.xml:959
+#: include/ldap_id_mapping.xml:205 include/ldap_id_mapping.xml:216
+#: include/krb5_options.xml:139
 msgid "Default: not set"
 msgstr "По умолчанию: не задано"
 
@@ -2767,8 +2765,8 @@ msgstr ""
 "pam_gssapi_services = sudo, sudo-i\n"
 "                            "
 
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1836 sssd.conf.5.xml:3620 sssd-secrets.5.xml:448
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:1836 sssd.conf.5.xml:3620
 msgid "Example: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr "Пример: <placeholder type=\"programlisting\" id=\"0\"/>"
 
@@ -4111,8 +4109,8 @@ msgid ""
 "Use the full name and domain (as formatted by the domain's full_name_format) "
 "as the user's login name reported to NSS."
 msgstr ""
-"Использовать полные имя и домен (в формате, заданном full_name_format домена)"
-" в качестве имени для входа пользователя, которое сообщается NSS."
+"Использовать полные имя и домен (в формате, заданном full_name_format "
+"домена) в качестве имени для входа пользователя, которое сообщается NSS."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2819
@@ -5357,9 +5355,8 @@ msgid ""
 "replaceable>]</quote> <placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 "Эти параметры конфигурации могут присутствовать в разделе конфигурации "
-"домена, то есть в разделе с именем <quote>[domain/"
-"<replaceable>NAME</replaceable>]</quote> <placeholder type=\"variablelist\" "
-"id=\"0\"/>"
+"домена, то есть в разделе с именем <quote>[domain/<replaceable>NAME</"
+"replaceable>]</quote> <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3797
@@ -5393,8 +5390,8 @@ msgid ""
 "for example _nss_files_getpwent."
 msgstr ""
 "Имя библиотеки NSS, которую следует использовать в доменах прокси. Функции "
-"NSS, поиск которых выполняется в библиотеке, имеют вид "
-"_nss_$(libName)_$(function), например: _nss_files_getpwent."
+"NSS, поиск которых выполняется в библиотеке, имеют вид _nss_$(libName)_"
+"$(function), например: _nss_files_getpwent."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3824
@@ -5484,8 +5481,8 @@ msgstr ""
 "групп. Впрочем, в отличие от традиционного формата работы SSSD, где все "
 "пользователи и группы имеют либо атрибуты POSIX, либо атрибуты, производные "
 "от SID Windows, во многих случаях пользователи и группы в сценарии поддержки "
-"приложений не имеют атрибутов POSIX.  Вместо установки раздела <quote>["
-"domain/<replaceable>NAME</replaceable>]</quote> администратор может "
+"приложений не имеют атрибутов POSIX.  Вместо установки раздела "
+"<quote>[domain/<replaceable>NAME</replaceable>]</quote> администратор может "
 "установить раздел <quote>[application/<replaceable>NAME</replaceable>]</"
 "quote>, который на внутреннем уровне представляет собой домен с типом "
 "<quote>application</quote>, который может наследовать параметры "
@@ -5591,11 +5588,11 @@ msgid ""
 msgstr ""
 "Некоторые параметры, которые используются в разделе домена, также могут "
 "использоваться в разделе доверенного домена, то есть разделе с именем "
-"<quote>[domain/<replaceable>DOMAIN_NAME</replaceable>/<replaceable>TRUSTED_DO"
-"MAIN_NAME</replaceable>]</quote>. DOMAIN_NAME — это фактический базовый "
-"домен, к которому выполнено присоединение. Объяснение приводится в примерах "
-"ниже. В настоящее время для раздела доверенного домена поддерживаются "
-"следующие параметры:"
+"<quote>[domain/<replaceable>DOMAIN_NAME</replaceable>/"
+"<replaceable>TRUSTED_DOMAIN_NAME</replaceable>]</quote>. DOMAIN_NAME — это "
+"фактический базовый домен, к которому выполнено присоединение. Объяснение "
+"приводится в примерах ниже. В настоящее время для раздела доверенного домена "
+"поддерживаются следующие параметры:"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:3958
@@ -5704,9 +5701,9 @@ msgid ""
 "replaceable>]</quote>.  In this section the following options are allowed:"
 msgstr ""
 "Правило привязки и сопоставления можно добавить в конфигурацию SSSD как "
-"отдельный раздел с именем наподобие <quote>[certmap/<replaceable>DOMAIN_NAME<"
-"/replaceable>/<replaceable>RULE_NAME</replaceable>]</quote>. В этом разделе "
-"допустимы следующие параметры:"
+"отдельный раздел с именем наподобие <quote>[certmap/"
+"<replaceable>DOMAIN_NAME</replaceable>/<replaceable>RULE_NAME</"
+"replaceable>]</quote>. В этом разделе допустимы следующие параметры:"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4009
@@ -5749,8 +5746,8 @@ msgid ""
 "<quote>ldap</quote>, <quote>AD</quote> or <quote>ipa</quote>."
 msgstr ""
 "LDAP:(userCertificate;binary={cert!bin}) для поставщиков данных на основе "
-"LDAP, таких как <quote>ldap</quote>, <quote>AD</quote> или "
-"<quote>ipa</quote>."
+"LDAP, таких как <quote>ldap</quote>, <quote>AD</quote> или <quote>ipa</"
+"quote>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:4038
@@ -5833,8 +5830,8 @@ msgid ""
 "quote>"
 msgstr ""
 "Если используется maprule, необходимо заключать в скобки как отдельное имя "
-"пользователя, так и шаблон наподобие <quote>{subject_rfc822_name."
-"short_name}</quote>. Например: <quote>(username)</quote> или "
+"пользователя, так и шаблон наподобие <quote>{subject_rfc822_name.short_name}"
+"</quote>. Например: <quote>(username)</quote> или "
 "<quote>({subject_rfc822_name.short_name})</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
@@ -5856,12 +5853,11 @@ msgid ""
 "Based on the results pam_sss will prompt the user for appropriate "
 "credentials."
 msgstr ""
-"Если специальный файл (<filename>/var/lib/sss/pubconf/"
-"pam_preauth_available</filename>) существует, модуль PAM SSSD pam_sss "
-"отправит SSSD запрос, чтобы узнать, какие способы проверки подлинности "
-"доступны для пользователя, который пытается выполнить вход. В зависимости от "
-"полученного ответа pam_sss запросит у пользователя соответствующие учётные "
-"данные."
+"Если специальный файл (<filename>/var/lib/sss/pubconf/pam_preauth_available</"
+"filename>) существует, модуль PAM SSSD pam_sss отправит SSSD запрос, чтобы "
+"узнать, какие способы проверки подлинности доступны для пользователя, "
+"который пытается выполнить вход. В зависимости от полученного ответа pam_sss "
+"запросит у пользователя соответствующие учётные данные."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4116
@@ -5975,9 +5971,9 @@ msgid ""
 "<quote>[prompting/password/sshd]</quote> to individual change the prompting "
 "for this service."
 msgstr ""
-"Возможно добавить подраздел для определённых служб PAM, например <quote>["
-"prompting/password/sshd]</quote>; это позволяет изменить запрос конкретно "
-"для этой службы."
+"Возможно добавить подраздел для определённых служб PAM, например "
+"<quote>[prompting/password/sshd]</quote>; это позволяет изменить запрос "
+"конкретно для этой службы."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:4177 pam_sss_gss.8.xml:157 idmap_sss.8.xml:43
@@ -6097,8 +6093,7 @@ msgstr ""
 "priority = 10\n"
 "\n"
 "[certmap/files/myname]\n"
-"matchrule = &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$&lt;SUBJECT&gt;^CN=User."
-"Name,DC=MY,DC=DOMAIN$\n"
+"matchrule = &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$&lt;SUBJECT&gt;^CN=User.Name,DC=MY,DC=DOMAIN$\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4221
@@ -6138,8 +6133,8 @@ msgstr "Поставщик данных LDAP SSSD"
 #: sss_cache.8.xml:29 sss_debuglevel.8.xml:30 sss_seed.8.xml:31
 #: sssd-ifp.5.xml:21 sss_ssh_authorizedkeys.1.xml:30
 #: sss_ssh_knownhostsproxy.1.xml:31 idmap_sss.8.xml:20 sssctl.8.xml:30
-#: sssd-files.5.xml:21 sssd-secrets.5.xml:21 sssd-session-recording.5.xml:21
-#: sssd-kcm.8.xml:21 sssd-systemtap.5.xml:21 sssd-ldap-attributes.5.xml:21
+#: sssd-files.5.xml:21 sssd-session-recording.5.xml:21 sssd-kcm.8.xml:21
+#: sssd-systemtap.5.xml:21 sssd-ldap-attributes.5.xml:21
 msgid "DESCRIPTION"
 msgstr "ОПИСАНИЕ"
 
@@ -6156,8 +6151,8 @@ msgstr ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
 "</citerefentry>. Подробные сведения о синтаксисе доступны в разделе "
 "<quote>ФОРМАТ ФАЙЛА</quote> справочной страницы <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>."
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:35
@@ -6188,7 +6183,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:49 sssd-simple.5.xml:69 sssd-ipa.5.xml:81 sssd-ad.5.xml:115
 #: sssd-krb5.5.xml:63 sssd-ifp.5.xml:44 sssd-files.5.xml:78
-#: sssd-secrets.5.xml:120 sssd-session-recording.5.xml:58 sssd-kcm.8.xml:202
+#: sssd-session-recording.5.xml:58 sssd-kcm.8.xml:202
 msgid "CONFIGURATION OPTIONS"
 msgstr "ПАРАМЕТРЫ КОНФИГУРАЦИИ"
 
@@ -6213,8 +6208,8 @@ msgstr ""
 "служб. Дополнительные сведения доступны в разделе <quote>ОБНАРУЖЕНИЕ СЛУЖБ</"
 "quote>."
 
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:76 sssd-secrets.5.xml:264
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:76
 msgid "The format of the URI must match the format defined in RFC 2732:"
 msgstr "Формат URI должен соответствовать формату, определённому в RFC 2732:"
 
@@ -6329,9 +6324,8 @@ msgid ""
 "ldap_search_base = cn=host_specific,dc=example,dc=com?subtree?"
 "(host=thishost)?dc=example.com?subtree?"
 msgstr ""
-"ldap_search_base = "
-"cn=host_specific,dc=example,dc=com?subtree?(host=thishost)?dc=example."
-"com?subtree?"
+"ldap_search_base = cn=host_specific,dc=example,dc=com?subtree?"
+"(host=thishost)?dc=example.com?subtree?"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:143
@@ -6520,8 +6514,8 @@ msgid ""
 "<manvolnum>8</manvolnum> </citerefentry> manual page for more information."
 msgstr ""
 "Дополнительные сведения доступны на справочной странице <citerefentry> "
-"<refentrytitle>sss_obfuscate</refentrytitle> <manvolnum>8</manvolnum> "
-"</citerefentry>."
+"<refentrytitle>sss_obfuscate</refentrytitle> <manvolnum>8</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:293
@@ -7012,8 +7006,8 @@ msgid ""
 "regardless of this setting."
 msgstr ""
 "<emphasis>Примечание:</emphasis> если какая-либо из баз поиска задаёт фильтр "
-"поиска, то улучшение быстродействия поиска с разыменованием будет "
-"отключено,независимо от значения этого параметра."
+"поиска, то улучшение быстродействия поиска с разыменованием будет отключено,"
+"независимо от значения этого параметра."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:690
@@ -7257,8 +7251,8 @@ msgstr ""
 "использовать другое значение, это значение можно перезаписать, явно указав "
 "ldap_sasl_mech для этого поддомена. Для получения подробных сведений "
 "смотрите «РАЗДЕЛ ДОВЕРЕННЫХ ДОМЕНОВ» на справочной странице "
-"<citerefentry><refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry>."
+"<citerefentry><refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
+"manvolnum></citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:882
@@ -7467,8 +7461,8 @@ msgstr ""
 #: sssd-ldap.5.xml:1017
 msgid "Default: System defaults, see <filename>/etc/krb5.conf</filename>"
 msgstr ""
-"По умолчанию: стандартные параметры системы, см. <filename>/etc/krb5."
-"conf</filename>"
+"По умолчанию: стандартные параметры системы, см. <filename>/etc/krb5.conf</"
+"filename>"
 
 #. type: Content of: <variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1023 include/krb5_options.xml:145
@@ -7547,9 +7541,9 @@ msgid ""
 "evaluate if the password has expired."
 msgstr ""
 "<emphasis>shadow</emphasis> — использовать атрибуты в стиле "
-"<citerefentry><refentrytitle>shadow</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry> для проверки того, не истёк ли срок "
-"действия пароля."
+"<citerefentry><refentrytitle>shadow</refentrytitle> <manvolnum>5</"
+"manvolnum></citerefentry> для проверки того, не истёк ли срок действия "
+"пароля."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1085
@@ -7696,8 +7690,8 @@ msgstr ""
 "фильтрация на основе вложенных групп (например, атрибут memberOf в записях "
 "AD указывает только на прямые родительские записи). Если фильтрацию на "
 "основе вложенных групп необходимо выполнять, ознакомьтесь со справочной "
-"страницей <citerefentry> <refentrytitle>sssd-"
-"simple</refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
+"страницей <citerefentry> <refentrytitle>sssd-simple</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1198
@@ -7804,9 +7798,9 @@ msgid ""
 "emphasis>: use the value of ldap_ns_account_lock to check if access is "
 "allowed or not."
 msgstr ""
-"<emphasis>rhds</emphasis>, <emphasis>ipa</emphasis>, "
-"<emphasis>389ds</emphasis>: использовать значение ldap_ns_account_lock, "
-"чтобы проверить, разрешён ли доступ."
+"<emphasis>rhds</emphasis>, <emphasis>ipa</emphasis>, <emphasis>389ds</"
+"emphasis>: использовать значение ldap_ns_account_lock, чтобы проверить, "
+"разрешён ли доступ."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1259
@@ -7862,8 +7856,8 @@ msgstr ""
 "этот параметр установлен, он запрещает доступ, когда атрибут LDAP "
 "«pwdAccountLockedTime» присутствует и имеет значение «000001010000Z». "
 "Подробные сведения доступны в описании параметра ldap_pwdlockout_dn.  "
-"Обратите внимание, что для работы этой возможности необходимо задать «"
-"access_provider = ldap»."
+"Обратите внимание, что для работы этой возможности необходимо задать "
+"«access_provider = ldap»."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1301
@@ -7947,8 +7941,8 @@ msgid ""
 "Please note that 'access_provider = ldap' must be set for this feature to "
 "work. Also 'ldap_pwd_policy' must be set to an appropriate password policy."
 msgstr ""
-"Следует учитывать, что для работы этой возможности необходимо указать «"
-"access_provider = ldap». Также необходимо указать соответствующую политику "
+"Следует учитывать, что для работы этой возможности необходимо указать "
+"«access_provider = ldap». Также необходимо указать соответствующую политику "
 "паролей в качестве значения параметра «ldap_pwd_policy»."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -8197,9 +8191,9 @@ msgstr ""
 "<quote>РАЗДЕЛЫ ДОМЕНА</quote> справочной страницы <citerefentry> "
 "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry>. Обратите внимание, что описание атрибутов сопоставления LDAP "
-"SSSD LDAP приводится на справочной странице <citerefentry> <refentrytitle"
-">sssd-ldap-attributes</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>. <placeholder type=\"variablelist\" id=\"0\"/>"
+"SSSD LDAP приводится на справочной странице <citerefentry> "
+"<refentrytitle>sssd-ldap-attributes</refentrytitle> <manvolnum>5</manvolnum> "
+"</citerefentry>. <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1509
@@ -8290,9 +8284,9 @@ msgid ""
 "see <emphasis>ldap_connection_expire_timeout</emphasis>)."
 msgstr ""
 "<emphasis>Примечание:</emphasis> самое высокое значение USN может быть "
-"обновлено тремя заданиями: 1) полным и интеллектуальным обновлением sudo ("
-"если найдены обновлённые правила), 2) перечислением пользователей и групп ("
-"если оно включено и найдены обновлённые пользователи или группы) и 3) "
+"обновлено тремя заданиями: 1) полным и интеллектуальным обновлением sudo "
+"(если найдены обновлённые правила), 2) перечислением пользователей и групп "
+"(если оно включено и найдены обновлённые пользователи или группы) и 3) "
 "повторным подключением к серверу (по умолчанию каждые 15 минут, см. "
 "<emphasis>ldap_connection_expire_timeout</emphasis>)."
 
@@ -8461,8 +8455,8 @@ msgid ""
 msgstr ""
 "На этой справочной странице содержится только описание сопоставления имён "
 "атрибутов. Подробные сведения о семантике атрибутов, связанных с sudo, "
-"доступны на справочной странице <citerefentry> <refentrytitle>sudoers."
-"ldap</refentrytitle><manvolnum>5</manvolnum> </citerefentry>"
+"доступны на справочной странице <citerefentry> <refentrytitle>sudoers.ldap</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1720
@@ -8872,8 +8866,8 @@ msgstr ""
 "использовать совместно с параметрами <quote>pam_trusted_users</quote> и "
 "<quote>pam_public_domains</quote>. Дополнительные сведения об этих двух "
 "параметрах ответчика PAM доступны на справочной странице <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>."
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:173
@@ -8931,11 +8925,11 @@ msgid ""
 "credentials."
 msgstr ""
 "Всегда запрашивать учётные данные у пользователя. Если этот параметр "
-"включён, учётные данные, запрошенные другими модулями PAM (обычно это пароль)"
-", будут игнорироваться и pam_sss будет запрашивать учётные данные снова. В "
-"зависимости от ответа предварительной проверки подлинности, полученного от "
-"SSSD, pam_sss может запросить пароль, PIN-код смарт-карты или другие учётные "
-"данные."
+"включён, учётные данные, запрошенные другими модулями PAM (обычно это "
+"пароль), будут игнорироваться и pam_sss будет запрашивать учётные данные "
+"снова. В зависимости от ответа предварительной проверки подлинности, "
+"полученного от SSSD, pam_sss может запросить пароль, PIN-код смарт-карты или "
+"другие учётные данные."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:212
@@ -9395,8 +9389,8 @@ msgstr ""
 "серверной службы GSSAPI host@hostname, при разрешении которого получается "
 "участник Kerberos host/hostname@REALM. Часть <emphasis>REALM</emphasis> "
 "имени участника Kerberos определяется с помощью внутренних механизмов "
-"Kerberos. Её можно указать в явном виде в конфигурации раздела [domain_realm]"
-" в /etc/krb5.conf."
+"Kerberos. Её можно указать в явном виде в конфигурации раздела "
+"[domain_realm] в /etc/krb5.conf."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:44
@@ -9448,8 +9442,8 @@ msgstr ""
 "<option>krb5_keytab</option>. Подробные сведения об этих параметрах доступны "
 "на справочных страницах <citerefentry> <refentrytitle>sssd.conf</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> и <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>."
+"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:74
@@ -9591,8 +9585,8 @@ msgid ""
 "for the service ticket based on the hostname.  Try adding the hostname "
 "directly to <option>[domain_realm]</option> in /etc/krb5.conf like so:"
 msgstr ""
-"2. Проверка подлинности не работает, и в системном журнале есть запись «"
-"Server not found in Kerberos database»: вероятно, Kerberos не удалось "
+"2. Проверка подлинности не работает, и в системном журнале есть запись "
+"«Server not found in Kerberos database»: вероятно, Kerberos не удалось "
 "определить корректную область для билета службы на основе имени узла. "
 "Попробуйте добавить имя узла непосредственно в раздел "
 "<option>[domain_realm]</option> в /etc/krb5.conf следующим образом:"
@@ -9621,8 +9615,8 @@ msgid ""
 "principal, make sure you authenticated with SSSD or consider disabling "
 "<option>pam_gssapi_check_upn</option>."
 msgstr ""
-"4. Проверка подлинности не работает, и в журнале sssd-pam SSSD есть запись «"
-"User with UPN [$UPN] was not found.» или «UPN [$UPN] does not match target "
+"4. Проверка подлинности не работает, и в журнале sssd-pam SSSD есть запись "
+"«User with UPN [$UPN] was not found.» или «UPN [$UPN] does not match target "
 "user [$username].»: используются учётные данные, которые нельзя сопоставить "
 "тому пользователю, проверка подлинности которого проводится. Попробуйте "
 "использовать kswitch для выбора другого участника, убедитесь, что проверка "
@@ -9873,10 +9867,10 @@ msgid ""
 "If any list is provided, the order of evaluation is allow,deny. This means "
 "that any matching deny rule will supersede any matched allow rule."
 msgstr ""
-"Если предоставлен какой-либо список, используется порядок вычисления "
-"«allow,deny». Это означает, что любое соответствующее заданным условиям "
-"правило запрета будет превалировать над любым соответствующим заданным "
-"условиям правилом допуска."
+"Если предоставлен какой-либо список, используется порядок вычисления «allow,"
+"deny». Это означает, что любое соответствующее заданным условиям правило "
+"запрета будет превалировать над любым соответствующим заданным условиям "
+"правилом допуска."
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
 #: sssd-simple.5.xml:54
@@ -10018,8 +10012,8 @@ msgstr ""
 "следовательно, в списки доступа могут быть включены даже вложенные группы. "
 "Обратите внимание, что параметр <quote>ldap_group_nesting_level</quote> "
 "может повлиять на результаты, поэтому следует установить для него "
-"достаточное значение. См. <citerefentry> <refentrytitle>sssd-"
-"ldap</refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
+"достаточное значение. См. <citerefentry> <refentrytitle>sssd-ldap</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss-certmap.5.xml:10 sss-certmap.5.xml:16
@@ -10141,8 +10135,8 @@ msgstr ""
 "слова, расположенного между «&lt;» и «&gt;», которое идентифицирует "
 "определённую часть сертификата, и шаблона, который должен быть найден для "
 "установления соответствия правила. Несколько пар «ключевое слово — шаблон» "
-"можно соединить с помощью логического оператора «&amp;&amp;» (и) или "
-"«&#124;&#124;» (или)."
+"можно соединить с помощью логического оператора «&amp;&amp;» (и) или «&#124;"
+"&#124;» (или)."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:79
@@ -10196,8 +10190,8 @@ msgid ""
 "so that they are matched as ordinary characters."
 msgstr ""
 "Обратите внимание, что символы «^.[$()|*+?{\\» имеют специальное значение в "
-"регулярных выражениях, поэтому их необходимо экранировать с помощью символа «"
-"\\», чтобы программа воспринимала их как обычные символы."
+"регулярных выражениях, поэтому их необходимо экранировать с помощью символа "
+"«\\», чтобы программа воспринимала их как обычные символы."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:110
@@ -10753,8 +10747,8 @@ msgid ""
 "Example: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!nss_x500}&lt;S&gt;"
 "{subject_dn!nss_x500})"
 msgstr ""
-"Пример: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!nss_x500}&lt;S&gt;{subject_d"
-"n!nss_x500})"
+"Пример: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!nss_x500}&lt;S&gt;"
+"{subject_dn!nss_x500})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:445
@@ -10804,9 +10798,8 @@ msgid ""
 "Example: (|(userPrincipal={subject_principal})"
 "(samAccountName={subject_principal.short_name}))"
 msgstr ""
-"Пример: "
-"(|(userPrincipal={subject_principal})(samAccountName={subject_principal."
-"short_name}))"
+"Пример: (|(userPrincipal={subject_principal})"
+"(samAccountName={subject_principal.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:475
@@ -10830,9 +10823,8 @@ msgid ""
 "Example: (|(userPrincipal={subject_pkinit_principal})"
 "(uid={subject_pkinit_principal.short_name}))"
 msgstr ""
-"Пример: "
-"(|(userPrincipal={subject_pkinit_principal})(uid={subject_pkinit_principal."
-"short_name}))"
+"Пример: (|(userPrincipal={subject_pkinit_principal})"
+"(uid={subject_pkinit_principal.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:489
@@ -10856,8 +10848,8 @@ msgid ""
 "Example: (|(userPrincipalName={subject_nt_principal})"
 "(samAccountName={subject_nt_principal.short_name}))"
 msgstr ""
-"Пример: (|(userPrincipalName={subject_nt_principal})(samAccountName={subject_"
-"nt_principal.short_name}))"
+"Пример: (|(userPrincipalName={subject_nt_principal})"
+"(samAccountName={subject_nt_principal.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:503
@@ -10871,8 +10863,8 @@ msgid ""
 "component of the SAN, typically an email address. The 'short_name' component "
 "represents the first part of the address before the '@' sign."
 msgstr ""
-"Этот шаблон добавит строку, которая хранится в компоненте rfc822Name SAN ("
-"обычно это адрес электронной почты). Компонент «short_name» представляет "
+"Этот шаблон добавит строку, которая хранится в компоненте rfc822Name SAN "
+"(обычно это адрес электронной почты). Компонент «short_name» представляет "
 "первую часть записи адреса, до знака «@»."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
@@ -10895,9 +10887,9 @@ msgid ""
 "of the SAN, typically a fully-qualified host name.  The 'short_name' "
 "component represents the first part of the name before the first '.' sign."
 msgstr ""
-"Этот шаблон добавит строку, которая хранится в компоненте dNSName SAN ("
-"обычно это полное имя узла) Компонент «short_name» представляет первую часть "
-"записи имени, до первого знака «.»."
+"Этот шаблон добавит строку, которая хранится в компоненте dNSName SAN "
+"(обычно это полное имя узла) Компонент «short_name» представляет первую "
+"часть записи имени, до первого знака «.»."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:526
@@ -11395,8 +11387,8 @@ msgid ""
 "discovery are treated as primary servers and the IPA servers located using "
 "the traditional SRV discovery are used as back up servers"
 msgstr ""
-"Если параметр установлен в значение «true» и включено обнаружение служб ("
-"смотрите абзац об обнаружении служб в нижней части справочной страницы), "
+"Если параметр установлен в значение «true» и включено обнаружение служб "
+"(смотрите абзац об обнаружении служб в нижней части справочной страницы), "
 "SSSD сначала будет пробовать выполнить обнаружение на основе расположения с "
 "помощью запроса, который содержит «_location.hostname.example.com», а затем "
 "перейдёт к традиционному обнаружению SRV. Если обнаружение на основе "
@@ -11912,7 +11904,8 @@ msgstr "ipa_anchor_uuid (строка)"
 msgid ""
 "Name of the attribute containing the reference to the original object in a "
 "remote domain."
-msgstr "Имя атрибута, содержащего ссылку на исходный объект в удалённом домене."
+msgstr ""
+"Имя атрибута, содержащего ссылку на исходный объект в удалённом домене."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:676
@@ -12111,8 +12104,8 @@ msgid ""
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page."
 msgstr ""
 "Дополнительные сведения доступны на справочной странице <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>."
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:796
@@ -12505,8 +12498,8 @@ msgid ""
 msgstr ""
 "Разделённый запятыми список имён узлов серверов AD, к которым SSSD следует "
 "подключаться в порядке приоритета. Дополнительные сведения об отработке "
-"отказа и избыточности сервера доступны в разделе <quote>ОТРАБОТКА "
-"ОТКАЗА</quote>."
+"отказа и избыточности сервера доступны в разделе <quote>ОТРАБОТКА ОТКАЗА</"
+"quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:180
@@ -12652,9 +12645,9 @@ msgstr ""
 "не пыталось интерпретировать символы двоеточия, связанные с OID. Без "
 "использования этого OID разрешение участия во вложенных группах не будет "
 "выполняться. Пример использования приводится ниже, а дополнительные сведения "
-"о OID доступны <ulink url=\"https://msdn.microsoft.com/en-us/library/cc223367"
-".aspx\">в разделе технической спецификации Active Directory MS, посвящённом "
-"расширениям LDAP</ulink>"
+"о OID доступны <ulink url=\"https://msdn.microsoft.com/en-us/library/"
+"cc223367.aspx\">в разделе технической спецификации Active Directory MS, "
+"посвящённом расширениям LDAP</ulink>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:280
@@ -12697,8 +12690,7 @@ msgstr ""
 "FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)\n"
 "\n"
 "# применить фильтр для участника вложенной группы в dom1:\n"
-"DOM:dom1:(memberOf:1.2.840.113556.1.4."
-"1941:=cn=nestedgroup,ou=groups,dc=example,dc=com)\n"
+"DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,dc=com)\n"
 "                        "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -12861,16 +12853,17 @@ msgid ""
 msgstr ""
 "ПРИМЕЧАНИЕ: если в качестве режим работы выбран принудительный режим, "
 "возможно, что пользователям, которым был ранее разрешён доступ для входа, "
-"теперь будет отказано в доступе для входа (согласно параметрам политики GPO)"
-". Чтобы облегчить переход на новую систему, для администраторов предусмотрен "
-"разрешительный режим: правила управления доступом не применяются в "
-"принудительном порядке. Программа просто проверяет соответствие этим "
-"правилам и выводит в системный журнал сообщение в случае отказа в доступе. "
-"Просмотрев этот журнал, администраторы смогут внести необходимые изменения, "
-"а затем включить принудительный режим. Для ведения журнала управления "
-"доступом на основе GPO необходимо включить уровень отладки «трассировка "
-"функций» (см. справочную страницу <citerefentry> <refentrytitle>sssctl</"
-"refentrytitle> <manvolnum>8</manvolnum> </citerefentry>)."
+"теперь будет отказано в доступе для входа (согласно параметрам политики "
+"GPO). Чтобы облегчить переход на новую систему, для администраторов "
+"предусмотрен разрешительный режим: правила управления доступом не "
+"применяются в принудительном порядке. Программа просто проверяет "
+"соответствие этим правилам и выводит в системный журнал сообщение в случае "
+"отказа в доступе. Просмотрев этот журнал, администраторы смогут внести "
+"необходимые изменения, а затем включить принудительный режим. Для ведения "
+"журнала управления доступом на основе GPO необходимо включить уровень "
+"отладки «трассировка функций» (см. справочную страницу <citerefentry> "
+"<refentrytitle>sssctl</refentrytitle> <manvolnum>8</manvolnum> </"
+"citerefentry>)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:431
@@ -13116,8 +13109,8 @@ msgid ""
 "<quote>my_pam_service</quote>), you would use the following configuration: "
 "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"Можно добавить имя ещё одной службы PAM в стандартный набор с помощью "
-"<quote>+service_name</quote>. Также можно явно удалить имя службы PAM из "
+"Можно добавить имя ещё одной службы PAM в стандартный набор с помощью <quote>"
+"+service_name</quote>. Также можно явно удалить имя службы PAM из "
 "стандартного набора с помощью <quote>-service_name</quote>. Например, чтобы "
 "заменить стандартное имя службы PAM для этого права входа (например, "
 "<quote>login</quote>) на пользовательское имя службы PAM (например, "
@@ -13221,8 +13214,8 @@ msgid ""
 "<quote>my_pam_service</quote>), you would use the following configuration: "
 "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"Можно добавить имя ещё одной службы PAM в стандартный набор с помощью "
-"<quote>+service_name</quote>. Также можно явно удалить имя службы PAM из "
+"Можно добавить имя ещё одной службы PAM в стандартный набор с помощью <quote>"
+"+service_name</quote>. Также можно явно удалить имя службы PAM из "
 "стандартного набора с помощью <quote>-service_name</quote>. Например, чтобы "
 "заменить стандартное имя службы PAM для этого права входа (например, "
 "<quote>sshd</quote>) на пользовательское имя службы PAM (например, "
@@ -13306,8 +13299,8 @@ msgid ""
 "<quote>my_pam_service</quote>), you would use the following configuration: "
 "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"Можно добавить имя ещё одной службы PAM в стандартный набор с помощью "
-"<quote>+service_name</quote>. Также можно явно удалить имя службы PAM из "
+"Можно добавить имя ещё одной службы PAM в стандартный набор с помощью <quote>"
+"+service_name</quote>. Также можно явно удалить имя службы PAM из "
 "стандартного набора с помощью <quote>-service_name</quote>. Например, чтобы "
 "заменить стандартное имя службы PAM для этого права входа (например, "
 "<quote>ftp</quote>) на пользовательское имя службы PAM (например, "
@@ -13389,8 +13382,8 @@ msgid ""
 "<quote>my_pam_service</quote>), you would use the following configuration: "
 "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"Можно добавить имя ещё одной службы PAM в стандартный набор с помощью "
-"<quote>+service_name</quote>. Также можно явно удалить имя службы PAM из "
+"Можно добавить имя ещё одной службы PAM в стандартный набор с помощью <quote>"
+"+service_name</quote>. Также можно явно удалить имя службы PAM из "
 "стандартного набора с помощью <quote>-service_name</quote>. Например, чтобы "
 "заменить стандартное имя службы PAM для этого права входа (например, "
 "<quote>crond</quote>) на пользовательское имя службы PAM (например, "
@@ -13474,12 +13467,12 @@ msgid ""
 "would use the following configuration: <placeholder type=\"programlisting\" "
 "id=\"0\"/>"
 msgstr ""
-"Можно добавить имя службы PAM в стандартный набор с помощью "
-"<quote>+service_name</quote>. Так как стандартный набор является пустым, из "
-"него невозможно удалить имя службы PAM. Например, чтобы добавить "
-"пользовательское имя службы PAM (например, <quote>my_pam_service</quote>), "
-"необходимо использовать следующую конфигурацию: <placeholder type="
-"\"programlisting\" id=\"0\"/>"
+"Можно добавить имя службы PAM в стандартный набор с помощью <quote>"
+"+service_name</quote>. Так как стандартный набор является пустым, из него "
+"невозможно удалить имя службы PAM. Например, чтобы добавить пользовательское "
+"имя службы PAM (например, <quote>my_pam_service</quote>), необходимо "
+"использовать следующую конфигурацию: <placeholder type=\"programlisting\" id="
+"\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:903
@@ -13516,12 +13509,12 @@ msgid ""
 "<quote>my_pam_service</quote>), you would use the following configuration: "
 "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"Можно добавить имя ещё одной службы PAM в стандартный набор с помощью "
-"<quote>+service_name</quote>. Также можно явно удалить имя службы PAM из "
+"Можно добавить имя ещё одной службы PAM в стандартный набор с помощью <quote>"
+"+service_name</quote>. Также можно явно удалить имя службы PAM из "
 "стандартного набора с помощью <quote>-service_name</quote>. Например, чтобы "
-"заменить стандартное имя службы PAM для безусловно разрешённого доступа ("
-"например, <quote>sudo</quote>) на пользовательское имя службы PAM (например, "
-"<quote>my_pam_service</quote>), необходимо использовать следующую "
+"заменить стандартное имя службы PAM для безусловно разрешённого доступа "
+"(например, <quote>sudo</quote>) на пользовательское имя службы PAM "
+"(например, <quote>my_pam_service</quote>), необходимо использовать следующую "
 "конфигурацию: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -13959,8 +13952,8 @@ msgid ""
 msgstr ""
 "Чтобы включить SSSD как источник правил sudo, добавьте <emphasis>sss</"
 "emphasis> в запись <emphasis>sudoers</emphasis> в файле <citerefentry> "
-"<refentrytitle>nsswitch.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>."
+"<refentrytitle>nsswitch.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:47
@@ -13992,11 +13985,11 @@ msgid ""
 "<refentrytitle>sudoers.ldap</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry>."
 msgstr ""
-"Дополнительные сведения о настройке порядка поиска sudoers из файла "
-"nsswitch.conf, а также информация о схеме LDAP, используемой для сохранения "
-"правил sudo в каталоге, доступны на справочной странице <citerefentry> "
-"<refentrytitle>sudoers.ldap</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>."
+"Дополнительные сведения о настройке порядка поиска sudoers из файла nsswitch."
+"conf, а также информация о схеме LDAP, используемой для сохранения правил "
+"sudo в каталоге, доступны на справочной странице <citerefentry> "
+"<refentrytitle>sudoers.ldap</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:70
@@ -14081,8 +14074,8 @@ msgstr ""
 "<placeholder type=\"programlisting\" id=\"0\"/> <phrase condition="
 "\"have_systemd\"> Важно учитывать, что на платформах, где поддерживается "
 "systemd, не требуется добавлять поставщика данных «sudo» в список служб, так "
-"как он стал необязательным. Однако вместо этого следует включить sssd-"
-"sudo.socket.  </phrase>"
+"как он стал необязательным. Однако вместо этого следует включить sssd-sudo."
+"socket.  </phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:118
@@ -14095,10 +14088,10 @@ msgid ""
 msgstr ""
 "Когда программа SSSD настроена на использование IPA в качестве поставщика "
 "ID, включение поставщика данных sudo выполняется автоматически. База поиска "
-"sudo настроена на использование собственного дерева LDAP IPA "
-"(cn=sudo,$SUFFIX). Если в sssd.conf определена какая-либо другая база "
-"поиска, будет использоваться это значение. Дерево совместимости "
-"(ou=sudoers,$SUFFIX) больше не является необходимым для работы sudo IPA."
+"sudo настроена на использование собственного дерева LDAP IPA (cn=sudo,"
+"$SUFFIX). Если в sssd.conf определена какая-либо другая база поиска, будет "
+"использоваться это значение. Дерево совместимости (ou=sudoers,$SUFFIX) "
+"больше не является необходимым для работы sudo IPA."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-sudo.5.xml:128
@@ -14284,8 +14277,8 @@ msgstr ""
 "кэшированные правила на клиентах, можно увеличить значения "
 "<emphasis>ldap_sudo_full_refresh_interval</emphasis> и "
 "<emphasis>ldap_sudo_smart_refresh_interval</emphasis>. Также можно отключить "
-"интеллектуальное обновление: <emphasis>ldap_sudo_smart_refresh_interval = "
-"0</emphasis>."
+"интеллектуальное обновление: <emphasis>ldap_sudo_smart_refresh_interval = 0</"
+"emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:241
@@ -14344,8 +14337,8 @@ msgid ""
 "<option>-d</option>,<option>--debug-level</option> <replaceable>LEVEL</"
 "replaceable>"
 msgstr ""
-"<option>-d</option>,<option>--debug-level</option> "
-"<replaceable>LEVEL</replaceable>"
+"<option>-d</option>,<option>--debug-level</option> <replaceable>LEVEL</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:53
@@ -14463,8 +14456,8 @@ msgstr ""
 "Позволяет указать файл конфигурации, отличный от стандартного. Стандартным "
 "является <filename>/etc/sssd/sssd.conf</filename>. Сведения о синтаксисе и "
 "параметрах файла конфигурации доступны на справочной странице <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>."
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:150
@@ -14635,8 +14628,9 @@ msgstr ""
 "<quote>ldap_default_authtok</quote> указанного домена SSSD, и параметр "
 "<quote>ldap_default_authtok_type</quote> устанавливается в значение "
 "<quote>obfuscated_password</quote>. Дополнительные сведения об этих "
-"параметрах доступны на справочной странице <citerefentry> <refentrytitle"
-">sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
+"параметрах доступны на справочной странице <citerefentry> "
+"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_obfuscate.8.xml:49
@@ -14670,8 +14664,8 @@ msgid ""
 "<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
 "replaceable>"
 msgstr ""
-"<option>-d</option>,<option>--domain</option> "
-"<replaceable>DOMAIN</replaceable>"
+"<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_obfuscate.8.xml:79
@@ -14679,8 +14673,8 @@ msgid ""
 "The SSSD domain to use the password in. The default name is <quote>default</"
 "quote>."
 msgstr ""
-"Домен SSSD, в котором используется пароль. Имя по умолчанию: "
-"<quote>default</quote>."
+"Домен SSSD, в котором используется пароль. Имя по умолчанию: <quote>default</"
+"quote>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_obfuscate.8.xml:86
@@ -14822,8 +14816,8 @@ msgid ""
 msgstr ""
 "Удалить переопределения пользователя. Необходимо учитывать, что "
 "переопределённые атрибуты могут быть возвращены из кэша в памяти. Подробные "
-"сведения доступны в описании параметра SSSD "
-"<emphasis>memcache_timeout</emphasis>."
+"сведения доступны в описании параметра SSSD <emphasis>memcache_timeout</"
+"emphasis>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:100
@@ -14831,8 +14825,8 @@ msgid ""
 "<option>user-find</option> <optional><option>-d,--domain</option> DOMAIN</"
 "optional>"
 msgstr ""
-"<option>user-find</option> <optional><option>-d,--domain</option> "
-"DOMAIN</optional>"
+"<option>user-find</option> <optional><option>-d,--domain</option> DOMAIN</"
+"optional>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_override.8.xml:105
@@ -14917,8 +14911,8 @@ msgid ""
 "optional>"
 msgstr ""
 "<option>group-add</option> <emphasis>NAME</emphasis> <optional><option>-n,--"
-"name</option> NAME</optional> <optional><option>-g,--gid</option> "
-"GID</optional>"
+"name</option> NAME</optional> <optional><option>-g,--gid</option> GID</"
+"optional>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_override.8.xml:175
@@ -14952,8 +14946,8 @@ msgid ""
 "<option>group-find</option> <optional><option>-d,--domain</option> DOMAIN</"
 "optional>"
 msgstr ""
-"<option>group-find</option> <optional><option>-d,--domain</option> "
-"DOMAIN</optional>"
+"<option>group-find</option> <optional><option>-d,--domain</option> DOMAIN</"
+"optional>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_override.8.xml:202
@@ -15070,8 +15064,8 @@ msgstr ""
 "<refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> </"
 "citerefentry>.  Подробные сведения о синтаксисе доступны в разделе "
 "<quote>ФОРМАТ ФАЙЛА</quote> справочной страницы <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>."
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:36
@@ -15111,8 +15105,8 @@ msgstr ""
 "сведения доступны на справочной странице <citerefentry> "
 "<refentrytitle>k5login</refentrytitle><manvolnum>5</manvolnum> </"
 "citerefentry>. Обратите внимание, что пользователю будет отказано в доступе, "
-"если файл .k5login пуст. Чтобы активировать эту возможность, укажите «"
-"access_provider = krb5» в конфигурации SSSD."
+"если файл .k5login пуст. Чтобы активировать эту возможность, укажите "
+"«access_provider = krb5» в конфигурации SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:55
@@ -15122,8 +15116,8 @@ msgid ""
 "<replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable>."
 msgstr ""
 "Если на внутреннем сервере идентификации недоступен UPN, <command>sssd</"
-"command> создаст UPN в формате "
-"<replaceable>username</replaceable>@<replaceable>krb5_realm</replaceable>."
+"command> создаст UPN в формате <replaceable>username</"
+"replaceable>@<replaceable>krb5_realm</replaceable>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:77
@@ -15763,8 +15757,8 @@ msgid ""
 "<option>-n</option>,<option>--netgroup</option> <replaceable>netgroup</"
 "replaceable>"
 msgstr ""
-"<option>-n</option>,<option>--netgroup</option> "
-"<replaceable>netgroup</replaceable>"
+"<option>-n</option>,<option>--netgroup</option> <replaceable>netgroup</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:102
@@ -15792,8 +15786,8 @@ msgid ""
 "<option>-s</option>,<option>--service</option> <replaceable>service</"
 "replaceable>"
 msgstr ""
-"<option>-s</option>,<option>--service</option> "
-"<replaceable>service</replaceable>"
+"<option>-s</option>,<option>--service</option> <replaceable>service</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:124
@@ -15821,8 +15815,8 @@ msgid ""
 "<option>-a</option>,<option>--autofs-map</option> <replaceable>autofs-map</"
 "replaceable>"
 msgstr ""
-"<option>-a</option>,<option>--autofs-map</option> <replaceable>autofs-"
-"map</replaceable>"
+"<option>-a</option>,<option>--autofs-map</option> <replaceable>autofs-map</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:146
@@ -15850,8 +15844,8 @@ msgid ""
 "<option>-h</option>,<option>--ssh-host</option> <replaceable>hostname</"
 "replaceable>"
 msgstr ""
-"<option>-h</option>,<option>--ssh-host</option> "
-"<replaceable>hostname</replaceable>"
+"<option>-h</option>,<option>--ssh-host</option> <replaceable>hostname</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:168
@@ -15879,8 +15873,8 @@ msgid ""
 "<option>-r</option>,<option>--sudo-rule</option> <replaceable>rule</"
 "replaceable>"
 msgstr ""
-"<option>-r</option>,<option>--sudo-rule</option> "
-"<replaceable>rule</replaceable>"
+"<option>-r</option>,<option>--sudo-rule</option> <replaceable>rule</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:191
@@ -15908,8 +15902,8 @@ msgid ""
 "<option>-d</option>,<option>--domain</option> <replaceable>domain</"
 "replaceable>"
 msgstr ""
-"<option>-d</option>,<option>--domain</option> "
-"<replaceable>domain</replaceable>"
+"<option>-d</option>,<option>--domain</option> <replaceable>domain</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:214
@@ -16045,9 +16039,9 @@ msgid ""
 "arg>"
 msgstr ""
 "<command>sss_seed</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'>-D "
-"<replaceable>DOMAIN</replaceable></arg> <arg choice='plain'>-n "
-"<replaceable>USER</replaceable></arg>"
+"replaceable> </arg> <arg choice='plain'>-D <replaceable>DOMAIN</"
+"replaceable></arg> <arg choice='plain'>-n <replaceable>USER</replaceable></"
+"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_seed.8.xml:33
@@ -16066,8 +16060,8 @@ msgid ""
 "<option>-D</option>,<option>--domain</option> <replaceable>DOMAIN</"
 "replaceable>"
 msgstr ""
-"<option>-D</option>,<option>--domain</option> "
-"<replaceable>DOMAIN</replaceable>"
+"<option>-D</option>,<option>--domain</option> <replaceable>DOMAIN</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_seed.8.xml:51
@@ -16090,8 +16084,8 @@ msgid ""
 "<option>-n</option>,<option>--username</option> <replaceable>USER</"
 "replaceable>"
 msgstr ""
-"<option>-n</option>,<option>--username</option> "
-"<replaceable>USER</replaceable>"
+"<option>-n</option>,<option>--username</option> <replaceable>USER</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_seed.8.xml:68
@@ -16150,8 +16144,8 @@ msgstr ""
 msgid ""
 "Set the home directory of the user to <replaceable>HOME_DIR</replaceable>."
 msgstr ""
-"Установить домашний каталог пользователя в значение "
-"<replaceable>HOME_DIR</replaceable>."
+"Установить домашний каталог пользователя в значение <replaceable>HOME_DIR</"
+"replaceable>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_seed.8.xml:124
@@ -16182,8 +16176,8 @@ msgid ""
 "<option>-p</option>,<option>--password-file</option> <replaceable>PASS_FILE</"
 "replaceable>"
 msgstr ""
-"<option>-p</option>,<option>--password-file</option> "
-"<replaceable>PASS_FILE</replaceable>"
+"<option>-p</option>,<option>--password-file</option> <replaceable>PASS_FILE</"
+"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_seed.8.xml:153
@@ -16201,8 +16195,8 @@ msgid ""
 "password-file option) must be less than or equal to PASS_MAX bytes (64 bytes "
 "on systems with no globally-defined PASS_MAX value)."
 msgstr ""
-"Длина пароля (или размер файла, указанного с помощью параметра -p или "
-"--password-file) должна быть меньше или равна PASS_MAX байт (64 байт в "
+"Длина пароля (или размер файла, указанного с помощью параметра -p или --"
+"password-file) должна быть меньше или равна PASS_MAX байт (64 байт в "
 "системах, где значение PASS_MAX не задано глобально)."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
@@ -16615,8 +16609,8 @@ msgstr ""
 "пользователя<replaceable>USER</replaceable> и выводит их в формате "
 "authorized_keys OpenSSH (дополнительные сведения доступны в разделе "
 "<quote>ФОРМАТ ФАЙЛА AUTHORIZED_KEYS</quote> справочной страницы "
-"<citerefentry><refentrytitle>sshd</refentrytitle> "
-"<manvolnum>8</manvolnum></citerefentry>)."
+"<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
+"citerefentry>)."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:41
@@ -16634,8 +16628,8 @@ msgstr ""
 "пользователей по открытым ключам, если программа собрана с поддержкой "
 "параметра <quote>AuthorizedKeysCommand</quote>. Дополнительные сведения об "
 "этом параметре доступны на справочной странице <citerefentry> "
-"<refentrytitle>sshd_config</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry>."
+"<refentrytitle>sshd_config</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sss_ssh_authorizedkeys.1.xml:59
@@ -16661,8 +16655,8 @@ msgstr ""
 "<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
 "citerefentry> можно настроить на его использование, поместив следующие "
 "инструкции в <citerefentry> <refentrytitle>sshd_config</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry>: <placeholder type=\"programlisting\""
-" id=\"0\"/>"
+"<manvolnum>5</manvolnum></citerefentry>: <placeholder type=\"programlisting"
+"\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss_ssh_authorizedkeys.1.xml:65
@@ -16700,14 +16694,14 @@ msgstr ""
 "разделе [ssh] файла <filename>sssd.conf</filename>. Если запись пользователя "
 "содержит сертификаты (подробные сведения доступны в описании параметра "
 "<quote>ldap_user_certificate</quote> на справочной странице "
-"<citerefentry><refentrytitle>sssd-ldap</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry>) или имеется сертификат в записи "
-"переопределения для пользователя (подробные сведения доступны на справочной "
+"<citerefentry><refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
+"manvolnum></citerefentry>) или имеется сертификат в записи переопределения "
+"для пользователя (подробные сведения доступны на справочной "
 "странице<citerefentry><refentrytitle>sss_override</refentrytitle> "
-"<manvolnum>8</manvolnum></citerefentry> или <citerefentry><refentrytitle"
-">sssd-ipa</refentrytitle> <manvolnum>5</manvolnum></citerefentry>) и этот "
-"сертификат действителен, то SSSD извлечёт открытый ключ из сертификата и "
-"преобразует его в формат, ожидаемый sshd."
+"<manvolnum>8</manvolnum></citerefentry> или "
+"<citerefentry><refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
+"manvolnum></citerefentry>) и этот сертификат действителен, то SSSD извлечёт "
+"открытый ключ из сертификата и преобразует его в формат, ожидаемый sshd."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss_ssh_authorizedkeys.1.xml:90
@@ -16736,10 +16730,10 @@ msgid ""
 "<citerefentry><refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
 "manvolnum></citerefentry> for details)."
 msgstr ""
-"могут использоваться для управления способом проверки сертификатов ("
-"подробные сведения доступны на справочной странице "
-"<citerefentry><refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum></citerefentry>)."
+"могут использоваться для управления способом проверки сертификатов "
+"(подробные сведения доступны на справочной странице "
+"<citerefentry><refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
+"manvolnum></citerefentry>)."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss_ssh_authorizedkeys.1.xml:101
@@ -16775,16 +16769,16 @@ msgid ""
 msgstr ""
 "Следует отметить, что производный открытый ключ SSH можно добавить в "
 "файл<filename>authorized_keys</filename> пользователя для обхода проверки "
-"действительности сертификата, если это позволяет конфигурация "
-"<command>sshd</command>."
+"действительности сертификата, если это позволяет конфигурация <command>sshd</"
+"command>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_ssh_authorizedkeys.1.xml:132
 msgid ""
 "Search for user public keys in SSSD domain <replaceable>DOMAIN</replaceable>."
 msgstr ""
-"Искать открытые ключи пользователя в домене SSSD "
-"<replaceable>DOMAIN</replaceable>."
+"Искать открытые ключи пользователя в домене SSSD <replaceable>DOMAIN</"
+"replaceable>."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_ssh_authorizedkeys.1.xml:141 sss_ssh_knownhostsproxy.1.xml:102
@@ -16836,9 +16830,9 @@ msgstr ""
 "для узла <replaceable>HOST</replaceable>, сохраняет их в пользовательском "
 "файле known_hosts OpenSSH (подробные сведения доступны в разделе "
 "<quote>ФОРМАТ ФАЙЛА SSH_KNOWN_HOSTS</quote> справочной страницы  "
-"<citerefentry><refentrytitle>sshd</refentrytitle> "
-"<manvolnum>8</manvolnum></citerefentry>)  <filename>/var/lib/sss/pubconf/"
-"known_hosts</filename> и устанавливает подключение к узлу."
+"<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
+"citerefentry>)  <filename>/var/lib/sss/pubconf/known_hosts</filename> и "
+"устанавливает подключение к узлу."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhostsproxy.1.xml:43
@@ -16872,9 +16866,8 @@ msgstr ""
 "citerefentry> можно настроить на использование "
 "<command>sss_ssh_knownhostsproxy</command> для проверки подлинности ключа "
 "узла с помощью следующих инструкций по настройке "
-"<citerefentry><refentrytitle>ssh</refentrytitle> "
-"<manvolnum>1</manvolnum></citerefentry>: <placeholder type=\"programlisting\""
-" id=\"0\"/>"
+"<citerefentry><refentrytitle>ssh</refentrytitle> <manvolnum>1</manvolnum></"
+"citerefentry>: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_ssh_knownhostsproxy.1.xml:66
@@ -17078,8 +17071,8 @@ msgstr ""
 "для <citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
 "manvolnum> </citerefentry>.  Подробные сведения о синтаксисе доступны в "
 "разделе <quote>ФОРМАТ ФАЙЛА</quote> справочной страницы <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>."
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-files.5.xml:36
@@ -17286,1021 +17279,6 @@ msgstr ""
 "group:      sss files\n"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
-#: sssd-secrets.5.xml:10 sssd-secrets.5.xml:16
-msgid "sssd-secrets"
-msgstr "sssd-secrets"
-
-#. type: Content of: <reference><refentry><refnamediv><refpurpose>
-#: sssd-secrets.5.xml:17
-msgid "SSSD Secrets responder"
-msgstr "Ответчик секретов SSSD"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:23
-msgid ""
-"This manual page describes the configuration of the Secrets responder for "
-"<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
-"</citerefentry>.  For a detailed syntax reference, refer to the <quote>FILE "
-"FORMAT</quote> section of the <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page."
-msgstr ""
-"На этой справочной странице представлено описание настройки ответчика "
-"секретов для <citerefentry> <refentrytitle>sssd</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry>.  Подробные сведения о синтаксисе "
-"доступны в разделе <quote>ФОРМАТ ФАЙЛА</quote> справочной страницы "
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry>."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:36
-msgid ""
-"Many system and user applications need to store private information such as "
-"passwords or service keys and have no good way to properly deal with them. "
-"The simple approach is to embed these <quote>secrets</quote> into "
-"configuration files potentially ending up exposing sensitive key material to "
-"backups, config management system and in general making it harder to secure "
-"data."
-msgstr ""
-"Многим системным и пользовательским приложениям требуется сохранять "
-"конфиденциальные данные, такие как пароли или ключи служб, но в них не "
-"предусмотрено способов выполнения этой задачи надлежащим образом. Простое "
-"решение — встроить эти <quote>секреты</quote> в файлы конфигурации, что "
-"потенциально может привести к попаданию чувствительных данных ключей в "
-"резервные копии, систему управления конфигурацией, а также в целом осложняет "
-"защиту данных."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:45
-msgid ""
-"The <ulink url=\"https://github.com/latchset/custodia\">custodia</ulink> "
-"project was born to deal with this problem in cloud like environments, but "
-"we found the idea compelling even at a single system level. As a security "
-"service, SSSD is ideal to host this capability while offering the same API "
-"via a UNIX Socket. This will make it possible to use local calls and have "
-"them transparently routed to a local or a remote key management store like "
-"IPA Vault for storage, escrow and recovery."
-msgstr ""
-"Проект <ulink url=\"https://github.com/latchset/custodia\">custodia</ulink> "
-"изначально разрабатывался для решения этой задачи в облачной среде, но "
-"созданное решение можно применить и на уровне отдельной системы. Как служба "
-"безопасности, SSSD идеально подходит для реализации такой возможности, "
-"вместе с тем предоставляя тот же программный интерфейс посредством сокета "
-"UNIX. Благодаря этому возможно использовать локальные вызовы и прозрачно "
-"перенаправлять их в локальное или удалённое хранилище управления ключами ("
-"например, IPA Vault) для хранения, депонирования и восстановления данных."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:55
-msgid ""
-"The secrets are simple key-value pairs. Each user's secrets are namespaced "
-"using their user ID, which means the secrets will never collide between "
-"users. Secrets can be stored inside <quote>containers</quote> which can be "
-"nested."
-msgstr ""
-"Секреты — это простые пары «ключ — значение». Секреты каждого пользователя "
-"располагаются в пространстве имён с использованием соответствующего "
-"идентификатора пользователя, поэтому секреты разных пользователей никогда не "
-"будут конфликтовать друг с другом. Секреты можно хранить в "
-"<quote>контейнерах</quote>, которые могут быть вложенными."
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:69
-msgid "secrets"
-msgstr "secrets"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:70
-msgid "secrets for general usage"
-msgstr "секреты для общего использования"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:73
-msgid "kcm"
-msgstr "kcm"
-
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:75
-msgid ""
-"used by the <citerefentry> <refentrytitle>sssd-kcm</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry> service."
-msgstr ""
-"используется службой <citerefentry> <refentrytitle>sssd-kcm</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry>."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:61
-msgid ""
-"Since the secrets responder can be used both externally to store general "
-"secrets, as described in the rest of this man page, but also internally by "
-"other SSSD components to store their secret material, some configuration "
-"options, like quotas can be configured per <quote>hive</quote> in a "
-"configuration subsection named after the hive. The currently supported hives "
-"are: <placeholder type=\"variablelist\" id=\"0\"/>"
-msgstr ""
-"Так как ответчик секретов может использоваться и извне (для хранения общих "
-"секретов, как описано в остальной части этой справочной страницы), и внутри ("
-"другими компонентами SSSD для хранения собственных секретов), некоторые "
-"параметры конфигурации, такие как квоты, можно настроить для отдельного "
-"<quote>куста</quote> в подразделе конфигурации с именем, соответствующим "
-"кусту. В настоящее время поддерживаются следующие кусты: <placeholder type="
-"\"variablelist\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-secrets.5.xml:89
-msgid "USING THE SECRETS RESPONDER"
-msgstr "ИСПОЛЬЗОВАНИЕ ОТВЕТЧИКА СЕКРЕТОВ"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:91
-msgid ""
-"The UNIX socket the SSSD responder listens on is located at <filename>/var/"
-"run/secrets.socket</filename>."
-msgstr ""
-"Сокет UNIX, на котором ожидает передачи данных ответчик SSSD, расположен "
-"здесь: <filename>/var/run/secrets.socket</filename>."
-
-#. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-secrets.5.xml:110
-#, no-wrap
-msgid ""
-"systemctl start sssd-secrets.socket\n"
-"systemctl enable sssd-secrets.socket\n"
-"systemctl enable sssd-secrets.service\n"
-"            "
-msgstr ""
-"systemctl start sssd-secrets.socket\n"
-"systemctl enable sssd-secrets.socket\n"
-"systemctl enable sssd-secrets.service\n"
-"            "
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:95
-msgid ""
-"The secrets responder is socket-activated by <citerefentry> "
-"<refentrytitle>systemd</refentrytitle> <manvolnum>1</manvolnum> </"
-"citerefentry>.  Unlike other SSSD responders, it cannot be started by adding "
-"the <quote>secrets</quote> string to the <quote>service</quote> directive.  "
-"The systemd socket unit is called <quote>sssd-secrets.socket</quote> and the "
-"corresponding service file is called <quote>sssd-secrets.service</quote>. In "
-"order for the service to be socket-activated, make sure the socket is "
-"enabled and active and the service is enabled: <placeholder type="
-"\"programlisting\" id=\"0\"/> Please note your distribution may already "
-"configure the units for you."
-msgstr ""
-"Ответчик секретов активируется <citerefentry> <refentrytitle>systemd</"
-"refentrytitle> <manvolnum>1</manvolnum> </citerefentry> с помощью сокета. В "
-"отличие от других ответчиков SSSD, его нельзя запустить, добавив строку  "
-"<quote>secrets</quote> к инструкции <quote>service</quote>. Модуль сокета "
-"systemd называется <quote>sssd-secrets.socket</quote>, а соответствующий "
-"файл службы — <quote>sssd-secrets.service</quote>. Чтобы службу можно было "
-"активировать с помощью сокета, следует включить и активировать сокет, а "
-"также включить службу: <placeholder type=\"programlisting\" id=\"0\"/> "
-"Обратите внимание, что в дистрибутиве уже может быть выполнена "
-"соответствующая настройка модулей."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:122
-msgid ""
-"The generic SSSD responder options such as <quote>debug_level</quote> or "
-"<quote>fd_limit</quote> are accepted by the secrets responder.  Please refer "
-"to the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> manual page for a complete list. In addition, "
-"there are some secrets-specific options as well."
-msgstr ""
-"Ответчику секретов SSSD можно передавать типовые параметры ответчика SSSD, "
-"такие как <quote>debug_level</quote> или<quote>fd_limit</quote> Полный "
-"список параметров доступен на справочной странице <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>. Кроме того, предусмотрено несколько специфичных для секретов "
-"параметров."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:132
-msgid ""
-"The secrets responder is configured with a global <quote>[secrets]</quote> "
-"section and an optional per-user <quote>[secrets/users/$uid]</quote> section "
-"in <filename>sssd.conf</filename>. Please note that some options, notably as "
-"the provider type, can only be specified in the per-user subsections."
-msgstr ""
-"Ответчик секретов настраивается в глобальном разделе <quote>[secrets]</"
-"quote> и (необязательно) для отдельных пользователей в разделе <quote>["
-"secrets/users/$uid]</quote> файла <filename>sssd.conf</filename>. Обратите "
-"внимание, что некоторые параметры (яркий пример — тип поставщика данных) "
-"можно указать только в подразделах отдельных пользователей."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:141
-msgid "provider (string)"
-msgstr "provider (строка)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:157
-msgid "local"
-msgstr "local"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:160
-msgid ""
-"The secrets are stored in a local database, encrypted at rest with a master "
-"key. The local provider does not have any additional config options at the "
-"moment."
-msgstr ""
-"Секреты хранятся в локальной базе данных, зашифрованные в неактивном "
-"состоянии с помощью главного ключа. В настоящее время для локального "
-"поставщика данных не предусмотрено каких-либо дополнительных параметров "
-"конфигурации."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:168
-msgid "proxy"
-msgstr "proxy"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:171
-msgid ""
-"The secrets responder forwards the requests to a Custodia server. The proxy "
-"provider supports several additional options (see below)."
-msgstr ""
-"Ответчик секретов перенаправляет запросы серверу Custodia. Для поставщика "
-"данных прокси предусмотрено несколько дополнительных параметров (см. ниже)."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:144
-msgid ""
-"This option specifies where should the secrets be stored. The secrets "
-"responder can configure a per-user subsections (e.g. <quote>[secrets/"
-"users/123]</quote> - see bottom of this manual page for a full example using "
-"Custodia for a particular user) that define which provider store the secrets "
-"for this particular user. The per-user subsections should contain all "
-"options for that user's provider. Please note that currently the global "
-"provider is always local, the proxy provider can only be specified in a per-"
-"user section. The following providers are supported: <placeholder type="
-"\"variablelist\" id=\"0\"/>"
-msgstr ""
-"Этот параметр позволяет указать, где должны храниться секреты. Ответчик "
-"секретов может настроить подразделы для отдельных пользователей (например, "
-"<quote>[secrets/users/123]</quote> — полный пример использования Custodia "
-"для отдельного пользователя доступен в нижней части этой справочной страницы)"
-", которые определяют, какой поставщик хранит секреты для конкретного "
-"пользователя. Подразделы для отдельных пользователей должны содержать все "
-"параметры для поставщика данных этого пользователя. Обратите внимание, что в "
-"настоящее время глобальный поставщик данных всегда является локальным, "
-"поставщик данных прокси может быть указан только в разделе отдельного "
-"пользователя. Поддерживаются следующие поставщики данных: <placeholder type="
-"\"variablelist\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:180
-msgid "Default: local"
-msgstr "По умолчанию: local"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:186
-msgid ""
-"The following options affect only the secrets <quote>hive</quote> and "
-"therefore should be set in a per-hive subsection. Setting the option to 0 "
-"means \"unlimited\"."
-msgstr ""
-"Следующие параметры влияют только на <quote>куст</quote> секретов и, "
-"следовательно, должны настраиваться для подраздела отдельного куста. "
-"Указание значения «0» означает отсутствие ограничений."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:192
-msgid "containers_nest_level (integer)"
-msgstr "containers_nest_level (целое число)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:195
-msgid "This option specifies the maximum allowed number of nested containers."
-msgstr ""
-"Этот параметр позволяет указать максимально допустимое количество вложенных "
-"контейнеров."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:199
-msgid "Default: 4"
-msgstr "По умолчанию: 4"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:204
-msgid "max_secrets (integer)"
-msgstr "max_secrets (целое число)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:207
-msgid ""
-"This option specifies the maximum number of secrets that can be stored in "
-"the hive."
-msgstr ""
-"Этот параметр позволяет указать максимальное количество секретов, которое "
-"можно хранить в кусте."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:211
-msgid "Default: 1024 (secrets hive), 256 (kcm hive)"
-msgstr "По умолчанию: 1024 (куст секретов), 256 (куст kcm)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:216
-msgid "max_uid_secrets (integer)"
-msgstr "max_uid_secrets (целое число)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:219
-msgid ""
-"This option specifies the maximum number of secrets that can be stored per-"
-"UID in the hive."
-msgstr ""
-"Этот параметр позволяет указать максимальное количество секретов, которое "
-"можно хранить в кусте для отдельного UID."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:223
-msgid "Default: 256 (secrets hive), 64 (kcm hive)"
-msgstr "По умолчанию: 256 (куст секретов), 64 (куст kcm)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:228
-msgid "max_payload_size (integer)"
-msgstr "max_payload_size (целое число)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:231
-msgid ""
-"This option specifies the maximum payload size allowed for a secret payload "
-"in kilobytes."
-msgstr ""
-"Этот параметр позволяет указать максимально допустимый размер полезных "
-"данных секрета в килобайтах."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:235
-msgid "Default: 16 (secrets hive), 65536 (64 MiB) (kcm hive)"
-msgstr "По умолчанию: 16 (куст секретов), 65536 (64 МиБ) (куст kcm)"
-
-#. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-secrets.5.xml:244
-#, no-wrap
-msgid ""
-"[secrets/secrets]\n"
-"max_payload_size = 128\n"
-"\n"
-"[secrets/kcm]\n"
-"max_payload_size = 256\n"
-"            "
-msgstr ""
-"[secrets/secrets]\n"
-"max_payload_size = 128\n"
-"\n"
-"[secrets/kcm]\n"
-"max_payload_size = 256\n"
-"            "
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:241
-msgid ""
-"For example, to adjust quotas differently for both the <quote>secrets</"
-"quote> and the <quote>kcm</quote> hives, configure the following: "
-"<placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-"Например, чтобы по-разному настроить квоты для кустов <quote>secrets</quote> "
-"и <quote>kcm</quote>, укажите следующее: <placeholder type=\"programlisting\""
-" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:252
-msgid ""
-"The following options are only applicable for configurations that use the "
-"<quote>proxy</quote> provider."
-msgstr ""
-"Следующие параметры применимы только для конфигураций, где используется "
-"поставщик данных <quote>прокси</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:257
-msgid "proxy_url (string)"
-msgstr "proxy_url (строка)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:260
-msgid ""
-"The URL the Custodia server is listening on. At the moment, http and https "
-"protocols are supported."
-msgstr ""
-"URL-адрес, по которому ожидает передачи данных сервер Custodia. В настоящее "
-"время поддерживаются протоколы http и https."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:267
-msgid "http[s]://&lt;host&gt;[:port]"
-msgstr "http[s]://&lt;host&gt;[:port]"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:270
-msgid "Example: http://localhost:8080"
-msgstr "Пример: http://localhost:8080"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:275
-msgid "auth_type (string)"
-msgstr "auth_type (строка)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:278
-msgid ""
-"The method to use when authenticating to a Custodia server. The following "
-"authentication methods are supported:"
-msgstr ""
-"Способ проверки подлинности на сервере Custodia. Поддерживаются следующие "
-"способы проверки подлинности:"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:283
-msgid "basic_auth"
-msgstr "basic_auth"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:286
-msgid ""
-"Authenticate with a username and a password as set in the <quote>username</"
-"quote> and <quote>password</quote> options."
-msgstr ""
-"Проверка подлинности по имени пользователя и паролю, заданным с помощью "
-"параметров <quote>username</quote> и <quote>password</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:293
-msgid "header"
-msgstr "header"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:296
-msgid ""
-"Authenticate with HTTP header value as defined in the "
-"<quote>auth_header_name</quote> and <quote>auth_header_value</quote> "
-"configuration options."
-msgstr ""
-"Проверка подлинности по значению заголовка HTTP, определённому с помощью "
-"параметров <quote>auth_header_name</quote> и "
-"<quote>auth_header_value</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:307
-msgid "auth_header_name (string)"
-msgstr "auth_header_name (строка)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:310
-msgid ""
-"If set, the secrets responder would put a header with this name into the "
-"HTTP request with the value defined in the <quote>auth_header_value</quote> "
-"configuration option."
-msgstr ""
-"Если этот параметр установлен, ответчик секретов помещает заголовок с этим "
-"именем в HTTP-запрос со значением, определённым в параметре конфигурации "
-"<quote>auth_header_value</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:315
-msgid "Example: MYSECRETNAME"
-msgstr "Пример: MYSECRETNAME"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:320
-msgid "auth_header_value (string)"
-msgstr "auth_header_value (строка)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:323
-msgid ""
-"The value sssd-secrets would use for the <quote>auth_header_name</quote>."
-msgstr ""
-"Значение, которое sssd-secrets использует для "
-"<quote>auth_header_name</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:327
-msgid "Example: mysecret"
-msgstr "Пример: mysecret"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:332
-msgid "forward_headers (list of strings)"
-msgstr "forward_headers (список строк)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:335
-msgid ""
-"The list of HTTP headers to forward to the Custodia server together with the "
-"request."
-msgstr ""
-"Список заголовков HTTP, которые будут перенаправлены на сервер Custodia "
-"вместе с запросом."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:344
-msgid "verify_peer (boolean)"
-msgstr "verify_peer (логическое значение)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:347
-msgid ""
-"Whether peer's certificate should be verified and valid if HTTPS protocol is "
-"used with the proxy provider."
-msgstr ""
-"Должен ли сертификат узла быть проверенным и действительным, если для "
-"поставщика данных прокси используется протокол HTTPS."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:356
-msgid "verify_host (boolean)"
-msgstr "verify_host (логическое значение)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:359
-msgid ""
-"Whether peer's hostname must match with hostname in its certificate if HTTPS "
-"protocol is used with the proxy provider."
-msgstr ""
-"Должно ли имя узла соответствовать имени узла в его сертификате, если для "
-"поставщика данных прокси используется протокол HTTPS."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:369
-msgid "capath (string)"
-msgstr "capath (строка)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:372
-msgid ""
-"Path to directory containing stored certificate authority certificates. "
-"System default path is used if this option is not set."
-msgstr ""
-"Путь к каталогу, который содержит сохранённые сертификаты центра "
-"сертификации. Если значение этого параметра не указано, используется "
-"стандартный системный путь."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:382
-msgid "cacert (string)"
-msgstr "cacert (строка)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:385
-msgid ""
-"Path to file containing server's certificate authority certificate. If this "
-"option is not set then the CA's certificate is looked up in <quote>capath</"
-"quote>."
-msgstr ""
-"Путь к файлу, который содержит сертификат центра сертификации сервера. Если "
-"значение этого параметра не указано, программа ищет сертификат центра "
-"сертификации в <quote>capath</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:395
-msgid "cert (string)"
-msgstr "cert (строка)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:398
-msgid ""
-"Path to file containing client's certificate if required by the server. This "
-"file may also contain private key or the private key may be in separate file "
-"set with <quote>key</quote>."
-msgstr ""
-"Путь к файлу, который содержит сертификат клиента, если таковой "
-"запрашивается сервером. Закрытый ключ может также содержаться в этом файле "
-"или храниться в отдельном файле, указанном с помощью параметра "
-"<quote>key</quote>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:409
-msgid "key (string)"
-msgstr "key (строка)"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:412
-msgid "Path to file containing client's private key."
-msgstr "Путь к файлу, который содержит закрытый ключ клиента."
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-secrets.5.xml:422
-msgid "USING THE REST API"
-msgstr "ИСПОЛЬЗОВАНИЕ ПРОГРАММНОГО ИНТЕРФЕЙСА REST"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:424
-msgid ""
-"This section lists the available commands and includes examples using the "
-"<citerefentry> <refentrytitle>curl</refentrytitle> <manvolnum>1</manvolnum> "
-"</citerefentry> utility.  All requests towards the proxy provider must set "
-"the Content Type header to <quote>application/json</quote>. In addition, the "
-"local provider also supports Content Type set to <quote>application/octet-"
-"stream</quote>.  Secrets stored with requests that set the Content Type "
-"header to <quote>application/octet-stream</quote> are base64-encoded when "
-"stored and decoded when retrieved, so it's not possible to store a secret "
-"with one Content Type and retrieve with another.  The secret URI must begin "
-"with <filename>/secrets/</filename>."
-msgstr ""
-"В этом разделе перечислены доступные команды и приведены примеры "
-"использования утилиты <citerefentry> <refentrytitle>curl</refentrytitle> "
-"<manvolnum>1</manvolnum> </citerefentry>. Все запросы к поставщику данных "
-"прокси должны устанавливать заголовок Content Type в значение <quote>"
-"application/json</quote>. Кроме того, локальный поставщик также поддерживает "
-"установку Content Type в значение <quote>application/octet-stream</quote>. "
-"Секреты, сохранённые с запросами, которые устанавливают заголовок Content "
-"Type в значение <quote>application/octet-stream</quote>, кодируются как "
-"base64 при сохранении и расшифровываются при получении, поэтому невозможно "
-"сохранить секрет с одним Content Type и получить его с другим. URI секрета "
-"должен начинаться с <filename>/secrets/</filename>."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:441
-msgid "Listing secrets"
-msgstr "Показ секретов"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:444
-msgid ""
-"To list the available secrets, send a HTTP GET request with a trailing slash "
-"appended to the container path."
-msgstr ""
-"Чтобы вывести перечень доступных секретов, отправьте запрос GET HTTP с косой "
-"чертой после пути контейнера."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:450
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:458
-msgid "Retrieving a secret"
-msgstr "Получение секрета"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:461
-msgid ""
-"To read a value of a single secret, send a HTTP GET request without a "
-"trailing slash. The last portion of the URI is the name of the secret."
-msgstr ""
-"Чтобы прочитать значение отдельного секрета, отправьте запрос GET HTTP без "
-"косой черты в конце. Последняя часть URI является именем секрета."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:468
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/foo\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/foo\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:473
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/octet-stream\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/bar\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/octet-stream\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XGET http://localhost/secrets/bar\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:466
-msgid ""
-"Examples: <placeholder type=\"programlisting\" id=\"0\"/> <placeholder type="
-"\"programlisting\" id=\"1\"/>"
-msgstr ""
-"Примеры: <placeholder type=\"programlisting\" id=\"0\"/> <placeholder type="
-"\"programlisting\" id=\"1\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:481
-msgid "Setting a secret"
-msgstr "Установка секрета"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:484
-msgid ""
-"To set a secret using the <quote>application/json</quote> type, send a HTTP "
-"PUT request with a JSON payload that includes type and value. The type "
-"should be set to \"simple\" and the value should be set to the secret value. "
-"If a secret with that name already exists, the response is a 409 HTTP error."
-msgstr ""
-"Чтобы задать секрет с использованием типа <quote>application/json</quote>, "
-"отправьте запрос PUT HTTP с полезными данными JSON, которые включают тип и "
-"значение. В качестве типа следует использовать «simple», а в качестве "
-"значения — секретное значение. Если секрет с таким именем уже существует, "
-"ответом будет ошибка HTTP 409."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:492
-msgid ""
-"The <quote>application/json</quote> type just sends the secret as the "
-"message payload."
-msgstr ""
-"Тип <quote>application/json</quote> просто отправляет секрет как полезные "
-"данные сообщения."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:501
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPUT http://localhost/secrets/foo \\\n"
-"     -d'{\"type\":\"simple\",\"value\":\"foosecret\"}'\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPUT http://localhost/secrets/foo \\\n"
-"     -d'{\"type\":\"simple\",\"value\":\"foosecret\"}'\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:507
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/octet-stream\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPUT http://localhost/secrets/bar \\\n"
-"     -d'barsecret'\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/octet-stream\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPUT http://localhost/secrets/bar \\\n"
-"     -d'barsecret'\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:496
-msgid ""
-"The following example sets a secret named 'foo' to a value of 'foosecret' "
-"and a secret named 'bar' to a value of 'barsecret' using a different Content "
-"Type.  <placeholder type=\"programlisting\" id=\"0\"/> <placeholder type="
-"\"programlisting\" id=\"1\"/>"
-msgstr ""
-"В следующем примере секрет с именем «foo» устанавливается в значение "
-"«foosecret», а секрет с именем «bar» — в значение «barsecret» с помощью "
-"другого Content Type. <placeholder type=\"programlisting\" id=\"0\"/> "
-"<placeholder type=\"programlisting\" id=\"1\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:516
-msgid "Creating a container"
-msgstr "Создание контейнера"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:519
-msgid ""
-"Containers provide an additional namespace for this user's secrets. To "
-"create a container, send a HTTP POST request, whose URI ends with the "
-"container name. Please note the URI must end with a trailing slash."
-msgstr ""
-"Контейнеры предоставляют дополнительное пространство имён для секретов "
-"пользователя. Чтобы создать контейнер, отправьте запрос POST HTTP, URI "
-"которого заканчивается именем контейнера. Обратите внимание, что в конце URI "
-"должна быть косая черта."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:529
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPOST http://localhost/secrets/mycontainer/\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XPOST http://localhost/secrets/mycontainer/\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:526
-msgid ""
-"The following example creates a container named 'mycontainer': <placeholder "
-"type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-"В следующем примере создаётся контейнер с именем «mycontainer»: <placeholder "
-"type=\"programlisting\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:538
-#, no-wrap
-msgid ""
-"http://localhost/secrets/mycontainer/mysecret\n"
-"                        "
-msgstr ""
-"http://localhost/secrets/mycontainer/mysecret\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:535
-msgid ""
-"To manipulate secrets under this container, just nest the secrets underneath "
-"the container path: <placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-"Чтобы работать с записями секретов в этом контейнере, просто вложите секреты "
-"по пути контейнера: <placeholder type=\"programlisting\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-secrets.5.xml:544
-msgid "Deleting a secret or a container"
-msgstr "Удаление секрета или контейнера"
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:547
-msgid ""
-"To delete a secret or a container, send a HTTP DELETE request with a path to "
-"the secret or the container."
-msgstr ""
-"Чтобы удалить секрет или контейнер, отправьте запрос DELETE HTTP с путём к "
-"секрету или контейнеру."
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-secrets.5.xml:553
-#, no-wrap
-msgid ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XDELETE http://localhost/secrets/foo\n"
-"                        "
-msgstr ""
-"curl -H \"Content-Type: application/json\" \\\n"
-"     --unix-socket /var/run/secrets.socket \\\n"
-"     -XDELETE http://localhost/secrets/foo\n"
-"                        "
-
-#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-secrets.5.xml:551
-msgid ""
-"The following example deletes a secret named 'foo'.  <placeholder type="
-"\"programlisting\" id=\"0\"/>"
-msgstr ""
-"В следующем примере удаляется секрет с именем «foo». <placeholder type="
-"\"programlisting\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-secrets.5.xml:563
-msgid "EXAMPLE CUSTODIA AND PROXY PROVIDER CONFIGURATION"
-msgstr "ПРИМЕР КОНФИГУРАЦИИ CUSTODIA И ПОСТАВЩИКА ДАННЫХ PROXY"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:565
-msgid ""
-"For testing the proxy provider, you need to set up a Custodia server to "
-"proxy requests to. Please always consult the Custodia documentation, the "
-"configuration directives might change with different Custodia versions."
-msgstr ""
-"Для тестирования поставщика данных прокси потребуется настроить сервер "
-"Custodia для передачи запросов на него. Всегда сверяйтесь с документацией "
-"Custodia: инструкции по настройке могут различаться в зависимости от "
-"используемой версии."
-
-#. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-secrets.5.xml:576
-#, no-wrap
-msgid ""
-"[global]\n"
-"server_version = \"Secret/0.0.7\"\n"
-"server_url = http://localhost:8080/\n"
-"auditlog = /var/log/custodia.log\n"
-"debug = True\n"
-"\n"
-"[store:simple]\n"
-"handler = custodia.store.sqlite.SqliteStore\n"
-"dburi = /var/lib/custodia.db\n"
-"table = secrets\n"
-"\n"
-"[auth:header]\n"
-"handler = custodia.httpd.authenticators.SimpleHeaderAuth\n"
-"header = MYSECRETNAME\n"
-"value = mysecretkey\n"
-"\n"
-"[authz:paths]\n"
-"handler = custodia.httpd.authorizers.SimplePathAuthz\n"
-"paths = /secrets\n"
-"\n"
-"[/]\n"
-"handler = custodia.root.Root\n"
-"store = simple\n"
-"            "
-msgstr ""
-"[global]\n"
-"server_version = \"Secret/0.0.7\"\n"
-"server_url = http://localhost:8080/\n"
-"auditlog = /var/log/custodia.log\n"
-"debug = True\n"
-"\n"
-"[store:simple]\n"
-"handler = custodia.store.sqlite.SqliteStore\n"
-"dburi = /var/lib/custodia.db\n"
-"table = secrets\n"
-"\n"
-"[auth:header]\n"
-"handler = custodia.httpd.authenticators.SimpleHeaderAuth\n"
-"header = MYSECRETNAME\n"
-"value = mysecretkey\n"
-"\n"
-"[authz:paths]\n"
-"handler = custodia.httpd.authorizers.SimplePathAuthz\n"
-"paths = /secrets\n"
-"\n"
-"[/]\n"
-"handler = custodia.root.Root\n"
-"store = simple\n"
-"            "
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:570
-msgid ""
-"This configuration will set up a Custodia server listening on http://"
-"localhost:8080, allowing anyone with header named MYSECRETNAME set to "
-"mysecretkey to communicate with the Custodia server.  Place the contents "
-"into a file (for example, <replaceable>custodia.conf</replaceable>): "
-"<placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr ""
-"Эта конфигурация настраивает сервер Custodia, который ожидает данных по "
-"адресу http://localhost:8080, что позволяет всем, у кого заголовок с именем "
-"MYSECRETNAME установлен в значение mysecretkey, обмениваться данными с этим "
-"сервером Custodia. Поместите содержимое в файл (например, "
-"<replaceable>custodia.conf</replaceable>): <placeholder type=\"programlisting"
-"\" id=\"0\"/>"
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:602
-msgid ""
-"Then run the <replaceable>custodia</replaceable> command, pointing it at the "
-"config file as a command line argument."
-msgstr ""
-"Затем выполните команду <replaceable>custodia</replaceable>, указав файл "
-"конфигурации как аргумент командной строки."
-
-#. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-secrets.5.xml:606
-msgid ""
-"Please note that currently it's not possible to proxy all requests globally "
-"to a Custodia instance. Instead, per-user subsections for user IDs that "
-"should proxy requests to Custodia must be defined. The following example "
-"illustrates a configuration, where the user with UID 123 would proxy their "
-"requests to Custodia, but all other user's requests would be handled by a "
-"local provider."
-msgstr ""
-"Обратите внимание, что в настоящее время невозможно глобально пересылать все "
-"запросы экземпляру Custodia. Вместо этого необходимо на уровне отдельных "
-"пользователей определить подразделы для идентификаторов пользователей, "
-"которые должны пересылать запросы Custodia. В следующем примере показана "
-"конфигурация, где пользователь с UID 123 пересылает свои запросы Custodia, а "
-"запросы всех других пользователей обрабатываются локальным поставщиком."
-
-#. type: Content of: <reference><refentry><refsect1><programlisting>
-#: sssd-secrets.5.xml:614
-#, no-wrap
-msgid ""
-"[secrets]\n"
-"\n"
-"[secrets/users/123]\n"
-"provider = proxy\n"
-"proxy_url = http://localhost:8080/secrets/\n"
-"auth_type = header\n"
-"auth_header_name = MYSECRETNAME\n"
-"auth_header_value = mysecretkey\n"
-"        "
-msgstr ""
-"[secrets]\n"
-"\n"
-"[secrets/users/123]\n"
-"provider = proxy\n"
-"proxy_url = http://localhost:8080/secrets/\n"
-"auth_type = header\n"
-"auth_header_name = MYSECRETNAME\n"
-"auth_header_value = mysecretkey\n"
-"        "
-
-#. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-session-recording.5.xml:10 sssd-session-recording.5.xml:16
 msgid "sssd-session-recording"
 msgstr "sssd-session-recording"
@@ -18427,12 +17405,12 @@ msgid ""
 "being referred to as a <quote>\"KCM server\"</quote>. The client and server "
 "communicate over a UNIX socket."
 msgstr ""
-"В конфигурации, где кэшами Kerberos управляет KCM, библиотека Kerberos ("
-"обычно используемая через приложение, например <citerefentry> "
-"<refentrytitle>kinit</refentrytitle><manvolnum>1</manvolnum> </citerefentry>)"
-" является <quote>клиентом KCM</quote>, а внутренняя служба KCM называется "
-"<quote>сервером KCM</quote>. Клиент и сервер обмениваются данными с помощью "
-"сокета UNIX."
+"В конфигурации, где кэшами Kerberos управляет KCM, библиотека Kerberos "
+"(обычно используемая через приложение, например <citerefentry> "
+"<refentrytitle>kinit</refentrytitle><manvolnum>1</manvolnum> </"
+"citerefentry>) является <quote>клиентом KCM</quote>, а внутренняя служба KCM "
+"называется <quote>сервером KCM</quote>. Клиент и сервер обмениваются данными "
+"с помощью сокета UNIX."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:42
@@ -18529,11 +17507,10 @@ msgid ""
 "expansions.  For example: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 "Чтобы использовать кэш учётных данных KCM, необходимо выбрать его в качестве "
-"стандартного типа учётных данных в <citerefentry> <refentrytitle>krb5."
-"conf</refentrytitle><manvolnum>5</manvolnum> </citerefentry>. Именем кэша "
-"учётных данных может быть только <quote>KCM:</quote>, без каких-либо "
-"расширений шаблонов. Например: <placeholder type=\"programlisting\" id=\"0\""
-"/>"
+"стандартного типа учётных данных в <citerefentry> <refentrytitle>krb5.conf</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>. Именем кэша учётных "
+"данных может быть только <quote>KCM:</quote>, без каких-либо расширений "
+"шаблонов. Например: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:93
@@ -18550,8 +17527,8 @@ msgstr ""
 "используется путь <replaceable>/var/run/.heim_org.h5l.kcm-socket</"
 "replaceable>. Чтобы настроить библиотеку Kerberos, измените её параметр "
 "<quote>kcm_socket</quote>, описание которого приводится на справочной "
-"странице <citerefentry> <refentrytitle>krb5."
-"conf</refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
+"странице <citerefentry> <refentrytitle>krb5.conf</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-kcm.8.xml:115
@@ -18787,9 +17764,10 @@ msgid ""
 msgstr ""
 "Службе kcm можно передавать типовые параметры сервиса SSSD, такие как "
 "<quote>debug_level</quote> или<quote>fd_limit</quote>. Полный список "
-"параметров доступен на справочной странице <citerefentry> <refentrytitle>sssd"
-".conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>. Кроме того, "
-"предусмотрено несколько специфичных для KCM параметров."
+"параметров доступен на справочной странице <citerefentry> "
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>. Кроме того, предусмотрено несколько специфичных для KCM "
+"параметров."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-kcm.8.xml:234
@@ -18916,8 +17894,8 @@ msgid ""
 "refentrytitle><manvolnum>5</manvolnum> </citerefentry>,"
 msgstr ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd."
-"conf</refentrytitle><manvolnum>5</manvolnum> </citerefentry>,"
+"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>,"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-systemtap.5.xml:10 sssd-systemtap.5.xml:16
@@ -19415,9 +18393,9 @@ msgid ""
 "script_name&gt;.stp</command>), then perform an identity operation and the "
 "script will collect information from probes."
 msgstr ""
-"Запустите сценарий SystemTap (<command>stap /usr/share/sssd/systemtap/"
-"&lt;script_name&gt;.stp</command>), затем выполните операцию идентификации, "
-"и сценарий соберёт данные с помощью зондов."
+"Запустите сценарий SystemTap (<command>stap /usr/share/sssd/systemtap/&lt;"
+"script_name&gt;.stp</command>), затем выполните операцию идентификации, и "
+"сценарий соберёт данные с помощью зондов."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-systemtap.5.xml:418
@@ -20144,8 +19122,8 @@ msgid ""
 "Therefore when using service-based access control, the <quote>systemd-user</"
 "quote> service might need to be added to the list of allowed services."
 msgstr ""
-"В некоторых дистрибутивах (например, Fedora-29+ или RHEL-8) служба PAM <quote"
-">systemd-user</quote> всегда является частью процесса входа в систему. "
+"В некоторых дистрибутивах (например, Fedora-29+ или RHEL-8) служба PAM "
+"<quote>systemd-user</quote> всегда является частью процесса входа в систему. "
 "Следовательно, когда используется управление доступом на основе данных "
 "служб, следует добавить службу <quote>systemd-user</quote> в список "
 "разрешённых служб."
@@ -20446,7 +19424,8 @@ msgstr "Класс объектов записи сетевой группы в 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:792
 msgid "In IPA provider, ipa_netgroup_object_class should be used instead."
-msgstr "В поставщике данных IPA следует использовать ipa_netgroup_object_class."
+msgstr ""
+"В поставщике данных IPA следует использовать ipa_netgroup_object_class."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:796
@@ -21094,8 +20073,8 @@ msgid ""
 msgstr ""
 "Дополнительные сведения доступны в описании параметра "
 "<quote>dns_discovery_domain</quote> на справочной странице <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> "
-"</citerefentry>."
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <refsect1><refsect2><title>
 #: include/service_discovery.xml:35
@@ -21321,9 +20300,9 @@ msgid ""
 "id=\"0\"/>"
 msgstr ""
 "В этом разделе перечислены доступные настраиваемые параметры. Их описание "
-"содержится на справочной странице <citerefentry> <refentrytitle>sssd."
-"conf</refentrytitle><manvolnum>5</manvolnum> </citerefentry>. <placeholder "
-"type=\"variablelist\" id=\"0\"/>"
+"содержится на справочной странице <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>. <placeholder type="
+"\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/failover.xml:123
@@ -21497,8 +20476,8 @@ msgid ""
 msgstr ""
 "ПРИМЕЧАНИЕ: между хэшем и полученным далее модулем возможны конфликты. В "
 "таких случаях будет выбран следующий доступный срез, но на других "
-"компьютерах может быть невозможно воспроизвести точно такой же набор срезов ("
-"так как порядок, в котором они встречаются, определяет срез). В такой "
+"компьютерах может быть невозможно воспроизвести точно такой же набор срезов "
+"(так как порядок, в котором они встречаются, определяет срез). В такой "
 "ситуации рекомендуется либо переключиться на использование явных атрибутов "
 "POSIX в Active Directory (отключить сопоставление идентификаторов), либо "
 "настроить стандартный домен, чтобы гарантировать согласованность хотя бы для "
@@ -22093,8 +21072,8 @@ msgstr ""
 "Администратор может отдать предпочтение использованию локальных записей "
 "пользователей SSSD вместо традиционных записей пользователей UNIX, когда для "
 "работы требуется вложенность групп (см. <citerefentry> "
-"<refentrytitle>sss_groupadd</refentrytitle> <manvolnum>8</manvolnum> "
-"</citerefentry>). Записи локальных пользователей также позволяют выполнить "
+"<refentrytitle>sss_groupadd</refentrytitle> <manvolnum>8</manvolnum> </"
+"citerefentry>). Записи локальных пользователей также позволяют выполнить "
 "тестирование и разработку SSSD без необходимости развёртывания полного "
 "удалённого сервера. Инструменты <command>sss_user*</command> и "
 "<command>sss_group*</command> используют локальное хранилище данных LDB для "
@@ -22102,6 +21081,45 @@ msgstr ""
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
+#, fuzzy
+#| msgid ""
+#| "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</"
+#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase condition="
+#| "\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
+#| "<manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase condition="
+#| "\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
+#| "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
+#| "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
+#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
+#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
+#| "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> "
+#| "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
+#| "<manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
+#| "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
+#| "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
+#| "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
+#| "manvolnum> </citerefentry>, </phrase> <citerefentry> "
+#| "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
+#| "citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> <phrase condition="
+#| "\"with_stap\"> <citerefentry> <refentrytitle>sssd-systemtap</"
+#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> </phrase>"
 msgid ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
@@ -22116,8 +21134,6 @@ msgid ""
 "citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
 "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase condition="
 "\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase condition="
-"\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>, </phrase> <citerefentry> "
 "<refentrytitle>sssd-session-recording</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_cache</"
@@ -22141,58 +21157,52 @@ msgid ""
 "citerefentry> </phrase>"
 msgstr ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd."
-"conf</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-"
-"krb5</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-"
-"ipa</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-"
-"files</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
-"condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase "
-"condition=\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
-"<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd-files</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase condition="
+"\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase condition="
+"\"with_secrets\"> <citerefentry> <refentrytitle>sssd-secrets</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>, </phrase> <citerefentry> "
+"<refentrytitle>sssd-session-recording</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_cache</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <phrase condition=\"enable_local_provider\"> <citerefentry> "
 "<refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sss_groupdel</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sss_groupmod</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sss_userdel</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, </phrase> <citerefentry> "
-"<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
+"citerefentry>, </phrase> <citerefentry> <refentrytitle>sss_obfuscate</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_seed</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> "
-"<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
-"manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> <citerefentry> "
-"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>8</"
-"manvolnum> </citerefentry>, <citerefentry> "
+"citerefentry>, <citerefentry> <refentrytitle>sssd_krb5_locator_plugin</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <phrase condition="
+"\"with_ssh\"> <citerefentry> <refentrytitle>sss_ssh_authorizedkeys</"
+"refentrytitle> <manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
 "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
 "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry>, </phrase> <citerefentry> "
-"<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> <phrase condition=\"with_stap\"> "
-"<citerefentry> <refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> </phrase>"
+"manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>.  <citerefentry> "
+"<refentrytitle>sss_rpcidmapd</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> <phrase condition=\"with_stap\"> <citerefentry> "
+"<refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> </phrase>"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:3
@@ -22231,8 +21241,8 @@ msgid ""
 "For examples of this syntax, please refer to the <quote>ldap_search_base</"
 "quote> examples section."
 msgstr ""
-"Примеры синтаксиса доступны в разделе примеров "
-"<quote>ldap_search_base</quote>."
+"Примеры синтаксиса доступны в разделе примеров <quote>ldap_search_base</"
+"quote>."
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:31
@@ -22821,3 +21831,822 @@ msgstr ""
 "Позволяет указать, следует ли приводить в каноническую форму имя участника-"
 "узла и участника-пользователя. Эта возможность доступна в MIT Kerberos 1.7 и "
 "выше."
+
+#~ msgid "sssd-secrets"
+#~ msgstr "sssd-secrets"
+
+#~ msgid "SSSD Secrets responder"
+#~ msgstr "Ответчик секретов SSSD"
+
+#~ msgid ""
+#~ "This manual page describes the configuration of the Secrets responder for "
+#~ "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
+#~ "manvolnum> </citerefentry>.  For a detailed syntax reference, refer to "
+#~ "the <quote>FILE FORMAT</quote> section of the <citerefentry> "
+#~ "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+#~ "citerefentry> manual page."
+#~ msgstr ""
+#~ "На этой справочной странице представлено описание настройки ответчика "
+#~ "секретов для <citerefentry> <refentrytitle>sssd</refentrytitle> "
+#~ "<manvolnum>8</manvolnum> </citerefentry>.  Подробные сведения о "
+#~ "синтаксисе доступны в разделе <quote>ФОРМАТ ФАЙЛА</quote> справочной "
+#~ "страницы <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+#~ "<manvolnum>5</manvolnum> </citerefentry>."
+
+#~ msgid ""
+#~ "Many system and user applications need to store private information such "
+#~ "as passwords or service keys and have no good way to properly deal with "
+#~ "them. The simple approach is to embed these <quote>secrets</quote> into "
+#~ "configuration files potentially ending up exposing sensitive key material "
+#~ "to backups, config management system and in general making it harder to "
+#~ "secure data."
+#~ msgstr ""
+#~ "Многим системным и пользовательским приложениям требуется сохранять "
+#~ "конфиденциальные данные, такие как пароли или ключи служб, но в них не "
+#~ "предусмотрено способов выполнения этой задачи надлежащим образом. Простое "
+#~ "решение — встроить эти <quote>секреты</quote> в файлы конфигурации, что "
+#~ "потенциально может привести к попаданию чувствительных данных ключей в "
+#~ "резервные копии, систему управления конфигурацией, а также в целом "
+#~ "осложняет защиту данных."
+
+#~ msgid ""
+#~ "The <ulink url=\"https://github.com/latchset/custodia\">custodia</ulink> "
+#~ "project was born to deal with this problem in cloud like environments, "
+#~ "but we found the idea compelling even at a single system level. As a "
+#~ "security service, SSSD is ideal to host this capability while offering "
+#~ "the same API via a UNIX Socket. This will make it possible to use local "
+#~ "calls and have them transparently routed to a local or a remote key "
+#~ "management store like IPA Vault for storage, escrow and recovery."
+#~ msgstr ""
+#~ "Проект <ulink url=\"https://github.com/latchset/custodia\">custodia</"
+#~ "ulink> изначально разрабатывался для решения этой задачи в облачной "
+#~ "среде, но созданное решение можно применить и на уровне отдельной "
+#~ "системы. Как служба безопасности, SSSD идеально подходит для реализации "
+#~ "такой возможности, вместе с тем предоставляя тот же программный интерфейс "
+#~ "посредством сокета UNIX. Благодаря этому возможно использовать локальные "
+#~ "вызовы и прозрачно перенаправлять их в локальное или удалённое хранилище "
+#~ "управления ключами (например, IPA Vault) для хранения, депонирования и "
+#~ "восстановления данных."
+
+#~ msgid ""
+#~ "The secrets are simple key-value pairs. Each user's secrets are "
+#~ "namespaced using their user ID, which means the secrets will never "
+#~ "collide between users. Secrets can be stored inside <quote>containers</"
+#~ "quote> which can be nested."
+#~ msgstr ""
+#~ "Секреты — это простые пары «ключ — значение». Секреты каждого "
+#~ "пользователя располагаются в пространстве имён с использованием "
+#~ "соответствующего идентификатора пользователя, поэтому секреты разных "
+#~ "пользователей никогда не будут конфликтовать друг с другом. Секреты можно "
+#~ "хранить в <quote>контейнерах</quote>, которые могут быть вложенными."
+
+#~ msgid "secrets"
+#~ msgstr "secrets"
+
+#~ msgid "secrets for general usage"
+#~ msgstr "секреты для общего использования"
+
+#~ msgid "kcm"
+#~ msgstr "kcm"
+
+#~ msgid ""
+#~ "used by the <citerefentry> <refentrytitle>sssd-kcm</refentrytitle> "
+#~ "<manvolnum>8</manvolnum> </citerefentry> service."
+#~ msgstr ""
+#~ "используется службой <citerefentry> <refentrytitle>sssd-kcm</"
+#~ "refentrytitle> <manvolnum>8</manvolnum> </citerefentry>."
+
+#~ msgid ""
+#~ "Since the secrets responder can be used both externally to store general "
+#~ "secrets, as described in the rest of this man page, but also internally "
+#~ "by other SSSD components to store their secret material, some "
+#~ "configuration options, like quotas can be configured per <quote>hive</"
+#~ "quote> in a configuration subsection named after the hive. The currently "
+#~ "supported hives are: <placeholder type=\"variablelist\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Так как ответчик секретов может использоваться и извне (для хранения "
+#~ "общих секретов, как описано в остальной части этой справочной страницы), "
+#~ "и внутри (другими компонентами SSSD для хранения собственных секретов), "
+#~ "некоторые параметры конфигурации, такие как квоты, можно настроить для "
+#~ "отдельного <quote>куста</quote> в подразделе конфигурации с именем, "
+#~ "соответствующим кусту. В настоящее время поддерживаются следующие кусты: "
+#~ "<placeholder type=\"variablelist\" id=\"0\"/>"
+
+#~ msgid "USING THE SECRETS RESPONDER"
+#~ msgstr "ИСПОЛЬЗОВАНИЕ ОТВЕТЧИКА СЕКРЕТОВ"
+
+#~ msgid ""
+#~ "The UNIX socket the SSSD responder listens on is located at <filename>/"
+#~ "var/run/secrets.socket</filename>."
+#~ msgstr ""
+#~ "Сокет UNIX, на котором ожидает передачи данных ответчик SSSD, расположен "
+#~ "здесь: <filename>/var/run/secrets.socket</filename>."
+
+#, no-wrap
+#~ msgid ""
+#~ "systemctl start sssd-secrets.socket\n"
+#~ "systemctl enable sssd-secrets.socket\n"
+#~ "systemctl enable sssd-secrets.service\n"
+#~ "            "
+#~ msgstr ""
+#~ "systemctl start sssd-secrets.socket\n"
+#~ "systemctl enable sssd-secrets.socket\n"
+#~ "systemctl enable sssd-secrets.service\n"
+#~ "            "
+
+#~ msgid ""
+#~ "The secrets responder is socket-activated by <citerefentry> "
+#~ "<refentrytitle>systemd</refentrytitle> <manvolnum>1</manvolnum> </"
+#~ "citerefentry>.  Unlike other SSSD responders, it cannot be started by "
+#~ "adding the <quote>secrets</quote> string to the <quote>service</quote> "
+#~ "directive.  The systemd socket unit is called <quote>sssd-secrets.socket</"
+#~ "quote> and the corresponding service file is called <quote>sssd-secrets."
+#~ "service</quote>. In order for the service to be socket-activated, make "
+#~ "sure the socket is enabled and active and the service is enabled: "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/> Please note your "
+#~ "distribution may already configure the units for you."
+#~ msgstr ""
+#~ "Ответчик секретов активируется <citerefentry> <refentrytitle>systemd</"
+#~ "refentrytitle> <manvolnum>1</manvolnum> </citerefentry> с помощью сокета. "
+#~ "В отличие от других ответчиков SSSD, его нельзя запустить, добавив "
+#~ "строку  <quote>secrets</quote> к инструкции <quote>service</quote>. "
+#~ "Модуль сокета systemd называется <quote>sssd-secrets.socket</quote>, а "
+#~ "соответствующий файл службы — <quote>sssd-secrets.service</quote>. Чтобы "
+#~ "службу можно было активировать с помощью сокета, следует включить и "
+#~ "активировать сокет, а также включить службу: <placeholder type="
+#~ "\"programlisting\" id=\"0\"/> Обратите внимание, что в дистрибутиве уже "
+#~ "может быть выполнена соответствующая настройка модулей."
+
+#~ msgid ""
+#~ "The generic SSSD responder options such as <quote>debug_level</quote> or "
+#~ "<quote>fd_limit</quote> are accepted by the secrets responder.  Please "
+#~ "refer to the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+#~ "<manvolnum>5</manvolnum> </citerefentry> manual page for a complete list. "
+#~ "In addition, there are some secrets-specific options as well."
+#~ msgstr ""
+#~ "Ответчику секретов SSSD можно передавать типовые параметры ответчика "
+#~ "SSSD, такие как <quote>debug_level</quote> или<quote>fd_limit</quote> "
+#~ "Полный список параметров доступен на справочной странице <citerefentry> "
+#~ "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+#~ "citerefentry>. Кроме того, предусмотрено несколько специфичных для "
+#~ "секретов параметров."
+
+#~ msgid ""
+#~ "The secrets responder is configured with a global <quote>[secrets]</"
+#~ "quote> section and an optional per-user <quote>[secrets/users/$uid]</"
+#~ "quote> section in <filename>sssd.conf</filename>. Please note that some "
+#~ "options, notably as the provider type, can only be specified in the per-"
+#~ "user subsections."
+#~ msgstr ""
+#~ "Ответчик секретов настраивается в глобальном разделе <quote>[secrets]</"
+#~ "quote> и (необязательно) для отдельных пользователей в разделе "
+#~ "<quote>[secrets/users/$uid]</quote> файла <filename>sssd.conf</filename>. "
+#~ "Обратите внимание, что некоторые параметры (яркий пример — тип поставщика "
+#~ "данных) можно указать только в подразделах отдельных пользователей."
+
+#~ msgid "provider (string)"
+#~ msgstr "provider (строка)"
+
+#~ msgid "local"
+#~ msgstr "local"
+
+#~ msgid ""
+#~ "The secrets are stored in a local database, encrypted at rest with a "
+#~ "master key. The local provider does not have any additional config "
+#~ "options at the moment."
+#~ msgstr ""
+#~ "Секреты хранятся в локальной базе данных, зашифрованные в неактивном "
+#~ "состоянии с помощью главного ключа. В настоящее время для локального "
+#~ "поставщика данных не предусмотрено каких-либо дополнительных параметров "
+#~ "конфигурации."
+
+#~ msgid "proxy"
+#~ msgstr "proxy"
+
+#~ msgid ""
+#~ "The secrets responder forwards the requests to a Custodia server. The "
+#~ "proxy provider supports several additional options (see below)."
+#~ msgstr ""
+#~ "Ответчик секретов перенаправляет запросы серверу Custodia. Для поставщика "
+#~ "данных прокси предусмотрено несколько дополнительных параметров (см. "
+#~ "ниже)."
+
+#~ msgid ""
+#~ "This option specifies where should the secrets be stored. The secrets "
+#~ "responder can configure a per-user subsections (e.g. <quote>[secrets/"
+#~ "users/123]</quote> - see bottom of this manual page for a full example "
+#~ "using Custodia for a particular user) that define which provider store "
+#~ "the secrets for this particular user. The per-user subsections should "
+#~ "contain all options for that user's provider. Please note that currently "
+#~ "the global provider is always local, the proxy provider can only be "
+#~ "specified in a per-user section. The following providers are supported: "
+#~ "<placeholder type=\"variablelist\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Этот параметр позволяет указать, где должны храниться секреты. Ответчик "
+#~ "секретов может настроить подразделы для отдельных пользователей "
+#~ "(например, <quote>[secrets/users/123]</quote> — полный пример "
+#~ "использования Custodia для отдельного пользователя доступен в нижней "
+#~ "части этой справочной страницы), которые определяют, какой поставщик "
+#~ "хранит секреты для конкретного пользователя. Подразделы для отдельных "
+#~ "пользователей должны содержать все параметры для поставщика данных этого "
+#~ "пользователя. Обратите внимание, что в настоящее время глобальный "
+#~ "поставщик данных всегда является локальным, поставщик данных прокси может "
+#~ "быть указан только в разделе отдельного пользователя. Поддерживаются "
+#~ "следующие поставщики данных: <placeholder type=\"variablelist\" id=\"0\"/>"
+
+#~ msgid "Default: local"
+#~ msgstr "По умолчанию: local"
+
+#~ msgid ""
+#~ "The following options affect only the secrets <quote>hive</quote> and "
+#~ "therefore should be set in a per-hive subsection. Setting the option to 0 "
+#~ "means \"unlimited\"."
+#~ msgstr ""
+#~ "Следующие параметры влияют только на <quote>куст</quote> секретов и, "
+#~ "следовательно, должны настраиваться для подраздела отдельного куста. "
+#~ "Указание значения «0» означает отсутствие ограничений."
+
+#~ msgid "containers_nest_level (integer)"
+#~ msgstr "containers_nest_level (целое число)"
+
+#~ msgid ""
+#~ "This option specifies the maximum allowed number of nested containers."
+#~ msgstr ""
+#~ "Этот параметр позволяет указать максимально допустимое количество "
+#~ "вложенных контейнеров."
+
+#~ msgid "Default: 4"
+#~ msgstr "По умолчанию: 4"
+
+#~ msgid "max_secrets (integer)"
+#~ msgstr "max_secrets (целое число)"
+
+#~ msgid ""
+#~ "This option specifies the maximum number of secrets that can be stored in "
+#~ "the hive."
+#~ msgstr ""
+#~ "Этот параметр позволяет указать максимальное количество секретов, которое "
+#~ "можно хранить в кусте."
+
+#~ msgid "Default: 1024 (secrets hive), 256 (kcm hive)"
+#~ msgstr "По умолчанию: 1024 (куст секретов), 256 (куст kcm)"
+
+#~ msgid "max_uid_secrets (integer)"
+#~ msgstr "max_uid_secrets (целое число)"
+
+#~ msgid ""
+#~ "This option specifies the maximum number of secrets that can be stored "
+#~ "per-UID in the hive."
+#~ msgstr ""
+#~ "Этот параметр позволяет указать максимальное количество секретов, которое "
+#~ "можно хранить в кусте для отдельного UID."
+
+#~ msgid "Default: 256 (secrets hive), 64 (kcm hive)"
+#~ msgstr "По умолчанию: 256 (куст секретов), 64 (куст kcm)"
+
+#~ msgid "max_payload_size (integer)"
+#~ msgstr "max_payload_size (целое число)"
+
+#~ msgid ""
+#~ "This option specifies the maximum payload size allowed for a secret "
+#~ "payload in kilobytes."
+#~ msgstr ""
+#~ "Этот параметр позволяет указать максимально допустимый размер полезных "
+#~ "данных секрета в килобайтах."
+
+#~ msgid "Default: 16 (secrets hive), 65536 (64 MiB) (kcm hive)"
+#~ msgstr "По умолчанию: 16 (куст секретов), 65536 (64 МиБ) (куст kcm)"
+
+#, no-wrap
+#~ msgid ""
+#~ "[secrets/secrets]\n"
+#~ "max_payload_size = 128\n"
+#~ "\n"
+#~ "[secrets/kcm]\n"
+#~ "max_payload_size = 256\n"
+#~ "            "
+#~ msgstr ""
+#~ "[secrets/secrets]\n"
+#~ "max_payload_size = 128\n"
+#~ "\n"
+#~ "[secrets/kcm]\n"
+#~ "max_payload_size = 256\n"
+#~ "            "
+
+#~ msgid ""
+#~ "For example, to adjust quotas differently for both the <quote>secrets</"
+#~ "quote> and the <quote>kcm</quote> hives, configure the following: "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Например, чтобы по-разному настроить квоты для кустов <quote>secrets</"
+#~ "quote> и <quote>kcm</quote>, укажите следующее: <placeholder type="
+#~ "\"programlisting\" id=\"0\"/>"
+
+#~ msgid ""
+#~ "The following options are only applicable for configurations that use the "
+#~ "<quote>proxy</quote> provider."
+#~ msgstr ""
+#~ "Следующие параметры применимы только для конфигураций, где используется "
+#~ "поставщик данных <quote>прокси</quote>."
+
+#~ msgid "proxy_url (string)"
+#~ msgstr "proxy_url (строка)"
+
+#~ msgid ""
+#~ "The URL the Custodia server is listening on. At the moment, http and "
+#~ "https protocols are supported."
+#~ msgstr ""
+#~ "URL-адрес, по которому ожидает передачи данных сервер Custodia. В "
+#~ "настоящее время поддерживаются протоколы http и https."
+
+#~ msgid "http[s]://&lt;host&gt;[:port]"
+#~ msgstr "http[s]://&lt;host&gt;[:port]"
+
+#~ msgid "Example: http://localhost:8080"
+#~ msgstr "Пример: http://localhost:8080"
+
+#~ msgid "auth_type (string)"
+#~ msgstr "auth_type (строка)"
+
+#~ msgid ""
+#~ "The method to use when authenticating to a Custodia server. The following "
+#~ "authentication methods are supported:"
+#~ msgstr ""
+#~ "Способ проверки подлинности на сервере Custodia. Поддерживаются следующие "
+#~ "способы проверки подлинности:"
+
+#~ msgid "basic_auth"
+#~ msgstr "basic_auth"
+
+#~ msgid ""
+#~ "Authenticate with a username and a password as set in the "
+#~ "<quote>username</quote> and <quote>password</quote> options."
+#~ msgstr ""
+#~ "Проверка подлинности по имени пользователя и паролю, заданным с помощью "
+#~ "параметров <quote>username</quote> и <quote>password</quote>."
+
+#~ msgid "header"
+#~ msgstr "header"
+
+#~ msgid ""
+#~ "Authenticate with HTTP header value as defined in the "
+#~ "<quote>auth_header_name</quote> and <quote>auth_header_value</quote> "
+#~ "configuration options."
+#~ msgstr ""
+#~ "Проверка подлинности по значению заголовка HTTP, определённому с помощью "
+#~ "параметров <quote>auth_header_name</quote> и <quote>auth_header_value</"
+#~ "quote>."
+
+#~ msgid "auth_header_name (string)"
+#~ msgstr "auth_header_name (строка)"
+
+#~ msgid ""
+#~ "If set, the secrets responder would put a header with this name into the "
+#~ "HTTP request with the value defined in the <quote>auth_header_value</"
+#~ "quote> configuration option."
+#~ msgstr ""
+#~ "Если этот параметр установлен, ответчик секретов помещает заголовок с "
+#~ "этим именем в HTTP-запрос со значением, определённым в параметре "
+#~ "конфигурации <quote>auth_header_value</quote>."
+
+#~ msgid "Example: MYSECRETNAME"
+#~ msgstr "Пример: MYSECRETNAME"
+
+#~ msgid "auth_header_value (string)"
+#~ msgstr "auth_header_value (строка)"
+
+#~ msgid ""
+#~ "The value sssd-secrets would use for the <quote>auth_header_name</quote>."
+#~ msgstr ""
+#~ "Значение, которое sssd-secrets использует для <quote>auth_header_name</"
+#~ "quote>."
+
+#~ msgid "Example: mysecret"
+#~ msgstr "Пример: mysecret"
+
+#~ msgid "forward_headers (list of strings)"
+#~ msgstr "forward_headers (список строк)"
+
+#~ msgid ""
+#~ "The list of HTTP headers to forward to the Custodia server together with "
+#~ "the request."
+#~ msgstr ""
+#~ "Список заголовков HTTP, которые будут перенаправлены на сервер Custodia "
+#~ "вместе с запросом."
+
+#~ msgid "verify_peer (boolean)"
+#~ msgstr "verify_peer (логическое значение)"
+
+#~ msgid ""
+#~ "Whether peer's certificate should be verified and valid if HTTPS protocol "
+#~ "is used with the proxy provider."
+#~ msgstr ""
+#~ "Должен ли сертификат узла быть проверенным и действительным, если для "
+#~ "поставщика данных прокси используется протокол HTTPS."
+
+#~ msgid "verify_host (boolean)"
+#~ msgstr "verify_host (логическое значение)"
+
+#~ msgid ""
+#~ "Whether peer's hostname must match with hostname in its certificate if "
+#~ "HTTPS protocol is used with the proxy provider."
+#~ msgstr ""
+#~ "Должно ли имя узла соответствовать имени узла в его сертификате, если для "
+#~ "поставщика данных прокси используется протокол HTTPS."
+
+#~ msgid "capath (string)"
+#~ msgstr "capath (строка)"
+
+#~ msgid ""
+#~ "Path to directory containing stored certificate authority certificates. "
+#~ "System default path is used if this option is not set."
+#~ msgstr ""
+#~ "Путь к каталогу, который содержит сохранённые сертификаты центра "
+#~ "сертификации. Если значение этого параметра не указано, используется "
+#~ "стандартный системный путь."
+
+#~ msgid "cacert (string)"
+#~ msgstr "cacert (строка)"
+
+#~ msgid ""
+#~ "Path to file containing server's certificate authority certificate. If "
+#~ "this option is not set then the CA's certificate is looked up in "
+#~ "<quote>capath</quote>."
+#~ msgstr ""
+#~ "Путь к файлу, который содержит сертификат центра сертификации сервера. "
+#~ "Если значение этого параметра не указано, программа ищет сертификат "
+#~ "центра сертификации в <quote>capath</quote>."
+
+#~ msgid "cert (string)"
+#~ msgstr "cert (строка)"
+
+#~ msgid ""
+#~ "Path to file containing client's certificate if required by the server. "
+#~ "This file may also contain private key or the private key may be in "
+#~ "separate file set with <quote>key</quote>."
+#~ msgstr ""
+#~ "Путь к файлу, который содержит сертификат клиента, если таковой "
+#~ "запрашивается сервером. Закрытый ключ может также содержаться в этом "
+#~ "файле или храниться в отдельном файле, указанном с помощью параметра "
+#~ "<quote>key</quote>."
+
+#~ msgid "key (string)"
+#~ msgstr "key (строка)"
+
+#~ msgid "Path to file containing client's private key."
+#~ msgstr "Путь к файлу, который содержит закрытый ключ клиента."
+
+#~ msgid "USING THE REST API"
+#~ msgstr "ИСПОЛЬЗОВАНИЕ ПРОГРАММНОГО ИНТЕРФЕЙСА REST"
+
+#~ msgid ""
+#~ "This section lists the available commands and includes examples using the "
+#~ "<citerefentry> <refentrytitle>curl</refentrytitle> <manvolnum>1</"
+#~ "manvolnum> </citerefentry> utility.  All requests towards the proxy "
+#~ "provider must set the Content Type header to <quote>application/json</"
+#~ "quote>. In addition, the local provider also supports Content Type set to "
+#~ "<quote>application/octet-stream</quote>.  Secrets stored with requests "
+#~ "that set the Content Type header to <quote>application/octet-stream</"
+#~ "quote> are base64-encoded when stored and decoded when retrieved, so it's "
+#~ "not possible to store a secret with one Content Type and retrieve with "
+#~ "another.  The secret URI must begin with <filename>/secrets/</filename>."
+#~ msgstr ""
+#~ "В этом разделе перечислены доступные команды и приведены примеры "
+#~ "использования утилиты <citerefentry> <refentrytitle>curl</refentrytitle> "
+#~ "<manvolnum>1</manvolnum> </citerefentry>. Все запросы к поставщику данных "
+#~ "прокси должны устанавливать заголовок Content Type в значение "
+#~ "<quote>application/json</quote>. Кроме того, локальный поставщик также "
+#~ "поддерживает установку Content Type в значение <quote>application/octet-"
+#~ "stream</quote>. Секреты, сохранённые с запросами, которые устанавливают "
+#~ "заголовок Content Type в значение <quote>application/octet-stream</"
+#~ "quote>, кодируются как base64 при сохранении и расшифровываются при "
+#~ "получении, поэтому невозможно сохранить секрет с одним Content Type и "
+#~ "получить его с другим. URI секрета должен начинаться с <filename>/secrets/"
+#~ "</filename>."
+
+#~ msgid "Listing secrets"
+#~ msgstr "Показ секретов"
+
+#~ msgid ""
+#~ "To list the available secrets, send a HTTP GET request with a trailing "
+#~ "slash appended to the container path."
+#~ msgstr ""
+#~ "Чтобы вывести перечень доступных секретов, отправьте запрос GET HTTP с "
+#~ "косой чертой после пути контейнера."
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/\n"
+#~ "                        "
+
+#~ msgid "Retrieving a secret"
+#~ msgstr "Получение секрета"
+
+#~ msgid ""
+#~ "To read a value of a single secret, send a HTTP GET request without a "
+#~ "trailing slash. The last portion of the URI is the name of the secret."
+#~ msgstr ""
+#~ "Чтобы прочитать значение отдельного секрета, отправьте запрос GET HTTP "
+#~ "без косой черты в конце. Последняя часть URI является именем секрета."
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/foo\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/foo\n"
+#~ "                        "
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/octet-stream\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/bar\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/octet-stream\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XGET http://localhost/secrets/bar\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "Examples: <placeholder type=\"programlisting\" id=\"0\"/> <placeholder "
+#~ "type=\"programlisting\" id=\"1\"/>"
+#~ msgstr ""
+#~ "Примеры: <placeholder type=\"programlisting\" id=\"0\"/> <placeholder "
+#~ "type=\"programlisting\" id=\"1\"/>"
+
+#~ msgid "Setting a secret"
+#~ msgstr "Установка секрета"
+
+#~ msgid ""
+#~ "To set a secret using the <quote>application/json</quote> type, send a "
+#~ "HTTP PUT request with a JSON payload that includes type and value. The "
+#~ "type should be set to \"simple\" and the value should be set to the "
+#~ "secret value. If a secret with that name already exists, the response is "
+#~ "a 409 HTTP error."
+#~ msgstr ""
+#~ "Чтобы задать секрет с использованием типа <quote>application/json</"
+#~ "quote>, отправьте запрос PUT HTTP с полезными данными JSON, которые "
+#~ "включают тип и значение. В качестве типа следует использовать «simple», а "
+#~ "в качестве значения — секретное значение. Если секрет с таким именем уже "
+#~ "существует, ответом будет ошибка HTTP 409."
+
+#~ msgid ""
+#~ "The <quote>application/json</quote> type just sends the secret as the "
+#~ "message payload."
+#~ msgstr ""
+#~ "Тип <quote>application/json</quote> просто отправляет секрет как полезные "
+#~ "данные сообщения."
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPUT http://localhost/secrets/foo \\\n"
+#~ "     -d'{\"type\":\"simple\",\"value\":\"foosecret\"}'\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPUT http://localhost/secrets/foo \\\n"
+#~ "     -d'{\"type\":\"simple\",\"value\":\"foosecret\"}'\n"
+#~ "                        "
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/octet-stream\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPUT http://localhost/secrets/bar \\\n"
+#~ "     -d'barsecret'\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/octet-stream\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPUT http://localhost/secrets/bar \\\n"
+#~ "     -d'barsecret'\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "The following example sets a secret named 'foo' to a value of 'foosecret' "
+#~ "and a secret named 'bar' to a value of 'barsecret' using a different "
+#~ "Content Type.  <placeholder type=\"programlisting\" id=\"0\"/> "
+#~ "<placeholder type=\"programlisting\" id=\"1\"/>"
+#~ msgstr ""
+#~ "В следующем примере секрет с именем «foo» устанавливается в значение "
+#~ "«foosecret», а секрет с именем «bar» — в значение «barsecret» с помощью "
+#~ "другого Content Type. <placeholder type=\"programlisting\" id=\"0\"/> "
+#~ "<placeholder type=\"programlisting\" id=\"1\"/>"
+
+#~ msgid "Creating a container"
+#~ msgstr "Создание контейнера"
+
+#~ msgid ""
+#~ "Containers provide an additional namespace for this user's secrets. To "
+#~ "create a container, send a HTTP POST request, whose URI ends with the "
+#~ "container name. Please note the URI must end with a trailing slash."
+#~ msgstr ""
+#~ "Контейнеры предоставляют дополнительное пространство имён для секретов "
+#~ "пользователя. Чтобы создать контейнер, отправьте запрос POST HTTP, URI "
+#~ "которого заканчивается именем контейнера. Обратите внимание, что в конце "
+#~ "URI должна быть косая черта."
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPOST http://localhost/secrets/mycontainer/\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XPOST http://localhost/secrets/mycontainer/\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "The following example creates a container named 'mycontainer': "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/>"
+#~ msgstr ""
+#~ "В следующем примере создаётся контейнер с именем «mycontainer»: "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/>"
+
+#, no-wrap
+#~ msgid ""
+#~ "http://localhost/secrets/mycontainer/mysecret\n"
+#~ "                        "
+#~ msgstr ""
+#~ "http://localhost/secrets/mycontainer/mysecret\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "To manipulate secrets under this container, just nest the secrets "
+#~ "underneath the container path: <placeholder type=\"programlisting\" id="
+#~ "\"0\"/>"
+#~ msgstr ""
+#~ "Чтобы работать с записями секретов в этом контейнере, просто вложите "
+#~ "секреты по пути контейнера: <placeholder type=\"programlisting\" id=\"0\"/"
+#~ ">"
+
+#~ msgid "Deleting a secret or a container"
+#~ msgstr "Удаление секрета или контейнера"
+
+#~ msgid ""
+#~ "To delete a secret or a container, send a HTTP DELETE request with a path "
+#~ "to the secret or the container."
+#~ msgstr ""
+#~ "Чтобы удалить секрет или контейнер, отправьте запрос DELETE HTTP с путём "
+#~ "к секрету или контейнеру."
+
+#, no-wrap
+#~ msgid ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XDELETE http://localhost/secrets/foo\n"
+#~ "                        "
+#~ msgstr ""
+#~ "curl -H \"Content-Type: application/json\" \\\n"
+#~ "     --unix-socket /var/run/secrets.socket \\\n"
+#~ "     -XDELETE http://localhost/secrets/foo\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "The following example deletes a secret named 'foo'.  <placeholder type="
+#~ "\"programlisting\" id=\"0\"/>"
+#~ msgstr ""
+#~ "В следующем примере удаляется секрет с именем «foo». <placeholder type="
+#~ "\"programlisting\" id=\"0\"/>"
+
+#~ msgid "EXAMPLE CUSTODIA AND PROXY PROVIDER CONFIGURATION"
+#~ msgstr "ПРИМЕР КОНФИГУРАЦИИ CUSTODIA И ПОСТАВЩИКА ДАННЫХ PROXY"
+
+#~ msgid ""
+#~ "For testing the proxy provider, you need to set up a Custodia server to "
+#~ "proxy requests to. Please always consult the Custodia documentation, the "
+#~ "configuration directives might change with different Custodia versions."
+#~ msgstr ""
+#~ "Для тестирования поставщика данных прокси потребуется настроить сервер "
+#~ "Custodia для передачи запросов на него. Всегда сверяйтесь с документацией "
+#~ "Custodia: инструкции по настройке могут различаться в зависимости от "
+#~ "используемой версии."
+
+#, no-wrap
+#~ msgid ""
+#~ "[global]\n"
+#~ "server_version = \"Secret/0.0.7\"\n"
+#~ "server_url = http://localhost:8080/\n"
+#~ "auditlog = /var/log/custodia.log\n"
+#~ "debug = True\n"
+#~ "\n"
+#~ "[store:simple]\n"
+#~ "handler = custodia.store.sqlite.SqliteStore\n"
+#~ "dburi = /var/lib/custodia.db\n"
+#~ "table = secrets\n"
+#~ "\n"
+#~ "[auth:header]\n"
+#~ "handler = custodia.httpd.authenticators.SimpleHeaderAuth\n"
+#~ "header = MYSECRETNAME\n"
+#~ "value = mysecretkey\n"
+#~ "\n"
+#~ "[authz:paths]\n"
+#~ "handler = custodia.httpd.authorizers.SimplePathAuthz\n"
+#~ "paths = /secrets\n"
+#~ "\n"
+#~ "[/]\n"
+#~ "handler = custodia.root.Root\n"
+#~ "store = simple\n"
+#~ "            "
+#~ msgstr ""
+#~ "[global]\n"
+#~ "server_version = \"Secret/0.0.7\"\n"
+#~ "server_url = http://localhost:8080/\n"
+#~ "auditlog = /var/log/custodia.log\n"
+#~ "debug = True\n"
+#~ "\n"
+#~ "[store:simple]\n"
+#~ "handler = custodia.store.sqlite.SqliteStore\n"
+#~ "dburi = /var/lib/custodia.db\n"
+#~ "table = secrets\n"
+#~ "\n"
+#~ "[auth:header]\n"
+#~ "handler = custodia.httpd.authenticators.SimpleHeaderAuth\n"
+#~ "header = MYSECRETNAME\n"
+#~ "value = mysecretkey\n"
+#~ "\n"
+#~ "[authz:paths]\n"
+#~ "handler = custodia.httpd.authorizers.SimplePathAuthz\n"
+#~ "paths = /secrets\n"
+#~ "\n"
+#~ "[/]\n"
+#~ "handler = custodia.root.Root\n"
+#~ "store = simple\n"
+#~ "            "
+
+#~ msgid ""
+#~ "This configuration will set up a Custodia server listening on http://"
+#~ "localhost:8080, allowing anyone with header named MYSECRETNAME set to "
+#~ "mysecretkey to communicate with the Custodia server.  Place the contents "
+#~ "into a file (for example, <replaceable>custodia.conf</replaceable>): "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Эта конфигурация настраивает сервер Custodia, который ожидает данных по "
+#~ "адресу http://localhost:8080, что позволяет всем, у кого заголовок с "
+#~ "именем MYSECRETNAME установлен в значение mysecretkey, обмениваться "
+#~ "данными с этим сервером Custodia. Поместите содержимое в файл (например, "
+#~ "<replaceable>custodia.conf</replaceable>): <placeholder type="
+#~ "\"programlisting\" id=\"0\"/>"
+
+#~ msgid ""
+#~ "Then run the <replaceable>custodia</replaceable> command, pointing it at "
+#~ "the config file as a command line argument."
+#~ msgstr ""
+#~ "Затем выполните команду <replaceable>custodia</replaceable>, указав файл "
+#~ "конфигурации как аргумент командной строки."
+
+#~ msgid ""
+#~ "Please note that currently it's not possible to proxy all requests "
+#~ "globally to a Custodia instance. Instead, per-user subsections for user "
+#~ "IDs that should proxy requests to Custodia must be defined. The following "
+#~ "example illustrates a configuration, where the user with UID 123 would "
+#~ "proxy their requests to Custodia, but all other user's requests would be "
+#~ "handled by a local provider."
+#~ msgstr ""
+#~ "Обратите внимание, что в настоящее время невозможно глобально пересылать "
+#~ "все запросы экземпляру Custodia. Вместо этого необходимо на уровне "
+#~ "отдельных пользователей определить подразделы для идентификаторов "
+#~ "пользователей, которые должны пересылать запросы Custodia. В следующем "
+#~ "примере показана конфигурация, где пользователь с UID 123 пересылает свои "
+#~ "запросы Custodia, а запросы всех других пользователей обрабатываются "
+#~ "локальным поставщиком."
+
+#, no-wrap
+#~ msgid ""
+#~ "[secrets]\n"
+#~ "\n"
+#~ "[secrets/users/123]\n"
+#~ "provider = proxy\n"
+#~ "proxy_url = http://localhost:8080/secrets/\n"
+#~ "auth_type = header\n"
+#~ "auth_header_name = MYSECRETNAME\n"
+#~ "auth_header_value = mysecretkey\n"
+#~ "        "
+#~ msgstr ""
+#~ "[secrets]\n"
+#~ "\n"
+#~ "[secrets/users/123]\n"
+#~ "provider = proxy\n"
+#~ "proxy_url = http://localhost:8080/secrets/\n"
+#~ "auth_type = header\n"
+#~ "auth_header_name = MYSECRETNAME\n"
+#~ "auth_header_value = mysecretkey\n"
+#~ "        "
