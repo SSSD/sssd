@@ -2380,7 +2380,7 @@ static errno_t unpack_authtok(struct sss_auth_token *tok,
 
     SAFEALIGN_COPY_UINT32_CHECK(&auth_token_type, buf + *p, size, p);
     SAFEALIGN_COPY_UINT32_CHECK(&auth_token_length, buf + *p, size, p);
-    if ((*p + auth_token_length) > size) {
+    if (auth_token_length > (size - *p)) {
         return EINVAL;
     }
     switch (auth_token_type) {
