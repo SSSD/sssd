@@ -69,6 +69,24 @@ static int sdap_handle_destructor(void *mem)
     return 0;
 }
 
+static void sdap_call_op_callback(struct sdap_op *op, struct sdap_msg *reply,
+                                  int error)
+{
+    uint64_t time_spend;
+
+    if (op->start_time != 0) {
+        time_spend = get_spend_time_us(op->start_time);
+        DEBUG(SSSDBG_PERF_STAT,
+              "Handling LDAP operation [%d] took %s.\n",
+              op->msgid, sss_format_time(time_spend));
+        /* Avoid multiple outputs for the same operation if multiple results
+         * are returned */
+        op->start_time = 0;
+    }
+
+    op->callback(op, reply, error, op->data);
+}
+
 static void sdap_handle_release(struct sdap_handle *sh)
 {
     struct sdap_op *op;
@@ -89,7 +107,7 @@ static void sdap_handle_release(struct sdap_handle *sh)
 
     while (sh->ops) {
         op = sh->ops;
-        op->callback(op, NULL, EIO, op->data);
+        sdap_call_op_callback(op, NULL, EIO);
         /* calling the callback may result in freeing the op */
         /* check if it is still the same or avoid freeing */
         if (op == sh->ops) talloc_free(op);
@@ -364,7 +382,7 @@ static void sdap_process_message(struct tevent_context *ev,
 
         /* must be the last operation as it may end up freeing all memory
          * including all ops handlers */
-        op->callback(op, reply, ret, op->data);
+        sdap_call_op_callback(op, reply, ret);
     }
 }
 
@@ -397,7 +415,7 @@ static void sdap_unlock_next_reply(struct sdap_op *op)
         if (!te) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to add critical timer for next reply!\n");
-            op->callback(op, NULL, EFAULT, op->data);
+            sdap_call_op_callback(op, NULL, EFAULT);
         }
     }
 }
@@ -408,7 +426,7 @@ static void sdap_process_next_reply(struct tevent_context *ev,
 {
     struct sdap_op *op = talloc_get_type(pvt, struct sdap_op);
 
-    op->callback(op, op->list, EOK, op->data);
+    sdap_call_op_callback(op, op->list, EOK);
 }
 
 /* ==LDAP-Operations-Helpers============================================== */
@@ -446,7 +464,7 @@ static void sdap_op_timeout(struct tevent_req *req)
 
     /* signal the caller that we have a timeout */
     DEBUG(SSSDBG_TRACE_LIBS, "Issuing timeout [ldap_opt_timeout] for message id %d\n", op->msgid);
-    op->callback(op, NULL, ETIMEDOUT, op->data);
+    sdap_call_op_callback(op, NULL, ETIMEDOUT);
 }
 
 int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
@@ -459,6 +477,7 @@ int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
     op = talloc_zero(memctx, struct sdap_op);
     if (!op) return ENOMEM;
 
+    op->start_time = get_start_time();
     op->sh = sh;
     op->msgid = msgid;
     op->callback = callback;
