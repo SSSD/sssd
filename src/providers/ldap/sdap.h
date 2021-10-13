@@ -45,6 +45,7 @@ struct sdap_op {
     uint64_t chain_id;
 
     int msgid;
+    uint64_t start_time;
     bool done;
 
     sdap_op_callback_t *callback;
