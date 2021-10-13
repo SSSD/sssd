@@ -1513,6 +1513,26 @@ void test_sss_write_krb5_conf_snippet(void **state)
     free(path);
 }
 
+void test_get_hidden_path(void **state)
+{
+    char *s;
+
+    assert_null(get_hidden_tmp_path(NULL, NULL));
+    assert_null(get_hidden_tmp_path(NULL, "/"));
+    assert_null(get_hidden_tmp_path(NULL, "/abc/"));
+
+    s = get_hidden_tmp_path(NULL, "abc");
+    assert_string_equal(s, ".abcXXXXXX");
+    talloc_free(s);
+
+    s = get_hidden_tmp_path(NULL, "/abc");
+    assert_string_equal(s, "/.abcXXXXXX");
+    talloc_free(s);
+
+    s = get_hidden_tmp_path(NULL, "/xyz/xyz/xyz//abc");
+    assert_string_equal(s, "/xyz/xyz/xyz//.abcXXXXXX");
+    talloc_free(s);
+}
 
 struct unique_file_test_ctx {
     char *filename;
@@ -2127,6 +2147,7 @@ int main(int argc, const char *argv[])
                                         setup_leak_tests,
                                         teardown_leak_tests),
         cmocka_unit_test(test_sss_write_krb5_conf_snippet),
+        cmocka_unit_test(test_get_hidden_path),
         cmocka_unit_test_setup_teardown(test_sss_unique_file,
                                         unique_file_test_setup,
                                         unique_file_test_teardown),

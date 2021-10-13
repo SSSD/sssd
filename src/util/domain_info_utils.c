@@ -471,7 +471,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
     DEBUG(SSSDBG_FUNC_DATA, "Mapping file for domain [%s] is [%s]\n",
                              domain->name, mapping_file);
 
-    tmp_file = talloc_asprintf(tmp_ctx, "%sXXXXXX", mapping_file);
+    tmp_file = get_hidden_tmp_path(tmp_ctx, mapping_file);
     if (tmp_file == NULL) {
         ret = ENOMEM;
         goto done;
@@ -631,6 +631,28 @@ done:
     return ret;
 }
 
+char *get_hidden_tmp_path(TALLOC_CTX *mem_ctx, const char *path)
+{
+    const char *s;
+
+    if (path == NULL) {
+        return NULL;
+    }
+
+    s = strrchr(path, '/');
+    if (s == NULL) {
+        /* No path, just file name */
+        return talloc_asprintf(mem_ctx, ".%sXXXXXX", path);
+    } else if ( *(s + 1) == '\0') {
+        /* '/' is the last character, there is no filename */
+        DEBUG(SSSDBG_OP_FAILURE, "Missing file name in [%s].\n", path);
+        return NULL;
+    }
+
+    return talloc_asprintf(mem_ctx, "%.*s.%sXXXXXX", (int)(s - path + 1),
+                                                     path, s+1);
+}
+
 static errno_t sss_write_krb5_snippet_common(const char *file_name,
                                              const char *content)
 {
@@ -649,7 +671,7 @@ static errno_t sss_write_krb5_snippet_common(const char *file_name,
         return ENOMEM;
     }
 
-    tmp_file = talloc_asprintf(tmp_ctx, "%sXXXXXX", file_name);
+    tmp_file = get_hidden_tmp_path(tmp_ctx, file_name);
     if (tmp_file == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
