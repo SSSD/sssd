@@ -297,11 +297,13 @@ void sss_vdebug_fn(const char *file,
             ret = snprintf(chain_id_fmt_fixed, sizeof(chain_id_fmt_fixed),
                            DEBUG_CHAIN_ID_FMT"%s", debug_chain_id, format);
             if (ret < 0) {
+                va_end(ap_fallback);
                 return;
             } else if (ret >= sizeof(chain_id_fmt_fixed)) {
                 ret = asprintf(&chain_id_fmt_dyn, DEBUG_CHAIN_ID_FMT"%s",
                                debug_chain_id, format);
                 if (ret < 0) {
+                    va_end(ap_fallback);
                     return;
                 }
                 result_fmt = chain_id_fmt_dyn;
