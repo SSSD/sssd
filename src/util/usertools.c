@@ -835,3 +835,45 @@ done:
     talloc_zfree(tmp_ctx);
     return ret;
 }
+
+void sss_sssd_user_uid_and_gid(uid_t *_uid, gid_t *_gid)
+{
+    uid_t sssd_uid;
+    gid_t sssd_gid;
+    errno_t ret;
+
+    ret = sss_user_by_name_or_uid(SSSD_USER, &sssd_uid, &sssd_gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "failed to get sssd user (" SSSD_USER ") uid/gid, using root\n");
+        sssd_uid = 0;
+        sssd_gid = 0;
+    }
+
+    if (_uid != NULL) {
+        *_uid = sssd_uid;
+    }
+
+    if (_gid != NULL) {
+        *_gid = sssd_gid;
+    }
+}
+
+void sss_set_sssd_user_eid(void)
+{
+    uid_t uid;
+    gid_t gid;
+
+    if (geteuid() == 0) {
+        sss_sssd_user_uid_and_gid(&uid, &gid);
+        seteuid(uid);
+        setegid(gid);
+    }
+}
+
+void sss_restore_sssd_user_eid(void)
+{
+    if (getuid() == 0) {
+        seteuid(getuid());
+        setegid(getgid());
+    }
+}

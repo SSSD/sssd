@@ -1551,6 +1551,8 @@ errno_t load_configuration(TALLOC_CTX *mem_ctx,
     errno_t ret;
     struct mt_ctx *ctx;
     char *cdb_file = NULL;
+    uid_t sssd_uid;
+    gid_t sssd_gid;
 
     ctx = talloc_zero(mem_ctx, struct mt_ctx);
     if(!ctx) {
@@ -1591,7 +1593,8 @@ errno_t load_configuration(TALLOC_CTX *mem_ctx,
 
     /* Allow configuration database to be accessible
      * when SSSD runs as nonroot */
-    ret = chown(cdb_file, ctx->uid, ctx->gid);
+    sss_sssd_user_uid_and_gid(&sssd_uid, &sssd_gid);
+    ret = chown(cdb_file, sssd_uid, sssd_gid);
     if (ret != 0) {
         ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
