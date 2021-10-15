@@ -530,13 +530,14 @@ ifp_groups_get_from_cache(TALLOC_CTX *mem_ctx,
     struct ldb_result *group_res = NULL;
     errno_t ret;
     gid_t gid;
+    char *endptr;
 
     switch (domain->type) {
     case DOM_TYPE_POSIX:
-        gid = strtouint32(key, NULL, 10);
-        ret = errno;
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid UID value\n");
+        gid = strtouint32(key, &endptr, 10);
+        if ((errno != 0) || *endptr || (key == endptr)) {
+            ret = errno ? errno : EINVAL;
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid GID value\n");
             return ret;
         }
 

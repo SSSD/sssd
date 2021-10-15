@@ -120,7 +120,7 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
     }
 
     *range_offset = strtouint32(end_range, &endptr, 10);
-    if (*endptr != '\0') {
+    if ((errno != 0) || (*endptr != '\0') || (end_range == endptr)) {
         *range_offset = 0;
         ret = errno;
         DEBUG(SSSDBG_MINOR_FAILURE,
