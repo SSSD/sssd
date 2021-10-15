@@ -641,6 +641,8 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     struct confdb_ctx *cdb;
     int ret = EOK;
     mode_t old_umask;
+    uid_t sssd_uid;
+    gid_t sssd_gid;
 
     cdb = talloc_zero(mem_ctx, struct confdb_ctx);
     if (!cdb)
@@ -673,6 +675,9 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     }
 
     old_umask = umask(SSS_DFL_UMASK);
+    /* file may exists and could be owned by root from previous version */
+    sss_sssd_user_uid_and_gid(&sssd_uid, &sssd_gid);
+    chown(confdb_location, sssd_uid, sssd_gid);
     sss_set_sssd_user_eid();
 
     ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
