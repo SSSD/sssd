@@ -97,6 +97,7 @@ BuildRequires: gdm-pam-extensions-devel
 BuildRequires: gettext-devel
 # required for p11_child smartcard tests
 BuildRequires: gnutls-utils
+BuildRequires: jansson-devel
 BuildRequires: keyutils-libs-devel
 BuildRequires: krb5-devel
 BuildRequires: libcmocka-devel >= 1.0.0
