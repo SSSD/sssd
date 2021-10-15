@@ -439,6 +439,7 @@ int confdb_get_int(struct confdb_ctx *cdb,
     char **values = NULL;
     long val;
     int ret;
+    char *endptr;
     TALLOC_CTX *tmp_ctx;
 
     tmp_ctx = talloc_new(NULL);
@@ -460,12 +461,15 @@ int confdb_get_int(struct confdb_ctx *cdb,
         }
 
         errno = 0;
-        val = strtol(values[0], NULL, 0);
+        val = strtol(values[0], &endptr, 0);
         ret = errno;
         if (ret != 0) {
             goto failed;
         }
-
+        if (*endptr || (values[0] == endptr)) {
+            ret = EINVAL;
+            goto failed;
+        }
         if (val < INT_MIN || val > INT_MAX) {
             ret = ERANGE;
             goto failed;
@@ -495,6 +499,7 @@ long confdb_get_long(struct confdb_ctx *cdb,
     char **values = NULL;
     long val;
     int ret;
+    char *endptr;
     TALLOC_CTX *tmp_ctx;
 
     tmp_ctx = talloc_new(NULL);
@@ -516,12 +521,15 @@ long confdb_get_long(struct confdb_ctx *cdb,
         }
 
         errno = 0;
-        val = strtol(values[0], NULL, 0);
+        val = strtol(values[0], &endptr, 0);
         ret = errno;
         if (ret != 0) {
             goto failed;
         }
-
+        if (*endptr || (values[0] == endptr)) {
+            ret = EINVAL;
+            goto failed;
+        }
     } else {
         val = defval;
     }

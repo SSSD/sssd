@@ -1418,8 +1418,9 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                               opts->gen_map[SDAP_AT_ENTRY_USN].opt_name);
                 } else {
                     so->supports_usn = true;
+                    errno = 0;
                     so->last_usn = strtoul(last_usn_value, &endptr, 10);
-                    if (endptr != NULL && (*endptr != '\0' || endptr == last_usn_value)) {
+                    if (errno || !endptr || *endptr || (endptr == last_usn_value)) {
                         DEBUG(SSSDBG_MINOR_FAILURE,
                               "USN is not valid (value: %s)\n", last_usn_value);
                         so->last_usn = 0;
@@ -1442,8 +1443,9 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                     opts->gen_map[SDAP_AT_ENTRY_USN].name =
                         talloc_strdup(opts->gen_map, usn_attrs[i].entry_name);
                     so->supports_usn = true;
+                    errno = 0;
                     so->last_usn = strtoul(last_usn_value, &endptr, 10);
-                    if (endptr != NULL && (*endptr != '\0' || endptr == last_usn_value)) {
+                    if (errno || !endptr || *endptr || (endptr == last_usn_value)) {
                         DEBUG(SSSDBG_MINOR_FAILURE,
                               "USN is not valid (value: %s)\n", last_usn_value);
                         so->last_usn = 0;
