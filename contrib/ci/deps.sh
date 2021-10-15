@@ -160,6 +160,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         slapd
         systemtap-sdt-dev
         libhttp-parser-dev
+        libjansson-dev
         libcurl4-openssl-dev
         krb5-kdc
         krb5-admin-server
