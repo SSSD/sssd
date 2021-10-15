@@ -673,8 +673,11 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     }
 
     old_umask = umask(SSS_DFL_UMASK);
+    sss_set_sssd_user_eid();
 
     ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
+
+    sss_restore_sssd_user_eid();
     umask(old_umask);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to open config database [%s]\n",
