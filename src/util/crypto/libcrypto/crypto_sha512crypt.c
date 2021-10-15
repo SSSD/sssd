@@ -101,8 +101,9 @@ static int sha512_crypt_r(const char *key,
         char *endp;
 
         num = salt + ROUNDS_SIZE;
+        errno = 0;
         srounds = strtoul(num, &endp, 10);
-        if (*endp == '$') {
+        if (!errno && (*endp == '$')) {
             salt = endp + 1;
             if (srounds < ROUNDS_MIN) srounds = ROUNDS_MIN;
             if (srounds > ROUNDS_MAX) srounds = ROUNDS_MAX;

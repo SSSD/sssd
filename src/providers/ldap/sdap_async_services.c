@@ -623,9 +623,9 @@ enum_services_op_done(struct tevent_req *subreq)
         talloc_zfree(state->id_ctx->srv_opts->max_service_value);
         state->id_ctx->srv_opts->max_service_value =
                 talloc_steal(state->id_ctx, usn_value);
-
+        errno = 0;
         usn_number = strtoul(usn_value, &endptr, 10);
-        if ((endptr == NULL || (*endptr == '\0' && endptr != usn_value))
+        if (!errno && endptr && (*endptr == '\0') && (endptr != usn_value)
             && (usn_number > state->id_ctx->srv_opts->last_usn)) {
             state->id_ctx->srv_opts->last_usn = usn_number;
         }
