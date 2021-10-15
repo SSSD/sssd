@@ -22,8 +22,6 @@
 #ifndef _STRTONUM_H_
 #define _STRTONUM_H_
 
-#include <ctype.h>
-#include <stdlib.h>
 #include <stdint.h>
 
 int32_t strtoint32(const char *nptr, char **endptr, int base);

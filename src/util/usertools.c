@@ -21,6 +21,7 @@
 
 #include <pwd.h>
 #include <errno.h>
+#include <ctype.h>
 #include <talloc.h>
 #include <grp.h>
 
