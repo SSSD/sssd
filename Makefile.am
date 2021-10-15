@@ -524,6 +524,7 @@ AM_CPPFLAGS = \
     $(JOURNALD_CFLAGS) \
     -DLIBDIR=\"$(libdir)\" \
     -DVARDIR=\"$(localstatedir)\" \
+    -DRUNDIR=\"$(runstatedir)\" \
     -DSSS_STATEDIR=\"$(sss_statedir)\" \
     -DSYSCONFDIR=\"$(sysconfdir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
