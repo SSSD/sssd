@@ -78,6 +78,7 @@ static char *read_field_as_uint32(char *line,
     const char *str;
     char *rest;
     errno_t ret;
+    char *endptr;
 
     rest = read_field_as_string(line, &str);
     if (str == NULL) {
@@ -85,9 +86,9 @@ static char *read_field_as_uint32(char *line,
         return rest;
     }
 
-    *_value = strtouint32(str, NULL, 10);
-    if (errno != 0) {
-        ret = errno;
+    *_value = strtouint32(str, &endptr, 10);
+    if ((errno != 0) || *endptr || (str == endptr)) {
+        ret = errno ? errno : EINVAL;
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse number [%d]: %s\n",
               ret, sss_strerror(ret));
 

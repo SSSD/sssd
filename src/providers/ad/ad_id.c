@@ -42,6 +42,7 @@ static bool ad_account_can_shortcut(struct sdap_idmap_ctx *idmap_ctx,
     uint32_t id;
     bool shortcut = false;
     errno_t ret;
+    char *endptr;
 
     if (!sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx, domain->name,
                                                    domain->domain_id)) {
@@ -51,10 +52,9 @@ static bool ad_account_can_shortcut(struct sdap_idmap_ctx *idmap_ctx,
     switch (filter_type) {
     case BE_FILTER_IDNUM:
         /* convert value to ID */
-        errno = 0;
-        id = strtouint32(filter_value, NULL, 10);
-        if (errno != 0) {
-            ret = errno;
+        id = strtouint32(filter_value, &endptr, 10);
+        if ((errno != 0) || *endptr || (filter_value == endptr)) {
+            ret = errno ? errno : EINVAL;
             DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert filter value to "
                   "number [%d]: %s\n", ret, strerror(ret));
             goto done;

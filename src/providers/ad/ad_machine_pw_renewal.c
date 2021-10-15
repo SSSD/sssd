@@ -360,7 +360,6 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
         goto done;
     }
 
-    errno = 0;
     period = strtouint32(opt_list[0], &endptr, 10);
     if (errno != 0 || *endptr != '\0' || opt_list[0] == endptr) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse first renewal option.\n");
@@ -368,7 +367,6 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
         goto done;
     }
 
-    errno = 0;
     initial_delay = strtouint32(opt_list[1], &endptr, 10);
     if (errno != 0 || *endptr != '\0' || opt_list[0] == endptr) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse second renewal option.\n");

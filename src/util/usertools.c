@@ -578,9 +578,8 @@ errno_t sss_user_by_name_or_uid(const char *input, uid_t *_uid, gid_t *_gid)
     struct passwd *pwd;
 
     /* Try if it's an ID first */
-    errno = 0;
     uid = strtouint32(input, &endptr, 10);
-    if (errno != 0 || *endptr != '\0') {
+    if ((errno != 0) || (*endptr != '\0') || (input == endptr)) {
         ret = errno;
         if (ret == ERANGE) {
             DEBUG(SSSDBG_OP_FAILURE,
