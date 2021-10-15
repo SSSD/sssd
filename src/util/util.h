@@ -383,6 +383,9 @@ errno_t sss_canonicalize_ip_address(TALLOC_CTX *mem_ctx,
 const char * const * get_known_services(void);
 
 errno_t sss_user_by_name_or_uid(const char *input, uid_t *_uid, gid_t *_gid);
+void sss_sssd_user_uid_and_gid(uid_t *_uid, gid_t *_gid);
+void sss_set_sssd_user_eid(void);
+void sss_restore_sssd_user_eid(void);
 
 int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
                        const char sep, bool trim, bool skip_empty,
