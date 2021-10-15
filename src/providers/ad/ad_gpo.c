@@ -31,6 +31,7 @@
  *   ad_gpo_process_cse_send/recv: retrieve policy file data
  */
 
+#include <ctype.h>
 #include <security/pam_modules.h>
 #include <syslog.h>
 #include <fcntl.h>
