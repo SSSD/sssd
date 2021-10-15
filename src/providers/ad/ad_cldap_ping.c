@@ -628,6 +628,14 @@ struct tevent_req *ad_cldap_ping_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (strcmp(srv_ctx->ad_domain, discovery_domain) != 0) {
+        DEBUG(SSSDBG_TRACE_ALL, "Trying to discover domain [%s] "
+              "which is not our local domain [%s], skipping CLDAP ping.\n",
+              discovery_domain, srv_ctx->ad_domain);
+        ret = EOK;
+        goto done;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Sending CLDAP ping\n");
 
     state->ev = ev;
