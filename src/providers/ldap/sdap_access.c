@@ -1812,6 +1812,7 @@ is_account_locked(const char *pwdAccountLockedTime,
     time_t duration;
     time_t now;
     bool locked;
+    char *endptr;
 
     /* Default action is to consider account to be locked. */
     locked = true;
@@ -1855,10 +1856,9 @@ is_account_locked(const char *pwdAccountLockedTime,
         if (difftime(lock_time, now) > 0.0) {
             locked = false;
         } else if (pwdAccountLockedDurationTime != NULL) {
-            errno = 0;
-            duration = strtouint32(pwdAccountLockedDurationTime, NULL, 0);
-            if (errno) {
-                ret = errno;
+            duration = strtouint32(pwdAccountLockedDurationTime, &endptr, 0);
+            if (errno || *endptr) {
+                ret = errno ? errno : EINVAL;
                 goto done;
             }
             /* Lockout has expired */

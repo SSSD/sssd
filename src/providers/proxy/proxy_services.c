@@ -171,7 +171,6 @@ get_serv_byport(struct proxy_id_ctx *ctx,
         goto done;
     }
 
-    errno = 0;
     port = htons(strtouint16(be_filter, NULL, 0));
     if (errno) {
         ret = errno;

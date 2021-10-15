@@ -1125,6 +1125,7 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
     uint32_t id;
     struct ldb_message *msg = NULL;
     struct ldb_result *res = NULL;
+    char *endptr;
     const char *attrs[] = { SYSDB_NAME,
                             SYSDB_UIDNUM,
                             SYSDB_SID_STR,
@@ -1183,10 +1184,9 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
         ret = EOK;
         goto done;
     } else if (ar->filter_type == BE_FILTER_IDNUM) {
-        errno = 0;
-        id = strtouint32(ar->filter_value, NULL, 10);
-        if (errno != 0) {
-            ret = errno;
+        id = strtouint32(ar->filter_value, &endptr, 10);
+        if ((errno != 0) || *endptr || (ar->filter_value == endptr)) {
+            ret = errno ? errno : EINVAL;
             DEBUG(SSSDBG_OP_FAILURE, "strtouint32 failed.\n");
             goto done;
         }

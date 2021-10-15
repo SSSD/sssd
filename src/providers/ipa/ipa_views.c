@@ -90,7 +90,6 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
         break;
 
     case BE_FILTER_IDNUM:
-        errno = 0;
         id = strtouint32(ar->filter_value, &endptr, 10);
         if (errno != 0|| *endptr != '\0' || (ar->filter_value == endptr)) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Invalid id value [%s].\n",

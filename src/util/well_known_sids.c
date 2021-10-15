@@ -189,7 +189,6 @@ static errno_t handle_rid_to_name_map(const char *sid, size_t prefix_len,
     char *endptr;
     size_t c;
 
-    errno = 0;
     rid = (uint32_t) strtouint32(sid + prefix_len, &endptr, 10);
     if (errno != 0 || *endptr != '\0') {
         return EINVAL;

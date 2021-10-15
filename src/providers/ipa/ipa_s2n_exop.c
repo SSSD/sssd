@@ -1340,7 +1340,6 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
 
         break;
     case REQ_INP_ID:
-        errno = 0;
         id = strtouint32(state->list[state->list_idx], &endptr, 10);
         if (errno != 0 || *endptr != '\0'
                 || (state->list[state->list_idx] == endptr)) {

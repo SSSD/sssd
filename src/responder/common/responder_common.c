@@ -224,7 +224,6 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
     }
 
     for (c = 0; c < list_size; c++) {
-        errno = 0;
         if (*list[c] == '\0') {
             DEBUG(SSSDBG_OP_FAILURE, "Empty list item.\n");
             ret = EINVAL;
@@ -232,7 +231,7 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
         }
 
         uids[c] = strtouint32(list[c], &endptr, 10);
-        if (errno != 0 || *endptr != '\0') {
+        if ((errno != 0) || (*endptr != '\0') || (list[c] == endptr)) {
             ret = errno;
             if (ret == ERANGE) {
                 DEBUG(SSSDBG_OP_FAILURE, "List item [%s] is out of range.\n",

@@ -1038,12 +1038,13 @@ ifp_users_get_from_cache(TALLOC_CTX *mem_ctx,
     struct ldb_result *user_res = NULL;
     errno_t ret;
     uid_t uid;
+    char *endptr;
 
     switch (domain->type) {
     case DOM_TYPE_POSIX:
-        uid = strtouint32(key, NULL, 10);
-        ret = errno;
-        if (ret != EOK) {
+        uid = strtouint32(key, &endptr, 10);
+        if ((errno != 0) || *endptr || (key == endptr)) {
+            ret = errno ? errno : EINVAL;
             DEBUG(SSSDBG_CRIT_FAILURE, "Invalid UID value\n");
             goto done;
         }

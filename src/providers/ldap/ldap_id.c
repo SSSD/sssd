@@ -264,7 +264,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
              * in the search filter.
              */
             uid = strtouint32(filter_value, &endptr, 10);
-            if (errno != EOK) {
+            if ((errno != EOK) || *endptr || (filter_value == endptr)) {
                 ret = EINVAL;
                 goto done;
             }
@@ -742,7 +742,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
              * in the search filter.
              */
             gid = strtouint32(filter_value, &endptr, 10);
-            if (errno != EOK) {
+            if ((errno != EOK) || *endptr || (filter_value == endptr)) {
                 ret = EINVAL;
                 goto done;
             }

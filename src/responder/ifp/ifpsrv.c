@@ -166,6 +166,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     char *uid_str;
     char *attr_list_str;
     char *wildcard_limit_str;
+    char *endptr;
 
     ifp_cmds = get_ifp_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
@@ -245,9 +246,9 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     }
 
     if (wildcard_limit_str) {
-        ifp_ctx->wildcard_limit = strtouint32(wildcard_limit_str, NULL, 10);
-        ret = errno;
-        if (ret != EOK) {
+        ifp_ctx->wildcard_limit = strtouint32(wildcard_limit_str, &endptr, 10);
+        if ((errno != 0) || *endptr || (wildcard_limit_str == endptr)) {
+            ret = errno ? errno : EINVAL;
             goto fail;
         }
     }
