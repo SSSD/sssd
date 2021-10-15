@@ -571,9 +571,9 @@ static void enum_users_done(struct tevent_req *subreq)
         talloc_zfree(state->ctx->srv_opts->max_user_value);
         state->ctx->srv_opts->max_user_value =
                                         talloc_steal(state->ctx, usn_value);
-
+        errno = 0;
         usn_number = strtoul(usn_value, &endptr, 10);
-        if ((endptr == NULL || (*endptr == '\0' && endptr != usn_value))
+        if (!errno && endptr && (*endptr == '\0') && (endptr != usn_value)
             && (usn_number > state->ctx->srv_opts->last_usn)) {
             state->ctx->srv_opts->last_usn = usn_number;
         }
@@ -751,8 +751,9 @@ static void enum_groups_done(struct tevent_req *subreq)
         talloc_zfree(state->ctx->srv_opts->max_group_value);
         state->ctx->srv_opts->max_group_value =
                                         talloc_steal(state->ctx, usn_value);
+        errno = 0;
         usn_number = strtoul(usn_value, &endptr, 10);
-        if ((endptr == NULL || (*endptr == '\0' && endptr != usn_value))
+        if (!errno && endptr && (*endptr == '\0') && (endptr != usn_value)
             && (usn_number > state->ctx->srv_opts->last_usn)) {
             state->ctx->srv_opts->last_usn = usn_number;
         }
