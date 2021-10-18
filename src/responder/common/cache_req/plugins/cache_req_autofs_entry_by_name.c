@@ -97,7 +97,7 @@ cache_req_autofs_entry_by_name_dp_recv(struct tevent_req *subreq,
 
     ret = sbus_call_dp_autofs_GetEntry_recv(subreq);
 
-    if (ret == ERR_MISSING_DP_TARGET) {
+    if (ret == ERR_MISSING_DP_TARGET || ret == ENOENT) {
         ret = EOK;
     }
 
