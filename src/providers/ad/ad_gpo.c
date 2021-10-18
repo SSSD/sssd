@@ -250,7 +250,7 @@ struct gpo_map_option_entry gpo_map_option_entries[] = {
     {GPO_MAP_DENY, AD_GPO_MAP_DENY, gpo_map_deny_defaults, NULL, NULL},
 };
 
-const char* gpo_map_type_string(int gpo_map_type)
+static const char* gpo_map_type_string(int gpo_map_type)
 {
     switch(gpo_map_type) {
     case GPO_MAP_INTERACTIVE:        return "Interactive";
@@ -261,7 +261,7 @@ const char* gpo_map_type_string(int gpo_map_type)
     case GPO_MAP_PERMIT:             return "Permitted";
     case GPO_MAP_DENY:               return "Denied";
     }
-    return NULL;
+    return "-unknown-";  /* this helper is only used in logs */
 }
 
 static inline bool
