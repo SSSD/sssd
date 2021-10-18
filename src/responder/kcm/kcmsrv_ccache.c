@@ -294,6 +294,7 @@ kcm_cc_remove_duplicates(struct kcm_ccache *cc,
     kcrd = kcm_cred_to_krb5(kctx, kcm_crd);
     if (kcrd == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to convert kcm cred to krb5\n");
+        ret = ERR_INTERNAL;
         goto done;
     }
 
@@ -301,6 +302,7 @@ kcm_cc_remove_duplicates(struct kcm_ccache *cc,
         kcrd_cc = kcm_cred_to_krb5(kctx, p);
         if (kcrd_cc == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to convert kcm cred to krb5\n");
+            ret = ERR_INTERNAL;
             goto done;
         }
 
