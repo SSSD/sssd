@@ -1356,6 +1356,86 @@ def add_host_entry(session_multihost, request):
             (_, _) = ldap_inst.del_dn(dn)
     request.addfinalizer(remove_host_entry)
 
+
+@pytest.fixture(scope='class')
+def ns_account_lock(session_multihost, request):
+    """ Backup and restore sssd.conf """
+    tools = sssdTools(session_multihost.client[0])
+    domain_name = tools.get_domain_section_name()
+    client = sssdTools(session_multihost.client[0])
+    domain_params = {'cache_credentials': 'true',
+                     'enumerate': 'true',
+                     'access_provider': 'ldap',
+                     'ldap_access_order': 'expire',
+                     'ldap_account_expire_policy': '389DS',
+                     'ldap_ns_account_lock': 'nsAccountlock'}
+    client.sssd_conf(f'domain/{domain_name}', domain_params)
+    domain_params = {'reconnection_retries': '3'}
+    client.sssd_conf('pam', domain_params)
+    domain_params = {'filter_groups': 'root',
+                     'filter_users': 'root',
+                     'reconnection_retries': '3',
+                     'debug_level': '9'}
+    client.sssd_conf('nss', domain_params)
+    session_multihost.client[0].service_sssd('restart')
+    # Add managed role
+    master_e = session_multihost.master[0].ip
+    ldap_uri = f'ldap://{master_e}'
+    ds_rootdn = 'cn=Directory Manager'
+    ds_rootpw = 'Secret123'
+    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    user_info = {'cn': 'managed'.encode('utf-8'),
+                 'objectClass': [b'top', b'LdapSubEntry',
+                                 b'nsRoleDefinition',
+                                 b'nsSimpleRoleDefinition',
+                                 b'nsManagedRoleDefinition']}
+    user_dn = 'cn=managed,ou=People,dc=example,dc=test'
+    (_, _) = ldap_inst.add_entry(user_info, user_dn)
+    user_dn = 'uid=foo1,ou=People,dc=example,dc=test'
+    role_dn = "cn=managed,ou=people,dc=example,dc=test"
+    add_member = [(ldap.MOD_ADD, 'nsRoleDN', role_dn.encode('utf-8'))]
+    (ret, _) = ldap_inst.modify_ldap(user_dn, add_member)
+    assert ret == 'Success'
+    # Add filter role
+    user_info = {'cn': 'filtered'.encode('utf-8'),
+                 'objectClass': [b'top', b'LdapSubEntry',
+                                 b'nsRoleDefinition',
+                                 b'nsComplexRoleDefinition',
+                                 b'nsFilteredRoleDefinition'],
+                 'nsRoleFilter': 'o=filtered'.encode('utf-8'),
+                 'Description': 'filtered role'.encode('utf-8')}
+    user_dn = 'cn=filtered,ou=People,dc=example,dc=test'
+    (_, _) = ldap_inst.add_entry(user_info, user_dn)
+    user_dn = 'uid=foo4,ou=People,dc=example,dc=test'
+    role_dn = "filtered"
+    add_member = [(ldap.MOD_ADD, 'o', role_dn.encode('utf-8'))]
+    (ret, _) = ldap_inst.modify_ldap(user_dn, add_member)
+    assert ret == 'Success'
+
+    def restoresssdconf():
+        """ Restore sssd.conf """
+        master_e = session_multihost.master[0].ip
+        ldap_uri = f'ldap://{master_e}'
+        ds_rootdn = 'cn=Directory Manager'
+        ds_rootpw = 'Secret123'
+        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        user_dn = 'uid=foo1,ou=People,dc=example,dc=test'
+        role_dn = "cn=managed,ou=people,dc=example,dc=test"
+        del_member = [(ldap.MOD_DELETE, 'nsRoleDN', role_dn.encode('utf-8'))]
+        (ret, _) = ldap_inst.modify_ldap(user_dn, del_member)
+        assert ret == 'Success'
+        user_dn = 'uid=foo4,ou=People,dc=example,dc=test'
+        role_dn = "filtered"
+        del_member = [(ldap.MOD_DELETE, 'o', role_dn.encode('utf-8'))]
+        (ret, _) = ldap_inst.modify_ldap(user_dn, del_member)
+        assert ret == 'Success'
+        for i in ['cn=managed,ou=people,dc=example,dc=test',
+                  'cn=filtered,ou=people,dc=example,dc=test',
+                  'cn=nested,ou=People,dc=example,dc=test']:
+            ldap_inst.del_dn(i)
+    request.addfinalizer(restoresssdconf)
+
+
 # ====================  Session Scoped Fixtures ================
 
 

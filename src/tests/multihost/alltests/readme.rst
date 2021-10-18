@@ -23,6 +23,7 @@ Following are the pytest markers used
 * localoverrides: Tests related to Local Overrides
 * multidomain: Tests related to SSSD Multiple Domains
 * netgroup: Tests related to netgroup
+* nsaccountlock: Tests related to nsaccountlock
 * offline: Tests related to ldap offline suite
 * services: Tests related to SSSD sanity services
 * sssctl: Tests related to sssctl tool
