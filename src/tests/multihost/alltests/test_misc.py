@@ -398,3 +398,86 @@ class TestMisc(object):
         cache_first_false = multihost.client[0].run_command(getent_admproxy,
                                                             raiseonerr=False)
         assert cache_first_false.returncode == 0
+
+    @staticmethod
+    @pytest.mark.tier1_2
+    def test_0008_1636002(multihost, backupsssdconf):
+        """
+        :title: IDM-SSSD-TC: ldap_provider: socket-activated services start as
+         the sssd user and then are unable to read the confdb
+        :id: 7a33729a-ab74-4d9e-9d75-e952deaa7bd2
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1636002
+        :customerscenario: true
+        :steps:
+            1. Switch to socket activated services, restart sssd
+            2. Check 'getent passwd <user> output.
+            3. Run ssh for the user to trigger PAM.
+            4. Check log for error messages related to opening
+               /var/lib/sss/db/config.ldb
+        :expectedresults:
+            1. No issue switching and sssd has started.
+            2. It should succeed.
+            3. /var/log/sssd/sssd_pam.log is present
+            4. The error messages are not present.
+        :teardown:
+            1. Undo socket activation.
+            2. Restore sssd.conf
+        """
+        # pylint: disable=unused-argument
+        client = sssdTools(multihost.client[0])
+        client.clear_sssd_cache()
+
+        domain_name = client.get_domain_section_name()
+        user = f'foo1@{domain_name}'
+
+        # Configure socket activation
+        sssd_params = {'services': ''}
+        client.sssd_conf('sssd', sssd_params)
+        client.clear_sssd_cache()
+        enable_cmd = "systemctl enable sssd-nss.socket sssd-pam.socket" \
+                     " sssd-pam-priv.socket"
+        multihost.client[0].run_command(enable_cmd)
+        multihost.client[0].service_sssd('restart')
+
+        # Show the sssd config
+        multihost.client[0].run_command(
+                'cat /etc/sssd/sssd.conf', raiseonerr=False)
+
+        # Run getent passwd
+        usr_cmd = multihost.client[0].run_command(
+                f'getent passwd {user}',  raiseonerr=False)
+
+        # Try ssh after socket activation is configured
+        # Result does not matter we just need to trigger the PAM stack
+        ssh_client = pexpect_ssh(
+            multihost.client[0].sys_hostname, user, 'Secret123', debug=False)
+        try:
+            ssh_client.login(
+                login_timeout=30, sync_multiplier=5, auto_prompt_reset=False)
+        except SSHLoginException:
+            pass
+        else:
+            ssh_client.logout()
+
+        # Print pam log for debug purposes
+        multihost.client[0].run_command(
+                'cat /var/log/sssd/sssd_pam.log',  raiseonerr=False)
+
+        # Download sssd pam log
+        log_str = multihost.client[0].get_file_contents(
+            "/var/log/sssd/sssd_pam.log"). \
+            decode('utf-8')
+
+        # Disable socket activation
+        multihost.client[0].run_command(
+            "systemctl disable sssd-nss.socket sssd-pam.socket"
+            " sssd-pam-priv.socket",  raiseonerr=False)
+
+        # Evaluate test results
+        assert usr_cmd.returncode == 0, f"User {user} was not found."
+        assert "CONFDB: /var/lib/sss/db/config.ldb" in log_str
+        assert "Unable to open tdb '/var/lib/sss/db/config.ldb': " \
+               "Permission denied" not in log_str
+        assert "Failed to connect to '/var/lib/sss/db/config.ldb'" \
+            not in log_str
+        assert "The confdb initialization failed" not in log_str
