@@ -39,5 +39,4 @@ ad_domain_info_recv(struct tevent_req *req,
                       char **_id,
                       char **_site,
                       char **_forest);
-
 #endif /* _AD_DOMAIN_INFO_H_ */
