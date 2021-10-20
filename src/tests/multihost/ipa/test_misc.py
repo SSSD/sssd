@@ -245,7 +245,7 @@ class Testipabz(object):
                                         'rm -rf /var/lib/sss/db/* ; '
                                         'systemctl start sssd')
         multihost.client[0].run_command("sssctl debug-level 9")
-        ssh = SSHClient(multihost.client[0].sys_hostname,
+        ssh = SSHClient(multihost.client[0].ip,
                         username='admin', password='Secret123')
         (_, _, exit_status) = ssh.execute_cmd('kinit admin',
                                               stdin='Secret123')
@@ -282,7 +282,7 @@ class Testipabz(object):
                                         'rm -rf /var/log/sssd/* ; '
                                         'rm -rf /var/lib/sss/db/* ; '
                                         'systemctl start sssd')
-        ssh = SSHClient(multihost.client[0].sys_hostname,
+        ssh = SSHClient(multihost.client[0].ip,
                         username='admin', password='Secret123')
         (_, _, exit_status) = ssh.execute_cmd('kinit admin',
                                               stdin='Secret123')
