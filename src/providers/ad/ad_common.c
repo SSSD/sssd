@@ -1688,3 +1688,51 @@ done:
 
     return ret;
 }
+
+errno_t
+ad_options_switch_site(struct ad_options *ad_options, struct be_ctx *be_ctx,
+                       const char *new_site, const char *new_forest)
+{
+    const char *site;
+    const char *forest;
+    errno_t ret;
+
+    /* Switch forest. */
+    if (new_forest != NULL
+        && (ad_options->current_forest == NULL
+            || strcmp(ad_options->current_forest, new_forest) != 0)) {
+        forest = talloc_strdup(ad_options, new_forest);
+        if (forest == NULL) {
+            return ENOMEM;
+        }
+
+        talloc_zfree(ad_options->current_forest);
+        ad_options->current_forest = forest;
+    }
+
+    if (new_site == NULL) {
+        return EOK;
+    }
+
+    if (ad_options->current_site != NULL
+                    && strcmp(ad_options->current_site, new_site) == 0) {
+        return EOK;
+    }
+
+    site = talloc_strdup(ad_options, new_site);
+    if (site == NULL) {
+        return ENOMEM;
+    }
+
+    talloc_zfree(ad_options->current_site);
+    ad_options->current_site = site;
+
+    ret = sysdb_set_site(be_ctx->domain, ad_options->current_site);
+    if (ret != EOK) {
+        /* Not fatal. */
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to store site information "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+    }
+
+    return EOK;
+}
