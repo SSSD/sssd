@@ -252,4 +252,7 @@ errno_t ad_inherit_opts_if_needed(struct dp_option *parent_opts,
 errno_t ad_refresh_init(struct be_ctx *be_ctx,
                         struct ad_id_ctx *id_ctx);
 
+errno_t
+ad_options_switch_site(struct ad_options *ad_options, struct be_ctx *be_ctx,
+                       const char *new_site, const char *new_forest);
 #endif /* AD_COMMON_H_ */
