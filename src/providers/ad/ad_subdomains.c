@@ -2077,13 +2077,15 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
     const char *realm;
     char *master_sid;
     char *flat_name;
+    char *site = NULL;
     errno_t ret;
+    char *ad_site_override = NULL;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_subdomains_refresh_state);
 
     ret = ad_domain_info_recv(subreq, state, &flat_name, &master_sid,
-                              NULL, &state->forest);
+                              &site, &state->forest);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get master domain information "
@@ -2106,6 +2108,36 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
                 tevent_req_error(req, ENOMEM);
                 return;
             }
+        }
+    }
+
+    /* If the site was not discovered during the DNS discovery, e.g. because
+     * the server name was given explicitly in sssd.conf, we try to set the
+     * site here. */
+    if (state->ad_options->current_site == NULL) {
+        /* Ignore AD site found in netlogon attribute if specific site is set in
+         * configuration file. */
+        ad_site_override = dp_opt_get_string(state->ad_options->basic, AD_SITE);
+        if (ad_site_override != NULL) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Ignoring AD site found by DNS discovery: '%s', "
+                  "using configured value: '%s' instead.\n",
+                  site, ad_site_override);
+            site = ad_site_override;
+        }
+
+        if (site != NULL) {
+            ret = ad_options_switch_site(state->ad_options, state->be_ctx, site,
+                                         state->forest);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to store forest and site name, "
+                                         "will try again after a new lookup.\n");
+            }
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Site name currently not available will try again later. "
+                  "The site name can be added manually my setting 'ad_site' "
+                  "in sssd.conf.\n");
         }
     }
 

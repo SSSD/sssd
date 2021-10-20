@@ -196,55 +196,6 @@ fail:
     return NULL;
 }
 
-static errno_t
-ad_srv_plugin_ctx_switch_site(struct ad_srv_plugin_ctx *ctx,
-                              const char *new_site,
-                              const char *new_forest)
-{
-    const char *site;
-    const char *forest;
-    errno_t ret;
-
-    /* Switch forest. */
-    if (new_forest != NULL
-        && (ctx->ad_options->current_forest == NULL
-            || strcmp(ctx->ad_options->current_forest, new_forest) != 0)) {
-        forest = talloc_strdup(ctx->ad_options, new_forest);
-        if (forest == NULL) {
-            return ENOMEM;
-        }
-
-        talloc_zfree(ctx->ad_options->current_forest);
-        ctx->ad_options->current_forest = forest;
-    }
-
-    if (new_site == NULL) {
-        return EOK;
-    }
-
-    if (ctx->ad_options->current_site != NULL
-                    && strcmp(ctx->ad_options->current_site, new_site) == 0) {
-        return EOK;
-    }
-
-    site = talloc_strdup(ctx->ad_options, new_site);
-    if (site == NULL) {
-        return ENOMEM;
-    }
-
-    talloc_zfree(ctx->ad_options->current_site);
-    ctx->ad_options->current_site = site;
-
-    ret = sysdb_set_site(ctx->be_ctx->domain, ctx->ad_options->current_site);
-    if (ret != EOK) {
-        /* Not fatal. */
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to store site information "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-    }
-
-    return EOK;
-}
-
 struct ad_srv_plugin_state {
     struct tevent_context *ev;
     struct ad_srv_plugin_ctx *ctx;
@@ -382,16 +333,19 @@ static void ad_srv_plugin_ping_done(struct tevent_req *subreq)
         /* Remember current site so it can be used during next lookup so
          * we can contact directory controllers within a known reachable
          * site first. */
-        ret = ad_srv_plugin_ctx_switch_site(state->ctx, state->site,
-                                            state->forest);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set site [%d]: %s\n",
-                  ret, sss_strerror(ret));
-            goto done;
-        }
+        if (state->site != NULL) {
+            ret = ad_options_switch_site(state->ctx->ad_options,
+                                         state->ctx->be_ctx,
+                                         state->site, state->forest);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set site [%d]: %s\n",
+                      ret, sss_strerror(ret));
+                goto done;
+            }
 
-        /* Do not renew the site again unless we go offline. */
-        state->ctx->renew_site = false;
+            /* Do not renew the site again unless we go offline. */
+            state->ctx->renew_site = false;
+        }
 
         if (strcmp(state->service, "gc") == 0) {
             if (state->forest != NULL) {
