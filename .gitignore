@@ -1,4 +1,5 @@
 *.[oa]
+compile_commands.json
 configure
 config.log
 config.status
