@@ -764,8 +764,22 @@ static struct tevent_req *ccdb_secdb_get_default_send(TALLOC_CTX *mem_ctx,
 
     uuid_size = sss_iobuf_get_size(dfl_iobuf);
     if (uuid_size != UUID_STR_SIZE) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unexpected UUID size %zu\n", uuid_size);
-        ret = EIO;
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unexpected UUID size %zu, deleting this entry\n", uuid_size);
+        ret = sss_sec_delete(sreq);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to delete entry: [%d]: %s, "
+                  "consider manual removal of "SECRETS_DB_PATH"/secrets.ldb\n",
+                  ret, sss_strerror(ret));
+            sss_log(SSS_LOG_CRIT,
+                    "Can't delete an entry from "SECRETS_DB_PATH"/secrets.ldb, "
+                    "content seems to be corrupted. Consider file removal. "
+                    "(Take a note, this will delete all credentials managed "
+                    "via sssd_kcm)");
+        }
+        uuid_clear(state->uuid);
+        ret = EOK;
         goto immediate;
     }
 
