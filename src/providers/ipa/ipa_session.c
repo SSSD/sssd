@@ -596,7 +596,11 @@ ipa_pam_session_handler_done(struct tevent_req *subreq)
                                                          state->uid,
                                                          state->gid);
 
-    state->pd->pam_status = (ret == EOK) ? PAM_SUCCESS : PAM_SESSION_ERR;
+    if (ret == EOK || ret == ENOENT) {
+        state->pd->pam_status = PAM_SUCCESS;
+    } else {
+        state->pd->pam_status = PAM_SESSION_ERR;
+    }
 
 done:
     /* TODO For backward compatibility we always return EOK to DP now. */
@@ -721,7 +725,10 @@ ipa_pam_session_handler_save_deskprofile_rules(
 
     /* Get Desktop Profile priority from sysdb */
     ret = deskprofile_get_cached_priority(be_ctx->domain, &priority);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_FUNC_DATA, "No Desktop Profile priority found in sysdb\n");
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "deskprofile_get_cached_priority() failed [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -746,6 +753,13 @@ ipa_pam_session_handler_save_deskprofile_rules(
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not retrieve Desktop Profile rules from the cache\n");
+        goto done;
+    }
+
+    /* nothing to do for FC */
+    if (!rule_count) {
+        DEBUG(SSSDBG_FUNC_DATA, "No Desktop Profile rules found in sysdb\n");
+        ret = ENOENT;
         goto done;
     }
 
