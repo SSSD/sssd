@@ -261,7 +261,8 @@ static void sudosrv_cmd_done(struct tevent_req *req)
                                  &cmd_ctx->num_rules);
     talloc_zfree(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain cached rules [%d]: %s\n",
+        DEBUG((ret == ENOENT) ? SSSDBG_MINOR_FAILURE : SSSDBG_OP_FAILURE,
+              "Unable to obtain cached rules [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
