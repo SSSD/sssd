@@ -537,7 +537,7 @@ autoreconf -ivf
 
 %make_build all docs runstatedir=%{_rundir}
 
-%py3_shebang_fix src/tools/analyzer/sss_analyze.py
+%py3_shebang_fix src/tools/analyzer/sss_analyze
 sed -i -e 's:/usr/bin/python:/usr/bin/python3:' src/tools/sss_obfuscate
 
 %check
@@ -877,6 +877,7 @@ done
 %{_sbindir}/sss_debuglevel
 %{_sbindir}/sss_seed
 %{_sbindir}/sssctl
+%{_libexecdir}/%{servicename}/sss_analyze
 %{python3_sitelib}/sssd/
 %{_mandir}/man8/sss_obfuscate.8*
 %{_mandir}/man8/sss_override.8*
