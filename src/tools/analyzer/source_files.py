@@ -1,11 +1,7 @@
-from enum import Enum
-import configparser
-from os import listdir
-from os.path import isfile, join
 import glob
 import logging
 
-from source_reader import Reader
+from sssd.source_reader import Reader
 
 logger = logging.getLogger()
 

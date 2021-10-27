@@ -1,11 +1,8 @@
 import re
-import copy
 import logging
-import argparse
 
-from enum import Enum
-from source_files import Files
-from source_journald import Journald
+from sssd.source_files import Files
+from sssd.source_journald import Journald
 from sssd.sss_analyze import SubparsersAction
 from sssd.sss_analyze import Option
 from sssd.sss_analyze import Analyzer
@@ -82,7 +79,6 @@ class RequestAnalyzer:
             Instantiated source object
         """
         if args.source == "journald":
-            import source_journald
             source = Journald()
         else:
             source = Files(args.logdir)

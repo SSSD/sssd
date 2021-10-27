@@ -1,10 +1,4 @@
-#!/usr/bin/env python
-
 import argparse
-
-import source_files
-
-from modules import request
 
 
 # Based on patch from https://bugs.python.org/issue9341
@@ -116,6 +110,9 @@ class Analyzer:
                 additional parsers attached.
         """
         # Currently only the 'request' module exists
+
+        # delayed import: the modules should be reorganized
+        from sssd.modules import request
         req = request.RequestAnalyzer()
 
         module_parser = req.setup_args(parser_grp)
@@ -160,6 +157,6 @@ class Analyzer:
         args.func(args)
 
 
-if __name__ == '__main__':
+def run():
     analyzer = Analyzer()
     analyzer.main()
