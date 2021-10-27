@@ -1,7 +1,6 @@
 from systemd import journal
-from source_reader import Reader
 
-from enum import Enum
+from sssd.source_reader import Reader
 
 _EXE_PREFIX = "/usr/libexec/sssd/"
 _NSS_MATCH = _EXE_PREFIX + "sssd_nss"

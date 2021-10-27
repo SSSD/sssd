@@ -1,16 +1,21 @@
-pkgpythondir = $(python3dir)/sssd
+sss_analyze_pythondir = $(libexecdir)/sssd
 
-dist_pkgpython_SCRIPTS = \
-    sss_analyze.py \
+dist_sss_analyze_python_SCRIPTS = \
+    sss_analyze \
     $(NULL)
 
+pkgpythondir = $(python3dir)/sssd
+
 dist_pkgpython_DATA = \
+    __init__.py \
     source_files.py \
     source_journald.py \
     source_reader.py \
+    sss_analyze.py \
     $(NULL)
 
 modulesdir = $(pkgpythondir)/modules
 dist_modules_DATA = \
+    modules/__init__.py \
     modules/request.py \
     $(NULL)

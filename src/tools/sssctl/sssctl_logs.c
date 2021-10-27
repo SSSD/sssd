@@ -41,7 +41,7 @@
 
 #define LOG_FILE(file) " " LOG_PATH "/" file
 #define LOG_FILES LOG_FILE("*.log")
-#define SSS_ANALYZE PYTHONDIR_PATH"/sss_analyze.py"
+#define SSS_ANALYZE SSSD_LIBEXEC_PATH"/sss_analyze"
 
 #define CHECK(expr, done, msg) do { \
     if (expr) { \
