@@ -2030,7 +2030,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             the managed known_hosts file.
                         </para>
                         <para>
-                            Default: true
+                            Default: false
                         </para>
                     </listitem>
                 </varlistentry>
