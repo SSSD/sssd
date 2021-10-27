@@ -9,7 +9,9 @@
 import re
 import time
 import pytest
+import paramiko
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.utils import SSHClient
 
 
 @pytest.mark.usefixtures('setup_ipa_client')
@@ -26,6 +28,90 @@ class TestADTrust(object):
         cmd = multihost.master[0].run_command(domain_list, raiseonerr=False)
         mylist = cmd.stdout_text.split()
         assert ad_domain_name in mylist
+
+    def test_pam_sss_gss_handle_large_krb_ticket(self, multihost,
+                                                 create_aduser_group):
+        """
+        :title: Verify pam_sss_gss.so can handle large kerberos ticket
+                for sudo
+        :id: 456ea53b-6702-4b8e-beb1-eee841b85fed
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1948657
+        :steps:
+         1. Add sudo rule in IPA-server for AD-users
+         2. Modify /etc/krb5.conf.d/kcm_default_ccache to specify location
+            of storing a TGT
+         3. Enable pam_sss_gss.so for auth in /etc/pam.d/{sudo,sudo-i} files
+         4. Add a sudo rule for AD-user
+         5. Log in on ipa-client as AD-user
+         6. Run kinit and fetch tgt
+         7. Run sudo command
+         8. Remove sudo cache
+         9. Run sudo command again
+        :expectedresults:
+         1. Should succeed
+         2. Should succeed
+         3. Should succeed
+         4. Should succeed
+         5. Should succeed
+         6. Should succeed
+         7. Should not ask password, and should succeed
+         8. Should succeed
+         9. Should not ask password, and should succeed
+
+        """
+        (aduser, adgroup) = create_aduser_group
+        ad_dmn_name = multihost.ad[0].domainname
+        fq_aduser = f'{aduser}@{ad_dmn_name}'
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        ipaserver = sssdTools(multihost.master[0])
+        cmd = 'dnf install -y sssd sssd-kcm'
+        multihost.client[0].run_command(cmd, raiseonerr=False)
+        domain_name = ipaserver.get_domain_section_name()
+        domain_section = 'domain/{}'.format(domain_name)
+        params = {'pam_gssapi_services': 'sudo, sudo-i'}
+        client.sssd_conf(domain_section, params)
+        krbkcm = '/etc/krb5.conf.d/kcm_default_ccache'
+        bk_krbkcm = '/tmp/kcm_default_ccache'
+        multihost.client[0].run_command(f'cp {krbkcm} {bk_krbkcm}')
+        cmd = "echo -e  '[libdefaults]\n' \
+              '    default_ccache_name  = FILE:/tmp/krb5cc_%{uid}:'"
+        multihost.client[0].run_command(cmd, raiseonerr=False)
+        multihost.client[0].service_sssd('restart')
+        pam_sss_gss = "auth       sufficient   pam_sss_gss.so debug"
+        for pam_file in "/etc/pam.d/sudo-i", "/etc/pam.d/sudo":
+            cmd = f'sed -i "1 i {pam_sss_gss}" {pam_file}'
+            multihost.client[0].run_command(cmd, raiseonerr=False)
+        cmd = f'echo "{fq_aduser} ALL=(ALL) ALL" >> /etc/sudoers'
+        multihost.client[0].run_command(cmd, raiseonerr=False)
+        log = re.compile(f'.*System.*error.*Broken.*pipe.*')
+        try:
+            ssh = SSHClient(multihost.client[0].ip,
+                            username=f'{fq_aduser}',
+                            password='Secret123')
+        except paramiko.ssh_exception.AuthenticationException:
+            pytest.fail(f'{aduser} failed to login')
+        else:
+            (_, _, exit_status) = ssh.execute_cmd(f'kinit {fq_aduser}',
+                                                  stdin='Secret123')
+            assert exit_status == 0
+            (stdout, _, exit_status) = ssh.execute_cmd('sudo -l')
+            assert exit_status == 0
+            otpt = stdout.readlines()
+            for line in otpt:
+                res = log.search(line)
+                assert res is None
+            (stdout, _, exit_status) = ssh.execute_cmd('sudo id')
+            assert exit_status == 0
+            (stdout, _, exit_status) = ssh.execute_cmd('sudo -k')
+            assert exit_status == 0
+        client.sssd_conf(domain_section, params, action='delete')
+        for pam_file in "/etc/pam.d/sudo-i", "/etc/pam.d/sudo":
+            cmd = f'sed -i "1d" {pam_file}'
+            multihost.client[0].run_command(cmd, raiseonerr=False)
+        cmd = f'sed -i "$ d" /etc/sudoers'
+        multihost.client[0].run_command(cmd, raiseonerr=False)
+        cmd = f'mv {bk_krbkcm} {krbkcm}'
+        multihost.client[0].run_command(cmd, raiseonerr=False)
 
     def test_ipaserver_sss_cache_user(self, multihost):
         """
