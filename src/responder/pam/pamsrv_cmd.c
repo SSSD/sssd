@@ -1154,8 +1154,8 @@ static void pam_reply(struct pam_auth_req *preq)
     }
 
 done:
-    DEBUG(SSSDBG_FUNC_DATA, "Returning [%d]: %s to the client [CID #%u]\n",
-          pd->pam_status, pam_strerror(NULL, pd->pam_status), pd->client_id_num);
+    DEBUG(SSSDBG_FUNC_DATA, "Returning [%d]: %s to the client\n",
+          pd->pam_status, pam_strerror(NULL, pd->pam_status));
     sss_cmd_done(cctx, preq);
 }
 
