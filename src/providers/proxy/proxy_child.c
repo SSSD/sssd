@@ -43,6 +43,7 @@
 #include "confdb/confdb.h"
 #include "providers/proxy/proxy.h"
 #include "sss_iface/sss_iface_async.h"
+#include "util/sss_chain_id.h"
 
 #include "providers/backend.h"
 
@@ -480,6 +481,7 @@ int main(int argc, const char *argv[])
     struct main_context *main_ctx;
     int ret;
     long id = 0;
+    long chain_id;
     char *pam_target = NULL;
     uid_t uid;
     gid_t gid;
@@ -493,6 +495,8 @@ int main(int argc, const char *argv[])
          _("Domain of the information provider (mandatory)"), NULL },
         {"id", 0, POPT_ARG_LONG, &id, 0,
          _("Child identifier (mandatory)"), NULL },
+        {"chain-id", 0, POPT_ARG_LONG, &chain_id, 0,
+         _("Tevent chain ID used for logging purposes"), NULL },
         POPT_TABLEEND
     };
 
@@ -547,6 +551,8 @@ int main(int argc, const char *argv[])
     /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = talloc_asprintf(NULL, "proxy_child_%s", domain);
     if (!debug_log_file) return 2;
+
+    sss_chain_id_set(chain_id);
 
     DEBUG_INIT(debug_level, opt_logger);
 
