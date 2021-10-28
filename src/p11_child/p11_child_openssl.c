@@ -1313,7 +1313,7 @@ static CK_RV get_preferred_rsa_mechanism(TALLOC_CTX *mem_ctx,
     CK_RV rv;
     size_t c;
     size_t m;
-    struct prefs {
+    const struct prefs {
         CK_MECHANISM_TYPE mech;
         const char *mech_name;
         const EVP_MD *evp_md;
@@ -1327,44 +1327,51 @@ static CK_RV get_preferred_rsa_mechanism(TALLOC_CTX *mem_ctx,
         { 0, NULL, NULL, NULL }
     };
 
-    *preferred_mechanism = CKM_SHA1_RSA_PKCS;
-    *preferred_evp_md = EVP_sha1();
-
     rv = module->C_GetMechanismList(slot_id, NULL, &count);
-    if (rv == CKR_OK && count > 0) {
-        mechanism_list = talloc_size(mem_ctx,
-                                     count * sizeof(CK_MECHANISM_TYPE));
-        if (mechanism_list != NULL) {
-            rv = module->C_GetMechanismList(slot_id, mechanism_list, &count);
-            if (rv == CKR_OK) {
-                for (m = 0; m < count; m++) {
-                    DEBUG(SSSDBG_TRACE_ALL, "Found mechanism [%lu].\n",
-                                            mechanism_list[m]);
-                }
-                for (c = 0; prefs[c].mech != 0; c++) {
-                    for (m = 0; m < count; m++) {
-                        if (prefs[c].mech == mechanism_list[m]) {
-                            *preferred_mechanism = prefs[c].mech;
-                            *preferred_evp_md = prefs[c].evp_md;
-                            DEBUG(SSSDBG_FUNC_DATA,
-                                  "Using PKCS#11 mechanism [%lu][%s] and "
-                                  "local message digest [%s].\n",
-                                  *preferred_mechanism, prefs[c].mech_name,
-                                  prefs[c].md_name);
-                            break;
-                        }
-                    }
-                    if (m != count) {
-                        break;
-                    }
-                }
+    if (rv != CKR_OK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "C_GetMechanismList failed: [%lu][%s]\n",
+              rv, p11_kit_strerror(rv));
+        return rv;
+    }
+    if (count == 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "No mechanism found\n");
+        return CKR_GENERAL_ERROR;
+    }
+
+    mechanism_list = talloc_size(mem_ctx, count * sizeof(CK_MECHANISM_TYPE));
+    if (mechanism_list == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to allocate memory\n");
+        return CKR_GENERAL_ERROR;
+    }
+
+    rv = module->C_GetMechanismList(slot_id, mechanism_list, &count);
+    if (rv != CKR_OK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "2nd C_GetMechanismList failed: [%lu][%s]\n",
+              rv, p11_kit_strerror(rv));
+        return rv;
+    }
+
+    for (m = 0; m < count; m++) {
+        DEBUG(SSSDBG_TRACE_ALL, "Found mechanism [%lu].\n", mechanism_list[m]);
+    }
+    for (c = 0; prefs[c].mech != 0; c++) {
+        for (m = 0; m < count; m++) {
+            if (prefs[c].mech == mechanism_list[m]) {
+                *preferred_mechanism = prefs[c].mech;
+                *preferred_evp_md = prefs[c].evp_md;
+                DEBUG(SSSDBG_FUNC_DATA,
+                      "Using PKCS#11 mechanism [%lu][%s] and "
+                      "local message digest [%s].\n",
+                      *preferred_mechanism, prefs[c].mech_name,
+                      prefs[c].md_name);
+                talloc_free(mechanism_list);
+                return CKR_OK;
             }
         }
     }
 
-    talloc_free(mechanism_list);
-
-    return rv;
+    DEBUG(SSSDBG_MINOR_FAILURE, "No match found\n");
+    return CKR_GENERAL_ERROR;
 }
 
 static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
