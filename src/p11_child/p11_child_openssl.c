@@ -1137,24 +1137,29 @@ static CK_KEY_TYPE get_key_type(CK_FUNCTION_LIST *module,
     return type;
 }
 
-static int do_hash(TALLOC_CTX *mem_ctx, const EVP_MD *evp_md,
-                   CK_BYTE *in, size_t in_len,
-                   CK_BYTE **hash, size_t *hash_len)
+static int do_sha512(TALLOC_CTX *mem_ctx, CK_BYTE *in, size_t in_len,
+                     bool add_info, CK_BYTE **_hash, size_t *_hash_len)
 {
     EVP_MD_CTX *md_ctx = NULL;
     int ret;
     unsigned char md_value[EVP_MAX_MD_SIZE];
     unsigned int md_len;
     CK_BYTE *out = NULL;
+    const CK_BYTE info[] =
+        {   /* https://datatracker.ietf.org/doc/html/rfc3447#page-43 :
+               the DER encoding T of the DigestInfo value for SHA-512 */
+            0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01,
+            0x65, 0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0x04, 0x40
+        };
+    const unsigned int info_len = add_info ? sizeof(info) : 0;
 
     md_ctx = EVP_MD_CTX_create();
     if (md_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "EVP_MD_CTX_create failed.\n");
-        ret = ENOMEM;
-        goto done;
+        return ENOMEM;
     }
 
-    ret = EVP_DigestInit(md_ctx, evp_md);
+    ret = EVP_DigestInit(md_ctx, EVP_sha512());
     if (ret != 1) {
         DEBUG(SSSDBG_OP_FAILURE, "EVP_DigestInit failed.\n");
         ret = EINVAL;
@@ -1175,27 +1180,26 @@ static int do_hash(TALLOC_CTX *mem_ctx, const EVP_MD *evp_md,
         goto done;
     }
 
-    out = talloc_size(mem_ctx, md_len * sizeof(CK_BYTE));
+    out = talloc_size(mem_ctx, info_len + md_len * sizeof(CK_BYTE));
     if (out == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
-    memcpy(out, md_value, md_len);
+    if (add_info) {
+        memcpy(out, info, info_len);
+    }
 
-    *hash = out;
-    *hash_len = md_len;
+    memcpy(out + info_len, md_value, md_len);
+
+    *_hash = out;
+    *_hash_len = info_len + md_len;
 
     ret = EOK;
 
 done:
-
     EVP_MD_CTX_free(md_ctx);
-    if (ret != EOK) {
-        free(out);
-    }
-
     return ret;
 }
 
@@ -1323,6 +1327,7 @@ static CK_RV get_preferred_rsa_mechanism(TALLOC_CTX *mem_ctx,
         { CKM_SHA384_RSA_PKCS, "CKM_SHA384_RSA_PKCS", EVP_sha384(), "sha384" },
         { CKM_SHA256_RSA_PKCS, "CKM_SHA256_RSA_PKCS", EVP_sha256(), "sha256" },
         { CKM_SHA224_RSA_PKCS, "CKM_SHA224_RSA_PKCS", EVP_sha224(), "sha224" },
+        { CKM_RSA_PKCS,        "CKM_RSA_PKCS",        NULL,         "-none-" },
         { CKM_SHA1_RSA_PKCS,   "CKM_SHA1_RSA_PKCS",   EVP_sha1(),   "sha1" },
         { 0, NULL, NULL, NULL }
     };
@@ -1360,8 +1365,8 @@ static CK_RV get_preferred_rsa_mechanism(TALLOC_CTX *mem_ctx,
                 *preferred_mechanism = prefs[c].mech;
                 *preferred_evp_md = prefs[c].evp_md;
                 DEBUG(SSSDBG_FUNC_DATA,
-                      "Using PKCS#11 mechanism [%lu][%s] and "
-                      "local message digest [%s].\n",
+                      "Using PKCS#11 mechanism [%lu][%s] with "
+                      "message digest [%s].\n",
                       *preferred_mechanism, prefs[c].mech_name,
                       prefs[c].md_name);
                 talloc_free(mechanism_list);
@@ -1447,12 +1452,11 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
         DEBUG(SSSDBG_TRACE_ALL, "Found RSA key using mechanism [%lu].\n",
                                 preferred_mechanism);
         mechanism.mechanism = preferred_mechanism;
-        card_does_hash = true;
+        card_does_hash = (evp_md != NULL);
         break;
     case CKK_EC:
         DEBUG(SSSDBG_TRACE_ALL, "Found ECC key using CKM_ECDSA.\n");
         mechanism.mechanism = CKM_ECDSA;
-        evp_md = EVP_sha512();
         card_does_hash = false;
         break;
     case CK_UNAVAILABLE_INFORMATION:
@@ -1482,8 +1486,10 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
         val_to_sign = random_value;
         val_to_sign_len = sizeof(random_value);
     } else {
-        ret = do_hash(cert, evp_md, random_value, sizeof(random_value),
-                      &hash_val, &hash_len);
+        evp_md = EVP_sha512();
+        ret = do_sha512(cert, random_value, sizeof(random_value),
+                        (mechanism.mechanism == CKM_RSA_PKCS), /* add_info */
+                        &hash_val, &hash_len);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "do_hash failed.\n");
             return ret;
@@ -1559,7 +1565,8 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
     } else {
         ret = EVP_VerifyFinal(md_ctx, signature, signature_size, cert_pub_key);
         if (ret != 1) {
-            DEBUG(SSSDBG_OP_FAILURE, "EVP_VerifyFinal failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "EVP_VerifyFinal failed: '%s'\n",
+                  ERR_reason_error_string(ERR_peek_last_error()));
             ret = EINVAL;
             goto done;
         }
