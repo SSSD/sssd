@@ -1162,6 +1162,20 @@ sbus_call_ifp_users_FindByNameAndCertificate
 }
 
 errno_t
+sbus_call_ifp_users_FindByValidCertificate
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_sync_connection *conn,
+     const char *busname,
+     const char *object_path,
+     const char * arg_pem_cert,
+     const char ** _arg_result)
+{
+     return sbus_method_in_s_out_o(mem_ctx, conn,
+          busname, object_path, "org.freedesktop.sssd.infopipe.Users", "FindByValidCertificate", arg_pem_cert,
+          _arg_result);
+}
+
+errno_t
 sbus_call_ifp_users_ListByCertificate
     (TALLOC_CTX *mem_ctx,
      struct sbus_sync_connection *conn,

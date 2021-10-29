@@ -1557,6 +1557,28 @@
         (handler_send), (handler_recv), (data)); \
 })
 
+/* Method: org.freedesktop.sssd.infopipe.Users.FindByValidCertificate */
+#define SBUS_METHOD_SYNC_org_freedesktop_sssd_infopipe_Users_FindByValidCertificate(handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data), const char *, const char **); \
+    sbus_method_sync("FindByValidCertificate", \
+        &_sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_FindByValidCertificate, \
+        NULL, \
+        _sbus_ifp_invoke_in_s_out_o_send, \
+        NULL, \
+        (handler), (data)); \
+})
+
+#define SBUS_METHOD_ASYNC_org_freedesktop_sssd_infopipe_Users_FindByValidCertificate(handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data), const char *); \
+    SBUS_CHECK_RECV((handler_recv), const char **); \
+    sbus_method_async("FindByValidCertificate", \
+        &_sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_FindByValidCertificate, \
+        NULL, \
+        _sbus_ifp_invoke_in_s_out_o_send, \
+        NULL, \
+        (handler_send), (handler_recv), (data)); \
+})
+
 /* Method: org.freedesktop.sssd.infopipe.Users.ListByCertificate */
 #define SBUS_METHOD_SYNC_org_freedesktop_sssd_infopipe_Users_ListByCertificate(handler, data) ({ \
     SBUS_CHECK_SYNC((handler), (data), const char *, uint32_t, const char ***); \
