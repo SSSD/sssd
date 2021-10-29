@@ -360,6 +360,18 @@ _sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_FindByNameAndCertificate = {
 };
 
 const struct sbus_method_arguments
+_sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_FindByValidCertificate = {
+    .input = (const struct sbus_argument[]){
+        {.type = "s", .name = "pem_cert"},
+        {NULL}
+    },
+    .output = (const struct sbus_argument[]){
+        {.type = "o", .name = "result"},
+        {NULL}
+    }
+};
+
+const struct sbus_method_arguments
 _sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_ListByCertificate = {
     .input = (const struct sbus_argument[]){
         {.type = "s", .name = "pem_cert"},

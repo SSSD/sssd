@@ -120,6 +120,18 @@ ifp_users_list_by_domain_and_name_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
                                        const char ***_paths);
 
+struct tevent_req *
+ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct sbus_request *sbus_req,
+                                  struct ifp_ctx *ctx,
+                                  const char *pem_cert);
+
+errno_t
+ifp_users_find_by_valid_cert_recv(TALLOC_CTX *mem_ctx,
+                                  struct tevent_req *req,
+                                  const char **_path);
+
 /* org.freedesktop.sssd.infopipe.Users.User */
 
 struct tevent_req *

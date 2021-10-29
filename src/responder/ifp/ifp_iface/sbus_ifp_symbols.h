@@ -110,6 +110,9 @@ extern const struct sbus_method_arguments
 _sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_FindByNameAndCertificate;
 
 extern const struct sbus_method_arguments
+_sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_FindByValidCertificate;
+
+extern const struct sbus_method_arguments
 _sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_ListByCertificate;
 
 extern const struct sbus_method_arguments

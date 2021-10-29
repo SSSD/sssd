@@ -26,6 +26,8 @@
 #include "util/util.h"
 #include "util/strtonum.h"
 #include "util/cert.h"
+#include "util/child_common.h"
+#include "util/crypto/sss_crypto.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 #include "responder/ifp/ifp_users.h"
@@ -1025,6 +1027,323 @@ ifp_users_list_by_domain_and_name_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *_paths = talloc_steal(mem_ctx, state->list_ctx->paths);
+
+    return EOK;
+}
+
+struct ifp_users_find_by_valid_cert_state {
+    struct ifp_ctx *ifp_ctx;
+    struct tevent_context *ev;
+    const char *logfile;
+    time_t timeout;
+    char *ca_db;
+    char *verify_opts;
+    char *derb64;
+    const char **extra_args;
+    const char *path;
+
+    struct sss_child_ctx_old *child_ctx;
+    struct child_io_fds *io;
+};
+
+static errno_t p11_child_exec(struct tevent_req *req);
+static void
+ifp_users_find_by_valid_cert_step(int child_status,
+                                  struct tevent_signal *sige,
+                                  void *pvt);
+static void ifp_users_find_by_valid_cert_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct sbus_request *sbus_req,
+                                  struct ifp_ctx *ctx,
+                                  const char *pem_cert)
+{
+    struct tevent_req *req;
+    struct ifp_users_find_by_valid_cert_state *state;
+    size_t arg_c = 0;
+    int ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ifp_users_find_by_valid_cert_state);
+    if (req == NULL) {
+        return NULL;
+    }
+
+    state->ifp_ctx = ctx;
+
+    ret = confdb_get_string(ctx->rctx->cdb, state,
+                            CONFDB_IFP_CONF_ENTRY, CONFDB_SSH_CA_DB,
+                            CONFDB_DEFAULT_SSH_CA_DB, &state->ca_db);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading CA DB from confdb (%d) [%s]\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    ret = confdb_get_int(ctx->rctx->cdb, CONFDB_IFP_CONF_ENTRY,
+                         CONFDB_PAM_P11_CHILD_TIMEOUT, -1,
+                         (int *) &state->timeout);
+    if (ret != EOK || state->timeout == -1) {
+        /* check pam configuration as well or use default */
+        ret = confdb_get_int(ctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                             CONFDB_PAM_P11_CHILD_TIMEOUT,
+                             P11_CHILD_TIMEOUT_DEFAULT,
+                             (int *) &state->timeout);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to read p11_child_timeout from confdb: [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = confdb_get_string(ctx->rctx->cdb, state, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_CERT_VERIFICATION, NULL,
+                            &state->verify_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read '"CONFDB_MONITOR_CERT_VERIFICATION"' from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    state->ev = ev;
+    state->logfile = P11_CHILD_LOG_FILE;
+    state->io = talloc(state, struct child_io_fds);
+    if (state->io == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    state->io->write_to_child_fd = -1;
+    state->io->read_from_child_fd = -1;
+    talloc_set_destructor((void *) state->io, child_io_destructor);
+
+    ret = sss_cert_pem_to_derb64(state, pem_cert, &state->derb64);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
+        goto done;
+    }
+
+    state->extra_args = talloc_zero_array(state, const char *, 8);
+    if (state->extra_args == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    state->extra_args[arg_c++] = state->derb64;
+    state->extra_args[arg_c++] = "--certificate";
+    state->extra_args[arg_c++] = state->ca_db;
+    state->extra_args[arg_c++] = "--ca_db";
+    if (state->verify_opts != NULL) {
+        state->extra_args[arg_c++] = state->verify_opts;
+        state->extra_args[arg_c++] = "--verify";
+    }
+    state->extra_args[arg_c++] = "--verification";
+
+    ret = p11_child_exec(req);
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static errno_t p11_child_exec(struct tevent_req *req)
+{
+    struct ifp_users_find_by_valid_cert_state *state;
+    int pipefd_from_child[2] = PIPE_INIT;
+    int pipefd_to_child[2] = PIPE_INIT;
+    pid_t child_pid;
+    struct timeval tv;
+    bool endtime;
+    int ret;
+
+    state = tevent_req_data(req, struct ifp_users_find_by_valid_cert_state);
+
+    ret = pipe(pipefd_from_child);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe failed [%d][%s].\n", ret, strerror(ret));
+        goto done;
+    }
+    ret = pipe(pipefd_to_child);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe failed [%d][%s].\n", ret, strerror(ret));
+        goto done;
+    }
+
+    child_pid = fork();
+    if (child_pid == 0) { /* child */
+        exec_child_ex(state, pipefd_to_child, pipefd_from_child,
+                      P11_CHILD_PATH, state->logfile, state->extra_args,
+                      false, STDIN_FILENO, STDOUT_FILENO);
+        /* We should never get here */
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec p11 child\n");
+        return ret;
+    } else if (child_pid > 0) { /* parent */
+        state->io->read_from_child_fd = pipefd_from_child[0];
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
+        sss_fd_nonblocking(state->io->read_from_child_fd);
+
+        state->io->write_to_child_fd = pipefd_to_child[1];
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
+        sss_fd_nonblocking(state->io->write_to_child_fd);
+
+        /* Set up SIGCHLD handler */
+        ret = child_handler_setup(state->ev, child_pid,
+                                  ifp_users_find_by_valid_cert_step,
+                                  req, &state->child_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            ret = ERR_P11_CHILD;
+            goto done;
+        }
+
+        /* Set up timeout handler */
+        tv = tevent_timeval_current_ofs(state->timeout, 0);
+        endtime = tevent_req_set_endtime(req, state->ev, tv);
+        if (endtime == false) {
+            ret = ERR_P11_CHILD;
+            goto done;
+        }
+        /* Now either wait for the timeout to fire or the child to finish */
+    } else { /* error */
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed [%d][%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    return EAGAIN;
+
+done:
+    if (ret != EOK) {
+        PIPE_CLOSE(pipefd_from_child);
+        PIPE_CLOSE(pipefd_to_child);
+    }
+
+    return ret;
+}
+
+static void
+ifp_users_find_by_valid_cert_step(int child_status,
+                                  struct tevent_signal *sige,
+                                  void *pvt)
+{
+    struct tevent_req *subreq;
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct ifp_users_find_by_valid_cert_state *state;
+    errno_t ret;
+
+    state = tevent_req_data(req, struct ifp_users_find_by_valid_cert_state);
+
+    PIPE_FD_CLOSE(state->io->read_from_child_fd);
+    PIPE_FD_CLOSE(state->io->write_to_child_fd);
+
+    if (WIFEXITED(child_status)) {
+        if (WEXITSTATUS(child_status) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  P11_CHILD_PATH " failed with status [%d]\n", child_status);
+            tevent_req_error(req, ERR_INVALID_CERT);
+            return;
+        }
+    } else if (WIFSIGNALED(child_status)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              P11_CHILD_PATH " was terminated by signal [%d]\n",
+              WTERMSIG(child_status));
+        tevent_req_error(req, ECHILD);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, "Certificate [%s] is valid.\n",
+          state->extra_args[0]);
+
+    subreq = cache_req_user_by_cert_send(state, state->ifp_ctx->rctx->ev,
+                                         state->ifp_ctx->rctx,
+                                         state->ifp_ctx->rctx->ncache, 0,
+                                         CACHE_REQ_ANY_DOM, NULL,
+                                         state->derb64);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_users_find_by_valid_cert_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, state->ifp_ctx->rctx->ev);
+    }
+
+    return;
+}
+
+static void ifp_users_find_by_valid_cert_done(struct tevent_req *subreq)
+{
+    struct ifp_users_find_by_valid_cert_state *state;
+    struct cache_req_result *result;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_users_find_by_valid_cert_state);
+
+    ret = cache_req_user_by_cert_recv(state, subreq, &result);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to find user [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (result->count > 1) {
+         DEBUG(SSSDBG_CRIT_FAILURE, "More than one user found. "
+               "Use ListByCertificate to get all.\n");
+         tevent_req_error(req, EINVAL);
+         return;
+    }
+
+    state->path = ifp_users_build_path_from_msg(state, result->domain,
+                                                result->msgs[0]);
+    if (state->path == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_users_find_by_valid_cert_recv(TALLOC_CTX *mem_ctx,
+                                  struct tevent_req *req,
+                                  const char **_path)
+{
+    struct ifp_users_find_by_valid_cert_state *state;
+
+    state = tevent_req_data(req, struct ifp_users_find_by_valid_cert_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_path = talloc_steal(mem_ctx, state->path);
 
     return EOK;
 }
