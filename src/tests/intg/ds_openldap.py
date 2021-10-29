@@ -199,6 +199,12 @@ class DSOpenLDAP(DS):
              "-l", "data/sudo_schema.ldif"],
         )
 
+        # Import cert schema
+        subprocess.check_call(
+            ["slapadd", "-F", self.conf_slapd_d_dir, "-b", "cn=config",
+             "-l", "data/cert_schema.ldif"],
+        )
+
     def _start_daemon(self):
         """Start the instance."""
         if subprocess.call(["slapd", "-F", self.conf_slapd_d_dir,

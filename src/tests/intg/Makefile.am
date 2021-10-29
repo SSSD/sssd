@@ -31,6 +31,7 @@ dist_noinst_DATA = \
     test_pac_responder.py \
     data/ad_data.ldif \
     data/ad_schema.ldif \
+    data/cert_schema.ldif \
     data/sudo_schema.ldif \
     test_pysss_nss_idmap.py \
     test_infopipe.py \
@@ -208,6 +209,7 @@ intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service 
 	PAM_WRAPPER_SERVICE_DIR="$(abs_builddir)/$(PAM_SERVICE_DIR)" \
 	PAM_WRAPPER_PATH=$$(pkg-config --libs pam_wrapper) \
 	PAM_CERT_DB_PATH=$(PAM_CERT_DB_PATH) \
+	ABS_SRCDIR=$(abs_srcdir) \
 	SOFTHSM2_CONF=$(SOFTHSM2_CONF) \
 	KCM_RENEW=$(KCM_RENEW) \
 	DBUS_SOCK_DIR="$(DESTDIR)$(runstatedir)/dbus/" \

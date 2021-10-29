@@ -1,0 +1,11 @@
+dn: cn=cert,cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: cert
+olcAttributeTypes: ( 1.2.840.113556.1.4.645 NAME 'userCert'
+  DESC 'MANDATORY: X.509 user certificate'
+  EQUALITY octetStringMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
+olcObjectClasses: ( 1.2.840.113556.1.3.46 NAME 'mailRecipient' SUP top AUXILIARY
+  DESC 'MANDATORY: X.509 objectclass'
+  MAY ( userCert $ uid )
+  )

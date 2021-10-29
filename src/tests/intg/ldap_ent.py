@@ -36,7 +36,7 @@ def user(base_dn, uid, uidNumber, gidNumber,
     user = (
         "uid=" + uid + ",ou=Users," + base_dn,
         [
-            ('objectClass', [b'top', b'inetOrgPerson',
+            ('objectClass', [b'top', b'inetOrgPerson', b'mailRecipient',
                              b'posixAccount', b'ldapPublicKey']),
             ('cn', [uidNumber if cn is None else cn.encode('utf-8')]),
             ('sn', [b'User' if sn is None else sn.encode('utf-8')]),
