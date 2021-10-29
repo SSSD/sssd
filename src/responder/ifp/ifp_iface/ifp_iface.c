@@ -153,7 +153,8 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Users, ListByCertificate, ifp_users_list_by_cert_send, ifp_users_list_by_cert_recv, ctx),
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Users, FindByNameAndCertificate, ifp_users_find_by_name_and_cert_send, ifp_users_find_by_name_and_cert_recv, ctx),
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Users, ListByName, ifp_users_list_by_name_send, ifp_users_list_by_name_recv, ctx),
-            SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Users, ListByDomainAndName, ifp_users_list_by_domain_and_name_send, ifp_users_list_by_domain_and_name_recv, ctx)
+            SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Users, ListByDomainAndName, ifp_users_list_by_domain_and_name_send, ifp_users_list_by_domain_and_name_recv, ctx),
+            SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Users, FindByValidCertificate, ifp_users_find_by_valid_cert_send, ifp_users_find_by_valid_cert_recv, ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)

@@ -182,6 +182,10 @@
             <arg name="limit" type="u" direction="in" key="3" />
             <arg name="result" type="ao" direction="out"/>
         </method>
+        <method name="FindByValidCertificate">
+            <arg name="pem_cert" type="s" direction="in" />
+            <arg name="result" type="o" direction="out" />
+        </method>
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Users.User">
