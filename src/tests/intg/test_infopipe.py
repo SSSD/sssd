@@ -31,6 +31,7 @@ import ldap
 import ldap.modlist
 import pytest
 import dbus
+import base64
 
 import config
 import ds_openldap
@@ -184,7 +185,7 @@ SCHEMA_RFC2307 = "rfc2307"
 SCHEMA_RFC2307_BIS = "rfc2307bis"
 
 
-def format_basic_conf(ldap_conn, schema):
+def format_basic_conf(ldap_conn, schema, config):
     """Format a basic SSSD configuration"""
     schema_conf = "ldap_schema         = " + schema + "\n"
     if schema == SCHEMA_RFC2307_BIS:
@@ -209,6 +210,7 @@ def format_basic_conf(ldap_conn, schema):
         # There is not such problem in 1st test. Just in following tests.
         command = {ifp_command} --uid 0 --gid 0 --logger=files
         user_attributes = +extraName
+        ca_db               = {config.PAM_CERT_DB_PATH}
 
         [domain/LDAP]
         {schema_conf}
@@ -216,6 +218,7 @@ def format_basic_conf(ldap_conn, schema):
         ldap_uri            = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
         ldap_user_extra_attrs = extraName:uid
+        ldap_user_certificate = userCert
 
         [application/app]
         inherit_from = LDAP
@@ -235,6 +238,16 @@ def format_interactive_conf(ldap_conn, schema):
             ldap_purge_cache_timeout            = 1
             entry_cache_timeout                 = {0}
         """).format(INTERACTIVE_TIMEOUT)
+
+
+def format_certificate_conf(ldap_conn, schema, config):
+    """Format an SSSD configuration with all caches refreshing in 4 seconds"""
+    return \
+        format_basic_conf(ldap_conn, schema, config) + \
+        unindent("""
+            [certmap/LDAP/user1]
+            matchrule = <SUBJECT>.*CN = SSSD test cert 0001.*
+        """).format(**locals())
 
 
 def create_conf_file(contents):
@@ -318,7 +331,8 @@ def sanity_rfc2307(request, ldap_conn):
 
     create_ldap_fixture(request, ldap_conn, ent_list)
 
-    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307)
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307, config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
@@ -330,7 +344,8 @@ def simple_rfc2307(request, ldap_conn):
     ent_list.add_user('usr\\\\001', 181818, 181818)
     ent_list.add_group("group1", 181818)
     create_ldap_fixture(request, ldap_conn, ent_list)
-    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307)
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307, config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
@@ -347,14 +362,43 @@ def auto_private_groups_rfc2307(request, ldap_conn):
 
     create_ldap_fixture(request, ldap_conn, ent_list)
 
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
     conf = \
-        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307, config) + \
         unindent("""
             [domain/LDAP]
             auto_private_groups = True
         """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def add_user_with_cert(request, ldap_conn):
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    der_path = os.path.dirname(config.PAM_CERT_DB_PATH)
+    der_path += "/SSSD_test_cert_x509_0001.der"
+    with open(der_path, 'rb') as f:
+        val = f.read()
+    dn = "uid=user1,ou=Users," + LDAP_BASE_DN
+    '''
+    Using 'userCert' instead of 'userCertificate' to hold the user certificate
+    because the default OpenLDAP has syntax and matching rules which are not
+    used in other LDAP servers.
+    '''
+    ldap_conn.modify_s(dn, [(ldap.MOD_ADD, 'userCert', val)])
+
+    conf = format_certificate_conf(ldap_conn, SCHEMA_RFC2307_BIS, config)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
     return None
 
 
@@ -669,3 +713,53 @@ def test_update_member_list_and_get_all(dbus_system_bus,
                                     'org.freedesktop.DBus.Properties')
     res = prop_interface.GetAll('org.freedesktop.sssd.infopipe.Groups.Group')
     assert not res.get("users")
+
+
+def test_find_by_valid_certificate(dbus_system_bus,
+                                   ldap_conn,
+                                   add_user_with_cert):
+    users_obj = dbus_system_bus.get_object(
+        'org.freedesktop.sssd.infopipe',
+        '/org/freedesktop/sssd/infopipe/Users')
+    users_iface = dbus.Interface(users_obj,
+                                 'org.freedesktop.sssd.infopipe.Users')
+    cert_path = os.path.dirname(config.PAM_CERT_DB_PATH)
+
+    # Valid certificate with user
+    cert_file = cert_path + "/SSSD_test_cert_x509_0001.pem"
+    with open(cert_file, "r") as f:
+        cert = f.read()
+    res = users_iface.FindByValidCertificate(cert)
+    assert res == "/org/freedesktop/sssd/infopipe/Users/app/user1_40app"
+
+    # Valid certificate without user
+    cert_file = cert_path + "/SSSD_test_cert_x509_0002.pem"
+    with open(cert_file, "r") as f:
+        cert = f.read()
+    try:
+        res = users_iface.FindByValidCertificate(cert)
+        assert False, "Previous call should raise an exception"
+    except dbus.exceptions.DBusException as ex:
+        assert str(ex) == "sbus.Error.NotFound: No such file or directory"
+
+    # Valid certificate from another CA
+    print(os.environ['ABS_SRCDIR'])
+    cert_file = os.environ['ABS_SRCDIR'] + \
+        "/../test_ECC_CA/SSSD_test_ECC_cert_key_0001.pem"
+    with open(cert_file, "r") as f:
+        cert = f.read()
+    try:
+        res = users_iface.FindByValidCertificate(cert)
+        assert False, "Previous call should raise an exception"
+    except dbus.exceptions.DBusException as ex:
+        assert str(ex) == \
+            "org.freedesktop.DBus.Error.IOError: Input/output error"
+
+    # Invalid certificate
+    cert = "Invalid cert"
+    try:
+        res = users_iface.FindByValidCertificate(cert)
+        assert False, "Previous call should raise an exception"
+    except dbus.exceptions.DBusException as ex:
+        error = "org.freedesktop.DBus.Error.IOError: Input/output error"
+        assert str(ex) == error
