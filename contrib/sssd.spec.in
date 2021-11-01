@@ -532,7 +532,6 @@ autoreconf -ivf
     --with-subid \
 %endif
 %if 0%{?fedora}
-    --enable-files-domain \
     --disable-polkit-rules-path \
 %endif
     %{nil}
