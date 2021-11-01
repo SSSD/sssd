@@ -14,6 +14,12 @@
 %global child_attrs 4750
 %endif
 
+%if 0%{?fedora} >= 35 || 0%{?rhel} >= 9
+%global build_subid 1
+%else
+%global build_subid 0
+%endif
+
 %if 0%{?fedora} >= 34
 %global build_kcm_renewals 1
 %global krb5_version 1.19.1
@@ -136,6 +142,9 @@ BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
 BuildRequires: uid_wrapper
 BuildRequires: po4a
+%if %{build_subid}
+BuildRequires: shadow-utils-subid-devel
+%endif
 %if %{build_kcm_renewals}
 BuildRequires: krb5-libs >= %{krb5_version}
 %endif
@@ -519,6 +528,9 @@ autoreconf -ivf
     --with-sssd-user=%{sssd_user} \
     --with-syslog=journald \
     --with-test-dir=/dev/shm \
+%if %{build_subid}
+    --with-subid \
+%endif
 %if 0%{?fedora}
     --enable-files-domain \
     --disable-polkit-rules-path \
@@ -826,6 +838,9 @@ done
 %files client -f sssd_client.lang
 %license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/libnss_sss.so.2
+%if %{build_subid}
+%{_libdir}/libsubid_sss.so
+%endif
 %{_libdir}/security/pam_sss.so
 %{_libdir}/security/pam_sss_gss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
