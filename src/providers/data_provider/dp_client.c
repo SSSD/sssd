@@ -104,6 +104,11 @@ dp_client_register(TALLOC_CTX *mem_ctx,
 
     dp_cli = sbus_connection_get_data(cli_conn, struct dp_client);
 
+    if (dp_cli == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown client! [%s]\n", name);
+        return ENOENT;
+    }
+
     dp_cli->name = talloc_strdup(dp_cli, name);
     if (dp_cli->name == NULL) {
         talloc_free(dp_cli);
