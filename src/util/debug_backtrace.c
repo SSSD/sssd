@@ -30,6 +30,9 @@ extern FILE *_sss_debug_file;
 static const unsigned SSS_DEBUG_BACKTRACE_DEFAULT_SIZE = 100*1024; /* bytes */
 static const unsigned SSS_DEBUG_BACKTRACE_LEVEL        = SSSDBG_BE_FO;
 
+/* Size of locations history to keep to avoid duplicating backtraces */
+#define SSS_DEBUG_BACKTRACE_LOCATIONS 5
+
 
 /*                     -->
  * ring buffer = [*******t...\n............e000]
@@ -46,12 +49,21 @@ static struct {
     char     *buffer;  /* buffer start */
     char     *end;     /* end data border */
     char     *tail;    /* tail of "current" message */
+
+    /* locations where last backtraces happened */
+    struct {
+        const char *file;
+        long        line;
+    } locations[SSS_DEBUG_BACKTRACE_LOCATIONS];
+    unsigned last_location_idx;
 } _bt;
 
 
 static inline bool _all_levels_enabled(void);
 static inline bool _backtrace_is_enabled(int level);
 static inline bool _is_trigger_level(int level);
+static void _store_location(const char *file, long line);
+static bool _is_recent_location(const char *file, long line);
 static void _backtrace_vprintf(const char *format, va_list ap);
 static void _backtrace_printf(const char *format, ...);
 static void _backtrace_dump(void);
@@ -74,6 +86,8 @@ void sss_debug_backtrace_init(void)
 
     _bt.enabled     = true;
     _bt.initialized = true;
+
+    /* locations[] & last_location_idx are zero-initialized */
 
     _backtrace_printf("   *  ");
 }
@@ -116,7 +130,7 @@ void sss_debug_backtrace_printf(int level, const char *format, ...)
 }
 
 
-void sss_debug_backtrace_endmsg(int level)
+void sss_debug_backtrace_endmsg(const char *file, long line, int level)
 {
     if (DEBUG_IS_SET(level)) {
         _debug_fflush();
@@ -124,7 +138,16 @@ void sss_debug_backtrace_endmsg(int level)
 
     if (_backtrace_is_enabled(level)) {
         if (_is_trigger_level(level)) {
-            _backtrace_dump();
+            if (!_is_recent_location(file, line)) {
+                _backtrace_dump();
+                _store_location(file, line);
+            } else {
+                fprintf(_sss_debug_file ? _sss_debug_file : stderr,
+                        "   *  ... skipping repetitive backtrace ...\n");
+                /* and reset */
+                _bt.end  = _bt.buffer;
+                _bt.tail = _bt.buffer;
+            }
         }
         _backtrace_printf("   *  ");
     }
@@ -191,7 +214,29 @@ static inline bool _backtrace_is_enabled(int level)
 }
 
 
- /* prints to buffer */
+static void _store_location(const char *file, long line)
+{
+    _bt.last_location_idx = (_bt.last_location_idx + 1) % SSS_DEBUG_BACKTRACE_LOCATIONS;
+     /* __FILE__ is a character string literal with static storage duration. */
+    _bt.locations[_bt.last_location_idx].file = file;
+    _bt.locations[_bt.last_location_idx].line = line;
+}
+
+
+static bool _is_recent_location(const char *file, long line)
+{
+    for (unsigned idx = 0; idx < SSS_DEBUG_BACKTRACE_LOCATIONS; ++idx) {
+        if ((line == _bt.locations[idx].line) &&
+            (_bt.locations[idx].file != NULL) &&
+            (strcmp(file, _bt.locations[idx].file) == 0)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+/* prints to buffer */
 static void _backtrace_vprintf(const char *format, va_list ap)
 {
     int buff_tail_size = _bt.size - (_bt.tail - _bt.buffer);
