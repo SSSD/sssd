@@ -42,7 +42,7 @@
 void sss_debug_backtrace_init(void);
 void sss_debug_backtrace_vprintf(int level, const char *format, va_list ap);
 void sss_debug_backtrace_printf(int level, const char *format, ...);
-void sss_debug_backtrace_endmsg(int level);
+void sss_debug_backtrace_endmsg(const char *file, long line, int level);
 
 const char *debug_prg_name = "sssd";
 
@@ -359,7 +359,7 @@ void sss_vdebug_fn(const char *file,
     if (flags & APPEND_LINE_FEED) {
         sss_debug_backtrace_printf(level, "\n");
     }
-    sss_debug_backtrace_endmsg(level);
+    sss_debug_backtrace_endmsg(file, line, level);
 }
 
 void sss_debug_fn(const char *file,
