@@ -329,6 +329,24 @@ static int pam_test_setup_no_verification(void **state)
     pam_test_setup_common();
     return 0;
 }
+
+static int pam_test_setup_mech_rsa_pkcs(void **state)
+{
+    int rc = pam_test_setup_no_verification(state);
+    if (rc != 0) {
+        return rc;
+    }
+    return putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_mech_rsa_pkcs.conf"));
+}
+
+static int pam_test_setup_mech_rsa_sha384_pkcs(void **state)
+{
+    int rc = pam_test_setup_no_verification(state);
+    if (rc != 0) {
+        return rc;
+    }
+    return putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_mech_rsa_sha384_pkcs.conf"));
+}
 #endif /* HAVE_TEST_CA */
 
 static int pam_cached_test_setup(void **state)
@@ -3662,6 +3680,12 @@ int main(int argc, const char *argv[])
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth,
                                         pam_test_setup_no_verification,
+                                        pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth,
+                                        pam_test_setup_mech_rsa_pkcs,
+                                        pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth,
+                                        pam_test_setup_mech_rsa_sha384_pkcs,
                                         pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_pss_cert_auth,
                                         pam_test_setup, pam_test_teardown),

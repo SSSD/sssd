@@ -108,7 +108,7 @@ softhsm2_none.conf:
 	@echo "objectstore.backend = file" >> $@
 	@echo "slots.removable = true" >> $@
 
-softhsm2_one: softhsm2_one.conf
+softhsm2_one: softhsm2_one.conf softhsm2_mech_rsa_pkcs.conf softhsm2_mech_rsa_sha384_pkcs.conf
 	mkdir $@
 	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token" --pin 123456 --so-pin 123456 --free
 	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0001.pem --login  --label 'SSSD test cert 0001' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
@@ -118,6 +118,18 @@ softhsm2_one.conf:
 	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_one" > $@
 	@echo "objectstore.backend = file" >> $@
 	@echo "slots.removable = true" >> $@
+
+softhsm2_mech_rsa_pkcs.conf:
+	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_one" > $@
+	@echo "objectstore.backend = file" >> $@
+	@echo "slots.removable = true" >> $@
+	@echo "slots.mechanisms = CKM_RSA_PKCS" >> $@
+
+softhsm2_mech_rsa_sha384_pkcs.conf:
+	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_one" > $@
+	@echo "objectstore.backend = file" >> $@
+	@echo "slots.removable = true" >> $@
+	@echo "slots.mechanisms = CKM_SHA384_RSA_PKCS" >> $@
 
 #Export cert from softhsm2 via p11tool, should produce the same as openssl
 SSSD_test_cert_x509_0001.der: softhsm2_one.conf
