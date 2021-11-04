@@ -46,19 +46,22 @@ class Files(Reader):
         else:
             return path + "/"
 
-    def get_domain_logfiles(self):
+    def get_domain_logfiles(self, child=False):
         """ Retrieve list of SSSD log files, exclude rotated (.gz) files """
         domain_files = []
         exclude_list = ["ifp", "nss", "pam", "sudo", "autofs",
                         "ssh", "pac", "kcm", ".gz"]
-        file_list = glob.glob(self.path + "sssd_*")
+        if child:
+            file_list = glob.glob(self.path + "*.log")
+        else:
+            file_list = glob.glob(self.path + "sssd_*")
         for file in file_list:
             if not any(s in file for s in exclude_list):
                 domain_files.append(file)
 
         return domain_files
 
-    def set_component(self, component):
+    def set_component(self, component, child):
         """
         Switch the reader to interact with a certain SSSD component
         NSS, PAM, BE
@@ -69,8 +72,9 @@ class Files(Reader):
         elif component == self.Component.PAM:
             self.log_files.append(self.path + "sssd_pam.log")
         elif component == self.Component.BE:
-            if not self.domains:
+            domains = self.get_domain_logfiles(child)
+            if not domains:
                 raise IOError
             # error: No domains found?
-            for dom in self.domains:
+            for dom in domains:
                 self.log_files.append(dom)

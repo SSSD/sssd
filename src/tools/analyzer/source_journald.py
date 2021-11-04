@@ -33,7 +33,7 @@ class Journald(Reader):
             else:
                 yield msg
 
-    def set_component(self, component):
+    def set_component(self, component, child):
         """
         Switch the reader to interact with a certain SSSD component
         NSS, PAM, BE

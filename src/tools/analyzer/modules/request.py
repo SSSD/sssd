@@ -28,7 +28,7 @@ class RequestAnalyzer:
 
     show_opts = [
             Option('cid', 'Track request with this ID', int),
-            Option('--cachereq', 'Include cache request logs', bool),
+            Option('--child', 'Include child process logs', bool),
             Option('--merge', 'Merge logs together sorted by timestamp', bool),
             Option('--pam', 'Track only PAM requests', bool),
     ]
@@ -228,7 +228,7 @@ class RequestAnalyzer:
             resp = "pam"
 
         logger.info(f"******** Listing {resp} client requests ********")
-        source.set_component(component)
+        source.set_component(component, False)
         self.done = ""
         for line in self.matched_line(source, patterns):
             if isinstance(source, Journald):
@@ -260,18 +260,13 @@ class RequestAnalyzer:
 
         logger.info(f"******** Checking {resp} responder for Client ID"
                     f" {cid} *******")
-        source.set_component(component)
-        if args.cachereq:
-            cr_id_regex = 'CR #[0-9]+'
-            cr_ids = self.get_linked_ids(source, pattern, cr_id_regex)
-            [pattern.append(f'{id}\:') for id in cr_ids]
-
+        source.set_component(component, args.child)
         for match in self.matched_line(source, pattern):
             resp_results = self.consume_line(match, source, args.merge)
 
         logger.info(f"********* Checking Backend for Client ID {cid} ********")
         pattern = [f'REQ_TRACE.*\[sssd.{resp} CID #{cid}\]']
-        source.set_component(source.Component.BE)
+        source.set_component(source.Component.BE, args.child)
 
         be_id_regex = '\[RID#[0-9]+\]'
         be_ids = self.get_linked_ids(source, pattern, be_id_regex)
@@ -279,8 +274,6 @@ class RequestAnalyzer:
         pattern.clear()
         [pattern.append(f'\\{id}') for id in be_ids]
 
-        if args.pam:
-            pattern.append(pam_data_regex)
         for match in self.matched_line(source, pattern):
             be_results = self.consume_line(match, source, args.merge)
 
