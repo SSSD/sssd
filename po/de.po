@@ -2882,7 +2882,6 @@ msgstr ""
 #~ msgid "Groups must be in the same domain as user\n"
 #~ msgstr "Gruppen müssen in der gleichen Domain wie Benutzer sein\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr "Gruppe %1$s kann in lokaler Domain nicht gefunden werden\n"
 
@@ -2904,12 +2903,10 @@ msgstr ""
 #~ "Home-Verzeichnis des Benutzers existiert bereits, es werden keine Daten "
 #~ "aus dem Skel-Verzeichnis kopiert.\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr ""
 #~ "Home-Verzeichnis für den Benutzer kann nicht erstellt werden: %1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr "Mail-Spool für den Benutzer kann nicht angelegt werden: %1$s\n"
 
@@ -2945,12 +2942,10 @@ msgstr ""
 #~ msgid "Specify group to delete\n"
 #~ msgstr "Zu löschende Gruppe angeben\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Gruppe %1$s ist außerhalb des für diese Domain festgelegten ID-Bereichs\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr ""
 #~ "NSS-Anfrage fehlgeschlagen (%1$d). Der Eintrag könnte im Zwischenspeicher "
@@ -2990,7 +2985,6 @@ msgstr ""
 #~ "Untergruppen müssen in der selben Domain sein wie die übergeordnete "
 #~ "Gruppe\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -3014,19 +3008,15 @@ msgstr ""
 #~ msgid "Magic Private "
 #~ msgstr "Magic Private "
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sGruppe: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sGruppen-ID-Nummer: %2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "%1$sMitglied Benutzer: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -3034,7 +3024,6 @@ msgstr ""
 #~ "\n"
 #~ "%1$sIst Mitglied von: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3073,7 +3062,6 @@ msgstr ""
 #~ msgid "Specify user to delete\n"
 #~ msgstr "Zu löschenden Benutzer angeben\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Benutzer %1$s ist außerhalb des für diese Domain festgelegten ID-"
@@ -3082,7 +3070,6 @@ msgstr ""
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "SELinux-Anmeldekontext kann nicht zurückgesetzt werden\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr ""
 #~ "WARNUNG: Der Benutzer (uid %1$lu) war beim Löschen noch angemeldet.\n"
@@ -3095,7 +3082,6 @@ msgstr ""
 #~ msgid "Error while checking if the user was logged in\n"
 #~ msgstr "Fehler bei der Überprüfung, ob der Benutzer angemeldet war\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr ""
 #~ "Der nach dem Löschen auszuführende Befehl ist fehlgeschlagen: %1$s\n"
@@ -3104,7 +3090,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Home-Verzeichnis wird nicht entfernt – es gehört nicht dem Benutzer\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "Home-Verzeichnis kann nicht entfernt werden: %1$s\n"
 
@@ -3174,7 +3159,6 @@ msgstr ""
 #~ msgid "Transaction error. Could not modify user.\n"
 #~ msgstr "Transaktionsfehler. Benutzer kann nicht geändert werden.\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr "Name »%1$s« scheint kein FQDN zu sein (»%2$s = TRUE« ist gesetzt)\n"
 

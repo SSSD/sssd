@@ -19,7 +19,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-10-11 14:54+0200\n"
-"PO-Revision-Date: 2021-09-27 18:04+0000\n"
+"PO-Revision-Date: 2021-10-27 15:05+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/es/>\n"
@@ -18238,7 +18238,7 @@ msgstr "ldap_netgroup_object_class (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:789
 msgid "The object class of a netgroup entry in LDAP."
-msgstr "La clase de objeto de una entrada netgroup en LDAP."
+msgstr "La clase objeto de una entrada de grupo de red en LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:792
@@ -18258,7 +18258,7 @@ msgstr "ldap_netgroup_name (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:805
 msgid "The LDAP attribute that corresponds to the netgroup name."
-msgstr "El atributo LDAP que corresponde al nombre del netgroup."
+msgstr "El atributo LDAP que corresponde al nombre de grupo de red."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:809
@@ -18327,7 +18327,7 @@ msgstr "ldap_host_object_class (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:878
 msgid "The object class of a host entry in LDAP."
-msgstr "El objeto clase de una entrada host en LDAP."
+msgstr "La clase de objeto de una entrada de host en LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:881 sssd-ldap-attributes.5.xml:978
@@ -18391,7 +18391,7 @@ msgstr "ldap_host_ssh_public_key (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:942
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr "Atributo LDAP que contiene las claves públicas SSH del host."
+msgstr "El atributo LDAP que contiene las claves públicas SSH del host."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:952

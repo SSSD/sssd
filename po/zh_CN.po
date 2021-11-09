@@ -2927,7 +2927,6 @@ msgstr "通知响应者已被 dbus 激活"
 #~ msgid "Groups must be in the same domain as user\n"
 #~ msgstr "组必须与用户在同一域中\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr "无法在本的域中找到组 %1$s\n"
 
@@ -2947,11 +2946,9 @@ msgstr "通知响应者已被 dbus 激活"
 #~ "User's home directory already exists, not copying data from skeldir\n"
 #~ msgstr "用户的家目录已存在，无法从 skeldir 复制数据\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr "无法创建用户的家目录：%1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr "无法创建用户的邮件 spool： %1$s\n"
 
@@ -2985,11 +2982,9 @@ msgstr "通知响应者已被 dbus 激活"
 #~ msgid "Specify group to delete\n"
 #~ msgstr "指定删除的组\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr "组 %1$s 在域的定义 ID 范围之外\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr "NSS 请求失败（%1$d）。条目可能保留在内存缓存中。\n"
 
@@ -3021,7 +3016,6 @@ msgstr "通知响应者已被 dbus 激活"
 #~ msgid "Member groups must be in the same domain as parent group\n"
 #~ msgstr "成员组必须与父组在同一域中\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -3039,19 +3033,15 @@ msgstr "通知响应者已被 dbus 激活"
 #~ msgid "Magic Private "
 #~ msgstr "Magic Private "
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sGroup: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sGID 号：%2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "%1$sMember 用户： "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -3059,7 +3049,6 @@ msgstr "通知响应者已被 dbus 激活"
 #~ "\n"
 #~ "%1$sIs 一个成员： "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3096,14 +3085,12 @@ msgstr "通知响应者已被 dbus 激活"
 #~ msgid "Specify user to delete\n"
 #~ msgstr "指定删除的用户\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr "用户 %1$s 在域的定义 ID 范围之外\n"
 
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "无法重新设置 SELinux 登录上下文\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr "警告：用户（uid %1$lu ）在删除后仍处于登录状态。\n"
 
@@ -3113,14 +3100,12 @@ msgstr "通知响应者已被 dbus 激活"
 #~ msgid "Error while checking if the user was logged in\n"
 #~ msgstr "检查用户是否登录时出错\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr "后删除命令失败： %1$s\n"
 
 #~ msgid "Not removing home dir - not owned by user\n"
 #~ msgstr "没有删除主目录 - 不归用户所有\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "无法删除主目录： %1$s\n"
 
@@ -3180,7 +3165,6 @@ msgstr "通知响应者已被 dbus 激活"
 #~ msgid "Transaction error. Could not modify user.\n"
 #~ msgstr "交易错误。无法修改用户。\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr "名称 '%1$s' 似乎不是 FQDN（设置了 '%2$s =TRUE‘）\n"
 
