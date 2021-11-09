@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-10-11 14:55+0200\n"
+"POT-Creation-Date: 2021-11-09 16:03+0100\n"
 "PO-Revision-Date: 2021-07-20 07:04+0000\n"
 "Last-Translator: Sundeep Anand <suanand@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
@@ -1817,48 +1817,49 @@ msgstr "passwd 文件源的路径。"
 msgid "Path of group file sources."
 msgstr "group 文件源的路径。"
 
-#: src/monitor/monitor.c:2326
+#: src/monitor/monitor.c:2329
 msgid "Become a daemon (default)"
 msgstr "成为守护进程（默认）"
 
-#: src/monitor/monitor.c:2328
+#: src/monitor/monitor.c:2331
 msgid "Run interactive (not a daemon)"
 msgstr "交互式运行（不是守护程序）"
 
-#: src/monitor/monitor.c:2331
+#: src/monitor/monitor.c:2334
 msgid "Disable netlink interface"
 msgstr "禁用 netlink 接口"
 
-#: src/monitor/monitor.c:2333 src/tools/sssctl/sssctl_config.c:77
-#: src/tools/sssctl/sssctl_logs.c:330
+#: src/monitor/monitor.c:2336 src/tools/sssctl/sssctl_config.c:77
+#: src/tools/sssctl/sssctl_logs.c:331
 msgid "Specify a non-default config file"
 msgstr "指定一个非默认的配置文件"
 
-#: src/monitor/monitor.c:2335
+#: src/monitor/monitor.c:2338
 msgid "Refresh the configuration database, then exit"
 msgstr "刷新配置数据库，然后退出"
 
-#: src/monitor/monitor.c:2338
+#: src/monitor/monitor.c:2341
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "类似于 --genconf，但只刷新指定的部分"
 
-#: src/monitor/monitor.c:2341
+#: src/monitor/monitor.c:2344
 msgid "Print version number and exit"
 msgstr "显示版本号并退出"
 
-#: src/monitor/monitor.c:2379
+#: src/monitor/monitor.c:2382
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "选项 -i|--interactive 不能和 -D|--daemon 一起使用\n"
 
-#: src/monitor/monitor.c:2385
+#: src/monitor/monitor.c:2388
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "选项 -g 与 -D 或 -i 不兼容\n"
 
-#: src/monitor/monitor.c:2398
-msgid "Running under %"
-msgstr "运行于 % 下"
+#: src/monitor/monitor.c:2401
+#, c-format
+msgid "Running under %<PRIu64>, must be root\n"
+msgstr ""
 
-#: src/monitor/monitor.c:2480
+#: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
 msgstr "SSSD 已运行\n"
 
@@ -2516,42 +2517,53 @@ msgstr "无法获得在线状态\n"
 msgid "Unable to get server list\n"
 msgstr "无法获取服务器列表\n"
 
-#: src/tools/sssctl/sssctl_logs.c:47
+#: src/tools/sssctl/sssctl_logs.c:48
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sssctl/sssctl_logs.c:238
+#: src/tools/sssctl/sssctl_logs.c:239
 msgid "Delete log files instead of truncating"
 msgstr "删除日志文件而不是截断"
 
-#: src/tools/sssctl/sssctl_logs.c:249
+#: src/tools/sssctl/sssctl_logs.c:250
 msgid "Deleting log files...\n"
 msgstr "删除日志文件...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:252
+#: src/tools/sssctl/sssctl_logs.c:253
 msgid "Unable to remove log files\n"
 msgstr "无法删除日志文件\n"
 
-#: src/tools/sssctl/sssctl_logs.c:269
+#: src/tools/sssctl/sssctl_logs.c:270
 msgid "Truncating log files...\n"
 msgstr "截断日志文件...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:273
+#: src/tools/sssctl/sssctl_logs.c:274
 msgid "Unable to truncate log files\n"
 msgstr "无法截断日志文件\n"
 
-#: src/tools/sssctl/sssctl_logs.c:307
+#: src/tools/sssctl/sssctl_logs.c:308
 #, c-format
 msgid "Archiving log files into %s...\n"
 msgstr "将日志文件归档到 %s ...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:311
+#: src/tools/sssctl/sssctl_logs.c:312
 msgid "Unable to archive log files\n"
 msgstr "无法归档日志文件\n"
 
-#: src/tools/sssctl/sssctl_logs.c:336
+#: src/tools/sssctl/sssctl_logs.c:337
 msgid "Specify debug level you want to set"
 msgstr "指定要设置的调试级别"
+
+#: src/tools/sssctl/sssctl_logs.c:400
+msgid ""
+"NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:401
+msgid ""
+"It is recommended to use the --logdir option against tevent chain ID "
+"supported SSSD logs.\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2788,6 +2800,9 @@ msgstr "通知响应者已被套接字激活"
 #: src/util/util.h:105
 msgid "Informs that the responder has been dbus-activated"
 msgstr "通知响应者已被 dbus 激活"
+
+#~ msgid "Running under %"
+#~ msgstr "运行于 % 下"
 
 #~ msgid "Timeout for messages sent over the SBUS"
 #~ msgstr "通过 SBUS 发送的消息超时"

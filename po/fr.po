@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-10-11 14:55+0200\n"
+"POT-Creation-Date: 2021-11-09 16:03+0100\n"
 "PO-Revision-Date: 2021-07-20 07:04+0000\n"
 "Last-Translator: Sundeep Anand <suanand@redhat.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
@@ -1998,48 +1998,49 @@ msgstr "Chemin des sources des fichiers passwd."
 msgid "Path of group file sources."
 msgstr "Chemin des sources des fichiers de groupe."
 
-#: src/monitor/monitor.c:2326
+#: src/monitor/monitor.c:2329
 msgid "Become a daemon (default)"
 msgstr "Devenir un démon (par défaut)"
 
-#: src/monitor/monitor.c:2328
+#: src/monitor/monitor.c:2331
 msgid "Run interactive (not a daemon)"
 msgstr "Fonctionner en interactif (non démon)"
 
-#: src/monitor/monitor.c:2331
+#: src/monitor/monitor.c:2334
 msgid "Disable netlink interface"
 msgstr "Désactiver l'interface netlink"
 
-#: src/monitor/monitor.c:2333 src/tools/sssctl/sssctl_config.c:77
-#: src/tools/sssctl/sssctl_logs.c:330
+#: src/monitor/monitor.c:2336 src/tools/sssctl/sssctl_config.c:77
+#: src/tools/sssctl/sssctl_logs.c:331
 msgid "Specify a non-default config file"
 msgstr "Définir un fichier de configuration différent de celui par défaut"
 
-#: src/monitor/monitor.c:2335
+#: src/monitor/monitor.c:2338
 msgid "Refresh the configuration database, then exit"
 msgstr "Rafraîchissez la base de données de configuration, puis quittez"
 
-#: src/monitor/monitor.c:2338
+#: src/monitor/monitor.c:2341
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "Semblable à --genconf, mais ne rafraîchit que la section donnée"
 
-#: src/monitor/monitor.c:2341
+#: src/monitor/monitor.c:2344
 msgid "Print version number and exit"
 msgstr "Afficher le numéro de version et quitte"
 
-#: src/monitor/monitor.c:2379
+#: src/monitor/monitor.c:2382
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "Option -i|--interactive non authorisée avec -D|--daemon\n"
 
-#: src/monitor/monitor.c:2385
+#: src/monitor/monitor.c:2388
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "Option -g incompatible avec -D ou -i\n"
 
-#: src/monitor/monitor.c:2398
-msgid "Running under %"
-msgstr "En cours d’exécution sous %"
+#: src/monitor/monitor.c:2401
+#, c-format
+msgid "Running under %<PRIu64>, must be root\n"
+msgstr ""
 
-#: src/monitor/monitor.c:2480
+#: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
 msgstr "SSSD est déjà en cours d'exécution\n"
 
@@ -2720,42 +2721,53 @@ msgstr "Impossible d'obtenir le statut en ligne\n"
 msgid "Unable to get server list\n"
 msgstr "Impossible d'obtenir la liste des serveurs\n"
 
-#: src/tools/sssctl/sssctl_logs.c:47
+#: src/tools/sssctl/sssctl_logs.c:48
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sssctl/sssctl_logs.c:238
+#: src/tools/sssctl/sssctl_logs.c:239
 msgid "Delete log files instead of truncating"
 msgstr "Supprimer les fichiers de log au lieu de tronquer"
 
-#: src/tools/sssctl/sssctl_logs.c:249
+#: src/tools/sssctl/sssctl_logs.c:250
 msgid "Deleting log files...\n"
 msgstr "Suppression des fichiers journaux...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:252
+#: src/tools/sssctl/sssctl_logs.c:253
 msgid "Unable to remove log files\n"
 msgstr "Impossible de supprimer les fichiers journaux\n"
 
-#: src/tools/sssctl/sssctl_logs.c:269
+#: src/tools/sssctl/sssctl_logs.c:270
 msgid "Truncating log files...\n"
 msgstr "Troncature des fichiers de journalisation...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:273
+#: src/tools/sssctl/sssctl_logs.c:274
 msgid "Unable to truncate log files\n"
 msgstr "Impossible de tronquer les fichiers de journalisation\n"
 
-#: src/tools/sssctl/sssctl_logs.c:307
+#: src/tools/sssctl/sssctl_logs.c:308
 #, c-format
 msgid "Archiving log files into %s...\n"
 msgstr "Archivage des fichiers journaux dans %s...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:311
+#: src/tools/sssctl/sssctl_logs.c:312
 msgid "Unable to archive log files\n"
 msgstr "Impossible d'archiver les fichiers journaux\n"
 
-#: src/tools/sssctl/sssctl_logs.c:336
+#: src/tools/sssctl/sssctl_logs.c:337
 msgid "Specify debug level you want to set"
 msgstr "Spécifiez le niveau de débogage que vous souhaitez définir"
+
+#: src/tools/sssctl/sssctl_logs.c:400
+msgid ""
+"NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:401
+msgid ""
+"It is recommended to use the --logdir option against tevent chain ID "
+"supported SSSD logs.\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2990,6 +3002,9 @@ msgstr "Informe que le répondeur a été activé par un socket"
 #: src/util/util.h:105
 msgid "Informs that the responder has been dbus-activated"
 msgstr "Informe que le répondeur a été activé par un dbus"
+
+#~ msgid "Running under %"
+#~ msgstr "En cours d’exécution sous %"
 
 #~ msgid "Timeout for messages sent over the SBUS"
 #~ msgstr "Délai d'attente pour les messages à envoyer à travers SBUS"

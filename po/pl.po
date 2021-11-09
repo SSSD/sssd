@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-10-11 14:55+0200\n"
+"POT-Creation-Date: 2021-11-09 16:03+0100\n"
 "PO-Revision-Date: 2021-10-19 14:46+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
@@ -1937,48 +1937,49 @@ msgstr "Ścieżka źródeł pliku „passwd”."
 msgid "Path of group file sources."
 msgstr "Ścieżka źródeł pliku „group”."
 
-#: src/monitor/monitor.c:2326
+#: src/monitor/monitor.c:2329
 msgid "Become a daemon (default)"
 msgstr "Uruchamia jako usługa (domyślnie)"
 
-#: src/monitor/monitor.c:2328
+#: src/monitor/monitor.c:2331
 msgid "Run interactive (not a daemon)"
 msgstr "Uruchamia interaktywnie (nie jako usługa)"
 
-#: src/monitor/monitor.c:2331
+#: src/monitor/monitor.c:2334
 msgid "Disable netlink interface"
 msgstr "Wyłącza interfejs netlink"
 
-#: src/monitor/monitor.c:2333 src/tools/sssctl/sssctl_config.c:77
-#: src/tools/sssctl/sssctl_logs.c:330
+#: src/monitor/monitor.c:2336 src/tools/sssctl/sssctl_config.c:77
+#: src/tools/sssctl/sssctl_logs.c:331
 msgid "Specify a non-default config file"
 msgstr "Podaje niedomyślny plik konfiguracji"
 
-#: src/monitor/monitor.c:2335
+#: src/monitor/monitor.c:2338
 msgid "Refresh the configuration database, then exit"
 msgstr "Odświeża bazę danych konfiguracji, a następnie kończy działanie"
 
-#: src/monitor/monitor.c:2338
+#: src/monitor/monitor.c:2341
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "Podobne do --genconf, ale odświeża tylko podaną sekcję"
 
-#: src/monitor/monitor.c:2341
+#: src/monitor/monitor.c:2344
 msgid "Print version number and exit"
 msgstr "Wyświetla numer wersji i kończy działanie"
 
-#: src/monitor/monitor.c:2379
+#: src/monitor/monitor.c:2382
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "Opcja -i|--interactive nie jest dozwolona z opcją -D|--daemon\n"
 
-#: src/monitor/monitor.c:2385
+#: src/monitor/monitor.c:2388
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "Opcja -g jest niezgodna z opcją -D lub -i\n"
 
-#: src/monitor/monitor.c:2398
-msgid "Running under %"
-msgstr "Uruchamianie jako %"
+#: src/monitor/monitor.c:2401
+#, c-format
+msgid "Running under %<PRIu64>, must be root\n"
+msgstr ""
 
-#: src/monitor/monitor.c:2480
+#: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
 msgstr "Usługa SSSD jest już uruchomiona\n"
 
@@ -2649,42 +2650,53 @@ msgstr "Nie można uzyskać stanu online\n"
 msgid "Unable to get server list\n"
 msgstr "Nie można uzyskać listy serwerów\n"
 
-#: src/tools/sssctl/sssctl_logs.c:47
+#: src/tools/sssctl/sssctl_logs.c:48
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sssctl/sssctl_logs.c:238
+#: src/tools/sssctl/sssctl_logs.c:239
 msgid "Delete log files instead of truncating"
 msgstr "Usuwa pliki dziennika zamiast ich skracania"
 
-#: src/tools/sssctl/sssctl_logs.c:249
+#: src/tools/sssctl/sssctl_logs.c:250
 msgid "Deleting log files...\n"
 msgstr "Usuwanie plików dziennika…\n"
 
-#: src/tools/sssctl/sssctl_logs.c:252
+#: src/tools/sssctl/sssctl_logs.c:253
 msgid "Unable to remove log files\n"
 msgstr "Nie można usunąć plików dziennika\n"
 
-#: src/tools/sssctl/sssctl_logs.c:269
+#: src/tools/sssctl/sssctl_logs.c:270
 msgid "Truncating log files...\n"
 msgstr "Skracanie plików dziennika…\n"
 
-#: src/tools/sssctl/sssctl_logs.c:273
+#: src/tools/sssctl/sssctl_logs.c:274
 msgid "Unable to truncate log files\n"
 msgstr "Nie można skrócić plików dziennika\n"
 
-#: src/tools/sssctl/sssctl_logs.c:307
+#: src/tools/sssctl/sssctl_logs.c:308
 #, c-format
 msgid "Archiving log files into %s...\n"
 msgstr "Archiwizowanie plików dziennika w %s…\n"
 
-#: src/tools/sssctl/sssctl_logs.c:311
+#: src/tools/sssctl/sssctl_logs.c:312
 msgid "Unable to archive log files\n"
 msgstr "Nie można zarchiwizować plików dziennika\n"
 
-#: src/tools/sssctl/sssctl_logs.c:336
+#: src/tools/sssctl/sssctl_logs.c:337
 msgid "Specify debug level you want to set"
 msgstr "Podaje poziom debugowania do ustawienia"
+
+#: src/tools/sssctl/sssctl_logs.c:400
+msgid ""
+"NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:401
+msgid ""
+"It is recommended to use the --logdir option against tevent chain ID "
+"supported SSSD logs.\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2921,6 +2933,9 @@ msgstr "Informuje, że program odpowiadający został aktywowany gniazdem"
 #: src/util/util.h:105
 msgid "Informs that the responder has been dbus-activated"
 msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-Bus"
+
+#~ msgid "Running under %"
+#~ msgstr "Uruchamianie jako %"
 
 #~ msgid "Timeout for messages sent over the SBUS"
 #~ msgstr "Czas oczekiwania na komunikaty wysyłane przez SBUS"

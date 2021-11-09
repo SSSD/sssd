@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-10-11 14:55+0200\n"
+"POT-Creation-Date: 2021-11-09 16:03+0100\n"
 "PO-Revision-Date: 2021-08-08 16:04+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
@@ -1910,49 +1910,50 @@ msgstr "Sökväg till lösenordsfilkällor."
 msgid "Path of group file sources."
 msgstr "Sökväg till gruppfilkällor."
 
-#: src/monitor/monitor.c:2326
+#: src/monitor/monitor.c:2329
 msgid "Become a daemon (default)"
 msgstr "Bli en demon (standard)"
 
-#: src/monitor/monitor.c:2328
+#: src/monitor/monitor.c:2331
 msgid "Run interactive (not a daemon)"
 msgstr "Kör interaktivt (inte en demon)"
 
-#: src/monitor/monitor.c:2331
+#: src/monitor/monitor.c:2334
 msgid "Disable netlink interface"
 msgstr "Avaktivera netlink-gränssnittet"
 
-#: src/monitor/monitor.c:2333 src/tools/sssctl/sssctl_config.c:77
-#: src/tools/sssctl/sssctl_logs.c:330
+#: src/monitor/monitor.c:2336 src/tools/sssctl/sssctl_config.c:77
+#: src/tools/sssctl/sssctl_logs.c:331
 msgid "Specify a non-default config file"
 msgstr "Ange en konfigurationsfil annan än standard"
 
-#: src/monitor/monitor.c:2335
+#: src/monitor/monitor.c:2338
 msgid "Refresh the configuration database, then exit"
 msgstr "Uppdatera konfigurationsdatabasen, avsluta sedan"
 
-#: src/monitor/monitor.c:2338
+#: src/monitor/monitor.c:2341
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "Liknande --genconf, men uppdaterar endast den angivna sektionen"
 
-#: src/monitor/monitor.c:2341
+#: src/monitor/monitor.c:2344
 msgid "Print version number and exit"
 msgstr "Skriv ut versionsnumret och avsluta"
 
-#: src/monitor/monitor.c:2379
+#: src/monitor/monitor.c:2382
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr ""
 "Flaggan -i|--interactive är inte tillåten tillsammans med -D|--daemon\n"
 
-#: src/monitor/monitor.c:2385
+#: src/monitor/monitor.c:2388
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "Flaggan -g är inkompatibel med -D eller -i\n"
 
-#: src/monitor/monitor.c:2398
-msgid "Running under %"
-msgstr "Kör under %"
+#: src/monitor/monitor.c:2401
+#, c-format
+msgid "Running under %<PRIu64>, must be root\n"
+msgstr ""
 
-#: src/monitor/monitor.c:2480
+#: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
 msgstr "SSSD kör redan\n"
 
@@ -2621,42 +2622,53 @@ msgstr "Kan inte ta reda på uppkopplingsstatus\n"
 msgid "Unable to get server list\n"
 msgstr "Kan inte ta reda på serverlistan\n"
 
-#: src/tools/sssctl/sssctl_logs.c:47
+#: src/tools/sssctl/sssctl_logs.c:48
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sssctl/sssctl_logs.c:238
+#: src/tools/sssctl/sssctl_logs.c:239
 msgid "Delete log files instead of truncating"
 msgstr "Radera loggfiler istället för att hugga av"
 
-#: src/tools/sssctl/sssctl_logs.c:249
+#: src/tools/sssctl/sssctl_logs.c:250
 msgid "Deleting log files...\n"
 msgstr "Raderar loggfiler …\n"
 
-#: src/tools/sssctl/sssctl_logs.c:252
+#: src/tools/sssctl/sssctl_logs.c:253
 msgid "Unable to remove log files\n"
 msgstr "Kan inte ta bort loggfiler\n"
 
-#: src/tools/sssctl/sssctl_logs.c:269
+#: src/tools/sssctl/sssctl_logs.c:270
 msgid "Truncating log files...\n"
 msgstr "Hugger av loggfiler …\n"
 
-#: src/tools/sssctl/sssctl_logs.c:273
+#: src/tools/sssctl/sssctl_logs.c:274
 msgid "Unable to truncate log files\n"
 msgstr "Kan inte hugga av loggfiler\n"
 
-#: src/tools/sssctl/sssctl_logs.c:307
+#: src/tools/sssctl/sssctl_logs.c:308
 #, c-format
 msgid "Archiving log files into %s...\n"
 msgstr "Arkiverar loggfiler in i %s …\n"
 
-#: src/tools/sssctl/sssctl_logs.c:311
+#: src/tools/sssctl/sssctl_logs.c:312
 msgid "Unable to archive log files\n"
 msgstr "Kan inte arkivera loggfiler\n"
 
-#: src/tools/sssctl/sssctl_logs.c:336
+#: src/tools/sssctl/sssctl_logs.c:337
 msgid "Specify debug level you want to set"
 msgstr "Ange felsökningsnivå du vill sätta"
+
+#: src/tools/sssctl/sssctl_logs.c:400
+msgid ""
+"NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:401
+msgid ""
+"It is recommended to use the --logdir option against tevent chain ID "
+"supported SSSD logs.\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2893,6 +2905,9 @@ msgstr "Informerar att respondenten har blivit uttagsaktiverad"
 #: src/util/util.h:105
 msgid "Informs that the responder has been dbus-activated"
 msgstr "Informerar att respondenten har blivit dbus-aktiverad"
+
+#~ msgid "Running under %"
+#~ msgstr "Kör under %"
 
 #~ msgid "Timeout for messages sent over the SBUS"
 #~ msgstr "Tidsgräns för meddelanden skickade via SBUS"

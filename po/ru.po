@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-10-11 14:55+0200\n"
+"POT-Creation-Date: 2021-11-09 16:03+0100\n"
 "PO-Revision-Date: 2021-08-12 07:41+0000\n"
 "Last-Translator: Olesya Gerasimenko <gammaray@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
@@ -1978,49 +1978,50 @@ msgstr "Путь к исходному тексту файла passwd."
 msgid "Path of group file sources."
 msgstr "Путь к исходному тексту файла group."
 
-#: src/monitor/monitor.c:2326
+#: src/monitor/monitor.c:2329
 msgid "Become a daemon (default)"
 msgstr "Запускаться в качестве службы (по умолчанию)"
 
-#: src/monitor/monitor.c:2328
+#: src/monitor/monitor.c:2331
 msgid "Run interactive (not a daemon)"
 msgstr "Запускаться интерактивно (не службой)"
 
-#: src/monitor/monitor.c:2331
+#: src/monitor/monitor.c:2334
 msgid "Disable netlink interface"
 msgstr "Отключить интерфейс netlink"
 
-#: src/monitor/monitor.c:2333 src/tools/sssctl/sssctl_config.c:77
-#: src/tools/sssctl/sssctl_logs.c:330
+#: src/monitor/monitor.c:2336 src/tools/sssctl/sssctl_config.c:77
+#: src/tools/sssctl/sssctl_logs.c:331
 msgid "Specify a non-default config file"
 msgstr "Указать нестандартный файл конфигурации"
 
-#: src/monitor/monitor.c:2335
+#: src/monitor/monitor.c:2338
 msgid "Refresh the configuration database, then exit"
 msgstr "Обновить базу данных конфигурации и выйти"
 
-#: src/monitor/monitor.c:2338
+#: src/monitor/monitor.c:2341
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr ""
 "Аналогично --genconf, но выполняется обновление только указанного раздела"
 
-#: src/monitor/monitor.c:2341
+#: src/monitor/monitor.c:2344
 msgid "Print version number and exit"
 msgstr "Вывести номер версии и выйти"
 
-#: src/monitor/monitor.c:2379
+#: src/monitor/monitor.c:2382
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "Параметр -i|--interactive нельзя использовать вместе с -D|--daemon\n"
 
-#: src/monitor/monitor.c:2385
+#: src/monitor/monitor.c:2388
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "Параметр -g несовместим с -D или -i\n"
 
-#: src/monitor/monitor.c:2398
-msgid "Running under %"
-msgstr "Запущено от имени %"
+#: src/monitor/monitor.c:2401
+#, c-format
+msgid "Running under %<PRIu64>, must be root\n"
+msgstr ""
 
-#: src/monitor/monitor.c:2480
+#: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
 msgstr "SSSD уже выполняется\n"
 
@@ -2694,42 +2695,53 @@ msgstr "Не удалось получить состояние подключе
 msgid "Unable to get server list\n"
 msgstr "Не удалось получить список серверов\n"
 
-#: src/tools/sssctl/sssctl_logs.c:47
+#: src/tools/sssctl/sssctl_logs.c:48
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sssctl/sssctl_logs.c:238
+#: src/tools/sssctl/sssctl_logs.c:239
 msgid "Delete log files instead of truncating"
 msgstr "Удалить файлы журнала вместо усечения"
 
-#: src/tools/sssctl/sssctl_logs.c:249
+#: src/tools/sssctl/sssctl_logs.c:250
 msgid "Deleting log files...\n"
 msgstr "Удаление файлов журнала...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:252
+#: src/tools/sssctl/sssctl_logs.c:253
 msgid "Unable to remove log files\n"
 msgstr "Не удалось удалить файлы журнала\n"
 
-#: src/tools/sssctl/sssctl_logs.c:269
+#: src/tools/sssctl/sssctl_logs.c:270
 msgid "Truncating log files...\n"
 msgstr "Усечение файлов журнала...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:273
+#: src/tools/sssctl/sssctl_logs.c:274
 msgid "Unable to truncate log files\n"
 msgstr "Не удалось усечь файлы журнала\n"
 
-#: src/tools/sssctl/sssctl_logs.c:307
+#: src/tools/sssctl/sssctl_logs.c:308
 #, c-format
 msgid "Archiving log files into %s...\n"
 msgstr "Архивация файлов журнала в %s...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:311
+#: src/tools/sssctl/sssctl_logs.c:312
 msgid "Unable to archive log files\n"
 msgstr "Не удалось архивировать файлы журнала\n"
 
-#: src/tools/sssctl/sssctl_logs.c:336
+#: src/tools/sssctl/sssctl_logs.c:337
 msgid "Specify debug level you want to set"
 msgstr "Укажите уровень отладки, который следует установить"
+
+#: src/tools/sssctl/sssctl_logs.c:400
+msgid ""
+"NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:401
+msgid ""
+"It is recommended to use the --logdir option against tevent chain ID "
+"supported SSSD logs.\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2966,6 +2978,9 @@ msgstr "Сообщает о том, что ответчик активирова
 #: src/util/util.h:105
 msgid "Informs that the responder has been dbus-activated"
 msgstr "Сообщает о том, что ответчик активирован с помощью dbus"
+
+#~ msgid "Running under %"
+#~ msgstr "Запущено от имени %"
 
 #~ msgid "Timeout for messages sent over the SBUS"
 #~ msgstr "Тайм-аут для сообщений, отправленных через SBUS"
