@@ -2965,7 +2965,6 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ msgid "Groups must be in the same domain as user\n"
 #~ msgstr "Je třeba, aby skupiny byly ve stejné doméně, jako uživatel\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr "Skupinu %1$s se nedaří nalézt v místní doméně\n"
 
@@ -2987,11 +2986,9 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ "Domovská složka uživatele už existuje, data z té vzorové (skeldir) proto "
 #~ "nekopírována\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr "Domovskou složku uživatele se nedaří vytvořit: %1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr "Nedaří se vytvořit e-mailovou schránku uživatele: %1$s\n"
 
@@ -3027,12 +3024,10 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ msgid "Specify group to delete\n"
 #~ msgstr "Zadejte skupinu, kterou smazat\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Identifikátor skupiny %1$s se nachází mimo určený rozsah pro doménu\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr ""
 #~ "NSS požadavek se nezdařil (%1$d). Položka mohla zůstat v mezipaměti v "
@@ -3072,7 +3067,6 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ "Je třeba, aby skupiny, které mají být členy, se nacházely ve stejné "
 #~ "doméně, jako skupina, které mají být členy\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -3095,19 +3089,15 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ msgid "Magic Private "
 #~ msgstr "Magické soukromé "
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sskupina: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sGID číslo: %2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "%1$sčlenové uživatelé: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -3115,7 +3105,6 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ "\n"
 #~ "%1$sJe členem: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3156,7 +3145,6 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ msgid "Specify user to delete\n"
 #~ msgstr "Zadejte uživatele, kterého smazat\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Uživatel %1$s se nachází mimo určený rozsah idenfifikátorů pro doménu\n"
@@ -3164,7 +3152,6 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "Nedaří se resetovat SELinux přihlašovací kontext\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr "VAROVÁNÍ: uživatel (uid %1$lu) byl při mazání stále přihlášen.\n"
 
@@ -3174,14 +3161,12 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ msgid "Error while checking if the user was logged in\n"
 #~ msgstr "Chyba při zjišťování zda byl uživatel přihlášen\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr "Příkaz po smazání se nezdařil: %1$s\n"
 
 #~ msgid "Not removing home dir - not owned by user\n"
 #~ msgstr "Neodebírá se domovská složka – nevlastněno uživatelem\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "Nedaří se odebrat domovskou složku: %1$s\n"
 
@@ -3246,7 +3231,6 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ msgid "Transaction error. Could not modify user.\n"
 #~ msgstr "Chyba transakce. Uživatele se nedaří změnit.\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr "Název „%1$s“ se nezdá být FQDN (je nastaveno „%2$s = TRUE“)\n"
 

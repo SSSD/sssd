@@ -3009,7 +3009,6 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ msgid "Groups must be in the same domain as user\n"
 #~ msgstr "グループがユーザーと同じドメインになければいけません\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr "ローカルドメインにグループ %1$s を見つけられません\n"
 
@@ -3031,11 +3030,9 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ "ユーザーのホームディレクトリーがすでに存在します、スケルトンディレクトリー"
 #~ "からデータをコピーしません\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr "ユーザーのホームディレクトリーを作成できません: %1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr "ユーザーのメールスプールを作成できません: %1$s\n"
 
@@ -3071,12 +3068,10 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ msgid "Specify group to delete\n"
 #~ msgstr "削除するグループを指定してください\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "グループ %1$s はドメインに対して定義された ID の範囲を越えています\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr ""
 #~ "NSS リクエストに失敗しました (%1$d)。項目はメモリーキャッシュに残されま"
@@ -3114,7 +3109,6 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ msgid "Member groups must be in the same domain as parent group\n"
 #~ msgstr "メンバーグループが親グループと同じドメインにある必要があります\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -3137,19 +3131,15 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ msgid "Magic Private "
 #~ msgstr "マジックプライベート "
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sGroup: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sGID 番号: %2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "%1$sMember ユーザー: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -3157,7 +3147,6 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ "\n"
 #~ "%1$sIs は次のメンバー: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3196,7 +3185,6 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ msgid "Specify user to delete\n"
 #~ msgstr "削除するユーザーを指定する\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "ユーザー %1$s はドメインに対して定義された ID の範囲を超えています\n"
@@ -3204,7 +3192,6 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "SELinux ログインコンテキストをリセットできません\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr ""
 #~ "警告: ユーザー (uid %1$lu) が削除された時にまだログインしていました。\n"
@@ -3216,7 +3203,6 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ msgid "Error while checking if the user was logged in\n"
 #~ msgstr "ユーザーがログインしていたかを確認中にエラーが発生しました\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr "削除後コマンドの実行に失敗しました: %1$s\n"
 
@@ -3225,7 +3211,6 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ "ホームディレクトリーを削除していません - ユーザーにより所有されていませ"
 #~ "ん\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "ホームディレクトリーを削除できません: %1$s\n"
 
@@ -3292,7 +3277,6 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ msgid "Transaction error. Could not modify user.\n"
 #~ msgstr "トランザクションエラー。ユーザーを変更できませんでした。\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr ""
 #~ "名前 '%1$s' が FQDN であるように見えません ('%2$s = TRUE' が設定されま"

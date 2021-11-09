@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-10-11 14:55+0200\n"
-"PO-Revision-Date: 2021-09-14 13:04+0000\n"
+"PO-Revision-Date: 2021-10-25 18:05+0000\n"
 "Last-Translator: Jan Kuparinen <copper_fin@hotmail.com>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fi/>\n"
@@ -2334,7 +2334,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_data.c:88
 #, c-format
 msgid "Unable to create backup directory [%d]: %s"
-msgstr ""
+msgstr "Varmuuskopiohakemistoa ei voi luoda [%d]: %s"
 
 #: src/tools/sssctl/sssctl_data.c:94
 msgid "SSSD backup of local data already exists, override?"

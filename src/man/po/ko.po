@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2021-10-10 17:05+0000\n"
+"PO-Revision-Date: 2021-11-09 05:05+0000\n"
 "Last-Translator: simmon <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -1580,7 +1580,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1263
 msgid "pwfield (string)"
-msgstr ""
+msgstr "pwfield (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1266
@@ -2488,7 +2488,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2026
 msgid "ssh_hash_known_hosts (bool)"
-msgstr ""
+msgstr "ssh_hash_known_hosts (부울)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2029
@@ -2578,7 +2578,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2105
 msgid "ca_db (string)"
-msgstr ""
+msgstr "ca_db (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2108
@@ -2656,7 +2656,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2179
 msgid "pac_lifetime (integer)"
-msgstr ""
+msgstr "pac_lifetime (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2182
@@ -2689,22 +2689,22 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2214 sssd-session-recording.5.xml:64
 msgid "scope (string)"
-msgstr ""
+msgstr "scope (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2221 sssd-session-recording.5.xml:71
 msgid "\"none\""
-msgstr ""
+msgstr "\"none\""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2224 sssd-session-recording.5.xml:74
 msgid "No users are recorded."
-msgstr ""
+msgstr "기록된 사용자가 없습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2229 sssd-session-recording.5.xml:79
 msgid "\"some\""
-msgstr ""
+msgstr "\"some\""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2232 sssd-session-recording.5.xml:82
@@ -2716,12 +2716,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2241 sssd-session-recording.5.xml:91
 msgid "\"all\""
-msgstr ""
+msgstr "\"all\""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2244 sssd-session-recording.5.xml:94
 msgid "All users are recorded."
-msgstr ""
+msgstr "모든 사용자는 기록됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2217 sssd-session-recording.5.xml:67
@@ -3213,12 +3213,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2682 sssd-ldap.5.xml:350 sssd-ldap.5.xml:1600 sssd-ipa.5.xml:269
 msgid "Default: 0 (disabled)"
-msgstr ""
+msgstr "기본값: 0 (비활성화됨)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2688
 msgid "cache_credentials (bool)"
-msgstr ""
+msgstr "cache_credentials (부울)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2691
@@ -3293,7 +3293,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2765
 msgid "id_provider (string)"
-msgstr ""
+msgstr "auth_provider (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2768
@@ -3415,7 +3415,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2880
 msgid "auth_provider (string)"
-msgstr ""
+msgstr "auth_provider (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2883
@@ -3564,7 +3564,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3050
 msgid "sudo_provider (string)"
-msgstr ""
+msgstr "sudo_provider (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3053
@@ -3732,7 +3732,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3198
 msgid "autofs_provider (string)"
-msgstr ""
+msgstr "autofs_provider (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3201
@@ -9283,7 +9283,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:289
 msgid "Default: False (disabled)"
-msgstr ""
+msgstr "기본값: 거짓 (비활성화됨)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:295 sssd-ad.5.xml:1249
@@ -9386,7 +9386,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:382
 msgid "ipa_selinux_search_base (string)"
-msgstr ""
+msgstr "ipa_selinux_search_base (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:385
@@ -9586,7 +9586,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:598
 msgid "The automounter location this IPA client will be using"
-msgstr ""
+msgstr "이와같은 IPA 클라이언트가 사용 중인 오토마운터 위치"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:601
@@ -13141,6 +13141,8 @@ msgid ""
 "<option>-h</option>,<option>--ssh-host</option> "
 "<replaceable>hostname</replaceable>"
 msgstr ""
+"<option>-h</option>,<option>--ssh-host</option> "
+"<replaceable>호스트이름</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:168
@@ -15894,7 +15896,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:300
 msgid "probe sdap_search_user_save_begin"
-msgstr ""
+msgstr "probe sdap_search_user_save_begin"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:303

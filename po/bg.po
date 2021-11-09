@@ -2810,11 +2810,9 @@ msgstr ""
 #~ msgid "The selected GID is outside the allowed range\n"
 #~ msgstr "Зададеният GID е извън позволения обхват\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr "Група %1$s е извън дефинирания ID обхват за домейн\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr "Потребител %1$s е извън дефинирания ID обхват за домейн\n"
 

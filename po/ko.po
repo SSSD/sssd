@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-10-11 14:55+0200\n"
-"PO-Revision-Date: 2021-10-10 17:05+0000\n"
+"PO-Revision-Date: 2021-11-09 05:05+0000\n"
 "Last-Translator: simmon <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -707,29 +707,29 @@ msgstr "HBAC와 연관된 객체를 위한 검색 기반"
 #: src/config/SSSDConfig/sssdoptions.py:223
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
-msgstr ""
+msgstr "IPA 서버에 대응하는 HBAC 규칙의 검색 사이에서 시간의 양"
 
 #: src/config/SSSDConfig/sssdoptions.py:224
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
-msgstr ""
+msgstr "IPA 서버에 대응하는 SELinux 맵의 검색 사이에서 초 단위 시간의 양"
 
 #: src/config/SSSDConfig/sssdoptions.py:226
 msgid "If set to false, host argument given by PAM will be ignored"
-msgstr ""
+msgstr "거짓으로 설정하면, PAM에서 제공한 호스트 인수가 무시됩니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:227
 msgid "The automounter location this IPA client is using"
-msgstr ""
+msgstr "이와같은 IPA 클라이언트가 사용 중인 오토마운터 위치"
 
 #: src/config/SSSDConfig/sssdoptions.py:228
 msgid "Search base for object containing info about IPA domain"
-msgstr ""
+msgstr "IPA 도메인에 대한 정보가 포함된 객체 검색 기반"
 
 #: src/config/SSSDConfig/sssdoptions.py:229
 msgid "Search base for objects containing info about ID ranges"
-msgstr ""
+msgstr "ID 범위에 대한 정보가 포함된 객체 검색 기반"
 
 #: src/config/SSSDConfig/sssdoptions.py:230
 #: src/config/SSSDConfig/sssdoptions.py:285
@@ -781,9 +781,8 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:244
-#, fuzzy
 msgid "Search base for SUBID ranges"
-msgstr "HBAC와 연관된 객체를 위한 검색 기반"
+msgstr "SUBID 범위를 위한 기반 검색"
 
 #: src/config/SSSDConfig/sssdoptions.py:245
 msgid "The LDAP attribute that contains FQDN of the host."
@@ -935,7 +934,7 @@ msgstr ""
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
-msgstr ""
+msgstr "AD 서버에 대응하는 GPO 정책 파일의 검색 사이에서 시간의 양"
 
 #: src/config/SSSDConfig/sssdoptions.py:290
 msgid ""

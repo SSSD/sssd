@@ -3148,7 +3148,6 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ msgid "Groups must be in the same domain as user\n"
 #~ msgstr "Les groupes doivent être dans le même domaine que l'utilisateur\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr "Impossible de trouver le groupe %1$s dans le domaine local\n"
 
@@ -3170,11 +3169,9 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ "Le répertoire de l'utilisateur existe déjà, les données du répertoire "
 #~ "squelette ne sont pas copiées\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr "Impossible de créer le répertoire de l'utilisateur : %1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr ""
 #~ "Impossible de créer le répertoire de réception des messages électroniques "
@@ -3212,13 +3209,11 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ msgid "Specify group to delete\n"
 #~ msgstr "Spécifier le groupe à supprimer\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Le groupe %1$s est en dehors de la plage d'identifiants définie pour le "
 #~ "domaine\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr ""
 #~ "Échec de requête NSS (%1$d). L'entrée peut persister dans le cache en "
@@ -3258,7 +3253,6 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ "Les membres du groupe doivent être dans le même domaine que le groupe "
 #~ "parent\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -3282,19 +3276,15 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ msgid "Magic Private "
 #~ msgstr "Magie privée "
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$s Groupe : %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$s GID numéro : %2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "Utilisateurs membres de %1$s : "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -3302,7 +3292,6 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ "\n"
 #~ "%1$s est membre de : "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3342,7 +3331,6 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ msgid "Specify user to delete\n"
 #~ msgstr "Définir l'utilisateur à supprimer\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "L'utilisateur %1$s est en dehors de la plage d'identifiants définie pour "
@@ -3351,7 +3339,6 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "Impossible de réinitialiser le contexte de connexion SELinux\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr ""
 #~ "ATTENTION : l'utilisateur (uid %1$lu) était encore connecté lors de sa "
@@ -3364,7 +3351,6 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ msgid "Error while checking if the user was logged in\n"
 #~ msgstr "Erreur en vérifiant si l'utilisateur était connecté\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr "La commande post-suppression a échoué : %1$s\n"
 
@@ -3373,7 +3359,6 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ "Le répertoire personnel n'est pas supprimé - l'utilisateur n'en est pas "
 #~ "le propriétaire\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "Impossible de supprimer le répertoire utilisateur : %1$s\n"
 
@@ -3444,7 +3429,6 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ msgid "Transaction error. Could not modify user.\n"
 #~ msgstr "Erreur de transaction. Impossible de modifier l'utlisateur.\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr ""
 #~ "Le nom « %1$s » ne semble pas être un FQDN (« %2$s = TRUE » est "

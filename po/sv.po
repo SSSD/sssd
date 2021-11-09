@@ -3044,7 +3044,6 @@ msgstr "Informerar att respondenten har blivit dbus-aktiverad"
 #~ msgid "Groups must be in the same domain as user\n"
 #~ msgstr "Grupper måste finnas i samma domän som användaren\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr "Hittar inte gruppen %1$s i den lokala domänen\n"
 
@@ -3066,11 +3065,9 @@ msgstr "Informerar att respondenten har blivit dbus-aktiverad"
 #~ "Användarens hemkatalog finns redan, kopierar inte data från "
 #~ "skelettkatalogen\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr "Kan inte skapa användarens hemkatalog: %1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr "Kan inte skapa användarens brevlåda: %1$s\n"
 
@@ -3104,12 +3101,10 @@ msgstr "Informerar att respondenten har blivit dbus-aktiverad"
 #~ msgid "Specify group to delete\n"
 #~ msgstr "Ange grupp att ta bort\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Gruppen %1$s är utanför det definierade ID-intervallet för domänen\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr ""
 #~ "NSS-begäran misslyckades (%1$d). Posten kan finnas kvar i en minnes-"
@@ -3147,7 +3142,6 @@ msgstr "Informerar att respondenten har blivit dbus-aktiverad"
 #~ msgid "Member groups must be in the same domain as parent group\n"
 #~ msgstr "Medlemsgrupper måste ligga i samma domän som föräldragrupper\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -3170,19 +3164,15 @@ msgstr "Informerar att respondenten har blivit dbus-aktiverad"
 #~ msgid "Magic Private "
 #~ msgstr "Magiskt privat "
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sGrupp: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sGID-nummer: %2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "%1$sMedlemsanvändare: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -3190,7 +3180,6 @@ msgstr "Informerar att respondenten har blivit dbus-aktiverad"
 #~ "\n"
 #~ "%1$sÄr en medlem i: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3229,7 +3218,6 @@ msgstr "Informerar att respondenten har blivit dbus-aktiverad"
 #~ msgid "Specify user to delete\n"
 #~ msgstr "Ange användare att ta bort\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Användaren %1$s är utanför det definierade ID-intervallet för domänen\n"
@@ -3237,7 +3225,6 @@ msgstr "Informerar att respondenten har blivit dbus-aktiverad"
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "Kan inte återställa SELinux-inloggningskontext\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr ""
 #~ "VARNING: Användaren (uid %1$lu) var fortfarande inloggad när han togs "
@@ -3250,14 +3237,12 @@ msgstr "Informerar att respondenten har blivit dbus-aktiverad"
 #~ msgid "Error while checking if the user was logged in\n"
 #~ msgstr "Fel vid kontroll om användaren var inloggad\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr "Kommandot efter borttagandet misslyckades: %1$s\n"
 
 #~ msgid "Not removing home dir - not owned by user\n"
 #~ msgstr "Tar inte bort hemkatalogen - ägs inte av användaren\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "Kan inte ta bort hemkatalogen: %1$s\n"
 
@@ -3325,7 +3310,6 @@ msgstr "Informerar att respondenten har blivit dbus-aktiverad"
 #~ msgid "Transaction error. Could not modify user.\n"
 #~ msgstr "Transaktionsfel. Det gick inte att ändra användaren.\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr ""
 #~ "Namnet ”%1$s” verkar inte vara ett fullt kvalificerad domännamn (”%2$s = "
