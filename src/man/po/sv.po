@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-10-11 14:54+0200\n"
+"POT-Creation-Date: 2021-11-09 16:02+0100\n"
 "PO-Revision-Date: 2021-09-17 22:04+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
@@ -242,11 +242,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:133 sssd.conf.5.xml:170 sssd.conf.5.xml:355
-#: sssd.conf.5.xml:647 sssd.conf.5.xml:1001 sssd.conf.5.xml:2033
-#: sssd.conf.5.xml:2063 sssd-ldap.5.xml:962 sssd-ldap.5.xml:1060
-#: sssd-ldap.5.xml:1127 sssd-ldap.5.xml:1614 sssd-ldap.5.xml:1679
-#: sssd-ipa.5.xml:341 sssd-ad.5.xml:229 sssd-ad.5.xml:343 sssd-ad.5.xml:1177
-#: sssd-ad.5.xml:1325 sssd-krb5.5.xml:342
+#: sssd.conf.5.xml:647 sssd.conf.5.xml:1001 sssd.conf.5.xml:2063
+#: sssd-ldap.5.xml:962 sssd-ldap.5.xml:1060 sssd-ldap.5.xml:1127
+#: sssd-ldap.5.xml:1614 sssd-ldap.5.xml:1679 sssd-ipa.5.xml:341
+#: sssd-ad.5.xml:229 sssd-ad.5.xml:343 sssd-ad.5.xml:1177 sssd-ad.5.xml:1325
+#: sssd-krb5.5.xml:342
 msgid "Default: true"
 msgstr "Standard: true"
 
@@ -266,11 +266,12 @@ msgstr ""
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:146 sssd.conf.5.xml:644 sssd.conf.5.xml:883
-#: sssd.conf.5.xml:1966 sssd.conf.5.xml:3849 sssd-ldap.5.xml:312
-#: sssd-ldap.5.xml:813 sssd-ldap.5.xml:832 sssd-ldap.5.xml:1032
-#: sssd-ldap.5.xml:1463 sssd-ldap.5.xml:1703 sssd-ipa.5.xml:151
-#: sssd-ipa.5.xml:253 sssd-ipa.5.xml:603 sssd-ad.5.xml:1083 sssd-krb5.5.xml:268
-#: sssd-krb5.5.xml:416 include/krb5_options.xml:29 include/krb5_options.xml:154
+#: sssd.conf.5.xml:1966 sssd.conf.5.xml:2033 sssd.conf.5.xml:3849
+#: sssd-ldap.5.xml:312 sssd-ldap.5.xml:813 sssd-ldap.5.xml:832
+#: sssd-ldap.5.xml:1032 sssd-ldap.5.xml:1463 sssd-ldap.5.xml:1703
+#: sssd-ipa.5.xml:151 sssd-ipa.5.xml:253 sssd-ipa.5.xml:603 sssd-ad.5.xml:1083
+#: sssd-krb5.5.xml:268 sssd-krb5.5.xml:416 include/krb5_options.xml:29
+#: include/krb5_options.xml:154
 msgid "Default: false"
 msgstr "Standard: false"
 
