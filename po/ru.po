@@ -3123,7 +3123,6 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ msgid "Groups must be in the same domain as user\n"
 #~ msgstr "Группы должны быть в том же домене, что и пользователь\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr "Не удалось найти группу %1$s в локальном домене\n"
 
@@ -3145,11 +3144,9 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ "Домашний каталог пользователя уже существует, копирования данных из "
 #~ "скелетной директории выполнено не будет\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr "Не удалось создать домашний каталог пользователя: %1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr "Не удалось создать почтовый буфер пользователя: %1$s\n"
 
@@ -3183,11 +3180,9 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ msgid "Specify group to delete\n"
 #~ msgstr "Укажите группу для удаления\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr "Группа %1$s не принадлежит заданному диапазону ID для домена\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr "Ошибка запроса NSS (%1$d). Запись может остаться в кэше памяти.\n"
 
@@ -3224,7 +3219,6 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ msgstr ""
 #~ "Группы-участники должны быть в том же домене, что и родительская группа\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -3246,19 +3240,15 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ msgid "Magic Private "
 #~ msgstr "Magic Private"
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sГруппа: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sНомер GID: %2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "%1$sПользователи-участники: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -3266,7 +3256,6 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ "\n"
 #~ "%1$sЯвляется участником: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3305,7 +3294,6 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ msgid "Specify user to delete\n"
 #~ msgstr "Укажите пользователя для удаления\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Пользователь %1$s не принадлежит заданному диапазону ID для домена\n"
@@ -3313,7 +3301,6 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "Не удалось сбросить контекст входа SELinux\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr ""
 #~ "ПРЕДУПРЕЖДЕНИЕ: пользователь (uid %1$lu) всё ещё находился в системе в "
@@ -3326,7 +3313,6 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ msgid "Error while checking if the user was logged in\n"
 #~ msgstr "Ошибка при проверке факта входа пользователя в систему\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr ""
 #~ "Ошибка команды, которую следовало выполнить после удаления записи: %1$s\n"
@@ -3335,7 +3321,6 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ msgstr ""
 #~ "Домашний каталог не удалён — пользователь не является его владельцем\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "Не удалось удалить домашний каталог: %1$s\n"
 
@@ -3402,7 +3387,6 @@ msgstr "Сообщает о том, что ответчик активирова
 #~ msgid "Transaction error. Could not modify user.\n"
 #~ msgstr "Ошибка в транзакции. Не удалось изменить пользователя.\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr "Имя «%1$s» не является FQDN (задано «%2$s = TRUE»)\n"
 

@@ -2847,7 +2847,6 @@ msgstr ""
 #~ msgstr ""
 #~ "De groepen moeten zich in het zelfde domein als de gebruiker bevinden\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr ""
 #~ "Kan groep %1$s niet in lokale domein vinden\n"
@@ -2869,11 +2868,9 @@ msgstr ""
 #~ "User's home directory already exists, not copying data from skeldir\n"
 #~ msgstr "De gebruikersmap bestaat reeds, voorbeeldmap niet gekopieerd\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr "Kan persoonlijk map voor gebruiker niet aanmaken: %1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr "Kan mail spool voor gebruiker niet aanmaken: %1$s\n"
 
@@ -2907,11 +2904,9 @@ msgstr ""
 #~ msgid "Specify group to delete\n"
 #~ msgstr "Geef groep op om te verwijderen\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr "Groep %1$s ligt buiten het gedefinieerde ID gebied voor domein\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr ""
 #~ "NSS verzoek mislukte (%1$d). Ingang blijft misschien in de "
@@ -2951,7 +2946,6 @@ msgstr ""
 #~ "Lidmaatschappen moeten in het zelfde domein vallen als de daarboven "
 #~ "liggende groep\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -2975,19 +2969,15 @@ msgstr ""
 #~ msgid "Magic Private "
 #~ msgstr "Magic Private "
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sGroep: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sGID nummer: %2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "%1$sLid gebruikers: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -2995,7 +2985,6 @@ msgstr ""
 #~ "\n"
 #~ "%1$sIs lid van: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3036,7 +3025,6 @@ msgstr ""
 #~ msgid "Specify user to delete\n"
 #~ msgstr "Specificeer de te verwijderen gebruiker\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Gebruiker %1$s ligt buiten het gedefinieerde ID bereik voor domein\n"
@@ -3044,7 +3032,6 @@ msgstr ""
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "Kan de SELinux logincontext niet herstellen\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr ""
 #~ "WAARSCHUWING: De gebruiker (uid %1$lu) was nog ingelogd bij het "
@@ -3056,7 +3043,6 @@ msgstr ""
 #~ msgid "Error while checking if the user was logged in\n"
 #~ msgstr "Fout bij het controleren of de gebruiker was ingelogd\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr "Het post-verwijder commando mislukte: %1$s\n"
 
@@ -3064,7 +3050,6 @@ msgstr ""
 #~ msgstr ""
 #~ "De gebruikersmap wordt niet verwijderd - de gebruiker is geen eigenaar\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "Kan persoonlijke map niet verwijderen: %1$s\n"
 
@@ -3116,7 +3101,6 @@ msgstr ""
 #~ msgid "Transaction error. Could not modify user.\n"
 #~ msgstr "Transactiefout. Kan de gebruiker niet aanpassen.\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr "Naam '%1$s' lijkt geen FQDN ('%2$s = TRUE' is ingesteld) te zijn\n"
 

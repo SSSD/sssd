@@ -2764,11 +2764,9 @@ msgstr ""
 #~ msgid "Internal error. Could not remove group.\n"
 #~ msgstr "Barne errorea. Ezin izan da taldea kendu.\n"
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sTaldea: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sGID zenbakia: %2$d\n"
 

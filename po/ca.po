@@ -2898,7 +2898,6 @@ msgstr ""
 #~ msgid "Groups must be in the same domain as user\n"
 #~ msgstr "Els grups han d'estar al mateix domini que l'usuari\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr "No es pot trobar el grup %1$s al domini local\n"
 
@@ -2920,11 +2919,9 @@ msgstr ""
 #~ "El directori inicial de l'usuari ja existeix, no es copiaran les dades "
 #~ "del directori esquemàtic\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr "No es pot crear el directori inicial de l'usuari: %1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr "No es pot crear la gestió de cues del correu de l'usuari: %1$s\n"
 
@@ -2960,11 +2957,9 @@ msgstr ""
 #~ msgid "Specify group to delete\n"
 #~ msgstr "Especifiqueu el grup a eliminar\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr "El grup %1$s està fora de l'interval d'id. definit pel domini\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr ""
 #~ "Ha fallat la sol·licitud NSS (%1$d). L'entrada podria romandre en la "
@@ -3002,7 +2997,6 @@ msgstr ""
 #~ msgid "Member groups must be in the same domain as parent group\n"
 #~ msgstr "Els grups membres han d'estar al mateix domini com a grup primari\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -3027,19 +3021,15 @@ msgstr ""
 #~ msgid "Magic Private "
 #~ msgstr "Privat màgic "
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sGrup: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sNúmero GID: %2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "%1$sUsuaris membre: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -3047,7 +3037,6 @@ msgstr ""
 #~ "\n"
 #~ "%1$sÉs un membre de: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3086,14 +3075,12 @@ msgstr ""
 #~ msgid "Specify user to delete\n"
 #~ msgstr "Especifica l'usuari a eliminar\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr "L'usuari %1$s està fora de l'interval d'id. pel domini\n"
 
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "No es pot reiniciar el context d'inici de sessió de SELinux\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr ""
 #~ "ATENCIÓ: L'usuari (uid %1$lu) encara estava en la sessió quan es va "
@@ -3108,7 +3095,6 @@ msgstr ""
 #~ msgstr ""
 #~ "S'ha produït un error en comprovar si l'usuari havia iniciat la sessió\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr "L'ordre post-delete ha fallat: %1$s\n"
 
@@ -3116,7 +3102,6 @@ msgstr ""
 #~ msgstr ""
 #~ "No s'ha eliminat el directori inicial - no és propietat de l'usuari\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "No es pot eliminar el directori inicial: %1$s\n"
 
@@ -3185,7 +3170,6 @@ msgstr ""
 #~ "S'ha produït un error en la transacció. No s'ha pogut modificar "
 #~ "l'usuari.\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr "El nom '%1$s' no sembla un FQDN ('%2$s = TRUE' està establert)\n"
 

@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-10-11 14:55+0200\n"
-"PO-Revision-Date: 2021-06-10 14:56+0000\n"
+"PO-Revision-Date: 2021-10-19 14:46+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pl/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.6.2\n"
+"X-Generator: Weblate 4.8\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -848,9 +848,8 @@ msgstr ""
 "kiedy ostatnie żądanie nie odnalazło żadnej reguły"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
-#, fuzzy
 msgid "Search base for SUBID ranges"
-msgstr "Podstawa wyszukiwania dla widoku kontenerów"
+msgstr "Podstawa wyszukiwania dla zakresów SUBID"
 
 #: src/config/SSSDConfig/sssdoptions.py:245
 msgid "The LDAP attribute that contains FQDN of the host."
@@ -2358,14 +2357,14 @@ msgid "Error while executing external command\n"
 msgstr "Błąd podczas wykonywania polecenia zewnętrznego\n"
 
 #: src/tools/sssctl/sssctl.c:123
-#, fuzzy, c-format
+#, c-format
 msgid "Error while executing external command '%s'\n"
-msgstr "Błąd podczas wykonywania polecenia zewnętrznego\n"
+msgstr "Błąd podczas wykonywania zewnętrznego polecenia „%s”\n"
 
 #: src/tools/sssctl/sssctl.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "Command '%s' failed with [%d]\n"
-msgstr "dlsym się nie powiodło z [%s].\n"
+msgstr "Polecenie „%s” się nie powiodło z [%d]\n"
 
 #: src/tools/sssctl/sssctl.c:173
 msgid "SSSD needs to be running. Start SSSD now?"
@@ -3073,7 +3072,6 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ msgid "Groups must be in the same domain as user\n"
 #~ msgstr "Grupy muszą być w tej samej domenie co użytkownik\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr "Nie można odnaleźć grupy %1$s w lokalnej domenie\n"
 
@@ -3095,11 +3093,9 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ "Katalog domowy użytkownika już istnieje, dane z katalogu szkieletu nie "
 #~ "zostaną skopiowane\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr "Nie można utworzyć katalogu domowego użytkownika: %1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr "Nie można utworzyć buforu poczty użytkownika: %1$s\n"
 
@@ -3137,12 +3133,10 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ msgid "Specify group to delete\n"
 #~ msgstr "Proszę podać grupę do usunięcia\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Grupa %1$s jest poza określonym zakresem identyfikatorów dla domeny\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr ""
 #~ "Żądanie NSS się nie powiodło (%1$d). Wpis może zostać w pamięci "
@@ -3180,7 +3174,6 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ msgid "Member groups must be in the same domain as parent group\n"
 #~ msgstr "Członkowie grupy muszą być w tej samej domenie co grupa nadrzędna\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -3204,19 +3197,15 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ msgid "Magic Private "
 #~ msgstr "Prywatne magic "
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sGrupa: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sNumer GID: %2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "%1$sUżytkownicy będący członkami: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -3224,7 +3213,6 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ "\n"
 #~ "%1$sJest członkiem: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3263,7 +3251,6 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ msgid "Specify user to delete\n"
 #~ msgstr "Proszę podać użytkownika do usunięcia\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "Użytkownik %1$s jest poza określonym zakresem identyfikatorów dla domeny\n"
@@ -3271,7 +3258,6 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "Nie można przywrócić kontekstu loginu SELinuksa\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr ""
 #~ "OSTRZEŻENIE: użytkownik (UID %1$lu) był zalogowany podczas jego "
@@ -3283,7 +3269,6 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ msgid "Error while checking if the user was logged in\n"
 #~ msgstr "Błąd podczas sprawdzania, czy użytkownik był zalogowany\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr "Polecenie po usunięciu nie powiodło się: %1$s\n"
 
@@ -3291,7 +3276,6 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ msgstr ""
 #~ "Katalog domowy nie zostanie usunięty — użytkownik nie jest właścicielem\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "Nie można usunąć katalogu domowego: %1$s\n"
 
@@ -3360,7 +3344,6 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ msgid "Transaction error. Could not modify user.\n"
 #~ msgstr "Błąd transakcji. Nie można zmodyfikować użytkownika.\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr "Nazwa „%1$s” nie jest FQDN (ustawione jest „%2$s = TRUE”)\n"
 

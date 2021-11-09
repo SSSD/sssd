@@ -19,7 +19,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-10-11 14:55+0200\n"
-"PO-Revision-Date: 2021-09-27 18:04+0000\n"
+"PO-Revision-Date: 2021-10-27 15:05+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
@@ -503,18 +503,26 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
+"Una lista separada por comas de grupos, cuyos miembros tendrían habilitado "
+"la grabación de sesión. Coincide con los nombres de grupo devueltos por NSS. "
+"I.e. después de los posibles cambios de espacio, cambios de mayúsculas/"
+"minúsculas, etc."
 
 #: src/config/SSSDConfig/sssdoptions.py:146
 msgid ""
 "A comma-separated list of users to be excluded from recording, only when "
 "scope=all"
 msgstr ""
+"Una lista separada por comas de usuarios a ser excluidos de la grabación, "
+"sólo cuando scope=all"
 
 #: src/config/SSSDConfig/sssdoptions.py:147
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
 msgstr ""
+"Una lista separada de grupos, cuyos miembros serían excluidos de la "
+"grabación, sólo cuando scope=all. "
 
 #: src/config/SSSDConfig/sssdoptions.py:151
 msgid "Identity provider"
@@ -554,16 +562,15 @@ msgstr "Proveedor de gestión de sesión"
 
 #: src/config/SSSDConfig/sssdoptions.py:160
 msgid "Resolver provider"
-msgstr ""
+msgstr "Proveedor de resolución"
 
 #: src/config/SSSDConfig/sssdoptions.py:163
 msgid "Whether the domain is usable by the OS or by applications"
 msgstr "Si el dominio es utilizable por el SO o por las aplicaciones"
 
 #: src/config/SSSDConfig/sssdoptions.py:164
-#, fuzzy
 msgid "Enable or disable the domain"
-msgstr "Habilitar o deshabilitar el dominio implícito de archivos"
+msgstr "Habilitar o deshabilitar el dominio"
 
 #: src/config/SSSDConfig/sssdoptions.py:165
 msgid "Minimum user ID"
@@ -717,24 +724,30 @@ msgstr "Ya sea para crear grupos privados para usuarios"
 
 #: src/config/SSSDConfig/sssdoptions.py:203
 msgid "Display a warning N days before the password expires."
-msgstr ""
+msgstr "Mostrar una advertencia N días antes que la contraseña caduque."
 
 #: src/config/SSSDConfig/sssdoptions.py:204
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
+"Diversas banderas almacenadas por el servicio de configuración realmd para "
+"este dominio."
 
 #: src/config/SSSDConfig/sssdoptions.py:205
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
 msgstr ""
+"El proveedor que debería manejar la búsqueda de subdominios. Este valor "
+"debería ser siempre el mismo de id_provider."
 
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
+"Cuantos segundos mantener una clave ssh de host después de refrescar. IE "
+"cuanto guardar en caché la clave de host."
 
 #: src/config/SSSDConfig/sssdoptions.py:209
 msgid ""
@@ -742,6 +755,10 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
+"Si se usa 2-Factor-Authentication (2FA) y las credenciales deberían ser "
+"guardadas este valor determina la longitud mínima del primer factor de "
+"autenticación (contraseña de largo plazo) que debe ser guardado como hash "
+"SHA512 en el caché."
 
 #: src/config/SSSDConfig/sssdoptions.py:215
 msgid "IPA domain"
@@ -858,122 +875,142 @@ msgstr ""
 "ninguna regla"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
-#, fuzzy
 msgid "Search base for SUBID ranges"
-msgstr "Buscar base para la visualización de contenedores"
+msgstr "Buscar base para rangos SUBID"
 
 #: src/config/SSSDConfig/sssdoptions.py:245
 msgid "The LDAP attribute that contains FQDN of the host."
-msgstr ""
+msgstr "El atributo LDAP que contiene el FQDN del host."
 
 #: src/config/SSSDConfig/sssdoptions.py:246
 #: src/config/SSSDConfig/sssdoptions.py:269
 msgid "The object class of a host entry in LDAP."
-msgstr ""
+msgstr "La clase de objeto de una entrada de host en LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:247
 msgid "Use the given string as search base for host objects."
-msgstr ""
+msgstr "Usa la cadena dada como base de búsqueda para objetos host."
 
 #: src/config/SSSDConfig/sssdoptions.py:248
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr ""
+msgstr "El atributo LDAP que contiene las claves públicas SSH del host."
 
 #: src/config/SSSDConfig/sssdoptions.py:249
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
 msgstr ""
+"El atributo LDAP que contiene el nombre de dominio NIS del grupo de red."
 
 #: src/config/SSSDConfig/sssdoptions.py:250
 msgid "The LDAP attribute that contains the names of the netgroup's members."
 msgstr ""
+"El atributo LDAP que contiene los nombres de los miembros de grupo de red."
 
 #: src/config/SSSDConfig/sssdoptions.py:251
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
 msgstr ""
+"El atributo LDAP que lista los FQDNs de hosts y grupos de host que son "
+"miembros del grupo de red."
 
 #: src/config/SSSDConfig/sssdoptions.py:253
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
 msgstr ""
+"El atributo LDAP que lista hosts y grupos de host que son miembros directos "
+"del grupo de red."
 
 #: src/config/SSSDConfig/sssdoptions.py:255
 msgid "The LDAP attribute that lists netgroup's memberships."
-msgstr ""
+msgstr "El atributo LDAP que lista la membresía del grupo de red."
 
 #: src/config/SSSDConfig/sssdoptions.py:256
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
 msgstr ""
+"El atributo LDAP que lista los usuarios y grupos del sistema que son "
+"miembros directos del grupo de red."
 
 #: src/config/SSSDConfig/sssdoptions.py:258
 msgid "The LDAP attribute that corresponds to the netgroup name."
-msgstr ""
+msgstr "El atributo LDAP que corresponde al nombre de grupo de red."
 
 #: src/config/SSSDConfig/sssdoptions.py:259
 msgid "The object class of a netgroup entry in LDAP."
-msgstr ""
+msgstr "La clase objeto de una entrada de grupo de red en LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:260
 msgid ""
 "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
 msgstr ""
+"El atributo LDAP que contiene el UUID/GUID de un objeto de grupo de red LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:261
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr ""
+"El atributo LDAP que contiene si o no el mapa de usuario está habilitado "
+"para su uso."
 
 #: src/config/SSSDConfig/sssdoptions.py:263
 msgid "The LDAP attribute that contains host category such as 'all'."
-msgstr ""
+msgstr "El atributo LDAP que contiene la categoría de host como 'all'."
 
 #: src/config/SSSDConfig/sssdoptions.py:264
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr ""
+"El atributo LDAP que contiene todos los hosts / grupos de host que deben "
+"coincidir con esta regla."
 
 #: src/config/SSSDConfig/sssdoptions.py:266
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
 msgstr ""
+"El atributo LDAP que contiene todos los usuarios / grupos que deben "
+"coincidir con esta regla."
 
 #: src/config/SSSDConfig/sssdoptions.py:268
 msgid "The LDAP attribute that contains the name of SELinux usermap."
-msgstr ""
+msgstr "El atributo LDAP que contiene el nombre del mapa de usuario SELinux."
 
 #: src/config/SSSDConfig/sssdoptions.py:270
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
 msgstr ""
+"El atributo LDAP que contiene el DN de la regla HBAC que se debe usar para "
+"coincidir en lugar de memberUser y memberHost."
 
 #: src/config/SSSDConfig/sssdoptions.py:272
 msgid "The LDAP attribute that contains SELinux user string itself."
-msgstr ""
+msgstr "El atributo LDAP que contiene la cadena de usuario SELinux misma."
 
 #: src/config/SSSDConfig/sssdoptions.py:273
 msgid "The LDAP attribute that contains user category such as 'all'."
-msgstr ""
+msgstr "El atributo LDAP que contiene la categoría de usuario como 'all'."
 
 #: src/config/SSSDConfig/sssdoptions.py:274
 msgid "The LDAP attribute that contains unique ID of the user map."
-msgstr ""
+msgstr "El atributo LDAP que contiene la ID única del mapa de usuario."
 
 #: src/config/SSSDConfig/sssdoptions.py:275
 msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
 msgstr ""
+"La opción denota que SSSD está corriendo sobre un servidor IPA y debería "
+"llevar a cabo búsquedas de usuarios y grupos desde los dominios de confianza "
+"server and should perform lookups of users and groups from trusted domains "
+"diferentemente."
 
 #: src/config/SSSDConfig/sssdoptions.py:277
 msgid "Use the given string as search base for trusted domains."
-msgstr ""
+msgstr "Usa la cadena dada como base de búsqueda de dominios de confianza."
 
 #: src/config/SSSDConfig/sssdoptions.py:280
 msgid "Active Directory domain"
@@ -1089,14 +1126,16 @@ msgstr "Opción para afinar la tarea de renovación de la cuenta de la máquina"
 #: src/config/SSSDConfig/sssdoptions.py:304
 msgid "Whether to update the machine account password in the Samba database"
 msgstr ""
+"Ya sea para actualizar la contraseña de la cuenta de la máquina en la base "
+"de datos de Samba"
 
 #: src/config/SSSDConfig/sssdoptions.py:306
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
-msgstr ""
+msgstr "Utiliza el puerto LDAPS para peticiones LDAP y Global Catalog"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid "Do not filter domain local groups from other domains"
-msgstr ""
+msgstr "No filtra los grupos del dominio local de otros dominios"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 #: src/config/SSSDConfig/sssdoptions.py:311
@@ -3060,7 +3099,6 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ msgid "Groups must be in the same domain as user\n"
 #~ msgstr "Los grupos deben estar en el mismo dominio que el usuario\n"
 
-#, c-format
 #~ msgid "Cannot find group %1$s in local domain\n"
 #~ msgstr "No se puede encontrar el grupo %1$s en el dominio local\n"
 
@@ -3082,11 +3120,9 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ "El directorio de inicio del usuario ya existe, no copiar datos desde el "
 #~ "esqueleto\n"
 
-#, c-format
 #~ msgid "Cannot create user's home directory: %1$s\n"
 #~ msgstr "No se puede crear el directorio home del usuario: %1$s\n"
 
-#, c-format
 #~ msgid "Cannot create user's mail spool: %1$s\n"
 #~ msgstr "No puede crear la cuenta de correo del usuario: %1$s\n"
 
@@ -3122,12 +3158,10 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ msgid "Specify group to delete\n"
 #~ msgstr "Especifique el grupo a borrar\n"
 
-#, c-format
 #~ msgid "Group %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "El grupo %1$s está fuera del rango de ID definidas para el dominio\n"
 
-#, c-format
 #~ msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 #~ msgstr ""
 #~ "Petición NSS fallo (%1$d). La entrada debe permanecer en la memoria "
@@ -3166,7 +3200,6 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ msgstr ""
 #~ "Los grupos miembro deben estar en el mismo dominio que el grupo padre\n"
 
-#, c-format
 #~ msgid ""
 #~ "Cannot find group %1$s in local domain, only groups in local domain are "
 #~ "allowed\n"
@@ -3190,19 +3223,15 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ msgid "Magic Private "
 #~ msgstr "Magia privada"
 
-#, c-format
 #~ msgid "%1$s%2$sGroup: %3$s\n"
 #~ msgstr "%1$s%2$sGroup: %3$s\n"
 
-#, c-format
 #~ msgid "%1$sGID number: %2$d\n"
 #~ msgstr "%1$sGID número: %2$d\n"
 
-#, c-format
 #~ msgid "%1$sMember users: "
 #~ msgstr "%1$sMember usuarios: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sIs a member of: "
@@ -3210,7 +3239,6 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ "\n"
 #~ "%1$sIs un miembro de: "
 
-#, c-format
 #~ msgid ""
 #~ "\n"
 #~ "%1$sMember groups: "
@@ -3249,7 +3277,6 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ msgid "Specify user to delete\n"
 #~ msgstr "Especifique el usuario a borrar\n"
 
-#, c-format
 #~ msgid "User %1$s is outside the defined ID range for domain\n"
 #~ msgstr ""
 #~ "El usuario %1$s está fuera del rango de ID definido para el dominio\n"
@@ -3257,7 +3284,6 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ msgid "Cannot reset SELinux login context\n"
 #~ msgstr "No es posible reiniciar contexto de registro de SELinux\n"
 
-#, c-format
 #~ msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 #~ msgstr ""
 #~ "PRECAUCIÓN: El usuario (uid %1$lu) estaba todavía conectado cuando se "
@@ -3272,14 +3298,12 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ msgstr ""
 #~ "Error mientras se verificaba si el usuario se encontraba registrado\n"
 
-#, c-format
 #~ msgid "The post-delete command failed: %1$s\n"
 #~ msgstr "El comando post-delete falló: %1$s\n"
 
 #~ msgid "Not removing home dir - not owned by user\n"
 #~ msgstr "No eliminando el directorio de inicio - no pertenece al usuario\n"
 
-#, c-format
 #~ msgid "Cannot remove homedir: %1$s\n"
 #~ msgstr "No se puede borrar homedir: %1$s\n"
 
@@ -3347,7 +3371,6 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ msgid "Transaction error. Could not modify user.\n"
 #~ msgstr "Error de transacción. No se pudo modificar el usuario.\n"
 
-#, c-format
 #~ msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 #~ msgstr "El nombre '%1$s' no parece ser FQDN ('%2$s = TRUE' está fijado)\n"
 
