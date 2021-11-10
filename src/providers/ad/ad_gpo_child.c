@@ -33,6 +33,7 @@
 
 #include "util/util.h"
 #include "util/child_common.h"
+#include "util/sss_chain_id.h"
 #include "providers/backend.h"
 #include "providers/ad/ad_gpo.h"
 #include "sss_cli.h"
@@ -724,6 +725,7 @@ main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int debug_fd = -1;
+    uint64_t chain_id;
     const char *opt_logger = NULL;
     errno_t ret;
     int sysvol_gpt_version;
@@ -740,6 +742,8 @@ main(int argc, const char *argv[])
         SSSD_DEBUG_OPTS
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
+        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
+         0, _("Tevent chain ID used for logging purposes"), NULL},
         SSSD_LOGGER_OPTS
         POPT_TABLEEND
     };
@@ -774,6 +778,9 @@ main(int argc, const char *argv[])
             ERROR("set_debug_file_from_fd failed.\n");
         }
     }
+
+    sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
+    sss_chain_id_set(chain_id);
 
     DEBUG_INIT(debug_level, opt_logger);
 
