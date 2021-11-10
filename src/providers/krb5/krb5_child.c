@@ -36,6 +36,7 @@
 #include "util/user_info_msg.h"
 #include "util/child_common.h"
 #include "util/find_uid.h"
+#include "util/sss_chain_id.h"
 #include "src/util/util_errors.h"
 #include "providers/backend.h"
 #include "providers/krb5/krb5_auth.h"
@@ -3317,6 +3318,7 @@ int main(int argc, const char *argv[])
     krb5_error_code kerr;
     uid_t fast_uid = 0;
     gid_t fast_gid = 0;
+    uint64_t chain_id = 0;
     struct cli_opts cli_opts = { 0 };
     int sss_creds_password = 0;
 
@@ -3345,6 +3347,8 @@ int main(int argc, const char *argv[])
          _("Requests canonicalization of the principal name"), NULL},
         {CHILD_OPT_SSS_CREDS_PASSWORD, 0, POPT_ARG_NONE, &sss_creds_password,
          0, _("Use custom version of krb5_get_init_creds_password"), NULL},
+        {CHILD_OPT_CHAIN_ID, 0, POPT_ARG_LONG, &chain_id,
+         0, _("Tevent chain ID used for logging purposes"), NULL},
         POPT_TABLEEND
     };
 
@@ -3385,6 +3389,9 @@ int main(int argc, const char *argv[])
             ERROR("set_debug_file_from_fd failed.\n");
         }
     }
+
+    sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_RID);
+    sss_chain_id_set(chain_id);
 
     DEBUG_INIT(debug_level, opt_logger);
 

@@ -4513,6 +4513,7 @@ krb5_child_SOURCES = \
     src/util/util.c \
     src/util/util_ext.c \
     src/util/signal.c \
+    src/util/sss_chain_id.c \
     src/util/strtonum.c \
     src/util/become_user.c \
     src/util/util_errors.c \
