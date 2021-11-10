@@ -47,6 +47,7 @@
 #include "util/child_common.h"
 #include "resolv/async_resolv.h"
 #include "sss_iface/sss_iface_async.h"
+#include "util/sss_chain_id_tevent.h"
 #include "util/sss_chain_id.h"
 
 #define ONLINE_CB_RETRY 3
