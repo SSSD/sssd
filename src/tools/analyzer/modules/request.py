@@ -250,13 +250,11 @@ class RequestAnalyzer:
         component = source.Component.NSS
         resp = "nss"
         pattern = [f'REQ_TRACE.*\[CID #{cid}\\]']
-        pattern.append(f"\[CID #{cid}\\].*connected")
+        pattern.append(f"\[CID#{cid}\\]")
 
         if args.pam:
             component = source.Component.PAM
             resp = "pam"
-            pam_data_regex = f'pam.*\[CID#{cid}\]'
-            pattern.append(pam_data_regex)
 
         logger.info(f"******** Checking {resp} responder for Client ID"
                     f" {cid} *******")
