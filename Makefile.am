@@ -4627,6 +4627,7 @@ p11_child_SOURCES = \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
+    src/util/sss_chain_id.c \
     $(NULL)
 p11_child_SOURCES += src/p11_child/p11_child_openssl.c
 
