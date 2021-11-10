@@ -26,6 +26,7 @@
 
 #include "util/util.h"
 #include "util/child_common.h"
+#include "util/sss_chain_id.h"
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "src/providers/krb5/krb5_utils.h"
@@ -301,6 +302,7 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
 {
     const char **extra_args;
     const char *krb5_realm;
+    uint64_t chain_id;
     size_t c = 0;
     int ret;
 
@@ -417,6 +419,17 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
         }
         c++;
     }
+
+    chain_id = sss_chain_id_get();
+    extra_args[c] = talloc_asprintf(extra_args,
+                                    "--"CHILD_OPT_CHAIN_ID"=%lu",
+                                    chain_id);
+    if (extra_args[c] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    c++;
 
     extra_args[c] = NULL;
 
