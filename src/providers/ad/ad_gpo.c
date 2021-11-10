@@ -50,6 +50,7 @@
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "util/util_sss_idmap.h"
+#include "util/sss_chain_id.h"
 #include <ndr.h>
 #include <gen_ndr/security.h>
 #include <db/sysdb_computer.h>
@@ -4793,9 +4794,24 @@ gpo_fork_child(struct tevent_req *req)
     int pipefd_from_child[2] = PIPE_INIT;
     pid_t pid;
     errno_t ret;
+    const char **extra_args;
+    int c = 0;
     struct ad_gpo_process_cse_state *state;
 
     state = tevent_req_data(req, struct ad_gpo_process_cse_state);
+
+    extra_args = talloc_array(state, const char *, 2);
+
+    extra_args[c] = talloc_asprintf(extra_args, "--chain-id=%lu",
+                                    sss_chain_id_get());
+    if (extra_args[c] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+    c++;
+
+    extra_args[c] = NULL;
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
@@ -4817,7 +4833,7 @@ gpo_fork_child(struct tevent_req *req)
     if (pid == 0) { /* child */
         exec_child_ex(state,
                       pipefd_to_child, pipefd_from_child,
-                      GPO_CHILD, GPO_CHILD_LOG_FILE, NULL, false,
+                      GPO_CHILD, GPO_CHILD_LOG_FILE, extra_args, false,
                       STDIN_FILENO, AD_GPO_CHILD_OUT_FILENO);
 
         /* We should never get here */
