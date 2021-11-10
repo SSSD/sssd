@@ -1,6 +1,6 @@
 /*
     Authors:
-        Pavel Březina <pbrezina@redhat.com>
+        Justin Stephenson <jstephen@redhat.com>
 
     Copyright (C) 2021 Red Hat
 
@@ -21,10 +21,9 @@
 #ifndef _SSS_CHAIN_ID_
 #define _SSS_CHAIN_ID_
 
-#include <tevent.h>
+#include <stdint.h>
 
-/* Setup chain id tracking on tevent context. */
-void sss_chain_id_setup(struct tevent_context *ev);
+extern uint64_t debug_chain_id;
 
 /* Explicitly set new chain id. The old id is returned. */
 uint64_t sss_chain_id_set(uint64_t id);

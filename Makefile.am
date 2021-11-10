@@ -685,6 +685,7 @@ dist_noinst_HEADERS = \
     src/util/session_recording.h \
     src/util/strtonum.h \
     src/util/sss_cli_cmd.h \
+    src/util/sss_chain_id_tevent.h \
     src/util/sss_chain_id.h \
     src/util/sss_ptr_hash.h \
     src/util/sss_ptr_list.h \
@@ -1266,6 +1267,7 @@ libsss_util_la_SOURCES = \
     src/util/files.c \
     src/util/selinux.c \
     src/util/sss_regexp.c \
+    src/util/sss_chain_id_tevent.c \
     src/util/sss_chain_id.c \
     src/util/nss_dl_load.c \
     src/util/nss_dl_load_extra.c \
