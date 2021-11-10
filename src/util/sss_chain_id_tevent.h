@@ -18,17 +18,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdint.h>
-#include "util/sss_chain_id.h"
+#ifndef _SSS_CHAIN_ID_TEVENT_
+#define _SSS_CHAIN_ID_TEVENT_
 
-uint64_t sss_chain_id_set(uint64_t id)
-{
-    uint64_t old_id = debug_chain_id;
-    debug_chain_id = id;
-    return old_id;
-}
+#include <tevent.h>
 
-uint64_t sss_chain_id_get(void)
-{
-    return debug_chain_id;
-}
+/* Setup chain id tracking on tevent context. */
+void sss_chain_id_setup(struct tevent_context *ev);
+
+#endif /* _SSS_CHAIN_ID_TEVENT_ */
