@@ -26,6 +26,7 @@
 #include "db/sysdb_selinux.h"
 #include "util/child_common.h"
 #include "util/sss_selinux.h"
+#include "util/sss_chain_id.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_config.h"
@@ -676,6 +677,21 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
     int pipefd_from_child[2];
     pid_t pid;
     errno_t ret;
+    const char **extra_args;
+    int c = 0;
+
+    extra_args = talloc_array(state, const char *, 2);
+
+    extra_args[c] = talloc_asprintf(extra_args, "--chain-id=%lu",
+                                    sss_chain_id_get());
+    if (extra_args[c] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        return ret;
+    }
+    c++;
+
+    extra_args[c] = NULL;
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
@@ -696,8 +712,9 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
     pid = fork();
 
     if (pid == 0) { /* child */
-        exec_child(state, pipefd_to_child, pipefd_from_child,
-                   SELINUX_CHILD, SELINUX_CHILD_LOG_FILE);
+        exec_child_ex(state, pipefd_to_child, pipefd_from_child,
+                      SELINUX_CHILD, SELINUX_CHILD_LOG_FILE, extra_args,
+                      false, STDIN_FILENO, STDERR_FILENO);
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec selinux_child: [%d][%s].\n",
               ret, sss_strerror(ret));
         return ret;

@@ -4565,6 +4565,7 @@ if BUILD_SEMANAGE
 selinux_child_SOURCES = \
     src/providers/ipa/selinux_child.c \
     src/util/sss_semanage.c \
+    src/util/sss_chain_id.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
