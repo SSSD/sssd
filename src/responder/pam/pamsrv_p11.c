@@ -29,6 +29,7 @@
 #include "responder/pam/pam_helpers.h"
 #include "lib/certmap/sss_certmap.h"
 #include "util/crypto/sss_crypto.h"
+#include "util/sss_chain_id.h"
 #include "db/sysdb.h"
 
 
@@ -718,10 +719,11 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     struct timeval tv;
     int pipefd_to_child[2] = PIPE_INIT;
     int pipefd_from_child[2] = PIPE_INIT;
-    const char *extra_args[16] = { NULL };
+    const char *extra_args[18] = { NULL };
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
     size_t arg_c;
+    uint64_t chain_id;
     const char *module_name = NULL;
     const char *token_name = NULL;
     const char *key_id = NULL;
@@ -746,6 +748,12 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
 
     /* extra_args are added in revers order */
     arg_c = 0;
+
+    chain_id = sss_chain_id_get();
+
+    extra_args[arg_c++] = talloc_asprintf(mem_ctx, "%lu", chain_id);
+    extra_args[arg_c++] = "--chain-id";
+
     if (uri != NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "Adding PKCS#11 URI [%s].\n", uri);
         extra_args[arg_c++] = uri;

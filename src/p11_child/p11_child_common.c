@@ -33,6 +33,7 @@
 #include "providers/backend.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/cert.h"
+#include "util/sss_chain_id.h"
 #include "p11_child/p11_child.h"
 
 static const char *op_mode_str(enum op_mode mode)
@@ -161,6 +162,7 @@ int main(int argc, const char *argv[])
     char *key_id = NULL;
     char *label = NULL;
     char *cert_b64 = NULL;
+    uint64_t chain_id = 0;
     bool wait_for_card = false;
     char *uri = NULL;
 
@@ -194,6 +196,8 @@ int main(int argc, const char *argv[])
          _("certificate to verify, base64 encoded"), NULL},
         {"uri", 0, POPT_ARG_STRING, &uri, 0,
          _("PKCS#11 URI to restrict selection"), NULL},
+        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
+         0, _("Tevent chain ID used for logging purposes"), NULL},
         POPT_TABLEEND
     };
 
@@ -312,6 +316,9 @@ int main(int argc, const char *argv[])
             ERROR("set_debug_file_from_fd failed.\n");
         }
     }
+
+    sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_CID);
+    sss_chain_id_set(chain_id);
 
     DEBUG_INIT(debug_level, opt_logger);
 
