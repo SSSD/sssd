@@ -18,6 +18,7 @@ import pexpect
 @pytest.mark.usefixtures('default_ipa_users',
                          'disable_allow_all_hbac',
                          'reset_password')
+@pytest.mark.tier2
 @pytest.mark.hbac
 class Testipahbac(object):
 
