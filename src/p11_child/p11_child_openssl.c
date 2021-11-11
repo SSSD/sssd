@@ -1744,16 +1744,32 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     if (modules == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               "p11_kit_modules_load_and_initialize failed.\n");
-        return EIO;
+        ret = EIO;
+        goto done;
     }
 
     for (;;) {
         DEBUG(SSSDBG_TRACE_ALL, "Module List:\n");
         for (c = 0; modules[c] != NULL; c++) {
             mod_name = p11_kit_module_get_name(modules[c]);
+            if (mod_name == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "p11_kit_module_get_name failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+
             mod_file_name = p11_kit_module_get_filename(modules[c]);
+            if (mod_file_name == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "p11_kit_module_get_filename failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+
             DEBUG(SSSDBG_TRACE_ALL, "common name: [%s].\n", mod_name);
             DEBUG(SSSDBG_TRACE_ALL, "dll name: [%s].\n", mod_file_name);
+
             free(mod_name);
             free(mod_file_name);
 
@@ -1934,6 +1950,11 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     }
 
     module_file_name = p11_kit_module_get_filename(module);
+    if (module_file_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_module_get_filename failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
 
     DEBUG(SSSDBG_TRACE_ALL, "Found [%s] in slot [%s][%d] of module [%d][%s].\n",
           token_name, slot_name, (int) slot_id, (int) module_id,
