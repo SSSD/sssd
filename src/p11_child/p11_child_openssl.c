@@ -1693,7 +1693,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     char *mod_file_name;
     CK_ULONG num_slots;
     CK_SLOT_ID slots[MAX_SLOTS];
-    CK_SLOT_ID slot_id;
+    CK_SLOT_ID slot_id = -1;
     CK_SLOT_ID uri_slot_id = -1;
     CK_SLOT_INFO info;
     CK_TOKEN_INFO token_info;
@@ -1810,6 +1810,16 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                       (info.flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
                       (info.flags & CKF_TOKEN_PRESENT) ? "true": "false");
 
+                if (!(info.flags & CKF_REMOVABLE_DEVICE)) {
+                    continue;
+                }
+
+                module = modules[c];
+
+                if (!(info.flags & CKF_TOKEN_PRESENT)) {
+                    continue;
+                }
+
                 /* Skip slots which do not match the PKCS#11 URI */
                 if (uri != NULL) {
                     if (uri_slot_id != (CK_SLOT_ID)-1
@@ -1826,7 +1836,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                     }
                 }
 
-                if ((info.flags & CKF_TOKEN_PRESENT) && uri != NULL) {
+                if (uri != NULL) {
                     rv = modules[c]->C_GetTokenInfo(slots[s], &token_info);
                     if (rv != CKR_OK) {
                         DEBUG(SSSDBG_OP_FAILURE,
@@ -1848,15 +1858,10 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 
                 }
 
-                if ((info.flags & CKF_REMOVABLE_DEVICE)) {
-                    module = modules[c];
-                    slot_id = slots[s];
-                    if ((info.flags & CKF_TOKEN_PRESENT)) {
-                        break;
-                    }
-                }
+                slot_id = slots[s];
+                break;
             }
-            if (s != num_slots) {
+            if (slot_id != (CK_SLOT_ID)-1) {
                 break;
             }
         }
@@ -1876,7 +1881,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         goto done;
     }
 
-    if (!(info.flags & CKF_TOKEN_PRESENT)) {
+    if (slot_id == (CK_SLOT_ID)-1) {
         DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
         if (p11_ctx->wait_for_card) {
             /* After obtaining the module's slot list (in the loop above), this
