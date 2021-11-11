@@ -15,6 +15,7 @@ from sssd.testlib.common.utils import SSHClient
 
 
 @pytest.mark.usefixtures('setup_ipa_client')
+@pytest.mark.tier2
 @pytest.mark.trust
 class TestADTrust(object):
     """ IPA AD Trust tests """
