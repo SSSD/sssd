@@ -1657,6 +1657,12 @@ static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id,
                                      rv, p11_kit_strerror(rv));
             return EIO;
         }
+
+        if (!(token_info->flags & CKF_TOKEN_INITIALIZED)) {
+            DEBUG(SSSDBG_TRACE_ALL, "Token is not initialized; skipping.\n");
+            continue;
+        }
+
         DEBUG(SSSDBG_TRACE_ALL, "Token label [%.*s].\n",
               (int) p11_kit_space_strlen(token_info->label,
                                          sizeof(token_info->label)),
@@ -1836,20 +1842,27 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                     }
                 }
 
-                if (uri != NULL) {
-                    rv = modules[c]->C_GetTokenInfo(slots[s], &token_info);
-                    if (rv != CKR_OK) {
-                        DEBUG(SSSDBG_OP_FAILURE,
-                              "C_GetTokenInfo failed [%lu][%s].\n",
-                              rv, p11_kit_strerror(rv));
-                        ret = EIO;
-                        goto done;
-                    }
-                    DEBUG(SSSDBG_TRACE_ALL, "Token label [%.*s].\n",
-                          (int) p11_kit_space_strlen(token_info.label,
-                                                     sizeof(token_info.label)),
-                          token_info.label);
+                rv = modules[c]->C_GetTokenInfo(slots[s], &token_info);
+                if (rv != CKR_OK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "C_GetTokenInfo failed [%lu][%s].\n",
+                          rv, p11_kit_strerror(rv));
+                    ret = EIO;
+                    goto done;
+                }
 
+                if (!(token_info.flags & CKF_TOKEN_INITIALIZED)) {
+                    DEBUG(SSSDBG_TRACE_ALL,
+                          "Token is not initialized; skipping.\n");
+                    continue;
+                }
+
+                DEBUG(SSSDBG_TRACE_ALL, "Token label [%.*s].\n",
+                      (int) p11_kit_space_strlen(token_info.label,
+                                                 sizeof(token_info.label)),
+                      token_info.label);
+
+                if (uri != NULL) {
                     if (p11_kit_uri_match_token_info(uri, &token_info) != 1) {
                         DEBUG(SSSDBG_TRACE_ALL,
                               "Token info does not match URI; skipping.\n");
@@ -1903,14 +1916,6 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             ret = EIO;
             goto done;
         }
-    }
-
-    rv = module->C_GetTokenInfo(slot_id, &token_info);
-    if (rv != CKR_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "C_GetTokenInfo failed [%lu][%s].\n",
-                                 rv, p11_kit_strerror(rv));
-        ret = EIO;
-        goto done;
     }
 
     module_id = c;
