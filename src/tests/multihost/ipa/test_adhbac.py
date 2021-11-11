@@ -16,6 +16,7 @@ from sssd.testlib.common.exceptions import SSSDException
 @pytest.mark.usefixtures('disable_allow_all_hbac',
                          'create_ad_users',
                          'create_ad_groups')
+@pytest.mark.tier2
 @pytest.mark.adhbac
 class TestADTrustHbac(object):
     """ AD Trust HBAC Test cases """
