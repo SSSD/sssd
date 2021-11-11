@@ -1770,6 +1770,16 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 }
             }
 
+            /* After obtaining the module's slot list (previously in this loop),
+             * this call is needed to let any changes in slots take effect. */
+            rv = modules[c]->C_GetSlotList(CK_FALSE, NULL, &num_slots);
+            if (rv != CKR_OK) {
+                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed [%lu][%s].\n",
+                                         rv, p11_kit_strerror(rv));
+                ret = EIO;
+                goto done;
+            }
+
             num_slots = MAX_SLOTS;
             rv = modules[c]->C_GetSlotList(CK_FALSE, slots, &num_slots);
             if (rv != CKR_OK) {
@@ -1854,18 +1864,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         /* When e.g. using Yubikeys the slot isn't present until the device is
          * inserted, so we should wait for a slot as well. */
         if (p11_ctx->wait_for_card && module == NULL) {
-            p11_kit_modules_finalize_and_release(modules);
-
-            sleep(PKCS11_FINIALIZE_INITIALIZE_WAIT_TIME);
-
-            modules = p11_kit_modules_load_and_initialize(0);
-            if (modules == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "p11_kit_modules_load_and_initialize failed.\n");
-                ret = EIO;
-                goto done;
-            }
-
+            sleep(PKCS11_SLOT_EVENT_WAIT_TIME);
         } else {
             break;
         }
@@ -1880,6 +1879,16 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     if (!(info.flags & CKF_TOKEN_PRESENT)) {
         DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
         if (p11_ctx->wait_for_card) {
+            /* After obtaining the module's slot list (in the loop above), this
+             * call is needed to let any changes in slots take effect. */
+            rv = module->C_GetSlotList(CK_FALSE, NULL, &num_slots);
+            if (rv != CKR_OK) {
+                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed [%lu][%s].\n",
+                                         rv, p11_kit_strerror(rv));
+                ret = EIO;
+                goto done;
+            }
+
             ret = wait_for_card(module, &slot_id, &info, &token_info, uri);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
