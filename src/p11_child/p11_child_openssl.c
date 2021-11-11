@@ -1584,10 +1584,16 @@ done:
 }
 
 static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id,
-                             CK_SLOT_INFO *info)
+                             CK_SLOT_INFO *info, CK_TOKEN_INFO *token_info,
+                             P11KitUri *uri)
 {
+    CK_SLOT_ID uri_slot_id = -1;
     CK_FLAGS wait_flags = 0;
     CK_RV rv;
+
+    if (uri != NULL) {
+        uri_slot_id = p11_kit_uri_get_slot_id(uri);
+    }
 
     do {
         rv = module->C_WaitForSlotEvent(wait_flags, slot_id, NULL);
@@ -1622,10 +1628,46 @@ static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id,
               (info->flags & CKF_TOKEN_PRESENT) ? "true": "false");
 
         /* Check if really a token is present */
-        if ((info->flags & CKF_REMOVABLE_DEVICE)
-                && (info->flags & CKF_TOKEN_PRESENT)) {
-            break;
+        if (!(info->flags & CKF_REMOVABLE_DEVICE)
+                || !(info->flags & CKF_TOKEN_PRESENT)) {
+            continue;
         }
+
+        if (uri != NULL) {
+            if (uri_slot_id != (CK_SLOT_ID)-1
+                    && uri_slot_id != *slot_id) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Slot ID does not match URI; skipping.\n");
+                continue;
+            }
+
+            if (p11_kit_uri_match_slot_info(uri, info) != 1) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Slot info does not match URI; skipping.\n");
+                continue;
+            }
+        }
+
+        rv = module->C_GetTokenInfo(*slot_id, token_info);
+        if (rv != CKR_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "C_GetTokenInfo failed [%lu][%s].\n",
+                                     rv, p11_kit_strerror(rv));
+            return EIO;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Token label [%.*s].\n",
+              (int) p11_kit_space_strlen(token_info->label,
+                                         sizeof(token_info->label)),
+              token_info->label);
+
+        if (uri != NULL) {
+            if (p11_kit_uri_match_token_info(uri, token_info) != 1) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Token info does not match URI; skipping.\n");
+                continue;
+            }
+        }
+
+        break;
     } while (true);
 
     return EOK;
@@ -1835,7 +1877,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     if (!(info.flags & CKF_TOKEN_PRESENT)) {
         DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
         if (p11_ctx->wait_for_card) {
-            ret = wait_for_card(module, &slot_id, &info);
+            ret = wait_for_card(module, &slot_id, &info, &token_info, uri);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
                 goto done;
@@ -1851,13 +1893,6 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         DEBUG(SSSDBG_OP_FAILURE, "C_GetTokenInfo failed [%lu][%s].\n",
                                  rv, p11_kit_strerror(rv));
         ret = EIO;
-        goto done;
-    }
-
-    if (uri != NULL && p11_kit_uri_match_token_info(uri, &token_info) != 1) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "No token matching uri [%s] found.",
-                                    uri_str);
-        ret = ENOENT;
         goto done;
     }
 
