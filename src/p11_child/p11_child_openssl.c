@@ -1758,17 +1758,16 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             free(mod_name);
             free(mod_file_name);
 
-            if (uri != NULL) {
-                memset(&module_info, 0, sizeof(CK_INFO));
-                rv = modules[c]->C_GetInfo(&module_info);
-                if (rv != CKR_OK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "C_GetInfo failed [%lu][%s].\n",
-                                             rv, p11_kit_strerror(rv));
-                    ret = EIO;
-                    goto done;
-                }
+            rv = modules[c]->C_GetInfo(&module_info);
+            if (rv != CKR_OK) {
+                DEBUG(SSSDBG_OP_FAILURE, "C_GetInfo failed [%lu][%s].\n",
+                                         rv, p11_kit_strerror(rv));
+                ret = EIO;
+                goto done;
+            }
 
-                /* Skip modules which do not match the PKCS#11 URI */
+            /* Skip modules which do not match the PKCS#11 URI */
+            if (uri != NULL) {
                 if (p11_kit_uri_match_module_info(uri, &module_info) != 1) {
                     DEBUG(SSSDBG_TRACE_ALL,
                           "Module info does not match URI; skipping.\n");
@@ -2011,6 +2010,12 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                     || (key_id_in != NULL && item->id != NULL
                         && strcmp(key_id_in, item->id) == 0)))) {
 
+            item->uri = get_pkcs11_uri(mem_ctx, &module_info, &info, slot_id,
+                                       &token_info,
+                                       &item->attributes[1] /* label */,
+                                       &item->attributes[0] /* id */);
+            DEBUG(SSSDBG_TRACE_ALL, "uri: %s.\n", item->uri);
+
             tmp_cert = talloc_memdup(mem_ctx, item, sizeof(struct cert_list));
             if (tmp_cert == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "talloc_memdup failed.\n");
@@ -2023,22 +2028,6 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             DLIST_ADD(cert_list, tmp_cert);
 
         }
-    }
-
-    memset(&module_info, 0, sizeof(CK_INFO));
-    rv = module->C_GetInfo(&module_info);
-    if (rv != CKR_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "C_GetInfo failed.\n");
-        ret = EIO;
-        goto done;
-    }
-
-    DLIST_FOR_EACH(item, cert_list) {
-        item->uri = get_pkcs11_uri(mem_ctx, &module_info, &info, slot_id,
-                                   &token_info,
-                                   &item->attributes[1] /* label */,
-                                   &item->attributes[0] /* id */);
-        DEBUG(SSSDBG_TRACE_ALL, "uri: %s.\n", item->uri);
     }
 
     /* TODO: check module_name_in, token_name_in, key_id_in */
