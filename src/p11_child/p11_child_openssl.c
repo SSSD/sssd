@@ -1597,16 +1597,19 @@ static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id,
 
     do {
         rv = module->C_WaitForSlotEvent(wait_flags, slot_id, NULL);
-        if (rv != CKR_OK && rv != CKR_FUNCTION_NOT_SUPPORTED) {
+        if (rv == CKR_FUNCTION_NOT_SUPPORTED
+                && !(wait_flags & CKF_DONT_BLOCK)) {
+            wait_flags |= CKF_DONT_BLOCK;
+            continue;
+        } else if (rv == CKR_NO_EVENT) {
+            /* Poor man's wait */
+            sleep(PKCS11_SLOT_EVENT_WAIT_TIME);
+            continue;
+        } else if (rv != CKR_OK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "C_WaitForSlotEvent failed [%lu][%s].\n",
                   rv, p11_kit_strerror(rv));
             return EIO;
-        }
-
-        if (rv == CKR_FUNCTION_NOT_SUPPORTED) {
-            /* Poor man's wait */
-            sleep(10);
         }
 
         rv = module->C_GetSlotInfo(*slot_id, info);

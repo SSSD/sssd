@@ -31,6 +31,8 @@
 /* Time to wait during a C_Finalize C_Initialize cycle to discover
  * new slots. */
 #define PKCS11_FINIALIZE_INITIALIZE_WAIT_TIME 3
+/* Time to wait for new slot events. */
+#define PKCS11_SLOT_EVENT_WAIT_TIME 1
 struct p11_ctx;
 
 struct cert_verify_opts {
