@@ -1609,9 +1609,14 @@ static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id,
             return EIO;
         }
         DEBUG(SSSDBG_TRACE_ALL,
-              "Description [%s] Manufacturer [%s] flags [%lu] "
+              "Description [%.*s] Manufacturer [%.*s] flags [%lu] "
               "removable [%s] token present [%s].\n",
-              info->slotDescription, info->manufacturerID, info->flags,
+              (int) p11_kit_space_strlen(info->slotDescription,
+                                         sizeof(info->slotDescription)),
+              info->slotDescription,
+              (int) p11_kit_space_strlen(info->manufacturerID,
+                                         sizeof(info->manufacturerID)),
+              info->manufacturerID, info->flags,
               (info->flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
               (info->flags & CKF_TOKEN_PRESENT) ? "true": "false");
 
