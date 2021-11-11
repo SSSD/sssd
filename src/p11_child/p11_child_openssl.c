@@ -1710,10 +1710,9 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     char *slot_name = NULL;
     char *token_name = NULL;
     CK_SESSION_HANDLE session = 0;
-    struct cert_list *all_cert_list = NULL;
     struct cert_list *cert_list = NULL;
     struct cert_list *item = NULL;
-    struct cert_list *tmp_cert = NULL;
+    struct cert_list *next_item = NULL;
     char *multi = NULL;
     bool pkcs11_session = false;
     bool pkcs11_login = false;
@@ -1971,13 +1970,13 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         DEBUG(SSSDBG_TRACE_ALL, "Login NOT required.\n");
     }
 
-    ret = read_certs(mem_ctx, module, session, p11_ctx, &all_cert_list);
+    ret = read_certs(mem_ctx, module, session, p11_ctx, &cert_list);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "read_certs failed.\n");
         goto done;
     }
 
-    DLIST_FOR_EACH(item, all_cert_list) {
+    DLIST_FOR_EACH_SAFE(item, next_item, cert_list) {
         /* Check if we found the certificates we needed for authentication or
          * the requested ones for pre-auth. For authentication all attributes
          * except the label must be given and match. The label is optional for
@@ -2016,17 +2015,9 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                                        &item->attributes[0] /* id */);
             DEBUG(SSSDBG_TRACE_ALL, "uri: %s.\n", item->uri);
 
-            tmp_cert = talloc_memdup(mem_ctx, item, sizeof(struct cert_list));
-            if (tmp_cert == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_memdup failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-            tmp_cert->prev = NULL;
-            tmp_cert->next = NULL;
-
-            DLIST_ADD(cert_list, tmp_cert);
-
+        } else {
+            DLIST_REMOVE(cert_list, item);
+            talloc_free(item);
         }
     }
 
