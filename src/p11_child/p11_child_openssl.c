@@ -1605,7 +1605,8 @@ static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id,
 
         rv = module->C_GetSlotInfo(*slot_id, info);
         if (rv != CKR_OK) {
-            DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotInfo failed\n");
+            DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotInfo failed [%lu][%s].\n",
+                                     rv, p11_kit_strerror(rv));
             return EIO;
         }
         DEBUG(SSSDBG_TRACE_ALL,
@@ -1706,7 +1707,8 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 memset(&module_info, 0, sizeof(CK_INFO));
                 rv = modules[c]->C_GetInfo(&module_info);
                 if (rv != CKR_OK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "C_GetInfo failed.\n");
+                    DEBUG(SSSDBG_OP_FAILURE, "C_GetInfo failed [%lu][%s].\n",
+                                             rv, p11_kit_strerror(rv));
                     ret = EIO;
                     goto done;
                 }
@@ -1722,7 +1724,8 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             num_slots = MAX_SLOTS;
             rv = modules[c]->C_GetSlotList(CK_FALSE, slots, &num_slots);
             if (rv != CKR_OK) {
-                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed.\n");
+                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed [%lu][%s].\n",
+                                         rv, p11_kit_strerror(rv));
                 ret = EIO;
                 goto done;
             }
@@ -1730,7 +1733,9 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             for (s = 0; s < num_slots; s++) {
                 rv = modules[c]->C_GetSlotInfo(slots[s], &info);
                 if (rv != CKR_OK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotInfo failed\n");
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "C_GetSlotInfo failed [%lu][%s].\n",
+                          rv, p11_kit_strerror(rv));
                     ret = EIO;
                     goto done;
                 }
@@ -1761,7 +1766,9 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 if ((info.flags & CKF_TOKEN_PRESENT) && uri != NULL) {
                     rv = modules[c]->C_GetTokenInfo(slots[s], &token_info);
                     if (rv != CKR_OK) {
-                        DEBUG(SSSDBG_OP_FAILURE, "C_GetTokenInfo failed.\n");
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "C_GetTokenInfo failed [%lu][%s].\n",
+                              rv, p11_kit_strerror(rv));
                         ret = EIO;
                         goto done;
                     }
@@ -1833,7 +1840,8 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 
     rv = module->C_GetTokenInfo(slot_id, &token_info);
     if (rv != CKR_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "C_GetTokenInfo failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "C_GetTokenInfo failed [%lu][%s].\n",
+                                 rv, p11_kit_strerror(rv));
         ret = EIO;
         goto done;
     }
