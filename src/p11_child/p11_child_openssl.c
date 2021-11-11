@@ -1649,7 +1649,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     CK_ULONG num_slots;
     CK_SLOT_ID slots[MAX_SLOTS];
     CK_SLOT_ID slot_id;
-    CK_SLOT_ID uri_slot_id;
+    CK_SLOT_ID uri_slot_id = -1;
     CK_SLOT_INFO info;
     CK_TOKEN_INFO token_info;
     CK_INFO module_info;
@@ -1682,6 +1682,10 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             ret = EINVAL;
             goto done;
         }
+
+        uri_slot_id = p11_kit_uri_get_slot_id(uri);
+
+        DEBUG(SSSDBG_TRACE_ALL, "URI: %s\n", uri_str);
     }
 
 
@@ -1716,7 +1720,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 /* Skip modules which do not match the PKCS#11 URI */
                 if (p11_kit_uri_match_module_info(uri, &module_info) != 1) {
                     DEBUG(SSSDBG_TRACE_ALL,
-                          "Not matching URI [%s], skipping.\n", uri_str);
+                          "Module info does not match URI; skipping.\n");
                     continue;
                 }
             }
@@ -1753,12 +1757,16 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 
                 /* Skip slots which do not match the PKCS#11 URI */
                 if (uri != NULL) {
-                    uri_slot_id = p11_kit_uri_get_slot_id(uri);
-                    if ((uri_slot_id != (CK_SLOT_ID)-1
-                                && uri_slot_id != slots[s])
-                            || p11_kit_uri_match_slot_info(uri, &info) != 1) {
+                    if (uri_slot_id != (CK_SLOT_ID)-1
+                            && uri_slot_id != slots[s]) {
                         DEBUG(SSSDBG_TRACE_ALL,
-                              "Not matching URI [%s], skipping.\n", uri_str);
+                              "Slot ID does not match URI; skipping.\n");
+                        continue;
+                    }
+
+                    if (p11_kit_uri_match_slot_info(uri, &info) != 1) {
+                        DEBUG(SSSDBG_TRACE_ALL,
+                              "Slot info does not match URI; skipping.\n");
                         continue;
                     }
                 }
@@ -1778,8 +1786,8 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                           token_info.label);
 
                     if (p11_kit_uri_match_token_info(uri, &token_info) != 1) {
-                        DEBUG(SSSDBG_CONF_SETTINGS,
-                              "No matching uri [%s], skipping.\n", uri_str);
+                        DEBUG(SSSDBG_TRACE_ALL,
+                              "Token info does not match URI; skipping.\n");
                         continue;
                     }
 
