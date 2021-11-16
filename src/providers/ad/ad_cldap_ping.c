@@ -45,6 +45,7 @@
 struct ad_cldap_ping_dc_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
+    struct be_resolv_ctx *be_res;
     struct fo_server_info *dc;
     struct sdap_handle *sh;
     const char *ad_domain;
@@ -78,6 +79,7 @@ static struct tevent_req *ad_cldap_ping_dc_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->opts = opts;
+    state->be_res = be_res;
     state->dc = dc;
     state->ad_domain = ad_domain;
 
@@ -110,6 +112,7 @@ static void ad_cldap_ping_dc_connect_done(struct tevent_req *subreq)
     char *filter;
     int timeout;
     errno_t ret;
+    div_t timeout_int;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_cldap_ping_dc_state);
@@ -134,7 +137,12 @@ static void ad_cldap_ping_dc_connect_done(struct tevent_req *subreq)
         goto done;
     }
 
-    timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
+    /* DP_RES_OPT_RESOLVER_SERVER_TIMEOUT is in milli-seconds and
+     * sdap_get_generic_send() expects seconds */
+    timeout_int = div(dp_opt_get_int(state->be_res->opts,
+                                     DP_RES_OPT_RESOLVER_SERVER_TIMEOUT),
+                      1000);
+    timeout = (timeout_int.quot > 0) ? timeout_int.quot : 1;
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh, "",
                                    LDAP_SCOPE_BASE, filter, attrs, NULL,
                                    0, timeout, false);
