@@ -3419,6 +3419,10 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             trying next DNS server.
                         </para>
                         <para>
+                                The AD provider will use this option for the
+                                CLDAP ping timeouts as well.
+                        </para>
+                        <para>
                             Please see the section <quote>FAILOVER</quote>
                             for more information about the service
                             resolution.
