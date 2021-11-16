@@ -2818,6 +2818,10 @@ pam_p11_allowed_services = +my_pam_service, -login
                             trying next DNS server.
                         </para>
                         <para>
+                                The AD provider will use this option for the
+                                CLDAP ping timeouts as well.
+                        </para>
+                        <para>
                             Please see the section <quote>FAILOVER</quote>
                             for more information about the service
                             resolution.
