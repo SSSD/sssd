@@ -171,18 +171,10 @@ def environment_setup(session_multihost, request):
     """
     Install necessary packages
     """
-    pre_version = "sed -rn 's/.*([0-9])\.[0-9].*/\\1/p' /etc/redhat-release"
     client = session_multihost.client[0]
-    if "Red Hat" in client.run_command("cat "
-                                       "/etc/redhat-release").stdout_text:
-        version = [int(i) for i in
-                   client.run_command(pre_version).stdout_text.split()
-                   if i.isdigit()][0]
-        if version >= 9:
-            client.run_command("yum "
-                               "--enablerepo=rhel-CRB install"
-                               " -y shadow-utils*")
-    client.run_command("yum install -y shadow-utils*")
+    client.run_command("yum "
+                       "--enablerepo=rhel-CRB install"
+                       " -y shadow-utils*")
     client.run_command("yum install -y gcc")
     with pytest.raises(subprocess.CalledProcessError):
         client.run_command(f"grep subid /etc/nsswitch.conf")
