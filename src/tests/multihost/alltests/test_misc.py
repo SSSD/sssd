@@ -353,3 +353,48 @@ class TestMisc(object):
         assert "group-2@example1:*:20002:user-2@example1," \
                "user-4@example1,user-6@example1," \
                "user-8@example1" in cmd.stdout_text
+
+    @pytest.mark.tier1_2
+    def test_0007_getent_admproxy(self, multihost, backupsssdconf):
+        """
+        :title: 'getent passwd adm@proxy' doesn't return anything when
+         'cache_first = True' option is used with nss.
+        :description: Lookup with the fully-qualified name of a user or
+         group will fail if the requested object is not already in the
+         cache.
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2013294
+        :id: 9ff64ee0-255d-46ac-bf0a-b022eaad463e
+        :customerscenario: false
+        :steps:
+            1. Configure SSSD with nss having cache_first = True.
+            2. restart SSSD with empty cache.
+            3. Check 'getent passwd adm@proxy' output.
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. 'getent passwd adm@proxy' should return identity lookup
+               of user adm.
+        """
+        getent_admproxy = "getent passwd adm@proxy"
+        tools = sssdTools(multihost.client[0])
+        section = "sssd"
+        section_params = {"domains": "proxy", "services": "nss"}
+        tools.sssd_conf(section, section_params, action="update")
+        section = "domain/proxy"
+        section_params = {"id_provider": "proxy", "proxy_lib_name": "files",
+                          'auth_provider': "none"}
+        tools.sssd_conf(section, section_params, action="update")
+        section = "nss"
+        section_params = {"cache_first": "True"}
+        tools.sssd_conf(section, section_params, action="update")
+        tools.clear_sssd_cache(start=True)
+        cache_first_true = multihost.client[0].run_command(getent_admproxy,
+                                                           raiseonerr=False)
+        assert cache_first_true.returncode == 0, "Bug 2013294/1992973/2013379"
+        section = "nss"
+        section_params = {"cache_first": "True"}
+        tools.sssd_conf(section, section_params, action="delete")
+        tools.clear_sssd_cache(start=True)
+        cache_first_false = multihost.client[0].run_command(getent_admproxy,
+                                                            raiseonerr=False)
+        assert cache_first_false.returncode == 0
