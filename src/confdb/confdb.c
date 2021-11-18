@@ -685,7 +685,11 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     old_umask = umask(SSS_DFL_UMASK);
     /* file may exists and could be owned by root from previous version */
     sss_sssd_user_uid_and_gid(&sssd_uid, &sssd_gid);
-    chown(confdb_location, sssd_uid, sssd_gid);
+    ret = chown(confdb_location, sssd_uid, sssd_gid);
+    if (ret != EOK && errno != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to chown config database [%s]: %s\n",
+              confdb_location, sss_strerror(errno));
+    }
     sss_set_sssd_user_eid();
 
     ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
