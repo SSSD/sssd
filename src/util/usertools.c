@@ -863,17 +863,34 @@ void sss_set_sssd_user_eid(void)
     uid_t uid;
     gid_t gid;
 
+
     if (geteuid() == 0) {
         sss_sssd_user_uid_and_gid(&uid, &gid);
-        seteuid(uid);
-        setegid(gid);
+        if (seteuid(uid) != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to set euid to %"SPRIuid": %s\n",
+                  uid, sss_strerror(errno));
+        }
+        if (setegid(gid) != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to set egid to %"SPRIgid": %s\n",
+                  gid, sss_strerror(errno));
+        }
     }
 }
 
 void sss_restore_sssd_user_eid(void)
 {
     if (getuid() == 0) {
-        seteuid(getuid());
-        setegid(getgid());
+        if (seteuid(getuid()) != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to restore euid: %s\n",
+                  sss_strerror(errno));
+        }
+        if (setegid(getgid()) != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to restore egid: %s\n",
+                  sss_strerror(errno));
+        }
     }
 }
