@@ -412,7 +412,7 @@ static errno_t sdap_account_expired_shadow(struct pam_data *pd,
     }
 
     today = (long) (time(NULL) / (60 * 60 * 24));
-    if (sp_expire > 0 && today > sp_expire) {
+    if (sp_expire > 0 && today >= sp_expire) {
 
         ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                sizeof(SHADOW_EXPIRE_MSG),

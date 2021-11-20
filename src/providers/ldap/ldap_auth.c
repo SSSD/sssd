@@ -146,7 +146,7 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
         return EOK;
     }
 
-    if ((spwd->sp_expire != -1 && today > spwd->sp_expire) ||
+    if ((spwd->sp_expire != -1 && today >= spwd->sp_expire) ||
         (spwd->sp_max != -1 && spwd->sp_inact != -1 &&
          password_age > spwd->sp_max + spwd->sp_inact))
     {
