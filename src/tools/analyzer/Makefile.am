@@ -1,5 +1,6 @@
 pkgpythondir = $(python3dir)/sssd
 
+if BUILD_PYTHON_BINDINGS
 dist_pkgpython_SCRIPTS = \
     sss_analyze.py \
     $(NULL)
@@ -14,3 +15,4 @@ modulesdir = $(pkgpythondir)/modules
 dist_modules_DATA = \
     modules/request.py \
     $(NULL)
+endif
