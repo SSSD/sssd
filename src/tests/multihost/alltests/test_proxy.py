@@ -80,6 +80,65 @@ class TestsssdProxy(object):
         multihost.client[0].run_command(del_user)
         multihost.client[0].run_command(restore)
 
+    def test_0003_update_removed_grp_membership(self, multihost,
+                                                backupsssdconf):
+        """
+        :title: proxy: secondary group is shown in sssd cache after
+         group is removed
+        :id: 7cfb9aa9-6e68-4914-afb8-ecfae132aa84
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1917970
+        :customerscenario: true
+        :steps:
+          1. Edit sssd.conf and configure proxy provider with
+             entry_cache_timeout = 1
+          2. Restart SSSD with cleared cache
+          3. Create a localuser and localgroup
+          4. Add that localuser to the localgroup
+          5. Assert localgroup is shown in localuser's group list
+          6. Remove localuser from localgroup
+          7. Assert that after entry_cache_timeout, localuser's groups
+             are not listing localgroup
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+          5. Should succeed
+          6. Should succeed
+          7. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
+        domain_name = tools.get_domain_section_name()
+        l_usr, l_grp = 'testuser', 'testgroup'
+        multihost.client[0].run_command(f'useradd {l_usr}')
+        multihost.client[0].run_command(f'groupadd {l_grp}')
+        multihost.client[0].run_command(f'usermod -aG {l_grp} {l_usr}')
+        domain_params = {'id_provider': 'proxy',
+                         'proxy_lib_name': 'files',
+                         'auth_provider': 'krb5',
+                         'ignore_group_members': 'False',
+                         'cache_credentials': 'True',
+                         'entry_cache_timeout': '1',
+                         'krb5_validate': 'True'}
+        tools.sssd_conf('domain/%s' % domain_name, domain_params)
+        del_domain_params = {'ldap_uri': 'ldaps:%s' %
+                             (multihost.master[0].run_command),
+                             'ldap_tls_cacert':
+                             '/etc/openldap/cacerts/cacert.pem',
+                             'ldap_search_base': ds_suffix,
+                             'use_fully_qualified_names': 'True'}
+        tools.sssd_conf('domain/%s' % domain_name,
+                        del_domain_params, action='delete')
+        tools.clear_sssd_cache()
+        cmd = multihost.client[0].run_command(f'groups {l_usr}')
+        assert 'testgroup' in cmd.stdout_text
+        multihost.client[0].run_command(f'gpasswd -d {l_usr} {l_grp}')
+        time.sleep(1)
+        cmd = multihost.client[0].run_command(f'groups {l_usr}')
+        multihost.client[0].run_command(f'userdel -rf {l_usr}')
+        multihost.client[0].run_command(f'groupdel -f {l_grp}')
+        assert 'testgroup' not in cmd.stdout_text
+
     def test_innetgr_threads(self, multihost, backupsssdconf):
         """
         :title: Verify sssd is thread-safe in innetgr
