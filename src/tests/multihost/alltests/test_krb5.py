@@ -74,6 +74,7 @@ class TestKrbWithLogin(object):
          queries in a very large environment
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1772513
         :id: 74a60320-e48b-11eb-ba19-845cf3eff344
+        :requirement: IDM-SSSD-REQ : LDAP Provider
         :steps:
           1. Start SSSD with any configuration
           2. Call 'getent passwd username@domain'
