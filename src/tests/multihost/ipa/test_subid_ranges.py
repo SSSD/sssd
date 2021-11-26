@@ -1,4 +1,10 @@
-""" Automation of IPA bugs """
+""" Automation of IPA subid feature bugs
+
+:requirement: IDM-IPA-REQ: ipa subid range
+:casecomponent: sssd
+:subsystemteam: sst_idm_sssd
+:upstream: yes
+"""
 
 import pytest
 import subprocess
