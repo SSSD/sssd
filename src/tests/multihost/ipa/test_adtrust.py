@@ -6,12 +6,14 @@
 :upstream: yes
 """
 
+import random
 import re
 import time
 import pytest
 import paramiko
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.utils import SSHClient
+from sssd.testlib.common.utils import ADOperations
 
 
 @pytest.mark.usefixtures('setup_ipa_client')
@@ -379,3 +381,88 @@ class TestADTrust(object):
         assert cmd_adm.returncode == 0, 'Something wrong with setup!'
         assert cmd_usr.returncode == 0, \
             f"pysss_nss_idmap.getsidbyname for {username} failed"
+
+    @staticmethod
+    def test_idview_override_group_fails(multihost, create_aduser_group):
+        """
+        :title: IPA clients fail to resolve override group names in custom view
+        :id: 7a0dc871-fdad-4c07-9d07-a092baa83178
+        :customerscenario: true
+        :bugzilla:
+          https://bugzilla.redhat.com/show_bug.cgi?id=2004406
+          https://bugzilla.redhat.com/show_bug.cgi?id=2031729
+        :description: Overriding both user and group names and ids in
+          an idview for user and group from AD results in error in sssd
+          when running id command.
+        :setup:
+          1. Create user and group (group1) on AD.
+          2. Make AD user member of group1.
+          3. Create additional group (group2) on AD.
+        :steps:
+          1. ID views to override AD groupname and gid of group1.
+          2. ID views to override AD groupname and gid of group2.
+          3. ID view to override AD username, uid and gid (to gid of group2).
+          4. Run an "id" command for the override user.
+        :expectedresults:
+          1. View with an override is created.
+          2. View with an override is created.
+          3. User override is added to the view.
+          4. Id command succeeds, group override is visible, all groups are
+             properly resolved.
+        """
+        (aduser, adgroup) = create_aduser_group
+        run_id_int = random.randint(9999, 999999)
+        adgroup2 = f"group2_{run_id_int}"
+        ado = ADOperations(multihost.ad[0])
+        ado.create_ad_unix_group(adgroup2)
+        domain = multihost.ad[0].domainname
+
+        ipa_client = sssdTools(multihost.client[0])
+        ipa_client.clear_sssd_cache()
+
+        view = f'prygl_trust_view_{run_id_int}'
+        create_view = f'ipa idview-add {view}'
+        multihost.master[0].run_command(create_view, raiseonerr=False)
+
+        create_grp_override = f'ipa idoverridegroup-add "{view}" ' \
+            f'{adgroup}@{domain} --group-name ' \
+            f'"borci{run_id_int}" --gid={run_id_int+1}'
+        multihost.master[0].run_command(create_grp_override, raiseonerr=False)
+
+        create_grp2_override = f'ipa idoverridegroup-add "{view}" ' \
+            f'{adgroup2}@{domain} --group-name ' \
+            f'"magori{run_id_int}" --gid={run_id_int+2}'
+        multihost.master[0].run_command(create_grp2_override, raiseonerr=False)
+
+        create_user_override = f'ipa idoverrideuser-add "{view}" ' \
+            f'{aduser}@{domain} --login ferko{run_id_int} ' \
+            f'--uid=50001 --gidnumber={run_id_int+2}'
+        multihost.master[0].run_command(create_user_override, raiseonerr=False)
+
+        # Apply the view on client
+        multihost.master[0].run_command(
+            f"ipa idview-apply '{view}' --hosts="
+            f"{multihost.client[0].sys_hostname}", raiseonerr=False)
+
+        ipa_client.clear_sssd_cache()
+        time.sleep(5)
+        cmd = multihost.client[0].run_command(
+            f'id ferko{run_id_int}@{domain}', raiseonerr=False)
+
+        # TEARDOWN
+        ado.delete_ad_user_group(adgroup2)
+        multihost.master[0].run_command(
+            f'ipa idview-del {view}', raiseonerr=False)
+
+        # Test result Evaluation
+        assert cmd.returncode == 0, f"User {aduser} was not found."
+        assert f"borci{run_id_int}@{domain}" in cmd.stdout_text,\
+            f"Group 1 {adgroup} name was not overridden/resolved."
+        assert f"magori{run_id_int}@{domain}" in cmd.stdout_text,\
+            f"Group 2 {adgroup2} name was not overridden/resolved."
+        assert f"{run_id_int+1}" in cmd.stdout_text,\
+            "Group 1 id was not overridden."
+        assert f"{run_id_int+2}" in cmd.stdout_text,\
+            "Group 2 id was not overridden."
+        assert f"domain users@{domain}" in cmd.stdout_text, \
+            "Group domain users is missing."
