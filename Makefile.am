@@ -57,6 +57,7 @@ sssdconfdir = $(sysconfdir)/sssd
 sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
 sssdtapscriptdir = $(sssddatadir)/systemtap
+krb5snippetsdir = $(sssddatadir)/krb5-snippets
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 dbusservicedir = $(datadir)/dbus-1/system-services
 sss_statedir = $(localstatedir)/lib/sss
@@ -4696,6 +4697,8 @@ sssd_krb5_localauth_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
 endif
+
+dist_krb5snippets_DATA = contrib/enable_sssd_conf_dir
 
 sssd_pac_plugin_la_SOURCES = \
     src/sss_client/sssd_pac.c \
