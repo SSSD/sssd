@@ -176,6 +176,7 @@ def environment_setup(session_multihost, request):
                        "--enablerepo=rhel-CRB install"
                        " -y shadow-utils*")
     client.run_command("yum install -y gcc")
+    client.run_command("yum install -y podman")
     with pytest.raises(subprocess.CalledProcessError):
         client.run_command(f"grep subid /etc/nsswitch.conf")
     file_location = "/src/tests/multihost/ipa/data/list_subid_ranges.c"
