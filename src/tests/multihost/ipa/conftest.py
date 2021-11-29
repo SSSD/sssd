@@ -22,7 +22,7 @@ from sssd.testlib.common.utils import SSHClient
 def pytest_configure():
     """ Namespace hook to add below dict in the pytest namespace """
     pytest.num_masters = 1
-    pytest.num_ad = 1
+    pytest.num_ad = 0
     pytest.num_atomic = 0
     pytest.num_replicas = 0
     pytest.num_clients = 1
@@ -176,6 +176,7 @@ def environment_setup(session_multihost, request):
                        "--enablerepo=rhel-CRB install"
                        " -y shadow-utils*")
     client.run_command("yum install -y gcc")
+    client.run_command("yum install -y sssd*")
     with pytest.raises(subprocess.CalledProcessError):
         client.run_command(f"grep subid /etc/nsswitch.conf")
     file_location = "/src/tests/multihost/ipa/data/list_subid_ranges.c"
