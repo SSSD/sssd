@@ -47,6 +47,41 @@ class TestSubid(object):
     """
     This is for ipa bugs automation
     """
+    def test_podmanmap_feature(self, multihost):
+        """
+        :Title: Podman supports subid ranges managed by FreeIPA
+        :id: 0e86df9c-50f1-11ec-82f3-845cf3eff344
+        :customerscenario: true
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1803943
+        :steps:
+            1. Test podman finds proper uid_map
+            2. Test podman finds proper gid_map
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+        """
+        ipa_subid_find(multihost)
+        ssh1 = SSHClient(multihost.client[0].ip,
+                         username=user,
+                         password=test_password)
+        map1 = "/proc/self/uid_map"
+        (results1, results2, results3) = ssh1.exec_command(f"podman "
+                                                           f"unshare "
+                                                           f"cat "
+                                                           f"{map1}")
+        actual_result = results2.readlines()
+        assert str(uid_start) == actual_result[1].split()[1]
+        assert str(uid_range) == actual_result[1].split()[2]
+        map2 = "/proc/self/gid_map"
+        (results1, results2, results3) = ssh1.exec_command(f"podman "
+                                                           f"unshare "
+                                                           f"cat "
+                                                           f"{map2}")
+        actual_result = results2.readlines()
+        assert str(gid_start) == actual_result[1].split()[1]
+        assert str(gid_range) == actual_result[1].split()[2]
+        ssh1.close()
+
     def test_subid_feature(self, multihost):
         """
         :Title: support subid ranges managed by FreeIPA
