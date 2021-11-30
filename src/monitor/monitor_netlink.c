@@ -776,7 +776,8 @@ static void netlink_fd_handler(struct tevent_context *ev, struct tevent_fd *fde,
 
     ret = nl_recvmsgs_default(nlctx->nlp);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error while reading from netlink fd\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Error while reading from netlink fd: %s\n",
+              nlw_geterror(ret));
         return;
     }
 }
