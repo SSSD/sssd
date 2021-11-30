@@ -1035,7 +1035,7 @@ struct ifp_users_find_by_valid_cert_state {
     struct ifp_ctx *ifp_ctx;
     struct tevent_context *ev;
     const char *logfile;
-    time_t timeout;
+    int timeout;
     char *ca_db;
     char *verify_opts;
     char *derb64;
@@ -1083,13 +1083,13 @@ ifp_users_find_by_valid_cert_send(TALLOC_CTX *mem_ctx,
 
     ret = confdb_get_int(ctx->rctx->cdb, CONFDB_IFP_CONF_ENTRY,
                          CONFDB_PAM_P11_CHILD_TIMEOUT, -1,
-                         (int *) &state->timeout);
+                         &state->timeout);
     if (ret != EOK || state->timeout == -1) {
         /* check pam configuration as well or use default */
         ret = confdb_get_int(ctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                              CONFDB_PAM_P11_CHILD_TIMEOUT,
                              P11_CHILD_TIMEOUT_DEFAULT,
-                             (int *) &state->timeout);
+                             &state->timeout);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to read p11_child_timeout from confdb: [%d]: %s\n",
