@@ -78,7 +78,11 @@ enum subid_status shadow_subid_list_owner_ranges(const char *user,
                                            SSS_NSS_SOCKET_NAME);
     sss_nss_unlock();
 
-    if ((ret != SSS_STATUS_SUCCESS) || (errnop != EOK)) {
+    if ( (ret != SSS_STATUS_SUCCESS) || (errnop != EOK)
+        /* response must contain at least the "payload header" */
+        || (replen < 2*sizeof(uint32_t))
+        /* and even number of 'uint32_t' */
+        || (replen % (2*sizeof(uint32_t)) != 0) ) {
         free(repbuf);
         if (ret == SSS_STATUS_UNAVAIL) {
             return SUBID_STATUS_ERROR_CONN;
@@ -87,11 +91,20 @@ enum subid_status shadow_subid_list_owner_ranges(const char *user,
     }
 
     SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+    if (num_results > (replen/sizeof(uint32_t) - 2)/2) {
+        free(repbuf);
+        return SUBID_STATUS_ERROR;
+    }
+
     if (id_type == ID_TYPE_UID) {
         index = 2 * sizeof(uint32_t);
     } else {
         index = (2 + 2*num_results) * sizeof(uint32_t);
         SAFEALIGN_COPY_UINT32(&num_results, repbuf + sizeof(uint32_t), NULL);
+        if (num_results > ((replen - index)/sizeof(uint32_t)/2)) {
+            free(repbuf);
+            return SUBID_STATUS_ERROR;
+        }
     }
     if (num_results == 0) {
         /* TODO: how to distinguish "user not found" vs "user doesn't have ranges defined" here?
