@@ -1355,6 +1355,7 @@ struct sdap_nested_group_single_state {
 
     struct sysdb_attrs **nested_groups;
     int num_groups;
+    bool ignore_unreadable_references;
 };
 
 static errno_t sdap_nested_group_single_step(struct tevent_req *req);
@@ -1395,6 +1396,8 @@ sdap_nested_group_single_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
     state->num_groups = 0; /* we will count exact number of the groups */
+    state->ignore_unreadable_references = dp_opt_get_bool(
+            group_ctx->opts->basic, SDAP_IGNORE_UNREADABLE_REFERENCES);
 
     /* process each member individually */
     ret = sdap_nested_group_single_step(req);
@@ -1573,7 +1576,15 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
 
         break;
     case SDAP_NESTED_GROUP_DN_UNKNOWN:
-        /* not found in users nor nested_groups, continue */
+        if (state->ignore_unreadable_references) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Ignoring unreadable reference [%s]\n",
+                  state->current_member->dn);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "Unknown entry type [%s]!\n",
+                  state->current_member->dn);
+            ret = EINVAL;
+            goto done;
+        }
         break;
     }
 
