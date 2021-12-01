@@ -368,6 +368,7 @@ class SSSDOptions(object):
         'ldap_dns_service_name': _('Service name for DNS service lookups'),
         'ldap_page_size': _('The number of records to retrieve in a single LDAP query'),
         'ldap_deref_threshold': _('The number of members that must be missing to trigger a full deref'),
+        'ldap_ignore_unreadable_references': _('Ignore unreadable LDAP references'),
         'ldap_sasl_canonicalize': _('Whether the LDAP library should perform a reverse lookup to canonicalize the '
                                     'host name during a SASL bind'),
         'ldap_rfc2307_fallback_to_local_users': _('Allows to retain local users as members of an LDAP group for '
