@@ -687,6 +687,29 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_ignore_unreadable_references (bool)</term>
+                    <listitem>
+                        <para>
+                            Ignore unreadable LDAP entries referenced in
+                            group's member attribute. If this parameter is set
+                            to false an error will be returned and the
+                            operation will fail instead of just ignoring the
+                            unreadable entry.
+                        </para>
+                        <para>
+                            This parameter may be useful when using the AD
+                            provider and the computer account that sssd uses
+                            to connect to AD does not have access to a
+                            particular entry or LDAP sub-tree for security
+                            reasons.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_tls_reqcert (string)</term>
                     <listitem>
                         <para>
