@@ -6,15 +6,15 @@
 # Christopher Meng <cickumqt@gmail.com>, 2012
 # Ludek Janda <ljanda@redhat.com>, 2020. #zanata
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
-# Charles Lee <lchopn@gmail.com>, 2020.
+# Charles Lee <lchopn@gmail.com>, 2020, 2021.
 # Sundeep Anand <suanand@redhat.com>, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-11-09 16:03+0100\n"
-"PO-Revision-Date: 2021-07-20 07:04+0000\n"
-"Last-Translator: Sundeep Anand <suanand@redhat.com>\n"
+"PO-Revision-Date: 2021-12-02 13:16+0000\n"
+"Last-Translator: Charles Lee <lchopn@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_CN/>\n"
 "Language: zh_CN\n"
@@ -22,7 +22,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.7.1\n"
+"X-Generator: Weblate 4.9.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2233,14 +2233,14 @@ msgid "Error while executing external command\n"
 msgstr "执行外部命令时出错\n"
 
 #: src/tools/sssctl/sssctl.c:123
-#, fuzzy, c-format
+#, c-format
 msgid "Error while executing external command '%s'\n"
-msgstr "执行外部命令时出错\n"
+msgstr "执行外部命令 '%s' 时出错\n"
 
 #: src/tools/sssctl/sssctl.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "Command '%s' failed with [%d]\n"
-msgstr "dlsym 失败 [%s]。\n"
+msgstr "命令 '%s' 失败代码 [%d]\n"
 
 #: src/tools/sssctl/sssctl.c:173
 msgid "SSSD needs to be running. Start SSSD now?"

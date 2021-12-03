@@ -7,16 +7,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-11-09 16:03+0100\n"
-"PO-Revision-Date: 2021-09-23 13:04+0000\n"
+"PO-Revision-Date: 2021-12-03 22:16+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"master/cs/>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.8\n"
+"X-Generator: Weblate 4.9.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -72,12 +72,18 @@ msgid ""
 "is in seconds and calculated by the following: offline_timeout + "
 "random_offset."
 msgstr ""
+"Když se SSSD přepne do režimu bez připojení, doba po které se pak pokouší "
+"znovu připojit se zvýší v závislosti na době strávené bez připojení. Tato "
+"hodnota je v sekundách a je vypočítávána takto: offilne_timeout (časový "
+"limit pro bez připojení + random_offset (náhodný posun)."
 
 #: src/config/SSSDConfig/sssdoptions.py:38
 msgid ""
 "Indicates what is the syntax of the config file. SSSD 0.6.0 and later use "
 "version 2."
 msgstr ""
+"Značí jaká je syntaxe souboru s nastaveními. SSSD 0.6.0 a novější používají "
+"verzi 2."
 
 #: src/config/SSSDConfig/sssdoptions.py:39
 msgid "SSSD Services to start"
@@ -127,7 +133,7 @@ msgstr "Vyladit sssd aby respektovalo nebo ignorovalo změny stavu netlink"
 
 #: src/config/SSSDConfig/sssdoptions.py:49
 msgid "Enable or disable the implicit files domain"
-msgstr "Zapnout nebo vypnout implicitní doménu soubory"
+msgstr "Zapnout nebo vypnout implicitní doménu založenou na souborech"
 
 #: src/config/SSSDConfig/sssdoptions.py:50
 msgid "A specific order of the domains to be looked up"
@@ -138,6 +144,8 @@ msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
 msgstr ""
+"Ovládá zda SSSD má sledovat stav resolv.conf a zjišťovat tak, zda je "
+"zapotřebí aktualizovat svůj vestavěný překlad DNS názvů."
 
 #: src/config/SSSDConfig/sssdoptions.py:53
 msgid ""
@@ -146,6 +154,10 @@ msgid ""
 "this, and will fall back to polling resolv.conf every five seconds if "
 "inotify cannot be used."
 msgstr ""
+"SSSD sleduje stav resolv.conf a identifikuje tak kdy je zapotřebí "
+"aktualizovat svůj vestavěný překlad DNS názvů. Ve výchozím stavu je snaha "
+"používat pro toto inotify a pokud toto není možné, náhradně se resolv.conf "
+"dotazovat každých 5 sekund."
 
 #: src/config/SSSDConfig/sssdoptions.py:58
 msgid "Enumeration cache timeout length (seconds)"
@@ -230,30 +242,40 @@ msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for passwd requests"
 msgstr ""
+"Velikost (v megabajtech) datové tabulky přidělené v rychlé mezipaměti v "
+"operační paměti pro požadavky z passwd"
 
 #: src/config/SSSDConfig/sssdoptions.py:75
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
 msgstr ""
+"Velikost (v megabajtech) datové tabulky přidělené v rychlé mezipaměti v "
+"operační paměti pro požadavky z group"
 
 #: src/config/SSSDConfig/sssdoptions.py:76
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
 msgstr ""
+"Velikost (v megabajtech) datové tabulky přidělené v rychlé mezipaměti v "
+"operační paměti pro požadavky z initgroups"
 
 #: src/config/SSSDConfig/sssdoptions.py:77
 msgid ""
 "The value of this option will be used in the expansion of the "
 "override_homedir option if the template contains the format string %H."
 msgstr ""
+"Hodnota této volby bude použita v rozšíření volby override_homedir, pokud "
+"šablona obsahuje formátovací řetězec %H."
 
 #: src/config/SSSDConfig/sssdoptions.py:79
 msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr ""
+"Určuje dobu (v sekundách) po které bude seznam dílčích domén považován za "
+"platný."
 
 #: src/config/SSSDConfig/sssdoptions.py:81
 msgid ""
@@ -261,6 +283,9 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
+"Mezipaměť položek může být nastavena na automatické aktualizování položek na "
+"pozadí, pokud jsou požadovány za procentem hodnoty entry_cache_timeout pro "
+"doménu."
 
 #: src/config/SSSDConfig/sssdoptions.py:86
 msgid "How long to allow cached logins between online logins (days)"
@@ -349,21 +374,24 @@ msgstr "PKCS#11 URI pro omezení výběru zařízení pro ověřování pomocí 
 
 #: src/config/SSSDConfig/sssdoptions.py:106
 msgid "When shall the PAM responder force an initgroups request"
-msgstr ""
+msgstr "Kdy má PAM odpovídač vynutit initgroups požadavek"
 
 #: src/config/SSSDConfig/sssdoptions.py:107
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
-msgstr ""
+msgstr "Seznam PAM služeb, kterým je dovoleno ověřovat pomocí GSSAPI."
 
 #: src/config/SSSDConfig/sssdoptions.py:108
 msgid "Whether to match authenticated UPN with target user"
-msgstr ""
+msgstr "Zda hledat shodu ověřených UPN a cílového uživatele"
 
 #: src/config/SSSDConfig/sssdoptions.py:109
 msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
 msgstr ""
+"Seznam dvojic <PAM service>:<authentication indicator> (PAM služba:indikátor "
+"ověření), které je třeba vynutit pro přístup prostřednictvím PAM s GSSAPI "
+"ověřováním"
 
 #: src/config/SSSDConfig/sssdoptions.py:113
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -399,13 +427,15 @@ msgstr "Popis umístění úložiště certifikátů důvěryhodných cert. auto
 
 #: src/config/SSSDConfig/sssdoptions.py:126
 msgid "Allow to generate ssh-keys from certificates"
-msgstr ""
+msgstr "Umožnit vytváření ssh klíčů z certifikátů"
 
 #: src/config/SSSDConfig/sssdoptions.py:127
 msgid ""
 "Use the following matching rules to filter the certificates for ssh-key "
 "generation"
 msgstr ""
+"Použít následující pravidla pro hledání shod pro filtrování certifikátů pro "
+"vytváření ssh-klíče"
 
 #: src/config/SSSDConfig/sssdoptions.py:131
 msgid "List of UIDs or user names allowed to access the PAC responder"
@@ -427,6 +457,10 @@ msgid ""
 "- No users are recorded. some - Users/groups specified by users and groups "
 "options are recorded. all - All users are recorded."
 msgstr ""
+"Jeden z následujících řetězců určujících rozsah zaznamenávání relace: none "
+"(žádné) – nejsou zaznamenáni žádní uživatelé. some (někteří) – uživatelé/"
+"skupiny, určení volbou uživatelů a skupiny jsou zaznamenání. all (vše) – "
+"zaznamenáni jsou všichni uživatelé."
 
 #: src/config/SSSDConfig/sssdoptions.py:141
 msgid ""
@@ -434,6 +468,9 @@ msgid ""
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
+"Čárkou oddělovaný seznam uživatelů, kterým zapnout zaznamenávání relace. "
+"Shodující se uživatelská jména jsou vrácena z NSS. T.j. po možném nahrazení "
+"mezer, změně velikosti písmen, atd."
 
 #: src/config/SSSDConfig/sssdoptions.py:143
 msgid ""
@@ -441,18 +478,25 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
+"Čárkou oddělovaný seznam skupin, dále členů, pro které zapnout zaznamenávání "
+"relace. Odpovídající názvy skupin jsou vráceny z NSS. Tj. po možném "
+"nahrazení mezer, změn velikosti písmen, atd."
 
 #: src/config/SSSDConfig/sssdoptions.py:146
 msgid ""
 "A comma-separated list of users to be excluded from recording, only when "
 "scope=all"
 msgstr ""
+"Čárkou oddělovaný seznam uživatelů, které vyjmout ze zaznamenávání, pouze "
+"pokud scope=all (rozsah=vše)"
 
 #: src/config/SSSDConfig/sssdoptions.py:147
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
 msgstr ""
+"Čárkou oddělovaný seznam skupin, dále členů, které vyjmout ze zaznamenávání, "
+"pouze pokud je scope=all (rozsah=vše). "
 
 #: src/config/SSSDConfig/sssdoptions.py:151
 msgid "Identity provider"
@@ -492,7 +536,7 @@ msgstr "Poskytovatel správy sezení"
 
 #: src/config/SSSDConfig/sssdoptions.py:160
 msgid "Resolver provider"
-msgstr ""
+msgstr "Poskytovatel překladu (resolver)"
 
 #: src/config/SSSDConfig/sssdoptions.py:163
 msgid "Whether the domain is usable by the OS or by applications"
@@ -647,24 +691,28 @@ msgstr "Zda uživatelům automaticky vytvářet soukromé skupiny"
 
 #: src/config/SSSDConfig/sssdoptions.py:203
 msgid "Display a warning N days before the password expires."
-msgstr ""
+msgstr "Zobrazit varování N dnů před skončením platnosti hesla."
 
 #: src/config/SSSDConfig/sssdoptions.py:204
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
-msgstr ""
+msgstr "Různé štítky uložené službou nastavování realmd pro tuto doménu."
 
 #: src/config/SSSDConfig/sssdoptions.py:205
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
 msgstr ""
+"Poskytovatel, který by měl obsluhovat získávání dílčích domén. Tato hodnota "
+"by měla být vždy stejná jako id_provider."
 
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
+"Kolik sekund ponechat ssh klíč hostitele po opětovném načtení. T.j. po jak "
+"dlouhou dobu ponechávat klíč hostitel v mezipaměti."
 
 #: src/config/SSSDConfig/sssdoptions.py:209
 msgid ""
@@ -672,6 +720,10 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
+"Pokud je používáno dvoufaktorové ověřování (2FA) a přihlašovací údaje mají "
+"být ukládány, tato hodnota určuje nejkratší umožněnou délku pro hlavní "
+"faktor ověřování (dlouhodobé heslo), od které je třeba ho uložit jako SHA512 "
+"otisk do mezipaměti."
 
 #: src/config/SSSDConfig/sssdoptions.py:215
 msgid "IPA domain"
@@ -780,122 +832,140 @@ msgstr ""
 "vůči IPA serveru když poslední požadavek nenašel žádné pravidlo"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
-#, fuzzy
 msgid "Search base for SUBID ranges"
-msgstr "Základ hledání pro zobrazení kontejnerů"
+msgstr "Základ hledání pro SUBID rozsahy"
 
 #: src/config/SSSDConfig/sssdoptions.py:245
 msgid "The LDAP attribute that contains FQDN of the host."
-msgstr ""
+msgstr "LDAP atribut, který obsahuje FQDN hostitele."
 
 #: src/config/SSSDConfig/sssdoptions.py:246
 #: src/config/SSSDConfig/sssdoptions.py:269
 msgid "The object class of a host entry in LDAP."
-msgstr ""
+msgstr "Třída objektu položky hostitele v LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:247
 msgid "Use the given string as search base for host objects."
-msgstr ""
+msgstr "Použít daný řetězec jako základ hledání objektů hostitelů."
 
 #: src/config/SSSDConfig/sssdoptions.py:248
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr ""
+msgstr "LDAP atribut, který obsahuje veřejné části SSH klíčů hostitele."
 
 #: src/config/SSSDConfig/sssdoptions.py:249
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
-msgstr ""
+msgstr "LDAP atribut, který obsahuje název NIS domény dané netgroup."
 
 #: src/config/SSSDConfig/sssdoptions.py:250
 msgid "The LDAP attribute that contains the names of the netgroup's members."
-msgstr ""
+msgstr "LDAP atribut, který obsahuje jména členů síťové skupiny."
 
 #: src/config/SSSDConfig/sssdoptions.py:251
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
 msgstr ""
+"LDAP atribut, který je seznamem FQDN názvů hostitelů a jejich skupin, které "
+"jsou členy dané netgroup."
 
 #: src/config/SSSDConfig/sssdoptions.py:253
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
 msgstr ""
+"LDAP atribut, který je seznamem hostitelů a jejich skupin, kteří jsou "
+"přímými členy dané netgroup."
 
 #: src/config/SSSDConfig/sssdoptions.py:255
 msgid "The LDAP attribute that lists netgroup's memberships."
-msgstr ""
+msgstr "LDAP atribut, který je seznamem členství v dané netgroup."
 
 #: src/config/SSSDConfig/sssdoptions.py:256
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
 msgstr ""
+"LDAP atribut, který je seznamem systémových uživatelů a skupin, které jsou "
+"přímými členy netgroup."
 
 #: src/config/SSSDConfig/sssdoptions.py:258
 msgid "The LDAP attribute that corresponds to the netgroup name."
-msgstr ""
+msgstr "LDAP atribut, který odpovídá názvu netgroup."
 
 #: src/config/SSSDConfig/sssdoptions.py:259
 msgid "The object class of a netgroup entry in LDAP."
-msgstr ""
+msgstr "Třída objektu položky dané netgroup v LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:260
 msgid ""
 "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
-msgstr ""
+msgstr "LDAP atribut, který obsahuje UUID/GUID LDAP objektu pro netgroup."
 
 #: src/config/SSSDConfig/sssdoptions.py:261
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr ""
+"LDAP atribut, který obsahuje zda je či není mapa uživatelů povolená k "
+"použití."
 
 #: src/config/SSSDConfig/sssdoptions.py:263
 msgid "The LDAP attribute that contains host category such as 'all'."
 msgstr ""
+"LDAP atribut, který obsahuje kategorii hostitelů, jako např. „all“ (všichni)."
 
 #: src/config/SSSDConfig/sssdoptions.py:264
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr ""
+"LDAP atribut, který obsahuje veškeré hostitele / jejich skupiny, vůči "
+"kterému toto pravidlo porovnává."
 
 #: src/config/SSSDConfig/sssdoptions.py:266
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
 msgstr ""
+"LDAP atribut, který obsahuje veškeré uživatele / skupiny, vůči kterým toto "
+"pravidlo porovnává."
 
 #: src/config/SSSDConfig/sssdoptions.py:268
 msgid "The LDAP attribute that contains the name of SELinux usermap."
-msgstr ""
+msgstr "LDAP atribut, který obsahuje název SELinux mapy uživatelů."
 
 #: src/config/SSSDConfig/sssdoptions.py:270
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
 msgstr ""
+"LDAP atribut, který obsahuje DN HBAC pravidla, které je možné použít pro "
+"hledání shody namísto numberUser a memberHost."
 
 #: src/config/SSSDConfig/sssdoptions.py:272
 msgid "The LDAP attribute that contains SELinux user string itself."
-msgstr ""
+msgstr "LDAP atribut, který obsahuje řetězec SELinux uživatele samotný."
 
 #: src/config/SSSDConfig/sssdoptions.py:273
 msgid "The LDAP attribute that contains user category such as 'all'."
 msgstr ""
+"LDAP atribut, který obsahuje kategorii uživatele, jako např. „all“ (všichni)."
 
 #: src/config/SSSDConfig/sssdoptions.py:274
 msgid "The LDAP attribute that contains unique ID of the user map."
 msgstr ""
+"LDAP atribut, který obsahuje neopakující se identifikátor mapy uživatelů."
 
 #: src/config/SSSDConfig/sssdoptions.py:275
 msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
 msgstr ""
+"Tato volba označuje, že SSSD je spuštěné na IPA serveru a mělo by provádět "
+"hledání uživatelů a skupin z důvěryhodných domén jinak."
 
 #: src/config/SSSDConfig/sssdoptions.py:277
 msgid "Use the given string as search base for trusted domains."
-msgstr ""
+msgstr "Použít daný řetězec jako základ hledání pro důvěryhodné domény."
 
 #: src/config/SSSDConfig/sssdoptions.py:280
 msgid "Active Directory domain"
@@ -984,7 +1054,7 @@ msgstr ""
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
 msgstr ""
-"Výchozí přihlasovací oprávnění (nebo permit/deny), které použít pro názvy "
+"Výchozí přihlašovací oprávnění (nebo permit/deny), které použít pro názvy "
 "nenamapovaných PAM služeb"
 
 #: src/config/SSSDConfig/sssdoptions.py:300
@@ -1003,15 +1073,15 @@ msgstr "Volba pro vyladění úlohy obnovování účtu stroje"
 
 #: src/config/SSSDConfig/sssdoptions.py:304
 msgid "Whether to update the machine account password in the Samba database"
-msgstr ""
+msgstr "Zda aktualizovat heslo účtu stroje v databázi Samba"
 
 #: src/config/SSSDConfig/sssdoptions.py:306
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
-msgstr ""
+msgstr "Použít LDAPS port pro požadavky na LDAP a globální katalog"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid "Do not filter domain local groups from other domains"
-msgstr ""
+msgstr "Nefiltrovat doménové lokální skupiny z ostatních domény"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 #: src/config/SSSDConfig/sssdoptions.py:311
@@ -1089,7 +1159,7 @@ msgstr "Zapíná podnikové principaly"
 
 #: src/config/SSSDConfig/sssdoptions.py:331
 msgid "Enables using of subdomains realms for authentication"
-msgstr ""
+msgstr "Umožňuje používat oblasti (realm) dílčích domén pro ověřování se"
 
 #: src/config/SSSDConfig/sssdoptions.py:332
 msgid "A mapping from user names to Kerberos principal names"
@@ -1130,7 +1200,7 @@ msgstr "Typ ověřovacího tokenu výchozího spojovacího rozlišeného názvu"
 
 #: src/config/SSSDConfig/sssdoptions.py:346
 msgid "The authentication token of the default bind DN"
-msgstr "ověřovací token výchozího spojovacího rozlišeného názvu"
+msgstr "Ověřovací token výchozího spojovacího rozlišeného názvu"
 
 #: src/config/SSSDConfig/sssdoptions.py:347
 msgid "Length of time to attempt connection"
@@ -1237,6 +1307,8 @@ msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr ""
+"Umožňuje držet místní uživatele coby členy LDAP skupiny pro servery, které "
+"používají schéma dle normy RFC2307."
 
 #: src/config/SSSDConfig/sssdoptions.py:375
 msgid "entryUSN attribute"
@@ -1497,11 +1569,11 @@ msgstr "Do kolikáté úrovně vnoření bude SSSD následovat"
 
 #: src/config/SSSDConfig/sssdoptions.py:445
 msgid "Filter for group lookups"
-msgstr ""
+msgstr "Filtr pro hledání skupin"
 
 #: src/config/SSSDConfig/sssdoptions.py:446
 msgid "Scope of group lookups"
-msgstr ""
+msgstr "Rozsah hledání skupin"
 
 #: src/config/SSSDConfig/sssdoptions.py:448
 msgid "Base DN for netgroup lookups"
@@ -1597,7 +1669,7 @@ msgstr "Kolik nejvýše položek získat při požadavku se zástupnými znaky"
 
 #: src/config/SSSDConfig/sssdoptions.py:474
 msgid "Set libldap debug level"
-msgstr ""
+msgstr "Nastavit úroveň podrobností ladících informací z knihovny libldap"
 
 #: src/config/SSSDConfig/sssdoptions.py:477
 msgid "Policy to evaluate the password expiration"
@@ -1640,11 +1712,11 @@ msgstr "Perioda automatického úplného znovunačtení"
 
 #: src/config/SSSDConfig/sssdoptions.py:494
 msgid "Automatic smart refresh period"
-msgstr "Perioda chytrého automatického znovunačtení"
+msgstr "Perioda chytrého automatického opětovného načtení"
 
 #: src/config/SSSDConfig/sssdoptions.py:495
 msgid "Smart and full refresh random offset"
-msgstr ""
+msgstr "Náhodný posun pro inteligentní a úplné opětovné načtení"
 
 #: src/config/SSSDConfig/sssdoptions.py:496
 msgid "Whether to filter rules by hostname, IP addresses and network"
@@ -1680,7 +1752,7 @@ msgstr "Objektová třída pro sudo pravidla"
 
 #: src/config/SSSDConfig/sssdoptions.py:502
 msgid "Name of attribute that is used as object class for sudo rules"
-msgstr ""
+msgstr "Název atributu, který slouží jako třída objektů pro sudo pravidla"
 
 #: src/config/SSSDConfig/sssdoptions.py:503
 msgid "Sudo rule name"
@@ -1708,11 +1780,11 @@ msgstr "Atribut runas (spustit jako) sudo pravidla"
 
 #: src/config/SSSDConfig/sssdoptions.py:509
 msgid "Sudo rule runasuser attribute"
-msgstr "Atribut runasuser (spusť jako uživatel) sudo pravidla"
+msgstr "Atribut runasuser (spustit jako uživatel) sudo pravidla"
 
 #: src/config/SSSDConfig/sssdoptions.py:510
 msgid "Sudo rule runasgroup attribute"
-msgstr "Atribut runasgroup (spusť jako skupina) sudo pravidla"
+msgstr "Atribut runasgroup (spustit jako skupina) sudo pravidla"
 
 #: src/config/SSSDConfig/sssdoptions.py:511
 msgid "Sudo rule notbefore attribute"
@@ -1728,23 +1800,23 @@ msgstr "Atribut order (pořadí) sudo pravidla"
 
 #: src/config/SSSDConfig/sssdoptions.py:516
 msgid "Object class for automounter maps"
-msgstr "Objektová třída pro mapy automounter"
+msgstr "Objektová třída pro mapy automatického připojování"
 
 #: src/config/SSSDConfig/sssdoptions.py:517
 msgid "Automounter map name attribute"
-msgstr "Atribut automounter název mapy"
+msgstr "Atribut název mapy automatického připojování"
 
 #: src/config/SSSDConfig/sssdoptions.py:518
 msgid "Object class for automounter map entries"
-msgstr "Objektová třída pro položky mapy automounteru"
+msgstr "Objektová třída pro položky mapy automatického připojování"
 
 #: src/config/SSSDConfig/sssdoptions.py:519
 msgid "Automounter map entry key attribute"
-msgstr "Atribut klíč položky mapy automounteru"
+msgstr "Atribut klíč položky mapy automatického připojování"
 
 #: src/config/SSSDConfig/sssdoptions.py:520
 msgid "Automounter map entry value attribute"
-msgstr "Atribut hodnoty položky mapy automounter"
+msgstr "Atribut hodnoty položky mapy automatického připojování"
 
 #: src/config/SSSDConfig/sssdoptions.py:521
 msgid "Base DN for automounter map lookups"
@@ -1752,47 +1824,47 @@ msgstr "Základ rozlišeného názvu pro vyhledávání map automounter"
 
 #: src/config/SSSDConfig/sssdoptions.py:522
 msgid "The name of the automount master map in LDAP."
-msgstr ""
+msgstr "Název v LDAP hlavní mapy pro automatické připojování."
 
 #: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Base DN for IP hosts lookups"
-msgstr ""
+msgstr "Základ DN pro hledání IP hostitelů"
 
 #: src/config/SSSDConfig/sssdoptions.py:526
 msgid "Object class for IP hosts"
-msgstr ""
+msgstr "Třída objektů pro IP hostitele"
 
 #: src/config/SSSDConfig/sssdoptions.py:527
 msgid "IP host name attribute"
-msgstr ""
+msgstr "Atribut název IP hostitele"
 
 #: src/config/SSSDConfig/sssdoptions.py:528
 msgid "IP host number (address) attribute"
-msgstr ""
+msgstr "Atribut číslo IP hostitele (adresa)"
 
 #: src/config/SSSDConfig/sssdoptions.py:529
 msgid "IP host entryUSN attribute"
-msgstr ""
+msgstr "Atribut IP hostitele entryUSN"
 
 #: src/config/SSSDConfig/sssdoptions.py:530
 msgid "Base DN for IP networks lookups"
-msgstr ""
+msgstr "Základ DN pro hledání IP sítí"
 
 #: src/config/SSSDConfig/sssdoptions.py:531
 msgid "Object class for IP networks"
-msgstr ""
+msgstr "Třída objektu pro IP sítě"
 
 #: src/config/SSSDConfig/sssdoptions.py:532
 msgid "IP network name attribute"
-msgstr ""
+msgstr "Atribut název IP sítě"
 
 #: src/config/SSSDConfig/sssdoptions.py:533
 msgid "IP network number (address) attribute"
-msgstr ""
+msgstr "Atribut IP síťové číslo (adresa)"
 
 #: src/config/SSSDConfig/sssdoptions.py:534
 msgid "IP network entryUSN attribute"
-msgstr ""
+msgstr "Atribut entryUSN IP sítě"
 
 #: src/config/SSSDConfig/sssdoptions.py:537
 msgid "Comma separated list of allowed users"
@@ -1807,6 +1879,9 @@ msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
+"Čárkou oddělovaný seznam skupin, kterým je dovoleno se přihlásit. Toto se "
+"uplatní pouze na skupiny v rámci SSSD domény. Místní skupiny nejsou takto "
+"vyhodnocovány."
 
 #: src/config/SSSDConfig/sssdoptions.py:541
 msgid ""
@@ -1814,6 +1889,9 @@ msgid ""
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
 msgstr ""
+"Čárkou oddělovaný seznam skupin, kterým je výslovně odepřen přístup. Toto se "
+"uplatní pouze na skupiny v rámci SSSD domény. Místní skupiny nejsou takto "
+"vyhodnocovány."
 
 #: src/config/SSSDConfig/sssdoptions.py:545
 msgid "The number of preforked proxy children."
@@ -1825,7 +1903,7 @@ msgstr "Název NSS knihovny, kterou použít"
 
 #: src/config/SSSDConfig/sssdoptions.py:549
 msgid "The name of the NSS library to use for hosts and networks lookups"
-msgstr ""
+msgstr "Název NSS knihovny kterou použít pro hledání hostitelů a sítí"
 
 #: src/config/SSSDConfig/sssdoptions.py:550
 msgid "Whether to look up canonical group name from cache if possible"
@@ -1875,15 +1953,17 @@ msgstr "Vypsat číslo verze a skončit"
 #: src/monitor/monitor.c:2382
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr ""
+"Volbu -i|--interactive (interaktivní) není možné použít současně s -D|--"
+"daemon (proces služby)\n"
 
 #: src/monitor/monitor.c:2388
 msgid "Option -g is incompatible with -D or -i\n"
-msgstr ""
+msgstr "Volba -g není kompatibilní s -D nebo -i\n"
 
 #: src/monitor/monitor.c:2401
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
-msgstr ""
+msgstr "Spuštěné pod %<PRIu64>, je třeba, aby bylo root\n"
 
 #: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
@@ -1935,7 +2015,7 @@ msgstr "talloc_asprintf se nezdařilo.\n"
 
 #: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
-msgstr ""
+msgstr "set_debug_file_from_fd se nezdařilo.\n"
 
 #: src/providers/data_provider_be.c:733
 msgid "Domain of the information provider (mandatory)"
@@ -2270,14 +2350,14 @@ msgid "Error while executing external command\n"
 msgstr "Chyba při vykonávání externího příkazu\n"
 
 #: src/tools/sssctl/sssctl.c:123
-#, fuzzy, c-format
+#, c-format
 msgid "Error while executing external command '%s'\n"
-msgstr "Chyba při vykonávání externího příkazu\n"
+msgstr "Chyba při vykonávání externího příkazu „%s“\n"
 
 #: src/tools/sssctl/sssctl.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "Command '%s' failed with [%d]\n"
-msgstr "dlsym se nezdařilo s [%s].\n"
+msgstr "Příkaz „%s“ se nezdařil se stavem [%d].\n"
 
 #: src/tools/sssctl/sssctl.c:173
 msgid "SSSD needs to be running. Start SSSD now?"
@@ -2359,6 +2439,10 @@ msgid ""
 "where the main config file is located. For example if the config is set to "
 "\"/my/path/sssd.conf\", the snippet dir \"/my/path/conf.d\" is used)"
 msgstr ""
+"Zadejte nevýchozí složku s útržky nastavení (Výchozí je hledat na stejném "
+"místě, na kterém se nachází hlavní soubor s nastaveními. Například pokud je "
+"nastavení směřováno do „/moje/umisteni/sssd.conf“, pak je předpokládána "
+"složka s útržky nastavení v „/moje/umisteni/conf.d)"
 
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format
@@ -2380,26 +2464,28 @@ msgstr ""
 #: src/tools/sssctl/sssctl_config.c:133
 #, c-format
 msgid "Failed to load configuration from %s.\n"
-msgstr ""
+msgstr "Nepodařilo se načíst nastavení z %s.\n"
 
 #: src/tools/sssctl/sssctl_config.c:139
 msgid "Error while reading configuration directory.\n"
-msgstr ""
+msgstr "Chyba při načítání složky s nastaveními.\n"
 
 #: src/tools/sssctl/sssctl_config.c:147
 msgid ""
 "There is no configuration. SSSD will use default configuration with files "
 "provider.\n"
 msgstr ""
+"Není zde žádné nastavení. SSSD použije výchozí nastavení spočívající v "
+"poskytovateli ze souborů.\n"
 
 #: src/tools/sssctl/sssctl_config.c:159
 msgid "Failed to run validators"
-msgstr ""
+msgstr "Nepodařilo se spustit nástroje pro ověření správnosti"
 
 #: src/tools/sssctl/sssctl_config.c:163
 #, c-format
 msgid "Issues identified by validators: %zu\n"
-msgstr "Problémy identifikované ověřovači: %zu\n"
+msgstr "Problémy identifikované nástroji pro ověření správnosti: %zu\n"
 
 #: src/tools/sssctl/sssctl_config.c:174
 #, c-format
@@ -2422,7 +2508,7 @@ msgstr "SSSD záloha místních dat už existuje, přepsat?"
 
 #: src/tools/sssctl/sssctl_data.c:110
 msgid "Unable to export user overrides\n"
-msgstr "Nedaří se exportovat uživatelské přebití\n"
+msgstr "Nedaří se exportovat přebití skupin\n"
 
 #: src/tools/sssctl/sssctl_data.c:117
 msgid "Unable to export group overrides\n"
@@ -2505,7 +2591,7 @@ msgstr "Online stav: %s\n"
 
 #: src/tools/sssctl/sssctl_domains.c:213
 msgid "This domain has no active servers.\n"
-msgstr ""
+msgstr "Tato doména nemá žádné aktivní servery.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:218
 msgid "Active servers:\n"
@@ -2517,7 +2603,7 @@ msgstr "nepřipojeno"
 
 #: src/tools/sssctl/sssctl_domains.c:267
 msgid "No servers discovered.\n"
-msgstr ""
+msgstr "Neobjeveny žádné servery.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:273
 #, c-format
@@ -2599,12 +2685,16 @@ msgstr "Zadejte stupeň podrobností ladících informací, který chcete nastav
 msgid ""
 "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
 msgstr ""
+"POZN.: chybí podpora pro identifikátor tevent řetězce, analýza požadavku "
+"bude jen základní.\n"
 
 #: src/tools/sssctl/sssctl_logs.c:401
 msgid ""
 "It is recommended to use the --logdir option against tevent chain ID "
 "supported SSSD logs.\n"
 msgstr ""
+"Je doporučeno použít volbu --logdir vůči identifikátoru tevent řetězce "
+"podporovaným záznamům událostí v SSSD.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2832,7 +2922,7 @@ msgstr "Identifikátor uživatele (UID) pod kterým server spustit"
 
 #: src/util/util.h:95
 msgid "The group ID to run the server as"
-msgstr "Identifikátor uživatele (GID) pod kterým server spustit"
+msgstr "Identifikátor skupiny (GID) pod kterou server spustit"
 
 #: src/util/util.h:103
 msgid "Informs that the responder has been socket-activated"
