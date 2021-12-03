@@ -54,6 +54,13 @@ class QeConfig(pytest_multihost.config.Config):
             log.addHandler(handler)
         return log
 
+    def filter(self, descriptions):
+        """
+        Override default behavior to not filter hosts, so that it can work
+        with dynamic topologies.
+        """
+        return
+
 
 class QeBaseHost(pytest_multihost.host.BaseHost):
     """QeBaseHost subclass of multihost plugin BaseHost class."""
@@ -338,8 +345,11 @@ def session_multihost(request):
     mh.others = mh.domain.hosts_by_role('other')
 
     if pytest.num_ad > 0:
-        mh.domain_ad = mh.config.domains[1]
-        mh.ad = mh.domain_ad.hosts_by_role('ad')
+        mh.ad = []
+        for i in range(1, pytest.num_ad+1):
+            print(i)
+            print(mh.config.domains[i].hosts_by_role('ad'))
+            mh.ad.extend(mh.config.domains[i].hosts_by_role('ad'))
 
     yield mh
 
