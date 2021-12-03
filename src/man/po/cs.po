@@ -11,16 +11,16 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-11-09 16:02+0100\n"
-"PO-Revision-Date: 2021-09-23 13:04+0000\n"
+"PO-Revision-Date: 2021-12-03 22:16+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"manpage-master/cs/>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-manpage-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.8\n"
+"X-Generator: Weblate 4.9.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -58,17 +58,17 @@ msgstr "5"
 #: sssd-files.5.xml:12 sssd-session-recording.5.xml:12 sssd-kcm.8.xml:12
 #: sssd-systemtap.5.xml:12 sssd-ldap-attributes.5.xml:12
 msgid "File Formats and Conventions"
-msgstr ""
+msgstr "Formáty souborů a konvence"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd.conf.5.xml:17
 msgid "the configuration file for SSSD"
-msgstr ""
+msgstr "soubor s nastaveními pro SSSD"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:21
 msgid "FILE FORMAT"
-msgstr ""
+msgstr "FORMÁT SOUBORU"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:29
@@ -163,7 +163,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:98
 msgid "GENERAL OPTIONS"
-msgstr ""
+msgstr "OBECNÉ VOLBY"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:100
@@ -173,17 +173,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:104
 msgid "Options usable in all sections"
-msgstr ""
+msgstr "Volby použitelné ve všech sekcích"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:108
 msgid "debug_level (integer)"
-msgstr ""
+msgstr "debug_level (celé kladné číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:112
 msgid "debug (integer)"
-msgstr ""
+msgstr "debug (celé kladné číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:115
@@ -214,7 +214,7 @@ msgstr ""
 #: sssd-ad.5.xml:229 sssd-ad.5.xml:343 sssd-ad.5.xml:1177 sssd-ad.5.xml:1325
 #: sssd-krb5.5.xml:342
 msgid "Default: true"
-msgstr ""
+msgstr "Výchozí: true (pravda)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:138
@@ -237,7 +237,7 @@ msgstr ""
 #: sssd-krb5.5.xml:268 sssd-krb5.5.xml:416 include/krb5_options.xml:29
 #: include/krb5_options.xml:154
 msgid "Default: false"
-msgstr ""
+msgstr "Výchozí: false (nepravda)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:151
@@ -281,12 +281,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:179
 msgid "Options usable in SERVICE and DOMAIN sections"
-msgstr ""
+msgstr "Volby použitelné v sekcích SERVICE a DOMAIN"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:183
 msgid "timeout (integer)"
-msgstr ""
+msgstr "timeout (celé kladné číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:186
@@ -310,17 +310,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:206
 msgid "The [sssd] section"
-msgstr ""
+msgstr "Sekce [sssd]"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><title>
 #: sssd.conf.5.xml:215
 msgid "Section parameters"
-msgstr ""
+msgstr "Parametry sekce"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:217
 msgid "config_file_version (integer)"
-msgstr ""
+msgstr "config_file_version (celé kladné číslo)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:220
@@ -328,11 +328,13 @@ msgid ""
 "Indicates what is the syntax of the config file. SSSD 0.6.0 and later use "
 "version 2."
 msgstr ""
+"Značí jaká je syntaxe souboru s nastaveními. SSSD 0.6.0 a novější používají "
+"verzi 2."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:226
 msgid "services"
-msgstr ""
+msgstr "služby"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:229
@@ -376,12 +378,12 @@ msgstr ""
 #: sssd.conf.5.xml:263 sssd.conf.5.xml:726 sssd.conf.5.xml:3447
 #: sssd.conf.5.xml:3486 include/failover.xml:100
 msgid "Default: 3"
-msgstr ""
+msgstr "Výchozí: 3"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:268
 msgid "domains"
-msgstr ""
+msgstr "domény"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:271
@@ -417,7 +419,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:301 sssd.conf.5.xml:3340
 msgid "full_name_format (string)"
-msgstr ""
+msgstr "full_name_format (řetězec)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:304 sssd.conf.5.xml:3343
@@ -435,7 +437,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:316 sssd.conf.5.xml:3355
 msgid "user name"
-msgstr ""
+msgstr "uživatelské jméno"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:319 sssd.conf.5.xml:3358
@@ -484,6 +486,8 @@ msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
 msgstr ""
+"Ovládá zda SSSD má sledovat stav resolv.conf a zjišťovat tak, zda je "
+"zapotřebí aktualizovat svůj vestavěný překlad DNS názvů."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:360
@@ -523,7 +527,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:386
 msgid "krb5_rcache_dir (string)"
-msgstr ""
+msgstr "krb5_rcache_dir (řetězec)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:389
@@ -635,7 +639,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:485
 msgid "Default: not set (spaces will not be replaced)"
-msgstr ""
+msgstr "Výchozí: nenastaveno (mezery nebudou nahrazovány)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:490
@@ -1158,6 +1162,9 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
+"Mezipaměť položek může být nastavena na automatické aktualizování položek na "
+"pozadí, pokud jsou požadovány za procentem hodnoty entry_cache_timeout pro "
+"doménu."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:919
@@ -1429,6 +1436,8 @@ msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr ""
+"Určuje dobu (v sekundách) po které bude seznam dílčích domén považován za "
+"platný."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1137
@@ -1794,7 +1803,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1455 sssd.conf.5.xml:2744
 msgid "Display a warning N days before the password expires."
-msgstr ""
+msgstr "Zobrazit varování N dnů před skončením platnosti hesla."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1458
@@ -2715,6 +2724,9 @@ msgid ""
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
+"Čárkou oddělovaný seznam uživatelů, kterým zapnout zaznamenávání relace. "
+"Shodující se uživatelská jména jsou vrácena z NSS. T.j. po možném nahrazení "
+"mezer, změně velikosti písmen, atd."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2265 sssd-session-recording.5.xml:115
@@ -2733,6 +2745,9 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
+"Čárkou oddělovaný seznam skupin, dále členů, pro které zapnout zaznamenávání "
+"relace. Odpovídající názvy skupin jsou vráceny z NSS. Tj. po možném "
+"nahrazení mezer, změn velikosti písmen, atd."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2279 sssd.conf.5.xml:2311 sssd-session-recording.5.xml:129
@@ -3125,6 +3140,8 @@ msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
+"Kolik sekund ponechat ssh klíč hostitele po opětovném načtení. T.j. po jak "
+"dlouhou dobu ponechávat klíč hostitel v mezipaměti."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2632
@@ -3214,6 +3231,10 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
+"Pokud je používáno dvoufaktorové ověřování (2FA) a přihlašovací údaje mají "
+"být ukládány, tato hodnota určuje nejkratší umožněnou délku pro hlavní "
+"faktor ověřování (dlouhodobé heslo), od které je třeba ho uložit jako SHA512 "
+"otisk do mezipaměti."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2715
@@ -4159,7 +4180,7 @@ msgstr ""
 #: sssd.conf.5.xml:3665
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
-msgstr ""
+msgstr "Různé štítky uložené službou nastavování realmd pro tuto doménu."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3671
@@ -6424,6 +6445,8 @@ msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr ""
+"Umožňuje držet místní uživatele coby členy LDAP skupiny pro servery, které "
+"používají schéma dle normy RFC2307."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1446
@@ -6736,7 +6759,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1731
 msgid "The name of the automount master map in LDAP."
-msgstr ""
+msgstr "Název v LDAP hlavní mapy pro automatické připojování."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1734
@@ -7870,6 +7893,9 @@ msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
+"Čárkou oddělovaný seznam skupin, kterým je dovoleno se přihlásit. Toto se "
+"uplatní pouze na skupiny v rámci SSSD domény. Místní skupiny nejsou takto "
+"vyhodnocovány."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-simple.5.xml:108
@@ -7883,6 +7909,9 @@ msgid ""
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
 msgstr ""
+"Čárkou oddělovaný seznam skupin, kterým je výslovně odepřen přístup. Toto se "
+"uplatní pouze na skupiny v rámci SSSD domény. Místní skupiny nejsou takto "
+"vyhodnocovány."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-simple.5.xml:70 sssd-ipa.5.xml:82 sssd-ad.5.xml:116
@@ -15383,7 +15412,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:789
 msgid "The object class of a netgroup entry in LDAP."
-msgstr ""
+msgstr "Třída objektu položky dané netgroup v LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:792
@@ -15403,7 +15432,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:805
 msgid "The LDAP attribute that corresponds to the netgroup name."
-msgstr ""
+msgstr "LDAP atribut, který odpovídá názvu netgroup."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:809
@@ -15418,7 +15447,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:822
 msgid "The LDAP attribute that contains the names of the netgroup's members."
-msgstr ""
+msgstr "LDAP atribut, který obsahuje jména členů síťové skupiny."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:826
@@ -15469,7 +15498,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:878
 msgid "The object class of a host entry in LDAP."
-msgstr ""
+msgstr "Třída objektu položky hostitele v LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:881 sssd-ldap-attributes.5.xml:978
@@ -15531,7 +15560,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:942
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr ""
+msgstr "LDAP atribut, který obsahuje veřejné části SSH klíčů hostitele."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:952

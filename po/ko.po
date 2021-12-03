@@ -773,6 +773,7 @@ msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
 msgstr ""
+"IPA 서버에 대응하는 데스크탑 프로파일 규칙의 검색 사이에서 초 단위 시간의 양"
 
 #: src/config/SSSDConfig/sssdoptions.py:241
 msgid ""

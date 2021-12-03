@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-11-09 16:03+0100\n"
-"PO-Revision-Date: 2021-10-20 03:21+0000\n"
+"PO-Revision-Date: 2021-11-12 12:05+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/uk/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.8\n"
+"X-Generator: Weblate 4.8.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2038,7 +2038,7 @@ msgstr "Параметр -g є несумісним із параметрами 
 #: src/monitor/monitor.c:2401
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
-msgstr ""
+msgstr "Запущено від імені %<PRIu64>, а має бути від імені root\n"
 
 #: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
@@ -2756,12 +2756,16 @@ msgstr "Вкажіть рівень діагностики, яким ви хоч
 msgid ""
 "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
 msgstr ""
+"УВАГА: немає підтримки ідентифікатора черги Tevent, можливості аналізу "
+"запитів буде обмежено.\n"
 
 #: src/tools/sssctl/sssctl_logs.c:401
 msgid ""
 "It is recommended to use the --logdir option against tevent chain ID "
 "supported SSSD logs.\n"
 msgstr ""
+"Рекомендуємо скористатися параметром --logdir для обробки журналу SSSD із "
+"підтримкою ідентифікаторів ланцюжка tevent.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"

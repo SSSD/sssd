@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2021-11-09 05:05+0000\n"
+"PO-Revision-Date: 2021-11-22 16:16+0000\n"
 "Last-Translator: simmon <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.8\n"
+"X-Generator: Weblate 4.9\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5 sssd_krb5_locator_plugin.8.xml:5 sssd-simple.5.xml:5 sss-certmap.5.xml:5 sssd-ipa.5.xml:5 sssd-ad.5.xml:5 sssd-sudo.5.xml:5 sssd.8.xml:5 sss_obfuscate.8.xml:5 sss_override.8.xml:5 sss_useradd.8.xml:5 sssd-krb5.5.xml:5 sss_groupadd.8.xml:5 sss_userdel.8.xml:5 sss_groupdel.8.xml:5 sss_groupshow.8.xml:5 sss_usermod.8.xml:5 sss_cache.8.xml:5 sss_debuglevel.8.xml:5 sss_seed.8.xml:5 sssd-ifp.5.xml:5 sss_rpcidmapd.5.xml:5 sss_ssh_authorizedkeys.1.xml:5 sss_ssh_knownhostsproxy.1.xml:5 idmap_sss.8.xml:5 sssctl.8.xml:5 sssd-files.5.xml:5 sssd-secrets.5.xml:5 sssd-session-recording.5.xml:5 sssd-kcm.8.xml:5 sssd-systemtap.5.xml:5 sssd-ldap-attributes.5.xml:5
@@ -2884,12 +2884,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2381
 msgid "Default: posix"
-msgstr ""
+msgstr "기본값: posix"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2387
 msgid "min_id,max_id (integer)"
-msgstr ""
+msgstr "min_id,max_id (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2390
@@ -3465,7 +3465,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2934
 msgid "access_provider (string)"
-msgstr ""
+msgstr "access_provider (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2937
@@ -3695,7 +3695,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3168
 msgid "session_provider (string)"
-msgstr ""
+msgstr "session_provider (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3171
@@ -3771,7 +3771,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3239
 msgid "hostid_provider (string)"
-msgstr ""
+msgstr "hostid_provider (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3242
@@ -4027,7 +4027,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3554
 msgid "True"
-msgstr ""
+msgstr "사실"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3557
@@ -4667,52 +4667,52 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4094
 msgid "ldap_search_base,"
-msgstr ""
+msgstr "ldap_search_base,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4095
 msgid "ldap_user_search_base,"
-msgstr ""
+msgstr "ldap_user_search_base,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4096
 msgid "ldap_group_search_base,"
-msgstr ""
+msgstr "ldap_group_search_base,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4097
 msgid "ldap_netgroup_search_base,"
-msgstr ""
+msgstr "ldap_netgroup_search_base,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4098
 msgid "ldap_service_search_base,"
-msgstr ""
+msgstr "ldap_service_search_base,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4099
 msgid "ldap_sasl_mech,"
-msgstr ""
+msgstr "ldap_sasl_mech,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4100
 msgid "ad_server,"
-msgstr ""
+msgstr "ad_server,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4101
 msgid "ad_backup_server,"
-msgstr ""
+msgstr "ad_backup_server,"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4102
 msgid "ad_site,"
-msgstr ""
+msgstr "ad_site,"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:4103 sssd-ipa.5.xml:811
 msgid "use_fully_qualified_names"
-msgstr ""
+msgstr "use_fully_qualified_names"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4107
@@ -10703,17 +10703,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:792
 msgid "ftp"
-msgstr ""
+msgstr "ftp"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:797
 msgid "samba"
-msgstr ""
+msgstr "삼바"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:806
 msgid "ad_gpo_map_batch (string)"
-msgstr ""
+msgstr "ad_gpo_map_batch (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:809
@@ -10744,6 +10744,8 @@ msgid ""
 "ad_gpo_map_batch = +my_pam_service, -crond\n"
 "                            "
 msgstr ""
+"ad_gpo_map_batch = +my_pam_service, -crond\n"
+"                            "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:832
@@ -10802,6 +10804,8 @@ msgid ""
 "ad_gpo_map_service = +my_pam_service\n"
 "                            "
 msgstr ""
+"ad_gpo_map_service = +my_pam_service\n"
+"                            "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:885 sssd-ad.5.xml:960
@@ -10859,7 +10863,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:952
 msgid "ad_gpo_map_deny (string)"
-msgstr ""
+msgstr "ad_gpo_map_deny (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:955
@@ -10875,6 +10879,8 @@ msgid ""
 "ad_gpo_map_deny = +my_pam_service\n"
 "                            "
 msgstr ""
+"ad_gpo_map_deny = +my_pam_service\n"
+"                            "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:978
@@ -10917,7 +10923,7 @@ msgstr "네트워크"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:1013
 msgid "batch"
-msgstr ""
+msgstr "batch"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:1018
@@ -12319,7 +12325,7 @@ msgstr ""
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:165 include/override_homedir.xml:11
 msgid "%u"
-msgstr ""
+msgstr "%u"
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:166 include/override_homedir.xml:12
@@ -12329,17 +12335,17 @@ msgstr "로그인 이름"
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:169 include/override_homedir.xml:15
 msgid "%U"
-msgstr ""
+msgstr "%U"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:170
 msgid "login UID"
-msgstr ""
+msgstr "로그인 UID"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:173
 msgid "%p"
-msgstr ""
+msgstr "%p"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:174
@@ -16246,7 +16252,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:162
 msgid "ldap_user_objectsid (string)"
-msgstr ""
+msgstr "ldap_user_objectsid (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:165
@@ -16793,7 +16799,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:648
 msgid "ldap_group_object_class (string)"
-msgstr ""
+msgstr "ldap_group_object_class (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:651
@@ -16858,7 +16864,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:714
 msgid "ldap_group_objectsid (string)"
-msgstr ""
+msgstr "ldap_group_objectsid (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:717
