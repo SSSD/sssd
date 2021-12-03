@@ -58,7 +58,7 @@ static void hash_talloc_free(void *ptr, void *pvt)
     talloc_free(ptr);
 }
 
-static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
+static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid, bool *is_systemd)
 {
     int ret;
     char path[PATHLEN];
@@ -138,6 +138,7 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
               "close failed [%d][%s].\n", error, strerror(error));
     }
 
+    /* Get uid */
     p = strstr(buf, "\nUid:\t");
     if (p != NULL) {
         p += 6;
@@ -163,6 +164,24 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "format error\n");
         return EINVAL;
+    }
+
+    /* Get process name. */
+    p = strstr(buf, "Name:\t");
+    if (p == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "format error\n");
+        return EINVAL;
+    }
+    p += 6;
+    e = strchr(p,'\n');
+    if (e == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "format error\n");
+        return EINVAL;
+    }
+    if (strncmp(p, "systemd", e-p) == 0 || strncmp(p, "(sd-pam)", e-p) == 0) {
+        *is_systemd = true;
+    } else {
+        *is_systemd = false;
     }
 
     *uid = num;
@@ -215,6 +234,7 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
     struct dirent *dirent;
     int ret, err;
     pid_t pid = -1;
+    bool is_systemd;
     uid_t uid;
 
     hash_key_t key;
@@ -238,13 +258,20 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
             goto done;
         }
 
-        ret = get_uid_from_pid(pid, &uid);
+        ret = get_uid_from_pid(pid, &uid, &is_systemd);
         if (ret != EOK) {
             /* Most probably this /proc entry disappeared.
                Anyway, just skip it.
             */
             DEBUG(SSSDBG_TRACE_ALL, "get_uid_from_pid() failed.\n");
             errno = 0;
+            continue;
+        }
+
+        if (is_systemd) {
+            /* Systemd process may linger for a while even when user.
+             * is logged out. Lets ignore it and focus only
+             * on non-systemd processes. */
             continue;
         }
 
