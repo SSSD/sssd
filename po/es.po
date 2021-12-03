@@ -19,7 +19,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-11-09 16:03+0100\n"
-"PO-Revision-Date: 2021-10-27 15:05+0000\n"
+"PO-Revision-Date: 2021-12-02 13:16+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.8\n"
+"X-Generator: Weblate 4.9.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -130,7 +130,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:44
 msgid "Domain to add to names without a domain component."
-msgstr "Dominio para añadir a los nombres sin componente de dominio"
+msgstr "Dominio para añadir a los nombres sin componente de dominio."
 
 #: src/config/SSSDConfig/sssdoptions.py:45
 msgid "The user to drop privileges to"
@@ -349,19 +349,19 @@ msgstr "Lista de uids o nombres de usuario de confianza"
 
 #: src/config/SSSDConfig/sssdoptions.py:95
 msgid "List of domains accessible even for untrusted users."
-msgstr "Lista de dominios accesibles aún para usuarios los que no se confie"
+msgstr "Lista de dominios accesibles aún para usuarios los que no se confíe."
 
 #: src/config/SSSDConfig/sssdoptions.py:96
 msgid "Message printed when user account is expired."
-msgstr "Mensaje impreso cuando una cuenta de usuario expira"
+msgstr "Mensaje impreso cuando una cuenta de usuario expira."
 
 #: src/config/SSSDConfig/sssdoptions.py:97
 msgid "Message printed when user account is locked."
-msgstr "Mensaje impreso cuando una cuenta de usuario es bloqueada"
+msgstr "Mensaje impreso cuando una cuenta de usuario es bloqueada."
 
 #: src/config/SSSDConfig/sssdoptions.py:98
 msgid "Allow certificate based/Smartcard authentication."
-msgstr "Permitir el certificado basado/en autenticación Smartcard"
+msgstr "Permitir el certificado basado/en autenticación Smartcard."
 
 #: src/config/SSSDConfig/sssdoptions.py:99
 msgid "Path to certificate database with PKCS#11 modules."
@@ -684,7 +684,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:194
 msgid "Whether the nsupdate utility should default to using TCP"
-msgstr "Si la utilidad nsupdate debería utilizar por defecto  TCP"
+msgstr "Si la utilidad nsupdate debería utilizar por defecto TCP"
 
 #: src/config/SSSDConfig/sssdoptions.py:195
 msgid "What kind of authentication should be used to perform the DNS update"
@@ -1194,7 +1194,7 @@ msgstr "ciclo de vida del TGT"
 
 #: src/config/SSSDConfig/sssdoptions.py:326
 msgid "Time between two checks for renewal"
-msgstr "tiempo entre dos comprobaciones para renovación "
+msgstr "Tiempo entre dos comprobaciones para renovación"
 
 #: src/config/SSSDConfig/sssdoptions.py:327
 msgid "Enables FAST"
@@ -1202,7 +1202,7 @@ msgstr "Habilita FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:328
 msgid "Selects the principal to use for FAST"
-msgstr "Selecciona el principal  para su uso por FAST"
+msgstr "Selecciona el principal para su uso por FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:329
 msgid "Enables principal canonicalization"
@@ -1214,7 +1214,7 @@ msgstr "Permite los principios de la empresa"
 
 #: src/config/SSSDConfig/sssdoptions.py:331
 msgid "Enables using of subdomains realms for authentication"
-msgstr ""
+msgstr "Habilita el uso de reinos de subdominios para autenticación"
 
 #: src/config/SSSDConfig/sssdoptions.py:332
 msgid "A mapping from user names to Kerberos principal names"
@@ -1226,7 +1226,7 @@ msgstr ""
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 "El servidor en donde está ejecutándose el servicio de modificación de "
-"contraseña, en caso de no ser KDC. "
+"contraseña, en caso de no ser KDC"
 
 #: src/config/SSSDConfig/sssdoptions.py:339
 msgid "ldap_uri, The URI of the LDAP server"
@@ -1318,7 +1318,7 @@ msgstr "Especificar los SSF mínimos para autorizaciones sasl de LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:361
 msgid "Specify the maximal SSF for LDAP sasl authorization"
-msgstr ""
+msgstr "Especifica el SSF máximo para autorización sasl LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:362
 msgid "Kerberos service keytab"
@@ -1366,6 +1366,8 @@ msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr ""
+"Permite retener los usuarios locales como miembros de un grupo LDAP para "
+"servidores que usan el esquema RFC2307."
 
 #: src/config/SSSDConfig/sssdoptions.py:375
 msgid "entryUSN attribute"
@@ -1468,7 +1470,7 @@ msgstr "Atributo primario del grupo Active Directory para el mapeado de ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:404
 msgid "User principal attribute (for Kerberos)"
-msgstr "Atributo principal del usuario (para Kerberos) "
+msgstr "Atributo principal del usuario (para Kerberos)"
 
 #: src/config/SSSDConfig/sssdoptions.py:405
 msgid "Full Name"
@@ -1488,7 +1490,7 @@ msgstr "atributo shadowLastChange"
 
 #: src/config/SSSDConfig/sssdoptions.py:409
 msgid "shadowMin attribute"
-msgstr "atributo shadowMin "
+msgstr "atributo shadowMin"
 
 #: src/config/SSSDConfig/sssdoptions.py:410
 msgid "shadowMax attribute"
@@ -1496,11 +1498,11 @@ msgstr "atributo shadowMax"
 
 #: src/config/SSSDConfig/sssdoptions.py:411
 msgid "shadowWarning attribute"
-msgstr "atributo shadowWarning "
+msgstr "atributo shadowWarning"
 
 #: src/config/SSSDConfig/sssdoptions.py:412
 msgid "shadowInactive attribute"
-msgstr "atributo shadowInactive "
+msgstr "atributo shadowInactive"
 
 #: src/config/SSSDConfig/sssdoptions.py:413
 msgid "shadowExpire attribute"
@@ -1508,7 +1510,7 @@ msgstr "atributo shadowExpire"
 
 #: src/config/SSSDConfig/sssdoptions.py:414
 msgid "shadowFlag attribute"
-msgstr "atributo shadowFlag "
+msgstr "atributo shadowFlag"
 
 #: src/config/SSSDConfig/sssdoptions.py:415
 msgid "Attribute listing authorized PAM services"
@@ -1524,11 +1526,11 @@ msgstr "Atributo listando los rhosts de los servidores autorizados"
 
 #: src/config/SSSDConfig/sssdoptions.py:418
 msgid "krbLastPwdChange attribute"
-msgstr "atributo krbLastPwdChange "
+msgstr "atributo krbLastPwdChange"
 
 #: src/config/SSSDConfig/sssdoptions.py:419
 msgid "krbPasswordExpiration attribute"
-msgstr "atributo krbPasswordExpiration "
+msgstr "atributo krbPasswordExpiration"
 
 #: src/config/SSSDConfig/sssdoptions.py:420
 msgid "Attribute indicating that server side password policies are active"
@@ -1546,7 +1548,7 @@ msgstr "atributo userAccountControl de AD"
 
 #: src/config/SSSDConfig/sssdoptions.py:423
 msgid "nsAccountLock attribute"
-msgstr "atributo nsAccountLock "
+msgstr "atributo nsAccountLock"
 
 #: src/config/SSSDConfig/sssdoptions.py:424
 msgid "loginDisabled attribute of NDS"
@@ -1628,11 +1630,11 @@ msgstr "Máximo nivel de anidamiento que seguirá SSSD"
 
 #: src/config/SSSDConfig/sssdoptions.py:445
 msgid "Filter for group lookups"
-msgstr ""
+msgstr "Filtro para búsquedas de grupos"
 
 #: src/config/SSSDConfig/sssdoptions.py:446
 msgid "Scope of group lookups"
-msgstr ""
+msgstr "Alcance de la búsqueda de grupos"
 
 #: src/config/SSSDConfig/sssdoptions.py:448
 msgid "Base DN for netgroup lookups"
@@ -1729,7 +1731,7 @@ msgstr "Máximas entradas a recuperar durante una solicitud de comodín"
 
 #: src/config/SSSDConfig/sssdoptions.py:474
 msgid "Set libldap debug level"
-msgstr ""
+msgstr "Fija el nivel de depuración de libldap"
 
 #: src/config/SSSDConfig/sssdoptions.py:477
 msgid "Policy to evaluate the password expiration"
@@ -1783,7 +1785,7 @@ msgstr "Período de refresco inteligente automático"
 
 #: src/config/SSSDConfig/sssdoptions.py:495
 msgid "Smart and full refresh random offset"
-msgstr ""
+msgstr "Desplazamiento aleatorio de actualización completa e inteligente"
 
 #: src/config/SSSDConfig/sssdoptions.py:496
 msgid "Whether to filter rules by hostname, IP addresses and network"
@@ -1817,7 +1819,7 @@ msgstr "Objeto clase para reglas sudo"
 
 #: src/config/SSSDConfig/sssdoptions.py:502
 msgid "Name of attribute that is used as object class for sudo rules"
-msgstr ""
+msgstr "Nombre del atributo que se usa como objeto clase para reglas sudo"
 
 #: src/config/SSSDConfig/sssdoptions.py:503
 msgid "Sudo rule name"
@@ -1889,47 +1891,47 @@ msgstr "Base DN para búsquedas de mapa de automontador"
 
 #: src/config/SSSDConfig/sssdoptions.py:522
 msgid "The name of the automount master map in LDAP."
-msgstr ""
+msgstr "El nombre del mapa maestro de montaje automático en LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Base DN for IP hosts lookups"
-msgstr ""
+msgstr "DN base para búsquedas de IP de hosts"
 
 #: src/config/SSSDConfig/sssdoptions.py:526
 msgid "Object class for IP hosts"
-msgstr ""
+msgstr "Objeto clase para IP de hosts"
 
 #: src/config/SSSDConfig/sssdoptions.py:527
 msgid "IP host name attribute"
-msgstr ""
+msgstr "Atributo nombre de host IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:528
 msgid "IP host number (address) attribute"
-msgstr ""
+msgstr "Atributo número (dirección) de host IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:529
 msgid "IP host entryUSN attribute"
-msgstr ""
+msgstr "Atributo entryUSN de host IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:530
 msgid "Base DN for IP networks lookups"
-msgstr ""
+msgstr "DN base para búsquedas de redes IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:531
 msgid "Object class for IP networks"
-msgstr ""
+msgstr "Objeto clase para redes IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:532
 msgid "IP network name attribute"
-msgstr ""
+msgstr "Atributo nombre de red IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:533
 msgid "IP network number (address) attribute"
-msgstr ""
+msgstr "Atributo número (dirección) de red IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:534
 msgid "IP network entryUSN attribute"
-msgstr ""
+msgstr "Atributo entryUSN de red IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:537
 msgid "Comma separated list of allowed users"
@@ -1944,6 +1946,9 @@ msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
+"Lista separada por comas de grupos que tienen permitido el acceso. Esto se "
+"aplica sólo a los grupos dentro del dominio SSSD. Los grupos locales no "
+"serán evaluados."
 
 #: src/config/SSSDConfig/sssdoptions.py:541
 msgid ""
@@ -1951,10 +1956,13 @@ msgid ""
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
 msgstr ""
+"Lista separada por comas de grupos a los que explicítamente se les deniega "
+"el acceso. Esto se aplica sólo a los grupos dentro del dominio SSSD. Los "
+"grupos locales no serán evaluados."
 
 #: src/config/SSSDConfig/sssdoptions.py:545
 msgid "The number of preforked proxy children."
-msgstr "Número de hijos proxy prefabricados"
+msgstr "Número de hijos proxy prefabricados."
 
 #: src/config/SSSDConfig/sssdoptions.py:548
 msgid "The name of the NSS library to use"
@@ -1963,6 +1971,7 @@ msgstr "Nombre de la biblioteca NSS a usar"
 #: src/config/SSSDConfig/sssdoptions.py:549
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr ""
+"El nombre de la librería NSS a ser usada para búsquedas de hosts y redes"
 
 #: src/config/SSSDConfig/sssdoptions.py:550
 msgid "Whether to look up canonical group name from cache if possible"
@@ -2011,16 +2020,16 @@ msgstr "Muestra el número de versión y finaliza"
 
 #: src/monitor/monitor.c:2382
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
-msgstr ""
+msgstr "La opción -i|--interactive no está permitida junto con -D|--daemon\n"
 
 #: src/monitor/monitor.c:2388
 msgid "Option -g is incompatible with -D or -i\n"
-msgstr ""
+msgstr "La opción -g ies incompatible con -D o -i\n"
 
 #: src/monitor/monitor.c:2401
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
-msgstr ""
+msgstr "Corriendo bajo %<PRIu64>, debe ser root\n"
 
 #: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
@@ -2067,13 +2076,12 @@ msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Usar versión personal de krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
-#, fuzzy
 msgid "talloc_asprintf failed.\n"
-msgstr "malloc falló.\n"
+msgstr "talloc_asprintf falló.\n"
 
 #: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
-msgstr ""
+msgstr "set_debug_file_from_fd falló.\n"
 
 #: src/providers/data_provider_be.c:733
 msgid "Domain of the information provider (mandatory)"
@@ -2250,14 +2258,14 @@ msgid "The path to the proxy command must be absolute\n"
 msgstr "La ruta al comando proxy debe ser absoluta\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:326
-#, fuzzy, c-format
+#, c-format
 msgid "sss_ssh_knownhostsproxy: unable to proxy data: %s\n"
-msgstr "sss_ssh_knownhostsproxy: Podría no resolver el nombre de host %s\n"
+msgstr "sss_ssh_knownhostsproxy: incapaz para datos de proxy: %s\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:330
-#, fuzzy, c-format
+#, c-format
 msgid "sss_ssh_knownhostsproxy: connect to host %s port %d: %s\n"
-msgstr "sss_ssh_knownhostsproxy: Podría no resolver el nombre de host %s\n"
+msgstr "sss_ssh_knownhostsproxy: conectar al host %s puerto %d: %s\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:334
 #, c-format
@@ -2404,14 +2412,14 @@ msgid "Error while executing external command\n"
 msgstr "Error mientras se ejecutaba comando externo\n"
 
 #: src/tools/sssctl/sssctl.c:123
-#, fuzzy, c-format
+#, c-format
 msgid "Error while executing external command '%s'\n"
-msgstr "Error mientras se ejecutaba comando externo\n"
+msgstr "Error ejecutando comando externo '%s'\n"
 
 #: src/tools/sssctl/sssctl.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "Command '%s' failed with [%d]\n"
-msgstr "dlsym falló con with [%s].\n"
+msgstr "Comando '%s' falló con [%d]\n"
 
 #: src/tools/sssctl/sssctl.c:173
 msgid "SSSD needs to be running. Start SSSD now?"
@@ -2491,16 +2499,20 @@ msgid ""
 "where the main config file is located. For example if the config is set to "
 "\"/my/path/sssd.conf\", the snippet dir \"/my/path/conf.d\" is used)"
 msgstr ""
+"Especificar un retazo de directorio no predeterminado (El valor "
+"predeterminado es busca en el mismo lugar donde se localiza el archivo de "
+"configuración principal. Por ejemplo si la configuración está establecida a "
+"\"/my/path/sssd.conf\", se usa el directorio retazo \"/my/path/conf.d\")"
 
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format
 msgid "Failed to open %s\n"
-msgstr ""
+msgstr "Falló al abrir %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:123
 #, c-format
 msgid "File %1$s does not exist.\n"
-msgstr ""
+msgstr "No existe el archivo %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:127
 msgid ""
@@ -2512,21 +2524,23 @@ msgstr ""
 #: src/tools/sssctl/sssctl_config.c:133
 #, c-format
 msgid "Failed to load configuration from %s.\n"
-msgstr ""
+msgstr "Fallo al cargar la configuración desde %s.\n"
 
 #: src/tools/sssctl/sssctl_config.c:139
 msgid "Error while reading configuration directory.\n"
-msgstr ""
+msgstr "Error mientras se lee el directorio de configuración.\n"
 
 #: src/tools/sssctl/sssctl_config.c:147
 msgid ""
 "There is no configuration. SSSD will use default configuration with files "
 "provider.\n"
 msgstr ""
+"No hay configuración. SSSD usará la configuración predeterminado con los "
+"archivos del proveedor.\n"
 
 #: src/tools/sssctl/sssctl_config.c:159
 msgid "Failed to run validators"
-msgstr ""
+msgstr "Falló al ejecutar los validadores"
 
 #: src/tools/sssctl/sssctl_config.c:163
 #, c-format
@@ -2541,7 +2555,7 @@ msgstr "Mensajes generados durante la configuración de la fusión: %zu\n"
 #: src/tools/sssctl/sssctl_config.c:185
 #, c-format
 msgid "Used configuration snippet files: %zu\n"
-msgstr ""
+msgstr "Configuración usada ficheros retazos: %zu\n"
 
 #: src/tools/sssctl/sssctl_data.c:88
 #, c-format
@@ -2641,7 +2655,7 @@ msgstr "Estado en línea: %s\n"
 
 #: src/tools/sssctl/sssctl_domains.c:213
 msgid "This domain has no active servers.\n"
-msgstr ""
+msgstr "Este dominio no tiene servidores activos.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:218
 msgid "Active servers:\n"
@@ -2653,7 +2667,7 @@ msgstr "no conectado"
 
 #: src/tools/sssctl/sssctl_domains.c:267
 msgid "No servers discovered.\n"
-msgstr ""
+msgstr "No se descubrieron servidores.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:273
 #, c-format
@@ -2733,12 +2747,16 @@ msgstr "Especifique el nivel de depuración que desea fijar"
 msgid ""
 "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
 msgstr ""
+"AVISO: Falta el soporte de identificación de la cadena de eventos, el "
+"análisis de solicitudes será limitado.\n"
 
 #: src/tools/sssctl/sssctl_logs.c:401
 msgid ""
 "It is recommended to use the --logdir option against tevent chain ID "
 "supported SSSD logs.\n"
 msgstr ""
+"Se recomienda usar la opción --logdir contra la ID de la cadena de eventos "
+"soportada por los registros SSSD.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
