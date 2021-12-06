@@ -64,8 +64,8 @@ Requires: sssd-common = %{version}-%{release}
 Requires: sssd-ipa = %{version}-%{release}
 Requires: sssd-krb5 = %{version}-%{release}
 Requires: sssd-ldap = %{version}-%{release}
-Recommends: sssd-proxy = %{version}-%{release}
-Recommends: logrotate
+Requires: sssd-proxy = %{version}-%{release}
+Suggests: logrotate
 Suggests: python3-sssdconfig = %{version}-%{release}
 Suggests: sssd-dbus = %{version}-%{release}
 
@@ -166,9 +166,9 @@ License: GPLv3+
 # due to ABI changes in 1.1.30/1.2.0
 Requires: libldb >= %{ldb_version}
 Requires: sssd-client%{?_isa} = %{version}-%{release}
-Recommends: libsss_sudo = %{version}-%{release}
-Recommends: libsss_autofs%{?_isa} = %{version}-%{release}
-Recommends: sssd-nfs-idmap = %{version}-%{release}
+Requires: (libsss_sudo = %{version}-%{release} if sudo)
+Requires: (libsss_autofs%{?_isa} = %{version}-%{release} if autofs)
+Requires: (sssd-nfs-idmap = %{version}-%{release} if libnfsidmap)
 Requires: libsss_idmap = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
 %if 0%{?rhel}
@@ -224,7 +224,7 @@ Requires: libsss_certmap = %{version}-%{release}
 # required by sss_analyze
 Requires: python3-systemd
 Requires: python3-click
-Recommends: sssd-dbus
+Requires: sssd-dbus
 
 %description tools
 Provides several administrative tools:
