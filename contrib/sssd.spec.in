@@ -221,9 +221,8 @@ Requires: sssd-common = %{version}-%{release}
 Requires: python3-sss = %{version}-%{release}
 Requires: python3-sssdconfig = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
-# required by sss_analyze
+# for logger=journald support with sss_analyze
 Requires: python3-systemd
-Requires: python3-click
 Requires: sssd-dbus
 
 %description tools

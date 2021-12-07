@@ -1,42 +1,16 @@
 import re
 import copy
-import click
 import logging
+import argparse
 
 from enum import Enum
 from source_files import Files
 from source_journald import Journald
+from sssd.sss_analyze import SubparsersAction
+from sssd.sss_analyze import Option
+from sssd.sss_analyze import Analyzer
 
 logger = logging.getLogger()
-
-
-@click.group(help="Request module")
-def request():
-    pass
-
-
-@request.command()
-@click.option("-v", "--verbose", is_flag=True, help="Enables verbose output")
-@click.option("--pam", is_flag=True, help="Filter only PAM requests")
-@click.pass_obj
-def list(ctx, verbose, pam):
-    analyzer = RequestAnalyzer()
-    source = analyzer.load(ctx)
-    analyzer.list_requests(source, verbose, pam)
-
-
-@request.command()
-@click.argument("cid", nargs=1, type=int, required=True)
-@click.option("--merge", is_flag=True, help="Merge logs together sorted"
-              " by timestamp (requires debug_microseconds = True)")
-@click.option("--cachereq", is_flag=True, help="Include cache request "
-              "related logs")
-@click.option("--pam", is_flag=True, help="Track only PAM requests")
-@click.pass_obj
-def show(ctx, cid, merge, cachereq, pam):
-    analyzer = RequestAnalyzer()
-    source = analyzer.load(ctx)
-    analyzer.track_request(source, cid, merge, cachereq, pam)
 
 
 class RequestAnalyzer:
@@ -44,24 +18,74 @@ class RequestAnalyzer:
     A request analyzer module, handles request tracking logic
     and analysis. Parses input generated from a source Reader.
     """
+    module_parser = None
     consumed_logs = []
     done = ""
+    list_opts = [
+            Option('--verbose', 'Verbose output', bool, '-v'),
+            Option('--pam', 'Filter only PAM requests', bool),
+    ]
 
-    def load(self, ctx):
+    show_opts = [
+            Option('cid', 'Track request with this ID', int),
+            Option('--cachereq', 'Include cache request logs', bool),
+            Option('--merge', 'Merge logs together sorted by timestamp', bool),
+            Option('--pam', 'Track only PAM requests', bool),
+    ]
+
+    def print_module_help(self, args):
+        """
+        Print the module parser help output
+
+        Args:
+            args (Namespace): argparse parsed arguments
+        """
+        self.module_parser.print_help()
+
+    def setup_args(self, parser_grp):
+        """
+        Setup module parser, subcommands, and options
+
+        Args:
+            parser_grp (argparse.Action): Parser group to nest
+               module and subcommands under
+        """
+        desc = "Analyze request tracking module"
+        self.module_parser = parser_grp.add_parser('request',
+                                                   description=desc,
+                                                   help='Request tracking')
+
+        subparser = self.module_parser.add_subparsers(title=None,
+                                                      dest='subparser',
+                                                      action=SubparsersAction,
+                                                      metavar='COMMANDS')
+
+        cli = Analyzer()
+        subcmd_grp = subparser.add_parser_group('Operation Modes')
+        cli.add_subcommand(subcmd_grp, 'list', 'List recent requests',
+                           self.list_requests, self.list_opts)
+        cli.add_subcommand(subcmd_grp, 'show', 'Track individual request ID',
+                           self.track_request, self.show_opts)
+
+        self.module_parser.set_defaults(func=self.print_module_help)
+
+        return self.module_parser
+
+    def load(self, args):
         """
         Load the appropriate source reader.
 
         Args:
-            ctx (click.ctx): command line state object
+            args (Namespace): argparse parsed arguments
 
         Returns:
             Instantiated source object
         """
-        if ctx.source == "journald":
+        if args.source == "journald":
             import source_journald
             source = Journald()
         else:
-            source = Files(ctx.logdir)
+            source = Files(args.logdir)
         return source
 
     def matched_line(self, source, patterns):
@@ -184,25 +208,21 @@ class RequestAnalyzer:
                     print("       - " + id)
                     self.done = cr
 
-    def list_requests(self, source, verbose, pam):
+    def list_requests(self, args):
         """
         List component (default: NSS) responder requests
 
         Args:
-            line (str): line to process
-            source (Reader): source Reader object
-            verbose (bool): True if --verbose cli option is provided, enables
-                verbose output
-            pam (bool): True if --pam cli option is provided, list requests
-                in the PAM responder only
+            args (Namespace):  populated argparse namespace
         """
+        source = self.load(args)
         component = source.Component.NSS
         resp = "nss"
         patterns = ['\[cmd']
         patterns.append("(cache_req_send|cache_req_process_input|"
                         "cache_req_search_send)")
         consume = True
-        if pam:
+        if args.pam:
             component = source.Component.PAM
             resp = "pam"
 
@@ -214,20 +234,17 @@ class RequestAnalyzer:
             if isinstance(source, Journald):
                 print(line)
             else:
-                self.print_formatted(line, verbose)
+                self.print_formatted(line, args.verbose)
 
-    def track_request(self, source, cid, merge, cachereq, pam):
+    def track_request(self, args):
         """
         Print Logs pertaining to individual SSSD client request
 
         Args:
-            source (Reader): source Reader object
-            cid (int): client ID number to show
-            merge (bool): True when --merge is provided, merge logs together
-                by timestamp
-            pam (bool): True if --pam cli option is provided, track requests
-                in the PAM responder
+            args (Namespace):  populated argparse namespace
         """
+        source = self.load(args)
+        cid = args.cid
         resp_results = False
         be_results = False
         component = source.Component.NSS
@@ -235,7 +252,7 @@ class RequestAnalyzer:
         pattern = [f'REQ_TRACE.*\[CID #{cid}\\]']
         pattern.append(f"\[CID #{cid}\\].*connected")
 
-        if pam:
+        if args.pam:
             component = source.Component.PAM
             resp = "pam"
             pam_data_regex = f'pam_print_data.*\[CID #{cid}\]'
@@ -243,13 +260,13 @@ class RequestAnalyzer:
         logger.info(f"******** Checking {resp} responder for Client ID"
                     f" {cid} *******")
         source.set_component(component)
-        if cachereq:
+        if args.cachereq:
             cr_id_regex = 'CR #[0-9]+'
             cr_ids = self.get_linked_ids(source, pattern, cr_id_regex)
             [pattern.append(f'{id}\:') for id in cr_ids]
 
         for match in self.matched_line(source, pattern):
-            resp_results = self.consume_line(match, source, merge)
+            resp_results = self.consume_line(match, source, args.merge)
 
         logger.info(f"********* Checking Backend for Client ID {cid} ********")
         pattern = [f'REQ_TRACE.*\[sssd.{resp} CID #{cid}\]']
@@ -261,12 +278,12 @@ class RequestAnalyzer:
         pattern.clear()
         [pattern.append(f'\\{id}') for id in be_ids]
 
-        if pam:
+        if args.pam:
             pattern.append(pam_data_regex)
         for match in self.matched_line(source, pattern):
-            be_results = self.consume_line(match, source, merge)
+            be_results = self.consume_line(match, source, args.merge)
 
-        if merge:
+        if args.merge:
             # sort by date/timestamp
             sorted_list = sorted(self.consumed_logs,
                                  key=lambda s: s.split(')')[0])
