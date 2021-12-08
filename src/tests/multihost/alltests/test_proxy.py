@@ -70,8 +70,8 @@ class TestsssdProxy(object):
             pytest.fail("%s failed to login" % user)
         else:
             id_cmd = 'id %s' % user
-            (_, ret) = client.command(id_cmd)
-            assert ret == '0'
+            (ret1, ret) = client.command(id_cmd)
+            assert "no such user" not in ret1
             client.logout()
         # On fedora after user logs out it takes time
         # for systemd process running as user to get stopped, hence
