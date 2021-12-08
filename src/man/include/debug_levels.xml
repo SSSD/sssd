@@ -78,6 +78,13 @@
          <emphasis>0x4000</emphasis>: Extremely low-level tracing information.
     </para>
     <para>
+         <emphasis>9</emphasis>,
+         <emphasis>0x20000</emphasis>: Performance and statistical data,
+         please note that due to the way requests are processed internally the
+         logged execution time of a request might be longer than it actually
+	 was.
+    </para>
+    <para>
          <emphasis>10</emphasis>,
          <emphasis>0x10000</emphasis>: Even more low-level libldb tracing
          information. Almost never really required.
