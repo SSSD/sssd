@@ -112,13 +112,14 @@ int rotate_debug_files(void);
 #define SSSDBG_TRACE_ALL      0x4000   /* level 9 */
 #define SSSDBG_BE_FO          0x8000   /* level 9 */
 #define SSSDBG_TRACE_LDB     0x10000   /* level 10 */
+#define SSSDBG_PERF_STAT     0x20000   /* level 9 */
 
 /* IMPORTANT_INFO will be logged if any of bits >=  OP_FAILURE are on: */
 #define SSSDBG_IMPORTANT_INFO (SSSDBG_OP_FAILURE|SSSDBG_MINOR_FAILURE|\
                                SSSDBG_CONF_SETTINGS|SSSDBG_FUNC_DATA|\
                                SSSDBG_TRACE_FUNC|SSSDBG_TRACE_LIBS|\
                                SSSDBG_TRACE_INTERNAL|SSSDBG_TRACE_ALL|\
-                               SSSDBG_BE_FO|SSSDBG_TRACE_LDB)
+                               SSSDBG_BE_FO|SSSDBG_TRACE_LDB|SSSDBG_PERF_STAT)
 
 #define SSSDBG_INVALID        -1
 #define SSSDBG_UNRESOLVED      0

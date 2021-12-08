@@ -50,7 +50,7 @@ START_TEST(test_debug_convert_old_level_old_format)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL | SSSDBG_BE_FO,
+        SSSDBG_TRACE_ALL | SSSDBG_BE_FO | SSSDBG_PERF_STAT,
         SSSDBG_TRACE_LDB
     };
 
