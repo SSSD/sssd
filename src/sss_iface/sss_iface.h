@@ -32,6 +32,8 @@
 
 #define SSS_MONITOR_ADDRESS "unix:path=" PIPE_PATH "/private/sbus-monitor"
 #define SSS_BACKEND_ADDRESS "unix:path=" PIPE_PATH "/private/sbus-dp_%s"
+/* Main DBus server */
+#define SSS_MASTER_ADDRESS "unix:path=" PIPE_PATH "/private/sbus-master"
 
 #define SSS_BUS_MONITOR     "sssd.monitor"
 #define SSS_BUS_AUTOFS      "sssd.autofs"
@@ -64,8 +66,7 @@
  * Return domain address.
  */
 char *
-sss_iface_domain_address(TALLOC_CTX *mem_ctx,
-                         struct sss_domain_info *domain);
+sss_iface_domain_address(TALLOC_CTX *mem_ctx);
 
 /**
  * Return domain bus name.

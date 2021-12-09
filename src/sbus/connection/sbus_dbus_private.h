@@ -23,12 +23,14 @@
 
 #include <dbus/dbus.h>
 
+/* Master DBus server */
+#define SBUS_DBUS_NO_FLAGS 0x0
+
 /* Get D-Bus connection to a D-Bus system or session bus. */
 DBusConnection *sbus_dbus_connect_bus(DBusBusType bus, const char *name);
 
 /* Get D-Bus connection to a D-Bus address. */
-DBusConnection *sbus_dbus_connect_address(const char *address,
-                                          const char *name,
+DBusConnection *sbus_dbus_connect_address(const char *name,
                                           bool init);
 
 #endif /* _SBUS_DBUS_PRIVATE_H_ */

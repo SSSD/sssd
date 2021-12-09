@@ -90,9 +90,7 @@ sbus_reconnect_attempt(struct tevent_context *ev,
          * so those two are the only methods that are sent to the new
          * dbus connection before it is properly initialized.
          */
-        dbus_conn = sbus_dbus_connect_address(sbus_conn->address,
-                                              sbus_conn->wellknown_name,
-                                              true);
+        dbus_conn = sbus_dbus_connect_address(sbus_conn->wellknown_name, true);
         break;
     case SBUS_CONNECTION_SYSBUS:
         DEBUG(SSSDBG_MINOR_FAILURE, "Making reconnection attempt %d "

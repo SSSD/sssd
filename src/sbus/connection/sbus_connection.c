@@ -29,6 +29,7 @@
 
 #include "util/util.h"
 #include "sbus/connection/sbus_dbus_private.h"
+#include "sss_iface/sss_iface.h"
 #include "sbus/sbus_private.h"
 
 struct sbus_connection_access {
@@ -125,7 +126,6 @@ struct sbus_connection *
 sbus_connection_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      DBusConnection *dbus_conn,
-                     const char *address,
                      const char *dbus_name,
                      enum sbus_connection_type type,
                      time_t *last_activity_time)
@@ -148,13 +148,11 @@ sbus_connection_init(TALLOC_CTX *mem_ctx,
     sbus_conn->type = type;
     sbus_conn->last_activity = last_activity_time;
 
-    if (address != NULL) {
-        sbus_conn->address = talloc_strdup(sbus_conn, address);
-        if (sbus_conn->address == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
-            ret = ENOMEM;
-            goto done;
-        }
+    sbus_conn->address = talloc_strdup(sbus_conn, SSS_MASTER_ADDRESS);
+    if (sbus_conn->address == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
     }
 
     if (dbus_name != NULL) {

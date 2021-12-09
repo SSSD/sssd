@@ -68,7 +68,6 @@ sbus_connect_system(TALLOC_CTX *mem_ctx,
  *
  * @param mem_ctx                Memory context.
  * @param ev                     Tevent context.
- * @param address                Remote end-point address.
  * @param dbus_name              Name of this end-point.
  * @param last_activity_time     Pointer to a time that is updated each time
  *                               an event occurs.
@@ -80,7 +79,6 @@ sbus_connect_system(TALLOC_CTX *mem_ctx,
 struct sbus_connection *
 sbus_connect_private(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
-                     const char *address,
                      const char *dbus_name,
                      time_t *last_activity_time);
 
@@ -98,7 +96,6 @@ sbus_connect_private(TALLOC_CTX *mem_ctx,
  *
  * @param mem_ctx                Memory context.
  * @param ev                     Tevent context.
- * @param address                Remote end-point address.
  * @param dbus_name              Name of this end-point.
  * @param last_activity_time     Pointer to a time that is updated each time
  *                               an event occurs.
@@ -110,7 +107,6 @@ sbus_connect_private(TALLOC_CTX *mem_ctx,
 struct tevent_req *
 sbus_connect_private_send(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
-                          const char *address,
                           const char *dbus_name,
                           time_t *last_activity_time);
 
@@ -134,7 +130,6 @@ errno_t sbus_connect_private_recv(TALLOC_CTX *mem_ctx,
  *
  * @param mem_ctx                Memory context.
  * @param ev                     Tevent context.
- * @param address                Socket address.
  * @param use_symlink            If a symlink to @address should be created.
  * @param uid                    Socket owner uid.
  * @param gid                    Socket owner gid.
@@ -146,7 +141,6 @@ errno_t sbus_connect_private_recv(TALLOC_CTX *mem_ctx,
 struct sbus_server *
 sbus_server_create(TALLOC_CTX *mem_ctx,
                    struct tevent_context *ev,
-                   const char *address,
                    bool use_symlink,
                    uint32_t max_connections,
                    uid_t uid,
@@ -162,7 +156,6 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
  * @param dbus_name              Name of the connection.
  * @param last_activity_time     Pointer to a time that is updated each time
  *                               an event occurs on connection.
- * @param address                Socket address.
  * @param use_symlink            If a symlink to @address should be created.
  * @param uid                    Socket owner uid.
  * @param gid                    Socket owner gid.
@@ -176,7 +169,6 @@ sbus_server_create_and_connect_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     const char *dbus_name,
                                     time_t *last_activity_time,
-                                    const char *address,
                                     bool use_symlink,
                                     uint32_t max_connections,
                                     uid_t uid,

@@ -88,7 +88,6 @@ struct be_conn {
     struct sss_domain_info *domain;
 
     char *bus_name;
-    char *sbus_address;
     struct sbus_connection *conn;
 };
 

@@ -158,7 +158,7 @@ dp_init_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    sbus_address = sss_iface_domain_address(state, be_ctx->domain);
+    sbus_address = sss_iface_domain_address(state);
     if (sbus_address == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not get sbus backend address.\n");
         ret = ENOMEM;
@@ -185,7 +185,7 @@ dp_init_send(TALLOC_CTX *mem_ctx,
     talloc_set_destructor(state->provider, dp_destructor);
 
     subreq = sbus_server_create_and_connect_send(state->provider, ev,
-        sbus_name, NULL, sbus_address, true, 1000, uid, gid,
+        sbus_name, NULL, true, 1000, uid, gid,
         (sbus_server_on_connection_cb)dp_client_init,
         (sbus_server_on_connection_data)state->provider);
     if (subreq == NULL) {

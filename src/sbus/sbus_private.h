@@ -174,7 +174,6 @@ struct sbus_connection *
 sbus_connection_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      DBusConnection *dbus_conn,
-                     const char *address,
                      const char *dbus_name,
                      enum sbus_connection_type type,
                      time_t *last_activity_time);

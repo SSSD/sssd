@@ -337,7 +337,6 @@ proxy_cli_init(struct pc_ctx *ctx)
 {
     TALLOC_CTX *tmp_ctx;
     struct tevent_req *subreq;
-    char *sbus_address;
     char *sbus_busname;
     char *sbus_cliname;
     errno_t ret;
@@ -362,12 +361,6 @@ proxy_cli_init(struct pc_ctx *ctx)
         {NULL, NULL}
     };
 
-    sbus_address = sss_iface_domain_address(tmp_ctx, ctx->domain);
-    if (sbus_address == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     sbus_busname = sss_iface_domain_bus(tmp_ctx, ctx->domain);
     if (sbus_busname == NULL) {
         ret = ENOMEM;
@@ -380,10 +373,10 @@ proxy_cli_init(struct pc_ctx *ctx)
         goto done;
     }
 
-    ret = sss_iface_connect_address(ctx, ctx->ev, sbus_cliname, sbus_address,
+    ret = sss_iface_connect_address(ctx, ctx->ev, sbus_cliname,
                                     NULL, &ctx->conn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to connect to %s\n", sbus_address);
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to connect to the master bus!\n");
         goto done;
     }
 

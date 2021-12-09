@@ -92,7 +92,7 @@ sbus_sync_connect_private(TALLOC_CTX *mem_ctx,
     struct sbus_sync_connection *sbus_conn;
     DBusConnection *dbus_conn;
 
-    dbus_conn = sbus_dbus_connect_address(address, dbus_name, true);
+    dbus_conn = sbus_dbus_connect_address(dbus_name, true);
     if (dbus_conn == NULL) {
         return NULL;
     }

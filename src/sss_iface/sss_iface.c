@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <talloc.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <resolv.h>
@@ -28,15 +29,9 @@
 #include "sss_iface/sss_iface_async.h"
 
 char *
-sss_iface_domain_address(TALLOC_CTX *mem_ctx,
-                         struct sss_domain_info *domain)
+sss_iface_domain_address(TALLOC_CTX *mem_ctx)
 {
-    struct sss_domain_info *head;
-
-    /* There is only one bus that belongs to the top level domain. */
-    head = get_domains_head(domain);
-
-    return talloc_asprintf(mem_ctx, SSS_BACKEND_ADDRESS, head->name);
+    return talloc_strdup(mem_ctx, SSS_MASTER_ADDRESS);
 }
 
 char *
@@ -77,25 +72,34 @@ errno_t
 sss_iface_connect_address(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
                           const char *conn_name,
-                          const char *address,
                           time_t *last_request_time,
                           struct sbus_connection **_conn)
 {
     struct sbus_connection *conn;
     const char *filename;
+    TALLOC_CTX *tmp_ctx;
+    const char *address;
     errno_t ret;
     uid_t check_uid;
     gid_t check_gid;
 
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    address = talloc_strdup(tmp_ctx, SSS_MASTER_ADDRESS);
     if (address == NULL) {
-        return EINVAL;
+        ret = ENOMEM;
+        goto done;
     }
 
     filename = strchr(address, '/');
     if (filename == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unexpected dbus address [%s].\n", address);
-        return EIO;
+        ret = EIO;
+        goto done;
     }
 
     check_uid = geteuid();
@@ -111,18 +115,22 @@ sss_iface_connect_address(TALLOC_CTX *mem_ctx,
                      S_IFSOCK|S_IRUSR|S_IWUSR, 0, NULL, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "check_file failed for [%s].\n", filename);
-        return EIO;
+        ret = EIO;
+        goto done;
     }
 
-    conn = sbus_connect_private(mem_ctx, ev, address,
-                                conn_name, last_request_time);
+    conn = sbus_connect_private(mem_ctx, ev, conn_name, last_request_time);
     if (conn == NULL) { /* most probably sbus_dbus_connect_address() failed */
-        return EFAULT;
+        ret = EFAULT;
+        goto done;
     }
 
     *_conn = conn;
 
-    return EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
 
 static void
@@ -143,7 +151,6 @@ sss_monitor_service_init(TALLOC_CTX *mem_ctx,
     errno_t ret;
 
     ret = sss_iface_connect_address(mem_ctx, ev, conn_name,
-                                    SSS_MONITOR_ADDRESS,
                                     last_request_time, &conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to monitor sbus server "

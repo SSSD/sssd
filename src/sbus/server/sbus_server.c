@@ -32,6 +32,7 @@
 #include "util/util.h"
 #include "util/sss_ptr_hash.h"
 #include "sbus/sbus_private.h"
+#include "sss_iface/sss_iface.h"
 
 struct sbus_server_on_connection {
     const char *name;
@@ -55,22 +56,17 @@ sbus_server_get_filename(const char *address)
 
 static const char *
 sbus_server_get_socket_address(TALLOC_CTX *mem_ctx,
-                               const char *address,
                                bool use_symlink)
 {
-    unsigned long pid;
-
     if (!use_symlink) {
-        return talloc_strdup(mem_ctx, address);
+        return talloc_strdup(mem_ctx, SSS_MASTER_ADDRESS);
     }
 
-    pid = getpid();
-    return talloc_asprintf(mem_ctx, "%s.%lu", address, pid);
+    return talloc_asprintf(mem_ctx, "%s.%s", SSS_MASTER_ADDRESS, "tmp");
 }
 
 static errno_t
 sbus_server_get_socket(TALLOC_CTX *mem_ctx,
-                       const char *address,
                        bool use_symlink,
                        const char **_socket_address,
                        const char **_filename,
@@ -81,8 +77,7 @@ sbus_server_get_socket(TALLOC_CTX *mem_ctx,
     const char *filename;
 
     /* Get D-Bus socket address. */
-    socket_address = sbus_server_get_socket_address(mem_ctx, address,
-                                                    use_symlink);
+    socket_address = sbus_server_get_socket_address(mem_ctx, use_symlink);
     if (socket_address == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
         return ENOMEM;
@@ -95,7 +90,7 @@ sbus_server_get_socket(TALLOC_CTX *mem_ctx,
     }
 
     if (use_symlink) {
-        symlink = sbus_server_get_filename(address);
+        symlink = sbus_server_get_filename(SSS_MASTER_ADDRESS);
         if (symlink == NULL) {
             return EINVAL;
         }
@@ -306,7 +301,6 @@ sbus_server_check_file(const char *filename, uid_t uid, gid_t gid)
 static DBusServer *
 sbus_server_setup_dbus(TALLOC_CTX *mem_ctx,
                        struct tevent_context *ev,
-                       const char *address,
                        bool use_symlink,
                        uid_t uid,
                        gid_t gid,
@@ -327,8 +321,9 @@ sbus_server_setup_dbus(TALLOC_CTX *mem_ctx,
     }
 
     /* Get socket address. */
-    ret = sbus_server_get_socket(tmp_ctx, address, use_symlink,
-                                 &socket_address, &filename, &symlink);
+    ret = sbus_server_get_socket(tmp_ctx, use_symlink,
+                                 &socket_address, &filename,
+                                 &symlink);
     if (ret != EOK) {
         goto done;
     }
@@ -455,8 +450,7 @@ sbus_server_new_connection(DBusServer *dbus_server,
      */
 
     sbus_conn = sbus_connection_init(sbus_server, sbus_server->ev, dbus_conn,
-                                     NULL, NULL, SBUS_CONNECTION_CLIENT,
-                                     NULL);
+                                     NULL, SBUS_CONNECTION_CLIENT, NULL);
     if (sbus_conn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Closing connection, unable to setup\n");
         dbus_connection_close(dbus_conn);
@@ -635,7 +629,6 @@ static int sbus_server_destructor(struct sbus_server *server)
 struct sbus_server *
 sbus_server_create(TALLOC_CTX *mem_ctx,
                    struct tevent_context *ev,
-                   const char *address,
                    bool use_symlink,
                    uint32_t max_connections,
                    uid_t uid,
@@ -657,8 +650,9 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
     sbus_server->data_slot = -1;
     talloc_set_destructor(sbus_server, sbus_server_destructor);
 
-    dbus_server = sbus_server_setup_dbus(sbus_server, ev, address,
-                                         use_symlink, uid, gid, &symlink);
+    dbus_server = sbus_server_setup_dbus(sbus_server, ev,
+                                         use_symlink, uid,
+                                         gid, &symlink);
     if (dbus_server == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup a D-Bus server!\n");
         ret = ENOMEM;

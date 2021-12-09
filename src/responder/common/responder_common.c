@@ -32,6 +32,7 @@
 #include <fcntl.h>
 #include <popt.h>
 #include <dbus/dbus.h>
+#include <talloc.h>
 
 #include "util/util.h"
 #include "util/strtonum.h"
@@ -735,13 +736,6 @@ sss_dp_init(struct resp_ctx *rctx,
     be_conn->domain = domain;
     be_conn->rctx = rctx;
 
-    be_conn->sbus_address = sss_iface_domain_address(be_conn, domain);
-    if (be_conn->sbus_address == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not locate DP address.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
     be_conn->bus_name = sss_iface_domain_bus(be_conn, domain);
     if (be_conn->bus_name == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not locate DP address.\n");
@@ -749,9 +743,8 @@ sss_dp_init(struct resp_ctx *rctx,
         goto done;
     }
 
-    ret = sss_iface_connect_address(be_conn, rctx->ev, conn_name,
-                                    be_conn->sbus_address, NULL,
-                                    &be_conn->conn);
+    ret = sss_iface_connect_address(be_conn, rctx->ev,
+                                    conn_name, NULL, &be_conn->conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to connect to backend server.\n");
         goto done;
@@ -764,8 +757,8 @@ sss_dp_init(struct resp_ctx *rctx,
         goto done;
     }
 
-    sbus_reconnect_enable(be_conn->conn, max_retries, sss_dp_on_reconnect,
-                          be_conn);
+    sbus_reconnect_enable(be_conn->conn, max_retries,
+                          sss_dp_on_reconnect, be_conn);
 
     DLIST_ADD_END(rctx->be_conns, be_conn, struct be_conn *);
 
