@@ -1271,6 +1271,7 @@ libsss_util_la_SOURCES = \
     src/util/sss_chain_id.c \
     src/util/nss_dl_load.c \
     src/util/nss_dl_load_extra.c \
+    src/util/sss_time.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \
