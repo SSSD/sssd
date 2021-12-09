@@ -751,6 +751,13 @@ def test_update_member_list_and_get_all(dbus_system_bus,
 def test_find_by_valid_certificate(dbus_system_bus,
                                    ldap_conn,
                                    add_user_with_cert):
+    """test_find_by_valid_certificate
+
+    :id: 3f212e6e-00ce-44ac-95d4-59925cb5a14a
+    :title: SSSD-TC: Infopipe: Find by valid certificate
+    :casecomponent: sssd
+    :subsystemteam: sst_idm_sssd
+    """
     users_obj = dbus_system_bus.get_object(
         'org.freedesktop.sssd.infopipe',
         '/org/freedesktop/sssd/infopipe/Users')
