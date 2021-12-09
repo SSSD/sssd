@@ -40,6 +40,7 @@ struct dp_req {
     struct dp_method *execute;
     const char *name;
     uint32_t num;
+    uint64_t start_time;
 
     struct tevent_req *req;
     struct tevent_req *handler_req;
@@ -189,6 +190,8 @@ dp_req_new(TALLOC_CTX *mem_ctx,
         talloc_free(dp_req);
         return ret;
     }
+
+    dp_req->start_time = get_start_time();
 
     /* Now the request is created. We will return it even in case of error
      * so we can get better debug messages. */
@@ -396,6 +399,9 @@ static void dp_req_done(struct tevent_req *subreq)
 
     DP_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->dp_req->name,
                  "Request handler finished [%d]: %s", ret, sss_strerror(ret));
+    DP_REQ_DEBUG(SSSDBG_PERF_STAT, state->dp_req->name,
+                 "Handling request took %s.",
+                 sss_format_time(get_spend_time_us(state->dp_req->start_time)));
 
     if (ret != EOK) {
         tevent_req_error(req, ret);
