@@ -794,4 +794,10 @@ errno_t sss_getenv(TALLOC_CTX *mem_ctx,
                    const char *default_value,
                    char **_value);
 
+/* from sss_time.c */
+uint64_t get_start_time(void);
+
+const char *sss_format_time(uint64_t us);
+uint64_t get_spend_time_us(uint64_t st);
+
 #endif /* __SSSD_UTIL_H__ */
