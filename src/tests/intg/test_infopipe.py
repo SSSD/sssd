@@ -32,6 +32,7 @@ import ldap.modlist
 import pytest
 import dbus
 import base64
+import shutil
 
 import config
 import ds_openldap
@@ -313,6 +314,34 @@ def create_sssd_fixture(request):
     create_sssd_cleanup(request)
 
 
+def backup_ca_db():
+    """Create backup file for ca db"""
+    src = os.path.dirname(config.PAM_CERT_DB_PATH) + "/SSSD_test_CA.pem"
+    dst = os.path.dirname(config.PAM_CERT_DB_PATH) + "/SSSD_test_CA.pem.bp"
+    shutil.copyfile(src, dst)
+
+
+def restore_ca_db():
+    """Restore backup file for ca db"""
+    src = os.path.dirname(config.PAM_CERT_DB_PATH) + "/SSSD_test_CA.pem.bp"
+    dst = os.path.dirname(config.PAM_CERT_DB_PATH) + "/SSSD_test_CA.pem"
+    shutil.copyfile(src, dst)
+    os.remove(src)
+
+
+def create_restore_ca_db(request):
+    """Add teardown for restoring ca_db"""
+    request.addfinalizer(restore_ca_db)
+
+
+def create_ca_db_fixture(request):
+    """
+    Create backup for ca_db and add teardown for restoring it
+    """
+    backup_ca_db()
+    create_restore_ca_db(request)
+
+
 @pytest.fixture
 def sanity_rfc2307(request, ldap_conn):
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
@@ -335,6 +364,7 @@ def sanity_rfc2307(request, ldap_conn):
     conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307, config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
+    create_ca_db_fixture(request)
     return None
 
 
@@ -348,6 +378,7 @@ def simple_rfc2307(request, ldap_conn):
     conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307, config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
+    create_ca_db_fixture(request)
     return None
 
 
@@ -371,6 +402,7 @@ def auto_private_groups_rfc2307(request, ldap_conn):
         """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
+    create_ca_db_fixture(request)
     return None
 
 
@@ -398,6 +430,7 @@ def add_user_with_cert(request, ldap_conn):
     conf = format_certificate_conf(ldap_conn, SCHEMA_RFC2307_BIS, config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
+    create_ca_db_fixture(request)
 
     return None
 
@@ -743,7 +776,6 @@ def test_find_by_valid_certificate(dbus_system_bus,
         assert str(ex) == "sbus.Error.NotFound: No such file or directory"
 
     # Valid certificate from another CA
-    print(os.environ['ABS_SRCDIR'])
     cert_file = os.environ['ABS_SRCDIR'] + \
         "/../test_ECC_CA/SSSD_test_ECC_cert_key_0001.pem"
     with open(cert_file, "r") as f:
@@ -763,3 +795,16 @@ def test_find_by_valid_certificate(dbus_system_bus,
     except dbus.exceptions.DBusException as ex:
         error = "org.freedesktop.DBus.Error.IOError: Input/output error"
         assert str(ex) == error
+
+    # Remove certificate db
+    cert_db = cert_path + "/SSSD_test_CA.pem"
+    os.remove(cert_db)
+    cert_file = cert_path + "/SSSD_test_cert_x509_0002.pem"
+    with open(cert_file, "r") as f:
+        cert = f.read()
+    try:
+        res = users_iface.FindByValidCertificate(cert)
+        assert False, "Previous call should raise an exception"
+    except dbus.exceptions.DBusException as ex:
+        assert str(ex) == \
+            "sbus.Error.NoCA: Certificate authority file not found"

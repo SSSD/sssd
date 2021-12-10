@@ -36,7 +36,6 @@
 #define CHILD_MSG_CHUNK     256
 
 #define SIGTERM_TO_SIGKILL_TIME 2
-#define CHILD_TIMEOUT_EXIT_CODE 7
 
 struct response {
     uint8_t *buf;

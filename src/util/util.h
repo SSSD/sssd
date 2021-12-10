@@ -114,7 +114,11 @@ extern int dbus_activated;
 #define FLAGS_GEN_CONF 0x0008
 #define FLAGS_NO_WATCHDOG 0x0010
 
-#define SSS_WATCHDOG_EXIT_CODE 70 /* to match EX_SOFTWARE in sysexits.h */
+enum sssd_exit_status {
+    CHILD_TIMEOUT_EXIT_CODE = 7,
+    CA_DB_NOT_FOUND_EXIT_CODE = 50,
+    SSS_WATCHDOG_EXIT_CODE = 70 /* to match EX_SOFTWARE in sysexits.h */
+};
 
 #define PIPE_INIT { -1, -1 }
 

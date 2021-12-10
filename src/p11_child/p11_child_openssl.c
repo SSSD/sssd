@@ -667,9 +667,17 @@ errno_t init_verification(struct p11_ctx *p11_ctx,
 
     if (!X509_LOOKUP_load_file(lookup, p11_ctx->ca_db, X509_FILETYPE_PEM)) {
         err = ERR_get_error();
-        DEBUG(SSSDBG_OP_FAILURE, "X509_LOOKUP_load_file failed [%lu][%s].\n",
-                                 err, ERR_error_string(err, NULL));
-        ret = EIO;
+        DEBUG(SSSDBG_OP_FAILURE,
+              "X509_LOOKUP_load_file [%s] failed [%lu][%s].\n",
+              p11_ctx->ca_db, err, ERR_error_string(err, NULL));
+
+        if (ERR_GET_LIB(err) == ERR_LIB_SYS &&
+            ERR_GET_REASON(err) == ENOENT) {
+            ret = ERR_CA_DB_NOT_FOUND;
+        } else {
+            ret = EIO;
+        }
+
         goto done;
     }
 

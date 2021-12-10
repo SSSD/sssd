@@ -167,6 +167,8 @@ enum sssd_errors {
 
     ERR_TLS_HANDSHAKE_INTERRUPTED,
 
+    ERR_CA_DB_NOT_FOUND,
+
     ERR_LAST            /* ALWAYS LAST */
 };
 
