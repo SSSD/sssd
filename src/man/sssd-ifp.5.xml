@@ -38,6 +38,22 @@
             to query information about remote users and groups over the
             system bus.
         </para>
+
+    <refsect2 id='valid_certificate'>
+        <title>FIND BY VALID CERTIFICATE</title>
+        <para>
+            The following options can be used to control how the certificates
+            are validated when using the FindByValidCertificate() API:
+            <itemizedlist>
+                <listitem><para>ca_db</para></listitem>
+                <listitem><para>p11_child_timeout</para></listitem>
+                <listitem><para>certificate_verification</para></listitem>
+            </itemizedlist>
+            For more details about the options see
+            <citerefentry><refentrytitle>sssd.conf</refentrytitle>
+            <manvolnum>5</manvolnum></citerefentry>.
+        </para>
+    </refsect2>
     </refsect1>
 
     <refsect1 id='configuration-options'>
