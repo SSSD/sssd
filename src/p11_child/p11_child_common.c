@@ -147,7 +147,7 @@ int main(int argc, const char *argv[])
     poptContext pc;
     int debug_fd = -1;
     const char *opt_logger = NULL;
-    errno_t ret;
+    errno_t ret = 0;
     TALLOC_CTX *main_ctx = NULL;
     enum op_mode mode = OP_NONE;
     enum pin_mode pin_mode = PIN_NONE;
@@ -382,5 +382,10 @@ fail:
     DEBUG(SSSDBG_CRIT_FAILURE, "p11_child failed!\n");
     close(STDOUT_FILENO);
     talloc_free(main_ctx);
-    return EXIT_FAILURE;
+
+    if (ret == ERR_CA_DB_NOT_FOUND) {
+        return CA_DB_NOT_FOUND_EXIT_CODE;
+    } else {
+        return EXIT_FAILURE;
+    }
 }

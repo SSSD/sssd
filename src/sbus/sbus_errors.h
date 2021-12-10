@@ -31,6 +31,7 @@
 #define SBUS_ERROR_INTERNAL         "sbus.Error.Internal"
 #define SBUS_ERROR_NOT_FOUND        "sbus.Error.NotFound"
 #define SBUS_ERROR_KILLED           "sbus.Error.ConnectionKilled"
+#define SBUS_ERROR_NO_CA            "sbus.Error.NoCA"
 #define SBUS_ERROR_ERRNO            "sbus.Error.Errno"
 
 errno_t sbus_error_to_errno(DBusError *error);
