@@ -1254,15 +1254,24 @@ ifp_users_find_by_valid_cert_step(int child_status,
     PIPE_FD_CLOSE(state->io->write_to_child_fd);
 
     if (WIFEXITED(child_status)) {
-        if (WEXITSTATUS(child_status) != 0) {
+        if (WEXITSTATUS(child_status) == CA_DB_NOT_FOUND_EXIT_CODE) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  P11_CHILD_PATH " failed with status [%d]\n", child_status);
+                  P11_CHILD_PATH " failed [%d]: [%s].\n",
+                  ERR_CA_DB_NOT_FOUND, sss_strerror(ERR_CA_DB_NOT_FOUND));
+            tevent_req_error(req, ERR_CA_DB_NOT_FOUND);
+            return;
+        } else if (WEXITSTATUS(child_status) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  P11_CHILD_PATH " failed with status [%d]. Check p11_child"
+                  " logs for more information.\n",
+                  WEXITSTATUS(child_status));
             tevent_req_error(req, ERR_INVALID_CERT);
             return;
         }
     } else if (WIFSIGNALED(child_status)) {
         DEBUG(SSSDBG_OP_FAILURE,
-              P11_CHILD_PATH " was terminated by signal [%d]\n",
+              P11_CHILD_PATH " was terminated by signal [%d]. Check p11_child"
+              " logs for more information.\n",
               WTERMSIG(child_status));
         tevent_req_error(req, ECHILD);
         return;

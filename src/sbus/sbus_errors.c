@@ -34,6 +34,7 @@ static const struct {
     { SBUS_ERROR_INTERNAL,          ERR_INTERNAL },
     { SBUS_ERROR_NOT_FOUND,         ENOENT },
     { SBUS_ERROR_KILLED,            ERR_SBUS_KILL_CONNECTION },
+    { SBUS_ERROR_NO_CA,             ERR_CA_DB_NOT_FOUND},
 
     /* D-Bus standard errors. Some errno values may overlap, but when
      * finding its D-Bus pair the first match is returned. */

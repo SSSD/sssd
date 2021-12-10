@@ -146,6 +146,8 @@ struct err_string error_to_str[] = {
 
     { "TLS handshake was interrupted"}, /* ERR_TLS_HANDSHAKE_INTERRUPTED */
 
+    { "Certificate authority file not found"}, /* ERR_CA_DB_NOT_FOUND */
+
     { "ERR_LAST" } /* ERR_LAST */
 };
 
