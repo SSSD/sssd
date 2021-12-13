@@ -1319,8 +1319,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    sss_chain_id_setup(rctx->ev);
-
     /* Ensure that the client timeout is at least ten seconds */
     if (rctx->client_idle_timeout < 10) {
         rctx->client_idle_timeout = 10;

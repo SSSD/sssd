@@ -357,7 +357,7 @@ int main(int argc, const char *argv[])
     debug_log_file = "sssd_kcm";
     DEBUG_INIT(debug_level, opt_logger);
 
-    ret = server_setup("kcm", 0, uid, gid, CONFDB_KCM_CONF_ENTRY,
+    ret = server_setup("kcm", true, 0, uid, gid, CONFDB_KCM_CONF_ENTRY,
                        &main_ctx);
     if (ret != EOK) return 2;
 

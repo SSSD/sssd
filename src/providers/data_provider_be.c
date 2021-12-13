@@ -47,8 +47,6 @@
 #include "util/child_common.h"
 #include "resolv/async_resolv.h"
 #include "sss_iface/sss_iface_async.h"
-#include "util/sss_chain_id_tevent.h"
-#include "util/sss_chain_id.h"
 
 #define ONLINE_CB_RETRY 3
 #define ONLINE_CB_RETRY_MAX_DELAY 4
@@ -772,13 +770,11 @@ int main(int argc, const char *argv[])
     confdb_path = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, be_domain);
     if (!confdb_path) return 2;
 
-    ret = server_setup(srv_name, 0, 0, 0, confdb_path, &main_ctx);
+    ret = server_setup(srv_name, false, 0, 0, 0, confdb_path, &main_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up mainloop [%d]\n", ret);
         return 2;
     }
-
-    sss_chain_id_setup(main_ctx->event_ctx);
 
     ret = setenv(SSS_DOM_ENV, be_domain, 1);
     if (ret != 0) {

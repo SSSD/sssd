@@ -339,7 +339,7 @@ int main(int argc, const char *argv[])
     debug_log_file = "sssd_ifp";
     DEBUG_INIT(debug_level, opt_logger);
 
-    ret = server_setup("ifp", 0, 0, 0,
+    ret = server_setup("ifp", true, 0, 0, 0,
                        CONFDB_IFP_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
