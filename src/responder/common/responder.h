@@ -165,6 +165,7 @@ struct cli_ctx {
 
     struct cli_creds *creds;
     char *cmd_line;
+    uint64_t old_chain_id;
 
     void *protocol_ctx;
     void *state_ctx;
