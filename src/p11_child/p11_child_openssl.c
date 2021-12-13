@@ -1353,6 +1353,7 @@ static CK_RV get_preferred_rsa_mechanism(TALLOC_CTX *mem_ctx,
     if (rv != CKR_OK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "2nd C_GetMechanismList failed: [%lu][%s]\n",
               rv, p11_kit_strerror(rv));
+        talloc_free(mechanism_list);
         return rv;
     }
 
@@ -1374,6 +1375,7 @@ static CK_RV get_preferred_rsa_mechanism(TALLOC_CTX *mem_ctx,
             }
         }
     }
+    talloc_free(mechanism_list);
 
     DEBUG(SSSDBG_MINOR_FAILURE, "No match found\n");
     return CKR_GENERAL_ERROR;
