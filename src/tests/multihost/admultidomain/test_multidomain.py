@@ -166,9 +166,9 @@ class TestADMultiDomain(object):
         ad_count = len(multihost.ad)
 
         assert str(ad_domain) \
-               and str(ad_child_domain) \
-               and str(ad_child1_domain) \
-               and str(ad_tree_domain) \
-               in domain_list_cmd.stdout_text
+            and str(ad_child_domain) \
+            and str(ad_child1_domain) \
+            and str(ad_tree_domain) \
+            in domain_list_cmd.stdout_text
 
         assert (len(domain_list_cmd.stdout_text.split('\n'))-1) == ad_count
