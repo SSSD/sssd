@@ -698,6 +698,7 @@ errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
     size_t server_idx;
     struct fo_server *item;
     int primary;
+    int port;
     const char *address;
     errno_t ret;
     size_t n_lookahead_primary;
@@ -730,6 +731,16 @@ errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
     if (filter == NULL || filter(server) == false) {
         address = fo_server_address_or_name(tmp_ctx, server);
         if (address) {
+            port = fo_get_server_port(server);
+            if (port != 0) {
+                address = talloc_asprintf(tmp_ctx, "%s:%d", address, port);
+                if (address == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+                    talloc_free(tmp_ctx);
+                    return ENOMEM;
+                }
+            }
+
             server_list[server_idx++] = address;
             if (fo_is_server_primary(server)) {
                 if (n_lookahead_primary > 0) {
@@ -762,6 +773,16 @@ errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Server without name and address found in list.\n");
                 continue;
+            }
+
+            port = fo_get_server_port(item);
+            if (port != 0) {
+                address = talloc_asprintf(tmp_ctx, "%s:%d", address, port);
+                if (address == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+                    talloc_free(tmp_ctx);
+                    return ENOMEM;
+                }
             }
 
             server_list[server_idx++] = address;
