@@ -1700,13 +1700,13 @@ class TestADParamsPorted:
                 f'getent passwd {aduser}', raiseonerr=False)
         # Change user password via expect + ssh + passwd
         exp_result = client.change_user_password(
-            aduser, 'Secret123', 'Secret123', 'NewPass1_123', 'NewPass1_123'
+            aduser, 'Secret123', 'Secret123', 'NewPass1_123!', 'NewPass1_123!'
         ) == 3
 
         # Wait a bit for password change to propagate
         time.sleep(10)
         # Run su
-        su_result = client.su_success(aduser, password='NewPass1_123')
+        su_result = client.su_success(aduser, password='NewPass1_123!')
         # Teardown
         client.restore_sssd_conf()
         client.clear_sssd_cache()
