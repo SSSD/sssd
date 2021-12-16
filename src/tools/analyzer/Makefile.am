@@ -11,6 +11,7 @@ dist_pkgpython_DATA = \
     source_files.py \
     source_journald.py \
     source_reader.py \
+    parser.py \
     sss_analyze.py \
     $(NULL)
 
