@@ -3,9 +3,8 @@ import logging
 
 from sssd.source_files import Files
 from sssd.source_journald import Journald
-from sssd.sss_analyze import SubparsersAction
-from sssd.sss_analyze import Option
-from sssd.sss_analyze import Analyzer
+from sssd.parser import SubparsersAction
+from sssd.parser import Option
 
 logger = logging.getLogger()
 
@@ -39,7 +38,7 @@ class RequestAnalyzer:
         """
         self.module_parser.print_help()
 
-    def setup_args(self, parser_grp):
+    def setup_args(self, parser_grp, cli):
         """
         Setup module parser, subcommands, and options
 
@@ -57,7 +56,6 @@ class RequestAnalyzer:
                                                       action=SubparsersAction,
                                                       metavar='COMMANDS')
 
-        cli = Analyzer()
         subcmd_grp = subparser.add_parser_group('Operation Modes')
         cli.add_subcommand(subcmd_grp, 'list', 'List recent requests',
                            self.list_requests, self.list_opts)
