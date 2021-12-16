@@ -1646,6 +1646,13 @@ static void ad_check_root_domain_done(struct tevent_req *subreq)
         goto done;
     }
 
+    ret = sysdb_attrs_add_string(state->reply[0], AD_AT_DOMAIN_NAME,
+                                 state->forest);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string() failed.\n");
+        goto done;
+    }
+
     err = sss_idmap_sid_to_bin_sid(state->idmap_ctx->map, id,
                                    &id_val.data, &id_val.length);
     if (err != IDMAP_SUCCESS) {
