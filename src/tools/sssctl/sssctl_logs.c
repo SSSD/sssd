@@ -394,13 +394,12 @@ errno_t sssctl_analyze(struct sss_cmdline *cmdline,
                        struct sss_tool_ctx *tool_ctx,
                        void *pvt)
 {
+#ifndef BUILD_CHAIN_ID
+    PRINT("ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n");
+    return EOK;
+#endif
     errno_t ret;
 
-#ifndef BUILD_CHAIN_ID
-    PRINT("NOTE: Tevent chain ID support missing, request analysis will be limited.\n");
-    PRINT("It is recommended to use the --logdir option against tevent chain ID "
-          "supported SSSD logs.\n");
-#endif
     const char **args = talloc_array_size(tool_ctx,
                                           sizeof(char *),
                                           cmdline->argc + 2);
