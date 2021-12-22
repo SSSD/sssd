@@ -797,7 +797,9 @@ msgstr ""
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
-msgstr "最後の要求がルールを何も見つけなかった場合の IPA サーバーに対するデスクトッププロファイルルールを検索している間の分単位の合計時間"
+msgstr ""
+"最後の要求がルールを何も見つけなかった場合の IPA サーバーに対するデスクトップ"
+"プロファイルルールを検索している間の分単位の合計時間"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
 msgid "Search base for SUBID ranges"
@@ -2625,13 +2627,16 @@ msgstr "設定したいデバッグレベルを指定します"
 #: src/tools/sssctl/sssctl_logs.c:400
 msgid ""
 "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
-msgstr "注記: Tevent チェーン ID サポートがないため、リクエスト分析は制限されます。\n"
+msgstr ""
+"注記: Tevent チェーン ID サポートがないため、リクエスト分析は制限されます。\n"
 
 #: src/tools/sssctl/sssctl_logs.c:401
 msgid ""
 "It is recommended to use the --logdir option against tevent chain ID "
 "supported SSSD logs.\n"
-msgstr "tevent チェーン ID でサポートされる SSSD ログに対して --logdir オプションを使用することが推奨されます。\n"
+msgstr ""
+"tevent チェーン ID でサポートされる SSSD ログに対して --logdir オプションを使"
+"用することが推奨されます。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
