@@ -779,7 +779,9 @@ msgstr ""
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
-msgstr "마지막 요청이 규칙을 찾지 못한 경우 IPA 서버에 대한 데스크탑 프로필 규칙 검색 간격(분)입니다"
+msgstr ""
+"마지막 요청이 규칙을 찾지 못한 경우 IPA 서버에 대한 데스크탑 프로필 규칙 검"
+"색 간격(분)입니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
 msgid "Search base for SUBID ranges"
@@ -814,13 +816,15 @@ msgstr "netgroup 멤버의 이름이 포함된 LDAP 속성입니다."
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
-msgstr "netgroup의 멤버인 호스트 및 호스트 그룹의 FQDN을 나열하는 LDAP 속성입니다."
+msgstr ""
+"netgroup의 멤버인 호스트 및 호스트 그룹의 FQDN을 나열하는 LDAP 속성입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:253
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
-msgstr "netgroup의 직접 구성원인 호스트 및 호스트 그룹을 나열하는 LDAP 속성입니다."
+msgstr ""
+"netgroup의 직접 구성원인 호스트 및 호스트 그룹을 나열하는 LDAP 속성입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:255
 msgid "The LDAP attribute that lists netgroup's memberships."
@@ -830,7 +834,8 @@ msgstr "netgroup의 멤버십을 나열하는 LDAP 속성입니다."
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
-msgstr "netgroup의 직접 구성원인 시스템 사용자 및 그룹을 나열하는 LDAP 속성입니다."
+msgstr ""
+"netgroup의 직접 구성원인 시스템 사용자 및 그룹을 나열하는 LDAP 속성입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:258
 msgid "The LDAP attribute that corresponds to the netgroup name."
@@ -874,7 +879,9 @@ msgstr "SELinux 사용자 맵의 이름이 포함된 LDAP 속성입니다."
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
-msgstr "memberUser 및 memberHost 대신 일치하는 데 사용할 수 있는 HBAC 규칙의 DN이 포함된 LDAP 속성입니다."
+msgstr ""
+"memberUser 및 memberHost 대신 일치하는 데 사용할 수 있는 HBAC 규칙의 DN이 포"
+"함된 LDAP 속성입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:272
 msgid "The LDAP attribute that contains SELinux user string itself."
@@ -893,8 +900,8 @@ msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
 msgstr ""
-"이 옵션은 SSSD가 IPA 서버에서 실행 중임을 나타내며 신뢰할 수 있는 도메인에서 사용자 및 그룹의 검색을 다르게 수행해야 함을 "
-"나타냅니다."
+"이 옵션은 SSSD가 IPA 서버에서 실행 중임을 나타내며 신뢰할 수 있는 도메인에서 "
+"사용자 및 그룹의 검색을 다르게 수행해야 함을 나타냅니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:277
 msgid "Use the given string as search base for trusted domains."
@@ -949,7 +956,8 @@ msgstr "GPO(거부)InteractiveLogonRight 정책 설정에 매핑되는 PAM 서�
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
-msgstr "GPO(거부)RemoteInteractiveLogonRight 정책 설정에 매핑되는 PAM 서비스 이름"
+msgstr ""
+"GPO(거부)RemoteInteractiveLogonRight 정책 설정에 매핑되는 PAM 서비스 이름"
 
 #: src/config/SSSDConfig/sssdoptions.py:294
 msgid ""
@@ -977,7 +985,8 @@ msgstr "GPO 기반 액세스가 항상 거부되는 PAM 서비스 이름"
 #: src/config/SSSDConfig/sssdoptions.py:299
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
-msgstr "매핑되지 않은 PAM 서비스 이름에 사용할 기본 로그온 권한 (또는 허용/거부)"
+msgstr ""
+"매핑되지 않은 PAM 서비스 이름에 사용할 기본 로그온 권한 (또는 허용/거부)"
 
 #: src/config/SSSDConfig/sssdoptions.py:300
 msgid "a particular site to be used by the client"
@@ -1218,13 +1227,17 @@ msgstr "전체 참조 해제를 트리거하려면 누락되어야 하는 구성
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
-msgstr "LDAP 라이브러리에서 SASL 바인드 중에 호스트 이름을 정식화하기 위해 역방향 검색을 수행해야 하는지 여부"
+msgstr ""
+"LDAP 라이브러리에서 SASL 바인드 중에 호스트 이름을 정식화하기 위해 역방향 검"
+"색을 수행해야 하는지 여부"
 
 #: src/config/SSSDConfig/sssdoptions.py:372
 msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
-msgstr "로컬 사용자를 RFC2307 스키마를 사용하는 서버의 LDAP 그룹의 구성원으로 유지할 수 있습니다."
+msgstr ""
+"로컬 사용자를 RFC2307 스키마를 사용하는 서버의 LDAP 그룹의 구성원으로 유지할 "
+"수 있습니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:375
 msgid "entryUSN attribute"
@@ -1637,11 +1650,14 @@ msgstr "호스트 이름, IP 주소 및 네트워크로 규칙을 필터링할�
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
-msgstr "sudo 규칙을 필터링하기 위한 이 시스템의 호스트 이름 및/또는 정규화된 도메인 이름"
+msgstr ""
+"sudo 규칙을 필터링하기 위한 이 시스템의 호스트 이름 및/또는 정규화된 도메인 "
+"이름"
 
 #: src/config/SSSDConfig/sssdoptions.py:498
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
-msgstr "sudo 규칙을 필터링하기 위한 이 시스템의 IPv4 또는 IPv6 주소 또는 네트워크"
+msgstr ""
+"sudo 규칙을 필터링하기 위한 이 시스템의 IPv4 또는 IPv6 주소 또는 네트워크"
 
 #: src/config/SSSDConfig/sssdoptions.py:499
 msgid "Whether to include rules that contains netgroup in host attribute"
@@ -1785,14 +1801,17 @@ msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
-"로그인할 수 있는 쉼표로 구분된 그룹 목록입니다. 이는 이 SSSD 도메인 내의 그룹에만 적용됩니다. 로컬 그룹은 평가되지 않습니다."
+"로그인할 수 있는 쉼표로 구분된 그룹 목록입니다. 이는 이 SSSD 도메인 내의 그룹"
+"에만 적용됩니다. 로컬 그룹은 평가되지 않습니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:541
 msgid ""
 "Comma separated list of groups that are explicitly denied access. This "
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
-msgstr "명시적으로 액세스가 거부된 그룹 목록입니다. 이는 이 SSSD 도메인 내의 그룹에만 적용됩니다. 로컬 그룹은 평가되지 않습니다."
+msgstr ""
+"명시적으로 액세스가 거부된 그룹 목록입니다. 이는 이 SSSD 도메인 내의 그룹에"
+"만 적용됩니다. 로컬 그룹은 평가되지 않습니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:545
 msgid "The number of preforked proxy children."
@@ -1999,7 +2018,8 @@ msgstr "시스템이 오프라인 상태이며 암호가 변경될 수 없습니
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
-msgstr "OTP 암호를 변경한 후 티켓을 받으려면 로그아웃한 후 다시 로그인해야 합니다"
+msgstr ""
+"OTP 암호를 변경한 후 티켓을 받으려면 로그아웃한 후 다시 로그인해야 합니다"
 
 #: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
 msgid "Password change failed. "
@@ -2184,7 +2204,9 @@ msgstr "특정 도메인의 항목만 무효화"
 msgid ""
 "Unexpected argument(s) provided, options that invalidate a single object "
 "only accept a single provided argument.\n"
-msgstr "예기치 않은 인수가 제공되었습니다. 단일 오브젝트를 무효화하는 옵션은 제공된 단일 인수만 허용합니다.\n"
+msgstr ""
+"예기치 않은 인수가 제공되었습니다. 단일 오브젝트를 무효화하는 옵션은 제공된 "
+"단일 인수만 허용합니다.\n"
 
 #: src/tools/sss_cache.c:834
 msgid "Please select at least one object to invalidate\n"
@@ -2196,8 +2218,8 @@ msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
-"%1$s 도메인을 열 수 없습니다. 도메인이 하위 도메인(신뢰할 수 있는 도메인)인 경우 --domain/-d 매개변수 대신 정규화된 "
-"이름을 사용합니다.\n"
+"%1$s 도메인을 열 수 없습니다. 도메인이 하위 도메인(신뢰할 수 있는 도메인)인 "
+"경우 --domain/-d 매개변수 대신 정규화된 이름을 사용합니다.\n"
 
 #: src/tools/sss_cache.c:922
 msgid "Could not open available domains\n"
@@ -2325,8 +2347,9 @@ msgid ""
 "where the main config file is located. For example if the config is set to "
 "\"/my/path/sssd.conf\", the snippet dir \"/my/path/conf.d\" is used)"
 msgstr ""
-"기본이 아닌 스니펫 디렉터리를 지정합니다(기본값은 기본 설정 파일이 있는 동일한 위치를 검색하는 것입니다. 예를 들어 구성이 \"/my/"
-"path/sssd.conf\"로 설정된 경우 스니펫 디렉토리 \"/my/path/conf.d\"가 사용됨)"
+"기본이 아닌 스니펫 디렉터리를 지정합니다(기본값은 기본 설정 파일이 있는 동일"
+"한 위치를 검색하는 것입니다. 예를 들어 구성이 \"/my/path/sssd.conf\"로 설정"
+"된 경우 스니펫 디렉토리 \"/my/path/conf.d\"가 사용됨)"
 
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format
@@ -2341,7 +2364,8 @@ msgstr "파일 %1$s이 존재하지 않음.\n"
 #: src/tools/sssctl/sssctl_config.c:127
 msgid ""
 "File ownership and permissions check failed. Expected root:root and 0600.\n"
-msgstr "파일 소유권 및 권한을 확인하지 못했습니다. root:root 및 0600이 예상됩니다.\n"
+msgstr ""
+"파일 소유권 및 권한을 확인하지 못했습니다. root:root 및 0600이 예상됩니다.\n"
 
 #: src/tools/sssctl/sssctl_config.c:133
 #, c-format
@@ -2568,7 +2592,9 @@ msgstr "참고: Tevent 체인 ID 지원이 누락되어 요청 분석이 제한�
 msgid ""
 "It is recommended to use the --logdir option against tevent chain ID "
 "supported SSSD logs.\n"
-msgstr "tevent 체인 ID에서 지원되는 SSSD 로그에 대해 --logdir 옵션을 사용하는 것이 좋습니다.\n"
+msgstr ""
+"tevent 체인 ID에서 지원되는 SSSD 로그에 대해 --logdir 옵션을 사용하는 것이 좋"
+"습니다.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
