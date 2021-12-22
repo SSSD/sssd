@@ -14,8 +14,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-11-09 16:03+0100\n"
-"PO-Revision-Date: 2021-07-19 07:07+0000\n"
-"Last-Translator: Sundeep Anand <suanand@redhat.com>\n"
+"PO-Revision-Date: 2021-12-22 07:16+0000\n"
+"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ja/>\n"
 "Language: ja\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.7.1\n"
+"X-Generator: Weblate 4.10\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -797,14 +797,11 @@ msgstr ""
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
-msgstr ""
-"最後の要求がルールを何も見つけなかった場合の IPA サーバーに対するデスクトップ"
-"プロファイルル ールを検索している間の分単位の合計時間"
+msgstr "最後の要求がルールを何も見つけなかった場合の IPA サーバーに対するデスクトッププロファイルルールを検索している間の分単位の合計時間"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
-#, fuzzy
 msgid "Search base for SUBID ranges"
-msgstr "ビューコンテナーの検索ベース"
+msgstr "SUBID 範囲の検索ベース"
 
 #: src/config/SSSDConfig/sssdoptions.py:245
 msgid "The LDAP attribute that contains FQDN of the host."
@@ -1913,7 +1910,7 @@ msgstr "Option -g は -D または -i と互換性がありません\n"
 #: src/monitor/monitor.c:2401
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
-msgstr ""
+msgstr "%<PRIu64> で実行 (root でなければなりません)\n"
 
 #: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
@@ -1961,11 +1958,11 @@ msgstr "krb5_get_init_creds_password のカスタムバージョンを使用し�
 
 #: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
-msgstr "talloc_asprintf failed.\n"
+msgstr "talloc_asprintf は失敗しました。\n"
 
 #: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
-msgstr "set_debug_file_from_fd failed.\n"
+msgstr "set_debug_file_from_fd は失敗しました。\n"
 
 #: src/providers/data_provider_be.c:733
 msgid "Domain of the information provider (mandatory)"
@@ -2294,14 +2291,14 @@ msgid "Error while executing external command\n"
 msgstr "外部のコマンドを実行中にエラーが発生しました\n"
 
 #: src/tools/sssctl/sssctl.c:123
-#, fuzzy, c-format
+#, c-format
 msgid "Error while executing external command '%s'\n"
-msgstr "外部のコマンドを実行中にエラーが発生しました\n"
+msgstr "外部コマンド '%s' の実行時のエラー\n"
 
 #: src/tools/sssctl/sssctl.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "Command '%s' failed with [%d]\n"
-msgstr "dlsym は [%s] で失敗しました。\n"
+msgstr "コマンド '%s' が [%d] で失敗しました\n"
 
 #: src/tools/sssctl/sssctl.c:173
 msgid "SSSD needs to be running. Start SSSD now?"
@@ -2628,13 +2625,13 @@ msgstr "設定したいデバッグレベルを指定します"
 #: src/tools/sssctl/sssctl_logs.c:400
 msgid ""
 "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
-msgstr ""
+msgstr "注記: Tevent チェーン ID サポートがないため、リクエスト分析は制限されます。\n"
 
 #: src/tools/sssctl/sssctl_logs.c:401
 msgid ""
 "It is recommended to use the --logdir option against tevent chain ID "
 "supported SSSD logs.\n"
-msgstr ""
+msgstr "tevent チェーン ID でサポートされる SSSD ログに対して --logdir オプションを使用することが推奨されます。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"

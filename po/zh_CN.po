@@ -4,7 +4,7 @@
 #
 # Translators:
 # Christopher Meng <cickumqt@gmail.com>, 2012
-# Ludek Janda <ljanda@redhat.com>, 2020. #zanata
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021.
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 # Charles Lee <lchopn@gmail.com>, 2020, 2021.
 # Sundeep Anand <suanand@redhat.com>, 2021.
@@ -13,8 +13,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-11-09 16:03+0100\n"
-"PO-Revision-Date: 2021-12-02 13:16+0000\n"
-"Last-Translator: Charles Lee <lchopn@gmail.com>\n"
+"PO-Revision-Date: 2021-12-22 07:16+0000\n"
+"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_CN/>\n"
 "Language: zh_CN\n"
@@ -22,12 +22,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.9.1\n"
+"X-Generator: Weblate 4.10\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
 msgid "Set the verbosity of the debug logging"
-msgstr "设定调试日志记录等级"
+msgstr "设定调试日志的详细程度"
 
 #: src/config/SSSDConfig/sssdoptions.py:22
 msgid "Include timestamps in debug logs"
@@ -772,9 +772,8 @@ msgstr ""
 "间的时间间隔（以分钟为单位）"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
-#, fuzzy
 msgid "Search base for SUBID ranges"
-msgstr "查看容器的搜索基础"
+msgstr "搜索 SUBID 范围的基础"
 
 #: src/config/SSSDConfig/sssdoptions.py:245
 msgid "The LDAP attribute that contains FQDN of the host."
@@ -1857,7 +1856,7 @@ msgstr "选项 -g 与 -D 或 -i 不兼容\n"
 #: src/monitor/monitor.c:2401
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
-msgstr ""
+msgstr "在 %<PRIu64> 下运行，必须是 root\n"
 
 #: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
@@ -2557,13 +2556,13 @@ msgstr "指定要设置的调试级别"
 #: src/tools/sssctl/sssctl_logs.c:400
 msgid ""
 "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
-msgstr ""
+msgstr "注意：缺少 Tevent 链 ID 支持，请求分析会受到限制。\n"
 
 #: src/tools/sssctl/sssctl_logs.c:401
 msgid ""
 "It is recommended to use the --logdir option against tevent chain ID "
 "supported SSSD logs.\n"
-msgstr ""
+msgstr "建议对 tevent 链 ID 支持的 SSSD 日志使用 --logdir 选项。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2671,7 +2670,7 @@ msgid ""
 "testing pam_authenticate\n"
 "\n"
 msgstr ""
-"testing pam_authenticate\n"
+"测试 pam_authenticate\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:272
@@ -2693,7 +2692,7 @@ msgid ""
 "testing pam_chauthtok\n"
 "\n"
 msgstr ""
-"testing pam_chauthtok\n"
+"测试 pam_chauthtok\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:280
@@ -2761,7 +2760,7 @@ msgid ""
 "testing pam_close_session\n"
 "\n"
 msgstr ""
-"testing pam_close_session\n"
+"测试 pam_close_session\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:296
