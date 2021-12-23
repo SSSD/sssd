@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-11-09 16:03+0100\n"
+"POT-Creation-Date: 2021-12-23 12:58+0100\n"
 "PO-Revision-Date: 2014-12-14 11:48-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Tajik (http://www.transifex.com/projects/p/sssd/language/"
@@ -1820,55 +1820,59 @@ msgstr ""
 msgid "SSSD is already running\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3327 src/providers/ldap/ldap_child.c:639
+#: src/providers/krb5/krb5_child.c:3329 src/providers/ldap/ldap_child.c:639
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3330
+#: src/providers/krb5/krb5_child.c:3332
 msgid "The user to create FAST ccache as"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3332
+#: src/providers/krb5/krb5_child.c:3334
 msgid "The group to create FAST ccache as"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3334
+#: src/providers/krb5/krb5_child.c:3336
 msgid "Kerberos realm to use"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3336
+#: src/providers/krb5/krb5_child.c:3338
 msgid "Requested lifetime of the ticket"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3338
+#: src/providers/krb5/krb5_child.c:3340
 msgid "Requested renewable lifetime of the ticket"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3340
+#: src/providers/krb5/krb5_child.c:3342
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3343
+#: src/providers/krb5/krb5_child.c:3345
 msgid "Specifies the server principal to use for FAST"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3345
+#: src/providers/krb5/krb5_child.c:3347
 msgid "Requests canonicalization of the principal name"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3347
+#: src/providers/krb5/krb5_child.c:3349
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
+#: src/providers/krb5/krb5_child.c:3351
+msgid "Tevent chain ID used for logging purposes"
+msgstr ""
+
+#: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
+#: src/providers/krb5/krb5_child.c:3389 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
 msgstr ""
 
-#: src/providers/data_provider_be.c:733
+#: src/providers/data_provider_be.c:732
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
@@ -2507,15 +2511,8 @@ msgstr ""
 msgid "Specify debug level you want to set"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:400
-msgid ""
-"NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
-msgstr ""
-
-#: src/tools/sssctl/sssctl_logs.c:401
-msgid ""
-"It is recommended to use the --logdir option against tevent chain ID "
-"supported SSSD logs.\n"
+#: src/tools/sssctl/sssctl_logs.c:398
+msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
