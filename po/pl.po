@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-11-09 16:03+0100\n"
+"POT-Creation-Date: 2021-12-23 12:58+0100\n"
 "PO-Revision-Date: 2021-11-11 11:34+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
@@ -1983,55 +1983,59 @@ msgstr "Uruchamianie jako %<PRIu64>, musi być rootem\n"
 msgid "SSSD is already running\n"
 msgstr "Usługa SSSD jest już uruchomiona\n"
 
-#: src/providers/krb5/krb5_child.c:3327 src/providers/ldap/ldap_child.c:639
+#: src/providers/krb5/krb5_child.c:3329 src/providers/ldap/ldap_child.c:639
 msgid "An open file descriptor for the debug logs"
 msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
-#: src/providers/krb5/krb5_child.c:3330
+#: src/providers/krb5/krb5_child.c:3332
 msgid "The user to create FAST ccache as"
 msgstr "Użytkownik, jako który utworzyć ccache FAST"
 
-#: src/providers/krb5/krb5_child.c:3332
+#: src/providers/krb5/krb5_child.c:3334
 msgid "The group to create FAST ccache as"
 msgstr "Grupa, jako którą utworzyć ccache FAST"
 
-#: src/providers/krb5/krb5_child.c:3334
+#: src/providers/krb5/krb5_child.c:3336
 msgid "Kerberos realm to use"
 msgstr "Używany obszar Kerberosa"
 
-#: src/providers/krb5/krb5_child.c:3336
+#: src/providers/krb5/krb5_child.c:3338
 msgid "Requested lifetime of the ticket"
 msgstr "Żądany czas trwania biletu"
 
-#: src/providers/krb5/krb5_child.c:3338
+#: src/providers/krb5/krb5_child.c:3340
 msgid "Requested renewable lifetime of the ticket"
 msgstr "Żądany odnawialny czas trwania biletu"
 
-#: src/providers/krb5/krb5_child.c:3340
+#: src/providers/krb5/krb5_child.c:3342
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "Opcje FAST („never”, „try”, „demand”)"
 
-#: src/providers/krb5/krb5_child.c:3343
+#: src/providers/krb5/krb5_child.c:3345
 msgid "Specifies the server principal to use for FAST"
 msgstr "Podaje naczelnika serwera używanego dla FAST"
 
-#: src/providers/krb5/krb5_child.c:3345
+#: src/providers/krb5/krb5_child.c:3347
 msgid "Requests canonicalization of the principal name"
 msgstr "Żąda ujednolicenie nazwy naczelnika"
 
-#: src/providers/krb5/krb5_child.c:3347
+#: src/providers/krb5/krb5_child.c:3349
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Użycie niestandardowej wersji krb5_get_init_creds_password"
 
-#: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
+#: src/providers/krb5/krb5_child.c:3351
+msgid "Tevent chain ID used for logging purposes"
+msgstr ""
+
+#: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
 msgstr "talloc_asprintf się nie powiodło.\n"
 
-#: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
+#: src/providers/krb5/krb5_child.c:3389 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd się nie powiodło.\n"
 
-#: src/providers/data_provider_be.c:733
+#: src/providers/data_provider_be.c:732
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domena dostawcy informacji (wymagane)"
 
@@ -2687,20 +2691,12 @@ msgstr "Nie można zarchiwizować plików dziennika\n"
 msgid "Specify debug level you want to set"
 msgstr "Podaje poziom debugowania do ustawienia"
 
-#: src/tools/sssctl/sssctl_logs.c:400
-msgid ""
-"NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#: src/tools/sssctl/sssctl_logs.c:398
+#, fuzzy
+msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
 "UWAGA: brak obsługi identyfikatora łańcucha tevent, analiza żądań będzie "
 "ograniczona.\n"
-
-#: src/tools/sssctl/sssctl_logs.c:401
-msgid ""
-"It is recommended to use the --logdir option against tevent chain ID "
-"supported SSSD logs.\n"
-msgstr ""
-"Zalecane jest używanie opcji --logdir przy dziennikach SSSD obsługujących "
-"identyfikator łańcucha tevent.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2937,6 +2933,13 @@ msgstr "Informuje, że program odpowiadający został aktywowany gniazdem"
 #: src/util/util.h:105
 msgid "Informs that the responder has been dbus-activated"
 msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-Bus"
+
+#~ msgid ""
+#~ "It is recommended to use the --logdir option against tevent chain ID "
+#~ "supported SSSD logs.\n"
+#~ msgstr ""
+#~ "Zalecane jest używanie opcji --logdir przy dziennikach SSSD obsługujących "
+#~ "identyfikator łańcucha tevent.\n"
 
 #~ msgid "Running under %"
 #~ msgstr "Uruchamianie jako %"

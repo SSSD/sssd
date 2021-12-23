@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-11-09 16:03+0100\n"
+"POT-Creation-Date: 2021-12-23 12:58+0100\n"
 "PO-Revision-Date: 2021-12-22 07:16+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
@@ -1918,55 +1918,59 @@ msgstr "%<PRIu64> で実行 (root でなければなりません)\n"
 msgid "SSSD is already running\n"
 msgstr "SSSD はすでに実行中です\n"
 
-#: src/providers/krb5/krb5_child.c:3327 src/providers/ldap/ldap_child.c:639
+#: src/providers/krb5/krb5_child.c:3329 src/providers/ldap/ldap_child.c:639
 msgid "An open file descriptor for the debug logs"
 msgstr "デバッグログのオープンファイルディスクリプター"
 
-#: src/providers/krb5/krb5_child.c:3330
+#: src/providers/krb5/krb5_child.c:3332
 msgid "The user to create FAST ccache as"
 msgstr "次のように FAST ccache を作成するユーザー"
 
-#: src/providers/krb5/krb5_child.c:3332
+#: src/providers/krb5/krb5_child.c:3334
 msgid "The group to create FAST ccache as"
 msgstr "次のように FAST ccache を作成するグループ"
 
-#: src/providers/krb5/krb5_child.c:3334
+#: src/providers/krb5/krb5_child.c:3336
 msgid "Kerberos realm to use"
 msgstr "使用する Kerberos レルム"
 
-#: src/providers/krb5/krb5_child.c:3336
+#: src/providers/krb5/krb5_child.c:3338
 msgid "Requested lifetime of the ticket"
 msgstr "チケットの要求された有効期間"
 
-#: src/providers/krb5/krb5_child.c:3338
+#: src/providers/krb5/krb5_child.c:3340
 msgid "Requested renewable lifetime of the ticket"
 msgstr "チケットの要求された更新可能な有効期間"
 
-#: src/providers/krb5/krb5_child.c:3340
+#: src/providers/krb5/krb5_child.c:3342
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST のオプション ('never'、'try'、'demand')"
 
-#: src/providers/krb5/krb5_child.c:3343
+#: src/providers/krb5/krb5_child.c:3345
 msgid "Specifies the server principal to use for FAST"
 msgstr "FAST で使用するサーバープリンシパルを指定します"
 
-#: src/providers/krb5/krb5_child.c:3345
+#: src/providers/krb5/krb5_child.c:3347
 msgid "Requests canonicalization of the principal name"
 msgstr "プリンシパル名の正規化を要求します"
 
-#: src/providers/krb5/krb5_child.c:3347
+#: src/providers/krb5/krb5_child.c:3349
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "krb5_get_init_creds_password のカスタムバージョンを使用します"
 
-#: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
+#: src/providers/krb5/krb5_child.c:3351
+msgid "Tevent chain ID used for logging purposes"
+msgstr ""
+
+#: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
 msgstr "talloc_asprintf は失敗しました。\n"
 
-#: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
+#: src/providers/krb5/krb5_child.c:3389 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd は失敗しました。\n"
 
-#: src/providers/data_provider_be.c:733
+#: src/providers/data_provider_be.c:732
 msgid "Domain of the information provider (mandatory)"
 msgstr "情報プロバイダーのドメイン (必須)"
 
@@ -2624,19 +2628,11 @@ msgstr "ログファイルのアーカイブができません\n"
 msgid "Specify debug level you want to set"
 msgstr "設定したいデバッグレベルを指定します"
 
-#: src/tools/sssctl/sssctl_logs.c:400
-msgid ""
-"NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#: src/tools/sssctl/sssctl_logs.c:398
+#, fuzzy
+msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
 "注記: Tevent チェーン ID サポートがないため、リクエスト分析は制限されます。\n"
-
-#: src/tools/sssctl/sssctl_logs.c:401
-msgid ""
-"It is recommended to use the --logdir option against tevent chain ID "
-"supported SSSD logs.\n"
-msgstr ""
-"tevent チェーン ID でサポートされる SSSD ログに対して --logdir オプションを使"
-"用することが推奨されます。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2873,6 +2869,13 @@ msgstr "レスポンダーがソケットでアクティベートされたと知
 #: src/util/util.h:105
 msgid "Informs that the responder has been dbus-activated"
 msgstr "レスポンダーが dbus でアクティベートされたと知らせます"
+
+#~ msgid ""
+#~ "It is recommended to use the --logdir option against tevent chain ID "
+#~ "supported SSSD logs.\n"
+#~ msgstr ""
+#~ "tevent チェーン ID でサポートされる SSSD ログに対して --logdir オプション"
+#~ "を使用することが推奨されます。\n"
 
 #~ msgid "Running under %"
 #~ msgstr "% 化で実行"

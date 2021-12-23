@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-11-09 16:03+0100\n"
+"POT-Creation-Date: 2021-12-23 12:58+0100\n"
 "PO-Revision-Date: 2021-12-22 07:16+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
@@ -1887,55 +1887,59 @@ msgstr "%<PRIu64> 에서 실행 중, root여야 합니다\n"
 msgid "SSSD is already running\n"
 msgstr "SSSD가 이미 실행되고 있습니다\n"
 
-#: src/providers/krb5/krb5_child.c:3327 src/providers/ldap/ldap_child.c:639
+#: src/providers/krb5/krb5_child.c:3329 src/providers/ldap/ldap_child.c:639
 msgid "An open file descriptor for the debug logs"
 msgstr "디버그 로그의 오픈 파일 설명자"
 
-#: src/providers/krb5/krb5_child.c:3330
+#: src/providers/krb5/krb5_child.c:3332
 msgid "The user to create FAST ccache as"
 msgstr "FAST ccache를 생성할 사용자"
 
-#: src/providers/krb5/krb5_child.c:3332
+#: src/providers/krb5/krb5_child.c:3334
 msgid "The group to create FAST ccache as"
 msgstr "FAST ccache를 생성할 그룹"
 
-#: src/providers/krb5/krb5_child.c:3334
+#: src/providers/krb5/krb5_child.c:3336
 msgid "Kerberos realm to use"
 msgstr "사용할 Kerberos 영역"
 
-#: src/providers/krb5/krb5_child.c:3336
+#: src/providers/krb5/krb5_child.c:3338
 msgid "Requested lifetime of the ticket"
 msgstr "티켓의 요청된 수명"
 
-#: src/providers/krb5/krb5_child.c:3338
+#: src/providers/krb5/krb5_child.c:3340
 msgid "Requested renewable lifetime of the ticket"
 msgstr "티켓의 요청된 재생 가능 수명"
 
-#: src/providers/krb5/krb5_child.c:3340
+#: src/providers/krb5/krb5_child.c:3342
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST 옵션 ('never', 'try', 'demand')"
 
-#: src/providers/krb5/krb5_child.c:3343
+#: src/providers/krb5/krb5_child.c:3345
 msgid "Specifies the server principal to use for FAST"
 msgstr "FAST에 사용할 서버 주체를 지정"
 
-#: src/providers/krb5/krb5_child.c:3345
+#: src/providers/krb5/krb5_child.c:3347
 msgid "Requests canonicalization of the principal name"
 msgstr "주체 이름의 정규화 요청"
 
-#: src/providers/krb5/krb5_child.c:3347
+#: src/providers/krb5/krb5_child.c:3349
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "krb5_get_init_creds_password의 사용자 지정 버전 사용"
 
-#: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
+#: src/providers/krb5/krb5_child.c:3351
+msgid "Tevent chain ID used for logging purposes"
+msgstr ""
+
+#: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
 msgstr "blockoc_asprintf에 실패했습니다.\n"
 
-#: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
+#: src/providers/krb5/krb5_child.c:3389 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd가 실패했습니다.\n"
 
-#: src/providers/data_provider_be.c:733
+#: src/providers/data_provider_be.c:732
 msgid "Domain of the information provider (mandatory)"
 msgstr "정보 공급자의 도메인 (필수)"
 
@@ -2583,18 +2587,10 @@ msgstr "로그 파일을 보관할 수 없습니다\n"
 msgid "Specify debug level you want to set"
 msgstr "설정할 디버그 수준 지정"
 
-#: src/tools/sssctl/sssctl_logs.c:400
-msgid ""
-"NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#: src/tools/sssctl/sssctl_logs.c:398
+#, fuzzy
+msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr "참고: Tevent 체인 ID 지원이 누락되어 요청 분석이 제한됩니다.\n"
-
-#: src/tools/sssctl/sssctl_logs.c:401
-msgid ""
-"It is recommended to use the --logdir option against tevent chain ID "
-"supported SSSD logs.\n"
-msgstr ""
-"tevent 체인 ID에서 지원되는 SSSD 로그에 대해 --logdir 옵션을 사용하는 것이 좋"
-"습니다.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2831,6 +2827,13 @@ msgstr "응답자가 소켓-활성화되었음을 알립니다"
 #: src/util/util.h:105
 msgid "Informs that the responder has been dbus-activated"
 msgstr "응답자가 dbus-활성화 되었음을 알립니다"
+
+#~ msgid ""
+#~ "It is recommended to use the --logdir option against tevent chain ID "
+#~ "supported SSSD logs.\n"
+#~ msgstr ""
+#~ "tevent 체인 ID에서 지원되는 SSSD 로그에 대해 --logdir 옵션을 사용하는 것"
+#~ "이 좋습니다.\n"
 
 #~ msgid "Timeout for messages sent over the SBUS"
 #~ msgstr "SBUS를 통해 전송된 메시지에 시간초과"
