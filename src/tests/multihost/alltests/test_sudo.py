@@ -63,7 +63,7 @@ class TestSudo(object):
                     (_, _, _) = ssh.execute_cmd(args=sudo_cmd)
                     sudo_cmd = 'sudo ls -l /usr/sbin/'
                     (_, _, _) = ssh.execute_cmd(args=sudo_cmd)
-            ssh.close()
+                ssh.close()
         pkill = 'pkill tcpdump'
         multihost.client[0].run_command(pkill)
         for user in localusers.keys():
