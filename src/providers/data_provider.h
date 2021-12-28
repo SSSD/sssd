@@ -45,9 +45,6 @@
 #include "providers/data_provider_req.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
-#define DATA_PROVIDER_PIPE "private/sbus-dp"
-
-#define DP_PATH "/org/freedesktop/sssd/dataprovider"
 
 /**
  * @defgroup pamHandler PAM DBUS request
@@ -160,11 +157,6 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd,
                             DBusError *dbus_error);
 
 void dp_id_callback(DBusPendingCall *pending, void *ptr);
-
-/* from dp_sbus.c */
-int dp_get_sbus_address(TALLOC_CTX *mem_ctx,
-                        char **address, const char *domain_name);
-
 
 /* Reserved filter name for request which waits until the files provider finishes mirroring
  * the file content
