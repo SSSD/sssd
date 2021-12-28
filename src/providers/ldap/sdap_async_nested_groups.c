@@ -2334,6 +2334,15 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
         goto done;
     }
 
+    /* The same with new members: make an assumpation all entries are new
+       and shrink memory later. */
+    members->values = talloc_realloc(members, members->values, struct ldb_val,
+                                     members->num_values + num_entries);
+    if (members->values == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     PROBE(SDAP_NESTED_GROUP_DEREF_PROCESS_PRE);
     for (i = 0; i < num_entries; i++) {
         ret = sysdb_attrs_get_string(entries[i]->attrs,
@@ -2362,14 +2371,6 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
             /* Append newly found member to member list.
              * Changes in state->members will propagate into sysdb_attrs of
              * the group. */
-            state->members->values = talloc_realloc(members, members->values,
-                                                    struct ldb_val,
-                                                    members->num_values + 1);
-            if (members->values == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
             members->values[members->num_values].data =
                     (uint8_t *)talloc_strdup(members->values, orig_dn);
             if (members->values[members->num_values].data == NULL) {
@@ -2450,6 +2451,13 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
         }
     } else {
         talloc_zfree(state->nested_groups);
+    }
+
+    members->values = talloc_realloc(members, members->values, struct ldb_val,
+                                     members->num_values);
+    if (members->values == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
     ret = EOK;
