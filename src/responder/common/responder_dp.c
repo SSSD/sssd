@@ -231,8 +231,9 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
                 }
                 goto done;
             } else if (ret != EAGAIN) {
-                DEBUG(SSSDBG_OP_FAILURE, "Failed to set files provider update "
-                      "[%d]: %s\n", ret, sss_strerror(ret));
+                DEBUG((ret == ENOENT) ? SSSDBG_MINOR_FAILURE : SSSDBG_OP_FAILURE,
+                      "Failed to set files provider update [%d]: %s\n",
+                      ret, sss_strerror(ret));
                 goto done;
             }
             /* EAGAIN, fall through to issuing the request */
