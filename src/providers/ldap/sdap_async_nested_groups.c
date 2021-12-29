@@ -209,13 +209,9 @@ static errno_t sdap_nested_group_hash_insert(hash_table_t *table,
                              entry_key, table_name);
 
     key.type = HASH_KEY_STRING;
-    key.str = talloc_strdup(NULL, entry_key);
-    if (key.str == NULL) {
-        return ENOMEM;
-    }
+    key.c_str = discard_const(entry_key); /* hash_enter() will make a copy */
 
     if (overwrite == false && hash_has_key(table, &key)) {
-        talloc_free(key.str);
         return EEXIST;
     }
 
@@ -224,11 +220,9 @@ static errno_t sdap_nested_group_hash_insert(hash_table_t *table,
 
     hret = hash_enter(table, &key, &value);
     if (hret != HASH_SUCCESS) {
-        talloc_free(key.str);
         return EIO;
     }
 
-    talloc_steal(table, key.str);
     talloc_steal(table, value.ptr);
 
     return EOK;
