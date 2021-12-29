@@ -2294,6 +2294,49 @@ immediately:
 }
 
 static errno_t
+expand_members_list(struct ldb_message_element *members, hash_table_t *addon)
+{
+    struct hash_iter_context_t *iter;
+    hash_entry_t *entry;
+    const char *dn;
+    unsigned long num_new_members = hash_count(addon);
+
+    if (num_new_members == 0) {
+        return EOK;
+    }
+
+    members->values = talloc_realloc(members, members->values, struct ldb_val,
+                                     members->num_values + num_new_members);
+    if (members->values == NULL) {
+        return ENOMEM;
+    }
+
+    iter = new_hash_iter_context(addon);
+    if (iter == NULL) {
+        return ENOMEM;
+    }
+
+    while ((entry = iter->next(iter)) != NULL) {
+        if (entry->key.type != HASH_KEY_CONST_STRING) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Unexpected key type = %d\n", entry->key.type);
+            continue;
+        }
+        dn = entry->key.c_str;
+        members->values[members->num_values].data =
+            (uint8_t *)talloc_strdup(members->values, dn);
+        if (members->values[members->num_values].data == NULL) {
+            return ENOMEM;
+        }
+        members->values[members->num_values].length = strlen(dn);
+        members->num_values++;
+    }
+    talloc_free(iter);
+
+    return EOK;
+}
+
+static errno_t
 sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
 {
     struct sdap_nested_group_deref_state *state = NULL;
@@ -2306,6 +2349,9 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
     size_t num_entries = 0;
     size_t i, j;
     bool member_found;
+    hash_table_t *new_members;  /* will be used as a set */
+    hash_key_t key;
+    hash_value_t value;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -2316,6 +2362,14 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
 
     ret = sdap_deref_search_recv(subreq, state, &num_entries, &entries);
     if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sss_hash_create(state, 0, &new_members);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
+                                    ret, strerror(ret));
+        new_members = NULL;
         goto done;
     }
 
@@ -2330,15 +2384,6 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
     state->nested_groups = talloc_zero_array(state, struct sysdb_attrs *,
                                              num_entries);
     if (state->nested_groups == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* The same with new members: make an assumpation all entries are new
-       and shrink memory later. */
-    members->values = talloc_realloc(members, members->values, struct ldb_val,
-                                     members->num_values + num_entries);
-    if (members->values == NULL) {
         ret = ENOMEM;
         goto done;
     }
@@ -2359,7 +2404,6 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
          */
         member_found = false;
         for (j = 0; j < members->num_values; j++) {
-            /* FIXME: This is inefficient for very large sets of groups */
             member_dn = (const char *)members->values[j].data;
             if (strcasecmp(orig_dn, member_dn) == 0) {
                 member_found = true;
@@ -2368,18 +2412,17 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
         }
 
         if (!member_found) {
-            /* Append newly found member to member list.
+            /* Store newly found member to append to member list later.
              * Changes in state->members will propagate into sysdb_attrs of
              * the group. */
-            members->values[members->num_values].data =
-                    (uint8_t *)talloc_strdup(members->values, orig_dn);
-            if (members->values[members->num_values].data == NULL) {
-                ret = ENOMEM;
-                goto done;
+            key.type = HASH_KEY_CONST_STRING;
+            key.c_str = orig_dn;
+            value.type = HASH_VALUE_UNDEF;
+            ret = hash_enter(new_members, &key, &value);
+            if (ret != HASH_SUCCESS) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to add '%s' to member list\n", orig_dn);
             }
-
-            members->values[members->num_values].length = strlen(orig_dn);
-            members->num_values++;
         }
 
         if (entries[i]->map == opts->user_map) {
@@ -2453,16 +2496,16 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
         talloc_zfree(state->nested_groups);
     }
 
-    members->values = talloc_realloc(members, members->values, struct ldb_val,
-                                     members->num_values);
-    if (members->values == NULL) {
-        ret = ENOMEM;
+    ret = expand_members_list(members, new_members);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "expand_members_list() failed: %d\n", ret);
         goto done;
     }
 
     ret = EOK;
 
 done:
+    hash_destroy(new_members);
     return ret;
 }
 
