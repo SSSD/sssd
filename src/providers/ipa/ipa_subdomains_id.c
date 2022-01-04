@@ -1138,50 +1138,29 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
     if (ar->filter_type == BE_FILTER_SECID) {
         ret = sysdb_search_object_by_sid(mem_ctx, dom, ar->filter_value, attrs,
                                          &res);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to make request to our cache: [%d]: [%s]\n",
-                   ret, sss_strerror(ret));
-            goto done;
+        if (ret == EOK) {
+            *_msg = res->msgs[0];
         }
-
-        *_msg = res->msgs[0];
-
-        ret = EOK;
         goto done;
     } else if (ar->filter_type == BE_FILTER_UUID) {
         ret = sysdb_search_object_by_uuid(mem_ctx, dom, ar->filter_value, attrs,
                                           &res);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to make request to our cache: [%d]: [%s]\n",
-                   ret, sss_strerror(ret));
-            goto done;
+        if (ret == EOK) {
+            *_msg = res->msgs[0];
         }
-
-        *_msg = res->msgs[0];
-
-        ret = EOK;
         goto done;
     } else if (ar->filter_type == BE_FILTER_CERT) {
         ret = sysdb_search_object_by_cert(mem_ctx, dom, ar->filter_value, attrs,
                                           &res);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to make request to our cache: [%d]: [%s]\n",
-                   ret, sss_strerror(ret));
-            goto done;
+        if (ret == EOK) {
+            if (res->count != 1) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "More than one result found in our cache\n");
+                ret = EINVAL;
+            } else {
+                *_msg = res->msgs[0];
+            }
         }
-        if (res->count != 1) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "More than one result found in our cache\n");
-            ret = EINVAL;
-            goto done;
-        }
-
-        *_msg = res->msgs[0];
-
-        ret = EOK;
         goto done;
     } else if (ar->filter_type == BE_FILTER_IDNUM) {
         id = strtouint32(ar->filter_value, &endptr, 10);
@@ -1260,6 +1239,11 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (ret == EOK) {
+        *_msg = msg;
+    }
+
+done:
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -1268,12 +1252,8 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
         } else {
             DEBUG(SSSDBG_FUNC_DATA, "Object wasn't found in cache");
         }
-        goto done;
     }
 
-    *_msg = msg;
-
-done:
     return ret;
 }
 
