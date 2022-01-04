@@ -714,7 +714,7 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
     if (pid == 0) { /* child */
         exec_child_ex(state, pipefd_to_child, pipefd_from_child,
                       SELINUX_CHILD, SELINUX_CHILD_LOG_FILE, extra_args,
-                      false, STDIN_FILENO, STDERR_FILENO);
+                      false, STDIN_FILENO, STDOUT_FILENO);
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec selinux_child: [%d][%s].\n",
               ret, sss_strerror(ret));
         return ret;
