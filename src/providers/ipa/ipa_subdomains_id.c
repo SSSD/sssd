@@ -1260,10 +1260,14 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to make request to our cache: [%d]: [%s]\n",
-               ret, sss_strerror(ret));
+    if (ret != EOK) {
+        if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to make request to our cache: [%d]: [%s]\n",
+                   ret, sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_FUNC_DATA, "Object wasn't found in cache");
+        }
         goto done;
     }
 
