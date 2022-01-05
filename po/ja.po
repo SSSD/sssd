@@ -6,7 +6,7 @@
 # Tomoyuki KATO <tomo@dream.daynight.jp>, 2012-2013
 # Noriko Mizumoto <noriko.mizumoto@gmail.com>, 2016. #zanata
 # Keiko Moriguchi <kemorigu@redhat.com>, 2019. #zanata
-# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021.
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022.
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 # Sundeep Anand <suanand@redhat.com>, 2021.
 msgid ""
@@ -14,7 +14,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-12-23 12:58+0100\n"
-"PO-Revision-Date: 2021-12-22 07:16+0000\n"
+"PO-Revision-Date: 2022-01-05 12:23+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ja/>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.10\n"
+"X-Generator: Weblate 4.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1960,7 +1960,7 @@ msgstr "krb5_get_init_creds_password のカスタムバージョンを使用し�
 
 #: src/providers/krb5/krb5_child.c:3351
 msgid "Tevent chain ID used for logging purposes"
-msgstr ""
+msgstr "デバッグのロギングの冗長性を設定する"
 
 #: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2629,10 +2629,8 @@ msgid "Specify debug level you want to set"
 msgstr "設定したいデバッグレベルを指定します"
 
 #: src/tools/sssctl/sssctl_logs.c:398
-#, fuzzy
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
-msgstr ""
-"注記: Tevent チェーン ID サポートがないため、リクエスト分析は制限されます。\n"
+msgstr "エラー: Tevent chain ID サポートがなく、ログアナライザーはサポートされません。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2876,6 +2874,12 @@ msgstr "レスポンダーが dbus でアクティベートされたと知らせ
 #~ msgstr ""
 #~ "tevent チェーン ID でサポートされる SSSD ログに対して --logdir オプション"
 #~ "を使用することが推奨されます。\n"
+
+#~ msgid ""
+#~ "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#~ msgstr ""
+#~ "注記: Tevent チェーン ID サポートがないため、リクエスト分析は制限されま"
+#~ "す。\n"
 
 #~ msgid "Running under %"
 #~ msgstr "% 化で実行"

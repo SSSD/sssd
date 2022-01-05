@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-12-23 12:58+0100\n"
-"PO-Revision-Date: 2021-11-12 12:05+0000\n"
+"PO-Revision-Date: 2021-12-25 00:16+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/uk/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.8.1\n"
+"X-Generator: Weblate 4.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2088,6 +2088,7 @@ msgstr "Використовувати нетипову версію krb5_get_in
 #: src/providers/krb5/krb5_child.c:3351
 msgid "Tevent chain ID used for logging purposes"
 msgstr ""
+"Ідентифікатор ланцюжка Tevent, який використовується для ведення журналу"
 
 #: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2757,11 +2758,10 @@ msgid "Specify debug level you want to set"
 msgstr "Вкажіть рівень діагностики, яким ви хочете скористатися"
 
 #: src/tools/sssctl/sssctl_logs.c:398
-#, fuzzy
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
-"УВАГА: немає підтримки ідентифікатора черги Tevent, можливості аналізу "
-"запитів буде обмежено.\n"
+"Помилка: немає підтримки ідентифікатора ланцюжка Tevent, можливість аналізу "
+"журналу недоступна.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -3005,6 +3005,12 @@ msgstr "Інформує про те, що на відповідачі заді�
 #~ msgstr ""
 #~ "Рекомендуємо скористатися параметром --logdir для обробки журналу SSSD із "
 #~ "підтримкою ідентифікаторів ланцюжка tevent.\n"
+
+#~ msgid ""
+#~ "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#~ msgstr ""
+#~ "УВАГА: немає підтримки ідентифікатора черги Tevent, можливості аналізу "
+#~ "запитів буде обмежено.\n"
 
 #~ msgid "Running under %"
 #~ msgstr "Запущено від імені %"

@@ -8,7 +8,7 @@
 # Fabien Archambault <marbolangos@gmail.com>, 2012
 # Mariko Vincent <dweu60@gmail.com>, 2012
 # Jérôme Fenal <jfenal@gmail.com>, 2016. #zanata
-# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021.
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022.
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 # Jean-Baptiste Holcroft <jean-baptiste@holcroft.fr>, 2020.
 # Sundeep Anand <suanand@redhat.com>, 2021.
@@ -17,7 +17,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-12-23 12:58+0100\n"
-"PO-Revision-Date: 2021-12-22 07:16+0000\n"
+"PO-Revision-Date: 2022-01-05 12:23+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.10\n"
+"X-Generator: Weblate 4.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2085,7 +2085,7 @@ msgstr "Utiliser la version personnalisée de krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3351
 msgid "Tevent chain ID used for logging purposes"
-msgstr ""
+msgstr "ID de chaîne Tevent utilisé à des fins de journalisation"
 
 #: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2762,11 +2762,10 @@ msgid "Specify debug level you want to set"
 msgstr "Spécifiez le niveau de débogage que vous souhaitez définir"
 
 #: src/tools/sssctl/sssctl_logs.c:398
-#, fuzzy
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
-"REMARQUE : Prise en charge de l’ID de chaîne Tevent manquante, l’analyse des "
-"demandes sera limitée.\n"
+"ERREUR : Prise en charge de l’ID de chaîne Tevent manquante, l’analyseur de "
+"journal n’est pas pris en charge.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -3010,6 +3009,12 @@ msgstr "Informe que le répondeur a été activé par un dbus"
 #~ msgstr ""
 #~ "Il est recommandé d’utiliser l’option --logdir pour les journaux SSSD "
 #~ "pris en charge par l’ID de chaîne Tevent.\n"
+
+#~ msgid ""
+#~ "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#~ msgstr ""
+#~ "REMARQUE : Prise en charge de l’ID de chaîne Tevent manquante, l’analyse "
+#~ "des demandes sera limitée.\n"
 
 #~ msgid "Running under %"
 #~ msgstr "En cours d’exécution sous %"

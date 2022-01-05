@@ -2997,6 +2997,12 @@ msgstr "Informa que el contestador ha sido dbus-activated"
 #~ "Se recomienda usar la opción --logdir contra la ID de la cadena de "
 #~ "eventos soportada por los registros SSSD.\n"
 
+#~ msgid ""
+#~ "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#~ msgstr ""
+#~ "AVISO: Falta el soporte de identificación de la cadena de eventos, el "
+#~ "análisis de solicitudes será limitado.\n"
+
 #~ msgid "Timeout for messages sent over the SBUS"
 #~ msgstr "Tiempo máximo para los mensajes enviados a través de SBUS"
 
