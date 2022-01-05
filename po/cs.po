@@ -2935,6 +2935,12 @@ msgstr "Informuje, že odpovídač byl aktivován přes dbus"
 #~ "Je doporučeno použít volbu --logdir vůči identifikátoru tevent řetězce "
 #~ "podporovaným záznamům událostí v SSSD.\n"
 
+#~ msgid ""
+#~ "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#~ msgstr ""
+#~ "POZN.: chybí podpora pro identifikátor tevent řetězce, analýza požadavku "
+#~ "bude jen základní.\n"
+
 #~ msgid "Timeout for messages sent over the SBUS"
 #~ msgstr "Časový limit pro zprávy posílané přes SBUS"
 

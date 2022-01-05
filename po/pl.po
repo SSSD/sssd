@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-12-23 12:58+0100\n"
-"PO-Revision-Date: 2021-11-11 11:34+0000\n"
+"PO-Revision-Date: 2021-12-24 10:33+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pl/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.8.1\n"
+"X-Generator: Weblate 4.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2025,7 +2025,7 @@ msgstr "Użycie niestandardowej wersji krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3351
 msgid "Tevent chain ID used for logging purposes"
-msgstr ""
+msgstr "Identyfikator łańcucha tevent używany do celów zapisywania w dzienniku"
 
 #: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2692,11 +2692,10 @@ msgid "Specify debug level you want to set"
 msgstr "Podaje poziom debugowania do ustawienia"
 
 #: src/tools/sssctl/sssctl_logs.c:398
-#, fuzzy
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
-"UWAGA: brak obsługi identyfikatora łańcucha tevent, analiza żądań będzie "
-"ograniczona.\n"
+"BŁĄD: brak obsługi identyfikatora łańcucha tevent, analizator dziennika jest "
+"nieobsługiwany.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2940,6 +2939,12 @@ msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-B
 #~ msgstr ""
 #~ "Zalecane jest używanie opcji --logdir przy dziennikach SSSD obsługujących "
 #~ "identyfikator łańcucha tevent.\n"
+
+#~ msgid ""
+#~ "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#~ msgstr ""
+#~ "UWAGA: brak obsługi identyfikatora łańcucha tevent, analiza żądań będzie "
+#~ "ograniczona.\n"
 
 #~ msgid "Running under %"
 #~ msgstr "Uruchamianie jako %"

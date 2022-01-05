@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-12-20 16:05+0100\n"
-"PO-Revision-Date: 2021-10-20 03:21+0000\n"
+"PO-Revision-Date: 2021-12-22 10:38+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/uk/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.8\n"
+"X-Generator: Weblate 4.10\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -703,6 +703,9 @@ msgid ""
 "e. accessible via <quote>files</quote> service of <filename>nsswitch.conf</"
 "filename>."
 msgstr ""
+"Можна скористатися іменем користувача і UID, але користувач має бути "
+"локальним, тобто доступним для служби <quote>files</quote> <filename>nsswitch"
+".conf</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:433
@@ -3255,6 +3258,8 @@ msgid ""
 "Local user names are required, i.e. accessible via <quote>files</quote> "
 "service of <filename>nsswitch.conf</filename>."
 msgstr ""
+"Потрібні локальні імена користувачів, тобто імена, які доступні зі служби "
+"<quote>files</quote> <filename>nsswitch.conf</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2177
@@ -4915,6 +4920,8 @@ msgstr ""
 msgid ""
 "The AD provider will use this option for the CLDAP ping timeouts as well."
 msgstr ""
+"Надавач даних AD використовуватиме цей параметр також для визначення часу "
+"очікування на відгук на луна-імпульс CLDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3437 sssd.conf.5.xml:3457 sssd.conf.5.xml:3476
@@ -16286,7 +16293,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd-ifp.5.xml:43
 msgid "FIND BY VALID CERTIFICATE"
-msgstr ""
+msgstr "ПОШУК ЗА ЧИННИМ СЕРТИФІКАТОМ"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd-ifp.5.xml:45
@@ -16294,6 +16301,8 @@ msgid ""
 "The following options can be used to control how the certificates are "
 "validated when using the FindByValidCertificate() API:"
 msgstr ""
+"Для керування тим, як буде виконуватися перевірка, якщо використано "
+"програмний інтерфейс FindByValidCertificate(), використовують такі параметри:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
 #: sssd-ifp.5.xml:48 sss_ssh_authorizedkeys.1.xml:92
@@ -16312,15 +16321,11 @@ msgstr "certificate_verification"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd-ifp.5.xml:52
-#, fuzzy
-#| msgid ""
-#| "For more details, see the <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> manual page."
 msgid ""
 "For more details about the options see <citerefentry><refentrytitle>sssd."
 "conf</refentrytitle> <manvolnum>5</manvolnum></citerefentry>."
 msgstr ""
-"Щоб дізнатися більше, ознайомтеся зі сторінкою підручника щодо "
+"Щоб дізнатися більше про параметри, ознайомтеся зі сторінкою підручника щодо "
 "<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry>."
 
