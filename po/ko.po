@@ -9,8 +9,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-12-23 12:58+0100\n"
-"PO-Revision-Date: 2021-12-22 07:16+0000\n"
-"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
+"PO-Revision-Date: 2021-12-25 00:16+0000\n"
+"Last-Translator: simmon <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
 "Language: ko\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.10\n"
+"X-Generator: Weblate 4.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1929,7 +1929,7 @@ msgstr "krb5_get_init_creds_password의 사용자 지정 버전 사용"
 
 #: src/providers/krb5/krb5_child.c:3351
 msgid "Tevent chain ID used for logging purposes"
-msgstr ""
+msgstr "로깅 목적을 위해 사용되는 T이벤트 체인 ID"
 
 #: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2588,9 +2588,8 @@ msgid "Specify debug level you want to set"
 msgstr "설정할 디버그 수준 지정"
 
 #: src/tools/sssctl/sssctl_logs.c:398
-#, fuzzy
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
-msgstr "참고: Tevent 체인 ID 지원이 누락되어 요청 분석이 제한됩니다.\n"
+msgstr "오류: T이벤트 체인 ID 지원이 누락되었으며, 로그 분석이 지원되지 않습니다.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2834,6 +2833,10 @@ msgstr "응답자가 dbus-활성화 되었음을 알립니다"
 #~ msgstr ""
 #~ "tevent 체인 ID에서 지원되는 SSSD 로그에 대해 --logdir 옵션을 사용하는 것"
 #~ "이 좋습니다.\n"
+
+#~ msgid ""
+#~ "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#~ msgstr "참고: Tevent 체인 ID 지원이 누락되어 요청 분석이 제한됩니다.\n"
 
 #~ msgid "Timeout for messages sent over the SBUS"
 #~ msgstr "SBUS를 통해 전송된 메시지에 시간초과"

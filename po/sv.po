@@ -13,7 +13,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-12-23 12:58+0100\n"
-"PO-Revision-Date: 2021-08-08 16:04+0000\n"
+"PO-Revision-Date: 2021-12-31 15:16+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/sv/>\n"
@@ -22,7 +22,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.7.2\n"
+"X-Generator: Weblate 4.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -823,9 +823,8 @@ msgstr ""
 "servern när den senaste förfrågan inte hittade någon regel"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
-#, fuzzy
 msgid "Search base for SUBID ranges"
-msgstr "Sökbas för vybehållare"
+msgstr "Sökbas för SUBAID-intervall"
 
 #: src/config/SSSDConfig/sssdoptions.py:245
 msgid "The LDAP attribute that contains FQDN of the host."
@@ -1951,7 +1950,7 @@ msgstr "Flaggan -g är inkompatibel med -D eller -i\n"
 #: src/monitor/monitor.c:2401
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
-msgstr ""
+msgstr "Kör under %<PRIu64>, måste vara root\n"
 
 #: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
@@ -1999,7 +1998,7 @@ msgstr "Använd en anpassad version av krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3351
 msgid "Tevent chain ID used for logging purposes"
-msgstr ""
+msgstr "Tevent-kedje-ID använt för loggningssyfte"
 
 #: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2335,14 +2334,14 @@ msgid "Error while executing external command\n"
 msgstr "Fel när externt kommando kördes\n"
 
 #: src/tools/sssctl/sssctl.c:123
-#, fuzzy, c-format
+#, c-format
 msgid "Error while executing external command '%s'\n"
-msgstr "Fel när externt kommando kördes\n"
+msgstr "Fel när externt kommando kördes ”%s”\n"
 
 #: src/tools/sssctl/sssctl.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "Command '%s' failed with [%d]\n"
-msgstr "dlsym misslyckades med [%s].\n"
+msgstr "Kommandot ”%s” misslyckades med [%d].\n"
 
 #: src/tools/sssctl/sssctl.c:173
 msgid "SSSD needs to be running. Start SSSD now?"
@@ -2665,7 +2664,7 @@ msgstr "Ange felsökningsnivå du vill sätta"
 
 #: src/tools/sssctl/sssctl_logs.c:398
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
-msgstr ""
+msgstr "FEL: stöd för tevent-kedje-ID saknas, logganalysatorn stödjs inte.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"

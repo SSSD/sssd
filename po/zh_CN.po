@@ -4,7 +4,7 @@
 #
 # Translators:
 # Christopher Meng <cickumqt@gmail.com>, 2012
-# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021.
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022.
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 # Charles Lee <lchopn@gmail.com>, 2020, 2021.
 # Sundeep Anand <suanand@redhat.com>, 2021.
@@ -13,7 +13,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-12-23 12:58+0100\n"
-"PO-Revision-Date: 2021-12-22 07:16+0000\n"
+"PO-Revision-Date: 2022-01-05 12:23+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_CN/>\n"
@@ -22,7 +22,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.10\n"
+"X-Generator: Weblate 4.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1007,7 +1007,7 @@ msgstr "Kerberos 备份服务器地址"
 
 #: src/config/SSSDConfig/sssdoptions.py:313
 msgid "Kerberos realm"
-msgstr "Kerberos realm"
+msgstr "Kerberos 域"
 
 #: src/config/SSSDConfig/sssdoptions.py:314
 msgid "Authentication timeout"
@@ -1071,7 +1071,7 @@ msgstr "启用企业主体"
 
 #: src/config/SSSDConfig/sssdoptions.py:331
 msgid "Enables using of subdomains realms for authentication"
-msgstr "启用使用子域域进行验证"
+msgstr "允许使用子域域进行身份验证"
 
 #: src/config/SSSDConfig/sssdoptions.py:332
 msgid "A mapping from user names to Kerberos principal names"
@@ -1128,7 +1128,7 @@ msgstr "离线时尝试重新连接的时间间隔"
 
 #: src/config/SSSDConfig/sssdoptions.py:350
 msgid "Use only the upper case for realm names"
-msgstr "realm 名称仅使用大写字母"
+msgstr "对于域名称仅使用大写字母"
 
 #: src/config/SSSDConfig/sssdoptions.py:351
 msgid "File that contains CA certificates"
@@ -1164,7 +1164,7 @@ msgstr "指定要使用的 sasl 授权 ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:359
 msgid "Specify the sasl authorization realm to use"
-msgstr "指定要使用的 sasl 授权 realm"
+msgstr "指定要使用的 sasl 授权域"
 
 #: src/config/SSSDConfig/sssdoptions.py:360
 msgid "Specify the minimal SSF for LDAP sasl authorization"
@@ -1876,7 +1876,7 @@ msgstr "组创建 FAST 缓存为"
 
 #: src/providers/krb5/krb5_child.c:3336
 msgid "Kerberos realm to use"
-msgstr "使用的 kerberos realm"
+msgstr "要使用的 kerberos 域"
 
 #: src/providers/krb5/krb5_child.c:3338
 msgid "Requested lifetime of the ticket"
@@ -1904,7 +1904,7 @@ msgstr "使用自定义版本的 krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3351
 msgid "Tevent chain ID used for logging purposes"
-msgstr ""
+msgstr "用于日志记录的 Tevent 链 ID"
 
 #: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2558,9 +2558,8 @@ msgid "Specify debug level you want to set"
 msgstr "指定要设置的调试级别"
 
 #: src/tools/sssctl/sssctl_logs.c:398
-#, fuzzy
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
-msgstr "注意：缺少 Tevent 链 ID 支持，请求分析会受到限制。\n"
+msgstr "ERROR：缺少 Tevent 链 ID 支持，不支持日志分析器。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2802,6 +2801,10 @@ msgstr "通知响应者已被 dbus 激活"
 #~ "It is recommended to use the --logdir option against tevent chain ID "
 #~ "supported SSSD logs.\n"
 #~ msgstr "建议对 tevent 链 ID 支持的 SSSD 日志使用 --logdir 选项。\n"
+
+#~ msgid ""
+#~ "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#~ msgstr "注意：缺少 Tevent 链 ID 支持，请求分析会受到限制。\n"
 
 #~ msgid "Running under %"
 #~ msgstr "运行于 % 下"
