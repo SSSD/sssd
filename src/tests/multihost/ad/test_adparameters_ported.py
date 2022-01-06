@@ -128,6 +128,7 @@ def ssh_setup(session_multihost, user, group=""):
                     ' -q -N "" <<< y\n')
         tfile.write(f'HOMEDIR="$(getent -s sss passwd {user}|awk -F:'
                     f' \'{{print $6}}\')"\n')
+        tfile.write(f'test -z "$HOMEDIR" && export HOMEDIR="/home/{user}"\n')
         tfile.write('mkdir -p $HOMEDIR/.ssh\n')
         tfile.write('chmod 0700 $HOMEDIR/.ssh\n')
         tfile.write('cat /root/.ssh/id_rsa.pub >> $HOMEDIR/.ssh/'
@@ -3547,3 +3548,127 @@ class TestADParamsPorted:
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found."
         assert ps_cmd.returncode == 0, "Sssd is not running under user!"
+
+    @staticmethod
+    @pytest.mark.tier1_2
+    def test_0043_sssd_not_using_given_krb_port(
+            multihost, adjoin, create_aduser_group):
+        """
+        :title: IDM-SSSD-TC: SSSD does not use kerberos port that is set.
+        :bugzilla:
+          https://bugzilla.redhat.com/show_bug.cgi?id=1859315
+          https://bugzilla.redhat.com/show_bug.cgi?id=2041560
+        :id: 558f692b-01c5-46f4-ad39-6b190dd7c017
+        :setup:
+          1. Configure alternate kerberos port on AD
+        :steps:
+          1. Start SSSD with alternate port in config
+          2. Call 'kinit username@domain'
+          3. Call 'ssh -l username@domain localhost' and check sssd logs
+        :expectedresults:
+          1. SSSD should start
+          2. Should succeed
+          3. Logs contain info about right port being used
+             Logs do not contain wrong (default) port being used
+        """
+
+        adjoin(membersw='adcli')
+        ad_realm = multihost.ad[0].domainname.upper()
+
+        # Create AD user and group
+        (aduser, _) = create_aduser_group
+
+        # Configure sssd
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        client.backup_sssd_conf()
+
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {
+            'ad_domain': multihost.ad[0].domainname,
+            'debug_level': '0x4000',
+            'cache_credentials': 'True',
+            'ad_server': multihost.ad[0].hostname,
+            'krb5_store_password_if_offline': 'True',
+            'krb5_server': f'{multihost.ad[0].hostname}:6666',
+            'id_provider': 'ldap',
+            'auth_provider': 'krb5',
+            'access_provider': 'ad',
+            'krb5_realm': ad_realm,
+            'ldap_sasl_mech': 'GSSAPI',
+            'fallback_homedir': '/home/%u',
+        }
+        client.sssd_conf(dom_section, sssd_params)
+
+        # Forward ports on AD machine so 6666 works
+        multihost.ad[0].run_command(
+            "netsh interface portproxy add v4tov4 listenaddress=0.0.0.0"
+            " listenport=6666 connectaddress=127.0.0.1 connectport=88; "
+            " netsh interface portproxy show all",
+            raiseonerr=False
+        )
+
+        # Allow 6666 on firewall
+        fw_cmd = "powershell.exe -inputformat none -noprofile \"New-NetFire" \
+                 "wallRule -DisplayName 'alt-krb-Inbound' -Profile @(" \
+                 "'Domain', 'Private', 'Public') -Direction Inbound -Action " \
+                 "Allow -Protocol TCP -LocalPort 6666\""
+        multihost.ad[0].run_command(fw_cmd, raiseonerr=False)
+
+        # Workaround for DNS
+        multihost.client[0].run_command(
+            f'grep "{multihost.ad[0].hostname}" /etc/hosts || echo -n "'
+            f'\n{multihost.ad[0].ip} {multihost.ad[0].hostname}\n'
+            f'">> /etc/hosts',
+            raiseonerr=False
+        )
+
+        # Clear cache and restart SSSD
+        client.clear_sssd_cache()
+
+        # Run kinit for the user
+        kinit_cmd = multihost.client[0].run_command(
+            f'kinit {aduser}@{ad_realm}', stdin_text='Secret123',
+            raiseonerr=False)
+
+        # Run ssh
+        multihost.client[0].run_command(
+            f'ssh -o StrictHostKeychecking=no -o NumberOfPasswordPrompts=1 '
+            f'-o UserKnownHostsFile=/dev/null -l {aduser}@{ad_realm} '
+            f'localhost whoami',
+            stdin_text='Secret123',
+            raiseonerr=False)
+
+        # Give it some time so the log can be written
+        time.sleep(10)
+
+        # Download all logs
+        log_str = multihost.client[0].run_command(
+            "cat /var/log/sssd/*.log").stdout_text
+
+        # TEARDOWN
+        client.restore_sssd_conf()
+        client.clear_sssd_cache()
+
+        # Remove forward ports on AD machine
+        multihost.ad[0].run_command(
+            "netsh interface portproxy reset",
+            raiseonerr=False
+        )
+
+        # Disallow 6666 on firewall on AD
+        fw_cmd = "powershell.exe -inputformat none -noprofile " \
+                 "\"Remove-NetFirewallRule -Name alt-krb-Inbound\""
+        multihost.ad[0].run_command(fw_cmd, raiseonerr=False)
+
+        # Evaluate test results
+        assert f"Option krb5_server has value " \
+               f"{multihost.ad[0].sys_hostname}:6666" in log_str
+        assert f"Initiating TCP connection to stream " \
+               f"{multihost.ad[0].ip}:6666" in log_str or \
+               f"Sending initial UDP request to dgram " \
+               f"{multihost.ad[0].ip}:6666" in log_str
+        assert f"Sending initial UDP request to dgram " \
+               f"{multihost.ad[0].ip}:88" not in log_str
+        assert f"Initiating TCP connection to stream {multihost.ad[0].ip}:88" \
+               not in log_str
+        assert kinit_cmd.returncode == 0, "kinit failed."
