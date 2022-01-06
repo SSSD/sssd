@@ -35,7 +35,7 @@ class Testsssctl(object):
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
         tools.sssd_conf("sssd", {'services': 'nss, pam, ifp'}, action='update')
-        domain_params = {'allowed_uids': 'root, foo1@%s' % ds_instance_name,
+        domain_params = {'allowed_uids': 'root, foo1',
                          'user_attributes': '+mail, -gecos'}
         tools.sssd_conf("ifp", domain_params)
         multihost.client[0].service_sssd('start')
@@ -175,7 +175,7 @@ class Testsssctl(object):
         tools.sssd_conf("sssd", {'services': 'nss, pam, ifp',
                                  'enable_files_domain': 'true'},
                         action='update')
-        domain_params = {'allowed_uids': '0, foo1@%s' % ds_instance_name,
+        domain_params = {'allowed_uids': '0, foo1',
                          'user_attributes': '+mail, -gecos'}
         tools.sssd_conf("ifp", domain_params)
         multihost.client[0].service_sssd('start')
