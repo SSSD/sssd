@@ -32,6 +32,7 @@ class Testsssctl(object):
         :id: aaa3c20e-176c-404a-8845-37a524222b14
         """
         tools = sssdTools(multihost.client[0])
+        multihost.client[0].run_command("useradd foo1", raiseonerr=False)
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
         tools.sssd_conf("sssd", {'services': 'nss, pam, ifp'}, action='update')
@@ -48,6 +49,7 @@ class Testsssctl(object):
             find = re.compile(r'%s' % _)
             result = find.search(cmd.stdout_text)
             assert result is not None
+        multihost.client[0].run_command("userdel -rf foo1", raiseonerr=False)
 
     @pytest.mark.tier1_2
     def test_0002_bz1638295(self, multihost, backupsssdconf):
@@ -170,6 +172,7 @@ class Testsssctl(object):
         :id: 78cb0086-0107-49e1-93ca-efcc4a414aad
         """
         tools = sssdTools(multihost.client[0])
+        multihost.client[0].run_command("useradd foo1", raiseonerr=False)
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
         tools.sssd_conf("sssd", {'services': 'nss, pam, ifp',
@@ -189,6 +192,7 @@ class Testsssctl(object):
             find = re.compile(r'%s' % _)
             result = find.search(cmd.stdout_text)
             assert result is not None
+        multihost.client[0].run_command("userdel -rf foo1", raiseonerr=False)
 
     @pytest.mark.tier1_2
     def test_0007_bz1638295(self, multihost,
