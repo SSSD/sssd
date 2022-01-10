@@ -289,6 +289,7 @@ static int pam_test_setup(void **state)
     };
 
     struct sss_test_conf_param pam_params[] = {
+        { CONFDB_PAM_P11_URI, "pkcs11:manufacturer=SoftHSM%20project" },
         { "p11_child_timeout", "30" },
         { "pam_cert_verification", NULL },
         { NULL, NULL },             /* Sentinel */
@@ -3105,7 +3106,7 @@ void test_pam_preauth_ocsp_no_ocsp(void **state)
     };
 
     struct sss_test_conf_param pam_params[] = {
-        { CONFDB_PAM_P11_URI, NULL },
+        { CONFDB_PAM_P11_URI, "pkcs11:manufacturer=SoftHSM%20project" },
         { NULL, NULL },             /* Sentinel */
     };
 
