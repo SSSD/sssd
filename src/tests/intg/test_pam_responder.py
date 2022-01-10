@@ -134,6 +134,8 @@ def format_pam_cert_auth_conf(config):
         pam_p11_allowed_services = +pam_sss_service, +pam_sss_sc_required, \
                                    +pam_sss_try_sc, +pam_sss_allow_missing_name
         pam_cert_db_path = {config.PAM_CERT_DB_PATH}
+        p11_uri = pkcs11:manufacturer=SoftHSM%20project; \
+                  token=SSSD%20Test%20Token
         p11_child_timeout = 5
         p11_wait_for_card_timeout = 5
         debug_level = 10
@@ -164,6 +166,8 @@ def format_pam_cert_auth_conf_name_format(config):
         pam_p11_allowed_services = +pam_sss_service, +pam_sss_sc_required, \
                                    +pam_sss_try_sc, +pam_sss_allow_missing_name
         pam_cert_db_path = {config.PAM_CERT_DB_PATH}
+        p11_uri = pkcs11:manufacturer=SoftHSM%20project; \
+                  token=SSSD%20Test%20Token
         p11_child_timeout = 5
         p11_wait_for_card_timeout = 5
         debug_level = 10
