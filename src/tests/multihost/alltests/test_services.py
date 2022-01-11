@@ -88,15 +88,19 @@ class TestServices(object):
         """
         # sssd-dbus is a weak dependency of sssd-tools package so we did not
         # get sssd-dbus in '# yum deplist sssd-tools' command
-        rpm_grep = 'yum repoquery --recommends sssd-tools'
-        cmd = multihost.client[0].run_command(rpm_grep, raiseonerr=False)
+        version = float(re.findall(r"\d+\.\d+", multihost.client[0].distro)[0])
+        if version >= 9:
+            cmd = multihost.client[0].run_command('yum repoquery'
+                                                  ' --requires sssd-tools',
+                                                  raiseonerr=False)
+        else:
+            cmd = multihost.client[0].run_command('yum repoquery --recommends'
+                                                  ' sssd-tools',
+                                                  raiseonerr=False)
         if cmd.returncode == 0:
-            status = 'PASS'
             find = re.compile(r'sssd-dbus')
             result = find.search(cmd.stdout_text)
-            if result is None:
-                status = 'FAIL'
-            assert status != 'FAIL'
+            assert result is not None
 
     @pytest.mark.tier1
     def test_0004_membership_with_files_provider(self, multihost):
