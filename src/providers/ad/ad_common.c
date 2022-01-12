@@ -1084,7 +1084,8 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
         goto done;
     }
 
-    if (service->krb5_service->write_kdcinfo) {
+    if (service->krb5_service->write_kdcinfo && !(sdata != NULL && sdata->gc)) {
+        /* write KDC info file only if this is not GC lookup */
         ret = write_krb5info_file_from_fo_server(service->krb5_service,
                                                  server,
                                                  true,
