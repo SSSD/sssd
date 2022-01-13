@@ -174,6 +174,7 @@ errno_t write_krb5info_file(struct krb5_service *krb5_service,
 
 errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
                                            struct fo_server *server,
+                                           bool force_default_port,
                                            const char *service,
                                            bool (*filter)(struct fo_server *));
 
