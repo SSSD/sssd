@@ -690,6 +690,7 @@ static const char* fo_server_address_or_name(TALLOC_CTX *tmp_ctx, struct fo_serv
 
 errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
                                            struct fo_server *server,
+                                           bool force_default_port,
                                            const char *service,
                                            bool (*filter)(struct fo_server *))
 {
@@ -731,13 +732,15 @@ errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
     if (filter == NULL || filter(server) == false) {
         address = fo_server_address_or_name(tmp_ctx, server);
         if (address) {
-            port = fo_get_server_port(server);
-            if (port != 0) {
-                address = talloc_asprintf(tmp_ctx, "%s:%d", address, port);
-                if (address == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
-                    talloc_free(tmp_ctx);
-                    return ENOMEM;
+            if (!force_default_port) {
+                port = fo_get_server_port(server);
+                if (port != 0) {
+                    address = talloc_asprintf(tmp_ctx, "%s:%d", address, port);
+                    if (address == NULL) {
+                        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+                        talloc_free(tmp_ctx);
+                        return ENOMEM;
+                    }
                 }
             }
 
@@ -775,13 +778,15 @@ errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
                 continue;
             }
 
-            port = fo_get_server_port(item);
-            if (port != 0) {
-                address = talloc_asprintf(tmp_ctx, "%s:%d", address, port);
-                if (address == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
-                    talloc_free(tmp_ctx);
-                    return ENOMEM;
+            if (!force_default_port) {
+                port = fo_get_server_port(item);
+                if (port != 0) {
+                    address = talloc_asprintf(tmp_ctx, "%s:%d", address, port);
+                    if (address == NULL) {
+                        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+                        talloc_free(tmp_ctx);
+                        return ENOMEM;
+                    }
                 }
             }
 
@@ -821,6 +826,7 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
     if (krb5_service->write_kdcinfo) {
         ret = write_krb5info_file_from_fo_server(krb5_service,
                                                  server,
+                                                 false,
                                                  krb5_service->name,
                                                  NULL);
         if (ret != EOK) {
