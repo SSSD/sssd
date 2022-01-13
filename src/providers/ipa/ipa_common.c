@@ -925,6 +925,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     if (service->krb5_service->write_kdcinfo) {
         ret = write_krb5info_file_from_fo_server(service->krb5_service,
                                                  server,
+                                                 true,
                                                  SSS_KRB5KDC_FO_SRV,
                                                  NULL);
         if (ret != EOK) {
