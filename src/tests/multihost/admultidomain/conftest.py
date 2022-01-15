@@ -1,14 +1,9 @@
 
 """ Common AD Fixtures """
 from __future__ import print_function
-import random
 import subprocess
-import time
+import random
 import pytest
-import ldap
-import os
-import posixpath
-import pathlib
 # pylint: disable=unused-import
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF, NSSWITCH_DEFAULT_CONF
 from sssd.testlib.common.qe_class import session_multihost
@@ -31,6 +26,26 @@ def pytest_configure():
 
 
 # ######## Function scoped Fixtures ####################
+@pytest.fixture(scope="function")
+def newhostname(session_multihost, request):
+    """ Change client hostname to a truncated version in the AD domain"""
+    cmd = session_multihost.client[0].run_command(
+        'hostname', raiseonerr=False)
+    ad_domain = session_multihost.ad[0].domainname
+    old_hostname = cmd.stdout_text.rstrip()
+    hostname = f'client{random.randint(1,99)}.{ad_domain}'
+    session_multihost.client[0].run_command(
+        f'hostname {hostname}', raiseonerr=False)
+
+    def restore():
+        """ Restore hostname """
+        session_multihost.client[0].run_command(
+            f'hostname {old_hostname}',
+            raiseonerr=False
+        )
+    request.addfinalizer(restore)
+
+
 @pytest.fixture(scope="function")
 def adjoin(session_multihost, request):
     """ Join to AD using net ads command """

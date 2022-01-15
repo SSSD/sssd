@@ -2,7 +2,7 @@ AD Multidomain Provider Test Suite
 ======================
 
 This directory contains automation for SSSD AD Provider
-Multi-domain tests.
+Multi-domain and multi-forest tests.
 
 Fixtures
 ========

@@ -1,11 +1,3 @@
-""" AD-Provider AD Parameters tests ported from bash
-
-:requirement: ad_parameters
-:casecomponent: sssd
-:subsystemteam: sst_idm_sssd
-:upstream: yes
-"""
-import tempfile
 import pytest
 
 from sssd.testlib.common.utils import sssdTools
@@ -13,32 +5,12 @@ from sssd.testlib.common.utils import SSSDException
 from sssd.testlib.common.utils import ADOperations
 
 
-@pytest.fixture(scope="class")
-def change_client_hostname(session_multihost, request):
-    """ Change client hostname to a truncated version in the AD domain"""
-    cmd = session_multihost.client[0].run_command(
-        'hostname', raiseonerr=False)
-    old_hostname = cmd.stdout_text.rstrip()
-    ad_domain = session_multihost.ad[0].domainname
-    session_multihost.client[0].run_command(
-        f'hostname client.{ad_domain}', raiseonerr=False)
-
-    def restore():
-        """ Restore hostname """
-        session_multihost.client[0].run_command(
-            f'hostname {old_hostname}',
-            raiseonerr=False
-        )
-    request.addfinalizer(restore)
-
-
 @pytest.mark.tier1
 @pytest.mark.admultidomain
-@pytest.mark.usefixtures("change_client_hostname")
 class TestADMultiDomain(object):
 
     @staticmethod
-    def test_0001_bz2013297(multihost, adchildjoin):
+    def test_0001_bz2013297(multihost, newhostname, adchildjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: forests: disabled root ad domain
         causes subdomains to be marked offline
@@ -63,7 +35,8 @@ class TestADMultiDomain(object):
         """
         adchildjoin(membersw='adcli')
         ad_domain = multihost.ad[0].domainname
-        ad_child_domain = multihost.ad[1].domainname
+        child_domain = multihost.ad[1].domainname
+        ad_server = multihost.ad[1].hostname
 
         # Configure sssd
         multihost.client[0].service_sssd('stop')
@@ -71,22 +44,23 @@ class TestADMultiDomain(object):
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
-            'ad_domain': ad_child_domain,
+            'ad_domain': child_domain,
             'debug_level': '9',
             'use_fully_qualified_names': 'True',
+            'ad_server': ad_server,
             'cache_credentials': 'True',
         }
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
 
         # Search for the user in root domain
-        parent_cmd = multihost.client[0].run_command(
+        getent_root_user1 = multihost.client[0].run_command(
             f'getent passwd user1@{ad_domain}',
             raiseonerr=False
         )
         # Search for the user in child domain
-        child_cmd = multihost.client[0].run_command(
-            f'getent passwd child_user1@{ad_child_domain}',
+        getent_child_user1 = multihost.client[0].run_command(
+            f'getent passwd child_user1@{child_domain}',
             raiseonerr=False
         )
 
@@ -94,28 +68,29 @@ class TestADMultiDomain(object):
         client.clear_sssd_cache()
 
         # Evaluate test results
-        assert parent_cmd.returncode == 0
-        assert child_cmd.returncode == 0
+        assert getent_root_user1.returncode == 0
+        assert getent_child_user1.returncode == 0
 
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
-            'ad_domain': ad_child_domain,
+            'ad_domain': child_domain,
             'debug_level': '9',
             'use_fully_qualified_names': 'True',
             'cache_credentials': 'True',
-            'ad_enabled_domains': ad_child_domain
+            'ad_server': ad_server,
+            'ad_enabled_domains': child_domain
         }
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
 
         # Search for the user in root domain
-        parent_cmd = multihost.client[0].run_command(
+        getent_root_user2 = multihost.client[0].run_command(
             f'getent passwd user1@{ad_domain}',
             raiseonerr=False
         )
         # Search for the user in child domain
-        child_cmd = multihost.client[0].run_command(
-            f'getent passwd child_user1@{ad_child_domain}',
+        getent_child_user2 = multihost.client[0].run_command(
+            f'getent passwd child_user1@{child_domain}',
             raiseonerr=False
         )
 
@@ -123,14 +98,14 @@ class TestADMultiDomain(object):
         client.clear_sssd_cache()
 
         # Evaluate test results
-        assert parent_cmd.returncode == 2
-        assert child_cmd.returncode == 0
+        assert getent_root_user2.returncode == 2
+        assert getent_child_user2.returncode == 0
 
     @staticmethod
-    def test_0002_bz2018432(multihost, adjoin):
+    def test_0002_bz2018432(multihost, newhostname, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: forests:  based SSSD adds more AD
-        domains than it should based on the configuration file
+        domains than it should be based on the configuration file
         :id:
         :setup:
           1. Configure several domains, this suite contains 4 trusted domains
@@ -143,9 +118,7 @@ class TestADMultiDomain(object):
         """
         adjoin(membersw='adcli')
         ad_domain = multihost.ad[0].domainname
-        ad_child_domain = multihost.ad[1].domainname
-        ad_child1_domain = multihost.ad[2].domainname
-        ad_tree_domain = multihost.ad[3].domainname
+        ad_server = multihost.ad[0].hostname
 
         # Configure sssd
         multihost.client[0].service_sssd('stop')
@@ -156,19 +129,23 @@ class TestADMultiDomain(object):
             'ad_domain': ad_domain,
             'debug_level': '9',
             'use_fully_qualified_names': 'True',
+            'ad_server': ad_server,
             'cache_credentials': 'True'
         }
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
         # List domains
+        # The lists have to be manipulated, the DC in the other forest
+        # needs to be removed as well as implicit_files from the output
         domain_list_cmd = multihost.client[0].run_command(
             'sssctl domain-list', raiseonerr=False)
-        ad_count = len(multihost.ad)
+        domain_list = domain_list_cmd.stdout_text.split('\n')
+        domain_list.remove("implicit_files")
+        domain_list = domain_list[:-1]
+        multihost_list = multihost.ad
+        multihost_list = multihost_list[:-1]
 
-        assert str(ad_domain) \
-            and str(ad_child_domain) \
-            and str(ad_child1_domain) \
-            and str(ad_tree_domain) \
-            in domain_list_cmd.stdout_text
+        for x in multihost_list:
+            assert x.domainname in domain_list
 
-        assert (len(domain_list_cmd.stdout_text.split('\n'))-1) == ad_count
+        assert len(domain_list) == len(multihost_list)
