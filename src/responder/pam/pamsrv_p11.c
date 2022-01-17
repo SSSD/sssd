@@ -719,7 +719,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     struct timeval tv;
     int pipefd_to_child[2] = PIPE_INIT;
     int pipefd_from_child[2] = PIPE_INIT;
-    const char *extra_args[18] = { NULL };
+    const char *extra_args[19] = { NULL };
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
     size_t arg_c;
