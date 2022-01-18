@@ -303,3 +303,60 @@ class Testipabz(object):
                                                  ' |tail -10')
         ssh.close()
         assert 'indicators: 2' in search.stdout_text
+
+    def test_pass_krb5cname_to_pam(self, multihost,
+                                   backupsssdconf,
+                                   backup_config_pam_gssapi_services):
+        """
+        :title: pass KRB5CCNAME to pam_authenticate environment
+         if available
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1917379
+        :id: e3a6accc-781d-11ec-a83c-845cf3eff344
+        :steps:
+            1. Take backup of files
+            2. Configure domain_params
+            3. Configure /etc/pam.d/sudo
+            4. Configur /etc/pam.d/sudo-i
+            5. Create IPA sudo rule of /usr/sbin/sssctl
+             for user admin
+            6. Check user admin can use sudo command
+            7. Restore of files
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+            4. Should succeed
+            5. Should succeed
+            6. Should succeed
+            7. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
+        domain_name = tools.get_domain_section_name()
+        user = "admin"
+        test_password = "Secret123"
+        sys_hostname = multihost.client[0].sys_hostname
+        ssh1 = SSHClient(multihost.client[0].ip,
+                         username=user, password=test_password)
+        (result, result1, exit_status) = ssh1.execute_cmd('kinit',
+                                                          stdin=test_password)
+        assert exit_status == 0
+        (_, _, _) = ssh1.execute_cmd("ipa sudocmd-add "
+                                     "/usr/sbin/sssctl")
+        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add "
+                                     "idm_user_sssctl")
+        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add-allow-command "
+                                     "idm_user_sssctl "
+                                     "--sudocmds "
+                                     "'/usr/sbin/sssctl'")
+        (_, _, _) = ssh1.execute_cmd(f"ipa sudorule-add-host "
+                                     f"idm_user_sssctl "
+                                     f"--hosts "
+                                     f"{sys_hostname}")
+        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add-user "
+                                     "idm_user_sssctl "
+                                     "--users admin")
+        (result, result1, exit_status) = ssh1.execute_cmd("sudo -S "
+                                                          "/usr/sbin/sssctl "
+                                                          "domain-list",
+                                                          stdin=test_password)
+        assert domain_name+'\n' in result.readlines()

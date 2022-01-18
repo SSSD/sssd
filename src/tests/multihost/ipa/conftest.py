@@ -66,6 +66,40 @@ def create_aduser_group(session_multihost, request):
 
 
 @pytest.fixture(scope="function")
+def backup_config_pam_gssapi_services(session_multihost, request):
+    """ Take backup of files, Configure domain_params
+        Configure /etc/pam.d/sudo
+        Configure /etc/pam.d/sudo-i
+    """
+    tools = sssdTools(session_multihost.client[0])
+    domain_name = tools.get_domain_section_name()
+    client = sssdTools(session_multihost.client[0])
+    domain_params = {'pam_gssapi_services': 'sudo, sudo-i'}
+    client.sssd_conf(f'{domain_name}', domain_params)
+    session_multihost.client[0].service_sssd('restart')
+    session_multihost.client[0].run_command("cp -vf  /etc/pam.d/sudo "
+                                            "/etc/pam.d/sudo_bkp")
+    session_multihost.client[0].run_command("cp -vf  /etc/pam.d/sudo-i "
+                                            "/etc/pam.d/sudo-i_bkp")
+    session_multihost.client[0].run_command("sed -i '1 a auth "
+                                            "sufficient pam_sss_gss.so' "
+                                            "/etc/pam.d/sudo")
+    session_multihost.client[0].run_command("sed -i '1 a auth sufficient "
+                                            "pam_sss_gss.so' "
+                                            "/etc/pam.d/sudo-i")
+
+    def restore():
+        session_multihost.client[0].run_command("cp -vf  "
+                                                "/etc/pam.d/sudo_bkp "
+                                                "/etc/pam.d/sudo")
+        session_multihost.client[0].run_command("cp -vf  "
+                                                "/etc/pam.d/sudo-i_bkp "
+                                                "/etc/pam.d/sudo-i")
+
+    request.addfinalizer(restore)
+
+
+@pytest.fixture(scope="function")
 def create_reverse_zone(session_multihost, request):
     """ Creates reverse zone """
     client_ip = session_multihost.client[0].ip
