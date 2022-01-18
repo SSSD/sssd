@@ -120,8 +120,10 @@ ldap_schema = ad
                     <term>ldap_idmap_range_min (integer)</term>
                     <listitem>
                         <para>
-                            Specifies the lower bound of the range of POSIX IDs to
-                            use for mapping Active Directory user and group SIDs.
+                            Specifies the lower (inclusive) bound of the range
+                            of POSIX IDs to use for mapping Active Directory
+                            user and group SIDs. It is the first POSIX ID which
+                            can be used for the mapping.
                         </para>
                         <para>
                             NOTE: This option is different from
@@ -142,8 +144,12 @@ ldap_schema = ad
                     <term>ldap_idmap_range_max (integer)</term>
                     <listitem>
                         <para>
-                            Specifies the upper bound of the range of POSIX IDs to
-                            use for mapping Active Directory user and group SIDs.
+                            Specifies the upper (exclusive) bound of the range
+                            of POSIX IDs to use for mapping Active Directory
+                            user and group SIDs. It is the first POSIX ID which
+                            cannot be used for the mapping anymore, i.e. one
+                            larger than the last one which can be used for the
+                            mapping.
                         </para>
                         <para>
                             NOTE: This option is different from
