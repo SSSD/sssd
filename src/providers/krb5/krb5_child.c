@@ -2631,6 +2631,82 @@ done:
     return krberr;
 }
 
+static krb5_error_code get_fast_ccache_with_keytab(krb5_context ctx,
+                                                   uid_t fast_uid,
+                                                   gid_t fast_gid,
+                                                   bool posix_domain,
+                                                   struct cli_opts *cli_opts,
+                                                   krb5_keytab keytab,
+                                                   krb5_principal client_princ,
+                                                   char *ccname)
+{
+    krb5_error_code kerr;
+    pid_t fchild_pid;
+    int status;
+
+    fchild_pid = fork();
+    switch (fchild_pid) {
+        case -1:
+            DEBUG(SSSDBG_CRIT_FAILURE, "fork failed\n");
+            return EIO;
+        case 0:
+            /* Child */
+            debug_prg_name = talloc_asprintf(NULL, "krb5_child[%d]", getpid());
+            if (debug_prg_name == NULL) {
+                debug_prg_name = "krb5_child";
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+                /* Try to carry on */
+            }
+
+            kerr = k5c_become_user(fast_uid, fast_gid, posix_domain);
+            if (kerr != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed: %d\n", kerr);
+                exit(1);
+            }
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
+
+            kerr = get_and_save_tgt_with_keytab(ctx, cli_opts, client_princ,
+                                                keytab, ccname);
+            if (kerr != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "get_and_save_tgt_with_keytab failed: %d\n", kerr);
+                exit(2);
+            }
+            exit(0);
+        default:
+            /* Parent */
+            do {
+                errno = 0;
+                kerr = waitpid(fchild_pid, &status, 0);
+            } while (kerr == -1 && errno == EINTR);
+
+            if (kerr > 0) {
+                if (WIFEXITED(status)) {
+                    kerr = WEXITSTATUS(status);
+                    /* Don't blindly fail if the child fails, but check
+                     * the ccache again */
+                    if (kerr != 0) {
+                        DEBUG(SSSDBG_MINOR_FAILURE,
+                              "Creating FAST ccache failed, krb5_child will "
+                              "likely fail!\n");
+                    }
+                } else {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "krb5_child subprocess %d terminated unexpectedly\n",
+                          fchild_pid);
+                }
+            } else {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to wait for child %d\n", fchild_pid);
+                /* Let the code re-check the TGT times and fail if we
+                 * can't find the updated principal */
+            }
+    }
+
+    return 0;
+}
+
 static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
                                          krb5_context ctx,
                                          uid_t fast_uid,
@@ -2650,8 +2726,6 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
     krb5_keytab keytab = NULL;
     krb5_principal client_princ = NULL;
     krb5_principal server_princ = NULL;
-    pid_t fchild_pid;
-    int status;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -2712,65 +2786,11 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
     }
 
     /* Need to recreate the FAST ccache */
-    fchild_pid = fork();
-    switch (fchild_pid) {
-        case -1:
-            DEBUG(SSSDBG_CRIT_FAILURE, "fork failed\n");
-            kerr = EIO;
-            goto done;
-        case 0:
-            /* Child */
-            debug_prg_name = talloc_asprintf(NULL, "krb5_child[%d]", getpid());
-            if (debug_prg_name == NULL) {
-                debug_prg_name = "krb5_child";
-                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
-                /* Try to carry on */
-            }
-
-            kerr = k5c_become_user(fast_uid, fast_gid, posix_domain);
-            if (kerr != 0) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed: %d\n", kerr);
-                exit(1);
-            }
-            DEBUG(SSSDBG_TRACE_INTERNAL,
-                  "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
-
-            kerr = get_and_save_tgt_with_keytab(ctx, cli_opts, client_princ,
-                                                keytab, ccname);
-            if (kerr != 0) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "get_and_save_tgt_with_keytab failed: %d\n", kerr);
-                exit(2);
-            }
-            exit(0);
-        default:
-            /* Parent */
-            do {
-                errno = 0;
-                kerr = waitpid(fchild_pid, &status, 0);
-            } while (kerr == -1 && errno == EINTR);
-
-            if (kerr > 0) {
-                if (WIFEXITED(status)) {
-                    kerr = WEXITSTATUS(status);
-                    /* Don't blindly fail if the child fails, but check
-                     * the ccache again */
-                    if (kerr != 0) {
-                        DEBUG(SSSDBG_MINOR_FAILURE,
-                              "Creating FAST ccache failed, krb5_child will "
-                              "likely fail!\n");
-                    }
-                } else {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "krb5_child subprocess %d terminated unexpectedly\n",
-                          fchild_pid);
-                }
-            } else {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to wait for child %d\n", fchild_pid);
-                /* Let the code re-check the TGT times and fail if we
-                 * can't find the updated principal */
-            }
+    kerr = get_fast_ccache_with_keytab(ctx, fast_uid, fast_gid, posix_domain,
+                                       cli_opts, keytab, client_princ, ccname);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Creating FAST ccache with keytab failed, "
+                                    "krb5_child will likely fail!\n");
     }
 
     /* Check the ccache times again. Should be updated ... */
