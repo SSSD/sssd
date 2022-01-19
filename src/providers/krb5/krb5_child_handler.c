@@ -310,7 +310,7 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
         return EINVAL;
     }
 
-    extra_args = talloc_zero_array(mem_ctx, const char *, 10);
+    extra_args = talloc_zero_array(mem_ctx, const char *, 11);
     if (extra_args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
         return ENOMEM;
@@ -392,6 +392,17 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
                                             krb5_ctx->fast_principal);
             if (extra_args[c] == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            c++;
+        }
+
+        if (krb5_ctx->fast_use_anonymous_pkinit) {
+            extra_args[c] = talloc_strdup(extra_args,
+                                     "--" CHILD_OPT_FAST_USE_ANONYMOUS_PKINIT);
+            if (extra_args[c] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }

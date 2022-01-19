@@ -296,7 +296,8 @@
                             Default: not set, i.e. FAST is not used.
                         </para>
                         <para>
-                            NOTE: a keytab is required to use FAST.
+                            NOTE: a keytab or support for anonymous PKINIT is
+                            required to use FAST.
                         </para>
                         <para>
                             NOTE: SSSD supports FAST only with
@@ -312,6 +313,21 @@
                     <listitem>
                         <para>
                             Specifies the server principal to use for FAST.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>krb5_fast_use_anonymous_pkinit (boolean)</term>
+                    <listitem>
+                        <para>
+                            If set to true try to use anonymous PKINIT
+                            instead of a keytab to get the required
+                            credential for FAST. The krb5_fast_principal
+                            options is ignored in this case.
+                        </para>
+                        <para>
+                            Default: false
                         </para>
                     </listitem>
                 </varlistentry>

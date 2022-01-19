@@ -326,6 +326,7 @@ class SSSDOptions(object):
         'krb5_renew_interval': _("Time between two checks for renewal"),
         'krb5_use_fast': _("Enables FAST"),
         'krb5_fast_principal': _("Selects the principal to use for FAST"),
+        'krb5_fast_use_anonymous_pkinit': _("Use anonymous PKINIT to request FAST credentials"),
         'krb5_canonicalize': _("Enables principal canonicalization"),
         'krb5_use_enterprise_principal': _("Enables enterprise principals"),
         'krb5_use_subdomain_realm': _("Enables using of subdomains realms for authentication"),
