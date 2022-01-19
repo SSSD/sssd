@@ -70,6 +70,7 @@ struct cli_opts {
     char *use_fast_str;
     char *fast_principal;
     bool canonicalize;
+    bool fast_use_anonymous_pkinit;
 };
 
 struct krb5_req {
@@ -2631,6 +2632,82 @@ done:
     return krberr;
 }
 
+static krb5_error_code get_fast_ccache_with_anonymous_pkinit(krb5_context ctx,
+                                                    uid_t fast_uid,
+                                                    gid_t fast_gid,
+                                                    bool posix_domain,
+                                                    struct cli_opts *cli_opts,
+                                                    krb5_keytab keytab,
+                                                    krb5_principal client_princ,
+                                                    char *ccname,
+                                                    const char *realm)
+{
+    krb5_error_code kerr;
+    krb5_get_init_creds_opt *options;
+    struct sss_creds *saved_creds = NULL;
+    krb5_preauthtype pkinit = KRB5_PADATA_PK_AS_REQ;
+    krb5_creds creds = { 0 };
+
+    kerr = sss_krb5_get_init_creds_opt_alloc(ctx, &options);
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        return kerr;
+    }
+
+    krb5_get_init_creds_opt_set_tkt_life(options, 10 * 60);
+    krb5_get_init_creds_opt_set_renew_life(options, 0);
+    krb5_get_init_creds_opt_set_forwardable(options, 0);
+    krb5_get_init_creds_opt_set_proxiable(options, 0);
+    krb5_get_init_creds_opt_set_canonicalize(options, 1);
+    krb5_get_init_creds_opt_set_preauth_list(options, &pkinit, 1);
+
+    kerr = krb5_build_principal(ctx, &creds.server, strlen(realm), realm,
+                                KRB5_TGS_NAME, realm, NULL);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create principal.\n");
+        goto done;
+    }
+
+    creds.client = client_princ;
+
+    kerr = krb5_get_init_creds_password(ctx, &creds, client_princ, NULL,
+                                        sss_krb5_prompter, NULL, 0, NULL,
+                                        options);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to get FAST credential with anonymous PKINIT.\n");
+        goto done;
+    }
+
+    kerr = switch_creds(NULL, fast_uid, fast_gid, 0, NULL, &saved_creds);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to switch credentials to store FAST ccache with "
+              "expected permissions.\n");
+        goto done;
+    }
+
+    kerr = create_ccache(ccname, &creds);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to store FAST ccache.\n");
+        goto done;
+    }
+
+    kerr = restore_creds(saved_creds);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to restore credentials, krb5_child might run with wrong "
+              "permissions, aborting.\n");
+        goto done;
+    }
+
+done:
+    sss_krb5_get_init_creds_opt_free(ctx, options);
+    talloc_free(saved_creds);
+
+    return kerr;
+}
+
 static krb5_error_code get_fast_ccache_with_keytab(krb5_context ctx,
                                                    uid_t fast_uid,
                                                    gid_t fast_gid,
@@ -2726,6 +2803,7 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
     krb5_keytab keytab = NULL;
     krb5_principal client_princ = NULL;
     krb5_principal server_princ = NULL;
+    krb5_principal client_search_princ = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -2740,27 +2818,53 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (keytab_name != NULL) {
-        kerr = krb5_kt_resolve(ctx, keytab_name, &keytab);
-    } else {
-        kerr = krb5_kt_default(ctx, &keytab);
-    }
-    if (kerr) {
-        const char *__err_msg = sss_krb5_get_error_message(ctx, kerr);
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to read keytab file [%s]: %s\n",
-               sss_printable_keytab_name(ctx, keytab_name),
-               __err_msg);
-        sss_krb5_free_error_message(ctx, __err_msg);
-        goto done;
-    }
+    if (cli_opts->fast_use_anonymous_pkinit) {
+        kerr = krb5_build_principal(ctx, &client_princ, strlen(realm), realm,
+                                    KRB5_WELLKNOWN_NAMESTR,
+                                    KRB5_ANONYMOUS_PRINCSTR, NULL);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to create anonymous PKINIT principal.\n");
+            goto done;
+        }
 
-    kerr = find_principal_in_keytab(ctx, keytab, primary, realm, &client_princ);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "find_principal_in_keytab failed for principal %s@%s.\n",
-               primary, realm);
-        goto done;
+        /* Anonymous pkinit is using the canonical principal
+         * WELLKNOWN/ANONYMOUS@WELLKNOWN:ANONYMOUS so we need an additional
+         * client_search_princ to find it in the ccache to determine the
+         * lifetime. */
+        kerr = krb5_build_principal(ctx, &client_search_princ,
+                                    strlen(KRB5_ANONYMOUS_REALMSTR),
+                                    KRB5_ANONYMOUS_REALMSTR,
+                                    KRB5_WELLKNOWN_NAMESTR,
+                                    KRB5_ANONYMOUS_PRINCSTR, NULL);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to create anonymous PKINIT principal.\n");
+            goto done;
+        }
+    } else {
+        if (keytab_name != NULL) {
+            kerr = krb5_kt_resolve(ctx, keytab_name, &keytab);
+        } else {
+            kerr = krb5_kt_default(ctx, &keytab);
+        }
+        if (kerr) {
+            const char *__err_msg = sss_krb5_get_error_message(ctx, kerr);
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to read keytab file [%s]: %s\n",
+                   sss_printable_keytab_name(ctx, keytab_name),
+                   __err_msg);
+            sss_krb5_free_error_message(ctx, __err_msg);
+            goto done;
+        }
+
+        kerr = find_principal_in_keytab(ctx, keytab, primary, realm, &client_princ);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "find_principal_in_keytab failed for principal %s@%s.\n",
+                   primary, realm);
+            goto done;
+        }
     }
 
     server_name = talloc_asprintf(tmp_ctx, "krbtgt/%s@%s", realm, realm);
@@ -2777,7 +2881,10 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
     }
 
     memset(&tgtt, 0, sizeof(tgtt));
-    kerr = get_tgt_times(ctx, ccname, server_princ, client_princ, &tgtt);
+    kerr = get_tgt_times(ctx, ccname, server_princ,
+                         client_search_princ != NULL ? client_search_princ
+                                                     : client_princ,
+                         &tgtt);
     if (kerr == 0) {
         if (tgtt.endtime > time(NULL)) {
             DEBUG(SSSDBG_FUNC_DATA, "FAST TGT is still valid.\n");
@@ -2786,16 +2893,31 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
     }
 
     /* Need to recreate the FAST ccache */
-    kerr = get_fast_ccache_with_keytab(ctx, fast_uid, fast_gid, posix_domain,
-                                       cli_opts, keytab, client_princ, ccname);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Creating FAST ccache with keytab failed, "
-                                    "krb5_child will likely fail!\n");
+    if (cli_opts->fast_use_anonymous_pkinit) {
+        kerr = get_fast_ccache_with_anonymous_pkinit(ctx, fast_uid, fast_gid,
+                                                     posix_domain, cli_opts,
+                                                     keytab, client_princ,
+                                                     ccname, realm);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Creating FAST ccache with anonymous "
+                                        "PKINIT failed, krb5_child will "
+                                        "likely fail!\n");
+        }
+    } else {
+        kerr = get_fast_ccache_with_keytab(ctx, fast_uid, fast_gid, posix_domain,
+                                           cli_opts, keytab, client_princ, ccname);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Creating FAST ccache with keytab failed, "
+                                        "krb5_child will likely fail!\n");
+        }
     }
 
     /* Check the ccache times again. Should be updated ... */
     memset(&tgtt, 0, sizeof(tgtt));
-    kerr = get_tgt_times(ctx, ccname, server_princ, client_princ, &tgtt);
+    kerr = get_tgt_times(ctx, ccname, server_princ,
+                         client_search_princ != NULL ? client_search_princ
+                                                     : client_princ,
+                         &tgtt);
     if (kerr != 0) {
         DEBUG(SSSDBG_OP_FAILURE, "get_tgt_times() failed\n");
         goto done;
@@ -2813,6 +2935,9 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
 done:
     if (client_princ != NULL) {
         krb5_free_principal(ctx, client_princ);
+    }
+    if (client_search_princ != NULL) {
+        krb5_free_principal(ctx, client_search_princ);
     }
     if (server_princ != NULL) {
         krb5_free_principal(ctx, server_princ);
@@ -3352,6 +3477,8 @@ int main(int argc, const char *argv[])
           _("The user to create FAST ccache as"), NULL},
         {CHILD_OPT_FAST_CCACHE_GID, 0, POPT_ARG_INT, &fast_gid, 0,
           _("The group to create FAST ccache as"), NULL},
+        {CHILD_OPT_FAST_USE_ANONYMOUS_PKINIT, 0, POPT_ARG_NONE, NULL, 'A',
+          _("Use anonymous PKINIT to request FAST armor ticket"), NULL},
         {CHILD_OPT_REALM, 0, POPT_ARG_STRING, &cli_opts.realm, 0,
          _("Kerberos realm to use"), NULL},
         {CHILD_OPT_LIFETIME, 0, POPT_ARG_STRING, &cli_opts.lifetime, 0,
@@ -3376,10 +3503,14 @@ int main(int argc, const char *argv[])
     debug_level = SSSDBG_INVALID;
 
     cli_opts.canonicalize = false;
+    cli_opts.fast_use_anonymous_pkinit = false;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {
+        case 'A':
+            cli_opts.fast_use_anonymous_pkinit = true;
+            break;
         case 'C':
             cli_opts.canonicalize = true;
             break;
