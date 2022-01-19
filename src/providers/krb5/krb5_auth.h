@@ -40,6 +40,7 @@
 
 #define CHILD_OPT_FAST_CCACHE_UID "fast-ccache-uid"
 #define CHILD_OPT_FAST_CCACHE_GID "fast-ccache-gid"
+#define CHILD_OPT_FAST_USE_ANONYMOUS_PKINIT "fast-use-anonymous-pkinit"
 #define CHILD_OPT_REALM "realm"
 #define CHILD_OPT_LIFETIME "lifetime"
 #define CHILD_OPT_RENEWABLE_LIFETIME "renewable-lifetime"
