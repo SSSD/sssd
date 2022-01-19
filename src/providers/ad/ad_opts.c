@@ -183,6 +183,7 @@ struct dp_option ad_def_krb5_opts[] = {
     { "krb5_renew_interval", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_use_fast", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_fast_principal", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_fast_use_anonymous_pkinit", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_use_enterprise_principal", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "krb5_use_kdcinfo", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
