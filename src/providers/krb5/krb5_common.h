@@ -58,6 +58,7 @@ enum krb5_opts {
     KRB5_RENEW_INTERVAL,
     KRB5_USE_FAST,
     KRB5_FAST_PRINCIPAL,
+    KRB5_FAST_USE_ANONYMOUS_PKINIT,
     KRB5_CANONICALIZE,
     KRB5_USE_ENTERPRISE_PRINCIPAL,
     KRB5_USE_KDCINFO,
@@ -144,6 +145,7 @@ struct krb5_ctx {
 
     const char *use_fast_str;
     const char *fast_principal;
+    bool fast_use_anonymous_pkinit;
 
     bool canonicalize;
 };

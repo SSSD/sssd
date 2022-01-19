@@ -226,6 +226,8 @@ errno_t sss_krb5_check_options(struct dp_option *opts,
         if (krb5_ctx->use_fast) {
             krb5_ctx->fast_principal = dp_opt_get_cstring(opts,
                                                           KRB5_FAST_PRINCIPAL);
+            krb5_ctx->fast_use_anonymous_pkinit = dp_opt_get_bool(opts,
+                                               KRB5_FAST_USE_ANONYMOUS_PKINIT);
         }
     }
 
