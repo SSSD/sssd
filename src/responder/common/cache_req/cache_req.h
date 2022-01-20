@@ -423,28 +423,6 @@ cache_req_object_by_id_send(TALLOC_CTX *mem_ctx,
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
-cache_req_enum_users_send(TALLOC_CTX *mem_ctx,
-                          struct tevent_context *ev,
-                          struct resp_ctx *rctx,
-                          struct sss_nc_ctx *ncache,
-                          int cache_refresh_percent,
-                          const char *domain);
-
-#define cache_req_enum_users_recv(mem_ctx, req, _result) \
-    cache_req_recv(mem_ctx, req, _result)
-
-struct tevent_req *
-cache_req_enum_groups_send(TALLOC_CTX *mem_ctx,
-                           struct tevent_context *ev,
-                           struct resp_ctx *rctx,
-                           struct sss_nc_ctx *ncache,
-                           int cache_refresh_percent,
-                           const char *domain);
-
-#define cache_req_enum_groups_recv(mem_ctx, req, _result) \
-    cache_req_recv(mem_ctx, req, _result)
-
-struct tevent_req *
 cache_req_svc_by_name_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct resp_ctx *rctx,
