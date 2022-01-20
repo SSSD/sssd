@@ -447,7 +447,7 @@ class Testautofsresponder(object):
             tcpdump_ascii = outfile.read()
         for i in range(1, 10):
             key = 'foo%d' % i
-            ldap_filter = '\(\&\(cn=%s\)\(objectclass=nisObject\)\)' % key
+            ldap_filter = r'\(\&\(cn=%s\)\(objectclass=nisObject\)\)' % key
             log_1 = re.compile(r'%s' % (ldap_filter))
             assert log_1.search(tcpdump_ascii)
 
