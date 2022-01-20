@@ -45,6 +45,7 @@ struct sdap_op {
     uint64_t chain_id;
 
     int msgid;
+    char *stat_info;
     uint64_t start_time;
     bool done;
 
