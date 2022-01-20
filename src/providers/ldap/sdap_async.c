@@ -1283,7 +1283,7 @@ static errno_t add_to_deref_reply(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void sdap_print_server(struct sdap_handle *sh)
+static const char *sdap_get_server_ip_str(struct sdap_handle *sh)
 {
     int ret;
     int fd;
@@ -1291,38 +1291,61 @@ static void sdap_print_server(struct sdap_handle *sh)
     socklen_t ss_len = sizeof(ss);
     struct sockaddr *s_addr = (struct sockaddr *)&ss;
     char ip[NI_MAXHOST];
+    static char out[NI_MAXHOST + 8];
     int port;
 
     ret = get_fd_from_ldap(sh->ldap, &fd);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "cannot get sdap fd\n");
-        return;
+        return NULL;
     }
 
     ret = getpeername(fd, s_addr, &ss_len);
     if (ret == -1) {
         DEBUG(SSSDBG_MINOR_FAILURE, "getsockname failed\n");
-        return;
+        return NULL;
     }
 
     ret = getnameinfo(s_addr, ss_len,
                       ip, sizeof(ip), NULL, 0, NI_NUMERICHOST);
     if (ret != 0) {
         DEBUG(SSSDBG_MINOR_FAILURE, "getnameinfo failed\n");
-        return;
+        return NULL;
     }
 
     switch (s_addr->sa_family) {
     case AF_INET:
         port = ntohs(((struct sockaddr_in *)s_addr)->sin_port);
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Searching %s:%d\n", ip, port);
+        ret = snprintf(out, sizeof(out), "%s:%d", ip, port);
         break;
     case AF_INET6:
         port = ntohs(((struct sockaddr_in6 *)s_addr)->sin6_port);
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Searching %s:%d\n", ip, port);
+        ret = snprintf(out, sizeof(out), "[%s]:%d", ip, port);
         break;
     default:
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Searching %s\n", ip);
+        ret = snprintf(out, sizeof(out), "%s", ip);
+    }
+
+    if (ret < 0 || ret >= sizeof(out)) {
+        return NULL;
+    }
+
+    return out;
+}
+
+static void sdap_print_server(struct sdap_handle *sh)
+{
+    const char *ip;
+
+    /* The purpose of the call is to add the server IP to the debug output if
+     * debug_level is SSSDBG_TRACE_INTERNAL or higher */
+    if (DEBUG_IS_SET(SSSDBG_TRACE_INTERNAL)) {
+        ip = sdap_get_server_ip_str(sh);
+        if (ip != NULL) {
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Searching %s\n", ip);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_get_server_ip_str failed.\n");
+        }
     }
 }
 
