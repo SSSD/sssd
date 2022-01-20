@@ -340,7 +340,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     ret = sdap_set_connected(state->sh, state->ev);
     if (ret) goto fail;
 
-    ret = sdap_op_add(state, state->ev, state->sh, msgid,
+    ret = sdap_op_add(state, state->ev, state->sh, msgid, NULL,
                       sdap_connect_done, req,
                       dp_opt_get_int(state->opts->basic, SDAP_OPT_TIMEOUT),
                       &state->op);
@@ -712,7 +712,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
         if (ret) goto fail;
     }
 
-    ret = sdap_op_add(state, ev, sh, msgid,
+    ret = sdap_op_add(state, ev, sh, msgid, NULL,
                       simple_bind_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");

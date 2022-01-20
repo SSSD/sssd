@@ -77,8 +77,9 @@ static void sdap_call_op_callback(struct sdap_op *op, struct sdap_msg *reply,
     if (op->start_time != 0) {
         time_spend = get_spend_time_us(op->start_time);
         DEBUG(SSSDBG_PERF_STAT,
-              "Handling LDAP operation [%d] took %s.\n",
-              op->msgid, sss_format_time(time_spend));
+              "Handling LDAP operation [%d][%s] took %s.\n",
+              op->msgid, op->stat_info == NULL ? "-" : op->stat_info,
+              sss_format_time(time_spend));
         /* Avoid multiple outputs for the same operation if multiple results
          * are returned */
         op->start_time = 0;
@@ -468,7 +469,7 @@ static void sdap_op_timeout(struct tevent_req *req)
 }
 
 int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
-                struct sdap_handle *sh, int msgid,
+                struct sdap_handle *sh, int msgid, const char *stat_info,
                 sdap_op_callback_t *callback, void *data,
                 int timeout, struct sdap_op **_op)
 {
@@ -480,6 +481,12 @@ int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
     op->start_time = get_start_time();
     op->sh = sh;
     op->msgid = msgid;
+    if (stat_info != NULL) {
+        op->stat_info = talloc_strdup(op, stat_info);
+        if (op->stat_info == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy stat_info, ignored.\n");
+        }
+    }
     op->callback = callback;
     op->data = data;
     op->ev = ev;
@@ -635,7 +642,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "ldap_extended_operation sent, msgid = %d\n", msgid);
 
-    ret = sdap_op_add(state, ev, state->sh, msgid,
+    ret = sdap_op_add(state, ev, state->sh, msgid, NULL,
                       sdap_exop_modify_passwd_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
@@ -799,7 +806,7 @@ sdap_modify_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sdap_op_add(state, state->ev, state->sh, msgid,
+    ret = sdap_op_add(state, state->ev, state->sh, msgid, NULL,
                       sdap_modify_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
@@ -1594,7 +1601,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_search_ext called, msgid = %d\n", msgid);
 
-    ret = sdap_op_add(state, state->ev, state->sh, msgid,
+    ret = sdap_op_add(state, state->ev, state->sh, msgid, NULL,
                       sdap_get_generic_op_finished, req,
                       state->timeout,
                       &state->op);

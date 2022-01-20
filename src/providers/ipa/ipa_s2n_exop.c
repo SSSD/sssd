@@ -162,7 +162,7 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_extended_operation sent, msgid = %d\n",
                                   msgid);
 
-    ret = sdap_op_add(state, ev, state->sh, msgid, ipa_s2n_exop_done, req,
+    ret = sdap_op_add(state, ev, state->sh, msgid, NULL, ipa_s2n_exop_done, req,
                       timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
