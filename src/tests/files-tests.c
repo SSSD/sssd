@@ -209,7 +209,6 @@ START_TEST(test_simple_copy)
     int ret;
     char origpath[PATH_MAX+1];
     char *tmp;
-    int fd = -1;
 
     errno = 0;
     ck_assert_msg(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
@@ -247,9 +246,8 @@ START_TEST(test_simple_copy)
     ck_assert_msg(ret == 0, "destination directory not there\n");
 
     tmp = talloc_asprintf(test_ctx, "%s/bar", dst_path);
-    ret = check_and_open_readonly(tmp, &fd, uid, gid, S_IFREG|S_IRWXU, 0);
+    ret = check_file(tmp, uid, gid, S_IFREG|S_IRWXU, 0, NULL, false);
     ck_assert_msg(ret == EOK, "Cannot open %s\n", tmp);
-    close(fd);
     talloc_free(tmp);
 }
 END_TEST
@@ -261,7 +259,6 @@ START_TEST(test_copy_file)
     char origpath[PATH_MAX+1];
     char *foo_path;
     char *bar_path;
-    int fd = -1;
 
     errno = 0;
     ck_assert_msg(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
@@ -290,9 +287,8 @@ START_TEST(test_copy_file)
     ret = access(bar_path, F_OK);
     ck_assert_msg(ret == 0, "destination file 'bar' not there\n");
 
-    ret = check_and_open_readonly(bar_path, &fd, uid, gid, S_IFREG|S_IRWXU, 0);
+    ret = check_file(bar_path, uid, gid, S_IFREG|S_IRWXU, 0, NULL, false);
     ck_assert_msg(ret == EOK, "Cannot open %s\n", bar_path);
-    close(fd);
     talloc_free(tmp_ctx);
 }
 END_TEST
