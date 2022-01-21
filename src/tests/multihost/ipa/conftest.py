@@ -381,16 +381,15 @@ def setup_ipa_client(session_multihost, request):
     ipa_server_uuid = ipa_server.get_default_nw_uuid()
     ipa_server_ip = ipa_server.get_interface_ip(ipa_server_uuid)
     sssd_client.update_resolv_conf(ipa_server_ip)
-
     options = "--ip-address=%s --hostname %s "\
               "--server %s --domain %s "\
-              "--realm %s -w %s -p %s -U" % (ipa_client_ip,
-                                             client_hostname,
-                                             server_hostname,
-                                             "testrealm.test",
-                                             "TESTREALM.TEST",
-                                             "Secret123",
-                                             "admin")
+              "--realm %s -w %s -p %s -U --mkhomedir" % (ipa_client_ip,
+                                                         client_hostname,
+                                                         server_hostname,
+                                                         "testrealm.test",
+                                                         "TESTREALM.TEST",
+                                                         "Secret123",
+                                                         "admin")
     client_install_cmd = "ipa-client-install %s" % options
     try:
         cmd = session_multihost.client[0].run_command(client_install_cmd)
