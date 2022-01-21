@@ -71,6 +71,8 @@ int sdap_get_rootdse_recv(struct tevent_req *req,
 
 errno_t deref_string_to_val(const char *str, int *val);
 
+const char *sdap_get_server_ip_str(struct sdap_handle *sh);
+
 /* from sdap_child_helpers.c */
 
 struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
