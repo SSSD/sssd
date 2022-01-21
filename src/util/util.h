@@ -350,26 +350,6 @@ errno_t check_file(const char *filename,
                    uid_t uid, gid_t gid, mode_t mode, mode_t mask,
                    struct stat *caller_stat_buf, bool follow_symlink);
 
-/* check_fd()
- * Verify that an open file descriptor has certain permissions and/or
- * is of a certain file type. This function CANNOT detect symlinks,
- * as the file is already open and symlinks have been traversed. This
- * is the safer way to perform file checks and should be preferred
- * over check_file for nearly all situations.
- */
-errno_t check_fd(int fd, uid_t uid, gid_t gid,
-                 mode_t mode, mode_t mask,
-                 struct stat *caller_stat_buf);
-
-/* check_and_open_readonly()
- * Utility function to open a file and verify that it has certain
- * permissions and is of a certain file type. This function wraps
- * check_fd(), and is considered race-condition safe.
- */
-errno_t check_and_open_readonly(const char *filename, int *fd,
-                                uid_t uid, gid_t gid,
-                                mode_t mode, mode_t mask);
-
 /* from util.c */
 #define SSS_NO_LINKLOCAL 0x01
 #define SSS_NO_LOOPBACK 0x02
