@@ -152,6 +152,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     ber_len_t ber_sasl_minssf;
     int sasl_maxssf;
     ber_len_t ber_sasl_maxssf;
+    char *stat_info;
 
     ret = sss_ldap_init_recv(subreq, &state->sh->ldap, &sd);
     talloc_zfree(subreq);
@@ -337,10 +338,16 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
         goto fail;
     }
 
+    stat_info = talloc_asprintf(state, "server: [%s] START TLS",
+                                sdap_get_server_ip_str(state->sh));
+    if (stat_info == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
+    }
+
     ret = sdap_set_connected(state->sh, state->ev);
     if (ret) goto fail;
 
-    ret = sdap_op_add(state, state->ev, state->sh, msgid, NULL,
+    ret = sdap_op_add(state, state->ev, state->sh, msgid, stat_info,
                       sdap_connect_done, req,
                       dp_opt_get_int(state->opts->basic, SDAP_OPT_TIMEOUT),
                       &state->op);
@@ -662,6 +669,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     int ldap_err;
     LDAPControl **request_controls = NULL;
     LDAPControl *ctrls[2] = { NULL, NULL };
+    char *stat_info;
 
     req = tevent_req_create(memctx, &state, struct simple_bind_state);
     if (!req) return NULL;
@@ -712,7 +720,14 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
         if (ret) goto fail;
     }
 
-    ret = sdap_op_add(state, ev, sh, msgid, NULL,
+    stat_info = talloc_asprintf(state, "server: [%s] simple bind: [%s]",
+                                sdap_get_server_ip_str(state->sh),
+                                state->user_dn);
+    if (stat_info == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
+    }
+
+    ret = sdap_op_add(state, ev, sh, msgid, stat_info,
                       simple_bind_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
