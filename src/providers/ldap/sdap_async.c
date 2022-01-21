@@ -584,6 +584,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     int msgid;
     LDAPControl **request_controls = NULL;
     LDAPControl *ctrls[2] = { NULL, NULL };
+    char *stat_info;
 
     req = tevent_req_create(memctx, &state,
                             struct sdap_exop_modify_passwd_state);
@@ -642,7 +643,13 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "ldap_extended_operation sent, msgid = %d\n", msgid);
 
-    ret = sdap_op_add(state, ev, state->sh, msgid, NULL,
+    stat_info = talloc_asprintf(state, "server: [%s] modify passwd dn: [%s]",
+                                sdap_get_server_ip_str(state->sh), user_dn);
+    if (stat_info == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
+    }
+
+    ret = sdap_op_add(state, ev, state->sh, msgid, stat_info,
                       sdap_exop_modify_passwd_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
@@ -774,6 +781,7 @@ sdap_modify_send(TALLOC_CTX *mem_ctx,
     LDAPMod **mods;
     errno_t ret;
     int msgid;
+    char *stat_info;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_modify_state);
     if (req == NULL) {
@@ -806,7 +814,13 @@ sdap_modify_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sdap_op_add(state, state->ev, state->sh, msgid, NULL,
+    stat_info = talloc_asprintf(state, "server: [%s] modify dn: [%s] attr: [%s]",
+                                sdap_get_server_ip_str(state->sh), dn, attr);
+    if (stat_info == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
+    }
+
+    ret = sdap_op_add(state, state->ev, state->sh, msgid, stat_info,
                       sdap_modify_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
@@ -1290,7 +1304,7 @@ static errno_t add_to_deref_reply(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static const char *sdap_get_server_ip_str(struct sdap_handle *sh)
+const char *sdap_get_server_ip_str(struct sdap_handle *sh)
 {
     int ret;
     int fd;
@@ -1529,6 +1543,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
     errno_t ret;
     int msgid;
     bool disable_paging;
+    char *stat_info;
 
     LDAPControl *page_control = NULL;
 
@@ -1601,7 +1616,14 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_search_ext called, msgid = %d\n", msgid);
 
-    ret = sdap_op_add(state, state->ev, state->sh, msgid, NULL,
+    stat_info = talloc_asprintf(state, "server: [%s] filter: [%s] base: [%s]",
+                                sdap_get_server_ip_str(state->sh),
+                                state->filter, state->search_base);
+    if (stat_info == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
+    }
+
+    ret = sdap_op_add(state, state->ev, state->sh, msgid, stat_info,
                       sdap_get_generic_op_finished, req,
                       state->timeout,
                       &state->op);
