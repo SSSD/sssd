@@ -22,11 +22,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
-#include <check.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <check.h>
 
 #include "util/util.h"
 #include "tests/common.h"
@@ -38,9 +38,8 @@ char *filename;
 uid_t uid;
 gid_t gid;
 mode_t mode;
-int fd;
 
-void setup_check_and_open(void)
+void setup_check(void)
 {
     int ret;
     mode_t old_umask;
@@ -57,17 +56,11 @@ void setup_check_and_open(void)
     uid = getuid();
     gid = getgid();
     mode = (S_IRUSR | S_IWUSR);
-    fd = -1;
 }
 
-void teardown_check_and_open(void)
+void teardown_check(void)
 {
     int ret;
-
-    if (fd != -1) {
-        ret = close(fd);
-        ck_assert_msg(ret == 0, "close failed [%d][%s]", errno, strerror(errno));
-    }
 
     ck_assert_msg(filename != NULL, "unknown filename");
     ret = unlink(filename);
@@ -79,11 +72,9 @@ START_TEST(test_wrong_filename)
 {
     int ret;
 
-    ret = check_and_open_readonly("/bla/bla/bla", &fd,
-                                  uid, gid, S_IFREG|mode, 0);
+    ret = check_file("/bla/bla/bla", uid, gid, S_IFREG|mode, 0, NULL, true);
     ck_assert_msg(ret == ENOENT,
-                "check_and_open_readonly succeeded on non-existing file");
-    ck_assert_msg(fd == -1, "check_and_open_readonly file descriptor not -1");
+                  "check_file() succeeded on non-existing file");
 }
 END_TEST
 
@@ -109,7 +100,7 @@ START_TEST(test_symlink)
     unlink(newpath);
 
     ck_assert_msg(ret == EINVAL,
-                "check_and_open_readonly succeeded on symlink");
+                  "check_file() succeeded on symlink");
     free(newpath);
 }
 END_TEST
@@ -136,19 +127,8 @@ START_TEST(test_follow_symlink)
     unlink(newpath);
 
     ck_assert_msg(ret == EOK,
-                "check_and_open_readonly failed on symlink with follow=true");
+                 "check_file() failed on symlink with follow=true");
     free(newpath);
-}
-END_TEST
-
-START_TEST(test_not_regular_file)
-{
-    int ret;
-
-    ret = check_and_open_readonly("/dev/null", &fd, uid, gid, S_IFREG|mode, 0);
-    ck_assert_msg(ret == EINVAL,
-                "check_and_open_readonly succeeded on non-regular file");
-    ck_assert_msg(fd == -1, "check_and_open_readonly file descriptor not -1");
 }
 END_TEST
 
@@ -156,10 +136,9 @@ START_TEST(test_wrong_uid)
 {
     int ret;
 
-    ret = check_and_open_readonly(filename, &fd, uid+1, gid, S_IFREG|mode, 0);
+    ret = check_file(filename, uid+1, gid, S_IFREG|mode, 0, NULL, true);
     ck_assert_msg(ret == EINVAL,
-                "check_and_open_readonly succeeded with wrong uid");
-    ck_assert_msg(fd == -1, "check_and_open_readonly file descriptor not -1");
+                  "check_file() succeeded with wrong uid");
 }
 END_TEST
 
@@ -167,10 +146,9 @@ START_TEST(test_wrong_gid)
 {
     int ret;
 
-    ret = check_and_open_readonly(filename, &fd, uid, gid+1, S_IFREG|mode, 0);
+    ret = check_file(filename, uid, gid+1, S_IFREG|mode, 0, NULL, true);
     ck_assert_msg(ret == EINVAL,
-                "check_and_open_readonly succeeded with wrong gid");
-    ck_assert_msg(fd == -1, "check_and_open_readonly file descriptor not -1");
+                  "check_file() succeeded with wrong gid");
 }
 END_TEST
 
@@ -178,11 +156,9 @@ START_TEST(test_wrong_permission)
 {
     int ret;
 
-    ret = check_and_open_readonly(filename, &fd,
-                                  uid, gid, S_IFREG|mode|S_IWOTH, 0);
+    ret = check_file(filename, uid, gid, S_IFREG|mode|S_IWOTH, 0, NULL, true);
     ck_assert_msg(ret == EINVAL,
-                "check_and_open_readonly succeeded with wrong mode");
-    ck_assert_msg(fd == -1, "check_and_open_readonly file descriptor not -1");
+                  "check_file() succeeded with wrong mode");
 }
 END_TEST
 
@@ -190,52 +166,28 @@ START_TEST(test_ok)
 {
     int ret;
 
-    ret = check_and_open_readonly(filename, &fd, uid, gid, S_IFREG|mode, 0);
+    ret = check_file(filename, uid, gid, S_IFREG|mode, 0, NULL, true);
     ck_assert_msg(ret == EOK,
-                "check_and_open_readonly failed");
-    ck_assert_msg(fd >= 0,
-                "check_and_open_readonly returned illegal file descriptor");
-}
-END_TEST
-
-START_TEST(test_write)
-{
-    int ret;
-    ssize_t size;
-    errno_t my_errno;
-
-    ret = check_and_open_readonly(filename, &fd, uid, gid, S_IFREG|mode, 0);
-    ck_assert_msg(ret == EOK,
-                "check_and_open_readonly failed");
-    ck_assert_msg(fd >= 0,
-                "check_and_open_readonly returned illegal file descriptor");
-
-    size = write(fd, "abc", 3);
-    my_errno = errno;
-    ck_assert_msg(size == -1, "check_and_open_readonly file is not readonly");
-    ck_assert_msg(my_errno == EBADF,
-                "write failed for other reason than readonly");
+                  "check_file() failed");
 }
 END_TEST
 
 Suite *check_and_open_suite (void)
 {
-    Suite *s = suite_create ("check_and_open");
+    Suite *s = suite_create ("check");
 
-    TCase *tc_check_and_open_readonly = tcase_create ("check_and_open_readonly");
-    tcase_add_checked_fixture (tc_check_and_open_readonly,
-                               setup_check_and_open,
-                               teardown_check_and_open);
-    tcase_add_test (tc_check_and_open_readonly, test_wrong_filename);
-    tcase_add_test (tc_check_and_open_readonly, test_not_regular_file);
-    tcase_add_test (tc_check_and_open_readonly, test_symlink);
-    tcase_add_test (tc_check_and_open_readonly, test_follow_symlink);
-    tcase_add_test (tc_check_and_open_readonly, test_wrong_uid);
-    tcase_add_test (tc_check_and_open_readonly, test_wrong_gid);
-    tcase_add_test (tc_check_and_open_readonly, test_wrong_permission);
-    tcase_add_test (tc_check_and_open_readonly, test_ok);
-    tcase_add_test (tc_check_and_open_readonly, test_write);
-    suite_add_tcase (s, tc_check_and_open_readonly);
+    TCase *tc_file_check = tcase_create ("file_check");
+    tcase_add_checked_fixture (tc_file_check,
+                               setup_check,
+                               teardown_check);
+    tcase_add_test (tc_file_check, test_wrong_filename);
+    tcase_add_test (tc_file_check, test_symlink);
+    tcase_add_test (tc_file_check, test_follow_symlink);
+    tcase_add_test (tc_file_check, test_wrong_uid);
+    tcase_add_test (tc_file_check, test_wrong_gid);
+    tcase_add_test (tc_file_check, test_wrong_permission);
+    tcase_add_test (tc_file_check, test_ok);
+    suite_add_tcase (s, tc_file_check);
 
     return s;
 }

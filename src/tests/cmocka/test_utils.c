@@ -1575,7 +1575,6 @@ static int unique_file_test_teardown(void **state)
 static void assert_destructor(TALLOC_CTX *owner,
                               struct unique_file_test_ctx *test_ctx)
 {
-    int fd;
     errno_t ret;
     char *check_filename;
 
@@ -1589,10 +1588,8 @@ static void assert_destructor(TALLOC_CTX *owner,
 
     talloc_free(owner);
 
-    ret = check_and_open_readonly(check_filename, &fd,
-                                  geteuid(), getegid(),
-                                  (S_IRUSR | S_IWUSR | S_IFREG), 0);
-    close(fd);
+    ret = check_file(check_filename, geteuid(), getegid(),
+                     (S_IRUSR | S_IWUSR | S_IFREG), 0, NULL, true);
     assert_int_not_equal(ret, EOK);
 }
 
@@ -1601,7 +1598,6 @@ static void sss_unique_file_test(struct unique_file_test_ctx *test_ctx,
 {
     int fd;
     errno_t ret;
-    struct stat sb;
     TALLOC_CTX *owner = NULL;
 
     if (test_destructor) {
@@ -1613,8 +1609,8 @@ static void sss_unique_file_test(struct unique_file_test_ctx *test_ctx,
     assert_int_not_equal(fd, -1);
     assert_int_equal(ret, EOK);
 
-    ret = check_fd(fd, geteuid(), getegid(),
-                   (S_IRUSR | S_IWUSR | S_IFREG), 0, &sb);
+    ret = check_file(test_ctx->filename, geteuid(), getegid(),
+                     (S_IRUSR | S_IWUSR | S_IFREG), 0, NULL, false);
     close(fd);
     assert_int_equal(ret, EOK);
 
@@ -1648,7 +1644,6 @@ static void test_sss_unique_file_neg(void **state)
 static void sss_unique_filename_test(struct unique_file_test_ctx *test_ctx,
                                      bool test_destructor)
 {
-    int fd;
     errno_t ret;
     char *tmp_filename;
     TALLOC_CTX *owner = NULL;
@@ -1669,10 +1664,8 @@ static void sss_unique_filename_test(struct unique_file_test_ctx *test_ctx,
                              strlen(tmp_filename) - sizeof("XXXXXX")),
                      0);
 
-    ret = check_and_open_readonly(test_ctx->filename, &fd,
-                                  geteuid(), getegid(),
-                                  (S_IRUSR | S_IWUSR | S_IFREG), 0);
-    close(fd);
+    ret = check_file(test_ctx->filename, geteuid(), getegid(),
+                     (S_IRUSR | S_IWUSR | S_IFREG), 0, NULL, true);
     assert_int_equal(ret, EOK);
 
     assert_destructor(owner, test_ctx);
