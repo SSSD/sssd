@@ -1589,7 +1589,7 @@ static void assert_destructor(TALLOC_CTX *owner,
 
     talloc_free(owner);
 
-    ret = check_and_open_readonly(test_ctx->filename, &fd,
+    ret = check_and_open_readonly(check_filename, &fd,
                                   geteuid(), getegid(),
                                   (S_IRUSR | S_IWUSR | S_IFREG), 0);
     close(fd);
