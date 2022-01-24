@@ -394,7 +394,7 @@ static void sdap_connect_done(struct sdap_op *op,
                             &state->result, NULL, &errmsg, NULL, NULL, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "ldap_parse_result failed (%d)\n", state->op->msgid);
+              "ldap_parse_result failed (%d)\n", sdap_op_get_msgid(state->op));
         tevent_req_error(req, EIO);
         return;
     }
@@ -777,7 +777,7 @@ static void simple_bind_done(struct sdap_op *op,
                             &response_controls, 0);
     if (lret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "ldap_parse_result failed (%d)\n", state->op->msgid);
+              "ldap_parse_result failed (%d)\n", sdap_op_get_msgid(state->op));
         ret = ERR_INTERNAL;
         goto done;
     }

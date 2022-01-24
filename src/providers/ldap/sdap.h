@@ -39,25 +39,6 @@ typedef void (sdap_op_callback_t)(struct sdap_op *op,
 
 struct sdap_handle;
 
-struct sdap_op {
-    struct sdap_op *prev, *next;
-    struct sdap_handle *sh;
-    uint64_t chain_id;
-
-    int msgid;
-    char *stat_info;
-    uint64_t start_time;
-    int timeout;
-    bool done;
-
-    sdap_op_callback_t *callback;
-    void *data;
-
-    struct tevent_context *ev;
-    struct sdap_msg *list;
-    struct sdap_msg *last;
-};
-
 struct fd_event_item {
     struct fd_event_item *prev;
     struct fd_event_item *next;

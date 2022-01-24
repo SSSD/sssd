@@ -29,6 +29,30 @@
 
 #define REPLY_REALLOC_INCREMENT 10
 
+struct sdap_op {
+    struct sdap_op *prev, *next;
+    struct sdap_handle *sh;
+    uint64_t chain_id;
+
+    int msgid;
+    char *stat_info;
+    uint64_t start_time;
+    int timeout;
+    bool done;
+
+    sdap_op_callback_t *callback;
+    void *data;
+
+    struct tevent_context *ev;
+    struct sdap_msg *list;
+    struct sdap_msg *last;
+};
+
+int sdap_op_get_msgid(struct sdap_op *op)
+{
+    return op != NULL ? op->msgid : 0;
+}
+
 /* ==LDAP-Memory-Handling================================================= */
 
 static int lmsg_destructor(void *mem)
