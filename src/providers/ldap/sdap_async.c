@@ -73,13 +73,21 @@ static void sdap_call_op_callback(struct sdap_op *op, struct sdap_msg *reply,
                                   int error)
 {
     uint64_t time_spend;
+    const char *info = (op->stat_info == NULL ? "-" : op->stat_info);
 
     if (op->start_time != 0) {
         time_spend = get_spend_time_us(op->start_time);
         DEBUG(SSSDBG_PERF_STAT,
               "Handling LDAP operation [%d][%s] took %s.\n",
-              op->msgid, op->stat_info == NULL ? "-" : op->stat_info,
-              sss_format_time(time_spend));
+              op->msgid, info, sss_format_time(time_spend));
+
+        /* time_spend is in us and timeout in s */
+        if (op->timeout != 0 && (time_spend / op->timeout) >= (80 * 10000)) {
+            DEBUG(SSSDBG_IMPORTANT_INFO, "LDAP operation [%d][%s] seems slow, "
+                                         "took more than 80%% of timeout [%d].\n",
+                                         op->msgid, info, op->timeout);
+        }
+
         /* Avoid multiple outputs for the same operation if multiple results
          * are returned */
         op->start_time = 0;
@@ -479,6 +487,7 @@ int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
     if (!op) return ENOMEM;
 
     op->start_time = get_start_time();
+    op->timeout = timeout;
     op->sh = sh;
     op->msgid = msgid;
     if (stat_info != NULL) {
