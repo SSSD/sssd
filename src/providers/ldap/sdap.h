@@ -47,6 +47,7 @@ struct sdap_op {
     int msgid;
     char *stat_info;
     uint64_t start_time;
+    int timeout;
     bool done;
 
     sdap_op_callback_t *callback;
