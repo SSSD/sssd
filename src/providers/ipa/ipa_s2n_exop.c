@@ -227,7 +227,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
                             NULL, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n",
-                                 state->op->msgid);
+                                 sdap_op_get_msgid(state->op));
         ret = ERR_NETWORK_IO;
         goto done;
     }
