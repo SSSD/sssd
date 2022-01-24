@@ -129,7 +129,7 @@ cache_req_common_process_dp_reply(struct cache_req *cr,
     bool bret;
 
     if (ret != EOK) {
-        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr,
+        CACHE_REQ_DEBUG(SSSDBG_IMPORTANT_INFO, cr,
                         "Could not get account info [%d]: %s\n",
                         ret, sss_strerror(ret));
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
