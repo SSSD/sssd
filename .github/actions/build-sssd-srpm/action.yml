@@ -1,0 +1,38 @@
+name: Build SSSD's source rpm
+inputs:
+  version:
+    description: Package version.
+    required: true
+  release:
+    description: Package release.
+    required: false
+    default: '${{ github.run_number }}'
+outputs:
+  file:
+    description: Source rpm file name.
+    value: ${{ steps.srpm.outputs.file }}
+  path:
+    description: Path to the source rpm.
+    value: ${{ steps.srpm.outputs.path }}
+runs:
+  using: 'composite'
+  steps:
+  - name: Generate tarball and spec file
+    shell: bash
+    run: |
+      version="${{ inputs.version }}"
+      release="${{ inputs.release }}"
+      name="sssd-$version"
+      tar -cvzf "$name.tar.gz" --transform "s,^,$name/," *
+
+      cp contrib/sssd.spec.in ./sssd.spec
+
+      sed -iE "s/@PACKAGE_NAME@/sssd/g" ./sssd.spec
+      sed -iE "s/@PACKAGE_VERSION@/$version/g" ./sssd.spec
+      sed -iE "s/@PRERELEASE_VERSION@/$release/g" ./sssd.spec
+  - name: Build source rpm
+    id: srpm
+    uses: SSSD/action-build-srpm@master
+    with:
+      tarball: sssd-${{ inputs.version }}.tar.gz
+      specfile: sssd.spec
