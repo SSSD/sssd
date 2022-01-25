@@ -2630,7 +2630,9 @@ msgstr "設定したいデバッグレベルを指定します"
 
 #: src/tools/sssctl/sssctl_logs.c:398
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
-msgstr "エラー: Tevent chain ID サポートがなく、ログアナライザーはサポートされません。\n"
+msgstr ""
+"エラー: Tevent chain ID サポートがなく、ログアナライザーはサポートされませ"
+"ん。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"

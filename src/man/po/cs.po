@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2021-12-20 16:05+0100\n"
+"POT-Creation-Date: 2022-01-25 11:35+0100\n"
 "PO-Revision-Date: 2021-12-03 22:16+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
 "Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
@@ -298,7 +298,7 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:193 sssd.conf.5.xml:1227 sssd.conf.5.xml:1653
-#: sssd.conf.5.xml:3880 sssd-ldap.5.xml:684 include/ldap_id_mapping.xml:264
+#: sssd.conf.5.xml:3880 sssd-ldap.5.xml:684 include/ldap_id_mapping.xml:270
 msgid "Default: 10"
 msgstr ""
 
@@ -615,7 +615,7 @@ msgstr ""
 #: sssd.conf.5.xml:466 sssd-ldap.5.xml:772 sssd-ldap.5.xml:784
 #: sssd-ldap.5.xml:876 sssd-ad.5.xml:897 sssd-ad.5.xml:972 sssd-krb5.5.xml:452
 #: sssd-ldap-attributes.5.xml:470 sssd-ldap-attributes.5.xml:959
-#: include/ldap_id_mapping.xml:205 include/ldap_id_mapping.xml:216
+#: include/ldap_id_mapping.xml:211 include/ldap_id_mapping.xml:222
 #: include/krb5_options.xml:139
 msgid "Default: not set"
 msgstr ""
@@ -1967,7 +1967,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1598 sssd-ldap.5.xml:590 sssd-ldap.5.xml:611
 #: sssd-ldap.5.xml:1169 sssd-ad.5.xml:482 sssd-ad.5.xml:558 sssd-ad.5.xml:1103
-#: sssd-ad.5.xml:1152 include/ldap_id_mapping.xml:244
+#: sssd-ad.5.xml:1152 include/ldap_id_mapping.xml:250
 msgid "Default: False"
 msgstr ""
 
@@ -16402,12 +16402,13 @@ msgstr "ldap_idmap_range_min (celé číslo)"
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:123
 msgid ""
-"Specifies the lower bound of the range of POSIX IDs to use for mapping "
-"Active Directory user and group SIDs."
+"Specifies the lower (inclusive) bound of the range of POSIX IDs to use for "
+"mapping Active Directory user and group SIDs. It is the first POSIX ID which "
+"can be used for the mapping."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:127
+#: include/ldap_id_mapping.xml:129
 msgid ""
 "NOTE: This option is different from <quote>min_id</quote> in that "
 "<quote>min_id</quote> acts to filter the output of requests to this domain, "
@@ -16417,24 +16418,26 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:137 include/ldap_id_mapping.xml:191
+#: include/ldap_id_mapping.xml:139 include/ldap_id_mapping.xml:197
 msgid "Default: 200000"
 msgstr "Výchozí: 200000"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
-#: include/ldap_id_mapping.xml:142
+#: include/ldap_id_mapping.xml:144
 msgid "ldap_idmap_range_max (integer)"
 msgstr "ldap_idmap_range_max (celé číslo)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:145
+#: include/ldap_id_mapping.xml:147
 msgid ""
-"Specifies the upper bound of the range of POSIX IDs to use for mapping "
-"Active Directory user and group SIDs."
+"Specifies the upper (exclusive) bound of the range of POSIX IDs to use for "
+"mapping Active Directory user and group SIDs. It is the first POSIX ID which "
+"cannot be used for the mapping anymore, i.e. one larger than the last one "
+"which can be used for the mapping."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:149
+#: include/ldap_id_mapping.xml:155
 msgid ""
 "NOTE: This option is different from <quote>max_id</quote> in that "
 "<quote>max_id</quote> acts to filter the output of requests to this domain, "
@@ -16444,17 +16447,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:159
+#: include/ldap_id_mapping.xml:165
 msgid "Default: 2000200000"
 msgstr "Výchozí: 2000200000"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
-#: include/ldap_id_mapping.xml:164
+#: include/ldap_id_mapping.xml:170
 msgid "ldap_idmap_range_size (integer)"
 msgstr "ldap_idmap_range_size (celé číslo)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:167
+#: include/ldap_id_mapping.xml:173
 msgid ""
 "Specifies the number of IDs available for each slice.  If the range size "
 "does not divide evenly into the min and max values, it will create as many "
@@ -16462,7 +16465,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:173
+#: include/ldap_id_mapping.xml:179
 msgid ""
 "NOTE: The value of this option must be at least as large as the highest user "
 "RID planned for use on the Active Directory server. User lookups and login "
@@ -16470,7 +16473,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:179
+#: include/ldap_id_mapping.xml:185
 msgid ""
 "For example, if your most recently-added Active Directory user has "
 "objectSid=S-1-5-21-2153326666-2176343378-3404031434-1107, "
@@ -16479,7 +16482,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:186
+#: include/ldap_id_mapping.xml:192
 msgid ""
 "It is important to plan ahead for future expansion, as changing this value "
 "will result in changing all of the ID mappings on the system, leading to "
@@ -16487,12 +16490,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
-#: include/ldap_id_mapping.xml:196
+#: include/ldap_id_mapping.xml:202
 msgid "ldap_idmap_default_domain_sid (string)"
 msgstr "ldap_idmap_default_domain_sid (řetězec)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:199
+#: include/ldap_id_mapping.xml:205
 msgid ""
 "Specify the domain SID of the default domain. This will guarantee that this "
 "domain will always be assigned to slice zero in the ID map, bypassing the "
@@ -16500,36 +16503,36 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
-#: include/ldap_id_mapping.xml:210
+#: include/ldap_id_mapping.xml:216
 msgid "ldap_idmap_default_domain (string)"
 msgstr "ldap_idmap_default_domain (řetězec)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:213
+#: include/ldap_id_mapping.xml:219
 msgid "Specify the name of the default domain."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
-#: include/ldap_id_mapping.xml:221
+#: include/ldap_id_mapping.xml:227
 msgid "ldap_idmap_autorid_compat (boolean)"
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:224
+#: include/ldap_id_mapping.xml:230
 msgid ""
 "Changes the behavior of the ID-mapping algorithm to behave more similarly to "
 "winbind's <quote>idmap_autorid</quote> algorithm."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:229
+#: include/ldap_id_mapping.xml:235
 msgid ""
 "When this option is configured, domains will be allocated starting with "
 "slice zero and increasing monatomically with each additional domain."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:234
+#: include/ldap_id_mapping.xml:240
 msgid ""
 "NOTE: This algorithm is non-deterministic (it depends on the order that "
 "users and groups are requested). If this mode is required for compatibility "
@@ -16539,19 +16542,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
-#: include/ldap_id_mapping.xml:249
+#: include/ldap_id_mapping.xml:255
 msgid "ldap_idmap_helper_table_size (integer)"
 msgstr "ldap_idmap_helper_table_size (celé číslo)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:252
+#: include/ldap_id_mapping.xml:258
 msgid ""
 "Maximal number of secondary slices that is tried when performing mapping "
 "from UNIX id to SID."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: include/ldap_id_mapping.xml:256
+#: include/ldap_id_mapping.xml:262
 msgid ""
 "Note: Additional secondary slices might be generated when SID is being "
 "mapped to UNIX id and RID part of SID is out of range for secondary slices "
@@ -16560,12 +16563,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><title>
-#: include/ldap_id_mapping.xml:273
+#: include/ldap_id_mapping.xml:279
 msgid "Well-Known SIDs"
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
-#: include/ldap_id_mapping.xml:275
+#: include/ldap_id_mapping.xml:281
 msgid ""
 "SSSD supports to look up the names of Well-Known SIDs, i.e. SIDs with a "
 "special hardcoded meaning. Since the generic users and groups related to "
@@ -16574,51 +16577,51 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
-#: include/ldap_id_mapping.xml:281
+#: include/ldap_id_mapping.xml:287
 msgid ""
 "The SID name space is organized in authorities which can be seen as "
 "different domains. The authorities for the Well-Known SIDs are"
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
-#: include/ldap_id_mapping.xml:284
+#: include/ldap_id_mapping.xml:290
 msgid "Null Authority"
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
-#: include/ldap_id_mapping.xml:285
+#: include/ldap_id_mapping.xml:291
 msgid "World Authority"
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
-#: include/ldap_id_mapping.xml:286
+#: include/ldap_id_mapping.xml:292
 msgid "Local Authority"
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
-#: include/ldap_id_mapping.xml:287
+#: include/ldap_id_mapping.xml:293
 msgid "Creator Authority"
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
-#: include/ldap_id_mapping.xml:288
+#: include/ldap_id_mapping.xml:294
 msgid "NT Authority"
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
-#: include/ldap_id_mapping.xml:289
+#: include/ldap_id_mapping.xml:295
 msgid "Built-in"
 msgstr "Vestavěné"
 
 #. type: Content of: <refsect1><refsect2><para>
-#: include/ldap_id_mapping.xml:291
+#: include/ldap_id_mapping.xml:297
 msgid ""
 "The capitalized version of these names are used as domain names when "
 "returning the fully qualified name of a Well-Known SID."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
-#: include/ldap_id_mapping.xml:295
+#: include/ldap_id_mapping.xml:301
 msgid ""
 "Since some utilities allow to modify SID based access control information "
 "with the help of a name instead of using the SID directly SSSD supports to "
