@@ -2589,7 +2589,8 @@ msgstr "설정할 디버그 수준 지정"
 
 #: src/tools/sssctl/sssctl_logs.c:398
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
-msgstr "오류: T이벤트 체인 ID 지원이 누락되었으며, 로그 분석이 지원되지 않습니다.\n"
+msgstr ""
+"오류: T이벤트 체인 ID 지원이 누락되었으며, 로그 분석이 지원되지 않습니다.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
