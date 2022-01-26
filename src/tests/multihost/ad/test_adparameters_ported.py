@@ -396,10 +396,12 @@ class TestADParamsPorted:
         )
         shortname = hostname_cmd.stdout_text.rstrip().upper()
 
-        ktutil_cmd = f'echo -e "addent -password -p host/{shortname}@' \
-                     f'INVALIDDOMAIN.COM -k 2 -e rc4-hmac\\nSecret123\\nrkt ' \
-                     f'/etc/krb5.keytab\\nwkt /tmp/first_invalid.' \
-                     f'keytab\\nquit\\n" | ktutil'
+        ktutil_cmd = f'{{ echo "addent -password -p host/{shortname}@' \
+                     f'INVALIDDOMAIN.COM -k 2 -e rc4-hmac"; sleep 1; echo ' \
+                     f'"Secret123"; sleep 1; echo "rkt /etc/krb5.keytab"; ' \
+                     f'sleep 1; echo "wkt /tmp/first_invalid.keytab"; ' \
+                     f'sleep 1; echo "quit"; }} | ktutil'
+
         multihost.client[0].run_command(ktutil_cmd, raiseonerr=False)
         # Get keytab info for debugging purposes
         multihost.client[0].run_command(
@@ -1677,6 +1679,15 @@ class TestADParamsPorted:
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
+
+        # Make sure that AD server allows password change
+        multihost.ad[0].run_command(
+            f"powershell 'Import-Module ActiveDirectory; "
+            f"Set-ADDefaultDomainPasswordPolicy -Identity "
+            f"{multihost.ad[0].domainname} -MinPasswordAge 00.00:00:00'",
+            raiseonerr=False
+        )
+
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
@@ -3114,11 +3125,12 @@ class TestADParamsPorted:
         )
 
         # With ktutil add invalid principle in the keytab file.
-        ktutil_cmd = f'echo -e "addent -password -p Test1337@' \
-                     f'{ad_domain} -k 3 -e aes128-cts-' \
-                     f'hmac-sha1-96\\nSecret123\\nrkt ' \
-                     f'/etc/krb5.keytab\\nwkt /tmp/first_invalid.' \
-                     f'keytab\\nquit\\n" | ktutil'
+        ktutil_cmd = f'{{ echo "addent -password -p Test1337@{ad_domain} -k' \
+                     f' 3 -e aes128-cts-hmac-sha1-96"; sleep 1; echo "Secret' \
+                     f'123"; echo "rkt /etc/krb5.keytab"; sleep 1; echo "wkt' \
+                     f' /tmp/first_invalid.keytab"; sleep 1; echo "quit"; }}' \
+                     f' | ktutil'
+
         multihost.client[0].run_command(ktutil_cmd, raiseonerr=False)
 
         # Get keytab info for debugging purposes
