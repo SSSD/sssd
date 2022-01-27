@@ -331,32 +331,34 @@ class Testipabz(object):
             7. Should succeed
         """
         tools = sssdTools(multihost.client[0])
+        tools.service_ctrl('restart', 'sssd')
         domain_name = tools.get_domain_section_name()
         user = "admin"
         test_password = "Secret123"
         sys_hostname = multihost.client[0].sys_hostname
-        ssh1 = SSHClient(multihost.client[0].ip,
-                         username=user, password=test_password)
-        (result, result1, exit_status) = ssh1.execute_cmd('kinit',
-                                                          stdin=test_password)
+        ssh1 = SSHClient(multihost.client[0].ip, username=user,
+                         password=test_password)
+        (_, _, exit_status) = ssh1.execute_cmd('kinit',
+                                               stdin=test_password)
         assert exit_status == 0
-        (_, _, _) = ssh1.execute_cmd("ipa sudocmd-add "
-                                     "/usr/sbin/sssctl")
-        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add "
-                                     "idm_user_sssctl")
+        (_, _, _) = ssh1.execute_cmd("ipa sudocmd-add /usr/sbin/sssctl")
+        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add idm_user_sssctl")
         (_, _, _) = ssh1.execute_cmd("ipa sudorule-add-allow-command "
-                                     "idm_user_sssctl "
-                                     "--sudocmds "
+                                     "idm_user_sssctl --sudocmds "
                                      "'/usr/sbin/sssctl'")
         (_, _, _) = ssh1.execute_cmd(f"ipa sudorule-add-host "
                                      f"idm_user_sssctl "
-                                     f"--hosts "
-                                     f"{sys_hostname}")
+                                     f"--hosts {sys_hostname}")
         (_, _, _) = ssh1.execute_cmd("ipa sudorule-add-user "
                                      "idm_user_sssctl "
                                      "--users admin")
-        (result, result1, exit_status) = ssh1.execute_cmd("sudo -S "
-                                                          "/usr/sbin/sssctl "
-                                                          "domain-list",
-                                                          stdin=test_password)
-        assert domain_name+'\n' in result.readlines()
+        tools.clear_sssd_cache()
+        ssh2 = SSHClient(multihost.client[0].ip, username=user,
+                         password=test_password)
+        (_, _, _) = ssh2.execute_cmd('kinit', stdin=test_password)
+        (_, _, _) = ssh2.execute_cmd('sudo -S -l', stdin=test_password)
+        file_name = 'domain_list_' + str(time.time())
+        (_, _, _) = ssh2.execute_cmd(f"sudo -S /usr/sbin/sssctl domain-list > "
+                                     f"/tmp/{file_name}", stdin=test_password)
+        result = multihost.client[0].run_command(f"cat /tmp/{file_name}").stdout_text
+        assert domain_name in result
