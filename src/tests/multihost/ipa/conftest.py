@@ -95,6 +95,7 @@ def backup_config_pam_gssapi_services(session_multihost, request):
         session_multihost.client[0].run_command("cp -vf  "
                                                 "/etc/pam.d/sudo-i_bkp "
                                                 "/etc/pam.d/sudo-i")
+        session_multihost.client[0].run_command("rm -vf /tmp/domain_list_*")
 
     request.addfinalizer(restore)
 
