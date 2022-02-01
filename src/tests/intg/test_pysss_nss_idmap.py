@@ -233,9 +233,9 @@ def test_user_operations(ldap_conn, simple_ad):
 
 
 def test_group_operations(ldap_conn, simple_ad):
-    group = 'group3_dom1-17775'
+    group = 'group1_dom1-19661'
     group_id = grp.getgrnam(group).gr_gid
-    group_sid = 'S-1-5-21-1305200397-2901131868-73388776-82764'
+    group_sid = 'S-1-5-21-1305200397-2901131868-73388776-82810'
 
     output = pysss_nss_idmap.getsidbyname(group)[group]
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
