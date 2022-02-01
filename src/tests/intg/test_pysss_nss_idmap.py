@@ -62,8 +62,13 @@ def ldap_conn(request, ad_inst):
     return ldap_conn
 
 
-def format_basic_conf(ldap_conn):
+def format_basic_conf(ldap_conn, ignore_unreadable_refs):
     """Format a basic SSSD configuration"""
+
+    ignore_unreadable_refs_conf = "false"
+    if ignore_unreadable_refs:
+        ignore_unreadable_refs_conf = "true"
+
     return unindent("""\
         [sssd]
         domains = FakeAD
@@ -91,6 +96,8 @@ def format_basic_conf(ldap_conn):
         ldap_id_mapping = true
         ldap_idmap_default_domain_sid = S-1-5-21-1305200397-2901131868-73388776
         case_sensitive = False
+
+        ldap_ignore_unreadable_references = {ignore_unreadable_refs_conf}
     """).format(**locals())
 
 
@@ -195,7 +202,7 @@ def sysdb_sed_domainid(domain_name, domain_id):
 
 @pytest.fixture
 def simple_ad(request, ldap_conn):
-    conf = format_basic_conf(ldap_conn)
+    conf = format_basic_conf(ldap_conn, ignore_unreadable_refs=False)
     sysdb_sed_domainid("FakeAD", "S-1-5-21-1305200397-2901131868-73388776")
 
     create_conf_fixture(request, conf)
@@ -289,3 +296,51 @@ def test_case_insensitive(ldap_conn, simple_ad):
     output = pysss_nss_idmap.getnamebysid(group_sid)[group_sid]
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
     assert output[pysss_nss_idmap.NAME_KEY] == group.lower()
+
+
+@pytest.fixture
+def simple_ad_ignore_unrdbl_refs(request, ldap_conn):
+    conf = format_basic_conf(ldap_conn, ignore_unreadable_refs=True)
+    sysdb_sed_domainid("FakeAD", "S-1-5-21-1305200397-2901131868-73388776")
+
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_ignore_unreadable_references(ldap_conn, simple_ad_ignore_unrdbl_refs):
+    group = 'group3_dom1-17775'
+    group_id = grp.getgrnam(group).gr_gid
+    group_sid = 'S-1-5-21-1305200397-2901131868-73388776-82764'
+
+    output = pysss_nss_idmap.getsidbyname(group)[group]
+    assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
+    assert output[pysss_nss_idmap.SID_KEY] == group_sid
+
+    output = pysss_nss_idmap.getsidbyid(group_id)[group_id]
+    assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
+    assert output[pysss_nss_idmap.SID_KEY] == group_sid
+
+    output = pysss_nss_idmap.getsidbygid(group_id)[group_id]
+    assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
+    assert output[pysss_nss_idmap.SID_KEY] == group_sid
+
+    output = pysss_nss_idmap.getsidbyuid(group_id)
+    assert len(output) == 0
+
+    output = pysss_nss_idmap.getidbysid(group_sid)[group_sid]
+    assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
+    assert output[pysss_nss_idmap.ID_KEY] == group_id
+
+    output = pysss_nss_idmap.getnamebysid(group_sid)[group_sid]
+    assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
+    assert output[pysss_nss_idmap.NAME_KEY] == group
+
+
+def test_no_ignore_unreadable_references(ldap_conn, simple_ad):
+    group = 'group3_dom1-17775'
+
+    # This group has a member attribute referencing to a user in other
+    # domain
+    with pytest.raises(KeyError):
+        grp.getgrnam(group)
