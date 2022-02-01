@@ -360,5 +360,6 @@ class Testipabz(object):
         file_name = 'domain_list_' + str(time.time())
         (_, _, _) = ssh2.execute_cmd(f"sudo -S /usr/sbin/sssctl domain-list > "
                                      f"/tmp/{file_name}", stdin=test_password)
-        result = multihost.client[0].run_command(f"cat /tmp/{file_name}").stdout_text
+        result = multihost.client[0].run_command(f"cat /tmp/{file_name}"
+                                                 ).stdout_text
         assert domain_name in result
