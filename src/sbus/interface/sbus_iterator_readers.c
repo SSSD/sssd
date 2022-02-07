@@ -87,7 +87,7 @@ _sbus_iterator_read_basic_array(TALLOC_CTX *mem_ctx,
     switch (dbus_type) {
     case DBUS_TYPE_STRING:
     case DBUS_TYPE_OBJECT_PATH:
-        array = talloc_zero_size(mem_ctx, (count + 1) * element_size);
+        array = talloc_zero_size(mem_ctx, (size_t)(count + 1) * element_size);
         if (array == NULL) {
             ret = ENOMEM;
             goto done;
@@ -106,7 +106,7 @@ _sbus_iterator_read_basic_array(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        array = talloc_zero_size(mem_ctx, count * element_size);
+        array = talloc_zero_size(mem_ctx, (size_t)count * element_size);
         if (array == NULL) {
             ret = ENOMEM;
             goto done;
