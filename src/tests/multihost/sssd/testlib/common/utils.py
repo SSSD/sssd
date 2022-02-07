@@ -1030,7 +1030,7 @@ class LdapOperations(object):
             return self._parseException(err)
         except ldap.TYPE_OR_VALUE_EXISTS as err:
             return self._parseException(err)
-        except ldap.UNWILLING_TO_PERFORM:
+        except ldap.UNWILLING_TO_PERFORM as err:
             return self._parseException(err)
         else:
             return 'Success', True
@@ -1456,7 +1456,7 @@ class PkiTools(object):
         return nss_dir
 
 
-class ADOperations(object):
+class ADOperations(object):  # pylint: disable=useless-object-inheritance
     """
     ADOperations class consists of methods related to managing AD User With
     Unix properties.
@@ -1490,80 +1490,76 @@ class ADOperations(object):
         return ad_conn_inst
 
     def create_ad_unix_user_group(self, username, groupname,
-                                  mail=None, password='Secret123'):
+                                  mail=None, password='Secret123', uid=None):
         """ Create a AD User with Unix Attributes
 
         :param str username: AD User Name
         :param str groupname: AD Group Name
+        :param str mail: AD User e-mail address
         :param str password: User password (default: Secret123)
+        :param int uid: User uid
         :Return bool: if user/group added correctly return True else False
         :Exceptions: False
         """
+        # pylint: disable=too-many-arguments
+        if uid is None:
+            uid = random.randint(9999, 999999)
 
-        uid = random.randint(9999, 999999)
-        user_dn = "CN=%s,%s" % (username, self.ad_users_dn_entry)
-        group_dn = "CN=%s,%s" % (groupname, self.ad_users_dn_entry)
-        cmd = self.ad_host.run_command(['dsadd.exe', 'user', user_dn, '-samid',
-                                        username, '-pwd', password])
-        cmd = self.ad_host.run_command(['dsadd.exe', 'group', group_dn])
-        cmd = self.ad_host.run_command(['dsmod', 'group', group_dn, '-addmbr',
-                                        user_dn])
-        homedir = '/home/%s' % (username)
+        user = self.create_ad_nonposix_user(username, password)
+        group = self.create_ad_unix_group(groupname, gid=uid)
+        mbr = self.add_user_member_of_group(groupname, username)
+
         if mail is None:
             mail = '%s@%s' % (username, self.ad_host.realm)
-        ad_conn_inst = self.ad_conn()
-        if cmd.returncode == 0:
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30NisDomain',
-                       self.ad_host.netbiosname.encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'uidNumber', str(uid).encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'gidNumber', str(uid).encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'unixHomeDirectory',
-                       homedir.encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'loginShell',
-                       '/bin/bash'.encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30Name', username.encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30NisDomain',
-                       self.ad_host.netbiosname.encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'gidNumber', str(uid).encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30Name', groupname.encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'mail', mail.encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-        else:
-            return False
-        return True
 
-    def create_ad_unix_group(self, groupname):
+        usr = f"powershell.exe -inputformat none -noprofile 'Set-ADUser " \
+              f"-Identity \"{username}\" -Add @{{" \
+              f"msSFU30NisDomain = \"{self.ad_host.netbiosname}\";" \
+              f"uidNumber = \"{str(uid)}\";" \
+              f"gidNumber = \"{str(uid)}\";" \
+              f"unixHomeDirectory = \"/home/{username}\";"\
+              f"loginShell = \"/bin/bash\";" \
+              f"msSFU30Name = \"{username}\";" \
+              f"mail = \"{mail}\";" \
+              f"}}'"
+        usr_res = self.ad_host.run_command(usr, raiseonerr=False)
+        mod = usr_res.returncode == 0
+        return user and group and mbr and mod
+
+    def create_ad_unix_group(self, groupname, gid=None):
         """ Create AD Group with UNIX Attributes
 
         :param str groupname: Windows AD Group name
+        :param int gid: Windows AD Group gid
         :Return bool : True if AD group was created with Unix Attributes
         :Exceptions: None
         """
+        if gid is None:
+            gid = random.randint(9999, 999999)
+        self.create_ad_nonposix_group(groupname)
+        mod_grp = f"powershell.exe -inputformat none -noprofile '" \
+                  f"Set-ADGroup -Identity \"{groupname}\" -Add @{{" \
+                  f"msSFU30NisDomain = \"{self.ad_host.netbiosname}\";" \
+                  f"gidNumber = \"{str(gid)}\";" \
+                  f"msSFU30Name = \"{groupname}\";" \
+                  f"}}'"
+        grp_result = self.ad_host.run_command(mod_grp, raiseonerr=False)
+        return grp_result.returncode == 0
 
-        gid = random.randint(9999, 999999)
-        group_dn = "CN=%s,%s" % (groupname, self.ad_users_dn_entry)
-        cmd = self.ad_host.run_command(['dsadd.exe', 'group', group_dn])
-        ad_conn_inst = self.ad_conn()
-        if cmd.returncode == 0:
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30NisDomain',
-                       self.ad_host.netbiosname.encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'gidNumber', str(gid).encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30Name', groupname.encode('utf-8'))]
-            (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
-        else:
-            return False
-        return True
+    def create_ad_nonposix_user(self, username, password='Secret123'):
+        """ Create AD User without UNIX Attributes
+
+        :param str username: Windows AD User name
+        :param str password: Windows AD User password (default: Secret123)
+        :Return bool : True if a nonposix AD user was created
+        :Exceptions: None
+        """
+        new_usr = f"powershell.exe -inputformat none -noprofile '" \
+                  f"New-ADUser -Name \"{username}\" -Enabled $true " \
+                  f"-Accountpassword (ConvertTo-SecureString -String " \
+                  f"\"{password}\" -AsPlainText -Force) '"
+        usr_result = self.ad_host.run_command(new_usr, raiseonerr=False)
+        return usr_result.returncode == 0
 
     def create_ad_nonposix_group(self, groupname):
         """ Create AD Group without UNIX Attributes
@@ -1572,69 +1568,71 @@ class ADOperations(object):
         :Return bool : True if a nonposix AD group was created
         :Exceptions: None
         """
-        group_dn = "CN=%s,%s" % (groupname, self.ad_users_dn_entry)
-        cmd = self.ad_host.run_command(['dsadd.exe', 'group', group_dn])
-        ad_conn_inst = self.ad_conn()
-        if cmd.returncode == 0:
-            return True
-        else:
-            return False
+        new_grp = f"powershell.exe -inputformat none -noprofile '" \
+                  f"New-ADGroup -Name \"{groupname}\" -GroupScope Global '"
+        grp_result = self.ad_host.run_command(new_grp, raiseonerr=False)
+        return grp_result.returncode == 0
 
     def delete_ad_user_group(self, user_group):
-        """ Delete AD user
+        """ Delete AD user or group
 
         :param str user_group: User or Group Name to be deleted
-        :Return bool: True if delete is successful else false
+        :Return bool: True if delete is successful else False
         :Exceptions: None
         """
+        # Original implementation was using dsrm which was able to delete both
+        # group and user without making any difference. To keep the
+        # compatibility with existing tests we use this less-than-elegant way.
 
-        ad_entry = 'CN=%s,%s' % (user_group, self.ad_users_dn_entry)
-        try:
-            self.ad_host.run_command(['dsrm.exe', ad_entry, '-noprompt'])
-        except CalledProcessError:
-            return False
+        grp = f"powershell.exe -inputformat none -noprofile '" \
+              f"Remove-ADGroup -Confirm:$False -Identity \"{user_group}\"'"
+
+        usr = f"powershell.exe -inputformat none -noprofile '" \
+              f"Remove-ADUser -Confirm:$False -Identity \"{user_group}\"'"
+
+        if "group" in user_group:
+            grp_result = self.ad_host.run_command(grp, raiseonerr=False)
+            result = grp_result.returncode == 0
+        elif "user" in user_group:
+            usr_result = self.ad_host.run_command(usr, raiseonerr=False)
+            result = usr_result.returncode == 0
         else:
-            return True
+            grp_result = self.ad_host.run_command(grp, raiseonerr=False)
+            usr_result = self.ad_host.run_command(usr, raiseonerr=False)
+            result = usr_result.returncode == 0 or grp_result.returncode == 0
+        return result
 
     def add_user_member_of_group(self, group, user):
-        """ Add user member of a group
+        """ Add user or group member of a group
 
         :param str group: Name of Windows AD Group
-        :param str user: Name of Windows AD user
-        :Return bool: True if user is added as member to group
+        :param str user: Name of Windows AD user or group
+        :Return bool: True if member is added to group
         :Exceptions: None
         """
-
-        group_dn = 'CN=%s,%s' % (group, self.ad_users_dn_entry)
-        user_dn = 'CN=%s,%s' % (user, self.ad_users_dn_entry)
-        try:
-            self.ad_host.run_command(['dsmod', 'group', group_dn, '-addmbr',
-                                      user_dn])
-        except CalledProcessError:
-            return False
-        else:
-            return True
+        mod_mbr = f"powershell.exe -inputformat none -noprofile '" \
+                  f"Add-ADGroupMember -Identity \"{group}\" " \
+                  f"-Members \"{user}\"'"
+        grp_result = self.ad_host.run_command(mod_mbr, raiseonerr=False)
+        return grp_result.returncode == 0
 
     def remove_user_from_group(self, group, user):
-        """ Remove User from Group membership
+        """ Remove User or Group from Group membership
 
         :param str group: Name of Windows AD Group
-        :param str user: Name of Windows AD user
-        :Return bool: True if user is removed from group else False
+        :param str user: Name of Windows AD user or group
+        :Return bool: True if member is removed from group else False
         :Exceptions: None
         """
-
-        group_dn = 'CN=%s,%s' % (group, self.ad_users_dn_entry)
-        user_dn = 'CN=%s,%s' % (user, self.ad_users_dn_entry)
-        try:
-            self.ad_host.run_command(['dsmod', 'group', group_dn, '-rmmbr',
-                                      user_dn])
-        except CalledProcessError:
-            return False
-        return True
+        del_mbr = f"powershell.exe -inputformat none -noprofile '" \
+                  f"Remove-ADGroupMember -Identity \"{group}\" " \
+                  f"-Members \"{user}\" -Confirm:$False'"
+        grp_result = self.ad_host.run_command(del_mbr, raiseonerr=False)
+        return grp_result.returncode == 0
 
     def add_map(self, name, nfs_server):
         """ Add a nisobject to auto.direct map """
+        # TODO: Rewrite in powershell if possible.
         ad_conn_inst = self.ad_conn()
         entrydn = 'cn=%s,cn=auto.direct,ou=automount,%s' % (name,
                                                             self.ad_basedn)
@@ -1649,6 +1647,7 @@ class ADOperations(object):
 
     def delete_map(self, name):
         """ Remove nismap """
+        # TODO: Rewrite in powershell if possible.
         ad_conn_inst = self.ad_conn()
         entrydn = 'cn=%s,cn=auto.direct,ou=automount,%s' % (name,
                                                             self.ad_basedn)
@@ -1664,7 +1663,7 @@ class ADOperations(object):
         """
         try:
             self.ad_host.run_command(
-                f"powershell 'Import-Module ActiveDirectory; "
+                f"powershell -inputformat none -noprofile '"
                 f"Set-ADAccountExpiration -identity"
                 f" \"{user}\" -DateTime \"12/18/2011\"'"
             )
@@ -1680,7 +1679,7 @@ class ADOperations(object):
         """
         try:
             self.ad_host.run_command(
-                f"powershell 'Import-Module ActiveDirectory; "
+                f"powershell -inputformat none -noprofile '"
                 f"Set-ADAccountExpiration -identity"
                 f" \"{user}\" -DateTime \"10/05/2036\"'"
             )
@@ -1696,7 +1695,7 @@ class ADOperations(object):
         """
         try:
             self.ad_host.run_command(
-                f"powershell 'Import-Module ActiveDirectory; "
+                f"powershell -inputformat none -noprofile '"
                 f"Disable-ADAccount -identity \"{user}\"'"
             )
         except CalledProcessError:
@@ -1711,7 +1710,7 @@ class ADOperations(object):
         """
         try:
             self.ad_host.run_command(
-                f"powershell 'Import-Module ActiveDirectory; "
+                f"powershell -inputformat none -noprofile '"
                 f"Enable-ADAccount -identity \"{user}\"'"
             )
         except CalledProcessError:
@@ -1726,7 +1725,7 @@ class ADOperations(object):
         """
         try:
             self.ad_host.run_command(
-                f"powershell 'Import-Module ActiveDirectory; Set-ADUser"
+                f"powershell -inputformat none -noprofile 'Set-ADUser"
                 f" -identity \"{user}\" -Replace @{{pwdLastSet=0}}'"
             )
         except CalledProcessError:
@@ -1741,7 +1740,7 @@ class ADOperations(object):
         """
         try:
             self.ad_host.run_command(
-                f"powershell 'Import-Module ActiveDirectory; Set-ADUser"
+                f"powershell -inputformat none -noprofile 'Set-ADUser"
                 f" -identity \"{user}\" -Replace @{{pwdLastSet=-1}}'"
             )
         except CalledProcessError:
