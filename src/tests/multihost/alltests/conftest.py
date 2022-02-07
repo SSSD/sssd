@@ -6,6 +6,7 @@ import time
 import posixpath
 import ldap
 import pytest
+import re
 from constants import ds_instance_name, ds_suffix, krb_realm
 from sssd.testlib.common.libkrb5 import krb5srv
 # pylint: disable=unused-import
@@ -1357,9 +1358,24 @@ def add_host_entry(session_multihost, request):
     request.addfinalizer(remove_host_entry)
 
 
+def execute_cmd(session_multihost, command):
+    """ Execute command on client """
+    cmd = session_multihost.client[0].run_command(command)
+    return cmd
+
+
 @pytest.fixture(scope='class')
 def ns_account_lock(session_multihost, request):
     """ Backup and restore sssd.conf """
+    version = float(re.findall("\d+\.\d+",
+                               session_multihost.client[0].distro)[0])
+    if version >= 9:
+        execute_cmd(session_multihost, "yum install -y 389-ds-base")
+    else:
+        execute_cmd(session_multihost, "yum module "
+                                       "enable -y 389-ds; "
+                                       "yum install -y "
+                                       "389-ds-base")
     tools = sssdTools(session_multihost.client[0])
     domain_name = tools.get_domain_section_name()
     client = sssdTools(session_multihost.client[0])
