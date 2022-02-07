@@ -16,7 +16,6 @@ try:
 except ImportError:
     import configparser as ConfigParser
 from subprocess import CalledProcessError
-import subprocess
 try:
     from StringIO import StringIO
 except ImportError:
@@ -50,13 +49,24 @@ class sssdTools(object):
             self.adhost = adhost
             self.adhost_ip = self.adhost.ip
             self.ad_ops = ADOperations(self.adhost)
-            self.ad_conn = self.ad_ops.ad_conn()
+            self._ad_conn = None
             self.domainname = self. adhost.domainname
             self.ad_realm = self.adhost.realm
             self.ad_password = self.adhost.ssh_password
             self.ad_hostname = self.adhost.external_hostname
             self.ad_basedn = self.adhost.domain_basedn_entry
             self.admin_user = 'Administrator'
+
+    @property
+    def ad_conn(self):
+        """AD LDAP connection in lazy initialized property"""
+        # Make sure to return None when the host is not AD
+        if not hasattr(self, "_ad_conn"):
+            return None
+        if self._ad_conn:
+            return self._ad_conn
+        self._ad_conn = self.ad_ops.ad_conn()
+        return self._ad_conn
 
     def client_install_pkgs(self):
         """ Install common required packages """
