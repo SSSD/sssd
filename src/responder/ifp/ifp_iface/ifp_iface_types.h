@@ -18,8 +18,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _SSS_IFACE_CUSTOM_TYPES_H_
-#define _SSS_IFACE_CUSTOM_TYPES_H_
+#ifndef _IFP_IFACE_CUSTOM_TYPES_H_
+#define _IFP_IFACE_CUSTOM_TYPES_H_
 
 #include <talloc.h>
 #include <dhash.h>
@@ -32,4 +32,4 @@ errno_t sbus_iterator_read_ifp_extra(TALLOC_CTX *mem_ctx,
 errno_t sbus_iterator_write_ifp_extra(DBusMessageIter *iterator,
                                       hash_table_t *table);
 
-#endif /* _SBUS_ITERATOR_READERS_H_ */
+#endif /* _IFP_IFACE_CUSTOM_TYPES_H_ */

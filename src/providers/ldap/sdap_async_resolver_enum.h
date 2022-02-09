@@ -20,8 +20,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _SDAP_ASYNC_ENUM_H_
-#define _SDAP_ASYNC_ENUM_H_
+#ifndef _SDAP_ASYNC_RESOLVER_ENUM_H_
+#define _SDAP_ASYNC_RESOLVER_ENUM_H_
 
 struct tevent_req *
 sdap_dom_resolver_enum_send(TALLOC_CTX *memctx,
@@ -33,4 +33,4 @@ sdap_dom_resolver_enum_send(TALLOC_CTX *memctx,
 
 errno_t sdap_dom_resolver_enum_recv(struct tevent_req *req);
 
-#endif /* _SDAP_ASYNC_ENUM_H_ */
+#endif /* _SDAP_ASYNC_RESOLVER_ENUM_H_ */
