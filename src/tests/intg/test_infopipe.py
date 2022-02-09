@@ -226,21 +226,6 @@ def format_basic_conf(ldap_conn, schema, config):
     """).format(**locals())
 
 
-def format_interactive_conf(ldap_conn, schema):
-    """Format an SSSD configuration with all caches refreshing in 4 seconds"""
-    return \
-        format_basic_conf(ldap_conn, schema) + \
-        unindent("""
-            [nss]
-            memcache_timeout                    = 0
-            entry_negative_timeout              = 0
-
-            [domain/LDAP]
-            ldap_purge_cache_timeout            = 1
-            entry_cache_timeout                 = {0}
-        """).format(INTERACTIVE_TIMEOUT)
-
-
 def format_certificate_conf(ldap_conn, schema, config):
     """Format an SSSD configuration with all caches refreshing in 4 seconds"""
     return \
