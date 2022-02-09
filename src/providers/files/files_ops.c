@@ -458,7 +458,7 @@ static errno_t sf_enum_users(struct files_id_ctx *id_ctx, struct passwd **users,
     errno_t ret;
     size_t i;
 
-    for (i = start; users[i] != NULL && i < (start + size); i++) {
+    for (i = start; i < (start + size) && users[i] != NULL; i++) {
         ret = save_file_user(id_ctx, users[i]);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -676,7 +676,7 @@ static errno_t sf_enum_groups(struct files_id_ctx *id_ctx,
         goto done;
     }
 
-    for (i = start; groups[i] != NULL && i < (start + size); i++) {
+    for (i = start; i < (start + size) && groups[i] != NULL; i++) {
         ret = save_file_group(id_ctx, groups[i], cached_users);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
