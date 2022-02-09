@@ -49,7 +49,7 @@ sysdb_getservbyname(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_SVC_ATTRS;
     char *sanitized_name;
-    char *sanitized_proto;
+    char *sanitized_proto = NULL;
     char *subfilter;
     struct ldb_result *res = NULL;
     struct ldb_message **msgs;

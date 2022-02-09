@@ -264,7 +264,7 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
                              struct sysdb_attrs *group)
 {
     struct sdap_attr_map *map = group_ctx->opts->group_map;
-    gid_t gid;
+    gid_t gid = 0;
     errno_t ret;
     bool posix_group = true;
     bool use_id_mapping;

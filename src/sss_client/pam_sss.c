@@ -2140,7 +2140,7 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
 static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
 {
     size_t c;
-    int ret;
+    int ret = PAM_SUCCESS;
 
     if (pi->pc == NULL || *pi->pc == NULL) {
         return PAM_SYSTEM_ERR;

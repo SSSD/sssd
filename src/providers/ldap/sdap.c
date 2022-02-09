@@ -661,7 +661,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
     const char *orig_dn;
     const char **ocs;
     struct sdap_attr_map *map;
-    int num_attrs;
+    int num_attrs = 0;
     int ret, i, a, mi;
     const char *name;
     size_t len;

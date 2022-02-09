@@ -520,7 +520,7 @@ static errno_t sudosrv_fetch_rules(TALLOC_CTX *mem_ctx,
                                    struct sysdb_attrs ***_rules,
                                    uint32_t *_num_rules)
 {
-    struct sysdb_attrs **rules;
+    struct sysdb_attrs **rules = NULL;
     const char *debug_name = "unknown";
     uint32_t num_rules;
     errno_t ret;

@@ -534,7 +534,7 @@ static void users_get_done(struct tevent_req *subreq)
     struct users_get_state *state = tevent_req_data(req,
                                                      struct users_get_state);
     char *endptr;
-    uid_t uid;
+    uid_t uid = 0;
     int dp_error = DP_ERR_FATAL;
     int ret;
 

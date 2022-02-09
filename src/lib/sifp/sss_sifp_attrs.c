@@ -304,7 +304,7 @@ sss_sifp_find_attr_as_string_array(sss_sifp_attr **attrs,
                                    const char * const **_value)
 {
     sss_sifp_error ret = SSS_SIFP_ATTR_MISSING;
-    char **value;
+    char **value = NULL;
 
     GET_ATTR_ARRAY(attrs, name, SSS_SIFP_ATTR_TYPE_STRING, str,
                    *_num_values, value, ret);

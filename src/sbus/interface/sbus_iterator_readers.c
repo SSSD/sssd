@@ -68,7 +68,7 @@ _sbus_iterator_read_basic_array(TALLOC_CTX *mem_ctx,
 {
     DBusMessageIter subiter;
     uint8_t *arrayptr;
-    void *array;
+    void *array = NULL;
     int arg_type;
     int count;
     errno_t ret;

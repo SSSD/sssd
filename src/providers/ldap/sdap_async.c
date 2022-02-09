@@ -2737,7 +2737,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
     struct berval **vals;
     int i, mi;
     struct sdap_attr_map *map;
-    int num_attrs;
+    int num_attrs = 0;
     struct sdap_deref_attrs **res;
     char *tmp;
     char *dn = NULL;

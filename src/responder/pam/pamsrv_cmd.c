@@ -2176,7 +2176,7 @@ static errno_t pam_is_last_online_login_fresh(struct sss_domain_info *domain,
                                               bool *_result)
 {
     errno_t ret;
-    bool result;
+    bool result = true;
     uint64_t last_login;
 
     ret = pam_get_last_online_auth_with_curr_token(domain, user, &last_login);
@@ -2515,7 +2515,7 @@ pam_get_last_online_auth_with_curr_token(struct sss_domain_info *domain,
     TALLOC_CTX *tmp_ctx = NULL;
     const char *attrs[] = { SYSDB_LAST_ONLINE_AUTH_WITH_CURR_TOKEN, NULL };
     struct ldb_message *ldb_msg;
-    uint64_t value;
+    uint64_t value = 0;
     errno_t ret;
 
     if (name == NULL || *name == '\0') {
