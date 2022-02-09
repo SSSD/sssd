@@ -434,7 +434,7 @@ done:
     if (ret != SSS_SIFP_OK) {
         if (attr->type == SSS_SIFP_ATTR_TYPE_STRING && attr->data.str != NULL) {
             for (unsigned int i = 0;
-                 attr->data.str[i] != NULL && i < attr->num_values;
+                 (i < attr->num_values) && (attr->data.str[i] != NULL);
                  i++) {
                 _free(ctx, attr->data.str[i]);
             }
