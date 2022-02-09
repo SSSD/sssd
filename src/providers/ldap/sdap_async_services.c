@@ -353,7 +353,7 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
     const char *name = NULL;
     const char **aliases;
     const char **protocols;
-    const char **cased_protocols;
+    const char **cased_protocols = NULL;
     const char **store_protocols;
     char **missing;
     uint16_t port;

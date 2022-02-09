@@ -255,7 +255,7 @@ errno_t ad_get_sids_from_pac(TALLOC_CTX *mem_ctx,
     char *user_sid_str = NULL;
     char *primary_group_sid_str = NULL;
     size_t c;
-    size_t num_sids;
+    size_t num_sids = 0;
     char **sid_list = NULL;
     struct hash_iter_context_t *iter = NULL;
     hash_entry_t *entry;

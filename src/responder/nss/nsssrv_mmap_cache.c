@@ -529,7 +529,7 @@ static errno_t sss_mc_get_strs_len(struct sss_mc_ctx *mcc,
 static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
                                              struct sized_string *key)
 {
-    struct sss_mc_rec *rec;
+    struct sss_mc_rec *rec = NULL;
     uint32_t hash;
     uint32_t slot;
     rel_ptr_t name_ptr;
@@ -803,7 +803,7 @@ errno_t sss_mmap_cache_pw_invalidate(struct sss_mc_ctx *mcc,
 
 errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
 {
-    struct sss_mc_rec *rec;
+    struct sss_mc_rec *rec = NULL;
     struct sss_mc_pwd_data *data;
     uint32_t hash;
     uint32_t slot;
@@ -941,7 +941,7 @@ errno_t sss_mmap_cache_gr_invalidate(struct sss_mc_ctx *mcc,
 
 errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
 {
-    struct sss_mc_rec *rec;
+    struct sss_mc_rec *rec = NULL;
     struct sss_mc_grp_data *data;
     uint32_t hash;
     uint32_t slot;

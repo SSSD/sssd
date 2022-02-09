@@ -2489,8 +2489,8 @@ static void ipa_subdomains_write_kdcinfo_domain_done(struct tevent_req *subreq)
                 tevent_req_data(req,
                                 struct ipa_subdomains_write_kdcinfo_state);
     struct sss_domain_info *next_domain;
-    struct resolv_hostport_addr **rhp_addrs;
-    size_t rhp_len;
+    struct resolv_hostport_addr **rhp_addrs = NULL;
+    size_t rhp_len = 0;
 
     if (state->pdctx->servers != NULL) {
         ret = kdcinfo_from_server_list_recv(state->pdctx, subreq,

@@ -527,7 +527,7 @@ parse_krb5_map_user(TALLOC_CTX *mem_ctx,
                     struct map_id_name_to_krb_primary **_name_to_primary)
 {
     int size;
-    char **map;
+    char **map = NULL;
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     struct map_id_name_to_krb_primary *name_to_primary;

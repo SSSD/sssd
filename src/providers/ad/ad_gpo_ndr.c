@@ -199,7 +199,7 @@ ndr_pull_security_ace_object_ctr(struct ndr_pull *ndr,
                                  int ndr_flags,
                                  union security_ace_object_ctr *r)
 {
-    uint32_t level;
+    uint32_t level = 0;
     NDR_PULL_CHECK_FLAGS(ndr, ndr_flags);
     if (ndr_flags & NDR_SCALARS) {
         /* This token is not used again (except perhaps below in the NDR_BUFFERS case) */

@@ -454,7 +454,7 @@ get_object_domain(enum sysdb_member_type type,
                   struct sss_domain_info *domains)
 {
     TALLOC_CTX *tmp_ctx;
-    struct sss_domain_info *dom;
+    struct sss_domain_info *dom = NULL;
     struct ldb_result *res;
     const char *strtype;
     char *sysname;
@@ -1119,7 +1119,7 @@ list_user_overrides(TALLOC_CTX *mem_ctx,
                     const char *filter)
 {
     TALLOC_CTX *tmp_ctx;
-    struct override_user *objs;
+    struct override_user *objs = NULL;
     struct ldb_message **msgs;
     size_t count;
     size_t i;
@@ -1210,7 +1210,7 @@ list_group_overrides(TALLOC_CTX *mem_ctx,
                      const char *filter)
 {
     TALLOC_CTX *tmp_ctx;
-    struct override_group *objs;
+    struct override_group *objs = NULL;
     struct ldb_message **msgs;
     size_t count;
     size_t i;

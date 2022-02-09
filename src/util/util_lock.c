@@ -31,7 +31,7 @@
 errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                          int num_tries, useconds_t wait)
 {
-    int ret;
+    int ret = EAGAIN;
     struct flock lock;
     int retries_left;
 

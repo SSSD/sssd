@@ -453,7 +453,7 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
                                const char *filter, const char *name)
 {
     const char *attrs[] = {SYSDB_NAME, NULL};
-    size_t msg_count;
+    size_t msg_count = 0;
     struct ldb_message **msgs;
     const char *type_string = "unknown";
     errno_t ret = EINVAL;
