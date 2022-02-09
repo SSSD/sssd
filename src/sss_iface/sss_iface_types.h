@@ -40,4 +40,4 @@ errno_t sbus_iterator_read_pam_response(TALLOC_CTX *mem_ctx,
 errno_t sbus_iterator_write_pam_response(DBusMessageIter *iterator,
                                          struct pam_data *pd);
 
-#endif /* _SBUS_ITERATOR_READERS_H_ */
+#endif /* _SSS_IFACE_CUSTOM_TYPES_H_ */
