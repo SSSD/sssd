@@ -136,7 +136,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
                                                      struct sdap_connect_state);
     struct timeval tv;
     int ver;
-    int lret;
+    int lret = 0;
     int optret;
     int ret = EOK;
     int msgid;

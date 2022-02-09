@@ -660,9 +660,9 @@ static void run_proxy_child_queue(struct tevent_context *ev,
     struct proxy_auth_ctx *auth_ctx;
     struct hash_iter_context_t *iter;
     struct hash_entry_t *entry;
-    struct tevent_req *req;
+    struct tevent_req *req = NULL;
     struct tevent_req *subreq;
-    struct proxy_child_ctx *state;
+    struct proxy_child_ctx *state = NULL;
 
     auth_ctx = talloc_get_type(pvt, struct proxy_auth_ctx);
 

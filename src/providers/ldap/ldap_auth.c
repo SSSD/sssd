@@ -516,11 +516,11 @@ int get_user_dn(TALLOC_CTX *memctx,
                        void **user_pw_expire_data)
 {
     TALLOC_CTX *tmpctx;
-    enum pwexpire pw_expire_type;
+    enum pwexpire pw_expire_type = PWEXPIRE_NONE;
     void *pw_expire_data;
     struct ldb_result *res;
     const char **attrs;
-    const char *dn;
+    const char *dn = NULL;
     int ret;
 
     tmpctx = talloc_new(memctx);

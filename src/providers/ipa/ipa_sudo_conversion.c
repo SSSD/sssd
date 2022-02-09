@@ -661,7 +661,7 @@ build_filter(TALLOC_CTX *mem_ctx,
     hash_key_t *keys;
     unsigned long int count;
     unsigned long int i;
-    char *filter;
+    char *filter = NULL;
     char *rdn_val;
     const char *rdn_attr;
     char *safe_rdn;
