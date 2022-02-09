@@ -254,6 +254,10 @@ def notification = new Notification(
   on_demand
 )
 
+this.properties([
+    buildDiscarder(logRotator(daysToKeepStr: '30', numToKeepStr: '70')),
+])
+
 try {
   stage('Get system list') {
     node('master') {
