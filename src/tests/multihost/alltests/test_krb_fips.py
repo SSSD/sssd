@@ -33,6 +33,7 @@ class Testkrbfips(object):
         :id: b1321b02-4a29-4285-8c85-36f925496463
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1792331
         """
+        time.sleep(1000000)
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
         multihost.client[0].service_sssd('stop')
