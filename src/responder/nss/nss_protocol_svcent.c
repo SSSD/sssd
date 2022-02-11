@@ -72,7 +72,7 @@ nss_get_svcent(TALLOC_CTX *mem_ctx,
         protocol = requested_protocol;
     } else {
         el = ldb_msg_find_element(msg, SYSDB_SVC_PROTO);
-        if (el->num_values == 0) {
+        if (el == NULL || el->num_values == 0) {
             ret = EINVAL;
             goto done;
         }

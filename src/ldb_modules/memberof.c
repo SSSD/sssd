@@ -1710,6 +1710,9 @@ static int mbof_del_cleanup_children(struct mbof_del_ctx *del_ctx)
     ldb = ldb_module_get_ctx(ctx->module);
 
     el = ldb_msg_find_element(first->entry, DB_MEMBER);
+    if (el == NULL) {
+        return EINVAL;
+    }
 
     /* prepare del sets */
     for (i = 0; i < el->num_values; i++) {
