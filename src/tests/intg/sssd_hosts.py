@@ -86,33 +86,6 @@ def gethostbyname2_r(name, af, result_p, buffer_p, buflen):
     return (int(res), int(errno[0]), int(h_errno[0]), result_p)
 
 
-def gethostbyaddr_r(addr, af, result_p, buffer_p, buflen):
-    """
-    ctypes wrapper for:
-        enum nss_status _nss_sss_gethostbyaddr_r(const void *addr,
-                                                 socklen_t addrlen,
-                                                 int af,
-                                                 struct hostent *result,
-                                                 char *buffer,
-                                                 size_t buflen,
-                                                 int *errnop,
-                                                 int *h_errnop)
-    """
-    func = nss_sss_ctypes_loader("_nss_sss_gethostbyaddr_r")
-    func.restype = c_int
-    func.argtypes = [c_void_p, c_ulong, c_int, POINTER(Hostent),
-                     c_char_p, c_ulong, POINTER(c_int), POINTER(c_int)]
-
-    errno = POINTER(c_int)(c_int(0))
-    h_errno = POINTER(c_int)(c_int(0))
-
-    name = name.encode('utf-8')
-    res = func(c_void_p(addr), addrlen, af, result_p, buffer_p, buflen,
-               errno, h_errno)
-
-    return (int(res), int(errno[0]), int(h_errno[0]), result_p)
-
-
 def set_hostent_dict(res, result_p):
     if res != NssReturnCode.SUCCESS:
         return dict()
