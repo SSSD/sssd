@@ -154,6 +154,12 @@ errno_t sbus_iterator_write_ifp_extra(DBusMessageIter *iterator,
     }
 
     table_iter = new_hash_iter_context(table);
+    if (table_iter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "new_hash_iter_context failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     while ((entry = table_iter->next(table_iter)) != NULL) {
         if (entry->key.type != HASH_KEY_STRING || entry->key.str == NULL
                 || entry->value.type != HASH_VALUE_PTR
@@ -211,6 +217,9 @@ done:
         }
     }
 
-    talloc_free(table_iter);
+    if (table_iter != NULL) {
+        talloc_free(table_iter);
+    }
+
     return ret;
 }

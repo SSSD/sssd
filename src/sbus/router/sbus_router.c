@@ -109,6 +109,10 @@ sbus_router_signal_parse(TALLOC_CTX *mem_ctx,
 
     /* Split the duplicate into interface and signal name parts. */
     dot = strrchr(dup, '.');
+    if (dot == NULL) {
+        talloc_free(dup);
+        return EINVAL;
+    }
     *dot = '\0';
 
     signal_name = talloc_strdup(mem_ctx, dot + 1);

@@ -1076,6 +1076,11 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
     for (i = 0; i < res->count; i++) {
         user = res->msgs[i];
         memberof_el = ldb_msg_find_element(user, "memberof");
+        if (memberof_el == NULL) {
+            ret = EINVAL;
+            goto done;
+        }
+
         name = ldb_msg_find_attr_as_string(user, "name", NULL);
         if (name == NULL) {
             ret = EIO;
