@@ -668,6 +668,11 @@ static void run_proxy_child_queue(struct tevent_context *ev,
 
     /* Launch next queued request */
     iter = new_hash_iter_context(auth_ctx->request_table);
+    if (iter == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "new_hash_iter_context failed.\n");
+        return;
+    }
+
     while ((entry = iter->next(iter)) != NULL) {
         req = talloc_get_type(entry->value.ptr, struct tevent_req);
         state = tevent_req_data(req, struct proxy_child_ctx);
