@@ -25,6 +25,7 @@
 
 #include "util/util.h"
 #include "util/dlinklist.h"
+#include "util/sss_chain_id.h"
 #include "sbus/sbus_request.h"
 #include "sbus/sbus_private.h"
 
@@ -575,6 +576,7 @@ struct sbus_outgoing_request_state {
     const char *key;
     struct sbus_connection *conn;
     DBusMessage *reply;
+    uint64_t chain_id;
 };
 
 static errno_t
@@ -619,6 +621,14 @@ sbus_outgoing_request_send(TALLOC_CTX *mem_ctx,
     }
 
     state->conn = conn;
+
+    /*
+     * The message is sent over top level dbus tevent code. This means that
+     * the chain id information is lost and is not restored when we get reply
+     * from dbus. Therefore we need to remember it and restore it manually
+     * when this request is done.
+     */
+    state->chain_id = sss_chain_id_get();
 
     if (key != NULL) {
         state->key = talloc_strdup(state, key);
@@ -675,6 +685,8 @@ static void sbus_outgoing_request_done(struct tevent_req *subreq)
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sbus_outgoing_request_state);
+
+    sss_chain_id_set(state->chain_id);
 
     ret = sbus_message_recv(state, subreq, &state->reply);
     talloc_zfree(subreq);

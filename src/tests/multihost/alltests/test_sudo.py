@@ -56,14 +56,14 @@ class TestSudo(object):
                 ssh = SSHClient(multihost.client[0].sys_hostname,
                                 username=user, password='Secret123')
             except paramiko.ssh_exception.AuthenticationException:
-                pytest.fail("Authentication Failed as user %s" % (localuser))
+                pytest.fail("Authentication Failed as user %s" % (user))
             else:
                 for count in range(1, 10):
                     sudo_cmd = 'sudo fdisk -l'
                     (_, _, _) = ssh.execute_cmd(args=sudo_cmd)
                     sudo_cmd = 'sudo ls -l /usr/sbin/'
                     (_, _, _) = ssh.execute_cmd(args=sudo_cmd)
-            ssh.close()
+                ssh.close()
         pkill = 'pkill tcpdump'
         multihost.client[0].run_command(pkill)
         for user in localusers.keys():

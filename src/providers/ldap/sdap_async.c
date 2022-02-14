@@ -2070,6 +2070,7 @@ struct sdap_x_deref_search_state {
     struct sdap_attr_map_info *maps;
     LDAPControl **ctrls;
     struct sdap_options *opts;
+    bool ldap_ignore_unreadable_references;
 
     struct sdap_deref_reply dreply;
     int num_maps;
@@ -2103,6 +2104,9 @@ sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     }
     talloc_set_destructor((TALLOC_CTX *) state->ctrls,
                           sdap_x_deref_search_ctrls_destructor);
+
+    state->ldap_ignore_unreadable_references = dp_opt_get_bool(opts->basic,
+                                            SDAP_IGNORE_UNREADABLE_REFERENCES);
 
     ret = sdap_x_deref_create_control(sh, deref_attr,
                                       attrs, &state->ctrls[0]);
@@ -2243,6 +2247,13 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
 
     ret = EOK;
 done:
+    if (ret != EOK && ret != ENOMEM) {
+        if (state->ldap_ignore_unreadable_references) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Ignoring unreadable reference\n");
+            ret = EOK;
+        }
+    }
+
     talloc_zfree(tmp_ctx);
     ldap_controls_free(ctrls);
     ldap_derefresponse_free(deref_res);
@@ -2500,6 +2511,7 @@ struct sdap_asq_search_state {
     int num_maps;
     LDAPControl **ctrls;
     struct sdap_options *opts;
+    bool ldap_ignore_unreadable_references;
 
     struct sdap_deref_reply dreply;
 };
@@ -2538,6 +2550,9 @@ sdap_asq_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     }
     talloc_set_destructor((TALLOC_CTX *) state->ctrls,
                           sdap_asq_search_ctrls_destructor);
+
+    state->ldap_ignore_unreadable_references = dp_opt_get_bool(opts->basic,
+                                            SDAP_IGNORE_UNREADABLE_REFERENCES);
 
     ret = sdap_asq_search_create_control(sh, deref_attr, &state->ctrls[0]);
     if (ret != EOK) {
@@ -2613,7 +2628,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
     int num_attrs;
     struct sdap_deref_attrs **res;
     char *tmp;
-    char *dn;
+    char *dn = NULL;
     TALLOC_CTX *tmp_ctx;
     bool disable_range_rtrvl;
 
@@ -2704,6 +2719,13 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
 
     ret = EOK;
 done:
+    if (ret != EOK && ret != ENOMEM) {
+        if (state->ldap_ignore_unreadable_references) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Ignoring unreadable reference [%s]\n",
+                  dn != NULL ? dn : "(null)");
+            ret = EOK;
+        }
+    }
     talloc_zfree(tmp_ctx);
     return ret;
 }

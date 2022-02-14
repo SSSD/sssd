@@ -4,17 +4,17 @@
 #
 # Translators:
 # Christopher Meng <cickumqt@gmail.com>, 2012
-# Ludek Janda <ljanda@redhat.com>, 2020. #zanata
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022.
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
-# Charles Lee <lchopn@gmail.com>, 2020.
+# Charles Lee <lchopn@gmail.com>, 2020, 2021.
 # Sundeep Anand <suanand@redhat.com>, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2021-11-09 16:03+0100\n"
-"PO-Revision-Date: 2021-07-20 07:04+0000\n"
-"Last-Translator: Sundeep Anand <suanand@redhat.com>\n"
+"POT-Creation-Date: 2021-12-23 12:58+0100\n"
+"PO-Revision-Date: 2022-01-05 12:23+0000\n"
+"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_CN/>\n"
 "Language: zh_CN\n"
@@ -22,12 +22,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.7.1\n"
+"X-Generator: Weblate 4.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
 msgid "Set the verbosity of the debug logging"
-msgstr "设定调试日志记录等级"
+msgstr "设定调试日志的详细程度"
 
 #: src/config/SSSDConfig/sssdoptions.py:22
 msgid "Include timestamps in debug logs"
@@ -772,9 +772,8 @@ msgstr ""
 "间的时间间隔（以分钟为单位）"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
-#, fuzzy
 msgid "Search base for SUBID ranges"
-msgstr "查看容器的搜索基础"
+msgstr "搜索 SUBID 范围的基础"
 
 #: src/config/SSSDConfig/sssdoptions.py:245
 msgid "The LDAP attribute that contains FQDN of the host."
@@ -1008,7 +1007,7 @@ msgstr "Kerberos 备份服务器地址"
 
 #: src/config/SSSDConfig/sssdoptions.py:313
 msgid "Kerberos realm"
-msgstr "Kerberos realm"
+msgstr "Kerberos 域"
 
 #: src/config/SSSDConfig/sssdoptions.py:314
 msgid "Authentication timeout"
@@ -1072,7 +1071,7 @@ msgstr "启用企业主体"
 
 #: src/config/SSSDConfig/sssdoptions.py:331
 msgid "Enables using of subdomains realms for authentication"
-msgstr "启用使用子域域进行验证"
+msgstr "允许使用子域域进行身份验证"
 
 #: src/config/SSSDConfig/sssdoptions.py:332
 msgid "A mapping from user names to Kerberos principal names"
@@ -1129,7 +1128,7 @@ msgstr "离线时尝试重新连接的时间间隔"
 
 #: src/config/SSSDConfig/sssdoptions.py:350
 msgid "Use only the upper case for realm names"
-msgstr "realm 名称仅使用大写字母"
+msgstr "对于域名称仅使用大写字母"
 
 #: src/config/SSSDConfig/sssdoptions.py:351
 msgid "File that contains CA certificates"
@@ -1165,7 +1164,7 @@ msgstr "指定要使用的 sasl 授权 ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:359
 msgid "Specify the sasl authorization realm to use"
-msgstr "指定要使用的 sasl 授权 realm"
+msgstr "指定要使用的 sasl 授权域"
 
 #: src/config/SSSDConfig/sssdoptions.py:360
 msgid "Specify the minimal SSF for LDAP sasl authorization"
@@ -1857,61 +1856,65 @@ msgstr "选项 -g 与 -D 或 -i 不兼容\n"
 #: src/monitor/monitor.c:2401
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
-msgstr ""
+msgstr "在 %<PRIu64> 下运行，必须是 root\n"
 
 #: src/monitor/monitor.c:2483
 msgid "SSSD is already running\n"
 msgstr "SSSD 已运行\n"
 
-#: src/providers/krb5/krb5_child.c:3327 src/providers/ldap/ldap_child.c:639
+#: src/providers/krb5/krb5_child.c:3329 src/providers/ldap/ldap_child.c:639
 msgid "An open file descriptor for the debug logs"
 msgstr "调试日志的打开文件描述符"
 
-#: src/providers/krb5/krb5_child.c:3330
+#: src/providers/krb5/krb5_child.c:3332
 msgid "The user to create FAST ccache as"
 msgstr "用户创建 FAST 缓存为"
 
-#: src/providers/krb5/krb5_child.c:3332
+#: src/providers/krb5/krb5_child.c:3334
 msgid "The group to create FAST ccache as"
 msgstr "组创建 FAST 缓存为"
 
-#: src/providers/krb5/krb5_child.c:3334
-msgid "Kerberos realm to use"
-msgstr "使用的 kerberos realm"
-
 #: src/providers/krb5/krb5_child.c:3336
+msgid "Kerberos realm to use"
+msgstr "要使用的 kerberos 域"
+
+#: src/providers/krb5/krb5_child.c:3338
 msgid "Requested lifetime of the ticket"
 msgstr "要求的票证寿命"
 
-#: src/providers/krb5/krb5_child.c:3338
+#: src/providers/krb5/krb5_child.c:3340
 msgid "Requested renewable lifetime of the ticket"
 msgstr "要求的可续约票证寿命"
 
-#: src/providers/krb5/krb5_child.c:3340
+#: src/providers/krb5/krb5_child.c:3342
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST 选项（'never'、'try'、'demand'）"
 
-#: src/providers/krb5/krb5_child.c:3343
+#: src/providers/krb5/krb5_child.c:3345
 msgid "Specifies the server principal to use for FAST"
 msgstr "指定用于 FAST 的服务器主体"
 
-#: src/providers/krb5/krb5_child.c:3345
+#: src/providers/krb5/krb5_child.c:3347
 msgid "Requests canonicalization of the principal name"
 msgstr "要求规范化主体名称"
 
-#: src/providers/krb5/krb5_child.c:3347
+#: src/providers/krb5/krb5_child.c:3349
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "使用自定义版本的 krb5_get_init_creds_password"
 
-#: src/providers/krb5/krb5_child.c:3375 src/providers/ldap/ldap_child.c:663
+#: src/providers/krb5/krb5_child.c:3351
+msgid "Tevent chain ID used for logging purposes"
+msgstr "用于日志记录的 Tevent 链 ID"
+
+#: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
 msgstr "talloc_asprintf 失败。\n"
 
-#: src/providers/krb5/krb5_child.c:3385 src/providers/ldap/ldap_child.c:672
+#: src/providers/krb5/krb5_child.c:3389 src/providers/ldap/ldap_child.c:672
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd 失败。\n"
 
-#: src/providers/data_provider_be.c:733
+#: src/providers/data_provider_be.c:732
 msgid "Domain of the information provider (mandatory)"
 msgstr "信息提供者的域（强制）"
 
@@ -2233,14 +2236,14 @@ msgid "Error while executing external command\n"
 msgstr "执行外部命令时出错\n"
 
 #: src/tools/sssctl/sssctl.c:123
-#, fuzzy, c-format
+#, c-format
 msgid "Error while executing external command '%s'\n"
-msgstr "执行外部命令时出错\n"
+msgstr "执行外部命令 '%s' 时出错\n"
 
 #: src/tools/sssctl/sssctl.c:126
-#, fuzzy, c-format
+#, c-format
 msgid "Command '%s' failed with [%d]\n"
-msgstr "dlsym 失败 [%s]。\n"
+msgstr "命令 '%s' 失败代码 [%d]\n"
 
 #: src/tools/sssctl/sssctl.c:173
 msgid "SSSD needs to be running. Start SSSD now?"
@@ -2554,16 +2557,9 @@ msgstr "无法归档日志文件\n"
 msgid "Specify debug level you want to set"
 msgstr "指定要设置的调试级别"
 
-#: src/tools/sssctl/sssctl_logs.c:400
-msgid ""
-"NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
-msgstr ""
-
-#: src/tools/sssctl/sssctl_logs.c:401
-msgid ""
-"It is recommended to use the --logdir option against tevent chain ID "
-"supported SSSD logs.\n"
-msgstr ""
+#: src/tools/sssctl/sssctl_logs.c:398
+msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
+msgstr "ERROR：缺少 Tevent 链 ID 支持，不支持日志分析器。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
@@ -2671,7 +2667,7 @@ msgid ""
 "testing pam_authenticate\n"
 "\n"
 msgstr ""
-"testing pam_authenticate\n"
+"测试 pam_authenticate\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:272
@@ -2693,7 +2689,7 @@ msgid ""
 "testing pam_chauthtok\n"
 "\n"
 msgstr ""
-"testing pam_chauthtok\n"
+"测试 pam_chauthtok\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:280
@@ -2761,7 +2757,7 @@ msgid ""
 "testing pam_close_session\n"
 "\n"
 msgstr ""
-"testing pam_close_session\n"
+"测试 pam_close_session\n"
 "\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:296
@@ -2800,6 +2796,15 @@ msgstr "通知响应者已被套接字激活"
 #: src/util/util.h:105
 msgid "Informs that the responder has been dbus-activated"
 msgstr "通知响应者已被 dbus 激活"
+
+#~ msgid ""
+#~ "It is recommended to use the --logdir option against tevent chain ID "
+#~ "supported SSSD logs.\n"
+#~ msgstr "建议对 tevent 链 ID 支持的 SSSD 日志使用 --logdir 选项。\n"
+
+#~ msgid ""
+#~ "NOTE: Tevent chain ID support missing, request analysis will be limited.\n"
+#~ msgstr "注意：缺少 Tevent 链 ID 支持，请求分析会受到限制。\n"
 
 #~ msgid "Running under %"
 #~ msgstr "运行于 % 下"

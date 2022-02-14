@@ -114,7 +114,11 @@ extern int dbus_activated;
 #define FLAGS_GEN_CONF 0x0008
 #define FLAGS_NO_WATCHDOG 0x0010
 
-#define SSS_WATCHDOG_EXIT_CODE 70 /* to match EX_SOFTWARE in sysexits.h */
+enum sssd_exit_status {
+    CHILD_TIMEOUT_EXIT_CODE = 7,
+    CA_DB_NOT_FOUND_EXIT_CODE = 50,
+    SSS_WATCHDOG_EXIT_CODE = 70 /* to match EX_SOFTWARE in sysexits.h */
+};
 
 #define PIPE_INIT { -1, -1 }
 
@@ -182,6 +186,9 @@ void sss_log(int priority, const char *format, ...) SSS_ATTRIBUTE_PRINTF(2, 3);
 void sss_log_ext(int priority, int facility, const char *format, ...) SSS_ATTRIBUTE_PRINTF(3, 4);
 
 /* from server.c */
+#define DEBUG_CHAIN_ID_FMT_RID "[RID#%lu] %s"
+#define DEBUG_CHAIN_ID_FMT_CID "[CID#%lu] %s"
+
 struct main_context {
     struct tevent_context *event_ctx;
     struct confdb_ctx *confdb_ctx;
@@ -193,7 +200,8 @@ errno_t server_common_rotate_logs(struct confdb_ctx *confdb,
 int die_if_parent_died(void);
 int check_pidfile(const char *file);
 int pidfile(const char *file);
-int server_setup(const char *name, int flags,
+int server_setup(const char *name, bool is_responder,
+                 int flags,
                  uid_t uid, gid_t gid,
                  const char *conf_entry,
                  struct main_context **main_ctx);
@@ -341,26 +349,6 @@ int backup_file(const char *src, int dbglvl);
 errno_t check_file(const char *filename,
                    uid_t uid, gid_t gid, mode_t mode, mode_t mask,
                    struct stat *caller_stat_buf, bool follow_symlink);
-
-/* check_fd()
- * Verify that an open file descriptor has certain permissions and/or
- * is of a certain file type. This function CANNOT detect symlinks,
- * as the file is already open and symlinks have been traversed. This
- * is the safer way to perform file checks and should be preferred
- * over check_file for nearly all situations.
- */
-errno_t check_fd(int fd, uid_t uid, gid_t gid,
-                 mode_t mode, mode_t mask,
-                 struct stat *caller_stat_buf);
-
-/* check_and_open_readonly()
- * Utility function to open a file and verify that it has certain
- * permissions and is of a certain file type. This function wraps
- * check_fd(), and is considered race-condition safe.
- */
-errno_t check_and_open_readonly(const char *filename, int *fd,
-                                uid_t uid, gid_t gid,
-                                mode_t mode, mode_t mask);
 
 /* from util.c */
 #define SSS_NO_LINKLOCAL 0x01

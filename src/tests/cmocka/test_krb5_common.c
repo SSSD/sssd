@@ -103,7 +103,8 @@ void test_set_extra_args(void **state)
     assert_int_equal(ret, EOK);
     assert_string_equal(krb5_child_extra_args[0], uid_opt);
     assert_string_equal(krb5_child_extra_args[1], gid_opt);
-    assert_null(krb5_child_extra_args[2]);
+    assert_string_equal(krb5_child_extra_args[2], "--chain-id=0");
+    assert_null(krb5_child_extra_args[3]);
     talloc_free(krb5_child_extra_args);
 
     krb5_ctx->canonicalize = true;
@@ -113,7 +114,8 @@ void test_set_extra_args(void **state)
     assert_string_equal(krb5_child_extra_args[0], uid_opt);
     assert_string_equal(krb5_child_extra_args[1], gid_opt);
     assert_string_equal(krb5_child_extra_args[2], "--canonicalize");
-    assert_null(krb5_child_extra_args[3]);
+    assert_string_equal(krb5_child_extra_args[3], "--chain-id=0");
+    assert_null(krb5_child_extra_args[4]);
     talloc_free(krb5_child_extra_args);
 
     krb5_ctx->realm = discard_const(TEST_REALM);
@@ -124,7 +126,8 @@ void test_set_extra_args(void **state)
     assert_string_equal(krb5_child_extra_args[1], gid_opt);
     assert_string_equal(krb5_child_extra_args[2], "--realm=" TEST_REALM);
     assert_string_equal(krb5_child_extra_args[3], "--canonicalize");
-    assert_null(krb5_child_extra_args[4]);
+    assert_string_equal(krb5_child_extra_args[4], "--chain-id=0");
+    assert_null(krb5_child_extra_args[5]);
     talloc_free(krb5_child_extra_args);
 
     /* --fast-principal will be only set if FAST is used */
@@ -136,7 +139,8 @@ void test_set_extra_args(void **state)
     assert_string_equal(krb5_child_extra_args[1], gid_opt);
     assert_string_equal(krb5_child_extra_args[2], "--realm=" TEST_REALM);
     assert_string_equal(krb5_child_extra_args[3], "--canonicalize");
-    assert_null(krb5_child_extra_args[4]);
+    assert_string_equal(krb5_child_extra_args[4], "--chain-id=0");
+    assert_null(krb5_child_extra_args[5]);
     talloc_free(krb5_child_extra_args);
 
     krb5_ctx->use_fast_str = discard_const(TEST_FAST_STR);
@@ -150,7 +154,8 @@ void test_set_extra_args(void **state)
     assert_string_equal(krb5_child_extra_args[4],
                         "--fast-principal=" TEST_FAST_PRINC);
     assert_string_equal(krb5_child_extra_args[5], "--canonicalize");
-    assert_null(krb5_child_extra_args[6]);
+    assert_string_equal(krb5_child_extra_args[6], "--chain-id=0");
+    assert_null(krb5_child_extra_args[7]);
     talloc_free(krb5_child_extra_args);
 
     krb5_ctx->lifetime_str = discard_const(TEST_LIFE_STR);
@@ -168,7 +173,8 @@ void test_set_extra_args(void **state)
     assert_string_equal(krb5_child_extra_args[6],
                         "--fast-principal=" TEST_FAST_PRINC);
     assert_string_equal(krb5_child_extra_args[7], "--canonicalize");
-    assert_null(krb5_child_extra_args[8]);
+    assert_string_equal(krb5_child_extra_args[8], "--chain-id=0");
+    assert_null(krb5_child_extra_args[9]);
     talloc_free(krb5_child_extra_args);
 
     talloc_free(krb5_ctx);

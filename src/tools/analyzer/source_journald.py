@@ -1,7 +1,6 @@
 from systemd import journal
-from source_reader import Reader
 
-from enum import Enum
+from sssd.source_reader import Reader
 
 _EXE_PREFIX = "/usr/libexec/sssd/"
 _NSS_MATCH = _EXE_PREFIX + "sssd_nss"
@@ -33,7 +32,7 @@ class Journald(Reader):
             else:
                 yield msg
 
-    def set_component(self, component):
+    def set_component(self, component, child):
         """
         Switch the reader to interact with a certain SSSD component
         NSS, PAM, BE

@@ -42,6 +42,8 @@
 #include "providers/data_provider.h"
 #include "util/util_creds.h"
 #include "sss_iface/sss_iface_async.h"
+#include "util/sss_chain_id_tevent.h"
+#include "util/sss_chain_id.h"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -85,6 +87,8 @@ static void client_close_fn(struct tevent_context *ev,
               "Failed to close fd [%d]: [%s]\n",
                ctx->cfd, strerror(ret));
     }
+    /* Restore the original chain id  */
+    sss_chain_id_set(ctx->old_chain_id);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Terminated client [%p][%d]\n",
@@ -521,6 +525,8 @@ static void accept_fd_handler(struct tevent_context *ev,
     int ret;
     int fd = accept_ctx->is_private ? rctx->priv_lfd : rctx->lfd;
 
+    rctx->client_id_num++;
+
     if (accept_ctx->is_private) {
         ret = stat(rctx->priv_sock_name, &stat_buf);
         if (ret == -1) {
@@ -637,9 +643,8 @@ static void accept_fd_handler(struct tevent_context *ev,
         /* Non-fatal, continue */
     }
 
-    rctx->client_id_num++;
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Client [CID #%u][cmd %s][uid %u][%p][%d] connected%s!\n",
+          "[CID#%u] Client [cmd %s][uid %u][%p][%d] connected%s!\n",
           rctx->client_id_num, cctx->cmd_line, cli_creds_get_uid(cctx->creds),
           cctx, cctx->cfd, accept_ctx->is_private ? " to privileged pipe" : "");
 
@@ -1098,6 +1103,9 @@ void sss_client_fd_handler(void *ptr,
               "This connection may not auto-terminate.\n");
         /* Non-fatal, continue */
     }
+
+    /* Set the chain id */
+    cctx->old_chain_id = sss_chain_id_set(cctx->rctx->client_id_num);
 
     if (flags & TEVENT_FD_READ) {
         recv_fn(cctx);

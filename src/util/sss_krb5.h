@@ -88,10 +88,11 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
                                      char **_realm);
 
 #ifndef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_EXPIRE_CALLBACK
-typedef void krb5_expire_callback_func(krb5_context context, void *data,
-                                             krb5_timestamp password_expiration,
-                                             krb5_timestamp account_expiration,
-                                             krb5_boolean is_last_req);
+typedef void
+(KRB5_CALLCONV *krb5_expire_callback_func)(krb5_context context, void *data,
+                                           krb5_timestamp password_expiration,
+                                           krb5_timestamp account_expiration,
+                                           krb5_boolean is_last_req);
 #endif
 krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_expire_callback(
                                                    krb5_context context,

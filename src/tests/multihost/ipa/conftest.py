@@ -66,6 +66,41 @@ def create_aduser_group(session_multihost, request):
 
 
 @pytest.fixture(scope="function")
+def backup_config_pam_gssapi_services(session_multihost, request):
+    """ Take backup of files, Configure domain_params
+        Configure /etc/pam.d/sudo
+        Configure /etc/pam.d/sudo-i
+    """
+    tools = sssdTools(session_multihost.client[0])
+    domain_name = tools.get_domain_section_name()
+    client = sssdTools(session_multihost.client[0])
+    domain_params = {'pam_gssapi_services': 'sudo, sudo-i'}
+    client.sssd_conf(f'{domain_name}', domain_params)
+    session_multihost.client[0].service_sssd('restart')
+    session_multihost.client[0].run_command("cp -vf  /etc/pam.d/sudo "
+                                            "/etc/pam.d/sudo_bkp")
+    session_multihost.client[0].run_command("cp -vf  /etc/pam.d/sudo-i "
+                                            "/etc/pam.d/sudo-i_bkp")
+    session_multihost.client[0].run_command("sed -i '1 a auth "
+                                            "sufficient pam_sss_gss.so' "
+                                            "/etc/pam.d/sudo")
+    session_multihost.client[0].run_command("sed -i '1 a auth sufficient "
+                                            "pam_sss_gss.so' "
+                                            "/etc/pam.d/sudo-i")
+
+    def restore():
+        session_multihost.client[0].run_command("cp -vf  "
+                                                "/etc/pam.d/sudo_bkp "
+                                                "/etc/pam.d/sudo")
+        session_multihost.client[0].run_command("cp -vf  "
+                                                "/etc/pam.d/sudo-i_bkp "
+                                                "/etc/pam.d/sudo-i")
+        session_multihost.client[0].run_command("rm -vf /tmp/domain_list_*")
+
+    request.addfinalizer(restore)
+
+
+@pytest.fixture(scope="function")
 def create_reverse_zone(session_multihost, request):
     """ Creates reverse zone """
     client_ip = session_multihost.client[0].ip
@@ -381,16 +416,15 @@ def setup_ipa_client(session_multihost, request):
     ipa_server_uuid = ipa_server.get_default_nw_uuid()
     ipa_server_ip = ipa_server.get_interface_ip(ipa_server_uuid)
     sssd_client.update_resolv_conf(ipa_server_ip)
-
     options = "--ip-address=%s --hostname %s "\
               "--server %s --domain %s "\
-              "--realm %s -w %s -p %s -U" % (ipa_client_ip,
-                                             client_hostname,
-                                             server_hostname,
-                                             "testrealm.test",
-                                             "TESTREALM.TEST",
-                                             "Secret123",
-                                             "admin")
+              "--realm %s -w %s -p %s -U --mkhomedir" % (ipa_client_ip,
+                                                         client_hostname,
+                                                         server_hostname,
+                                                         "testrealm.test",
+                                                         "TESTREALM.TEST",
+                                                         "Secret123",
+                                                         "admin")
     client_install_cmd = "ipa-client-install %s" % options
     try:
         cmd = session_multihost.client[0].run_command(client_install_cmd)

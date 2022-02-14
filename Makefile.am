@@ -214,7 +214,7 @@ if HAVE_CHECK
         strtonum-tests \
         resolv-tests \
         krb5-utils-tests \
-        check_and_open-tests \
+        check_file-tests \
         files-tests \
         refcount-tests \
         fail_over-tests \
@@ -685,6 +685,7 @@ dist_noinst_HEADERS = \
     src/util/session_recording.h \
     src/util/strtonum.h \
     src/util/sss_cli_cmd.h \
+    src/util/sss_chain_id_tevent.h \
     src/util/sss_chain_id.h \
     src/util/sss_ptr_hash.h \
     src/util/sss_ptr_list.h \
@@ -1050,7 +1051,7 @@ EXTRA_DIST += \
 
 pkglib_LTLIBRARIES += libsss_sbus.la
 libsss_sbus_la_SOURCES = \
-    src/util/check_and_open.c \
+    src/util/check_file.c \
     src/util/debug.c \
     src/util/debug_backtrace.c \
     src/util/sss_chain_id.c \
@@ -1241,7 +1242,7 @@ libsss_util_la_SOURCES = \
     src/util/usertools.c \
     src/util/backup_file.c \
     src/util/strtonum.c \
-    src/util/check_and_open.c \
+    src/util/check_file.c \
     src/util/refcount.c \
     src/util/sss_nss.c \
     src/util/sss_utf8.c \
@@ -1266,6 +1267,7 @@ libsss_util_la_SOURCES = \
     src/util/files.c \
     src/util/selinux.c \
     src/util/sss_regexp.c \
+    src/util/sss_chain_id_tevent.c \
     src/util/sss_chain_id.c \
     src/util/nss_dl_load.c \
     src/util/nss_dl_load_extra.c \
@@ -1919,7 +1921,6 @@ sssctl_LDADD = \
     $(NULL)
 sssctl_CFLAGS = \
     $(AM_CFLAGS) \
-    -DPYTHONDIR_PATH=\"$(python3dir)/sssd\" \
     $(NULL)
 
 if BUILD_SUDO
@@ -2165,13 +2166,13 @@ krb5_utils_tests_LDADD = \
     libsss_test_common.la
 
 
-check_and_open_tests_SOURCES = \
-    src/tests/check_and_open-tests.c \
-    src/util/check_and_open.c
-check_and_open_tests_CFLAGS = \
+check_file_tests_SOURCES = \
+    src/tests/check_file-tests.c \
+    src/util/check_file.c
+check_file_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
-check_and_open_tests_LDADD = \
+check_file_tests_LDADD = \
     libsss_debug.la \
     $(CHECK_LIBS) \
     libsss_test_common.la
@@ -2191,7 +2192,7 @@ endif
 if HAVE_INOTIFY
 files_tests_SOURCES = \
     src/tests/files-tests.c \
-    src/util/check_and_open.c \
+    src/util/check_file.c \
     src/util/atomic_io.c \
     src/util/selinux.c \
     src/util/files.c
@@ -4511,6 +4512,7 @@ krb5_child_SOURCES = \
     src/util/util.c \
     src/util/util_ext.c \
     src/util/signal.c \
+    src/util/sss_chain_id.c \
     src/util/strtonum.c \
     src/util/become_user.c \
     src/util/util_errors.c \
@@ -4562,6 +4564,7 @@ if BUILD_SEMANAGE
 selinux_child_SOURCES = \
     src/providers/ipa/selinux_child.c \
     src/util/sss_semanage.c \
+    src/util/sss_chain_id.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
@@ -4586,7 +4589,8 @@ gpo_child_SOURCES = \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
-    src/util/signal.c
+    src/util/signal.c \
+    src/util/sss_chain_id.c
 gpo_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
@@ -4622,6 +4626,7 @@ p11_child_SOURCES = \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
+    src/util/sss_chain_id.c \
     $(NULL)
 p11_child_SOURCES += src/p11_child/p11_child_openssl.c
 

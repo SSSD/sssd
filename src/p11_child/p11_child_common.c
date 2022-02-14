@@ -33,6 +33,7 @@
 #include "providers/backend.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/cert.h"
+#include "util/sss_chain_id.h"
 #include "p11_child/p11_child.h"
 
 static const char *op_mode_str(enum op_mode mode)
@@ -147,7 +148,7 @@ int main(int argc, const char *argv[])
     poptContext pc;
     int debug_fd = -1;
     const char *opt_logger = NULL;
-    errno_t ret;
+    errno_t ret = 0;
     TALLOC_CTX *main_ctx = NULL;
     enum op_mode mode = OP_NONE;
     enum pin_mode pin_mode = PIN_NONE;
@@ -161,6 +162,7 @@ int main(int argc, const char *argv[])
     char *key_id = NULL;
     char *label = NULL;
     char *cert_b64 = NULL;
+    uint64_t chain_id = 0;
     bool wait_for_card = false;
     char *uri = NULL;
 
@@ -194,6 +196,8 @@ int main(int argc, const char *argv[])
          _("certificate to verify, base64 encoded"), NULL},
         {"uri", 0, POPT_ARG_STRING, &uri, 0,
          _("PKCS#11 URI to restrict selection"), NULL},
+        {"chain-id", 0, POPT_ARG_LONG, &chain_id,
+         0, _("Tevent chain ID used for logging purposes"), NULL},
         POPT_TABLEEND
     };
 
@@ -313,6 +317,9 @@ int main(int argc, const char *argv[])
         }
     }
 
+    sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_CID);
+    sss_chain_id_set(chain_id);
+
     DEBUG_INIT(debug_level, opt_logger);
 
     DEBUG(SSSDBG_TRACE_FUNC, "p11_child started.\n");
@@ -382,5 +389,10 @@ fail:
     DEBUG(SSSDBG_CRIT_FAILURE, "p11_child failed!\n");
     close(STDOUT_FILENO);
     talloc_free(main_ctx);
-    return EXIT_FAILURE;
+
+    if (ret == ERR_CA_DB_NOT_FOUND) {
+        return CA_DB_NOT_FOUND_EXIT_CODE;
+    } else {
+        return EXIT_FAILURE;
+    }
 }

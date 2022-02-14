@@ -1,14 +1,10 @@
 import re
-import copy
 import logging
-import argparse
 
-from enum import Enum
-from source_files import Files
-from source_journald import Journald
-from sssd.sss_analyze import SubparsersAction
-from sssd.sss_analyze import Option
-from sssd.sss_analyze import Analyzer
+from sssd.source_files import Files
+from sssd.source_journald import Journald
+from sssd.parser import SubparsersAction
+from sssd.parser import Option
 
 logger = logging.getLogger()
 
@@ -28,7 +24,7 @@ class RequestAnalyzer:
 
     show_opts = [
             Option('cid', 'Track request with this ID', int),
-            Option('--cachereq', 'Include cache request logs', bool),
+            Option('--child', 'Include child process logs', bool),
             Option('--merge', 'Merge logs together sorted by timestamp', bool),
             Option('--pam', 'Track only PAM requests', bool),
     ]
@@ -42,7 +38,7 @@ class RequestAnalyzer:
         """
         self.module_parser.print_help()
 
-    def setup_args(self, parser_grp):
+    def setup_args(self, parser_grp, cli):
         """
         Setup module parser, subcommands, and options
 
@@ -60,7 +56,6 @@ class RequestAnalyzer:
                                                       action=SubparsersAction,
                                                       metavar='COMMANDS')
 
-        cli = Analyzer()
         subcmd_grp = subparser.add_parser_group('Operation Modes')
         cli.add_subcommand(subcmd_grp, 'list', 'List recent requests',
                            self.list_requests, self.list_opts)
@@ -82,7 +77,6 @@ class RequestAnalyzer:
             Instantiated source object
         """
         if args.source == "journald":
-            import source_journald
             source = Journald()
         else:
             source = Files(args.logdir)
@@ -171,8 +165,8 @@ class RequestAnalyzer:
         if line.startswith('   *  '):
             return
         fields = line.split("[")
-        cr_field = fields[2].split(":")[1]
-        cr = cr_field[5:]
+        cr_field = fields[3][7:]
+        cr = cr_field.split(":")[0][4:]
         if "refreshed" in line:
             return
         # CR Plugin name
@@ -189,7 +183,7 @@ class RequestAnalyzer:
             ts = line.split(")")[0]
             ts = ts[1:]
             fields = line.split("[")
-            cid = fields[3][5:-1]
+            cid = fields[3][4:-9]
             cmd = fields[4][4:-1]
             uid = fields[5][4:-1]
             if not uid.isnumeric():
@@ -218,18 +212,18 @@ class RequestAnalyzer:
         source = self.load(args)
         component = source.Component.NSS
         resp = "nss"
+        # Log messages matching the following regex patterns contain
+        # the useful info we need to produce list output
         patterns = ['\[cmd']
         patterns.append("(cache_req_send|cache_req_process_input|"
                         "cache_req_search_send)")
-        consume = True
         if args.pam:
             component = source.Component.PAM
             resp = "pam"
 
         logger.info(f"******** Listing {resp} client requests ********")
-        source.set_component(component)
+        source.set_component(component, False)
         self.done = ""
-        # For each CID
         for line in self.matched_line(source, patterns):
             if isinstance(source, Journald):
                 print(line)
@@ -250,27 +244,21 @@ class RequestAnalyzer:
         component = source.Component.NSS
         resp = "nss"
         pattern = [f'REQ_TRACE.*\[CID #{cid}\\]']
-        pattern.append(f"\[CID #{cid}\\].*connected")
+        pattern.append(f"\[CID#{cid}\\]")
 
         if args.pam:
             component = source.Component.PAM
             resp = "pam"
-            pam_data_regex = f'pam_print_data.*\[CID #{cid}\]'
 
         logger.info(f"******** Checking {resp} responder for Client ID"
                     f" {cid} *******")
-        source.set_component(component)
-        if args.cachereq:
-            cr_id_regex = 'CR #[0-9]+'
-            cr_ids = self.get_linked_ids(source, pattern, cr_id_regex)
-            [pattern.append(f'{id}\:') for id in cr_ids]
-
+        source.set_component(component, args.child)
         for match in self.matched_line(source, pattern):
             resp_results = self.consume_line(match, source, args.merge)
 
         logger.info(f"********* Checking Backend for Client ID {cid} ********")
         pattern = [f'REQ_TRACE.*\[sssd.{resp} CID #{cid}\]']
-        source.set_component(source.Component.BE)
+        source.set_component(source.Component.BE, args.child)
 
         be_id_regex = '\[RID#[0-9]+\]'
         be_ids = self.get_linked_ids(source, pattern, be_id_regex)
@@ -278,8 +266,6 @@ class RequestAnalyzer:
         pattern.clear()
         [pattern.append(f'\\{id}') for id in be_ids]
 
-        if args.pam:
-            pattern.append(pam_data_regex)
         for match in self.matched_line(source, pattern):
             be_results = self.consume_line(match, source, args.merge)
 

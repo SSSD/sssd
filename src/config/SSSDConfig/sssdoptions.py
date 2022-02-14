@@ -326,6 +326,7 @@ class SSSDOptions(object):
         'krb5_renew_interval': _("Time between two checks for renewal"),
         'krb5_use_fast': _("Enables FAST"),
         'krb5_fast_principal': _("Selects the principal to use for FAST"),
+        'krb5_fast_use_anonymous_pkinit': _("Use anonymous PKINIT to request FAST credentials"),
         'krb5_canonicalize': _("Enables principal canonicalization"),
         'krb5_use_enterprise_principal': _("Enables enterprise principals"),
         'krb5_use_subdomain_realm': _("Enables using of subdomains realms for authentication"),
@@ -367,6 +368,7 @@ class SSSDOptions(object):
         'ldap_dns_service_name': _('Service name for DNS service lookups'),
         'ldap_page_size': _('The number of records to retrieve in a single LDAP query'),
         'ldap_deref_threshold': _('The number of members that must be missing to trigger a full deref'),
+        'ldap_ignore_unreadable_references': _('Ignore unreadable LDAP references'),
         'ldap_sasl_canonicalize': _('Whether the LDAP library should perform a reverse lookup to canonicalize the '
                                     'host name during a SASL bind'),
         'ldap_rfc2307_fallback_to_local_users': _('Allows to retain local users as members of an LDAP group for '

@@ -58,6 +58,7 @@ enum krb5_opts {
     KRB5_RENEW_INTERVAL,
     KRB5_USE_FAST,
     KRB5_FAST_PRINCIPAL,
+    KRB5_FAST_USE_ANONYMOUS_PKINIT,
     KRB5_CANONICALIZE,
     KRB5_USE_ENTERPRISE_PRINCIPAL,
     KRB5_USE_KDCINFO,
@@ -144,6 +145,7 @@ struct krb5_ctx {
 
     const char *use_fast_str;
     const char *fast_principal;
+    bool fast_use_anonymous_pkinit;
 
     bool canonicalize;
 };
@@ -174,6 +176,7 @@ errno_t write_krb5info_file(struct krb5_service *krb5_service,
 
 errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
                                            struct fo_server *server,
+                                           bool force_default_port,
                                            const char *service,
                                            bool (*filter)(struct fo_server *));
 
