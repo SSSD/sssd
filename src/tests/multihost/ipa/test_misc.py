@@ -336,9 +336,6 @@ class Testipabz(object):
         """
         tools = sssdTools(multihost.client[0])
         server_host = multihost.master[0].sys_hostname
-        rm_host_keys = "rm -rf /tmp/ssh_host0003_rsa*"
-        rm_known_hosts = "rm -rf /var/lib/sss/pubconf/known_hosts"
-        view_known_hosts = "cat /var/lib/sss/pubconf/known_hosts"
         # adding host to IPA server
         multihost.master[0].run_command(r"ssh-keygen -q -t rsa -N '' -C '' "
                                         r"-f /tmp/ssh_host0003_rsa")
@@ -351,38 +348,36 @@ class Testipabz(object):
             #  no hash_value or hash_value = True or hash_value = False
             multihost.client[0].service_sssd("stop")
             if hash_value is None:
-                sssd_conf_cmd = multihost.client[0].\
-                    run_command("cat /etc/sssd/sssd.conf")
-                sssd_conf = str(sssd_conf_cmd.stdout_text).strip()
-                if "ssh_hash_known_hosts" in sssd_conf:
-                    ssh_section = "ssh"
-                    ssh_param = {"ssh_hash_known_hosts": ""}
-                    tools.sssd_conf(ssh_section, ssh_param, action="delete")
-            if hash_value is not None:
-                ssh_section = "ssh"
-                ssh_param = {"ssh_hash_known_hosts": hash_value}
-                tools.sssd_conf(ssh_section, ssh_param, action="update")
-            multihost.client[0].run_command(rm_known_hosts)
+                tools.sssd_conf(
+                    "ssh", {"ssh_hash_known_hosts": ""}, action="delete")
+            else:
+                tools.sssd_conf(
+                    "ssh", {"ssh_hash_known_hosts": hash_value}, action="update")
+            multihost.client[0].run_command(r"rm -rf /var/lib/sss/pubconf"
+                                            r"/known_hosts")
             multihost.client[0].service_sssd("start")
             cmd = "ssh -l -q foobar0@%s echo 'login successful'" % server_host
-            # key added when performing SSH
             multihost.client[0].run_command(cmd, stdin_text="Secret123",
                                             raiseonerr=False)
-            known_hosts = multihost.client[0].run_command(view_known_hosts)
+            known_hosts = multihost.client[0].run_command(r"cat /var/lib/sss"
+                                                          r"/pubconf"
+                                                          r"/known_hosts")
             if server_host in known_hosts.stdout_text:
-                flag = 0  # hostname not hashed
+                return 0  # hostname not hashed
             else:
-                flag = 1  # hostname hashed
-            return flag
+                return 1 # hostname hashed
+        # ssh_hash_known_hosts is not used, default value is False
+        hashing_not_defied =  check_hostname_hash() == 0
+        # ssh_hash_known_hosts = True
+        hashing_true =  check_hostname_hash("True") == 1
+        # ssh_hash_known_hosts = False
+        hashing_false = check_hostname_hash("False") == 0
+        # Cleanup
+        multihost.client[0].run_command(r"rm -rf /var/lib/sss/pubconf"
+                                            r"/known_hosts")
+        multihost.master[0].run_command(r"rm -rf /tmp/ssh_host0003_rsa*")
 
-        try:
-            # ssh_hash_known_hosts is not used, default value is False
-            assert check_hostname_hash() == 0, "Hostnames hashed - " \
-                                                    "Bugzilla 2014249/2015070"
-            # ssh_hash_known_hosts = True
-            assert check_hostname_hash("True") == 1, "Hostnames not hashed"
-            # ssh_hash_known_hosts = False
-            assert check_hostname_hash("False") == 0, "Hostnames hashed"
-        finally:
-            multihost.client[0].run_command(rm_known_hosts)
-            multihost.master[0].run_command(rm_host_keys)
+        # Test result evaluation
+        assert hashing_not_defied, "Hostnames hashed - Bugzilla 2014249/2015070"
+        assert hashing_true, "Hostnames not hashed"
+        assert hashing_false, "Hostnames hashed"
