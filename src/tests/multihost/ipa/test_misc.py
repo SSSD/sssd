@@ -363,3 +363,74 @@ class Testipabz(object):
         result = multihost.client[0].run_command(f"cat /tmp/{file_name}"
                                                  ).stdout_text
         assert domain_name in result
+
+    def test_ssh_hash_knownhosts(self, multihost, reset_password,
+                                 setup_ipa_client, backupsssdconf):
+        """
+        :title: Current value of ssh_hash_known_hosts causes error in
+         the default configuration in FIPS mode.
+        :description: In SSSD the default value for ssh_hash_known_hosts
+         is set to true, It should be changed to false for consistency with
+         the OpenSSH setting that does not hashes host names by default
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2014249
+        :id: 1cee74c8-a0ad-44d4-8287-a32e3266de22
+        :customerscenario: false
+        :steps:
+            1. Stop SSSD
+            2. Configure SSSD with ssh having default value of
+               ssh_hash_known_hosts / ssh_hash_known_hosts = True /
+               ssh_hash_known_hosts = False
+            3. Remove /var/lib/sss/pubconf/known_hosts file
+            4. Start SSSD
+            5. Perform SSH using IPA user
+            6. Check if hostnames are hashed/unhashed in
+               /var/lib/sss/pubconf/known_hosts
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+            4. Should succeed
+            5. Should succeed
+            6. Hostnames should be hashed/unhashed as per the value of
+               ssh_hash_known_hosts
+        """
+        tools = sssdTools(multihost.client[0])
+        server_host = multihost.master[0].sys_hostname
+
+        def check_hostname_hash(hash_value=None):
+            #  no hash_value or hash_value = True or hash_value = False
+            multihost.client[0].service_sssd("stop")
+            if hash_value is None:
+                tools.sssd_conf(
+                    "ssh", {"ssh_hash_known_hosts": ""}, action="delete")
+            else:
+                tools.sssd_conf(
+                    "ssh", {"ssh_hash_known_hosts": hash_value},
+                    action="update")
+            multihost.client[0].run_command(r"rm -rf /var/lib/sss/pubconf"
+                                            r"/known_hosts")
+            multihost.client[0].service_sssd("start")
+            cmd = f"ssh -l -q foobar0@{server_host} echo 'login successful'"
+            multihost.client[0].run_command(cmd, stdin_text="Secret123",
+                                            raiseonerr=False)
+            known_hosts = multihost.client[0].run_command(r"cat /var/lib/sss"
+                                                          r"/pubconf"
+                                                          r"/known_hosts")
+
+            if server_host in known_hosts.stdout_text:
+                return 0   # hostname not hashed
+            return 1   # hostname hashed
+        # ssh_hash_known_hosts is not used, default value is False
+        hashing_not_defined = check_hostname_hash() == 0
+        # ssh_hash_known_hosts = True
+        hashing_true = check_hostname_hash("True") == 1
+        # ssh_hash_known_hosts = False
+        hashing_false = check_hostname_hash("False") == 0
+        # Cleanup
+        multihost.client[0].run_command(r"rm -rf /var/lib/sss/pubconf"
+                                        r"/known_hosts")
+        # Test result evaluation
+        assert hashing_not_defined, "Hostnames hashed - Bugzilla " \
+                                    "2014249/2015070"
+        assert hashing_true, "Hostnames not hashed"
+        assert hashing_false, "Hostnames hashed"
