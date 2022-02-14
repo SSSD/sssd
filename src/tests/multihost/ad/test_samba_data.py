@@ -40,7 +40,8 @@ class Testsmbsecretrotation(object):
                        'debug_level': '9'}
         domain_name = client.get_domain_section_name()
         domain_section = 'domain/{}'.format(domain_name)
-        client.sssd_conf(domain_section, sssd_params,)
+        client.sssd_conf(domain_section, sssd_params)
+        client.clear_sssd_cache()
         client.reset_machine_password()
         client_hostname = multihost.client[0].sys_hostname.split('.')[0]
         if len(client_hostname) > 15:
@@ -54,6 +55,8 @@ class Testsmbsecretrotation(object):
         try:
             multihost.client[0].run_command(restart_sssd)
         except subprocess.CalledProcessError:
+            multihost.client[0].multihost.client[0].run_command(
+                'journalctl -x -n 50 --no-pager -u sssd', raiseonerr=False)
             pytest.fail("Cannot restart sssd service")
         time.sleep(30)
         ls = 'cat /etc/sssd/sssd.conf'

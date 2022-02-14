@@ -14,7 +14,6 @@ from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.samba import sambaTools
 
 
-@pytest.mark.usefixtures('clear_sssd_cache')
 @pytest.mark.keytabrotation
 class TestHostKeytabRotation(object):
     """ Keytab Rotation Test cases
@@ -55,6 +54,8 @@ class TestHostKeytabRotation(object):
         try:
             multihost.client[0].run_command(restart_sssd)
         except subprocess.CalledProcessError:
+            multihost.client[0].multihost.client[0].run_command(
+                'journalctl -x -n 50 --no-pager -u sssd', raiseonerr=False)
             pytest.fail("Cannot restart sssd service")
         time.sleep(30)
         ls = 'ls -l /etc/krb5.keytab'
@@ -100,6 +101,8 @@ class TestHostKeytabRotation(object):
         try:
             multihost.client[0].run_command(restart_sssd)
         except subprocess.CalledProcessError:
+            multihost.client[0].multihost.client[0].run_command(
+                'journalctl -x -n 50 --no-pager -u sssd', raiseonerr=False)
             pytest.fail("Cannot restart sssd service")
         time.sleep(30)
         domain_basedn_entry = multihost.ad[0].domain_basedn_entry
@@ -175,6 +178,8 @@ class TestHostKeytabRotation(object):
         try:
             multihost.client[0].run_command(restart_sssd)
         except subprocess.CalledProcessError:
+            multihost.client[0].multihost.client[0].run_command(
+                'journalctl -x -n 50 --no-pager -u sssd', raiseonerr=False)
             pytest.fail("Cannot restart sssd service")
         time.sleep(60)
         cmd = multihost.client[0].run_command(klist_cmd, raiseonerr=False)
@@ -238,6 +243,8 @@ class TestHostKeytabRotation(object):
         try:
             multihost.client[0].run_command(restart_sssd)
         except subprocess.CalledProcessError:
+            multihost.client[0].multihost.client[0].run_command(
+                'journalctl -x -n 50 --no-pager -u sssd', raiseonerr=False)
             pytest.fail("Cannot restart sssd service")
         time.sleep(45)
         cmd = multihost.client[0].run_command(klist_cmd, raiseonerr=False)
@@ -291,6 +298,8 @@ class TestHostKeytabRotation(object):
         try:
             multihost.client[0].run_command(restart_sssd)
         except subprocess.CalledProcessError:
+            multihost.client[0].multihost.client[0].run_command(
+                'journalctl -x -n 50 --no-pager -u sssd', raiseonerr=False)
             pytest.fail("Cannot restart sssd service")
         time.sleep(45)
         cmd = multihost.client[0].run_command(klist_cmd, raiseonerr=False)

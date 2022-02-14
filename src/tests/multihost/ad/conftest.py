@@ -306,7 +306,8 @@ def keytab_sssd_conf(session_multihost, request, adjoin):
                    'debug_level': '9'}
     domain_name = client.get_domain_section_name()
     domain_section = 'domain/{}'.format(domain_name)
-    client.sssd_conf(domain_section, sssd_params,)
+    client.sssd_conf(domain_section, sssd_params)
+    client.clear_sssd_cache()
 
     def restore_sssd_conf():
         """ Restore original sssd.conf """
