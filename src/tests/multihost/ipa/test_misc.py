@@ -1,5 +1,4 @@
 """ Miscellaneous IPA Bug Automations
-
 :requirement: IDM-SSSD-REQ: Testing SSSD in IPA Provider
 :casecomponent: sssd
 :subsystemteam: sst_idm_sssd
@@ -304,6 +303,66 @@ class Testipabz(object):
         ssh.close()
         assert 'indicators: 2' in search.stdout_text
 
+    def test_pass_krb5cname_to_pam(self, multihost,
+                                   backupsssdconf,
+                                   backup_config_pam_gssapi_services):
+        """
+        :title: pass KRB5CCNAME to pam_authenticate environment
+         if available
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1917379
+        :id: e3a6accc-781d-11ec-a83c-845cf3eff344
+        :steps:
+            1. Take backup of files
+            2. Configure domain_params
+            3. Configure /etc/pam.d/sudo
+            4. Configur /etc/pam.d/sudo-i
+            5. Create IPA sudo rule of /usr/sbin/sssctl
+             for user admin
+            6. Check user admin can use sudo command
+            7. Restore of files
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+            4. Should succeed
+            5. Should succeed
+            6. Should succeed
+            7. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
+        tools.service_ctrl('restart', 'sssd')
+        domain_name = tools.get_domain_section_name()
+        user = "admin"
+        test_password = "Secret123"
+        sys_hostname = multihost.client[0].sys_hostname
+        ssh1 = SSHClient(multihost.client[0].ip, username=user,
+                         password=test_password)
+        (_, _, exit_status) = ssh1.execute_cmd('kinit',
+                                               stdin=test_password)
+        assert exit_status == 0
+        (_, _, _) = ssh1.execute_cmd("ipa sudocmd-add /usr/sbin/sssctl")
+        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add idm_user_sssctl")
+        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add-allow-command "
+                                     "idm_user_sssctl --sudocmds "
+                                     "'/usr/sbin/sssctl'")
+        (_, _, _) = ssh1.execute_cmd(f"ipa sudorule-add-host "
+                                     f"idm_user_sssctl "
+                                     f"--hosts {sys_hostname}")
+        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add-user "
+                                     "idm_user_sssctl "
+                                     "--users admin")
+        tools.clear_sssd_cache()
+        ssh2 = SSHClient(multihost.client[0].ip, username=user,
+                         password=test_password)
+        (_, _, _) = ssh2.execute_cmd('kinit', stdin=test_password)
+        (_, _, _) = ssh2.execute_cmd('sudo -S -l', stdin=test_password)
+        file_name = 'domain_list_' + str(time.time())
+        (_, _, _) = ssh2.execute_cmd(f"sudo -S /usr/sbin/sssctl domain-list > "
+                                     f"/tmp/{file_name}", stdin=test_password)
+        result = multihost.client[0].run_command(f"cat /tmp/{file_name}"
+                                                 ).stdout_text
+        assert domain_name in result
+
     def test_ssh_hash_knownhosts(self, multihost, reset_password,
                                  setup_ipa_client, backupsssdconf):
         """
@@ -336,13 +395,6 @@ class Testipabz(object):
         """
         tools = sssdTools(multihost.client[0])
         server_host = multihost.master[0].sys_hostname
-        # adding host to IPA server
-        multihost.master[0].run_command(r"ssh-keygen -q -t rsa -N '' -C '' "
-                                        r"-f /tmp/ssh_host0003_rsa")
-        multihost.master[0].run_command("ipa host-mod %s --sshpubkey="
-                                        "\"$(cat /tmp/ssh_host0003_rsa.pub)\" "
-                                        "--updatedns"
-                                        % multihost.client[0].sys_hostname)
 
         def check_hostname_hash(hash_value=None):
             #  no hash_value or hash_value = True or hash_value = False
@@ -375,7 +427,6 @@ class Testipabz(object):
         # Cleanup
         multihost.client[0].run_command(r"rm -rf /var/lib/sss/pubconf"
                                             r"/known_hosts")
-        multihost.master[0].run_command(r"rm -rf /tmp/ssh_host0003_rsa*")
 
         # Test result evaluation
         assert hashing_not_defied, "Hostnames hashed - Bugzilla 2014249/2015070"
