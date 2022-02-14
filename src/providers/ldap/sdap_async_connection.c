@@ -339,7 +339,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     }
 
     stat_info = talloc_asprintf(state, "server: [%s] START TLS",
-                                sdap_get_server_ip_str(state->sh));
+                                sdap_get_server_ip_str_safe(state->sh));
     if (stat_info == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
     }
@@ -721,7 +721,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     }
 
     stat_info = talloc_asprintf(state, "server: [%s] simple bind: [%s]",
-                                sdap_get_server_ip_str(state->sh),
+                                sdap_get_server_ip_str_safe(state->sh),
                                 state->user_dn);
     if (stat_info == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");

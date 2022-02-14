@@ -677,7 +677,8 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
           "ldap_extended_operation sent, msgid = %d\n", msgid);
 
     stat_info = talloc_asprintf(state, "server: [%s] modify passwd dn: [%s]",
-                                sdap_get_server_ip_str(state->sh), user_dn);
+                                sdap_get_server_ip_str_safe(state->sh),
+                                user_dn);
     if (stat_info == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
     }
@@ -848,7 +849,8 @@ sdap_modify_send(TALLOC_CTX *mem_ctx,
     }
 
     stat_info = talloc_asprintf(state, "server: [%s] modify dn: [%s] attr: [%s]",
-                                sdap_get_server_ip_str(state->sh), dn, attr);
+                                sdap_get_server_ip_str_safe(state->sh), dn,
+                                attr);
     if (stat_info == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
     }
@@ -1387,6 +1389,12 @@ const char *sdap_get_server_ip_str(struct sdap_handle *sh)
     return out;
 }
 
+const char *sdap_get_server_ip_str_safe(struct sdap_handle *sh)
+{
+    const char *ip = sdap_get_server_ip_str(sh);
+    return ip != NULL ? ip : "- IP not available -";
+}
+
 static void sdap_print_server(struct sdap_handle *sh)
 {
     const char *ip;
@@ -1650,7 +1658,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_search_ext called, msgid = %d\n", msgid);
 
     stat_info = talloc_asprintf(state, "server: [%s] filter: [%s] base: [%s]",
-                                sdap_get_server_ip_str(state->sh),
+                                sdap_get_server_ip_str_safe(state->sh),
                                 state->filter, state->search_base);
     if (stat_info == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
