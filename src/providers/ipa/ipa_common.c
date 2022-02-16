@@ -213,6 +213,15 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         goto done;
     }
 
+    /* sssd-ipa can't use simple bind, ignore option that potentially can be set
+     * for sssd-ldap in the same domain
+     */
+    ret = dp_opt_set_string(ipa_opts->id->basic,
+                            SDAP_DEFAULT_AUTHTOK_TYPE, NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = domain_to_basedn(tmpctx,
                            dp_opt_get_string(ipa_opts->basic, IPA_KRB5_REALM),
                            &basedn);
