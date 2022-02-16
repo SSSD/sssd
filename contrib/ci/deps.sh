@@ -155,9 +155,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libuid-wrapper
         libpam-wrapper
         python-pytest
-        python-ldap
-        python-ldb
-        python-requests
         python-psutil
         ldap-utils
         slapd
@@ -177,6 +174,21 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libp11-kit-dev
         libunistring-dev
     )
+
+    if [[ "$DISTRO_BRANCH" == -debian-ubuntu-* ]]; then
+        DEPS_LIST+=(
+            python3-ldap
+            python3-ldb
+            python3-requests
+        )
+    else
+        DEPS_LIST+=(
+            python-ldap
+            python-ldb
+            python-requests
+        )
+    fi
+
     DEPS_INTGCHECK_SATISFIED=true
 fi
 
