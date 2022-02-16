@@ -172,25 +172,25 @@ END_TEST
 static void fail_unless_dp_opt_is_terminator(struct dp_option *o)
 {
     ck_assert_msg(o->opt_name == NULL,
-                "Unexpected NULL for opt_name in dp_option");
+                "Unexpected non-NULL for opt_name in dp_option");
     ck_assert_msg(o->type == 0,
-                "Unexpected 0 for type in dp_option");
+                "Unexpected non-zero for type in dp_option");
     ck_assert_msg(o->def_val.string == NULL,
-                "Unexpected NULL for def_val.string in dp_option");
+                "Unexpected non-NULL for def_val.string in dp_option");
     ck_assert_msg(o->val.string == NULL,
-                "Unexpected NULL for val.string in dp_option");
+                "Unexpected non-NULL for val.string in dp_option");
 }
 
 static void fail_unless_sdap_opt_is_terminator(struct sdap_attr_map *m)
 {
     ck_assert_msg(m->name == NULL,
-                "Unexpected NULL for name in sdap_attr_map");
+                "Unexpected non-NULL for name in sdap_attr_map");
     ck_assert_msg(m->def_name == NULL,
-                "Unexpected NULL for def_name in sdap_attr_map");
+                "Unexpected non-NULL for def_name in sdap_attr_map");
     ck_assert_msg(m->sys_name == NULL,
-                "Unexpected NULL for sys_name in sdap_attr_map");
+                "Unexpected non-NULL for sys_name in sdap_attr_map");
     ck_assert_msg(m->opt_name == NULL,
-                "Unexpected NULL for opt_name in sdap_attr_map");
+                "Unexpected non-NULL for opt_name in sdap_attr_map");
 }
 
 START_TEST(test_dp_opt_sentinel)
