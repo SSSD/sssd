@@ -484,7 +484,7 @@ try {
     /* Run covscan against non-test related PRs */
     if ((with_tests_label == false) && (with_tests_title == false)) {
       stages.put("covscan", {
-        node("sssd-ci") {
+        node("sssd-ci-09") {
           stage("covscan") {
             covscan = new Covscan(this, notification, params.REPO_URL, params.REPO_BRANCH, env.CHANGE_ID, on_demand)
             covscan.run()
