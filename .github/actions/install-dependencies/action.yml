@@ -1,0 +1,10 @@
+name: 'Install dependencies'
+description: 'Install dependencies to build sssd'
+runs:
+  using: "composite"
+  steps:
+  - shell: bash
+    run: |
+      cd contrib/ci/
+      . deps.sh
+      deps_install
