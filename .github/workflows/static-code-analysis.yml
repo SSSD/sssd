@@ -1,0 +1,42 @@
+name: "Static code analysis"
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    # Everyday at midnight
+    - cron: '0 0 * * *'
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      id: dependencies
+      uses: ./.github/actions/install-dependencies
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        queries: +security-and-quality
+
+    - name: Compile sssd
+      run: |
+        source contrib/fedora/bashrc_sssd
+        cd contrib/ci/
+        . configure.sh
+        cd ../..
+        reconfig "${CONFIGURE_ARG_LIST[@]}"
+        PROCESSORS=$(/usr/bin/getconf _NPROCESSORS_ONLN)
+        make -j$PROCESSORS
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
+      with:
+        languages: cpp, python
