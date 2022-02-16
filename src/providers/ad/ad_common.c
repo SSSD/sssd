@@ -165,6 +165,14 @@ ad_create_sdap_options(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* sssd-ad can't use simple bind, ignore option that potentially can be set
+     * for sssd-ldap in the same domain
+     */
+    ret = dp_opt_set_string(id_opts->basic, SDAP_DEFAULT_AUTHTOK_TYPE, NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+
     /* Get sdap option maps */
 
     /* General Attribute Map */
