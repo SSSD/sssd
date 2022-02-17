@@ -24,6 +24,7 @@ import ldap
 import ldif
 import paramiko
 import pytest
+import pymmh3 as mmh3
 from ldap import modlist
 from .authconfig import RedHatAuthConfig
 from .exceptions import PkiLibException
@@ -33,6 +34,12 @@ from .paths import SSSD_DEFAULT_CONF
 
 PARAMIKO_VERSION = (int(paramiko.__version__.split('.')[0]),
                     int(paramiko.__version__.split('.')[1]))
+
+GETENT_PASSWD_ITEMS = (
+    'name', 'password', 'uid', 'gid', 'gecos', 'home', 'shell')
+
+GETENT_GROUP_ITEMS = (
+    'name', 'password', 'gid', 'users')
 
 
 class sssdTools(object):
@@ -709,6 +716,57 @@ class sssdTools(object):
         print(cmd.stderr_text)
         print("----expect output end----")
         return cmd.returncode
+
+    def dump_ldb(self, entity, domain):
+        """Dump entity info from ldb
+        :param entity: The user or group name as a string.
+        :param domain: The domain as a string.
+        :returns dictionary"""
+        cmd = self.multihost.run_command(
+            f'ldbsearch -H /var/lib/sss/db/cache_{domain.lower()}.ldb name='
+            f'"{entity}"*',
+            raiseonerr=False)
+        ldb_info = {}
+        for line in cmd.stdout_text.split('\n'):
+            if ':' in line:
+                parts = line.split(':')
+                ldb_info[parts[0].strip()] = parts[1].strip()
+        return ldb_info
+
+    def get_getent_passwd(self, user):
+        """Parses the output of getent passwd for a user
+        Returns empty dict when entity is not found.
+        :param user: the username as string
+        :returns dictionary
+        :Exception: IndexError
+        """
+        parsed = {}
+        getent_cmd = self.multihost.run_command(
+            f'getent passwd {user}', raiseonerr=False)
+        if getent_cmd.returncode != 0:
+            return parsed
+        splits = getent_cmd.stdout_text.strip().split(':')
+        for index, val in enumerate(GETENT_PASSWD_ITEMS):
+            parsed[val] = splits[index]
+        return parsed
+
+    def get_getent_group(self, group):
+        """Parses the output of getent group for a group
+        Returns empty dict when entity is not found.
+        :param group: the group name as string
+        :returns dictionary
+        :Exception: IndexError
+        """
+        parsed = {}
+        getent_cmd = self.multihost.run_command(
+            f'getent group {group}', raiseonerr=False)
+
+        if getent_cmd.returncode != 0:
+            return parsed
+        splits = getent_cmd.stdout_text.strip().split(':')
+        for index, val in enumerate(GETENT_GROUP_ITEMS):
+            parsed[val] = splits[index]
+        return parsed
 
     def create_kdcinfo(self, realm, ipaddress):
         """ create kdcinfo file """
@@ -1746,6 +1804,64 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
         except CalledProcessError:
             return False
         return True
+
+    def get_user_info(self, user):
+        """ Dump user account information from AD as a dictionary
+        Empty dictionary is returned if user is not found.
+        :param str user: Name of Windows AD user
+        :Return dict: Dictionary with the fields from AD
+        """
+        info_cmd = f"powershell.exe -inputformat none -noprofile '" \
+                   f"Get-ADUser -Identity {user} -Properties *'"
+        cmd = self.ad_host.run_command(info_cmd, raiseonerr=False)
+        user_info = {}
+        for line in cmd.stdout_text.split('\n'):
+            if ':' in line:
+                parts = line.split(':')
+                user_info[parts[0].strip()] = parts[1].strip()
+        return user_info
+
+    def get_group_info(self, group):
+        """ Dump group account information from AD as a dictionary
+        Empty dictionary is returned if group is not found.
+        :param str group: Name of Windows AD user
+        :Return dict: Dictionary with the fields from AD
+        """
+        info_cmd = f"powershell.exe -inputformat none -noprofile '" \
+                   f"Get-ADGroup -Identity {group} -Properties *'"
+        cmd = self.ad_host.run_command(info_cmd, raiseonerr=False)
+        group_info = {}
+        for line in cmd.stdout_text.split('\n'):
+            if ':' in line:
+                parts = line.split(':')
+                group_info[parts[0].strip()] = parts[1].strip()
+        return group_info
+
+    @staticmethod
+    def compute_id_mapping(
+            object_sid, primary_group=0, range_min=200000, range_size=400000,
+            range_max=2000200000):
+        """ Compute the uid/gid based on its object_sid and primary group id.
+        When used for user, first value is uid, second gid.
+        When used for group, primary_group should be 0 and gid will be the
+        first item in the tuple, the second one will be the start of ids.
+        :param str object_sid: objectSid
+        :param int primary_group: primary group id
+        :param int range_min: lower bound of the id range
+        :param int range_size: size of the the id range
+        :param int range_max: upper bound of the range (ldap_idmap_range_size)
+        :Return tuple of int: computed uid/gid of the object
+        """
+        # Get domain sid
+        domain_sid = "-".join(object_sid.split("-")[0:7])
+        # Get rid
+        rid = int(object_sid.split("-")[7])
+        number_hash = mmh3.hash(domain_sid, seed=0xdeadbeef) & 0xffffffff
+        slice_max = (range_max - range_min) // range_size
+        slice_val = number_hash % slice_max
+        uid = range_size * slice_val + rid + range_min
+        gid = range_size * slice_val + range_min + primary_group
+        return uid, gid
 
 
 class SSHClient(paramiko.SSHClient):
