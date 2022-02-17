@@ -27,13 +27,12 @@ jobs:
         languages: cpp, python
         queries: +security-and-quality
 
-    - name: Compile sssd
+    - name: Configure sssd
+      uses: ./.github/actions/configure
+
+    - name: Build sssd
+      working-directory: x86_64
       run: |
-        source contrib/fedora/bashrc_sssd
-        cd contrib/ci/
-        . configure.sh
-        cd ../..
-        reconfig "${CONFIGURE_ARG_LIST[@]}"
         PROCESSORS=$(/usr/bin/getconf _NPROCESSORS_ONLN)
         make -j$PROCESSORS
 
