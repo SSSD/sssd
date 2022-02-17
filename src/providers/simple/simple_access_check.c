@@ -668,7 +668,7 @@ simple_check_get_groups_primary(struct simple_check_groups_state *state,
     ret = sysdb_search_group_by_gid(state, state->domain, gid, group_attrs,
                                     &msg);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_FUNC_DATA,
               "Could not look up primary group [%"SPRIgid"]: [%d][%s]\n",
                gid, ret, sss_strerror(ret));
         /* We have to treat this as non-fatal, because the primary
