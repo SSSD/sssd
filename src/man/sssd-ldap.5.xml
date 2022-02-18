@@ -527,6 +527,18 @@
                             will be used.
                         </para>
                         <para>
+                            If the connection is idle (not actively running an
+                            operation) within
+                            <emphasis>ldap_opt_timeout</emphasis> seconds of
+                            expiration, then it will be closed early to ensure
+                            that a new query cannot require the connection to
+                            remain open past its expiration.  This implies that
+                            connections will always be closed immediately and
+                            will never be reused if
+                            <emphasis>ldap_connection_expire_timeout &lt;=
+                            ldap_opt_timout</emphasis>
+                        </para>
+                        <para>
                             This timeout can be extended of a random
                             value specified by
                             <emphasis>ldap_connection_expire_offset</emphasis>
