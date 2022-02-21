@@ -3057,7 +3057,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         }
     } else if (count == 1) {
         state->orig_user = usr_attrs[0];
-    } else if (count != 1) {
+    } else {
         DEBUG(SSSDBG_FUNC_DATA,
               "The search returned %zu entries, need to match the correct one\n",
               count);

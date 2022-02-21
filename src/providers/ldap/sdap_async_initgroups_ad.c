@@ -83,11 +83,7 @@ sdap_get_ad_tokengroups_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
+    tevent_req_error(req, ret);
     tevent_req_post(req, ev);
 
     return req;
@@ -1631,20 +1627,11 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
     }
     if (subreq == NULL) {
         ret = ENOMEM;
-        goto immediately;
-    }
-
-    tevent_req_set_callback(subreq, sdap_ad_tokengroups_initgroups_done, req);
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
         tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    } else {
+        tevent_req_set_callback(subreq, sdap_ad_tokengroups_initgroups_done, req);
     }
-    tevent_req_post(req, ev);
 
     return req;
 }

@@ -1923,20 +1923,11 @@ ipa_domain_resolution_order_send(TALLOC_CTX *mem_ctx,
                                  state->domain->name, attrs);
     if (subreq == NULL) {
         ret = ENOMEM;
-        goto immediately;
-    }
-
-    tevent_req_set_callback(subreq, ipa_domain_resolution_order_done, req);
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
         tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    } else {
+        tevent_req_set_callback(subreq, ipa_domain_resolution_order_done, req);
     }
-    tevent_req_post(req, ev);
 
     return req;
 }
@@ -2189,11 +2180,7 @@ kdcinfo_from_site_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-    } else {
-        tevent_req_done(req);
-    }
+    tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
 }
