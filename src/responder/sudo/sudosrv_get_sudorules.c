@@ -775,20 +775,11 @@ struct tevent_req *sudosrv_get_rules_send(TALLOC_CTX *mem_ctx,
                                            username);
     if (subreq == NULL) {
         ret = ENOMEM;
-        goto immediately;
-    }
-
-    tevent_req_set_callback(subreq, sudosrv_get_rules_initgr_done, req);
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
         tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    } else {
+        tevent_req_set_callback(subreq, sudosrv_get_rules_initgr_done, req);
     }
-    tevent_req_post(req, ev);
 
     return req;
 }
