@@ -210,8 +210,8 @@ class TestKrbLdapConnectionTimeout(object):
         """
         cmd_mod_user = ["kadmin.local", "-q", "modprinc -maxlife 2mins foo1"]
         multihost.master[0].run_command(cmd_mod_user)
-        cmd_mod = ["kadmin.local", "-q", "modprinc -maxlife 2mins "
-                   "krbtgt/EXAMPLE.TEST"]
+        cmd_mod = ["kadmin.local", "-q",
+                   "modprinc -maxlife 2mins krbtgt/EXAMPLE.TEST"]
         multihost.master[0].run_command(cmd_mod)
         multihost.client[0].log.info(
             '\n\n\nTesting for the case where timeout value is'
