@@ -963,13 +963,14 @@ def create_posix_usersgroups_failover(session_multihost):
                                   group_info)
         except LdapException:
             assert False
-            group_dn = 'cn=ldapusers,ou=Groups,dc=example,dc=test'
-            for i in range(1, 10):
-                user_dn = 'uid=foo%d,ou=People,dc=example,dc=test' % i
-                add_member = [(ldap.MOD_ADD, 'uniqueMember',
-                               user_dn.encode('utf-8'))]
-                (ret, _) = ldap_inst.modify_ldap(group_dn, add_member)
-                assert ret == 'Success'
+
+        group_dn = 'cn=ldapusers,ou=Groups,dc=example,dc=test'
+        for i in range(1, 10):
+            user_dn = 'uid=foo%d,ou=People,dc=example,dc=test' % i
+            add_member = [(ldap.MOD_ADD, 'uniqueMember',
+                           user_dn.encode('utf-8'))]
+            (ret, _) = ldap_inst.modify_ldap(group_dn, add_member)
+            assert ret == 'Success'
 
 
 @pytest.fixture(scope='class')
