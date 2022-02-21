@@ -62,8 +62,4 @@ class TestSanitySudo(object):
             (_, _, exit_status) = ssh.execute_cmd('sudo -l')
             assert exit_status == 0
             time.sleep(30)
-            if exit_status != 0:
-                journalctl_cmd = 'journalctl -x -n 100 --no-pager'
-                multihost.master[0].run_command(journalctl_cmd)
-                pytest.fail("%s cmd failed for user %s" % ('sudo -l', 'foo1'))
             ssh.close()
