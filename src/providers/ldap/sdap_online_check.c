@@ -57,20 +57,11 @@ static struct tevent_req *sdap_online_check_send(TALLOC_CTX *mem_ctx,
                                    CON_TLS_DFL, false);
     if (subreq == NULL) {
         ret = ENOMEM;
-        goto immediately;
-    }
-
-    tevent_req_set_callback(subreq, sdap_online_check_connect_done, req);
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
         tevent_req_error(req, ret);
+        tevent_req_post(req, be_ctx->ev);
+    } else {
+        tevent_req_set_callback(subreq, sdap_online_check_connect_done, req);
     }
-    tevent_req_post(req, be_ctx->ev);
 
     return req;
 }

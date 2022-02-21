@@ -199,10 +199,7 @@ dp_init_send(TALLOC_CTX *mem_ctx,
     ret = EAGAIN;
 
 done:
-    if (ret == EOK) {
-        tevent_req_done(req);
-        tevent_req_post(req, ev);
-    } else if (ret != EAGAIN) {
+    if (ret != EAGAIN) {
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
     }

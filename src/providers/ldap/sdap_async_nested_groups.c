@@ -2072,21 +2072,13 @@ sdap_nested_group_lookup_unknown_send(TALLOC_CTX *mem_ctx,
                                                 state->member);
     if (subreq == NULL) {
         ret = ENOMEM;
-        goto immediately;
-    }
-
-    tevent_req_set_callback(subreq, sdap_nested_group_lookup_unknown_user_done,
-                            req);
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
         tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    } else {
+        tevent_req_set_callback(subreq,
+                                sdap_nested_group_lookup_unknown_user_done,
+                                req);
     }
-    tevent_req_post(req, ev);
 
     return req;
 }
