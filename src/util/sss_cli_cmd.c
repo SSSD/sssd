@@ -105,9 +105,6 @@ const char *sss_cmd2str(enum sss_cli_command cmd)
         return "SSS_NSS_GETNETGRENT";
     case SSS_NSS_ENDNETGRENT:
         return "SSS_NSS_ENDNETGRENT";
-    /* SSS_NSS_INNETGR:
-        return "SSS_NSS_INNETGR";
-        break; */
 
     /* networks */
     case SSS_NSS_GETNETBYNAME:
