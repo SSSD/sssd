@@ -1787,40 +1787,39 @@ static int prompt_multi_cert(pam_handle_t *pamh, struct pam_items *pi)
     return ret;
 }
 
+#define SC_INSERT_PROMPT _("Please (re)insert (different) Smartcard")
+
 static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
 {
     int ret;
     char *answer = NULL;
-    char *prompt;
-    size_t size;
+    char *prompt = NULL;
     size_t needed_size;
     const struct pam_conv *conv;
     const struct pam_message *mesg[2] = { NULL, NULL };
     struct pam_message m[2] = { { 0 }, { 0 } };
     struct pam_response *resp = NULL;
     struct cert_auth_info *cai = pi->selected_cert;
-    struct cert_auth_info empty_cai = { NULL, NULL, discard_const("Smartcard"),
-                                        NULL, NULL, NULL, NULL, NULL, NULL };
 
     if (cai == NULL && SERVICE_IS_GDM_SMARTCARD(pi)) {
-        cai = &empty_cai;
+        ret = asprintf(&prompt, SC_INSERT_PROMPT);
     } else if (cai == NULL || cai->token_name == NULL
                     || *cai->token_name == '\0') {
-        return EINVAL;
+        return PAM_SYSTEM_ERR;
+    } else {
+        ret = asprintf(&prompt, SC_PROMPT_FMT, cai->token_name);
     }
 
-    size = sizeof(SC_PROMPT_FMT) + strlen(cai->token_name);
-    prompt = malloc(size);
-    if (prompt == NULL) {
-        D(("malloc failed."));
-        return ENOMEM;
+    if (ret == -1) {
+        D(("asprintf failed."));
+        return PAM_SYSTEM_ERR;
     }
 
-    ret = snprintf(prompt, size, SC_PROMPT_FMT, cai->token_name);
-    if (ret < 0 || ret >= size) {
-        D(("snprintf failed."));
-        free(prompt);
-        return EFAULT;
+    if (cai == NULL) {
+        ret = do_pam_conversation(pamh, PAM_TEXT_INFO, prompt, NULL, NULL);
+        if (ret != PAM_SUCCESS) {
+            D(("Conversation failure: %s, ignored", pam_strerror(pamh, ret)));
+        }
     }
 
     if (pi->user_name_hint) {
@@ -1907,10 +1906,18 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
         }
     }
 
-    if (answer == NULL) {
-        pi->pam_authtok = NULL;
-        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
-        pi->pam_authtok_size=0;
+    if (cai == NULL) {
+        /* it is expected that the user just replaces the Smartcard which
+         * would trigger gdm to restart the PAM module, so it is not
+         * expected that this part of the code is reached. */
+        ret = PAM_AUTHINFO_UNAVAIL;
+        goto done;
+    }
+
+    if (answer == NULL || *answer == '\0') {
+        D(("Missing PIN."));
+        ret = PAM_CRED_INSUFFICIENT;
+        goto done;
     } else {
 
         ret = sss_auth_pack_sc_blob(answer, 0, cai->token_name, 0,
