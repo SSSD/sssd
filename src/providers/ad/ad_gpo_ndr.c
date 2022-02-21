@@ -58,8 +58,7 @@ ndr_pull_GUID(struct ndr_pull *ndr,
         NDR_CHECK(ndr_pull_array_uint8(ndr, NDR_SCALARS, r->node, size_node_0));
         NDR_CHECK(ndr_pull_trailer_align(ndr, 4));
     }
-    if (ndr_flags & NDR_BUFFERS) {
-    }
+
     return NDR_ERR_SUCCESS;
 }
 
