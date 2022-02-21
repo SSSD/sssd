@@ -622,9 +622,9 @@ def test_find_user_override(ldap_conn, env_find_user_override):
     out = check_output(['sss_override', 'user-find']).decode('utf-8')
 
     # Expected override of users
-    exp_usr_ovrd = ['user1@LDAP:ov_user1:10010:20010:Overriden User 1:'
+    exp_usr_ovrd = ['user1@LDAP:ov_user1:10010:20010:Overriden User 1:' +
                     '/home/ov/user1:/bin/ov_user1_shell:',
-                    'user2@LDAP:ov_user2:10020:20020:Overriden User 2:'
+                    'user2@LDAP:ov_user2:10020:20020:Overriden User 2:' +
                     '/home/ov/user2:/bin/ov_user2_shell:']
 
     assert set(out.splitlines()) == set(exp_usr_ovrd)

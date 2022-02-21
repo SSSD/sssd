@@ -288,9 +288,9 @@ class TestNsAccountLock(object):
                                      b'nsRoleDefinition',
                                      b'nsComplexRoleDefinition',
                                      b'nsNestedRoleDefinition'],
-                     'nsRoleDN': [b'cn=filtered,ou=people,'
+                     'nsRoleDN': [b'cn=filtered,ou=people,' +
                                   b'dc=example,dc=test',
-                                  b'cn=managed,ou=people,'
+                                  b'cn=managed,ou=people,' +
                                   b'dc=example,dc=test']}
         user_dn = 'cn=nested,ou=People,dc=example,dc=test'
         (_, _) = ldap_inst.add_entry(user_info, user_dn)
