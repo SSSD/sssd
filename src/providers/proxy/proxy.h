@@ -99,8 +99,6 @@ struct pc_init_ctx {
     struct sbus_connection *conn;
 };
 
-//int proxy_client_init(struct sbus_connection *conn, void *data);
-
 #define PROXY_CHILD_PIPE "private/proxy_child"
 #define DEFAULT_BUFSIZE 4096
 #define MAX_BUF_SIZE 1024*1024 /* max 1MiB */
