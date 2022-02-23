@@ -292,7 +292,7 @@ class UserdelTest(LocalTest):
         except IOError as e:
             self.assertEquals(e.errno, errno.ENOENT)
         else:
-            fail("Was expecting exception")
+            self.fail("Was expecting exception")
 
 
 class UsermodTest(LocalTest):
