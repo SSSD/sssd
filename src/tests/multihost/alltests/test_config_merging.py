@@ -246,7 +246,7 @@ class TestConfigMerge(object):
         tools.remove_sss_cache('/var/log/sssd')
         start_sssd = 'systemctl start sssd'
         start = multihost.client[0].run_command(start_sssd, raiseonerr=False)
-        assert start.returncode is not 0
+        assert start.returncode != 0
         cmd_rm = 'rm -f /etc/sssd/conf.d/01_snippet.conf'
         multihost.client[0].run_command(cmd_rm, raiseonerr=False)
 
