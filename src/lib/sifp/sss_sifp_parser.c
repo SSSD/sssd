@@ -132,7 +132,7 @@ sss_sifp_parse_dict(sss_sifp_ctx *ctx,
     DBusMessageIter dict_iter;
     DBusMessageIter array_iter;
     sss_sifp_error ret;
-    hash_key_t table_key;
+    hash_key_t table_key = {0};
     hash_value_t table_value;
     const char *key = NULL;
     const char *value = NULL;
