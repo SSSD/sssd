@@ -377,12 +377,12 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
                         "list_options is requiring a %s" %
                         options['reconnection_retries'][0])
 
-        self.assertTrue(options['reconnection_retries'][1] == None,
+        self.assertTrue(options['reconnection_retries'][1] is None,
                         "reconnection_retries should not require a subtype. " +
                         "list_options is requiring a %s" %
                         options['reconnection_retries'][1])
 
-        self.assertTrue(options['reconnection_retries'][3] == None,
+        self.assertTrue(options['reconnection_retries'][3] is None,
                         "reconnection_retries should have no default")
 
         self.assertTrue(type(options['services']) == tuple,
@@ -638,7 +638,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                         "list_options is requiring a %s" %
                         options['max_id'][0])
 
-        self.assertTrue(options['max_id'][1] == None,
+        self.assertTrue(options['max_id'][1] is None,
                         "max_id should not require a subtype. " +
                         "list_options is requiring a %s" %
                         options['max_id'][1])
@@ -993,7 +993,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                         "list_options is requiring a %s" %
                         options['max_id'][0])
 
-        self.assertTrue(options['max_id'][1] == None,
+        self.assertTrue(options['max_id'][1] is None,
                         "config_file_version should not require a subtype. " +
                         "list_options is requiring a %s" %
                         options['max_id'][1])
