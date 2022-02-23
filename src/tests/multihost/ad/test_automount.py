@@ -12,7 +12,10 @@ import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
 
+JOURNALCTL_CMD = "journalctl -x -n 50 --no-pager"
 
+
+# pylint: disable=useless-object-inheritance
 @pytest.mark.usefixtures("enable_autofs_schema", "enable_autofs_service")
 @pytest.mark.automount
 class Testautofsresponder(object):
@@ -26,9 +29,11 @@ class Testautofsresponder(object):
          directory and file system(nfs)
       4. Join RHEL7 client to Windows AD using realm
     """
+
+    @staticmethod
     @pytest.mark.parametrize('add_nisobject', ['/export'], indirect=True)
     @pytest.mark.tier1
-    def test_001_searchbasedn(self, multihost, add_nisobject):
+    def test_001_searchbasedn(multihost, add_nisobject):
         """
         :title: IDM-SSSD-TC: AD-Provider Automount: Verify automount rules
          are searched from basedn
@@ -42,11 +47,13 @@ class Testautofsresponder(object):
         """
         # pylint: disable=unused-argument
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
+
         for service in ['sssd', 'autofs']:
             srv = 'systemctl restart %s' % service
             try:
                 multihost.client[0].run_command(srv)
             except subprocess.CalledProcessError:
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Unable to start %s service" % service)
             time.sleep(5)
         try:
@@ -57,9 +64,10 @@ class Testautofsresponder(object):
         cmd = multihost.client[0].run_command(nfs_test, raiseonerr=False)
         assert cmd.returncode == 0
 
+    @staticmethod
     @pytest.mark.parametrize('add_nisobject', ['/export'], indirect=True)
     @pytest.mark.tier1
-    def test_002_offline(self, multihost, add_nisobject):
+    def test_002_offline(multihost, add_nisobject):
         """
         :title: IDM-SSSD-TC: AD-Provider Automount: Verify automount
          maps are retrieved from cache when sssd is offline
@@ -75,12 +83,14 @@ class Testautofsresponder(object):
           3. sssd should be offline
           4. /export/nfs-test share should be accessible from client
         """
+        # pylint: disable=unused-argument
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
         for service in ['sssd', 'autofs']:
             srv = 'systemctl restart %s' % service
             try:
                 multihost.client[0].run_command(srv)
             except subprocess.CalledProcessError:
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Unable to start %s service" % service)
         time.sleep(30)
         automount = 'automount -m'
@@ -99,9 +109,10 @@ class Testautofsresponder(object):
         cmd = multihost.client[0].run_command(nfstest, raiseonerr=False)
         assert cmd.returncode == 0
 
+    @staticmethod
     @pytest.mark.parametrize('add_nisobject', ['/export'], indirect=True)
     @pytest.mark.tier1
-    def test_003_setbasedn(self, multihost, set_autofs_search_base,
+    def test_003_setbasedn(multihost, set_autofs_search_base,
                            add_nisobject):
         """
         :title: IDM-SSSD-TC: AD-Provider Automount: Verify automount
@@ -120,14 +131,13 @@ class Testautofsresponder(object):
           4. client is able mount nfs share /export
         """
         # pylint: disable=unused-argument
-        journalctl_cmd = "journalctl -x -n 50 --no-pager"
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
         for service in ['sssd', 'autofs']:
             srv = 'systemctl restart %s' % service
             try:
                 multihost.client[0].run_command(srv)
             except subprocess.CalledProcessError:
-                multihost.client[0].run_command(journalctl_cmd)
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Unable to start %s service" % service)
         time.sleep(30)
         try:
@@ -138,9 +148,10 @@ class Testautofsresponder(object):
         cmd = multihost.client[0].run_command(nfs_test, raiseonerr=False)
         assert cmd.returncode == 0
 
+    @staticmethod
     @pytest.mark.parametrize('add_nisobject', ['/export'], indirect=True)
     @pytest.mark.tier1
-    def test_004_autofsnone(self, multihost, set_autofs_search_base,
+    def test_004_autofsnone(multihost, set_autofs_search_base,
                             add_nisobject):
         """
         :title: IDM-SSSD-TC: AD-Provider Automount: Verify maps are
@@ -157,12 +168,14 @@ class Testautofsresponder(object):
           3. automount -m should execute successfully
           4. /export/nfs-share should be accessible
         """
+        # pylint: disable=unused-argument
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
         for service in ['sssd', 'autofs']:
             srv = 'systemctl restart %s' % service
             try:
                 multihost.client[0].run_command(srv)
             except subprocess.CalledProcessError:
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Unable to start %s service" % service)
         time.sleep(30)
         try:
@@ -181,6 +194,7 @@ class Testautofsresponder(object):
         try:
             multihost.client[0].run_command(srv)
         except subprocess.CalledProcessError:
+            multihost.client[0].run_command(JOURNALCTL_CMD)
             pytest.fail("Unable to start sssd")
         time.sleep(10)
         try:
@@ -188,11 +202,12 @@ class Testautofsresponder(object):
         except subprocess.CalledProcessError:
             pytest.fail("automount -m command failed")
         cmd = multihost.client[0].run_command(nfs_test, raiseonerr=False)
-        assert cmd.returncode == 0
+        assert cmd.returncode == 0, f"{nfs_test} failed."
 
+    @staticmethod
     @pytest.mark.parametrize('add_nisobject', ['/export'], indirect=True)
     @pytest.mark.tier2
-    def test_005_autofsnotset(self, multihost, set_autofs_search_base,
+    def test_005_autofsnotset(multihost, set_autofs_search_base,
                               add_nisobject):
         """
         :title: IDM-SSSD-TC: AD-Provider Automount: Verify automount maps are
@@ -213,25 +228,26 @@ class Testautofsresponder(object):
         section = 'domain/{}'.format(domain_name)
         sssd_params = {'autofs_provider': 'none'}
         client.sssd_conf(section, sssd_params, action='delete')
-        journalctl_cmd = "journalctl -x -n 50 --no-pager"
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
         for service in ['sssd', 'autofs']:
             restart = 'systemctl restart %s' % service
             cmd = multihost.client[0].run_command(restart, raiseonerr=False)
             if cmd.returncode != 0:
-                multihost.client[0].run_command(journalctl_cmd)
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Failed to restart %s" % service)
         automount = 'automount -m'
         cmd = multihost.client[0].run_command(automount, raiseonerr=False)
-        assert cmd.returncode == 0
+        assert cmd.returncode == 0, f"{automount} failed."
         nfstest = 'ls -l /export/nfs-test'
         cmd = multihost.client[0].run_command(nfstest, raiseonerr=False)
-        assert cmd.returncode == 0
+        assert cmd.returncode == 0, f"{nfstest} failed."
 
+    @staticmethod
     @pytest.mark.parametrize('add_nisobject', ['/project1'], indirect=True)
     @pytest.mark.tier2
-    def test_006_updatedmaps(self, multihost, set_autofs_search_base,
+    def test_006_updatedmaps(multihost, set_autofs_search_base,
                              add_nisobject):
+
         """
         :title: IDM-SSSD-TC: AD-Provider Automount: Verify sssd properly
          updates cache when automount maps are updated with more entries
@@ -254,12 +270,11 @@ class Testautofsresponder(object):
             restart = 'systemctl restart %s' % service
             cmd = multihost.client[0].run_command(restart, raiseonerr=False)
             if cmd.returncode != 0:
-                journalctl_cmd = "journalctl -x -n 50 --no-pager"
-                multihost.client[0].run_command(journalctl_cmd)
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Failed to restart %s" % service)
         automount = 'automount -m'
         cmd = multihost.client[0].run_command(automount, raiseonerr=False)
-        assert cmd.returncode == 0
-        nfstest = 'ls -l %s' % nfstest
-        cmd = multihost.client[0].run_command(nfstest, raiseonerr=False)
-        assert cmd.returncode == 0
+        assert cmd.returncode == 0, "Automount command failed."
+        nfstest_cmd = 'ls -l %s' % nfstest
+        cmd = multihost.client[0].run_command(nfstest_cmd, raiseonerr=False)
+        assert cmd.returncode == 0, f"{nfstest_cmd} failed."

@@ -16,13 +16,14 @@ from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.utils import SSHClient
 
 
+# pylint: disable=useless-object-inheritance
 @pytest.mark.adparameters
 class TestBugzillaAutomation(object):
     """ BZ Automated Test Cases """
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0001_bz1296618(self, multihost, adjoin,
-                            create_aduser_group):
+    def test_0001_bz1296618(multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Properly remove
          OriginalMemberOf attribute from SSSD cache if user has no secondary
@@ -41,7 +42,6 @@ class TestBugzillaAutomation(object):
         adjoin(membersw='adcli')
         (aduser, adgroup) = create_aduser_group
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        domain_name = client.get_domain_section_name()
         basedn_entry = multihost.ad[0].domain_basedn_entry
         users_dn_entry = '{},{}'.format('CN=Users', basedn_entry)
         ad_group_dn = 'CN={},{}'.format(adgroup, users_dn_entry)
@@ -52,7 +52,8 @@ class TestBugzillaAutomation(object):
         user_cache_entry = 'name=%s@%s,cn=users'\
                            ',cn=%s,cn=sysdb' % (aduser, domain.lower(), domain)
         ldb_search = 'ldbsearch -H /var/lib/sss/db/cache_%s.ldb  -b ' \
-                     '%s originalMemberOf' % (domain_name, user_cache_entry)
+                     '%s originalMemberOf' % \
+                     (client.get_domain_section_name(), user_cache_entry)
         cmd = multihost.client[0].run_command(ldb_search)
         results = cmd.stdout_text.split()
         # Remove user from group and clear sssd cache
@@ -60,16 +61,16 @@ class TestBugzillaAutomation(object):
             client.remove_ad_user_group(aduser)
             client.remove_ad_user_group(adgroup)
             client.clear_sssd_cache()
-            id_lookup = 'id %s@%s' % (aduser, domain)
-            multihost.client[0].run_command(id_lookup, raiseonerr=False)
+            multihost.client[0].run_command(user_id, raiseonerr=False)
             cmd = multihost.client[0].run_command(ldb_search, raiseonerr=False)
             results = cmd.stdout_text.split()
             assert ad_group_dn not in results
         else:
             pytest.fail("%s cmd failed" % ldb_search)
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0002_bz1287209(self, multihost, adjoin, create_aduser_group):
+    def test_0002_bz1287209(multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Allow short usernames
          in trust setups
@@ -87,8 +88,7 @@ class TestBugzillaAutomation(object):
         adjoin(membersw='adcli')
         (ad_user, _) = create_aduser_group
         client_ad = sssdTools(multihost.client[0], multihost.ad[0])
-        bkup = 'cp -af /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
-        multihost.client[0].run_command(bkup)
+        client_ad.backup_sssd_conf()
         domainname = multihost.ad[0].domainname
         domain_section = 'domain/{}'.format(domainname)
         sssd_params = {'full_name_format': '%1$s'}
@@ -98,12 +98,12 @@ class TestBugzillaAutomation(object):
         domain = multihost.ad[0].domainname
         su_cmd = 'su - %s@%s -c  whoami' % (ad_user, domain)
         cmd = multihost.client[0].run_command(su_cmd, raiseonerr=False)
+        client_ad.restore_sssd_conf()
         assert ad_user == cmd.stdout_text.strip()
-        restore = 'cp -af /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
-        multihost.client[0].run_command(restore)
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0003_bz1421622(self, multihost, adjoin, create_aduser_group):
+    def test_0003_bz1421622(multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Users or Groups are
          cached as mixed-case resulting in users unable to sign in
@@ -130,42 +130,12 @@ class TestBugzillaAutomation(object):
                                                    raiseonerr=False)
             cmd2 = multihost.client[0].run_command(['sssctl', 'group-show',
                                                     grp], raiseonerr=False)
-            if cmd1.returncode == 0 and cmd2.returncode == 0:
-                assert True
-            else:
-                assert False
+            assert cmd1.returncode == 0 and cmd2.returncode == 0
 
+    # pylint: disable=unused-argument
+    @staticmethod
     @pytest.mark.tier1
-    def test_00015_authselect_cannot_validate_its_own_files(self, multihost):
-        """
-        :title: authselect: authselect cannot validate its own files
-        :id: 67bec814-d67b-4469-9662-58354889d549
-        :requirement: IDM-SSSD-REQ :: Authselect replaced authconfig
-        :casecomponent: authselect
-        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1734302
-        """
-        password = multihost.ad[0].ssh_password
-        client = sssdTools(multihost.client[0])
-        domainname = multihost.ad[0].domainname.strip().upper()
-        client.realm_join(domainname, password)
-        multihost.client[0].run_command("service sssd restart")
-        multihost.client[0].run_command("yum install -y gdb")
-        multihost.client[0].run_command("gdb -quiet authselect -ex "
-                                        "'set breakpoint pending on' -ex "
-                                        "'b src/lib/files/system.c:428' -ex "
-                                        "'run select sssd --force' -ex "
-                                        "'shell sleep 1' -ex 'detach' -ex "
-                                        "'quit'")
-        cmd_check = multihost.client[0].run_command("authselect check")
-        client.realm_leave(domainname)
-        if "Current configuration is valid." in cmd_check.stdout_text:
-            result = "PASS"
-        else:
-            result = "FAIL"
-        assert result == "PASS"
-
-    @pytest.mark.tier1
-    def test_0005_BZ1527149_BZ1549675(self, multihost, adjoin, create_adgrp):
+    def test_0005_bz1527149_bz1549675(multihost, adjoin, create_adgrp):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: AD BUILTIN groups are
          cached with gidNumber equal to 0
@@ -205,9 +175,10 @@ class TestBugzillaAutomation(object):
             else:
                 pytest.fail("Expected to get empty output for group lookup")
 
+    # pylint: disable=unused-argument
+    @staticmethod
     @pytest.mark.tier1
-    def test_0006_bz1592964(self, multihost, adjoin,
-                            create_aduser_group,
+    def test_0006_bz1592964(multihost, adjoin, create_aduser_group,
                             create_domain_local_group,
                             add_user_in_domain_local_group):
         """
@@ -229,37 +200,29 @@ class TestBugzillaAutomation(object):
         adjoin(membersw='adcli')
         (ad_user, _) = create_aduser_group
         client = sssdTools(multihost.client[0])
-        domain_name = client.get_domain_section_name()
-        cfgget = '/etc/sssd/sssd.conf'
-        bkup_cmd = 'cp -f %s %s.backup' % (cfgget, cfgget)
-        multihost.client[0].run_command(bkup_cmd)
-        sssdcfg = multihost.client[0].get_file_contents(cfgget)
-        sssdcfg = sssdcfg.replace(b'services = nss, pam',
-                                  b'services = nss, pam, pac')
-        multihost.client[0].put_file_contents(cfgget, sssdcfg)
-        multihost.client[0].run_command('sss_cache -E')
-        multihost.client[0].service_sssd('restart')
+        client.backup_sssd_conf()
+        client.sssd_conf('sssd', {'services':  'nss, pam, pac'})
+        client.clear_sssd_cache()
         time.sleep(20)
         domain = multihost.ad[0].domainname.strip().lower()
-        id_lookup = 'id %s@%s' % (ad_user, domain)
-        cmd1 = multihost.client[0].run_command(id_lookup, raiseonerr=False)
-        user_cache_entry = 'name=%s@%s,cn=users,cn=%s,cn=sysdb' % (ad_user,
-                                                                   domain,
-                                                                   domain)
+        cmd1 = multihost.client[0].run_command(
+            'id %s@%s' % (ad_user, domain), raiseonerr=False)
+        user_cache_entry = 'name=%s@%s,cn=users,cn=%s,cn=sysdb' %\
+                           (ad_user, domain, domain)
         ldb_search = 'ldbsearch -H /var/lib/sss/db/cache_%s.ldb -b %s ' \
-                     'name=%s* memberof' % (domain_name, user_cache_entry,
-                                            ad_user)
+                     'name=%s* memberof' % (client.get_domain_section_name(),
+                                            user_cache_entry, ad_user)
 
         cmd2 = multihost.client[0].run_command(ldb_search, raiseonerr=False)
         grouplist = ['ltestgroup1', 'ltestgroup2', 'ltestgroup3',
                      'ltestgroup4', 'ltestgroup5']
+        client.restore_sssd_conf()
         for _, group in enumerate(grouplist):
             assert group in cmd1.stdout_text and cmd2.stdout_text
-        cp = '/bin/cp -a /etc/sssd/sssd.conf.backup /etc/sssd/sssd.conf'
-        multihost.client[0].run_command(cp)
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0007_bz1361597(self, multihost, adjoin, create_aduser_group):
+    def test_0007_bz1361597(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Test if we can lookup
          the AD group with one member
@@ -290,44 +253,45 @@ class TestBugzillaAutomation(object):
         user = "testusr_%s" % digit
         ad_realm = multihost.ad[0].domainname
         password = multihost.ad[0].ssh_password
-        adcli_cg = "adcli create-group %s --domain=%s"\
-            " --login-user=Administrator" % (group, ad_realm)
-        multihost.client[0].run_command(adcli_cg, stdin_text=password)
-
-        adcli_cu = "adcli create-user %s --domain=%s"\
-            " --login-user=Administrator" % (user, ad_realm)
-        multihost.client[0].run_command(adcli_cu, stdin_text=password)
+        multihost.client[0].run_command(
+            "adcli create-group %s --domain=%s --login-user=Administrator" %
+            (group, ad_realm), stdin_text=password)
+        multihost.client[0].run_command(
+            "adcli create-user %s --domain=%s --login-user=Administrator" %
+            (user, ad_realm), stdin_text=password)
         time.sleep(30)
         getent = "date; SSS_NSS_USE_MEMCACHE=NO "\
                  "getent group %s@%s" % (group, ad_realm)
         lookup = multihost.client[0].run_command(getent, raiseonerr=False)
         assert lookup.returncode == 0
-        adcli_am = "adcli add-member %s %s --domain=%s "\
-            "--login-user=Administrator" % (group, user, ad_realm)
-        multihost.client[0].run_command(adcli_am, stdin_text=password)
+        multihost.client[0].run_command(
+            "adcli add-member %s %s --domain=%s --login-user=Administrator" %
+            (group, user, ad_realm), stdin_text=password)
         time.sleep(30)
         lookup = multihost.client[0].run_command(getent, raiseonerr=False)
         print(lookup.stdout_text)
-        adcli_rm = "adcli remove-member %s %s --domain=%s "\
-            "--login-user=Administrator" % (group, user, ad_realm)
-        multihost.client[0].run_command(adcli_rm, stdin_text=password)
+        multihost.client[0].run_command(
+            "adcli remove-member %s %s --domain=%s "
+            "--login-user=Administrator" % (group, user, ad_realm),
+            stdin_text=password)
         time.sleep(30)
         lookup = multihost.client[0].run_command(getent, raiseonerr=False)
         print(lookup.stdout_text)
         search = "%s@%s" % (user, ad_realm)
         assert lookup.stdout_text.find(search) == -1
         print("Delete user and group")
-        adcli_dg = "adcli delete-group %s --domain=%s"\
-            " --login-user=Administrator" % (group, ad_realm)
-        multihost.client[0].run_command(adcli_dg, stdin_text=password)
-        adcli_du = "adcli delete-user %s --domain=%s"\
-            " --login-user=Administrator" % (user, ad_realm)
-        multihost.client[0].run_command(adcli_du, stdin_text=password)
+        multihost.client[0].run_command(
+            "adcli delete-group %s --domain=%s --login-user=Administrator" %
+            (group, ad_realm), stdin_text=password)
+        multihost.client[0].run_command(
+            "adcli delete-user %s --domain=%s --login-user=Administrator" %
+            (user, ad_realm), stdin_text=password)
         print("Group {} and User {} deleted".format(group, user))
         assert lookup.returncode == 0
 
+    @staticmethod
     @pytest.mark.tier3
-    def test_0008_bz1431858(self, multihost, adjoin):
+    def test_0008_bz1431858(multihost, adjoin):
         """
         :title : IDM-SSSD-TC: ad_provider: ad_parameters: Wrong principal is
          found with ad provider having long hostname
@@ -352,15 +316,16 @@ class TestBugzillaAutomation(object):
         search = "host/{}".format(multihost.client[0].external_hostname)
         assert output.find(search) != -1
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0009_bz1565761(self, multihost, adjoin):
+    def test_0009_bz1565761(multihost, adjoin):
         """
         :title : IDM-SSSD-TC: ad_provider: ad_parameters: SSSD reports minor
          failures trying to resolve well-known SIDs
         :id: 65cc1f42-92b0-4e3e-8752-5ed9bac2fd6d
         :customerscenario: True
         :steps:
-          1. Lookup user
+          1. Lookup user Administrator
           2. Grep "Domain not found"
         :expectedresults:
           1. Lookup should be successful.
@@ -368,16 +333,17 @@ class TestBugzillaAutomation(object):
         """
         adjoin(membersw='adcli')
         user = "Administrator"
-        ad_relam = multihost.ad[0].domainname
-        cmd = "sss_cache -E ; id %s@%s" % (user, ad_relam)
+        ad_realm = multihost.ad[0].domainname
+        cmd = "sss_cache -E ; id %s@%s" % (user, ad_realm)
         multihost.client[0].run_command(cmd, raiseonerr=False)
         grep = 'grep -ire "Domain not found" /var/log/sssd/'
         cmd = multihost.client[0].run_command(grep, raiseonerr=False)
         output = cmd.stdout_text
-        assert not output  # output should be empty
+        assert not output, f'Output "{output}" is not empty!'
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0010_bz1527662(self, multihost, adjoin):
+    def test_0010_bz1527662(multihost, adjoin):
         """
         :title: ad_parameters: Handle conflicting e-mail addresses
          more gracefully
@@ -395,8 +361,9 @@ class TestBugzillaAutomation(object):
         ad_realm = multihost.ad[0].domainname
         user_mail = 'akhomic1b@%s' % ad_realm
         client = sssdTools(multihost.client[0], multihost.ad[0])
+        result = ""
         for user in user_list:
-            group = '%s_group' % (user)
+            group = f'{user}_group'
             client.create_ad_user(user, group, user_mail)
         multihost.client[0].service_sssd('restart')
         for user in user_list:
@@ -405,16 +372,18 @@ class TestBugzillaAutomation(object):
                 ssh = SSHClient(multihost.client[0].sys_hostname,
                                 username=ad_user, password='Secret123')
             except paramiko.ssh_exception.AuthenticationException:
-                pytest.fail('%s failed to login' % user)
+                result = f'{user} failed to login'
             else:
                 ssh.close()
         for user in user_list:
-            group = '%s_group' % (user)
+            group = f'{user}_group'
             client.remove_ad_user_group(group)
             client.remove_ad_user_group(user)
+        assert not result, result
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0011_bz1571526(self, multihost, adjoin):
+    def test_0011_bz1571526(multihost, adjoin):
         """
         :title: ad_parameters: sssd should give warning
          when changing ldap schema from AD to others
@@ -436,8 +405,9 @@ class TestBugzillaAutomation(object):
         find = re.compile(r'%s' % msg)
         assert find.search(log)
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0012_bz1738532(self, multihost, adjoin, create_aduser_group):
+    def test_0012_bz1738532(multihost, adjoin, create_aduser_group):
         """
         :title: ad_parameters: lookup identity does not work in some cases
         :id: b8382774-e568-4e5b-b787-bdd4db380c28
@@ -459,37 +429,34 @@ class TestBugzillaAutomation(object):
         domain = multihost.ad[0].domainname.strip().lower()
         user = '%s@%s' % (ad_user, domain)
         client.clear_sssd_cache()
-        set_UPN = 'powershell.exe -inputformat none -noprofile Set-ADUser ' \
+        set_upn = 'powershell.exe -inputformat none -noprofile Set-ADUser ' \
                   '-UserPrincipalName TestUserUPN@ad.vm -Identity %s' % ad_user
-        cmd = multihost.ad[0].run_command(set_UPN, raiseonerr=False)
+        cmd = multihost.ad[0].run_command(set_upn, raiseonerr=False)
         if cmd.returncode != 0:
-            print('Failed to set UPN of user')
-            status = 'FAIL'
+            failure = 'Failed to set UPN of user'
             test_cmd = 'dbus-send --print-reply --system --dest=org.' \
                        'freedesktop.sssd.infopipe /org/freedesktop/sssd/' \
                        'infopipe org.freedesktop.sssd.infopipe.' \
                        'GetUserAttrstring:TestUserUPN@ad.vm array:string:name'
             check = multihost.client[0].run_command(test_cmd, raiseonerr=False)
             if check.returncode == 0:
-                status = 'PASS'
                 find = re.compile(r'%s' % user)
                 result = find.search(check.stdout_text)
                 if result is None:
-                    status = 'FAIL'
-            assert status != 'FAIL'
+                    failure += f'{user} not found!'
+            assert not failure, failure
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0013_bz1794016(self, multihost, adjoin):
+    def test_0013_bz1794016(multihost, adjoin):
         """
         :title: sssd_be frequently crashes when refresh_expired_interval
          is set and files provider is also enabled
         :id: ac5e99cc-2d81-48f7-82ff-622f1c6b3684
         """
         adjoin(membersw='adcli')
-        backup = 'cp -f /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
-        restore = 'cp -f /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
-        multihost.client[0].run_command(backup)
         client = sssdTools(multihost.client[0])
+        client.backup_sssd_conf()
         domain_sec_name = client.get_domain_section_name()
         dom_section = 'domain/%s' % domain_sec_name
         sssd_params = {'domains': 'files, %s' % domain_sec_name}
@@ -497,23 +464,18 @@ class TestBugzillaAutomation(object):
         domain_params = {'entry_cache_timeout': '5400',
                          'refresh_expired_interval': '4000'}
         client.sssd_conf(dom_section, domain_params)
-        file_section = 'domain/files'
-        file_params = {'id_provider': 'files'}
-        client.sssd_conf(file_section, file_params)
+        client.sssd_conf('domain/files', {'id_provider': 'files'})
         client.clear_sssd_cache()
-        journalctl = 'journalctl -x -n 150 --no-pager'
-        multihost.client[0].service_sssd('restart')
-        journal_output = multihost.client[0].run_command(journalctl)
+        journal_output = multihost.client[0].run_command(
+            'journalctl -x -n 150 --no-pager')
         coredump = re.compile(r'%s' % '(sssd_be) of user 0 dumped core.')
         result = coredump.search(journal_output.stdout_text)
-        multihost.client[0].run_command(restore)
-        remove_backup_file = 'rm -f /etc/sssd/sssd.conf.orig'
-        multihost.client[0].run_command(remove_backup_file)
+        client.restore_sssd_conf()
         assert result is None
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0014_user_filtering(self, multihost,
-                                 adjoin, create_aduser_group):
+    def test_0014_user_filtering(multihost, adjoin, create_aduser_group):
         """
         :title: SSSD user filtering is failing
          after files provider rebuilds cache
@@ -556,19 +518,15 @@ class TestBugzillaAutomation(object):
         params2 = {'filter_users': userlist,
                    'filter_groups': 'root'}
         client.sssd_conf('nss', params2)
-        client.remove_sss_cache('/var/lib/sss/db')
-        client.remove_sss_cache('/var/lib/sss/mc')
-        client.remove_sss_cache('/var/log/sssd')
-        multihost.client[0].service_sssd('start')
+        client.clear_sssd_cache()
         multihost.client[0].run_command(lkup1, raiseonerr=True)
         cmd = multihost.client[0].run_command(lkup2, raiseonerr=False)
-        assert cmd.returncode == 2
         usradd = '/usr/sbin/useradd localuser-test'
         multihost.client[0].run_command(usradd, raiseonerr=True)
         lkup3 = 'getent passwd localuser-test'
         multihost.client[0].run_command(lkup3, raiseonerr=True)
         multihost.client[0].run_command(lkup1, raiseonerr=True)
-        cmd = multihost.client[0].run_command(lkup2, raiseonerr=False)
+        cmd2 = multihost.client[0].run_command(lkup2, raiseonerr=False)
         usrdel = '/usr/sbin/userdel -rf localuser-test'
         multihost.client[0].run_command(usrdel, raiseonerr=True)
         multihost.client[0].service_sssd('stop')
@@ -576,11 +534,39 @@ class TestBugzillaAutomation(object):
         client.sssd_conf('nss', params2, action='delete')
         multihost.client[0].service_sssd('start')
         assert cmd.returncode == 2
+        assert cmd2.returncode == 2
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_0016_forceLDAPS(self, multihost,
-                             adjoin, fetch_ca_cert,
-                             create_aduser_group):
+    def test_0015_authselect_cannot_validate_its_own_files(multihost):
+        """
+        :title: authselect: authselect cannot validate its own files
+        :id: 67bec814-d67b-4469-9662-58354889d549
+        :requirement: IDM-SSSD-REQ :: Authselect replaced authconfig
+        :casecomponent: authselect
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1734302
+        """
+        password = multihost.ad[0].ssh_password
+        client = sssdTools(multihost.client[0])
+        domainname = multihost.ad[0].domainname.strip().upper()
+        client.realm_join(domainname, password)
+        multihost.client[0].run_command("service sssd restart")
+        multihost.client[0].run_command("yum install -y gdb")
+        multihost.client[0].run_command("gdb -quiet authselect -ex "
+                                        "'set breakpoint pending on' -ex "
+                                        "'b src/lib/files/system.c:428' -ex "
+                                        "'run select sssd --force' -ex "
+                                        "'shell sleep 1' -ex 'detach' -ex "
+                                        "'quit'")
+        cmd_check = multihost.client[0].run_command("authselect check")
+        client.realm_leave(domainname)
+        assert "Current configuration is valid." in cmd_check.stdout_text
+
+    @staticmethod
+    @pytest.mark.tier1
+    # pylint: disable=unused-argument, invalid-name
+    def test_0016_forceLDAPS(
+            multihost, adjoin, fetch_ca_cert, create_aduser_group):
         """
         :title: Force LDAPS over 636 with AD Access Provider
         :id: 12d0c340-9c50-4583-97c1-23f9f583522c
@@ -588,7 +574,7 @@ class TestBugzillaAutomation(object):
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1762415
         :steps:
           1. Join RHEL to the AD-server
-          2. Block 389 port on client with iptable
+          2. Block 389 port on client
           3. Enable 'ad_use_ldaps' option sssd.conf
           4. Add channel bindings /etc/openldap/ldap.conf
           4. Restart sssd
@@ -599,84 +585,84 @@ class TestBugzillaAutomation(object):
           2. Logs should show that port 636 was used to contact AD
         """
         adjoin(membersw='adcli')
-        (aduser, adgroup) = create_aduser_group
+        (aduser, _) = create_aduser_group
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        cert_bkup = 'cp /etc/openldap/ldap.conf /etc/openldap.conf_bk'
-        cmd = multihost.client[0].run_command(cert_bkup, raiseonerr=False)
+        client.backup_sssd_conf()
+        multihost.client[0].run_command(
+            'cp /etc/openldap/ldap.conf /etc/openldap.conf_bk',
+            raiseonerr=False)
         cert_conf = 'echo -e "SASL_CBINDING tls-endpoint\n"\
                     "TLS_CACERT /etc/openldap/certs/cacert.pem\n"\
                     "SASL_NOCANON	on" > /etc/openldap/ldap.conf'
-        cmd = multihost.client[0].run_command(cert_conf, raiseonerr=False)
-        cat = 'cat /etc/openldap/ldap.conf'
-        cmd = multihost.client[0].run_command(cat, raiseonerr=False)
+        multihost.client[0].run_command(cert_conf, raiseonerr=False)
+
+        multihost.client[0].run_command('cat /etc/openldap/ldap.conf',
+                                        raiseonerr=False)
         domainname = multihost.ad[0].domainname
         lkup = 'getent passwd %s@%s' % (aduser, domainname)
-        cmd4 = multihost.client[0].run_command(lkup, raiseonerr=False)
-        multihost.client[0].service_sssd('stop')
-        cmd = 'dnf install -y firewalld'
-        multihost.client[0].run_command(cmd, raiseonerr=True)
-        cmd = 'systemctl start firewalld'
-        multihost.client[0].run_command(cmd, raiseonerr=True)
-        fw_add1 = 'firewall-cmd --permanent --direct --add-rule ipv4 '\
-                  'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP'
-        fw_add2 = 'firewall-cmd --permanent --direct --add-rule ipv4 '\
-                  'filter OUTPUT 1 -j ACCEPT'
-        multihost.client[0].run_command(fw_add1, raiseonerr=True)
-        multihost.client[0].run_command(fw_add2, raiseonerr=True)
-        fw_rld = 'firewall-cmd --reload'
-        multihost.client[0].run_command(fw_rld, raiseonerr=True)
+        multihost.client[0].run_command(lkup, raiseonerr=False)
+
+        # Install firewall and block port 389 (unsecure ldap)
+        multihost.client[0].run_command(
+            'dnf install -y firewalld', raiseonerr=True)
+        multihost.client[0].run_command(
+            'systemctl start firewalld', raiseonerr=True)
+        multihost.client[0].run_command(
+            'firewall-cmd --permanent --direct --add-rule ipv4 '
+            'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP',
+            raiseonerr=True)
+        multihost.client[0].run_command(
+            'firewall-cmd --permanent --direct --add-rule ipv4 '
+            'filter OUTPUT 1 -j ACCEPT', raiseonerr=True)
+        multihost.client[0].run_command(
+            'firewall-cmd --reload', raiseonerr=True)
+
+        # Configure ldaps in sssd
         domain_section = 'domain/{}'.format(domainname)
         sssd_params = {'ad_use_ldaps': 'True',
                        'ldap_id_mapping': 'True',
                        'debug_level': '9'}
         client.sssd_conf(domain_section, sssd_params)
-        client.remove_sss_cache('/var/lib/sss/db')
-        client.remove_sss_cache('/var/log/sssd')
-        multihost.client[0].service_sssd('start')
+        client.clear_sssd_cache()
         time.sleep(3)
-        lkup = 'getent passwd %s@%s' % (aduser, domainname)
+
         cmd4 = multihost.client[0].run_command(lkup, raiseonerr=False)
-        fw_r1 = 'firewall-cmd --permanent --direct --remove-rule ipv4 '\
-                'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP'
-        fw_r2 = 'firewall-cmd --permanent --direct --remove-rule ipv4 '\
-                'filter OUTPUT 1 -j ACCEPT'
-        multihost.client[0].run_command(fw_r1, raiseonerr=True)
-        multihost.client[0].run_command(fw_r2, raiseonerr=True)
-        multihost.client[0].run_command(fw_rld, raiseonerr=True)
-        cmd = 'systemctl stop firewalld'
-        multihost.client[0].run_command(cmd, raiseonerr=True)
-        cmd = 'dnf remove -y firewalld'
-        multihost.client[0].run_command(cmd, raiseonerr=True)
-        cert_restr = 'mv /etc/openldap.conf_bk /etc/openldap/ldap.conf'
-        cmd = multihost.client[0].run_command(cert_restr, raiseonerr=False)
-        multihost.client[0].service_sssd('stop')
-        client.sssd_conf(domain_section, sssd_params, action='delete')
-        multihost.client[0].service_sssd('start')
+
+        # Remove the firewall again
+        multihost.client[0].run_command(
+            'systemctl stop firewalld', raiseonerr=True)
+        multihost.client[0].run_command(
+            'dnf remove -y firewalld', raiseonerr=True)
+        multihost.client[0].run_command(
+            'mv /etc/openldap.conf_bk /etc/openldap/ldap.conf',
+            raiseonerr=False)
+        client.restore_sssd_conf()
+
         assert cmd4.returncode == 0
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0017_gssspnego_adjoin(self, multihost):
+    def test_0017_gssspnego_adjoin(multihost):
         """
         :title: Verify sssd uses GSS-SPNEGO when communicating to AD
         :id: 9d8b68a0-1208-446c-9dbd-93ee1f934903
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1707963
         """
         ad_hostname = multihost.ad[0].sys_hostname
-        status = ''
+        failure = None
         pcapfile = '/tmp/spnego.pcap'
         tcpdump_cmd = 'tcpdump -s0 host %s -w %s' % (ad_hostname, pcapfile)
         ad_domain = multihost.ad[0].domainname
-        realm_join_cmd = 'realm join %s --client-software=sssd '\
-                         '--server-software=active-directory '\
-                         '--membership-software=adcli -v' % (ad_domain)
+        realm_join_cmd = f'realm join {ad_domain} --client-software=sssd '\
+                         f'--server-software=active-directory '\
+                         f'--membership-software=adcli -v'
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
         pkill = 'pkill tcpdump'
         cmd = multihost.client[0].run_command(realm_join_cmd,
                                               stdin_text='Secret123',
                                               raiseonerr='False')
         if cmd.returncode != 0:
-            status = 'FAIL'
-            print("Joining to %s failed" % ad_domain)
+            failure = "Joining to %s failed" % ad_domain
         multihost.client[0].run_command(pkill, raiseonerr=False)
         tshark_cmd = "tshark -r %s -V -2 -R " \
                      "'ldap.mechanism == GSS-SPNEGO'" % pcapfile
@@ -684,23 +670,20 @@ class TestBugzillaAutomation(object):
         check_str = re.compile(r'%s' % valid_etypes)
         cmd = multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
         if cmd.returncode != 0:
-            status = 'FAIL'
-            print("%s failed " % tshark_cmd)
+            failure = "%s failed " % tshark_cmd
         else:
             if not check_str.search(cmd.stdout_text):
-                status = 'FAIL'
-        bindResponse = "tshark -r %s -V -2 -R "\
-                       "'spnego.krb5.tok_id == 0x0002'" % pcapfile
-        cmd = multihost.client[0].run_command(bindResponse, raiseonerr=False)
+                failure = 'Valid etype search failed!'
+        bind_response = "tshark -r %s -V -2 -R "\
+                        "'spnego.krb5.tok_id == 0x0002'" % pcapfile
+        cmd = multihost.client[0].run_command(bind_response, raiseonerr=False)
         if not check_str.search(cmd.stdout_text):
-            status = 'FAIL'
-        else:
-            status = 'PASS'
-        realm_leave = "realm leave -v %s" % (ad_domain)
+            failure = "%s failed " % bind_response
+        realm_leave = f"realm leave -v {ad_domain}"
         multihost.client[0].run_command(realm_leave)
         remove_pcap = 'rm -f %s' % pcapfile
         multihost.client[0].run_command(remove_pcap)
-        assert status == 'PASS'
+        assert failure is None, failure
 
     @staticmethod
     @pytest.mark.tier1

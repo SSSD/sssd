@@ -14,7 +14,7 @@ import pytest
                          'samba_share_permissions')
 @pytest.mark.tier2
 @pytest.mark.cifs
-class Testcifs(object):
+class Testcifs(object):  # pylint: disable=useless-object-inheritance
     """ Samba IDMAP and CIFS Automations
 
     :setup:
