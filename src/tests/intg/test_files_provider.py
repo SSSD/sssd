@@ -853,8 +853,8 @@ def test_getgrnam_no_members(add_group_nomem_with_canary, files_domain_only):
 
 
 def groupadd_list(grp_ops, groups):
-    for grp in groups:
-        grp_ops.groupadd(**grp)
+    for group in groups:
+        grp_ops.groupadd(**group)
 
 
 def useradd_list(pwd_ops, users):
