@@ -70,7 +70,7 @@ class IPAChangeConf(object):
         elif type(indent) is str:
             self.indent = (indent, )
         else:
-           raise ValueError('Indent must be a list of strings')
+            raise ValueError('Indent must be a list of strings')
 
     def setOptionAssignment(self, assign):
         if type(assign) is tuple:
@@ -270,8 +270,8 @@ class IPAChangeConf(object):
                 raise SyntaxError('Unknown action: ['+no['action']+']')
 
             if o['type'] == "comment" or o['type'] == "empty":
-                 opts.append(o)
-                 continue
+                opts.append(o)
+                continue
 
             if o['type'] == "option":
                 (num, no) = self.findOpts(newopts, 'option', o['name'], True)
@@ -283,8 +283,8 @@ class IPAChangeConf(object):
                         opts.append(o)
                         continue
                     if no['action'] == 'comment':
-                       opts.append({'name':'comment', 'type':'comment',
-                                    'value':self.dcomment+o['name']+self.dassign+o['value']})
+                        opts.append({'name':'comment', 'type':'comment',
+                                     'value':self.dcomment+o['name']+self.dassign+o['value']})
                     continue
                 if no['action'] == 'set':
                     opts.append(no)
