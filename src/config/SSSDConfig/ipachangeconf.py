@@ -279,7 +279,7 @@ class IPAChangeConf(object):
                     opts.append(o)
                     continue
                 if no['action'] == 'comment' or no['action'] == 'remove':
-                    if no['value'] != None and o['value'] != no['value']:
+                    if no['value'] is not None and o['value'] != no['value']:
                         opts.append(o)
                         continue
                     if no['action'] == 'comment':
@@ -566,7 +566,7 @@ class SSSDChangeConf(IPAChangeConf):
 
     def has_option(self, section, name):
         index, item = self.get_option_index(section, name)
-        if index != -1 and item != None:
+        if index != -1 and item is not None:
             return True
         return False
 
