@@ -51,7 +51,7 @@ def ad_inst(request):
 
     try:
         instance.setup()
-    except:
+    except Exception:
         instance.teardown()
         raise
     request.addfinalizer(instance.teardown)
@@ -398,7 +398,7 @@ def test_password_prompting_config_global(ldap_conn, pam_prompting_config,
 
     try:
         out, err = sssctl.communicate(input="111")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -424,7 +424,7 @@ def test_password_prompting_config_srv(ldap_conn, pam_prompting_config,
 
     try:
         out, err = sssctl.communicate(input="111")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -462,7 +462,7 @@ def test_sc_auth_wrong_pin(simple_pam_cert_auth, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="111")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -486,7 +486,7 @@ def test_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="123456")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -510,7 +510,7 @@ def test_require_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="123456")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -539,7 +539,7 @@ def test_require_sc_auth_no_cert(simple_pam_cert_auth_no_cert, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="123456")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -569,7 +569,7 @@ def test_try_sc_auth_no_map(simple_pam_cert_auth, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="123456")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -594,7 +594,7 @@ def test_try_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="123456")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -621,7 +621,7 @@ def test_try_sc_auth_root(simple_pam_cert_auth, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="123456")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -649,7 +649,7 @@ def test_sc_auth_missing_name(simple_pam_cert_auth, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="123456")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -676,7 +676,7 @@ def test_sc_auth_missing_name_whitespace(simple_pam_cert_auth, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="123456")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -704,7 +704,7 @@ def test_sc_auth_name_format(simple_pam_cert_auth_name_format, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="123456")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -725,7 +725,7 @@ def kdc_instance(request):
     try:
         kdc_instance.set_up()
         kdc_instance.start_kdc()
-    except:
+    except Exception:
         kdc_instance.teardown()
         raise
     request.addfinalizer(kdc_instance.teardown)
@@ -763,7 +763,7 @@ def test_krb5_auth(setup_krb5, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="Secret123User1")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -784,7 +784,7 @@ def test_krb5_auth(setup_krb5, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="Secret123User1")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 
@@ -830,7 +830,7 @@ def test_krb5_auth_domains(setup_krb5_domains, env_for_sssctl):
 
     try:
         out, err = sssctl.communicate(input="Secret123User1")
-    except:
+    except Exception:
         sssctl.kill()
         out, err = sssctl.communicate()
 

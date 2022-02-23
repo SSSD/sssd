@@ -46,7 +46,7 @@ def ad_inst(request):
 
     try:
         instance.setup()
-    except:
+    except Exception:
         instance.teardown()
         raise
     request.addfinalizer(instance.teardown)
@@ -138,10 +138,10 @@ def cleanup_sssd_process():
         while True:
             try:
                 os.kill(pid, signal.SIGCONT)
-            except:
+            except OSError:
                 break
             time.sleep(1)
-    except:
+    except OSError:
         pass
     for path in os.listdir(config.DB_PATH):
         os.unlink(config.DB_PATH + "/" + path)

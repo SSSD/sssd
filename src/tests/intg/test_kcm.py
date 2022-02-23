@@ -70,7 +70,7 @@ def kdc_instance(request):
     try:
         kdc_instance.set_up()
         kdc_instance.start_kdc()
-    except:
+    except Exception:
         kdc_instance.teardown()
         raise
     request.addfinalizer(kdc_instance.teardown)
@@ -110,7 +110,7 @@ def create_sssd_kcm_fixture(sock_path, krb5_conf_path, request):
         for _ in range(1, 100):
             try:
                 sck.connect(abs_sock_path)
-            except:
+            except Exception:
                 time.sleep(0.1)
             else:
                 break
