@@ -86,7 +86,7 @@ class TestADTrust(object):
             multihost.client[0].run_command(cmd, raiseonerr=False)
         cmd = f'echo "{fq_aduser} ALL=(ALL) ALL" >> /etc/sudoers'
         multihost.client[0].run_command(cmd, raiseonerr=False)
-        log = re.compile(f'.*System.*error.*Broken.*pipe.*')
+        log = re.compile('.*System.*error.*Broken.*pipe.*')
         try:
             ssh = SSHClient(multihost.client[0].ip,
                             username=f'{fq_aduser}',
@@ -111,7 +111,7 @@ class TestADTrust(object):
         for pam_file in "/etc/pam.d/sudo-i", "/etc/pam.d/sudo":
             cmd = f'sed -i "1d" {pam_file}'
             multihost.client[0].run_command(cmd, raiseonerr=False)
-        cmd = f'sed -i "$ d" /etc/sudoers'
+        cmd = 'sed -i "$ d" /etc/sudoers'
         multihost.client[0].run_command(cmd, raiseonerr=False)
         cmd = f'mv {bk_krbkcm} {krbkcm}'
         multihost.client[0].run_command(cmd, raiseonerr=False)
