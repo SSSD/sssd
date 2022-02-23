@@ -222,8 +222,8 @@ class TestSudo(object):
         multihost.client[0].service_sssd('start')
         time.sleep(40)
         logfile = f'/var/log/sssd/sssd_{ds_instance_name}.log'
-        tmout_ptrn = f'(SUDO.*Refresh.*executing)'
-        rschdl_ptrn = f'(SUDO.*Refresh.*rescheduling)'
+        tmout_ptrn = '(SUDO.*Refresh.*executing)'
+        rschdl_ptrn = '(SUDO.*Refresh.*rescheduling)'
         regex_tmout = re.compile(f'{tmout_ptrn}')
         rgx_rs_tstmp = re.compile(f'{rschdl_ptrn}')
         full_rfsh_tstmp = []

@@ -29,9 +29,8 @@ class TestKrbWithLogin(object):
         :bugzilla:
          https://bugzilla.redhat.com/show_bug.cgi?id=1734094
         """
-        multihost.client[0].run_command(f'authselect '
-                                        f'select sssd '
-                                        f'with-files-access-provider')
+        multihost.client[0].run_command('authselect select sssd '
+                                        'with-files-access-provider')
         multihost.client[0].service_sssd('stop')
         client_tool = sssdTools(multihost.client[0])
         domain_params = {'id_provider': 'files',

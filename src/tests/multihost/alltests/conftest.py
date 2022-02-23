@@ -1303,18 +1303,17 @@ def enable_sssd_hostmap(session_multihost, request):
     """ Enables sssd for network and host database in nsswitch.conf """
     tools = sssdTools(session_multihost.client[0])
     nsswitch_file = '/etc/authselect/user-nsswitch.conf'
-    bkup = f'cp -vf %s %s_bkp' % (nsswitch_file, nsswitch_file)
+    bkup = f'cp -vf {nsswitch_file} {nsswitch_file}_bkp'
     cmd = session_multihost.client[0].run_command(bkup)
 
     for value in ['hosts', 'networks']:
-        update_nsswitch = f"sed -i 's/%s:/%s: sss/' %s" % (value, value,
-                                                           nsswitch_file)
+        update_nsswitch = f"sed -i 's/{value}:/{value}: sss/' {nsswitch_file}"
         cmd = session_multihost.client[0].run_command(update_nsswitch)
     authselect = 'authselect select sssd'
     session_multihost.client[0].run_command(authselect)
 
     def restore_nsswitch():
-        restore = f"cp -vf %s_bkp %s" % (nsswitch_file, nsswitch_file)
+        restore = f"cp -vf {nsswitch_file}_bkp {nsswitch_file}"
         cmd = session_multihost.client[0].run_command(restore)
         session_multihost.client[0].run_command(authselect)
         tools.clear_sssd_cache()
