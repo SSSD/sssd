@@ -61,7 +61,7 @@ def ds_inst(request):
         "cn=admin", "Secret123")
     try:
         ds_inst.setup()
-    except:
+    except Exception:
         ds_inst.teardown()
         raise
     request.addfinalizer(lambda: ds_inst.teardown())
@@ -104,7 +104,7 @@ def stop_sssd():
     while True:
         try:
             os.kill(pid, signal.SIGCONT)
-        except:
+        except OSError:
             break
         time.sleep(1)
 
@@ -128,7 +128,7 @@ def create_sssd_fixture(request):
     def teardown():
         try:
             stop_sssd()
-        except:
+        except Exception:
             pass
         for path in os.listdir(config.DB_PATH):
             os.unlink(config.DB_PATH + "/" + path)
@@ -174,7 +174,7 @@ def prepare_sssd(request, ldap_conn, use_fully_qualified_names=False,
         # remove user export file
         try:
             os.unlink(OVERRIDE_FILENAME)
-        except:
+        except OSError:
             pass
     request.addfinalizer(teardown)
 

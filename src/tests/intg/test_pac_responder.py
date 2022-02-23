@@ -40,7 +40,7 @@ def stop_sssd():
     while True:
         try:
             os.kill(pid, signal.SIGCONT)
-        except:
+        except OSError:
             break
         time.sleep(1)
 
@@ -62,7 +62,7 @@ def create_sssd_fixture(request):
     def teardown():
         try:
             stop_sssd()
-        except:
+        except Exception:
             pass
         for path in os.listdir(config.DB_PATH):
             os.unlink(config.DB_PATH + "/" + path)
@@ -116,7 +116,7 @@ def test_multithreaded_pac_client(files_domain_only, sssd_pac_test_client):
 
     try:
         subprocess.check_call(sssd_pac_test_client)
-    except:
+    except Exception:
         # cancel alarm
         signal.alarm(0)
         raise Exception("sssd_pac_test_client failed")
