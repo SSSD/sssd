@@ -7,6 +7,7 @@ import posixpath
 import ldap
 import pytest
 import re
+import subprocess
 from constants import ds_instance_name, ds_suffix, krb_realm
 from sssd.testlib.common.libkrb5 import krb5srv
 # pylint: disable=unused-import

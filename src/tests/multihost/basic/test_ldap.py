@@ -11,6 +11,7 @@ import time
 from sssd.testlib.common.utils import SSHClient
 import pytest
 import textwrap
+import paramiko
 try:
     import ConfigParser
 except ImportError:

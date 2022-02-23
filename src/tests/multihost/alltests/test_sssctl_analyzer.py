@@ -261,6 +261,7 @@ class TestSssctlAnalyze(object):
         try:
             client.login()
         except SSHLoginException:
+            _, stdout = analyze(multihost, 'show --pam --child 1')
             assert 'Preauthentication failed' in stdout
             pytest.fail(f"{user} failed to login")
         else:
