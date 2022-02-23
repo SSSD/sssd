@@ -85,8 +85,8 @@ class SSSDConfigTestValid(unittest.TestCase):
                                            srcdir + "/etc/sssd.api.d")
         sssdconfig.new_config()
         sssdconfig.delete_service('sssd')
-        new_sssd_service = sssdconfig.new_service('sssd');
-        new_options = new_sssd_service.list_options();
+        new_sssd_service = sssdconfig.new_service('sssd')
+        new_options = new_sssd_service.list_options()
 
         self.assertTrue('debug_level' in new_options)
         self.assertEqual(new_options['debug_level'][0], int)
@@ -1156,7 +1156,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
 
         # Positive test - Change the name once
-        domain.set_name('sssd2');
+        domain.set_name('sssd2')
         self.assertEqual(domain.get_name(), 'sssd2')
         self.assertEqual(domain.oldname, 'sssd')
 
