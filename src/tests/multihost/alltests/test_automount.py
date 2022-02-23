@@ -13,6 +13,8 @@ import time
 import pytest
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 
+JOURNALCTL_CMD = "journalctl -x -n 50 --no-pager"
+
 
 @pytest.mark.usefixtures("setup_sssd", "create_posix_usersgroups",
                          "enable_autofs_schema", "enable_autofs_service")
@@ -124,14 +126,13 @@ class Testautofsresponder(object):
           4. client is able mount nfs share /export
         """
         # pylint: disable=unused-argument
-        journalctl_cmd = "journalctl -x -n 50 --no-pager"
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
         for service in ['sssd', 'autofs']:
             srv = 'systemctl restart %s' % service
             try:
                 multihost.client[0].run_command(srv)
             except subprocess.CalledProcessError:
-                multihost.client[0].run_command(journalctl_cmd)
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Unable to start %s service" % service)
         time.sleep(30)
         try:
@@ -321,13 +322,12 @@ class Testautofsresponder(object):
         section = 'domain/{}'.format(domain_name)
         sssd_params = {'autofs_provider': 'none'}
         client.sssd_conf(section, sssd_params, action='delete')
-        journalctl_cmd = "journalctl -x -n 50 --no-pager"
         multihost.master[0].run_command(['touch', '/export/nfs-test'])
         for service in ['sssd', 'autofs']:
             restart = 'systemctl restart %s' % service
             cmd = multihost.client[0].run_command(restart, raiseonerr=False)
             if cmd.returncode != 0:
-                multihost.client[0].run_command(journalctl_cmd)
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Failed to restart %s" % service)
         automount = 'automount -m'
         cmd = multihost.client[0].run_command(automount, raiseonerr=False)
@@ -362,7 +362,7 @@ class Testautofsresponder(object):
             restart = 'systemctl restart %s' % service
             cmd = multihost.client[0].run_command(restart, raiseonerr=False)
             if cmd.returncode != 0:
-                multihost.client[0].run_command(journalctl_cmd)
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Failed to restart %s" % service)
         automount = 'automount -m'
         cmd = multihost.client[0].run_command(automount, raiseonerr=False)
@@ -390,7 +390,7 @@ class Testautofsresponder(object):
             restart = 'systemctl restart %s' % service
             cmd = multihost.client[0].run_command(restart, raiseonerr=False)
             if cmd.returncode != 0:
-                multihost.client[0].run_command(journalctl_cmd)
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Failed to restart %s" % service)
         count = 0
         for i in range(1, 20):
@@ -424,7 +424,7 @@ class Testautofsresponder(object):
             restart = 'systemctl restart %s' % service
             cmd = multihost.client[0].run_command(restart, raiseonerr=False)
             if cmd.returncode != 0:
-                multihost.client[0].run_command(journalctl_cmd)
+                multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Failed to restart %s" % service)
         count = 0
         for i in range(1, 20):

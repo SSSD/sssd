@@ -57,7 +57,7 @@ class SssdNssError(Exception):
         self.nssop = nssop
 
     def __str__(self):
-        return "NSS operation %s failed %d" % (nssop, errno)
+        return "NSS operation %s failed %d" % (self.nssop, self.errno)
 
 
 class SssdNssHostError(Exception):
