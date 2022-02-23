@@ -490,7 +490,7 @@ try {
       stages.put("covscan", {
         node("sssd-ci") {
           stage("covscan") {
-            covscan = new Covscan(this, notification, params.REPO_URL, params.REPO_BRANCH, env.CHANGE_ID, on_demand)
+            covscan = new Covscan(this, notification, params.REPO_URL, env.BRANCH_NAME, env.CHANGE_ID, on_demand)
             covscan.run()
           }
         }
