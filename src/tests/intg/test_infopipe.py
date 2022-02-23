@@ -94,10 +94,10 @@ class DbusDaemon(object):
                 while True:
                     try:
                         os.kill(self.pid, signal.SIGCONT)
-                    except:
+                    except OSError:
                         break
                     time.sleep(.1)
-            except:
+            except OSError:
                 pass
 
         # clean pid so we can start service one more time
@@ -133,7 +133,7 @@ def ds_inst(request):
 
     try:
         ds_inst.setup()
-    except:
+    except Exception:
         ds_inst.teardown()
         raise
     request.addfinalizer(ds_inst.teardown)
@@ -277,10 +277,10 @@ def cleanup_sssd_process():
         while True:
             try:
                 os.kill(pid, signal.SIGCONT)
-            except:
+            except OSError:
                 break
             time.sleep(1)
-    except:
+    except OSError:
         pass
     for path in os.listdir(config.DB_PATH):
         os.unlink(config.DB_PATH + "/" + path)

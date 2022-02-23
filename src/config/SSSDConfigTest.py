@@ -176,7 +176,7 @@ class SSSDConfigTestValid(unittest.TestCase):
         #Ensure the output file doesn't exist
         try:
             os.unlink(of)
-        except:
+        except OSError:
             pass
 
         #Write out the file
@@ -228,7 +228,7 @@ class SSSDConfigTestValid(unittest.TestCase):
         #Ensure the output file doesn't exist
         try:
             os.unlink(of)
-        except:
+        except OSError:
             pass
 
         #Write out the file
@@ -1909,7 +1909,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         #Ensure the output file doesn't exist
         try:
             os.unlink(of)
-        except:
+        except OSError:
             pass
 
         #Write out the file

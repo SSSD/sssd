@@ -1001,7 +1001,7 @@ class SSSDConfig(SSSDChangeConf):
         with open(configfile, 'r') as fd:
             try:
                 self.readfp(fd)
-            except:
+            except Exception:
                 raise ParsingError
 
         self.configfile = configfile
