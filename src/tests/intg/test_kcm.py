@@ -409,9 +409,8 @@ def exercise_kswitch(testenv):
     assert len(cc_coll) == 2
     assert set(cc_coll['alice@KCMTEST']) == set(['krbtgt/KCMTEST@KCMTEST',
                                                  'host/somehostname@KCMTEST'])
-    assert set(cc_coll['bob@KCMTEST']) == set([
-                                    'krbtgt/KCMTEST@KCMTEST',
-                                    'host/differenthostname@KCMTEST'])
+    assert set(cc_coll['bob@KCMTEST']) == set(['krbtgt/KCMTEST@KCMTEST',
+                                               'host/differenthostname@KCMTEST'])
 
 
 def test_kcm_mem_kswitch(setup_for_kcm_mem):
@@ -463,9 +462,8 @@ def exercise_subsidiaries(testenv):
     assert len(cc_coll) == 2
     assert set(cc_coll['alice@KCMTEST']) == set(['krbtgt/KCMTEST@KCMTEST',
                                                  'host/somehostname@KCMTEST'])
-    assert set(cc_coll['bob@KCMTEST']) == set([
-                                            'krbtgt/KCMTEST@KCMTEST',
-                                            'host/differenthostname@KCMTEST'])
+    assert set(cc_coll['bob@KCMTEST']) == set(['krbtgt/KCMTEST@KCMTEST',
+                                               'host/differenthostname@KCMTEST'])
 
 
 def test_kcm_mem_subsidiaries(setup_for_kcm_mem):

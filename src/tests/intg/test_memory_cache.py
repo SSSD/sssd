@@ -532,7 +532,7 @@ def assert_user_gids_equal(user, expected_gids):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(expected_gids)])
-        )
+    )
 
 
 def test_initgroups(ldap_conn, sanity_rfc2307):
@@ -570,7 +570,7 @@ def assert_initgroups_equal(user, primary_gid, expected_gids):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(expected_gids)])
-        )
+    )
 
 
 def assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,

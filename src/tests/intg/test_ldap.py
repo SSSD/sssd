@@ -414,8 +414,8 @@ def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
 
 
 def test_member_with_different_cases_rfc2307_bis(
-                                      ldap_conn,
-                                      member_with_different_cases_rfc2307_bis):
+        ldap_conn,
+        member_with_different_cases_rfc2307_bis):
     """
     Regression test for https://bugzilla.redhat.com/show_bug.cgi?id=1817122
     Make sure that group members are added properly to the group even if the
@@ -822,7 +822,7 @@ def test_user_2307bis_nested_groups(ldap_conn,
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(expected_gids)])
-        )
+    )
 
 
 def test_special_characters_in_names(ldap_conn, sanity_rfc2307):
@@ -1200,7 +1200,7 @@ def test_nss_filters(ldap_conn, sanity_nss_filter):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user_with_group_ids)])
-        )
+    )
 
 
 @pytest.fixture
@@ -1334,7 +1334,7 @@ def test_ldap_auto_private_groups_direct(ldap_conn, mpg_setup):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user1_expected_gids)])
-        )
+    )
 
     # Request user2's private group by GID without resolving the user first.
     # This must trigger user resolution through by-GID resolution, since the
@@ -1350,7 +1350,7 @@ def test_ldap_auto_private_groups_direct(ldap_conn, mpg_setup):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user1_expected_gids)])
-        )
+    )
 
     # Request user3's private group by name without resolving the user first
     # This must trigger user resolution through by-name resolution, since the
@@ -1428,7 +1428,7 @@ def test_ldap_auto_private_groups_conflict(ldap_conn, mpg_setup_conflict):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user3_expected_gids)])
-        )
+    )
     # Make sure the private group is resolvable by name and by GID
     ent.assert_group_by_gid(1003, dict(name="user3", mem=ent.contains_only()))
     ent.assert_group_by_name("user3", dict(gid=1003, mem=ent.contains_only()))
@@ -1487,7 +1487,7 @@ def test_ldap_auto_private_groups_direct_no_gid(ldap_conn, mpg_setup_no_gid):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user1_expected_gids)])
-        )
+    )
 
 
 @pytest.fixture
@@ -1579,7 +1579,7 @@ def test_ldap_auto_private_groups_hybrid_direct(ldap_conn, mpg_setup_hybrid):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user_with_group_ids)])
-        )
+    )
 
     # On the other hand, if the gidNumber is the same as UID, SSSD should
     # just autogenerate the private group on its own
@@ -1598,37 +1598,33 @@ def test_ldap_auto_private_groups_hybrid_direct(ldap_conn, mpg_setup_hybrid):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user_without_group_ids)])
-        )
+    )
 
     ent.assert_passwd_by_name("user_with_unresolvable_gid",
                               dict(name="user_with_unresolvable_gid",
                                    uid=1003, gid=2003))
     unresolvable_group_ids = [2003, 10030, 10031]
-    (res, errno, gids) = sssd_id.call_sssd_initgroups(
-                                        "user_with_unresolvable_gid",
-                                        2003)
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user_with_unresolvable_gid", 2003)
     assert res == sssd_id.NssReturnCode.SUCCESS
 
     assert sorted(gids) == sorted(unresolvable_group_ids), \
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(unresolvable_group_ids)])
-        )
+    )
 
     ent.assert_passwd_by_name("user_with_real_group",
                               dict(name="user_with_real_group",
                                    uid=1004, gid=1004))
     with_real_group_ids = [1004, 10040, 10041]
-    (res, errno, gids) = sssd_id.call_sssd_initgroups(
-                                        "user_with_real_group",
-                                        1004)
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user_with_real_group", 1004)
     assert res == sssd_id.NssReturnCode.SUCCESS
 
     assert sorted(gids) == sorted(with_real_group_ids), \
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(with_real_group_ids)])
-        )
+    )
 
 
 def test_ldap_auto_private_groups_hybrid_priv_group_byname(ldap_conn,
@@ -1728,7 +1724,7 @@ def test_ldap_auto_private_groups_hybrid_name_gid_identical(ldap_conn,
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user_without_group_ids)])
-        )
+    )
     ent.assert_group_by_gid(1006,
                             dict(name="u_g_same_name",
                                  mem=ent.contains_only('user_in_pvt_group')))
@@ -1747,7 +1743,7 @@ def test_ldap_auto_private_groups_hybrid_initgr(ldap_conn, mpg_setup_hybrid):
         "result: %s\n expected %s" % (
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user_without_group_ids)])
-        )
+    )
 
     ent.assert_group_by_gid(1004,
                             dict(name="user_with_real_group_pvt",

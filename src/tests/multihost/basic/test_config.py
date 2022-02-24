@@ -55,7 +55,7 @@ class TestSSSDConfig(object):
         set_param(multihost, 'pam', 'debug_level', '1')
         set_param(multihost, 'nss', 'debug_level', '1')
         multihost.master[0].run_command(
-                '/usr/sbin/sssd --genconf-section=pam')
+            '/usr/sbin/sssd --genconf-section=pam')
 
         # We only told genconf to touch the pam section..
         self._assert_config_value(multihost, 'pam', 'debug_level', '1')
@@ -79,7 +79,7 @@ class TestSSSDConfig(object):
         set_param(multihost, 'foo', 'bar', 'baz')
 
         multihost.master[0].run_command(
-                '/usr/sbin/sssd --genconf-section=foo')
+            '/usr/sbin/sssd --genconf-section=foo')
 
         ldb_cmd = 'ldbsearch -H /var/lib/sss/db/config.ldb -b cn=foo,cn=config'
         cmd = multihost.master[0].run_command(ldb_cmd)
@@ -87,7 +87,7 @@ class TestSSSDConfig(object):
 
         remove_section(multihost, 'foo')
         multihost.master[0].run_command(
-                '/usr/sbin/sssd --genconf-section=foo')
+            '/usr/sbin/sssd --genconf-section=foo')
 
         ldb_cmd = 'ldbsearch -H /var/lib/sss/db/config.ldb -b cn=foo,cn=config'
         cmd = multihost.master[0].run_command(ldb_cmd)
@@ -106,4 +106,4 @@ class TestSSSDConfig(object):
         """
         multihost.master[0].service_sssd('restart')
         multihost.master[0].run_command(
-                '/usr/sbin/sssd --genconf-section=xyz')
+            '/usr/sbin/sssd --genconf-section=xyz')

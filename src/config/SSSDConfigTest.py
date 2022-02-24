@@ -57,7 +57,7 @@ class SSSDConfigTestValid(unittest.TestCase):
 
     def testServices(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
         sssdconfig.import_config(srcdir + "/testconfigs/sssd-valid.conf")
 
         # Validate services
@@ -82,7 +82,7 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         del sssdconfig
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                     srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
         sssdconfig.new_config()
         sssdconfig.delete_service('sssd')
         new_sssd_service = sssdconfig.new_service('sssd');
@@ -121,7 +121,7 @@ class SSSDConfigTestValid(unittest.TestCase):
 
     def testDomains(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
         sssdconfig.import_config(srcdir + "/testconfigs/sssd-valid.conf")
 
         #Validate domain list
@@ -152,7 +152,7 @@ class SSSDConfigTestValid(unittest.TestCase):
 
     def testListProviders(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
 
         sssdconfig.new_config()
         junk_domain = sssdconfig.new_domain('junk')
@@ -161,7 +161,7 @@ class SSSDConfigTestValid(unittest.TestCase):
 
     def testCreateNewLDAPConfig(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
 
         sssdconfig.new_config()
 
@@ -200,7 +200,7 @@ class SSSDConfigTestValid(unittest.TestCase):
 
     def testModifyExistingConfig(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                srcdir + "/etc/sssd.api.d")
+                                           srcdir + "/etc/sssd.api.d")
         sssdconfig.import_config(srcdir + "/testconfigs/sssd-valid.conf")
 
         ldap_domain = sssdconfig.get_domain('LDAP')
@@ -250,23 +250,23 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         # check internal state before parsing strings which is done in
         # get_domain or get_service
-        debug_option = [ x for x in config.options('domain/LDAP')
-                           if x['name'] == 'debug_level']
+        debug_option = [x for x in config.options('domain/LDAP')
+                        if x['name'] == 'debug_level']
         self.assertEqual(len(debug_option), 1)
         self.assertEqual(debug_option[0]['value'], '3')
 
-        debug_option = [ x for x in config.options('domain/PROXY')
-                           if x['name'] == 'debug_level']
+        debug_option = [x for x in config.options('domain/PROXY')
+                        if x['name'] == 'debug_level']
         self.assertEqual(len(debug_option), 1)
         self.assertEqual(debug_option[0]['value'], '0x1f10')
 
-        debug_option = [ x for x in config.options('sudo')
-                           if x['name'] == 'debug_level']
+        debug_option = [x for x in config.options('sudo')
+                        if x['name'] == 'debug_level']
         self.assertEqual(len(debug_option), 1)
         self.assertEqual(debug_option[0]['value'], '0x2210')
 
-        debug_option = [ x for x in config.options('pam')
-                           if x['name'] == 'debug_level']
+        debug_option = [x for x in config.options('pam')
+                        if x['name'] == 'debug_level']
         self.assertEqual(len(debug_option), 1)
         self.assertEqual(debug_option[0]['value'], '9')
 
@@ -1206,7 +1206,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'domain/LDAP',
             'domain/INVALIDPROVIDER',
             'domain/INVALIDOPTION',
-            ]
+        ]
 
         for section in control_list:
             self.assertTrue(sssdconfig.has_section(section),
@@ -1649,7 +1649,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'LDAP',
             'INVALIDPROVIDER',
             'INVALIDOPTION',
-            ]
+        ]
         inactive_domains = sssdconfig.list_inactive_domains()
 
         for domain in control_list:
@@ -1677,7 +1677,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'LDAP',
             'INVALIDPROVIDER',
             'INVALIDOPTION',
-            ]
+        ]
         domains = sssdconfig.list_domains()
 
         for domain in control_list:
@@ -2048,7 +2048,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'domain/disabled_1',
             'domain/disabled_2',
             'domain/disabled_3',
-            ]
+        ]
 
         for section in control_list:
             self.assertTrue(sssdconfig.has_section(section),
