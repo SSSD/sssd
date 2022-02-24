@@ -330,10 +330,10 @@ class IPAChangeConf(object):
 
     def merge(self, oldopts, newopts):
 
-        #Use a two pass strategy
-        #First we create a new opts tree from oldopts removing/commenting
+        # Use a two pass strategy
+        # First we create a new opts tree from oldopts removing/commenting
         #  the options as indicated by the contents of newopts
-        #Second we fill in the new opts tree with options as indicated
+        # Second we fill in the new opts tree with options as indicated
         #  in the newopts tree (this is because entire (sub)sections may
         #  exist in the newopts that do not exist in oldopts)
 
@@ -341,7 +341,7 @@ class IPAChangeConf(object):
         self.mergeNew(opts, newopts)
         return opts
 
-    #TODO: Make parse() recursive?
+    # TODO: Make parse() recursive?
     def parse(self, f):
 
         opts = []
@@ -388,7 +388,7 @@ class IPAChangeConf(object):
             # Copy anything else as is.
             curopts.append(self.parseLine(line))
 
-        #Add last section if any
+        # Add last section if any
         if sectopts:
             opts.append({'name': section, 'type': 'section', 'value': sectopts})
 
@@ -406,7 +406,7 @@ class IPAChangeConf(object):
         output = ""
         f = None
         try:
-            #Do not catch an unexisting file error, we want to fail in that case
+            # Do not catch an unexisting file error, we want to fail in that case
             shutil.copy2(file, file+self.backup_suffix)
 
             f = openLocked(file, 0o644)
