@@ -282,8 +282,8 @@ class IPAChangeConf(object):
                         opts.append(o)
                         continue
                     if no['action'] == 'comment':
-                        opts.append({'name':'comment', 'type':'comment',
-                                     'value':self.dcomment+o['name']+self.dassign+o['value']})
+                        opts.append({'name': 'comment', 'type': 'comment',
+                                     'value': self.dcomment+o['name']+self.dassign+o['value']})
                     continue
                 if no['action'] == 'set':
                     opts.append(no)
