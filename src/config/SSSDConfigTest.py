@@ -293,7 +293,7 @@ class SSSDConfigTestInvalid(unittest.TestCase):
                                            srcdir + "/etc/sssd.api.d")
         sssdconfig.import_config(srcdir + "/testconfigs/sssd-invalid-badbool.conf")
         self.assertRaises(TypeError,
-                          sssdconfig.get_domain,'IPA')
+                          sssdconfig.get_domain, 'IPA')
 
 class SSSDConfigTestSSSDService(unittest.TestCase):
     def setUp(self):
@@ -1819,8 +1819,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         # Positive test - Change the domain name and save it
         domain.set_name('example.com2')
-        self.assertEqual(domain.name,'example.com2')
-        self.assertEqual(domain.oldname,'example.com')
+        self.assertEqual(domain.name, 'example.com2')
+        self.assertEqual(domain.oldname, 'example.com')
         sssdconfig.save_domain(domain)
 
         self.assertTrue('example.com2' in sssdconfig.list_domains())
