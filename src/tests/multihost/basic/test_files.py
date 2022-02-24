@@ -10,9 +10,7 @@ from sssd.testlib.common.utils import SSHClient
 
 
 def get_sss_entry(multihost, db, ent_name):
-    cmd = multihost.master[0].run_command(
-                                    'getent %s -s sss %s' % (db, ent_name),
-                                    raiseonerr=False)
+    cmd = multihost.master[0].run_command('getent %s -s sss %s' % (db, ent_name), raiseonerr=False)
     return cmd.returncode, cmd.stdout_text
 
 

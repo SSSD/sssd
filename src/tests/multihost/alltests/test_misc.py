@@ -441,11 +441,11 @@ class TestMisc(object):
 
         # Show the sssd config
         multihost.client[0].run_command(
-                'cat /etc/sssd/sssd.conf', raiseonerr=False)
+            'cat /etc/sssd/sssd.conf', raiseonerr=False)
 
         # Run getent passwd
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {user}',  raiseonerr=False)
+            f'getent passwd {user}',  raiseonerr=False)
 
         # Try ssh after socket activation is configured
         # Result does not matter we just need to trigger the PAM stack
@@ -461,7 +461,7 @@ class TestMisc(object):
 
         # Print pam log for debug purposes
         multihost.client[0].run_command(
-                'cat /var/log/sssd/sssd_pam.log',  raiseonerr=False)
+            'cat /var/log/sssd/sssd_pam.log',  raiseonerr=False)
 
         # Download sssd pam log
         log_str = multihost.client[0].get_file_contents(
