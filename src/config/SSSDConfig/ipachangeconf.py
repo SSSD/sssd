@@ -46,11 +46,6 @@ def openLocked(filename, perms, create=True):
     return os.fdopen(fd, "r+")
 
 
-    #TODO: add subsection as a concept
-    #      (ex. REALM.NAME = { foo = x bar = y } )
-    #TODO: put section delimiters as separating element of the list
-    #      so that we can process multiple sections in one go
-    #TODO: add a comment all but provided options as a section option
 class IPAChangeConf(object):
 
     def __init__(self, name):
