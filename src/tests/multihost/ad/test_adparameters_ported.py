@@ -107,7 +107,7 @@ def ssh_change_password(session_multihost, user, old_pass, new_pass):
                     ' updated successfully."\n')
         tfile.flush()
         session_multihost.client[0].transport.put_file(
-                tfile.name, '/tmp/ssh.exp')
+            tfile.name, '/tmp/ssh.exp')
     expect_cmd = 'chmod +x /tmp/ssh.exp; /tmp/ssh.exp; echo $?'
     cmd = session_multihost.client[0].run_command(expect_cmd, raiseonerr=False)
     return cmd.returncode == 0
@@ -142,7 +142,7 @@ def ssh_setup(session_multihost, user, group=""):
             tfile.write(f'chown -R {user} $HOMEDIR/.ssh\n')
         tfile.flush()
         session_multihost.client[0].transport.put_file(
-                tfile.name, '/tmp/ssh_setup.sh')
+            tfile.name, '/tmp/ssh_setup.sh')
     sh_cmd = 'chmod +x /tmp/ssh_setup.sh; /tmp/ssh_setup.sh; echo $?'
     cmd = session_multihost.client[0].run_command(sh_cmd, raiseonerr=False)
     return cmd.returncode == 0
@@ -313,12 +313,12 @@ class TestADParamsPorted:
             decode('utf-8')
 
         hostname_cmd = multihost.client[0].run_command(
-                'hostname -s', raiseonerr=False)
+            'hostname -s', raiseonerr=False)
         shortname = hostname_cmd.stdout_text.rstrip().upper()
 
         # Run getent passwd
         multihost.client[0].run_command(
-                f'getent passwd {ad_realm}\\\\{aduser}', raiseonerr=False)
+            f'getent passwd {ad_realm}\\\\{aduser}', raiseonerr=False)
         # Download /var/log/messages
         log_msg_str = multihost.client[0].get_file_contents(
             '/var/log/messages').decode('utf-8')
@@ -825,7 +825,7 @@ class TestADParamsPorted:
         client.clear_sssd_cache()
         # Search for the user
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
         # Run su command
         su_result = client.su_success(aduser, with_password=False)
 
@@ -906,7 +906,7 @@ class TestADParamsPorted:
         client.clear_sssd_cache()
         # Search for the user
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
         # Run su command
         su_result = client.su_success(aduser)
 
@@ -917,9 +917,9 @@ class TestADParamsPorted:
 
         # TODO: DELETE
         multihost.client[0].run_command(
-                'klist -k /etc/krb5.keytab', raiseonerr=False)
+            'klist -k /etc/krb5.keytab', raiseonerr=False)
         multihost.client[0].run_command(
-                'cat /etc/sssd/sssd.conf', raiseonerr=False)
+            'cat /etc/sssd/sssd.conf', raiseonerr=False)
         multihost.client[0].run_command(
             f"cat /var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log",
             raiseonerr=False
@@ -990,19 +990,19 @@ class TestADParamsPorted:
 
         # Search for the user and get its uid
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser} | cut -d: -f3', raiseonerr=False)
+            f'getent passwd {aduser} | cut -d: -f3', raiseonerr=False)
         uid = usr_cmd.stdout_text.rstrip()
 
         # Search for the group and get its gid
         grp_cmd = multihost.client[0].run_command(
-                f'getent group {adgroup} | cut -d: -f3', raiseonerr=False)
+            f'getent group {adgroup} | cut -d: -f3', raiseonerr=False)
         gid = grp_cmd.stdout_text.rstrip()
         # Search for the user by uid
         uid_cmd = multihost.client[0].run_command(
-                f'getent passwd {uid}', raiseonerr=False)
+            f'getent passwd {uid}', raiseonerr=False)
         # Search for the group by gid
         gid_cmd = multihost.client[0].run_command(
-                f'getent group {gid}', raiseonerr=False)
+            f'getent group {gid}', raiseonerr=False)
         # Run su command
         su_result = client.su_success(aduser)
 
@@ -1064,7 +1064,7 @@ class TestADParamsPorted:
 
         # Search for the user and get its uid
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
 
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
@@ -1123,10 +1123,10 @@ class TestADParamsPorted:
         client.clear_sssd_cache()
         # Search for the user
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
         # Search for the group
         grp_cmd = multihost.client[0].run_command(
-                f'getent group {adgroup}', raiseonerr=False)
+            f'getent group {adgroup}', raiseonerr=False)
         # Run su command
         su_result = client.su_success(aduser)
 
@@ -1186,10 +1186,10 @@ class TestADParamsPorted:
         client.clear_sssd_cache()
         # Search for the user
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
         # Search for the group
         grp_cmd = multihost.client[0].run_command(
-                f'getent group {adgroup}', raiseonerr=False)
+            f'getent group {adgroup}', raiseonerr=False)
         # Run su command
         su_result = client.su_success(aduser)
         # Download the sssd domain log
@@ -1236,7 +1236,7 @@ class TestADParamsPorted:
         client.backup_sssd_conf()
 
         hostname_cmd = multihost.client[0].run_command(
-                'hostname', raiseonerr=False)
+            'hostname', raiseonerr=False)
         old_hostname = hostname_cmd.stdout_text.rstrip()
 
         # Set new hostname
@@ -1269,7 +1269,7 @@ class TestADParamsPorted:
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
 
         # Run su
         su_result = client.su_success(aduser)
@@ -1322,12 +1322,12 @@ class TestADParamsPorted:
         client.backup_sssd_conf()
 
         hostname_cmd = multihost.client[0].run_command(
-                'hostname', raiseonerr=False)
+            'hostname', raiseonerr=False)
         old_hostname = hostname_cmd.stdout_text.rstrip()
 
         # Set new hostname
         multihost.client[0].run_command(
-                'hostname host1.kautest.com', raiseonerr=False)
+            'hostname host1.kautest.com', raiseonerr=False)
 
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
@@ -1356,15 +1356,15 @@ class TestADParamsPorted:
             decode('utf-8')
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
         # Search for the group
         grp_cmd = multihost.client[0].run_command(
-                f'getent group {adgroup}', raiseonerr=False)
+            f'getent group {adgroup}', raiseonerr=False)
         # Run su
         su_result = client.su_success(aduser)
         # Reset new hostname
         multihost.client[0].run_command(
-                f'hostname {old_hostname}', raiseonerr=False)
+            f'hostname {old_hostname}', raiseonerr=False)
 
         client.restore_sssd_conf()
         client.clear_sssd_cache()
@@ -1445,7 +1445,7 @@ class TestADParamsPorted:
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
         # Restore keytab
         multihost.client[0].run_command(
             'mv -f /etc/krb5.keytab.working /etc/krb5.keytab; '
@@ -1531,10 +1531,10 @@ class TestADParamsPorted:
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
         # Search for the group and get its gid
         grp_cmd = multihost.client[0].run_command(
-                f'getent group {adgroup}', raiseonerr=False)
+            f'getent group {adgroup}', raiseonerr=False)
         # Run su
         su_result = client.su_success(aduser)
         # Restore keytab
@@ -1624,22 +1624,22 @@ class TestADParamsPorted:
 
         # Search for the AD user without uid
         plain_usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {userplain}', raiseonerr=False)
+            f'getent passwd {userplain}', raiseonerr=False)
         # Search for the group without gid
         plain_grp_cmd = multihost.client[0].run_command(
-                f'getent group {group_plain}', raiseonerr=False)
+            f'getent group {group_plain}', raiseonerr=False)
         # Search for the AD user by uid
         usr_uid_cmd = multihost.client[0].run_command(
-                f'getent passwd {uid}', raiseonerr=False)
+            f'getent passwd {uid}', raiseonerr=False)
         # Search for the group by gid
         grp_gid_cmd = multihost.client[0].run_command(
-                f'getent group {gid}', raiseonerr=False)
+            f'getent group {gid}', raiseonerr=False)
         # Search for the user with uid
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
         # Search for the group with gid
         grp_cmd = multihost.client[0].run_command(
-                f'getent group {adgroup}', raiseonerr=False)
+            f'getent group {adgroup}', raiseonerr=False)
         # Run su
         su_result = client.su_success(aduser)
 
@@ -1709,7 +1709,7 @@ class TestADParamsPorted:
         client.clear_sssd_cache()
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
-                f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}', raiseonerr=False)
         # Change user password via expect + ssh + passwd
         exp_result = client.change_user_password(
             aduser, 'Secret123', 'Secret123', 'NewPass1_123!', 'NewPass1_123!'
@@ -1781,7 +1781,7 @@ class TestADParamsPorted:
 
         # Change user password via expect + ssh + passwd
         exp_result = ssh_change_password(
-                multihost, aduser, 'Secret123', 'NewPass1_123')
+            multihost, aduser, 'Secret123', 'NewPass1_123')
         # exp_result = client.change_user_password(
         #     aduser, 'Secret123', 'Secret123', 'NewPass1_123', 'NewPass1_123'
         # ) == 3
@@ -1792,7 +1792,7 @@ class TestADParamsPorted:
 
         # Download log
         log_str = multihost.client[0].get_file_contents(
-                "/var/log/secure").decode('utf-8')
+            "/var/log/secure").decode('utf-8')
 
         # Teardown
         ad_op.unexpire_account_password(aduser)
@@ -1872,7 +1872,7 @@ class TestADParamsPorted:
 
         # Download log
         log_str = multihost.client[0].get_file_contents(
-                  "/var/log/secure").decode('utf-8')
+            "/var/log/secure").decode('utf-8')
 
         # Teardown
         ad_op.enable_account(aduser)
@@ -1954,7 +1954,7 @@ class TestADParamsPorted:
 
         # Download log
         log_str = multihost.client[0].get_file_contents(
-                  "/var/log/secure").decode('utf-8')
+            "/var/log/secure").decode('utf-8')
 
         # Teardown
         ad_op.unexpire_account(aduser)
@@ -2022,11 +2022,11 @@ class TestADParamsPorted:
 
         # Get GIDs
         dom_usr_gid_cmd = multihost.client[0].run_command(
-                'getent group "domain users" | cut -d: -f3', raiseonerr=False)
+            'getent group "domain users" | cut -d: -f3', raiseonerr=False)
         dom_usr_gid = dom_usr_gid_cmd.stdout_text.rstrip()
 
         parent_usr_gid_cmd = multihost.client[0].run_command(
-                f'getent group "{parent_grp}" | cut -d: -f3', raiseonerr=False)
+            f'getent group "{parent_grp}" | cut -d: -f3', raiseonerr=False)
         par_grp_gid = parent_usr_gid_cmd.stdout_text.rstrip()
 
         test1_cmd = multihost.client[0].run_command(
@@ -2100,7 +2100,7 @@ class TestADParamsPorted:
 
         # Get GIDs
         getent_cmd = multihost.client[0].run_command(
-                f'getent group {empty_grp}', raiseonerr=False)
+            f'getent group {empty_grp}', raiseonerr=False)
 
         # Teardown
         ad_op.delete_ad_user_group(empty_grp)
@@ -2245,10 +2245,10 @@ class TestADParamsPorted:
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
-                f'id {aduser}', raiseonerr=False)
+            f'id {aduser}', raiseonerr=False)
         # Search for the group
         grp_cmd = multihost.client[0].run_command(
-                f'getent group {adgroup}', raiseonerr=False)
+            f'getent group {adgroup}', raiseonerr=False)
 
         # Teardown
         ad_op.delete_ad_user_group(group_1)
@@ -2506,7 +2506,7 @@ class TestADParamsPorted:
 
     @staticmethod
     def test_0031_ad_parameters_custom_re(
-                multihost, adjoin, create_aduser_group):
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: sssd does not work
          with custom value of option re expression bz1165794
@@ -2835,7 +2835,7 @@ class TestADParamsPorted:
 
     @staticmethod
     def test_0035_ad_parameters_delete_cache(
-                multihost, adjoin, create_aduser_group):
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: groups get deleted
           from the cache bz1279971
@@ -3145,7 +3145,7 @@ class TestADParamsPorted:
 
         # Get keytab info for debugging purposes
         multihost.client[0].run_command(
-                'file /tmp/first_invalid.keytab', raiseonerr=False)
+            'file /tmp/first_invalid.keytab', raiseonerr=False)
 
         multihost.client[0].run_command('kdestroy', raiseonerr=False)
 
@@ -3174,7 +3174,7 @@ class TestADParamsPorted:
 
         # Download log
         log_str = multihost.client[0].get_file_contents(
-                "/var/log/secure").decode('utf-8')
+            "/var/log/secure").decode('utf-8')
 
         # TEARDOWN
         # Restore keytab before test result evaluation
@@ -3460,10 +3460,10 @@ class TestADParamsPorted:
 
         # SSH as aduser
         ssh_cmd = client.auth_from_client(
-                f'{aduser}@{ad_domain}', 'Secret123') == 3
+            f'{aduser}@{ad_domain}', 'Secret123') == 3
         # Download message log
         message_log_str = multihost.client[0].get_file_contents(
-                "/var/log/messages").decode('utf-8')
+            "/var/log/messages").decode('utf-8')
 
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
@@ -3491,7 +3491,7 @@ class TestADParamsPorted:
 
     @staticmethod
     def test_0042_ad_parameters_nonroot_user_sssd(
-                multihost, adjoin, create_aduser_group):
+            multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: SSSD runs and works
          correctly under non-root user

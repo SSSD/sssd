@@ -239,12 +239,12 @@ def get_user_attrs(ldb_conn, name, domain, attr_list):
 
 def assert_same_attrval(adict1, adict2, attr_name):
     assert adict1.get(attr_name) is not None and \
-           adict1.get(attr_name) == adict2.get(attr_name)
+        adict1.get(attr_name) == adict2.get(attr_name)
 
 
 def assert_diff_attrval(adict1, adict2, attr_name):
     assert adict1.get(attr_name) is not None and \
-           adict1.get(attr_name) != adict2.get(attr_name)
+        adict1.get(attr_name) != adict2.get(attr_name)
 
 
 def prime_cache_group(ldb_conn, name, members):
@@ -291,8 +291,8 @@ def test_group_2307bis_update_same_modstamp(ldap_conn,
     """
     ldb_conn = ldb_examine
     old_sysdb_attrs, old_ts_attrs = prime_cache_group(
-                                                ldb_conn, "group1",
-                                                ("user1", "user11", "user21"))
+        ldb_conn, "group1",
+        ("user1", "user11", "user21"))
 
     ent.assert_group_by_name(
         "group1",
@@ -317,8 +317,8 @@ def test_group_2307bis_update_same_attrs(ldap_conn,
     """
     ldb_conn = ldb_examine
     old_sysdb_attrs, old_ts_attrs = prime_cache_group(
-                                                ldb_conn, "group1",
-                                                ("user1", "user11", "user21"))
+        ldb_conn, "group1",
+        ("user1", "user11", "user21"))
 
     # modify an argument we don't save to the cache. This will bump the
     # modifyTimestamp attribute, but the attributes themselves will be the same
@@ -350,8 +350,8 @@ def test_group_2307bis_update_diff_attrs(ldap_conn,
     """
     ldb_conn = ldb_examine
     old_sysdb_attrs, old_ts_attrs = prime_cache_group(
-                                                ldb_conn, "group1",
-                                                ("user1", "user11", "user21"))
+        ldb_conn, "group1",
+        ("user1", "user11", "user21"))
 
     user_dn = "uid=user1,ou=Users," + ldap_conn.ds_inst.base_dn
     ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,
@@ -381,8 +381,8 @@ def test_group_2307bis_delete_group(ldap_conn,
     """
     ldb_conn = ldb_examine
     old_sysdb_attrs, old_ts_attrs = prime_cache_group(
-                                                ldb_conn, "group1",
-                                                ("user1", "user11", "user21"))
+        ldb_conn, "group1",
+        ("user1", "user11", "user21"))
 
     e = ldap_ent.group_bis(ldap_conn.ds_inst.base_dn, "group1", 2001)
     ldap_conn.delete_s(e[0])
@@ -409,8 +409,8 @@ def test_group_2307_update_same_modstamp(ldap_conn,
     """
     ldb_conn = ldb_examine
     old_sysdb_attrs, old_ts_attrs = prime_cache_group(
-                                                ldb_conn, "group1",
-                                                ("user1", "user11", "user21"))
+        ldb_conn, "group1",
+        ("user1", "user11", "user21"))
 
     ent.assert_group_by_name(
         "group1",
@@ -435,8 +435,8 @@ def test_group_2307_update_same_attrs(ldap_conn,
     """
     ldb_conn = ldb_examine
     old_sysdb_attrs, old_ts_attrs = prime_cache_group(
-                                                ldb_conn, "group1",
-                                                ("user1", "user11", "user21"))
+        ldb_conn, "group1",
+        ("user1", "user11", "user21"))
 
     # modify an argument we don't save to the cache. This will bump the
     # modifyTimestamp attribute, but the attributes themselves will be the same
@@ -468,8 +468,8 @@ def test_group_2307_update_diff_attrs(ldap_conn,
     """
     ldb_conn = ldb_examine
     old_sysdb_attrs, old_ts_attrs = prime_cache_group(
-                                                ldb_conn, "group1",
-                                                ("user1", "user11", "user21"))
+        ldb_conn, "group1",
+        ("user1", "user11", "user21"))
 
     ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,
                        [(ldap.MOD_DELETE, "memberUid", b"user1")])
@@ -498,8 +498,8 @@ def test_group_2307_delete_group(ldap_conn,
     """
     ldb_conn = ldb_examine
     old_sysdb_attrs, old_ts_attrs = prime_cache_group(
-                                                ldb_conn, "group1",
-                                                ("user1", "user11", "user21"))
+        ldb_conn, "group1",
+        ("user1", "user11", "user21"))
 
     e = ldap_ent.group_bis(ldap_conn.ds_inst.base_dn, "group1", 2001)
     ldap_conn.delete_s(e[0])
@@ -659,8 +659,8 @@ def test_sss_cache_invalidate_group(ldap_conn,
 
     ldb_conn = ldb_examine
     old_sysdb_attrs, old_ts_attrs = prime_cache_group(
-                                                ldb_conn, "group1",
-                                                ("user1", "user11", "user21"))
+        ldb_conn, "group1",
+        ("user1", "user11", "user21"))
 
     subprocess.call(["sss_cache", "-g", "group1"])
 

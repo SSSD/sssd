@@ -202,8 +202,8 @@ class sssdTools(object):
                 self.multihost.run_command(fw_rld, raiseonerr=False)
         elif action.lower() == 'open' and port in port_and_rule_num:
             fw_open = 'firewall-cmd --permanent --direct --remove-rule ' \
-                  'ipv4 filter output %s -p tcp -m tcp ' \
-                  '--dport=%s -j drop' % (port_and_rule_num[port], port)
+                'ipv4 filter output %s -p tcp -m tcp ' \
+                '--dport=%s -j drop' % (port_and_rule_num[port], port)
             try:
                 cmd = self.multihost.run_command(fw_open, raiseonerr=False)
             except subprocess.CalledProcessError:

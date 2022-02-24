@@ -641,9 +641,8 @@ def test_get_user_groups_given_auto_private_groups_enabled(
 
 
 def get_user_property(dbus_system_bus, username, prop_name):
-    users_obj = dbus_system_bus.get_object(
-                                        'org.freedesktop.sssd.infopipe',
-                                        '/org/freedesktop/sssd/infopipe/Users')
+    users_obj = dbus_system_bus.get_object('org.freedesktop.sssd.infopipe',
+                                           '/org/freedesktop/sssd/infopipe/Users')
 
     users_iface = dbus.Interface(users_obj,
                                  "org.freedesktop.sssd.infopipe.Users")

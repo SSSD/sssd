@@ -18,15 +18,15 @@ class RequestAnalyzer:
     consumed_logs = []
     done = ""
     list_opts = [
-            Option('--verbose', 'Verbose output', bool, '-v'),
-            Option('--pam', 'Filter only PAM requests', bool),
+        Option('--verbose', 'Verbose output', bool, '-v'),
+        Option('--pam', 'Filter only PAM requests', bool),
     ]
 
     show_opts = [
-            Option('cid', 'Track request with this ID', int),
-            Option('--child', 'Include child process logs', bool),
-            Option('--merge', 'Merge logs together sorted by timestamp', bool),
-            Option('--pam', 'Track only PAM requests', bool),
+        Option('cid', 'Track request with this ID', int),
+        Option('--child', 'Include child process logs', bool),
+        Option('--merge', 'Merge logs together sorted by timestamp', bool),
+        Option('--pam', 'Track only PAM requests', bool),
     ]
 
     def print_module_help(self, args):

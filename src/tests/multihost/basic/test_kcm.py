@@ -47,7 +47,7 @@ class TestSanityKCM(object):
 
     def _remove_secret_db(self, multihost):
         multihost.master[0].run_command(
-                'rm -f /var/lib/sss/secrets/secrets.ldb')
+            'rm -f /var/lib/sss/secrets/secrets.ldb')
         self._restart_kcm(multihost)
 
     def test_kinit_kcm(self, multihost, enable_kcm):

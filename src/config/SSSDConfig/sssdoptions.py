@@ -103,11 +103,11 @@ class SSSDOptions(object):
         'pam_p11_allowed_services': _('Allowed services for using smartcards'),
         'p11_wait_for_card_timeout': _('Additional timeout to wait for a card if requested'),
         'p11_uri': _('PKCS#11 URI to restrict the selection of devices for Smartcard authentication'),
-        'pam_initgroups_scheme' : _('When shall the PAM responder force an initgroups request'),
-        'pam_gssapi_services' : _('List of PAM services that are allowed to authenticate with GSSAPI.'),
-        'pam_gssapi_check_upn' : _('Whether to match authenticated UPN with target user'),
-        'pam_gssapi_indicators_map' : _('List of pairs <PAM service>:<authentication indicator> that '
-                                        'must be enforced for PAM access with GSSAPI authentication'),
+        'pam_initgroups_scheme': _('When shall the PAM responder force an initgroups request'),
+        'pam_gssapi_services': _('List of PAM services that are allowed to authenticate with GSSAPI.'),
+        'pam_gssapi_check_upn': _('Whether to match authenticated UPN with target user'),
+        'pam_gssapi_indicators_map': _('List of pairs <PAM service>:<authentication indicator> that '
+                                       'must be enforced for PAM access with GSSAPI authentication'),
 
         # [sudo]
         'sudo_timed': _('Whether to evaluate the time-based attributes in sudo rules'),
@@ -157,7 +157,7 @@ class SSSDOptions(object):
         'hostid_provider': _('Host identity provider'),
         'selinux_provider': _('SELinux provider'),
         'session_provider': _('Session management provider'),
-        'resolver_provider' : _('Resolver provider'),
+        'resolver_provider': _('Resolver provider'),
 
         # [domain]
         'domain_type': _('Whether the domain is usable by the OS or by applications'),
@@ -184,7 +184,7 @@ class SSSDOptions(object):
         'entry_cache_service_timeout': _('Entry cache timeout length (seconds)'),
         'entry_cache_autofs_timeout': _('Entry cache timeout length (seconds)'),
         'entry_cache_sudo_timeout': _('Entry cache timeout length (seconds)'),
-        'entry_cache_resolver_timeout' : _('Entry cache timeout length (seconds)'),
+        'entry_cache_resolver_timeout': _('Entry cache timeout length (seconds)'),
         'refresh_expired_interval': _('How often should expired entries be refreshed in background'),
         'dyndns_update': _("Whether to automatically update the client's DNS entry"),
         'dyndns_ttl': _("The TTL to apply to the client's DNS entry after updating it"),
@@ -304,7 +304,7 @@ class SSSDOptions(object):
         'ad_update_samba_machine_account_password': _('Whether to update the machine account password in the Samba '
                                                       'database'),
         'ad_use_ldaps': _('Use LDAPS port for LDAP and Global Catalog requests'),
-        'ad_allow_remote_domain_local_groups' : _('Do not filter domain local groups from other domains'),
+        'ad_allow_remote_domain_local_groups': _('Do not filter domain local groups from other domains'),
 
         # [provider/krb5]
         'krb5_kdcip': _('Kerberos server address'),
@@ -548,7 +548,7 @@ class SSSDOptions(object):
 
         # [provider/proxy/id]
         'proxy_lib_name': _('The name of the NSS library to use'),
-        'proxy_resolver_lib_name' : _('The name of the NSS library to use for hosts and networks lookups'),
+        'proxy_resolver_lib_name': _('The name of the NSS library to use for hosts and networks lookups'),
         'proxy_fast_alias': _('Whether to look up canonical group name from cache if possible'),
 
         # [provider/proxy/auth]

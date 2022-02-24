@@ -475,12 +475,12 @@ class IPAChangeConf(object):
 # An SSSD-specific subclass of IPAChangeConf
 class SSSDChangeConf(IPAChangeConf):
     OPTCRE = re.compile(
-            r'\s*(?P<option>[^:=\s][^:=]*)'       # very permissive!
-            r'\s*=\s*'                            # any number of space/tab,
-                                                  # followed by separator
-                                                  # followed by any # space/tab
-            r'(?P<value>.*)$'                     # everything up to EOL
-            )
+        r'\s*(?P<option>[^:=\s][^:=]*)'       # very permissive!
+        r'\s*=\s*'                            # any number of space/tab,
+                                              # followed by separator
+                                              # followed by any # space/tab
+        r'(?P<value>.*)$'                     # everything up to EOL
+    )
 
     def __init__(self):
         IPAChangeConf.__init__(self, "SSSD")
@@ -526,23 +526,23 @@ class SSSDChangeConf(IPAChangeConf):
             return item['value']
 
     def set(self, section, name, value):
-        modkw = { 'type'  : 'section',
-                  'name'  : section,
-                  'value' : [{
-                        'type'  : 'option',
-                        'name'  : name,
-                        'value' : value,
-                        'action': 'set',
-                            }],
-                   'action': 'set',
-                }
-        self.opts = self.merge(self.opts, [ modkw ])
+        modkw = {'type': 'section',
+                 'name': section,
+                 'value': [{
+                     'type': 'option',
+                     'name': name,
+                     'value': value,
+                     'action': 'set',
+                 }],
+                 'action': 'set',
+                 }
+        self.opts = self.merge(self.opts, [modkw])
 
     def add_section(self, name, optkw, index=0):
-        optkw.append({'type':'empty', 'value':'empty'})
-        addkw = { 'type'   : 'section',
-                   'name'   : name,
-                   'value'  : optkw,
+        optkw.append({'type': 'empty', 'value': 'empty'})
+        addkw = {'type': 'section',
+                 'name': name,
+                 'value': optkw,
                 }
         self.opts.insert(index, addkw)
 
@@ -550,10 +550,10 @@ class SSSDChangeConf(IPAChangeConf):
         self.delete_option('section', name)
 
     def sections(self):
-        return [ o for o in self.opts if o['type'] == 'section' ]
+        return [o for o in self.opts if o['type'] == 'section']
 
     def has_section(self, section):
-        return len([ o for o in self.opts if o['type'] == 'section' if o['name'] == section ]) > 0
+        return len([o for o in self.opts if o['type'] == 'section' if o['name'] == section]) > 0
 
     def options(self, section):
         for opt in self.opts:
