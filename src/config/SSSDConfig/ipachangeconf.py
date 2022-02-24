@@ -25,7 +25,7 @@ import time
 import shutil
 import re
 
-def openLocked(filename, perms, create = True):
+def openLocked(filename, perms, create=True):
     fd = -1
 
     flags = os.O_RDWR
@@ -213,7 +213,7 @@ class IPAChangeConf(object):
             num += 1
         return (num, None)
 
-    def commentOpts(self, inopts, level = 0):
+    def commentOpts(self, inopts, level=0):
 
         opts = []
 
