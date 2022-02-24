@@ -1147,7 +1147,6 @@ def krb_connection_timeout(
         session_multihost,
         create_host_user,
         request):
-
     """ Create necessary principals and keytabs for the test.
     :param obj session_multihost: multihost object
     :param obj create_host_user: to create user for SASL with GSSAPI
