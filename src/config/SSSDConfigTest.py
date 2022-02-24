@@ -70,7 +70,6 @@ class SSSDConfigTestValid(unittest.TestCase):
         sssd_service = sssdconfig.get_service('sssd')
         service_opts = sssd_service.list_options()
 
-
         self.assertTrue('services' in service_opts.keys())
         service_list = sssd_service.get_option('services')
         self.assertTrue('nss' in service_list)
@@ -197,7 +196,6 @@ class SSSDConfigTestValid(unittest.TestCase):
         #Remove the output file
         os.unlink(of)
 
-
     def testModifyExistingConfig(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
                                            srcdir + "/etc/sssd.api.d")
@@ -281,6 +279,7 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertEqual(ldap_domain.get_option('auth_provider'), 'ldap')
         self.assertEqual(ldap_domain.get_option('id_provider'), 'ldap')
 
+
 class SSSDConfigTestInvalid(unittest.TestCase):
     def setUp(self):
         pass
@@ -294,6 +293,7 @@ class SSSDConfigTestInvalid(unittest.TestCase):
         sssdconfig.import_config(srcdir + "/testconfigs/sssd-invalid-badbool.conf")
         self.assertRaises(TypeError,
                           sssdconfig.get_domain, 'IPA')
+
 
 class SSSDConfigTestSSSDService(unittest.TestCase):
     def setUp(self):
@@ -497,6 +497,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
         # Positive test - Remove an option that doesn't exist
         self.assertRaises(SSSDConfig.NoOptionError, service.get_option, 'nosuchentry')
         service.remove_option('nosuchentry')
+
 
 class SSSDConfigTestSSSDDomain(unittest.TestCase):
     def setUp(self):
@@ -1168,6 +1169,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         # Negative test - try setting the name to a non-string
         self.assertRaises(TypeError,
                           domain.set_name, 4)
+
 
 class SSSDConfigTestSSSDConfig(unittest.TestCase):
     def setUp(self):
@@ -1925,7 +1927,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         #Remove the output file
         os.unlink(of)
 
-
         domain2 = sssdconfig.get_domain('example.com2')
         self.assertTrue(domain2.get_option('ldap_krb5_init_creds'))
         self.assertFalse(domain2.get_option('ldap_id_use_start_tls'))
@@ -2110,7 +2111,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         for domain in control_list:
             self.assertTrue(domain in sssdconfig.list_inactive_domains(),
                             "Domain [domain/%s] should be disabled" % domain)
-
 
 
 if __name__ == "__main__":
