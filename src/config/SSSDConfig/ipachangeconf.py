@@ -55,15 +55,15 @@ class IPAChangeConf(object):
 
     def __init__(self, name):
         self.progname = name
-        self.indent = ("","","")
-        self.assign = (" = ","=")
+        self.indent = ("", "", "")
+        self.assign = (" = ", "=")
         self.dassign = self.assign[0]
         self.comment = ("#",)
         self.dcomment = self.comment[0]
         self.eol = ("\n",)
         self.deol = self.eol[0]
-        self.sectnamdel = ("[","]")
-        self.subsectdel = ("{","}")
+        self.sectnamdel = ("[", "]")
+        self.subsectdel = ("{", "}")
         self.backup_suffix = ".ipabkp"
 
     def setProgName(self, name):
@@ -190,17 +190,17 @@ class IPAChangeConf(object):
     def parseLine(self, line):
 
         if self.matchEmpty(line):
-            return {'name':'empty', 'type':'empty'}
+            return {'name': 'empty', 'type': 'empty'}
 
         value = self.matchComment(line)
         if value:
-            return {'name':'comment', 'type':'comment', 'value':value.rstrip()}
+            return {'name': 'comment', 'type': 'comment', 'value': value.rstrip()}
 
         parts = line.split(self.dassign, 1)
         if len(parts) < 2:
             raise SyntaxError('Syntax Error: Unknown line format')
 
-        return {'name':parts[0].strip(), 'type':'option', 'value':parts[1].rstrip()}
+        return {'name': parts[0].strip(), 'type': 'option', 'value': parts[1].rstrip()}
 
     def findOpts(self, opts, type, name, exclude_sections=False):
 
@@ -224,28 +224,28 @@ class IPAChangeConf(object):
             if o['type'] == 'section':
                 no = self.commentOpts(o['value'], level+1)
                 val = self.dcomment+self.sectnamdel[0]+o['name']+self.sectnamdel[1]
-                opts.append({'name':'comment', 'type':'comment', 'value':val})
+                opts.append({'name': 'comment', 'type': 'comment', 'value': val})
                 for n in no:
                     opts.append(n)
                 continue
             if o['type'] == 'subsection':
                 no = self.commentOpts(o['value'], level+1)
                 val = self.indent[level]+o['name']+self.dassign+self.subsectdel[0]
-                opts.append({'name':'comment', 'type':'comment', 'value':val})
+                opts.append({'name': 'comment', 'type': 'comment', 'value': val})
                 for n in no:
                     opts.append(n)
                 val = self.indent[level]+self.subsectdel[1]
-                opts.append({'name':'comment', 'type':'comment', 'value':val})
+                opts.append({'name': 'comment', 'type': 'comment', 'value': val})
                 continue
             if o['type'] == 'option':
                 val = self.indent[level]+o['name']+self.dassign+o['value']
-                opts.append({'name':'comment', 'type':'comment', 'value':val})
+                opts.append({'name': 'comment', 'type': 'comment', 'value': val})
                 continue
             if o['type'] == 'comment':
                 opts.append(o)
                 continue
             if o['type'] == 'empty':
-                opts.append({'name':'comment', 'type':'comment', 'value':''})
+                opts.append({'name': 'comment', 'type': 'comment', 'value': ''})
                 continue
             raise SyntaxError('Unknown type: ['+o['type']+']')
 
@@ -263,7 +263,7 @@ class IPAChangeConf(object):
                     continue
                 if no['action'] == "set":
                     mo = self.mergeOld(o['value'], no['value'])
-                    opts.append({'name':o['name'], 'type':o['type'], 'value':mo})
+                    opts.append({'name': o['name'], 'type': o['type'], 'value': mo})
                     continue
                 if no['action'] == "comment":
                     co = self.commentOpts(o['value'])
@@ -366,7 +366,7 @@ class IPAChangeConf(object):
             value = self.matchSection(line)
             if value:
                 if section is not None:
-                    opts.append({'name':section, 'type':'section', 'value':sectopts})
+                    opts.append({'name': section, 'type': 'section', 'value': sectopts})
                 sectopts = []
                 curopts = sectopts
                 fatheropts = sectopts
@@ -387,7 +387,7 @@ class IPAChangeConf(object):
             if value:
                 if subsection is None:
                     raise SyntaxError('Unmatched end subsection terminator found')
-                fatheropts.append({'name':subsection, 'type':'subsection', 'value':subsectopts})
+                fatheropts.append({'name': subsection, 'type': 'subsection', 'value': subsectopts})
                 subsection = None
                 curopts = fatheropts
                 continue
@@ -397,7 +397,7 @@ class IPAChangeConf(object):
 
         #Add last section if any
         if sectopts:
-            opts.append({'name':section, 'type':'section', 'value':sectopts})
+            opts.append({'name': section, 'type': 'section', 'value': sectopts})
 
         return opts
 
@@ -484,7 +484,7 @@ class SSSDChangeConf(IPAChangeConf):
 
     def __init__(self):
         IPAChangeConf.__init__(self, "SSSD")
-        self.comment = ("#",";")
+        self.comment = ("#", ";")
         self.backup_suffix = ".bak"
         self.opts = []
 
@@ -495,11 +495,11 @@ class SSSDChangeConf(IPAChangeConf):
         """
 
         if self.matchEmpty(line):
-            return {'name':'empty', 'type':'empty'}
+            return {'name': 'empty', 'type': 'empty'}
 
         value = self.matchComment(line)
         if value:
-            return {'name':'comment', 'type':'comment', 'value':value.rstrip()}
+            return {'name': 'comment', 'type': 'comment', 'value': value.rstrip()}
 
         mo = self.OPTCRE.match(line)
         if not mo:
@@ -510,7 +510,7 @@ class SSSDChangeConf(IPAChangeConf):
         except IndexError:
             raise SyntaxError('Syntax Error: Unknown line format')
 
-        return {'name':name.strip(), 'type':'option', 'value':value.strip()}
+        return {'name': name.strip(), 'type': 'option', 'value': value.strip()}
 
     def readfp(self, fd):
         self.opts.extend(self.parse(fd))
