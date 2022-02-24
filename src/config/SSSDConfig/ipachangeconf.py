@@ -25,6 +25,7 @@ import time
 import shutil
 import re
 
+
 def openLocked(filename, perms, create=True):
     fd = -1
 
@@ -329,7 +330,6 @@ class IPAChangeConf(object):
 
             raise SyntaxError('Unknown type: ['+no['type']+']')
 
-
     def merge(self, oldopts, newopts):
 
         #Use a two pass strategy
@@ -466,6 +466,7 @@ class IPAChangeConf(object):
             except IOError:
                 pass
         return True
+
 
 # An SSSD-specific subclass of IPAChangeConf
 class SSSDChangeConf(IPAChangeConf):
