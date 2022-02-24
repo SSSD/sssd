@@ -66,7 +66,7 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertTrue('nss' in services)
         self.assertTrue('pam' in services)
 
-        #Verify service attributes
+        # Verify service attributes
         sssd_service = sssdconfig.get_service('sssd')
         service_opts = sssd_service.list_options()
 
@@ -123,13 +123,13 @@ class SSSDConfigTestValid(unittest.TestCase):
                                            srcdir + "/etc/sssd.api.d")
         sssdconfig.import_config(srcdir + "/testconfigs/sssd-valid.conf")
 
-        #Validate domain list
+        # Validate domain list
         domains = sssdconfig.list_domains()
         self.assertTrue('LDAP' in domains)
         self.assertTrue('PROXY' in domains)
         self.assertTrue('IPA' in domains)
 
-        #Verify domain attributes
+        # Verify domain attributes
         ipa_domain = sssdconfig.get_domain('IPA')
         domain_opts = ipa_domain.list_options()
         self.assertTrue('debug_level' in domain_opts.keys())
@@ -172,20 +172,20 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         of = self.tmp_dir + '/testCreateNewLDAPConfig.conf'
 
-        #Ensure the output file doesn't exist
+        # Ensure the output file doesn't exist
         try:
             os.unlink(of)
         except OSError:
             pass
 
-        #Write out the file
+        # Write out the file
         sssdconfig.write(of)
 
-        #Verify that the output file has the correct permissions
+        # Verify that the output file has the correct permissions
         mode = os.stat(of)[ST_MODE]
 
-        #Output files should not be readable or writable by
-        #non-owners, and should not be executable by anyone
+        # Output files should not be readable or writable by
+        # non-owners, and should not be executable by anyone
         self.assertFalse(S_IMODE(mode) & 0o177)
 
         # try to import saved configuration file
@@ -193,7 +193,7 @@ class SSSDConfigTestValid(unittest.TestCase):
                                        srcdir + "/etc/sssd.api.d")
         config.import_config(configfile=of)
 
-        #Remove the output file
+        # Remove the output file
         os.unlink(of)
 
     def testModifyExistingConfig(self):
@@ -223,20 +223,20 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         of = self.tmp_dir + '/testModifyExistingConfig.conf'
 
-        #Ensure the output file doesn't exist
+        # Ensure the output file doesn't exist
         try:
             os.unlink(of)
         except OSError:
             pass
 
-        #Write out the file
+        # Write out the file
         sssdconfig.write(of)
 
-        #Verify that the output file has the correct permissions
+        # Verify that the output file has the correct permissions
         mode = os.stat(of)[ST_MODE]
 
-        #Output files should not be readable or writable by
-        #non-owners, and should not be executable by anyone
+        # Output files should not be readable or writable by
+        # non-owners, and should not be executable by anyone
         self.assertFalse(S_IMODE(mode) & 0o177)
 
         # try to import saved configuration file
@@ -268,7 +268,7 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertEqual(len(debug_option), 1)
         self.assertEqual(debug_option[0]['value'], '9')
 
-        #Remove the output file
+        # Remove the output file
         os.unlink(of)
 
     def testSpaces(self):
@@ -467,7 +467,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
     def testGetAllOptions(self):
         service = SSSDConfig.SSSDService('sssd', self.schema)
 
-        #Positive test
+        # Positive test
         options = service.get_all_options()
         control_list = ['services']
 
@@ -524,7 +524,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         self.assertEqual(domain.get_name(), 'mydomain')
 
     def testSetActive(self):
-        #Positive Test
+        # Positive Test
         domain = SSSDConfig.SSSDDomain('mydomain', self.schema)
 
         # Should default to inactive
@@ -852,7 +852,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                             'Option [%s] unexpectedly found' %
                             option)
 
-        #Test looking up all provider values
+        # Test looking up all provider values
         options = domain.list_provider_options('krb5')
         control_list.extend(['krb5_kpasswd'])
 
@@ -1236,7 +1236,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                             "Option [%s] unexpectedly found" %
                             option)
 
-        #TODO: Check the types and values of the settings
+        # TODO: Check the types and values of the settings
 
         # Negative Test - Missing config file
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -1277,7 +1277,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('pam' in services)
         self.assertTrue('dp' in services)
 
-        #Verify service attributes
+        # Verify service attributes
         sssd_service = sssdconfig.get_service('sssd')
         service_opts = sssd_service.list_options()
 
@@ -1287,7 +1287,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('pam' in service_list)
         self.assertTrue('reconnection_retries' in service_opts)
 
-        #Validate domain list
+        # Validate domain list
         domains = sssdconfig.list_domains()
         self.assertTrue('LDAP' in domains)
         self.assertTrue('PROXY' in domains)
@@ -1387,7 +1387,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertRaises(SSSDConfig.AlreadyInitializedError, sssdconfig.new_config)
 
     def testWrite(self):
-        #TODO Write tests to compare output files
+        # TODO Write tests to compare output files
         pass
 
     def testListActiveServices(self):
@@ -1910,23 +1910,23 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         of = self.tmp_dir + '/testSaveDomain.out'
 
-        #Ensure the output file doesn't exist
+        # Ensure the output file doesn't exist
         try:
             os.unlink(of)
         except OSError:
             pass
 
-        #Write out the file
+        # Write out the file
         sssdconfig.write(of)
 
-        #Verify that the output file has the correct permissions
+        # Verify that the output file has the correct permissions
         mode = os.stat(of)[ST_MODE]
 
-        #Output files should not be readable or writable by
-        #non-owners, and should not be executable by anyone
+        # Output files should not be readable or writable by
+        # non-owners, and should not be executable by anyone
         self.assertFalse(S_IMODE(mode) & 0o177)
 
-        #Remove the output file
+        # Remove the output file
         os.unlink(of)
 
         domain2 = sssdconfig.get_domain('example.com2')
