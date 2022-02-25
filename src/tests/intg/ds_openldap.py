@@ -133,18 +133,18 @@ class DSOpenLDAP(DS):
             objectClass: olcModuleList
             cn: module{{0}}
             olcModulePath: {dist_lib_dir}
-            olcModuleLoad: back_hdb
+            olcModuleLoad: back_mdb
 
             # Set defaults for the backend
-            dn: olcBackend=hdb,cn=config
+            dn: olcBackend=mdb,cn=config
             objectClass: olcBackendConfig
-            olcBackend: hdb
+            olcBackend: mdb
 
             # The database definition.
-            dn: olcDatabase=hdb,cn=config
+            dn: olcDatabase=mdb,cn=config
             objectClass: olcDatabaseConfig
-            objectClass: olcHdbConfig
-            olcDatabase: hdb
+            objectClass: olcMdbConfig
+            olcDatabase: mdb
             olcDbCheckpoint: 512 30
             olcLastMod: TRUE
             olcSuffix: {self.base_dn}
