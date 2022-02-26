@@ -670,6 +670,49 @@ def sssdproxyldap(session_multihost, request):
 
 
 @pytest.fixture(scope='class')
+def sssdproxyldap_test(session_multihost, request):
+    """ Configure  sssdproxyldap
+        Configure  sssd.conf
+        Configure  nslcd.conf
+        Transport sssdproxyldap.sh to client machine
+        configure password for ldap user
+    """
+    master = session_multihost.master[0]
+    client = session_multihost.client[0]
+    client.run_command("yum install -y nss-pam-ldapd",
+                       raiseonerr=False)
+    tools = sssdTools(session_multihost.client[0])
+    domain_name = tools.get_domain_section_name()
+    domain_params = {'proxy_pam_target': 'sssdproxyldap',
+                     'id_provider': 'proxy',
+                     'proxy_lib_name': 'ldap'}
+    tools.sssd_conf('domain/' + domain_name, domain_params)
+    execute_cmd(session_multihost, "> /etc/nslcd.conf")
+    execute_cmd(session_multihost, "echo 'uid nslcd' > /etc/nslcd.conf")
+    execute_cmd(session_multihost, "echo 'gid ldap' >> /etc/nslcd.conf")
+    execute_cmd(session_multihost, f"echo 'uri ldap://{master.ip}' "
+                                   f">> /etc/nslcd.conf")
+    execute_cmd(session_multihost, f"echo 'base {ds_suffix}' "
+                                   f">> /etc/nslcd.conf")
+    execute_cmd(session_multihost, "systemctl restart nslcd")
+    file_location = '/script/sssdproxyldap.sh'
+    client.transport.put_file(os.path.dirname(os.path.abspath(__file__))
+                              + file_location,
+                              '/tmp/sssdproxyldap.sh')
+    execute_cmd(session_multihost, f"chmod 755 /tmp/sssdproxyldap.sh")
+    master.run_command("kadmin.local -q "
+                       "'addprinc -pw Secret123 "
+                       "foo2@example1'")
+    tools.clear_sssd_cache()
+
+    def restore_sssdproxyldap_test():
+        """ Restore"""
+        client.run_command("rm -vf /tmp/sssdproxyldap.sh")
+        client.run_command("rm -vf /etc/nslcd.conf")
+    request.addfinalizer(restore_sssdproxyldap_test)
+
+
+@pytest.fixture(scope='class')
 def nslcd(session_multihost, request):
     """ Setup nslcd.conf """
     ldap_uri = session_multihost.master[0].sys_hostname
