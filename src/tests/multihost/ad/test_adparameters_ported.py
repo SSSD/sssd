@@ -1790,10 +1790,6 @@ class TestADParamsPorted:
         # Run su
         su_result = client.su_success(aduser, password='NewPass1_123')
 
-        # We need to wait for the event to be written to the log,
-        # otherwise test randomly fails.
-        time.sleep(30)
-
         # Download log
         log_str = multihost.client[0].get_file_contents(
                 "/var/log/secure").decode('utf-8')
@@ -1872,7 +1868,7 @@ class TestADParamsPorted:
 
         # We need to wait for the event to be written to the log,
         # otherwise test randomly fails.
-        time.sleep(30)
+        time.sleep(15)
 
         # Download log
         log_str = multihost.client[0].get_file_contents(
@@ -1954,7 +1950,7 @@ class TestADParamsPorted:
 
         # We need to wait for the event to be written to the log,
         # otherwise test randomly fails.
-        time.sleep(30)
+        time.sleep(15)
 
         # Download log
         log_str = multihost.client[0].get_file_contents(
