@@ -21,7 +21,7 @@ import signal
 import shutil
 import subprocess
 
-from util import *
+from util import unindent
 
 
 class KDC(object):

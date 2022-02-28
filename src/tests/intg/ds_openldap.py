@@ -27,8 +27,9 @@ import os
 import errno
 import signal
 import shutil
+import subprocess
 import sys
-from util import *
+from util import unindent, first_dir
 from ds import DS
 
 try:

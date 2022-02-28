@@ -26,7 +26,7 @@ import unittest
 import os
 import shutil
 import tempfile
-from stat import *
+from stat import ST_MODE, S_IMODE
 
 import sys
 
