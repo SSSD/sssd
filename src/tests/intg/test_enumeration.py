@@ -30,7 +30,7 @@ import ldap
 import pytest
 import ds_openldap
 import ldap_ent
-from util import *
+from util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
 

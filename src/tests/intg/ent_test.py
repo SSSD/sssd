@@ -22,7 +22,7 @@ import os
 import io
 import pytest
 import ent
-from util import *
+from util import backup_envvar_file, restore_envvar_file
 
 
 @pytest.fixture(scope="module")

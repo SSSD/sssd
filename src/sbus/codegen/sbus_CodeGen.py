@@ -21,7 +21,7 @@
 import os
 import argparse
 from collections import OrderedDict
-from sbus_Introspection import *
+from sbus_Introspection import Introspectable
 from sbus_Template import *
 from sbus_Generator import *
 
