@@ -589,4 +589,3 @@ class SSSDChangeConf(IPAChangeConf):
         else:
             subtree = self.opts
         return self.findOpts(subtree, type, name)
-
