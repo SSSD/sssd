@@ -1251,7 +1251,9 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # Negative Test - Invalid config file version
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
                                            srcdir + "/etc/sssd.api.d")
-        self.assertRaises(SSSDConfig.ParsingError, sssdconfig.import_config, srcdir + "/testconfigs/sssd-badversion.conf")
+        self.assertRaises(SSSDConfig.ParsingError,
+                          sssdconfig.import_config,
+                          srcdir + "/testconfigs/sssd-badversion.conf")
 
         # Negative Test - Already initialized
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
