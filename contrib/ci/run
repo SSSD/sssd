@@ -52,6 +52,7 @@ declare -r COVERAGE_MIN_FUNCS=0
 # rhel6:
 # rhel7:
 declare PEP8_IGNORE="--ignore=E121,E123,E126,E226,E24,E704,W503,W504,W605"
+declare PEP8_MAX_LENGTH="--max-line-length=119"
 declare BASE_PFX=""
 declare DEPS=true
 declare BASE_DIR=`pwd`
@@ -365,7 +366,8 @@ if [[ "$DISTRO_BRANCH" != redhat-* ]]; then
     PEP8_IGNORE+=",E722"
 fi
 stage pep8          find . -path ./src/config -prune -o \
-                           -name \*.py -exec $PEP8_BIN $PEP8_IGNORE {} +
+                           -name \*.py -exec $PEP8_BIN $PEP8_IGNORE \
+                           $PEP8_MAX_LENGTH {} +
 stage autoreconf    autoreconf --install --force
 run_build debug     build_debug
 if "$RIGOROUS"; then
