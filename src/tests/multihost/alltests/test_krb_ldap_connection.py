@@ -11,11 +11,13 @@ import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
 import re
-from constants import ds_instance_name, krb_realm
+from constants import ds_instance_name
 
 
 @pytest.mark.krbldapconnection
-@pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups',
+@pytest.mark.tier1_3
+@pytest.mark.usefixtures('setup_sssd',
+                         'create_posix_usersgroups',
                          'krb_connection_timeout')
 class TestKrbLdapConnectionTimeout(object):
     """
@@ -33,8 +35,6 @@ class TestKrbLdapConnectionTimeout(object):
     connection expires when ticket expires (2 min for our test case).
     Connection expires as soon as TGT expires (2 min in our case).
     """
-
-    @pytest.mark.tier3
     def test_0001_timeoutdefault(self, multihost):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
@@ -60,7 +60,6 @@ class TestKrbLdapConnectionTimeout(object):
             (ds_instance_name), domain_params)
         self.run_test(900, multihost)
 
-    @pytest.mark.tier3
     def test_0002_timeout100(self, multihost):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
@@ -85,7 +84,6 @@ class TestKrbLdapConnectionTimeout(object):
 
         self.run_test(100, multihost)
 
-    @pytest.mark.tier3
     def test_0003_timeouttimeoutoutofrange(self, multihost):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
@@ -145,7 +143,6 @@ class TestKrbLdapConnectionTimeout(object):
                 assert False
             return
 
-    @pytest.mark.tier3
     def test_0004_timeoutminus100(self, multihost):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
@@ -172,7 +169,6 @@ class TestKrbLdapConnectionTimeout(object):
 
         self.run_test(-100, multihost)
 
-    @pytest.mark.tier3
     def test_0005_timeout0(self, multihost):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:Test for
@@ -197,56 +193,6 @@ class TestKrbLdapConnectionTimeout(object):
             (ds_instance_name), domain_params)
 
         self.run_test(0, multihost)
-
-    @pytest.mark.tier3
-    def test_0006_timeoutkrb(self, multihost):
-        """
-        :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
-         Test for krb
-        :id: b8b3e2ab-d24e-4da8-b750-e405f25c6908
-        :expectedresults: In this case value of timeout depends upon
-         max value of lifetime of ticket that is in our case is 120 seconds
-         (2 mins). After that it should have to release the connection
-        """
-        cmd_mod_user = ["kadmin.local", "-q", "modprinc -maxlife 2mins foo1"]
-        multihost.master[0].run_command(cmd_mod_user)
-        cmd_mod = ["kadmin.local", "-q",
-                   "modprinc -maxlife 2mins krbtgt/EXAMPLE.TEST"]
-        multihost.master[0].run_command(cmd_mod)
-        multihost.client[0].log.info(
-            '\n\n\nTesting for the case where timeout value is'
-            'out of range (of integer). ldap_connection_expire_'
-            'timeout = krb')
-
-        domain_params = {'ldap_connection_expire_timeout': None}
-        sssdTools(
-            multihost.client[0]).sssd_conf(
-            'domain/%s' %
-            (ds_instance_name), domain_params, 'delete')
-
-        d = {
-            'ldap_uri': 'ldap://%s' % (multihost.master[0].sys_hostname),
-            'debug_level': '0xFFF0',
-            'ldap_sasl_mech': 'GSSAPI',
-            'ldap_sasl_authid': 'host/%s' % (multihost.client[0].sys_hostname),
-            'auth_provider': 'krb5',
-            'krb5_server': '%s' % (multihost.master[0].sys_hostname),
-            'krb5_realm': '%s' % (krb_realm)}
-
-        for key in d:
-            domain_params = {key: d[key]}
-            sssdTools(
-                multihost.client[0]).sssd_conf(
-                'domain/%s' %
-                (ds_instance_name), domain_params)
-        cmd_restart = "systemctl restart sssd"
-        multihost.client[0].run_command(cmd_restart)
-        multihost.master[0].transport.get_file("/etc/krb5.conf",
-                                               "/tmp/krb5.conf")
-        multihost.client[0].transport.put_file(
-            "/tmp/krb5.conf", "/etc/krb5.conf")
-
-        self.run_test('krb', multihost)
 
     def run_test(self, timeout, multihost):
         """
@@ -316,7 +262,7 @@ class TestKrbLdapConnectionTimeout(object):
 
         assert localport1 != localport2
         if timeout > 0:
-            string = "connection is about to expire, releasing it"
+            string = "Connection is about to expire, releasing it"
             file_content = multihost.client[0].get_file_contents(logfile)
             x = string.encode('utf-8') in file_content
             if x is True:
