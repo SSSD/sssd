@@ -259,17 +259,20 @@ errno_t well_known_sid_to_name(const char *sid, const char **dom,
     } else if (strncmp(sid, BUILTIN_SID_PREFIX, BUILTIN_SID_PREFIX_LEN) == 0) {
         ret = handle_builtin_sids(sid, dom, name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "handle_builtin_sids failed.\n");
+            DEBUG(SSSDBG_IMPORTANT_INFO,
+                  "handle_builtin_sids failed for SID: %s\n", sid);
         }
     } else if (strncmp(sid, NT_SID_PREFIX, NT_SID_PREFIX_LEN) == 0) {
         ret = handle_nt_sids(sid, dom, name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "handle_nt_sids failed.\n");
+            DEBUG(SSSDBG_IMPORTANT_INFO,
+                  "handle_nt_sids failed for SID: %s\n", sid);
         }
     } else if (strncmp(sid, SPECIAL_SID_PREFIX, SPECIAL_SID_PREFIX_LEN) == 0) {
         ret = handle_special_sids(sid, dom, name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "handle_special_sids failed.\n");
+            DEBUG(SSSDBG_IMPORTANT_INFO,
+                  "handle_special_sids failed for SID: %s\n", sid);
         }
     } else {
         ret = EINVAL;
