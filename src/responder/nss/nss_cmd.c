@@ -1185,7 +1185,8 @@ static errno_t nss_cmd_getidbysid(struct cli_ctx *cli_ctx)
                          nss_protocol_fill_id);
 }
 
-static errno_t nss_cmd_getorigbyname(struct cli_ctx *cli_ctx)
+static errno_t nss_cmd_getorigbyname_common(struct cli_ctx *cli_ctx,
+                                            enum cache_req_type type)
 {
     errno_t ret;
     struct nss_ctx *nss_ctx;
@@ -1224,9 +1225,25 @@ static errno_t nss_cmd_getorigbyname(struct cli_ctx *cli_ctx)
         attrs = defattrs;
     }
 
-    return nss_getby_name(cli_ctx, false, CACHE_REQ_OBJECT_BY_NAME, attrs,
+    return nss_getby_name(cli_ctx, false, type, attrs,
                           SSS_MC_NONE, nss_protocol_fill_orig);
 }
+
+static errno_t nss_cmd_getorigbyname(struct cli_ctx *cli_ctx)
+{
+    return nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_OBJECT_BY_NAME);
+}
+
+static errno_t nss_cmd_getorigbyusername(struct cli_ctx *cli_ctx)
+{
+    return nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_USER_BY_NAME);
+}
+
+static errno_t nss_cmd_getorigbygroupname(struct cli_ctx *cli_ctx)
+{
+    return nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_GROUP_BY_NAME);
+}
+
 
 static errno_t nss_cmd_getnamebycert(struct cli_ctx *cli_ctx)
 {
@@ -1367,6 +1384,8 @@ struct sss_cmd_table *get_nss_cmds(void)
         { SSS_NSS_GETNAMEBYSID, nss_cmd_getnamebysid },
         { SSS_NSS_GETIDBYSID, nss_cmd_getidbysid },
         { SSS_NSS_GETORIGBYNAME, nss_cmd_getorigbyname },
+        { SSS_NSS_GETORIGBYUSERNAME, nss_cmd_getorigbyusername },
+        { SSS_NSS_GETORIGBYGROUPNAME, nss_cmd_getorigbygroupname },
         { SSS_NSS_GETNAMEBYCERT, nss_cmd_getnamebycert },
         { SSS_NSS_GETLISTBYCERT, nss_cmd_getlistbycert },
         { SSS_NSS_GETPWNAM_EX, nss_cmd_getpwnam_ex },

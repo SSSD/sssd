@@ -2786,6 +2786,184 @@ void test_nss_getorigbyname_multi_value_attrs(void **state)
     assert_int_equal(ret, EOK);
 }
 
+struct passwd orig_user_dup = {
+    .pw_name = discard_const("testdup"),
+    .pw_uid = 3478,
+    .pw_gid = 3478,
+    .pw_dir = discard_const("/home/testdup"),
+    .pw_gecos = discard_const("test dup"),
+    .pw_shell = discard_const("/bin/sh"),
+    .pw_passwd = discard_const("*"),
+};
+
+struct group orig_group_dup = {
+    .gr_gid = 3478,
+    .gr_name = discard_const("testdup"),
+    .gr_passwd = discard_const("*"),
+    .gr_mem = NULL,
+};
+
+static int test_nss_getorigbyusername_check(uint32_t status, uint8_t *body,
+                                            size_t blen)
+{
+    const char *s;
+    enum sss_id_type id_type;
+    size_t rp = 2 * sizeof(uint32_t);
+
+    assert_int_equal(status, EOK);
+
+    SAFEALIGN_COPY_UINT32(&id_type, body+rp, &rp);
+    assert_int_equal(id_type, SSS_ID_TYPE_UID);
+
+    /* Sequence of null terminated strings */
+    s = (char *) body+rp;
+    assert_string_equal(s, SYSDB_SID_STR);
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "S-1-2-3-4");
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, ORIGINALAD_PREFIX SYSDB_NAME);
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "orig_name");
+    rp += strlen(s) + 1;
+    assert_int_equal(rp, blen);
+
+    return EOK;
+}
+
+static int test_nss_getorigbygroupname_check(uint32_t status, uint8_t *body,
+                                             size_t blen)
+{
+    const char *s;
+    enum sss_id_type id_type;
+    size_t rp = 2 * sizeof(uint32_t);
+
+    assert_int_equal(status, EOK);
+
+    SAFEALIGN_COPY_UINT32(&id_type, body+rp, &rp);
+    assert_int_equal(id_type, SSS_ID_TYPE_GID);
+
+    /* Sequence of null terminated strings */
+    s = (char *) body+rp;
+    assert_string_equal(s, SYSDB_SID_STR);
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "S-1-2-3-5");
+    rp += strlen(s) + 1;
+    assert_int_equal(rp, blen);
+
+    return EOK;
+}
+
+static void test_nss_getorigbyname_dup_add(void)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(attrs, ORIGINALAD_PREFIX SYSDB_NAME,
+                                 "orig_name");
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &orig_user_dup, attrs, 0);
+    assert_int_equal(ret, EOK);
+    talloc_free(attrs);
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-5");
+    assert_int_equal(ret, EOK);
+
+    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &orig_group_dup, attrs, 0);
+    assert_int_equal(ret, EOK);
+    talloc_free(attrs);
+}
+
+
+static int test_nss_EINVAL_check(uint32_t status, uint8_t *body, size_t blen);
+/* test_nss_getorigbyname_dup is expected to fail because there are a user and
+ * a group with the same name in the cache. */
+void test_nss_getorigbyname_dup(void **state)
+{
+    errno_t ret;
+
+    test_nss_getorigbyname_dup_add();
+
+    mock_input_user_or_group("testdup");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYNAME);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYNAME);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getorigbyusername(void **state)
+{
+    errno_t ret;
+
+    test_nss_getorigbyname_dup_add();
+
+    mock_input_user_or_group("testdup");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYUSERNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getorigbyusername_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYUSERNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getorigbygroupname(void **state)
+{
+    errno_t ret;
+
+    test_nss_getorigbyname_dup_add();
+
+    mock_input_user_or_group("testdup");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYGROUPNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getorigbygroupname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYGROUPNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 struct passwd upn_user = {
     .pw_name = discard_const("upnuser"),
     .pw_uid = 34567,
@@ -5725,6 +5903,15 @@ int main(int argc, const char *argv[])
                                         nss_test_setup_extra_attr,
                                         nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getorigbyname,
+                                        nss_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getorigbyusername,
+                                        nss_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getorigbygroupname,
+                                        nss_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getorigbyname_dup,
                                         nss_test_setup,
                                         nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn,
