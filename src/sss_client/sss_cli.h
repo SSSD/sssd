@@ -283,6 +283,20 @@ SSS_NSS_GETSIDBYGID   = 0x0119, /**< Takes an unsigned 32bit integer (POSIX GID)
                                      and return the zero terminated string
                                      representation of the SID of the object
                                      with the given UID. */
+SSS_NSS_GETORIGBYUSERNAME = 0x011A, /**< Takes a zero terminated fully qualified
+                                     user name and returns a list of zero
+                                     terminated strings with key-value pairs
+                                     where the first string is the key and
+                                     second the value. Hence the list should
+                                     have an even number of strings, if not
+                                     the whole list is invalid. */
+SSS_NSS_GETORIGBYGROUPNAME = 0x011B, /**< Takes a zero terminated fully qualified
+                                     group name and returns a list of zero
+                                     terminated strings with key-value pairs
+                                     where the first string is the key and
+                                     second the value. Hence the list should
+                                     have an even number of strings, if not
+                                     the whole list is invalid. */
 
 /* subid */
     SSS_NSS_GET_SUBID_RANGES = 0x0130, /**< Requests both subuid and subgid ranges
