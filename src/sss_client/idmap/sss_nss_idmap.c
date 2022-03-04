@@ -225,6 +225,8 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
     case SSS_NSS_GETNAMEBYSID:
     case SSS_NSS_GETIDBYSID:
     case SSS_NSS_GETORIGBYNAME:
+    case SSS_NSS_GETORIGBYUSERNAME:
+    case SSS_NSS_GETORIGBYGROUPNAME:
         ret = sss_strnlen(inp.str, 2048, &inp_len);
         if (ret != EOK) {
             return EINVAL;
@@ -339,6 +341,8 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
 
         break;
     case SSS_NSS_GETORIGBYNAME:
+    case SSS_NSS_GETORIGBYUSERNAME:
+    case SSS_NSS_GETORIGBYGROUPNAME:
         ret = buf_to_kv_list(repbuf + DATA_START, data_len, &kv_list);
         if (ret != EOK) {
             goto done;
@@ -528,9 +532,11 @@ int sss_nss_getidbysid(const char *sid, uint32_t *id, enum sss_id_type *id_type)
     return sss_nss_getidbysid_timeout(sid, NO_TIMEOUT, id, id_type);
 }
 
-int sss_nss_getorigbyname_timeout(const char *fq_name, unsigned int timeout,
-                                  struct sss_nss_kv **kv_list,
-                                  enum sss_id_type *type)
+int sss_nss_getorigbyname_timeout_common(const char *fq_name,
+                                         unsigned int timeout,
+                                         enum sss_cli_command cmd,
+                                         struct sss_nss_kv **kv_list,
+                                         enum sss_id_type *type)
 {
     int ret;
     union input inp;
@@ -542,7 +548,7 @@ int sss_nss_getorigbyname_timeout(const char *fq_name, unsigned int timeout,
 
     inp.str = fq_name;
 
-    ret = sss_nss_getyyybyxxx(inp, SSS_NSS_GETORIGBYNAME, timeout, &out);
+    ret = sss_nss_getyyybyxxx(inp, cmd, timeout, &out);
     if (ret == EOK) {
         *kv_list = out.d.kv_list;
         *type = out.type;
@@ -551,10 +557,49 @@ int sss_nss_getorigbyname_timeout(const char *fq_name, unsigned int timeout,
     return ret;
 }
 
+int sss_nss_getorigbyname_timeout(const char *fq_name, unsigned int timeout,
+                                  struct sss_nss_kv **kv_list,
+                                  enum sss_id_type *type)
+{
+    return sss_nss_getorigbyname_timeout_common(fq_name, timeout,
+                                                SSS_NSS_GETORIGBYNAME, kv_list,
+                                                type);
+}
+
 int sss_nss_getorigbyname(const char *fq_name, struct sss_nss_kv **kv_list,
                           enum sss_id_type *type)
 {
     return sss_nss_getorigbyname_timeout(fq_name, NO_TIMEOUT, kv_list, type);
+}
+
+int sss_nss_getorigbyusername_timeout(const char *fq_name, unsigned int timeout,
+                                      struct sss_nss_kv **kv_list,
+                                      enum sss_id_type *type)
+{
+    return sss_nss_getorigbyname_timeout_common(fq_name, timeout,
+                                                SSS_NSS_GETORIGBYUSERNAME,
+                                                kv_list, type);
+}
+
+int sss_nss_getorigbyusername(const char *fq_name, struct sss_nss_kv **kv_list,
+                             enum sss_id_type *type)
+{
+    return sss_nss_getorigbyusername_timeout(fq_name, NO_TIMEOUT, kv_list, type);
+}
+
+int sss_nss_getorigbygroupname_timeout(const char *fq_name, unsigned int timeout,
+                                       struct sss_nss_kv **kv_list,
+                                       enum sss_id_type *type)
+{
+    return sss_nss_getorigbyname_timeout_common(fq_name, timeout,
+                                                SSS_NSS_GETORIGBYGROUPNAME,
+                                                kv_list, type);
+}
+
+int sss_nss_getorigbygroupname(const char *fq_name, struct sss_nss_kv **kv_list,
+                             enum sss_id_type *type)
+{
+    return sss_nss_getorigbygroupname_timeout(fq_name, NO_TIMEOUT, kv_list, type);
 }
 
 int sss_nss_getnamebycert_timeout(const char *cert, unsigned int timeout,
