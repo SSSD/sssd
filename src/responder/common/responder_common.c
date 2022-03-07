@@ -884,7 +884,7 @@ int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
         goto done;
     }
 
-    if (listen(fd, 10) == -1) {
+    if (listen(fd, 128) == -1) {
         ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unable to listen on socket '%s' [%d]: %s\n",
