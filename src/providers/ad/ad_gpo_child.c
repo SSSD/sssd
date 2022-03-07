@@ -269,6 +269,48 @@ done:
     return ret;
 }
 
+static errno_t gpo_sanitize_buffer_content(uint8_t *buf, int buflen)
+{
+    int i;
+    int line_start = 0;
+    int equal_pos = 0;
+
+    if (!buf) {
+        return EINVAL;
+    }
+
+    for (i = 0; i < buflen; ++i) {
+        if (buf[i] == '\n') {
+            line_start = i + 1;
+            continue;
+        }
+        if (buf[i] == '=') {
+            equal_pos = i;
+            continue;
+        }
+        if (isascii(buf[i])) {
+            continue;
+        }
+
+        /* non-ascii */
+        if (equal_pos <= line_start) { /* key */
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Key or section starting at position %d ('%.*s...') contains"
+                  " non-ascii symbol. File is unusable!\n",
+                  line_start, i - line_start, buf + line_start);
+            return EINVAL;
+        }
+
+        buf[i] = '?';
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Value for key '%.*s' contains non-ascii symbol."
+              " Replacing with '?'\n",
+              equal_pos - line_start, buf + line_start);
+    }
+
+    return EOK;
+}
+
 /*
  * This function stores the input buf to a local file, whose file path
  * is constructed by concatenating:
@@ -440,6 +482,9 @@ ad_gpo_parse_ini_file(const char *smb_path,
     int ret;
     int gpt_version = -1;
     TALLOC_CTX *tmp_ctx = NULL;
+    struct stat st;
+    int fd = -1;
+    uint8_t *buf = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -464,10 +509,50 @@ ad_gpo_parse_ini_file(const char *smb_path,
         goto done;
     }
 
-    ret = ini_config_file_open(ini_filename, 0, &file_ctx);
+    fd = open(ini_filename, O_RDONLY);
+    if (fd == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "open() failed [%d][%s]\n", ret, strerror(ret));
+        ret = EIO;
+        goto done;
+    }
+    ret = fstat(fd, &st);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "stat() failed [%d][%s]\n", ret, strerror(ret));
+        ret = EIO;
+        goto done;
+    }
+    buf = talloc_size(tmp_ctx, st.st_size);
+    if (buf == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    if (sss_atomic_read_s(fd, buf, st.st_size) != st.st_size) {
+        ret = EIO;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sss_atomic_read_s() failed\n");
+        goto done;
+    }
+
+    /* Windows uses ANSI (extended-ASCII) to encode the GPT.INI file.
+     * Practically this might mean any code page, including uncompatible
+     * with UTF. Since the only value read by SSSD from GPT.INI is
+     * 'Version=...', just get rid of any non-ascii characters to make
+     * content compatible with lib_iniconfig.
+     */
+    ret = gpo_sanitize_buffer_content(buf, st.st_size);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "gpo_sanitize_buffer_content() failed\n");
+        goto done;
+    }
+
+    ret = ini_config_file_from_mem(buf, st.st_size, &file_ctx);
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_config_file_open failed [%d][%s]\n", ret, strerror(ret));
+              "ini_config_file_from_mem() failed [%d][%s]\n", ret, strerror(ret));
         goto done;
     }
 
@@ -515,6 +600,7 @@ ad_gpo_parse_ini_file(const char *smb_path,
 
     ini_config_file_destroy(file_ctx);
     ini_config_destroy(ini_config);
+    if (fd != -1) close(fd);
     talloc_free(tmp_ctx);
     return ret;
 }
