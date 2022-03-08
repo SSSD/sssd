@@ -525,46 +525,58 @@ class TestBugzillaAutomation(object):
           1. Join RHEL to the AD-server
           2. Create two ADusers on AD
           3. Add one ADuser in filter_users in nss section
-          4. Restart sssd
-          5. Make sure that filtered user is not returned by SSSD
-          6. Add a local user and fetch that user information
-          7. Again Make sure that filtered user is not returned by SSSD
+          4. Enable files domain in sssd.conf
+          5. Restart sssd with cleared cache
+          6. Make sure that filtered user is not returned by SSSD
+          7. Add a local user and fetch that user information
+          8. Again Make sure that filtered user is not returned by SSSD
         :expectedresults:
-          1. filtered user should not be returned after localuser addition
-          2. Other AD-users should be returned correctly
+          1. Should Succeed
+          2. Should Succeed
+          3. Should Succeed
+          4. Should Succeed
+          5. Should Succeed
+          6. filtered user should not be returned
+          7. filtered user should not be returned after localuser addition
+          8. Other AD-users should be returned correctly
         """
         adjoin(membersw='adcli')
-        (aduser, _) = create_aduser_group
+        (aduser1, _) = create_aduser_group
         client = sssdTools(multihost.client[0], multihost.ad[0])
         domainname = multihost.ad[0].domainname
-        aduser1 = 'administrator@%s' % domainname
-        lkup = 'getent passwd -s sss %s@%s' % (aduser, domainname)
-        cmd = multihost.client[0].run_command(lkup, raiseonerr=True)
-        lkup1 = 'getent passwd -s sss %s@%s' % (aduser1, domainname)
-        cmd1 = multihost.client[0].run_command(lkup, raiseonerr=True)
+        params1 = {'enable_files_domain': 'true'}
+        client.sssd_conf('sssd', params1)
+        client.clear_sssd_cache()
+        aduser2 = f'administrator@{domainname}'
+        lkup1 = f'getent passwd -s sss {aduser1}@{domainname}'
+        multihost.client[0].run_command(lkup1, raiseonerr=True)
+        lkup2 = f'getent passwd -s sss {aduser2}'
+        multihost.client[0].run_command(lkup2, raiseonerr=True)
         multihost.client[0].service_sssd('stop')
-        domain_section = 'domain/{}'.format(domainname)
-        userlist = 'root, aduser1'
-        params = {'filter_users': 'root, %s' % aduser1,
+        userlist = f'root, {aduser2}'
+        params2 = {'filter_users': userlist,
                   'filter_groups': 'root'}
-        client.sssd_conf('nss', params)
+        client.sssd_conf('nss', params2)
         client.remove_sss_cache('/var/lib/sss/db')
+        client.remove_sss_cache('/var/lib/sss/mc')
         client.remove_sss_cache('/var/log/sssd')
         multihost.client[0].service_sssd('start')
-        cmd = multihost.client[0].run_command(lkup, raiseonerr=False)
-        cmd1 = multihost.client[0].run_command(lkup1, raiseonerr=False)
+        multihost.client[0].run_command(lkup1, raiseonerr=True)
+        cmd = multihost.client[0].run_command(lkup2, raiseonerr=False)
+        assert cmd.returncode == 2
         usradd = '/usr/sbin/useradd localuser-test'
-        cmd = multihost.client[0].run_command(usradd, raiseonerr=True)
-        lkup2 = 'getent passwd localuser-test'
-        cmd = multihost.client[0].run_command(lkup, raiseonerr=True)
-        cmd1 = multihost.client[0].run_command(lkup1, raiseonerr=False)
-        cmd2 = multihost.client[0].run_command(lkup2, raiseonerr=False)
+        multihost.client[0].run_command(usradd, raiseonerr=True)
+        lkup3 = 'getent passwd localuser-test'
+        multihost.client[0].run_command(lkup3, raiseonerr=True)
+        multihost.client[0].run_command(lkup1, raiseonerr=True)
+        cmd = multihost.client[0].run_command(lkup2, raiseonerr=False)
         usrdel = '/usr/sbin/userdel -rf localuser-test'
-        cmd = multihost.client[0].run_command(usrdel, raiseonerr=True)
+        multihost.client[0].run_command(usrdel, raiseonerr=True)
         multihost.client[0].service_sssd('stop')
-        client.sssd_conf('nss', params, action='delete')
+        client.sssd_conf('sssd', params1, action='delete')
+        client.sssd_conf('nss', params2, action='delete')
         multihost.client[0].service_sssd('start')
-        assert cmd1.returncode == 2 and cmd.returncode == 0
+        assert cmd.returncode == 2
 
     @pytest.mark.tier1
     def test_0016_forceLDAPS(self, multihost,
