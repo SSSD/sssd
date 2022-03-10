@@ -10,8 +10,8 @@ Resolves: https://github.com/SSSD/sssd/issues/XXXX
 # note.
 #
 # :relnote: Generic release note.
-# :feature: New feature desription.
-# :fixes: Notable bug fix desription.
+# :feature: New feature description.
+# :fixes: Notable bug fix description.
 # :packaging: Packaging change description.
 # :config: Change in configuration (new option, new default, etc.)
 
