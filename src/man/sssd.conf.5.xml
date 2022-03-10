@@ -3313,7 +3313,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             Default for the AD and IPA provider:
-                            <quote>(((?P&lt;domain&gt;[^\\]+)\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;[^@]+)@(?P&lt;domain&gt;.+$))|(^(?P&lt;name&gt;[^@\\]+)$))</quote>
+                            <quote>(((?P&lt;domain&gt;[^\\]+)\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))|(^(?P&lt;name&gt;[^@\\]+)$))</quote>
                             which allows three different styles for user names:
                             <itemizedlist>
                                 <listitem>
@@ -3335,15 +3335,6 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             which translates to "the name is everything up to
                             the <quote>@</quote> sign, the domain everything
                             after that"
-                        </para>
-                        <para>
-                            NOTE: Some Active Directory groups, typically
-                            those used for MS Exchange contain an
-                            <quote>@</quote> sign in the name, which
-                            clashes with the default re_expression value for
-                            the AD and IPA providers. To support these groups,
-                            consider changing the re_expression value to:
-                            <quote>((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))</quote>.
                         </para>
                     </listitem>
                 </varlistentry>
