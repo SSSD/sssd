@@ -11,8 +11,6 @@ import re
 from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.exceptions import SSHLoginException
-import pexpect
 
 
 @pytest.mark.usefixtures('default_ipa_users',

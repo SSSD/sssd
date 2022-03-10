@@ -19,8 +19,6 @@
 #
 import os
 import ent
-import grp
-import pwd
 import subprocess
 import pytest
 import stat

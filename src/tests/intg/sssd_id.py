@@ -17,10 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import config
 import pwd
 import grp
-from ctypes import (cdll, c_int, c_char, c_uint32, c_long, c_char_p,
+from ctypes import (c_int, c_char, c_uint32, c_long, c_char_p,
                     POINTER, pointer)
 from sssd_nss import NssReturnCode, nss_sss_ctypes_loader
 

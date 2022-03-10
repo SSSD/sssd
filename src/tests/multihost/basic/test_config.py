@@ -5,8 +5,7 @@
 :subsystemteam: sst_idm_sssd
 :upstream: yes
 """
-import configparser as ConfigParser
-import pytest
+
 from utils_config import set_param, remove_section
 
 

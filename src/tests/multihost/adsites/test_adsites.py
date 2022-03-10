@@ -1,5 +1,4 @@
 from __future__ import print_function
-import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
 

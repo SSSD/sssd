@@ -7,11 +7,7 @@ import random
 import os
 import posixpath
 from subprocess import CalledProcessError
-# pylint: disable=unused-import
-from pytest_multihost import make_multihost_fixture
-# pylint: disable=unused-import
 from sssd.testlib.common.qe_class import session_multihost
-from sssd.testlib.common.qe_class import create_testdir
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import ADOperations

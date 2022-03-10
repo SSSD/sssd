@@ -7,7 +7,6 @@
 """
 
 import pytest
-import time
 import re
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.expect import pexpect_ssh

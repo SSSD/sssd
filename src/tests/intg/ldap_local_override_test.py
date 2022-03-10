@@ -20,7 +20,6 @@
 import os
 import stat
 import ent
-import grp
 import pwd
 import config
 import signal

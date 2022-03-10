@@ -17,9 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from ctypes import (cdll, c_int, c_char, c_char_p, c_size_t, c_void_p, c_ulong,
+from ctypes import (c_int, c_char, c_char_p, c_size_t, c_void_p, c_ulong,
                     POINTER, Structure, Union, create_string_buffer, get_errno)
-import config
 from sssd_nss import NssReturnCode, nss_sss_ctypes_loader
 
 

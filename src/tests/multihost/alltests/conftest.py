@@ -10,12 +10,8 @@ import re
 import subprocess
 from constants import ds_instance_name, ds_suffix, krb_realm
 from sssd.testlib.common.libkrb5 import krb5srv
-# pylint: disable=unused-import
-from pytest_multihost import make_multihost_fixture
-# pylint: disable=unused-import
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF, NSSWITCH_DEFAULT_CONF
 from sssd.testlib.common.qe_class import session_multihost
-from sssd.testlib.common.qe_class import create_testdir
 from sssd.testlib.common.utils import PkiTools, sssdTools, LdapOperations
 from sssd.testlib.common.libdirsrv import DirSrvWrap
 from sssd.testlib.common.exceptions import PkiLibException, LdapException

@@ -6,8 +6,6 @@
 :upstream: yes
 """
 
-import pytest
-
 
 class TestInfoPipe(object):
     """

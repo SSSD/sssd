@@ -7,15 +7,10 @@
 """
 
 from __future__ import print_function
-import re
 import pytest
-import threading
 import time
 import paramiko
-import subprocess
-from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.exceptions import SSHLoginException
-from sssd.testlib.common.utils import sssdTools, LdapOperations
+from sssd.testlib.common.utils import LdapOperations
 from sssd.testlib.common.utils import SSHClient
 import ldap
 

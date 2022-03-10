@@ -7,9 +7,7 @@
 """
 
 import pytest
-import subprocess
 import time
-import os
 from sssd.testlib.common.utils import SSHClient
 
 
