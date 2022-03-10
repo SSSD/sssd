@@ -6,11 +6,10 @@ import time
 import pytest
 import os
 import posixpath
-from sssd.testlib.common.paths import SSSD_DEFAULT_CONF, NSSWITCH_DEFAULT_CONF
 from sssd.testlib.common.qe_class import session_multihost
+from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 from sssd.testlib.common.exceptions import SSSDException
 from sssd.testlib.common.samba import sambaTools
-from sssd.testlib.common.utils import ADOperations
 from sssd.testlib.common.utils import sssdTools
 
 

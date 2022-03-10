@@ -26,7 +26,6 @@ import time
 import signal
 import sys
 from datetime import datetime
-from requests import HTTPError
 
 import kdc
 import krb5utils

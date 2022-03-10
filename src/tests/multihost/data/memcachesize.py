@@ -6,8 +6,6 @@ import subprocess
 import argparse
 import shlex
 import errno
-import sys
-import re
 
 
 class LookupPerf(object):

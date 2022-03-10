@@ -5,7 +5,6 @@ import os
 import time
 import subprocess
 import pytest
-import configparser as ConfigParser
 import tempfile
 from .utils import ADOperations
 from .utils import sssdTools

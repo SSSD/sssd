@@ -10,7 +10,6 @@ import subprocess
 import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.samba import sambaTools
 
 
 @pytest.mark.usefixtures('winbind_server', 'configure_samba')

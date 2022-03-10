@@ -31,7 +31,6 @@ import ldap
 import ldap.modlist
 import pytest
 import dbus
-import base64
 import shutil
 
 import config

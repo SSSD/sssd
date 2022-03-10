@@ -8,7 +8,6 @@
 
 from __future__ import print_function
 import re
-import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF

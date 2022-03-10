@@ -1,8 +1,6 @@
 import pytest
 
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.utils import SSSDException
-from sssd.testlib.common.utils import ADOperations
 
 
 @pytest.mark.tier1

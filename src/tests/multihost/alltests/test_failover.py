@@ -6,7 +6,6 @@
 :upstream: yes
 """
 import pytest
-import time
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.utils import SSHClient
 from constants import ds_instance_name

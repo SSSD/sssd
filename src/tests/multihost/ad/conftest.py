@@ -8,11 +8,8 @@ import pytest
 import ldap
 import os
 import posixpath
-import pathlib
-# pylint: disable=unused-import
-from sssd.testlib.common.paths import SSSD_DEFAULT_CONF, NSSWITCH_DEFAULT_CONF
 from sssd.testlib.common.qe_class import session_multihost
-from sssd.testlib.common.qe_class import create_testdir
+from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 from sssd.testlib.common.exceptions import SSSDException
 from sssd.testlib.common.utils import ADOperations
 from sssd.testlib.common.exceptions import LdapException

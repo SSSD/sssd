@@ -12,7 +12,6 @@ from string import ascii_uppercase
 from constants import ds_instance_name
 from sssd.testlib.common.utils import sssdTools
 import pytest
-import time
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')

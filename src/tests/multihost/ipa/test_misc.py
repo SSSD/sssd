@@ -8,7 +8,6 @@
 
 import pytest
 import time
-from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import sssdTools, SSHClient
 from sssd.testlib.common.exceptions import SSSDException
 import re

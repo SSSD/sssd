@@ -38,7 +38,6 @@ from util import unindent
 from sssd_nss import NssReturnCode
 from sssd_passwd import call_sssd_getpwnam, call_sssd_getpwuid
 from sssd_group import call_sssd_getgrnam, call_sssd_getgrgid
-from files_ops import passwd_ops_setup, group_ops_setup
 
 LDAP_BASE_DN = "dc=example,dc=com"
 INTERACTIVE_TIMEOUT = 4

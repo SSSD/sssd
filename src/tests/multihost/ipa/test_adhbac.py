@@ -6,7 +6,6 @@
 :upstream: yes
 """
 import pytest
-import time
 import re
 from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import sssdTools
