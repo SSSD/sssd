@@ -188,7 +188,6 @@ class TestSudo(object):
         client.sssd_conf('sudo', params)
         multihost.client[0].service_sssd('restart')
         aduser = 'sudo_usera'
-        user_as = 'sudo_idmuser1'
         client.clear_sssd_cache()
         sudo_log = '/var/log/sssd/sssd_sudo.log'
         domain_log = '/var/log/sssd/sssd_%s.log' % domain_name

@@ -333,11 +333,9 @@ class Testsssctl(object):
         if client_version(multihost):
             pytest.skip("Does not work on RHEL 9")
         else:
-            tools = sssdTools(multihost.client[0])
-            domain_name = tools.get_domain_section_name()
             multihost.client[0].run_command("systemctl stop sssd")
             multihost.client[0].run_command("rm -rf /var/lib/sss/db/*")
-            start = multihost.client[0].service_sssd('start')
+            multihost.client[0].service_sssd('start')
             stop_ds = 'systemctl stop dirsrv@%s' % ds_instance_name
             cmd = multihost.master[0].run_command(stop_ds, raiseonerr=False)
             status_ds = 'systemctl status dirsrv@%s' % ds_instance_name
@@ -354,8 +352,7 @@ class Testsssctl(object):
             assert result is not None
             time.sleep(1)
             touch = 'touch /etc/resolv.conf'
-            touch_cmd = multihost.client[0].run_command(touch,
-                                                        raiseonerr=False)
+            multihost.client[0].run_command(touch, raiseonerr=False)
             time.sleep(3)
             start_ds = 'systemctl start dirsrv@%s' % ds_instance_name
             cmd = multihost.master[0].run_command(start_ds, raiseonerr=False)

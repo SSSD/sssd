@@ -302,10 +302,10 @@ def cleanup_sssd_process():
         while True:
             try:
                 os.kill(pid, signal.SIGCONT)
-            except OSError as ex:
+            except OSError:
                 break
             time.sleep(1)
-    except OSError as ex:
+    except OSError:
         pass
     for path in os.listdir(config.DB_PATH):
         os.unlink(config.DB_PATH + "/" + path)

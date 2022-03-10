@@ -28,13 +28,13 @@ class TestSudo(object):
         """
         # enable sudo with authselect
         authselect_cmd = 'authselect select sssd with-sudo'
+        multihost.client[0].run_command(authselect_cmd)
 
         # stop sssd service
         multihost.client[0].service_sssd('stop')
         tools = sssdTools(multihost.client[0])
         # remove sssd cache
         tools.remove_sss_cache('/var/lib/sss/db/')
-        tools = sssdTools(multihost.client[0])
         ldap_uri = 'ldap://%s' % multihost.master[0].sys_hostname
         sssd_params = {'services': 'nss, pam, sudo'}
         tools.sssd_conf('sssd', sssd_params)
@@ -97,7 +97,7 @@ class TestSudo(object):
         section = "sssd"
         sssd_params = {'services': 'nss, pam, sudo'}
         tools.sssd_conf(section, sssd_params, action='update')
-        start = multihost.client[0].service_sssd('start')
+        multihost.client[0].service_sssd('start')
         try:
             ssh = SSHClient(multihost.client[0].sys_hostname,
                             username='foo1@example.test', password='Secret123')

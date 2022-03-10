@@ -400,9 +400,6 @@ class IPAChangeConf(object):
     #     [{'name': 'foo', 'value': 'bar', 'action': 'set/comment'}]
     # section is a section name like 'global'
     def changeConf(self, file, newopts):
-        autosection = False
-        savedsection = None
-        done = False
         output = ""
         f = None
         try:
@@ -435,9 +432,6 @@ class IPAChangeConf(object):
     #     [{'name': 'foo', 'value': 'bar', 'action': 'set/comment'}]
     # section is a section name like 'global'
     def newConf(self, file, options):
-        autosection = False
-        savedsection = None
-        done = False
         output = ""
         f = None
         try:

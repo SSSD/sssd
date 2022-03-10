@@ -36,7 +36,7 @@ class LookupPerf(object):
         :Return: None
         """
         gzip_cmd = 'gzip %s' % log_file
-        cmd = host.run_command(gzip_cmd, raiseonerr=False)
+        host.run_command(gzip_cmd, raiseonerr=False)
 
     def user_lookup(self, host, runs, count, pattern):
         """ Perfor user lookup in a loop

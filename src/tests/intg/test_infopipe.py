@@ -703,7 +703,7 @@ def test_update_member_list_and_get_all(dbus_system_bus,
     try:
         group_iface.UpdateMemberList(group_id)
     except dbus.exceptions.DBusException as ex:
-        assert False, "Unexpected DBusException raised"
+        assert False, "Unexpected DBusException raised: " + ex
 
     # check members of group
     prop_iface = dbus.Interface(group_object,

@@ -503,7 +503,6 @@ class Testautofsresponder(object):
         find = re.compile(r'Online status: Offline')
         result = find.search(cmd1.stdout_text)
         assert result is not None
-        cmdz = cmd1.stdout_text
         client.firewall_port(636, 'OPEN')
         client.firewall_port(389, 'OPEN')
         client.firewall_port('ALL', 'delall')

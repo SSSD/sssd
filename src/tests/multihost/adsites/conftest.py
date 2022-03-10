@@ -145,10 +145,8 @@ def cifsmount(session_multihost, request):
     different permissions
     """
     ad_user = 'idmfoouser1'
-    ad_group = 'idmfoogroup1'
     kinit = 'kinit %s' % ad_user
     server = session_multihost.master[0].sys_hostname.strip().split('.')[0]
-    share_path = '/mnt/samba/share1'
     session_multihost.client[0].run_command(kinit, stdin_text='Secret123')
     mountcifs = "mount -t cifs -o cifsacl "\
                 "-o sec=krb5 -o username=%s //%s/share1"\
@@ -245,7 +243,7 @@ def joinad(session_multihost, request):
     client.disjoin_ad()  # Make sure system is disjoined from AD
     kinit = "kinit Administrator"
     ad_password = session_multihost.ad[0].ssh_password
-    realm_output = client.join_ad()
+    client.join_ad()
     try:
         session_multihost.client[0].service_sssd('restart')
     except SSSDException:
