@@ -26,7 +26,6 @@ import subprocess
 import time
 import ldap
 import pytest
-import ent
 import socket
 import config
 import ds_openldap

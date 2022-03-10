@@ -10,14 +10,12 @@ import time
 import re
 import pytest
 import ldap
-from constants import ds_instance_name, ds_suffix, krb_realm
+from constants import ds_suffix, krb_realm
 from sssd.testlib.common.expect import pexpect_ssh
 from sssd.testlib.common.utils import sssdTools, \
     LdapOperations, SSHClient
 from sssd.testlib.common.exceptions import SSHLoginException
-from sssd.testlib.common.exceptions import SSSDException
 from sssd.testlib.common.libkrb5 import krb5srv
-from constants import ds_instance_name
 
 
 @pytest.mark.usefixtures('setup_sssd_gssapi', 'create_posix_usersgroups')

@@ -8,8 +8,6 @@ from __future__ import print_function
 import pytest
 import ldap
 from sssd.testlib.common.utils import sssdTools, LdapOperations
-from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.exceptions import SSHLoginException
 
 
 @pytest.mark.usefixtures('setup_sssd_krb', 'create_posix_usersgroups')

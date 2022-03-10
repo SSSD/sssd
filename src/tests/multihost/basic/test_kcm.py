@@ -10,7 +10,7 @@ import paramiko
 import pytest
 import os
 import re
-from utils_config import set_param, remove_section
+from utils_config import set_param
 
 
 class TestSanityKCM(object):

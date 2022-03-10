@@ -11,7 +11,7 @@ import re
 import pytest
 import time
 from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.utils import sssdTools, LdapOperations
+from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name
 
 

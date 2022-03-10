@@ -19,13 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ctypes import (c_int, c_void_p, c_char_p, c_ulong, c_uint32, POINTER,
-                    Structure, create_string_buffer, get_errno)
+from ctypes import (c_int, c_char_p, c_ulong, c_uint32, POINTER,
+                    Structure, create_string_buffer)
 from sssd_nss import NssReturnCode, SssdNssError, nss_sss_ctypes_loader
-from sssd_nss import HostError, SssdNssHostError
 import socket
-from ipaddress import IPv4Address, IPv6Address
-from struct import pack, unpack
+from ipaddress import IPv4Address
+from struct import unpack
 
 IP_NETWORK_BUFLEN = 1024
 

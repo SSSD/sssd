@@ -18,8 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import re
-import os
-import io
 import pytest
 import ent
 from util import backup_envvar_file, restore_envvar_file

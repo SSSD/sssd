@@ -6,7 +6,6 @@
 :upstream: yes
 """
 
-import pytest
 import re
 
 

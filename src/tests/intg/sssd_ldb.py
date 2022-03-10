@@ -20,7 +20,6 @@
 import os
 import ldb
 import config
-import subprocess
 
 
 class CacheType(object):

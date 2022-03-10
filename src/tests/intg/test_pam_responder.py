@@ -27,7 +27,6 @@ import signal
 import errno
 import subprocess
 import time
-import shutil
 
 import config
 import intg.ds_openldap

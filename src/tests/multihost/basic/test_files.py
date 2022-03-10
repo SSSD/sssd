@@ -6,7 +6,6 @@
 :upstream: yes
 """
 import pytest
-from sssd.testlib.common.utils import SSHClient
 
 
 def get_sss_entry(multihost, db, ent_name):
