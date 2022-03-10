@@ -27,7 +27,6 @@ class Testipabz(object):
         :description: systemctl status sssd says No such file or
          directory about "default" when keytab exists but is empty file
         """
-        tools = sssdTools(multihost.client[0])
         # stop sssd
         multihost.client[0].service_sssd('stop')
         # backup /etc/krb5.keytab
@@ -67,7 +66,6 @@ class Testipabz(object):
         :bugzilla:
          https://bugzilla.redhat.com/show_bug.cgi?id=1796989
         """
-        tools = sssdTools(multihost.client[0])
         setup_automount = "ipa-client-automount --location default -U " \
                           "--server %s" % multihost.master[0].sys_hostname
         uninstall_automount = "ipa-client-automount --uninstall -U " \
@@ -151,7 +149,6 @@ class Testipabz(object):
         subnet = client_ip.split('.', 3)
         del subnet[-1]
         subnet.reverse()
-        zone = '.'.join(subnet) + '.in-addr.arpa.'
 
         domain_name = client.get_domain_section_name()
         client.sssd_conf(

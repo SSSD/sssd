@@ -305,7 +305,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
 
     def testInit(self):
         # Positive test
-        service = SSSDConfig.SSSDService('sssd', self.schema)
+        SSSDConfig.SSSDService('sssd', self.schema)
 
         # Type Error test
         # Name is not a string
@@ -509,7 +509,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
     def testInit(self):
         # Positive Test
-        domain = SSSDConfig.SSSDDomain('mydomain', self.schema)
+        SSSDConfig.SSSDDomain('mydomain', self.schema)
 
         # Negative Test - Name not a string
         self.assertRaises(TypeError, SSSDConfig.SSSDDomain, 2, self.schema)
@@ -1180,8 +1180,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
     def testInit(self):
         # Positive test
-        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                           srcdir + "/etc/sssd.api.d")
+        SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                              srcdir + "/etc/sssd.api.d")
 
         # Negative Test - No Such File
         self.assertRaises(IOError,
@@ -1520,7 +1520,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         sssdconfig.new_config()
 
         # Positive Test
-        service = sssdconfig.delete_service('sssd')
+        sssdconfig.delete_service('sssd')
 
     def testSaveService(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",

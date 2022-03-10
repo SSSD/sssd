@@ -117,7 +117,7 @@ class TestLDAPChpass(object):
         except paramiko.ssh_exception.AuthenticationException:
             pytest.fail("Authentication Failed as user %s" % ('foo1'))
 
-        expect_script = chpass(multihost, ssh, 'Secret123', 'Secret1234')
+        chpass(multihost, ssh, 'Secret123', 'Secret1234')
         ssh.close()
 
         # Try logging in with the new password
@@ -128,7 +128,7 @@ class TestLDAPChpass(object):
             pytest.fail("Authentication Failed as user %s" % ('foo1'))
 
         # Clean up and change the password back
-        expect_script = chpass(multihost, ssh, 'Secret1234', 'Secret123')
+        chpass(multihost, ssh, 'Secret1234', 'Secret123')
         ssh.close()
 
     def test_ldap_chpass_extop(self, multihost):

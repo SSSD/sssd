@@ -48,11 +48,8 @@ class Testcifs(object):
         :id: b82b6c93-1857-449c-bfbb-2a184e12cce6
         """
         ad_user = 'idmfoouser1'
-        ad_group = 'idmfoogroup1'
-        realm = multihost.ad[0].realm
         kinit = 'kinit %s' % ad_user
         server = multihost.master[0].sys_hostname.strip().split('.')[0]
-        share_path = '/mnt/samba/share1'
         multihost.client[0].run_command(kinit, stdin_text='Secret123')
         mountcifs = "mount -t cifs -o cifsacl "\
                     "-o sec=krb5 -o username=%s //%s/share1"\
@@ -75,7 +72,6 @@ class Testcifs(object):
         """
         ad_user = 'idmfoouser1'
         ad_group = 'idmfoogroup1'
-        realm = multihost.ad[0].realm
         kinit = 'kinit %s' % ad_user
         server = multihost.master[0].sys_hostname.strip().split('.')[0]
         share_path = '/mnt/samba/share1'
@@ -116,7 +112,6 @@ class Testcifs(object):
         :id: abd21985-ebd3-4c9d-987c-6e6da32bb922
         """
         realm = multihost.ad[0].realm
-        netbiosname = multihost.ad[0].netbiosname
         for idx in range(1, 3):
             ad_user = 'idmfoouser%d' % idx
             ad_group = 'idmfoogroup%d' % idx
@@ -163,13 +158,8 @@ class Testcifs(object):
         """
         ad_user = 'idmfoouser1'
         ad_group = 'idmfoogroup1'
-        realm = multihost.ad[0].realm
         netbiosname = multihost.ad[0].netbiosname.strip()
         share_path = '/mnt/samba/share1'
-        wb_cmd = 'wbinfo -n {}{}{}'.format(netbiosname, '\\\\',
-                                           "'Domain Users'")
-        cmd = multihost.client[0].run_command(wb_cmd, raiseonerr=False)
-        smbdomuser_sid = cmd.stdout_text.split(' ')[0]
         wb_cmd = 'wbinfo -n {}{}{}'.format(netbiosname, '\\\\', ad_user)
         cmd = multihost.client[0].run_command(wb_cmd, raiseonerr=False)
         smbuser_sid = cmd.stdout_text.split(' ')[0]
@@ -217,8 +207,6 @@ class Testcifs(object):
         """
         ad_user = 'idmfoouser1'
         ad_group = 'idmfoogroup1'
-        realm = multihost.ad[0].realm
-        netbiosname = multihost.ad[0].netbiosname.strip()
         share_path = '/mnt/samba/share1'
         file_perms = ['660', '640', '600', '660']
         for perms in file_perms:
@@ -247,8 +235,6 @@ class Testcifs(object):
         """
         ad_user = 'idmfoouser1'
         ad_group = 'idmfoogroup1'
-        realm = multihost.ad[0].realm
-        netbiosname = multihost.ad[0].netbiosname.strip()
         share_path = '/mnt/samba/share1'
         file_perms = ['660', '640', '600', '660']
         for perms in file_perms:

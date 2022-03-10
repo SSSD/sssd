@@ -46,7 +46,7 @@ class ipaTools(object):
 
         start_chrony = 'systemctl start chronyd'
         try:
-            self.multihost.run_command(cmd)
+            self.multihost.run_command(start_chrony)
         except subprocess.CalledProcessError:
             return False
         else:

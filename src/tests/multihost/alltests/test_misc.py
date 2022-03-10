@@ -80,15 +80,12 @@ class TestMisc(object):
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1801401
         """
         tools = sssdTools(multihost.client[0])
-        domainname = tools.get_domain_section_name()
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
         params = {'debug_level': '9',
                   'reconnection_retries': '1'}
         tools.sssd_conf('nss', params)
         multihost.client[0].service_sssd('start')
-        sssd_be = 'sssd_be --domain %s' % domainname
-        pid_sssd_be = 'pgrep -f %s' % sssd_be
         kill_sssd_be = 'pkill sssd_be'
         try:
             multihost.client[0].run_command(kill_sssd_be, raiseonerr=False)

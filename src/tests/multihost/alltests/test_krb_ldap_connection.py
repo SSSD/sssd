@@ -121,7 +121,6 @@ class TestKrbLdapConnectionTimeout(object):
         try:
             # stop sssd service
             multihost.client[0].service_sssd('stop')
-            tools = sssdTools(multihost.client[0])
             # remove sssd cache
             location = '/var/lib/sss/db/'
             if not sssdTools(multihost.client[0]).remove_sss_cache(location):

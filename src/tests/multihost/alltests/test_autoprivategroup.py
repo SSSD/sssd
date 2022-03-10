@@ -35,7 +35,7 @@ class TestAutoPrivateGroups(object):
         sssd_params = {'enable_files_domain': 'False'}
         tools.remove_sss_cache('/var/lib/sss/db')
         tools.sssd_conf(section, sssd_params)
-        start = multihost.client[0].service_sssd('start')
+        multihost.client[0].service_sssd('start')
         for i in range(9):
             lkup = 'id foobar%d@%s' % (i, ds_instance_name)
             cmd = multihost.client[0].run_command(lkup, raiseonerr=False)
@@ -64,7 +64,7 @@ class TestAutoPrivateGroups(object):
         sssd_params = {'enable_files_domain': 'False'}
         tools.remove_sss_cache('/var/lib/sss/db')
         tools.sssd_conf(section, sssd_params)
-        start = multihost.client[0].service_sssd('start')
+        multihost.client[0].service_sssd('start')
         lkup = 'getent passwd foobar11@%s' % (ds_instance_name)
         cmd = multihost.client[0].run_command(lkup, raiseonerr=False)
         output = cmd.stdout_text.split(':')

@@ -112,7 +112,6 @@ class TestNetgroup(object):
         multihost.client[0].service_sssd('stop')
         tools = sssdTools(multihost.client[0])
         tools.remove_sss_cache('/var/lib/sss/db')
-        section = "domain/%s" % ds_instance_name
         domain_params = {'entry_cache_timeout': '30',
                          'refresh_expired_interval': '22'}
         tools.sssd_conf('domain/%s' % ds_instance_name, domain_params)

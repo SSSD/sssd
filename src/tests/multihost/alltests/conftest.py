@@ -218,11 +218,12 @@ def set_dslimits(session_multihost, request):
 
     def restore_dslimits():
         """ Restore the default sizelimit """
-        restore_size = [(ldap.MOD_REPLACE, 'nsslapd-sizelimit', [b'2000'])]
-        (ret, _) = ldap_inst.modify_ldap(configdn, mod_limit)
+        restore_lookthrough = [(ldap.MOD_REPLACE, 'nsslapd-lookthroughlimit',
+                               [b'2000'])]
+        (ret, _) = ldap_inst.modify_ldap(configdn, restore_lookthrough)
         restore_page = [(ldap.MOD_REPLACE,
                          'nsslapd-pagedlookthroughlimit', [b'2000'])]
-        (ret, _) = ldap_inst.modify_ldap(configdn, mod_limit)
+        (ret, _) = ldap_inst.modify_ldap(configdn, restore_page)
         assert ret == 'Success'
     request.addfinalizer(restore_dslimits)
 
@@ -247,7 +248,6 @@ def add_nisobject(session_multihost, request):
     ds_rootpw = 'Secret123'
     ds_suffix = 'dc=example,dc=test'
     ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
-    server_path = '/%s' % (request.param)
     ret = ldap_inst.add_map(request.param, 'auto.direct',
                             nfs_server, request.param, ds_suffix)
     assert ret == 'Success'
@@ -429,7 +429,6 @@ def sssd_sudo_conf(session_multihost, request):
     session_multihost.client[0].service_sssd('stop')
     tools.remove_sss_cache('/var/lib/sss/db/')
     tools.remove_sss_cache('/var/log/sssd')
-    ldap_uri = f'ldap://{session_multihost.master[0].sys_hostname}'
     section = "sssd"
     sssd_params = {'services': 'nss, pam, sudo'}
     tools.sssd_conf(section, sssd_params)
@@ -438,7 +437,7 @@ def sssd_sudo_conf(session_multihost, request):
               'sudo_provider': 'ldap'}
     domain_section = f'domain/{ds_instance_name}'
     tools.sssd_conf(domain_section, params, action='update')
-    ret = session_multihost.client[0].service_sssd('start')
+    multihost.client[0].service_sssd('start')
 
     def restore_sssd_conf():
         """ Restore sssd.conf """
@@ -804,8 +803,8 @@ def setup_sssd_krb(session_multihost, setup_sssd):
                      'krb5_server': krb5_server}
     tools.sssd_conf(domain_section, domain_params)
     restart_sssd = 'systemctl restart sssd'
-    cmd = session_multihost.client[0].run_command(restart_sssd,
-                                                  raiseonerr=False)
+    session_multihost.client[0].run_command(restart_sssd,
+                                            raiseonerr=False)
 
 
 @pytest.fixture(scope='class')
@@ -851,9 +850,7 @@ def setup_sssd_gssapi(session_multihost, setup_sssd,
                  'gidNumber': '14564100'}
     ldap_inst.posix_user("ou=People", "%s" % ds_suffix, host_info)
     tools.sssd_conf(domain_section, domain_params)
-    restart_sssd = 'systemctl restart sssd'
-    cmd = session_multihost.client[0].run_command(restart_sssd,
-                                                  raiseonerr=False)
+    session_multihost.client[0].service_sssd('restart')
 
 
 @pytest.fixture(scope='class')
@@ -1198,7 +1195,6 @@ def create_host_user(session_multihost):
     ds_rootdn = 'cn=Directory Manager'
     ds_rootpw = 'Secret123'
     ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
-    krb = krb5srv(session_multihost.master[0], 'EXAMPLE.TEST')
     user_info = {'cn': 'host/%s' % session_multihost.client[0].sys_hostname,
                  'uid': 'host/%s' % session_multihost.client[0].sys_hostname,
                  'uidNumber': '9003',
@@ -1299,17 +1295,17 @@ def enable_sssd_hostmap(session_multihost, request):
     tools = sssdTools(session_multihost.client[0])
     nsswitch_file = '/etc/authselect/user-nsswitch.conf'
     bkup = f'cp -vf {nsswitch_file} {nsswitch_file}_bkp'
-    cmd = session_multihost.client[0].run_command(bkup)
+    session_multihost.client[0].run_command(bkup)
 
     for value in ['hosts', 'networks']:
         update_nsswitch = f"sed -i 's/{value}:/{value}: sss/' {nsswitch_file}"
-        cmd = session_multihost.client[0].run_command(update_nsswitch)
+        session_multihost.client[0].run_command(update_nsswitch)
     authselect = 'authselect select sssd'
     session_multihost.client[0].run_command(authselect)
 
     def restore_nsswitch():
         restore = f"cp -vf {nsswitch_file}_bkp {nsswitch_file}"
-        cmd = session_multihost.client[0].run_command(restore)
+        session_multihost.client[0].run_command(restore)
         session_multihost.client[0].run_command(authselect)
         tools.clear_sssd_cache()
         # remove the backup file

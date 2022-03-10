@@ -142,7 +142,7 @@ class LookupPerf(object):
 
 def main():
     parser = argparse.ArgumentParser("Description=Mem Cache Performance")
-    required = parser.add_argument_group('Mandatory Arguments')
+    parser.add_argument_group('Mandatory Arguments')
     parser.add_argument('database', type=str,
                         help="Specify database(passwd/group/initgroups)",
                         choices=['passwd', 'group', 'initgroups'])

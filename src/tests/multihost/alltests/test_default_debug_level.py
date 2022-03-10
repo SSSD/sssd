@@ -95,7 +95,7 @@ class TestDefaultDebugLevel(object):
         tools.sssd_conf(section, domain_params)
         # stop sssd, delete logs and cache, start sssd
         tools.clear_sssd_cache()
-        conf = multihost.client[0].run_command('cat /etc/sssd/sssd.conf')
+        multihost.client[0].run_command('cat /etc/sssd/sssd.conf')
         check_log_size = "du -c /var/log/sssd/ | awk '/total/ {print $1}'"
         blog_size = multihost.client[0].run_command(check_log_size,
                                                     raiseonerr=False)

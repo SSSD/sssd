@@ -82,7 +82,6 @@ class TestADTrustHbac(object):
         ipa_server = sssdTools(multihost.master[0])
         client_host = multihost.client[0].sys_hostname
         ad_domain_name = multihost.ad[0].domainname.lower()
-        allow_aduser = 'idm_user1@%s' % ad_domain_name
         allow_adgroup = 'idm_group1@%s' % ad_domain_name
         status = ''
         try:
@@ -141,7 +140,6 @@ class TestADTrustHbac(object):
             ext_group = 'idm_ext_group%d' % i
             adgroup = 'idm_group%d@%s' % (i, ad_domain_name)
             posix_group = 'idm_posix_group%d' % i
-            hbac_rule_name = 'ad_test%d' % i
             try:
                 ipa_server_tools.create_group(ext_group, external=True)
             except SSSDException:

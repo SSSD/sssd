@@ -207,7 +207,6 @@ class Testkrbfips(object):
         pcapfile = '/tmp/krb1.pcap'
         tcpdump_cmd = 'tcpdump -s0 host %s -w %s' % (ldap_host, pcapfile)
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
-        sudo_pcapfile = '/tmp/pcap1.pcap'
         pkill = 'pkill tcpdump'
         client = pexpect_ssh(multihost.client[0].sys_hostname, user,
                              'Secret123', debug=False)
@@ -271,11 +270,8 @@ class Testkrbfips(object):
                             'AES128-CTS-HMAC-SHA1-96',
                             'AES256-CTS-HMAC-SHA384-192',
                             'AES128-CTS-HMAC-SHA256-128']
-            invalid_etypes = ['DES3-CBC-SHA1', 'ARCFOUR-HMAC-MD5',
-                              'CAMELLIA128-CTS-CMAC', 'CAMELLIA256-CTS-CMAC']
             count = 0
             for etype in valid_etypes:
-                check_str = 'eTYPE-%s' % etype
                 check = re.compile(r'%s' % etype)
                 if check.search(cmd.stdout_text):
                     count += 1

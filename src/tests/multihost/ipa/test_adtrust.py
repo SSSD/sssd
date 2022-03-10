@@ -124,7 +124,6 @@ class TestADTrust(object):
         """
         ipaserver = sssdTools(multihost.master[0])
         domain_name = ipaserver.get_domain_section_name()
-        domain_section = 'domain/{}'.format(domain_name)
         cache_path = '/var/lib/sss/db/cache_%s.ldb' % domain_name
         ad_domain_name = multihost.ad[0].domainname
         user_name = 'Administrator@%s' % (ad_domain_name)

@@ -95,7 +95,8 @@ def create_adgrp(session_multihost, request, run_powershell_script):
 def fetch_ca_cert(session_multihost, request, run_powershell_script):
     """ fixture to fetch CA Certificate and store in client """
     ret = run_powershell_script(name='getadcacert.ps1')
-    'openssl x509 -inform der -in adca.der -out certificate.pem'
+    if ret.returncode != 0:
+        raise SSSDException("powershell script failed to execute")
     ca_crt = session_multihost.ad[0].get_file_contents('adca.der')
     session_multihost.client[0].put_file_contents('/tmp/adca.der', ca_crt)
     openssl_cmd = 'openssl x509 -inform der -in /tmp/adca.der '\
@@ -318,10 +319,8 @@ def cifsmount(session_multihost, request):
     different permissions
     """
     ad_user = 'idmfoouser1'
-    ad_group = 'idmfoogroup1'
     kinit = 'kinit %s' % ad_user
     server = session_multihost.master[0].sys_hostname.strip().split('.')[0]
-    share_path = '/mnt/samba/share1'
     session_multihost.client[0].run_command(kinit, stdin_text='Secret123')
     mountcifs = "mount -t cifs -o cifsacl "\
                 "-o sec=krb5 -o username=%s //%s/share1"\
@@ -390,8 +389,6 @@ def enable_autofs_schema(session_multihost, request):
     ad_realm = session_multihost.ad[0].realm
     ad_password = session_multihost.ad[0].ssh_password
     ad_client = sssdTools(session_multihost.client[0], session_multihost.ad[0])
-    basedn = session_multihost.ad[0].domain_basedn_entry
-    automount_ou = 'ou=automount,%s' % basedn
     try:
         ad_client.remove_automount()
     except subprocess.CalledProcessError:
@@ -582,7 +579,7 @@ def joinad(session_multihost, request):
     client.disjoin_ad()  # Make sure system is disjoined from AD
     kinit = "kinit Administrator"
     ad_password = session_multihost.ad[0].ssh_password
-    realm_output = client.join_ad()
+    client.join_ad()
     try:
         session_multihost.client[0].service_sssd('restart')
     except SSSDException:
@@ -644,9 +641,6 @@ def winbind_server(session_multihost, request):
 def configure_samba(session_multihost, request):
     """ samba server """
     master = sambaTools(session_multihost.master[0], session_multihost.ad[0])
-    adops = ADOperations(session_multihost.ad[0])
-    share_name = 'share1'
-    share_path = '/mnt/samba/%s' % share_name
     master.add_share_definition('share1', '/mnt/samba/share1')
     master.service_smb(action='restart')
     time.sleep(20)
