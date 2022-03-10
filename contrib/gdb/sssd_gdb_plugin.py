@@ -196,7 +196,7 @@ class TeventBreak(gdb.Command):
             print("Cannot get function address")
             return
 
-        b = gdb.Breakpoint("*%s" % fnaddr)
+        gdb.Breakpoint("*%s" % fnaddr)
 
 
 TeventBreak()

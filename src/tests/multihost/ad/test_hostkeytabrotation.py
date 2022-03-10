@@ -94,8 +94,6 @@ class TestHostKeytabRotation(object):
           2. ldapsearch should be successful
         """
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client_hostname = multihost.client[0].sys_hostname.split('.')[0]
-        realm = multihost.ad[0].realm
         client.reset_machine_password()
         restart_sssd = 'systemctl restart sssd'
         try:

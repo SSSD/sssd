@@ -20,9 +20,6 @@ class TestSanitySudo(object):
         :title: sudo: Verify case sensitivity in sudo responder
         :id: 64ab80be-17fd-4c3b-9d9b-7d07c6279975
         """
-        # pylint: disable=unused-argument
-        _pytest_fixtures = [case_sensitive_sudorule, enable_sss_sudo_nsswitch,
-                            set_case_sensitive_false]
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
                             username='capsuser-1', password='Secret123')
@@ -49,9 +46,6 @@ class TestSanitySudo(object):
          do not crash sssd_sudo
         :id: 532513b2-15bc-46ac-8fc9-19fd0bf485c4
         """
-        # pylint: disable=unused-argument
-        _pytest_fixtures = [enable_sss_sudo_nsswitch, generic_sudorule,
-                            set_entry_cache_sudo_timeout]
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
                             username='foo1', password='Secret123')

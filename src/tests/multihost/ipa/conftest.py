@@ -299,7 +299,6 @@ def default_ipa_users(session_multihost, request):
     def remove_ipa_users():
         """ Remove ipa users foobar1 to foobar10 """
         for i in range(10):
-            user = 'foobar%d' % i
             cmd = 'ipa user-del foobar%d' % i
             session_multihost.master[0].run_command(cmd)
 
@@ -309,7 +308,6 @@ def default_ipa_users(session_multihost, request):
 @pytest.fixture(scope="class")
 def reset_password(session_multihost, request):
     """ Reset passwords for users foobar0 to foobar9 """
-    tools = sssdTools(session_multihost.client[0])
     for i in range(10):
         user = 'foobar%d' % i
         cmd = "echo -e 'RedHat@123\nSecret123\nSecret123' | kinit %s" % user
@@ -423,7 +421,7 @@ def setup_ipa_client(session_multihost, request):
                                                          "admin")
     client_install_cmd = "ipa-client-install %s" % options
     try:
-        cmd = session_multihost.client[0].run_command(client_install_cmd)
+        session_multihost.client[0].run_command(client_install_cmd)
     except subprocess.CalledProcessError:
         pytest.fail("ipa client install failed")
 

@@ -57,7 +57,7 @@ class Analyzer:
         req = request.RequestAnalyzer()
         cli = Analyzer()
 
-        module_parser = req.setup_args(parser_grp, cli)
+        req.setup_args(parser_grp, cli)
 
     def setup_args(self):
         """

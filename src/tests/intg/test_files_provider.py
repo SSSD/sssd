@@ -1049,8 +1049,6 @@ def test_getgrnam_add_remove_ghosts(setup_pw_with_canary,
     """
     Test that a user is linked with a group
     """
-    pwd_ops = setup_pw_with_canary
-
     check_group(GROUP_NOMEM)
 
     modgroup = dict(GROUP_NOMEM)

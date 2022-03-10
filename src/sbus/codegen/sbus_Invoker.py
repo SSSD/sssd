@@ -388,7 +388,6 @@ class InvokerCaller:
 
     @staticmethod
     def IsWanted(interface, member, type):
-        names = []
         if type == "sync":
             return InvokerCaller.IsWantedSync(interface, member)
         elif type == "async":

@@ -421,7 +421,6 @@ class PyHbacRequestTest(unittest.TestCase):
         self.assertEqual(req.rule_name, "allowRule")
 
         # Test that a user not in the rule is not allowed
-        savename = req.user.name
         req.user.name = "someotheruser"
         res = req.evaluate((allow_rule, ))
         self.assertEqual(res, pyhbac.HBAC_EVAL_DENY)

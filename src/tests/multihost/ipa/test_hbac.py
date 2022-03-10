@@ -64,8 +64,7 @@ class Testipahbac(object):
         domain_name = '%s/%s' % ('domain',
                                  sssd_client.get_domain_section_name())
         client_host = multihost.client[0].sys_hostname
-        sshClient1 = pexpect_ssh(client_host, 'foobar1',
-                                 'Secret123', debug=False)
+        pexpect_ssh(client_host, 'foobar1', 'Secret123', debug=False)
         ipa_server.add_hbac_rule('test1', 'foobar1', client_host, 'sshd')
         multihost.client[0].service_sssd('stop')
         sssd_client.remove_sss_cache('/var/lib/sss/db')
@@ -171,8 +170,7 @@ class Testipahbac(object):
         domain_name = '%s/%s' % ('domain',
                                  sssd_client.get_domain_section_name())
         client_host = multihost.client[0].sys_hostname
-        sshClient1 = pexpect_ssh(client_host, 'foobar1',
-                                 'Secret123', debug=False)
+        pexpect_ssh(client_host, 'foobar1', 'Secret123', debug=False)
         multihost.client[0].service_sssd('stop')
         sssd_client.remove_sss_cache('/var/lib/sss/db')
         enable_pvtgroups = {'auto_private_groups': 'True'}

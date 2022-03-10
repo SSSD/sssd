@@ -191,4 +191,4 @@ class TestLdapExtraAttrs(object):
         sssctl_cmd = 'sssctl user-checks foo1@%s' % (ds_instance_name)
         cmd = multihost.client[0].run_command(sssctl_cmd)
         ret = multihost.client[0].service_sssd('status')
-        assert ret == 0
+        assert cmd.returncode == 0 and ret == 0
