@@ -58,7 +58,7 @@ char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name)
 
 
 #define IPA_AD_DEFAULT_RE "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
-                         "((?P<name>[^@]+)@(?P<domain>.+$))|" \
+                         "((?P<name>.+)@(?P<domain>[^@]+$))|" \
                          "(^(?P<name>[^@\\\\]+)$))"
 
 static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
