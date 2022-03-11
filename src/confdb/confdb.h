@@ -98,6 +98,12 @@
 #define CONFDB_RESPONDER_IDLE_TIMEOUT "responder_idle_timeout"
 #define CONFDB_RESPONDER_IDLE_DEFAULT_TIMEOUT 300
 #define CONFDB_RESPONDER_CACHE_FIRST "cache_first"
+#ifdef BUILD_FILES_PROVIDER
+/* There is a subtile issue with this option when 'files' + another domain is enabled */
+#define CONFDB_RESPONDER_CACHE_FIRST_DEFAILT false
+#else
+#define CONFDB_RESPONDER_CACHE_FIRST_DEFAILT true
+#endif
 
 /* NSS */
 #define CONFDB_NSS_CONF_ENTRY "config/nss"
