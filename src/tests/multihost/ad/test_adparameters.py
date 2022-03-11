@@ -555,7 +555,7 @@ class TestBugzillaAutomation(object):
         multihost.client[0].service_sssd('stop')
         userlist = f'root, {aduser2}'
         params2 = {'filter_users': userlist,
-                  'filter_groups': 'root'}
+                   'filter_groups': 'root'}
         client.sssd_conf('nss', params2)
         client.remove_sss_cache('/var/lib/sss/db')
         client.remove_sss_cache('/var/lib/sss/mc')
