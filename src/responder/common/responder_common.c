@@ -1341,7 +1341,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = confdb_get_bool(rctx->cdb, rctx->confdb_service_path,
                           CONFDB_RESPONDER_CACHE_FIRST,
-                          false, &rctx->cache_first);
+                          CONFDB_RESPONDER_CACHE_FIRST_DEFAILT,
+                          &rctx->cache_first);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot get \"cache_first_option\".\n"

@@ -52,6 +52,8 @@ PASSKEY_CONDS = ;build_passkey
 endif
 if BUILD_FILES_PROVIDER
 FILES_PROVIDER_CONDS = ;with_files_provider
+else
+FILES_PROVIDER_CONDS = ;without_files_provider
 endif
 
 
