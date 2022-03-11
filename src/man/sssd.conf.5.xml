@@ -945,8 +945,11 @@
                             This option specifies whether the responder should
                             query all caches before querying the Data Providers.
                         </para>
-                        <para>
+                        <para condition="with_files_provider">
                             Default: false
+                        </para>
+                        <para condition="without_files_provider">
+                            Default: true
                         </para>
                     </listitem>
                 </varlistentry>
