@@ -401,6 +401,46 @@ void test_ad_gpo_parse_sd(void **state)
     talloc_free(sd);
 }
 
+errno_t ad_gpo_parse_ini_file(const char *smb_path, int *_gpt_version);
+
+static const char *reverse_path(TALLOC_CTX *ctx, const char *path)
+{
+    if (!path) return NULL;
+    unsigned len = strlen(path);
+    if (!len) return NULL;
+    if (path[0] != '/') return NULL;
+
+    char *reverse = talloc_size(ctx, len);
+    if (!reverse) return NULL;
+
+    reverse[0] = '/';
+    unsigned pos = 1;
+
+    for (unsigned i = 0; i < len; ++i) {
+        if (path[i] == '/') {
+            reverse[pos] = reverse[pos+1] = '.';
+            reverse[pos+2] = '/';
+            pos += 3;
+        }
+    }
+    reverse[pos] = 0;
+
+    return reverse;
+}
+
+void test_ad_gpo_parse_ini_file(void **state)
+{
+    int version = -1;
+    const char *path;
+
+    path = talloc_asprintf(test_ctx, "%s"ABS_SRC_DIR"/src/tests/cmocka/",
+                           reverse_path(test_ctx, GPO_CACHE_PATH));
+
+    ad_gpo_parse_ini_file(path, &version);
+
+    assert_int_equal(version, 6);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -440,6 +480,9 @@ int main(int argc, const char *argv[])
                                         ad_gpo_test_setup,
                                         ad_gpo_test_teardown),
         cmocka_unit_test_setup_teardown(test_ad_gpo_parse_sd,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_ad_gpo_parse_ini_file,
                                         ad_gpo_test_setup,
                                         ad_gpo_test_teardown),
     };
