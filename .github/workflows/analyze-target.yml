@@ -1,0 +1,27 @@
+name: "Analyze (target)"
+on:
+  pull_request_target:
+    branches: [master]
+
+jobs:
+  cppcheck:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        persist-credentials: false
+
+    - name: Perform cppcheck analysis
+      # This is the commit following v0.0.10
+      uses: linuxdeepin/action-cppcheck@2b799eee1e9939e7bb6d0b1e199c65d21aae4812
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        pull_request_id: ${{ github.event.pull_request.number }}
+        allow_approve: false
+        enable_checks: "warning,unusedFunction,missingInclude"
