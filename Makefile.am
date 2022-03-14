@@ -3001,7 +3001,8 @@ ad_access_filter_tests_LDADD = \
     $(NULL)
 
 ad_gpo_tests_SOURCES = \
-    src/tests/cmocka/test_ad_gpo.c
+    src/tests/cmocka/test_ad_gpo.c \
+    src/providers/ad/ad_gpo_child_utils.c
 ad_gpo_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
@@ -3021,6 +3022,8 @@ ad_gpo_tests_LDADD = \
     libsss_iface.la \
     libsss_sbus.la \
     $(NULL)
+
+dist_noinst_DATA += src/tests/cmocka/GPT.INI
 
 ad_common_tests_SOURCES = \
     $(libsss_krb5_common_la_SOURCES) \
@@ -4603,6 +4606,7 @@ endif
 
 gpo_child_SOURCES = \
     src/providers/ad/ad_gpo_child.c \
+    src/providers/ad/ad_gpo_child_utils.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
