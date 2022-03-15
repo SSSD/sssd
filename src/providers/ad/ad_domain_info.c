@@ -181,6 +181,7 @@ struct ad_domain_info_state {
     struct sdap_id_op *id_op;
     struct sdap_id_ctx *id_ctx;
     struct sdap_options *opts;
+    struct sdap_domain *sdom;
 
     const char *dom_name;
     int base_iter;
@@ -215,6 +216,13 @@ ad_domain_info_send(TALLOC_CTX *mem_ctx,
     state->id_ctx = conn->id_ctx;
     state->opts = conn->id_ctx->opts;
     state->dom_name = dom_name;
+    state->sdom = sdap_domain_get_by_name(state->opts, state->dom_name);
+    if (state->sdom == NULL || state->sdom->search_bases == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing internal domain data.\n");
+        ret = EINVAL;
+        goto immediate;
+    }
+
 
     ret = ad_domain_info_next(req);
     if (ret != EOK && ret != EAGAIN) {
@@ -243,7 +251,7 @@ ad_domain_info_next(struct tevent_req *req)
     struct ad_domain_info_state *state =
         tevent_req_data(req, struct ad_domain_info_state);
 
-    base = state->opts->sdom->search_bases[state->base_iter];
+    base = state->sdom->search_bases[state->base_iter];
     if (base == NULL) {
         return EOK;
     }
