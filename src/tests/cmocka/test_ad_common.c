@@ -227,10 +227,35 @@ static void test_check_if_pac_is_available(void **state)
     "VABFAFMAVAAAAAAAEAAAAOGTj7I9Qn7XebOqdHb///+fHhrZ" \
     "kBt0So4jOFBk84sDAAAAAA=="
 
+#define TEST_PAC_WITH_HAS_SAM_NAME_AND_SID_BASE64 \
+    "BgAAAAAAAAABAAAA2AEAAGgAAAAAAAAACgAAABgAAABAAgAA" \
+    "AAAAAAwAAACIAAAAWAIAAAAAAAAGAAAAEAAAAOACAAAAAAAA" \
+    "BwAAABAAAADwAgAAAAAAABAAAAAQAAAAAAMAAAAAAAABEAgA" \
+    "zMzMzMgBAAAAAAAAAAACAHQG3etmONgB/////////3//////" \
+    "////f1IR75ZZV9cBUtFYwSJY1wH/////////fw4ADgAEAAIA" \
+    "DgAOAAgAAgAAAAAADAACAAAAAAAQAAIAAAAAABQAAgAAAAAA" \
+    "GAACACwAAQDoAwAAAQIAAAEAAAAcAAIAIAAAAAAAAAAAAAAA" \
+    "AAAAAAAAAAAWABgAIAACAA4AEAAkAAIAKAACAAAAAAAAAAAA" \
+    "EAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAA" \
+    "LAACAAAAAAAAAAAAAAAAAAcAAAAAAAAABwAAAHYAYQBnAHIA" \
+    "YQBuAHQAAAAHAAAAAAAAAAcAAABWAGEAZwByAGEAbgB0AAAA" \
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" \
+    "AAAAAAAAAAAAAAAAAQAAAAECAAAHAAAADAAAAAAAAAALAAAA" \
+    "TwBUAEgARQBSAC0AQQBEAC0ARABDAAAACAAAAAAAAAAHAAAA" \
+    "TwBUAEgARQBSAEEARAAAAAQAAAABBAAAAAAABRUAAADjfjpn" \
+    "NKqt8DV6HtgBAAAAMAACAAcAAAABAAAAAQEAAAAAABIBAAAA" \
+    "gOAL92Y42AEOAHYAYQBnAHIAYQBuAHQAJgAYABYAQAADAAAA" \
+    "DgBYABwAaAAAAAAAdgBhAGcAcgBhAG4AdABAAG8AdABoAGUA" \
+    "cgAtAGEAZAAuAHYAbQAAAE8AVABIAEUAUgAtAEEARAAuAFYA" \
+    "TQAAAHYAYQBnAHIAYQBuAHQAAAABBQAAAAAABRUAAADjfjpn" \
+    "NKqt8DV6HtjoAwAAAAAAABAAAACHjVhlIcvUmxiq0L8QAAAA" \
+    "yYHF7QwPjMVsbvTCEAAAAEr+xJAskwH6q5I2uw=="
+
 static void test_ad_get_data_from_pac(void **state)
 {
     int ret;
     struct PAC_LOGON_INFO *logon_info;
+    struct PAC_UPN_DNS_INFO *upn_dns_info;
     uint8_t *test_pac_blob;
     size_t test_pac_blob_size;
 
@@ -242,7 +267,7 @@ static void test_ad_get_data_from_pac(void **state)
     assert_non_null(test_pac_blob_size);
 
     ret = ad_get_data_from_pac(test_ctx, test_pac_blob, test_pac_blob_size,
-                               &logon_info, NULL);
+                               &logon_info, &upn_dns_info);
     assert_int_equal(ret, EOK);
     assert_non_null(logon_info);
     assert_string_equal(logon_info->info3.base.account_name.string, "tu1");
@@ -253,14 +278,21 @@ static void test_ad_get_data_from_pac(void **state)
     assert_string_equal(logon_info->info3.base.logon_domain.string, "AD");
     assert_int_equal(logon_info->info3.sidcount, 1);
 
+    assert_non_null(upn_dns_info);
+    assert_string_equal(upn_dns_info->upn_name, "tu1@ad.devel");
+    assert_string_equal(upn_dns_info->dns_domain_name, "AD.DEVEL");
+    assert_int_equal(upn_dns_info->flags, 0);
+
     talloc_free(test_pac_blob);
     talloc_free(logon_info);
+    talloc_free(upn_dns_info);
 }
 
 static void test_ad_get_sids_from_pac(void **state)
 {
     int ret;
     struct PAC_LOGON_INFO *logon_info;
+    struct PAC_UPN_DNS_INFO *upn_dns_info;
     uint8_t *test_pac_blob;
     size_t test_pac_blob_size;
     char *user_sid;
@@ -292,7 +324,7 @@ static void test_ad_get_sids_from_pac(void **state)
     assert_non_null(test_pac_blob_size);
 
     ret = ad_get_data_from_pac(test_ctx, test_pac_blob, test_pac_blob_size,
-                               &logon_info, NULL);
+                               &logon_info, &upn_dns_info);
     assert_int_equal(ret, EOK);
 
     ret = ad_get_sids_from_pac(test_ctx, idmap_ctx, logon_info, &user_sid,
@@ -315,8 +347,14 @@ static void test_ad_get_sids_from_pac(void **state)
         }
     }
 
+    assert_non_null(upn_dns_info);
+    assert_string_equal(upn_dns_info->upn_name, "tu1@ad.devel");
+    assert_string_equal(upn_dns_info->dns_domain_name, "AD.DEVEL");
+    assert_int_equal(upn_dns_info->flags, 0);
+
     talloc_free(test_pac_blob);
     talloc_free(logon_info);
+    talloc_free(upn_dns_info);
     talloc_free(user_sid);
     talloc_free(primary_group_sid);
     talloc_free(sid_list);
@@ -328,6 +366,7 @@ static void test_ad_get_sids_from_pac_with_resource_groups(void **state)
 {
     int ret;
     struct PAC_LOGON_INFO *logon_info;
+    struct PAC_UPN_DNS_INFO *upn_dns_info;
     uint8_t *test_pac_blob;
     size_t test_pac_blob_size;
     char *user_sid;
@@ -358,7 +397,7 @@ static void test_ad_get_sids_from_pac_with_resource_groups(void **state)
     assert_non_null(test_pac_blob_size);
 
     ret = ad_get_data_from_pac(test_ctx, test_pac_blob, test_pac_blob_size,
-                               &logon_info, NULL);
+                               &logon_info, &upn_dns_info);
     assert_int_equal(ret, EOK);
 
     ret = ad_get_sids_from_pac(test_ctx, idmap_ctx, logon_info, &user_sid,
@@ -381,11 +420,70 @@ static void test_ad_get_sids_from_pac_with_resource_groups(void **state)
         }
     }
 
+    assert_non_null(upn_dns_info);
+    assert_string_equal(upn_dns_info->upn_name, "tuser@win.trust.test");
+    assert_string_equal(upn_dns_info->dns_domain_name, "WIN.TRUST.TEST");
+    assert_int_equal(upn_dns_info->flags, 0);
+
     talloc_free(test_pac_blob);
     talloc_free(logon_info);
+    talloc_free(upn_dns_info);
     talloc_free(user_sid);
     talloc_free(primary_group_sid);
     talloc_free(sid_list);
+    sss_idmap_free(idmap_ctx);
+}
+#endif
+
+#ifdef HAVE_STRUCT_PAC_UPN_DNS_INFO_EX
+static void test_ad_pac_with_has_sam_name_and_sid(void **state)
+{
+    int ret;
+    struct PAC_LOGON_INFO *logon_info;
+    struct PAC_UPN_DNS_INFO *upn_dns_info;
+    uint8_t *test_pac_blob;
+    size_t test_pac_blob_size;
+    char *sid_str = NULL;
+    struct sss_idmap_ctx *idmap_ctx;
+    enum idmap_error_code err;
+
+    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+                                                  struct ad_common_test_ctx);
+
+    err = sss_idmap_init(sss_idmap_talloc, test_ctx, sss_idmap_talloc_free,
+                         &idmap_ctx);
+
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    test_pac_blob = sss_base64_decode(test_ctx, TEST_PAC_WITH_HAS_SAM_NAME_AND_SID_BASE64,
+                                      &test_pac_blob_size);
+    assert_non_null(test_pac_blob_size);
+
+    ret = ad_get_data_from_pac(test_ctx, test_pac_blob, test_pac_blob_size,
+                               &logon_info, &upn_dns_info);
+    assert_int_equal(ret, EOK);
+    assert_non_null(logon_info);
+    assert_string_equal(logon_info->info3.base.account_name.string, "vagrant");
+    assert_string_equal(logon_info->info3.base.full_name.string, "Vagrant");
+    assert_int_equal(logon_info->info3.base.rid, 1000);
+    assert_int_equal(logon_info->info3.base.primary_gid, 513);
+    assert_int_equal(logon_info->info3.base.groups.count, 1);
+    assert_string_equal(logon_info->info3.base.logon_domain.string, "OTHERAD");
+    assert_int_equal(logon_info->info3.sidcount, 1);
+
+    assert_non_null(upn_dns_info);
+    assert_string_equal(upn_dns_info->upn_name, "vagrant@other-ad.vm");
+    assert_string_equal(upn_dns_info->dns_domain_name, "OTHER-AD.VM");
+    assert_int_equal(upn_dns_info->flags, 3);
+    assert_string_equal(upn_dns_info->ex.sam_name_and_sid.samaccountname, "vagrant");
+
+    sss_idmap_smb_sid_to_sid(idmap_ctx, upn_dns_info->ex.sam_name_and_sid.objectsid, &sid_str);
+    assert_string_equal(sid_str, "S-1-5-21-1731886819-4037913140-3625876021-1000");
+
+    talloc_free(test_pac_blob);
+    talloc_free(logon_info);
+    talloc_free(upn_dns_info);
+    talloc_free(sid_str);
     sss_idmap_free(idmap_ctx);
 }
 #endif
@@ -1001,6 +1099,11 @@ int main(int argc, const char *argv[])
                                         test_ad_common_teardown),
 #ifdef HAVE_STRUCT_PAC_LOGON_INFO_RESOURCE_GROUPS
         cmocka_unit_test_setup_teardown(test_ad_get_sids_from_pac_with_resource_groups,
+                                        test_ad_common_setup,
+                                        test_ad_common_teardown),
+#endif
+#ifdef HAVE_STRUCT_PAC_UPN_DNS_INFO_EX
+        cmocka_unit_test_setup_teardown(test_ad_pac_with_has_sam_name_and_sid,
                                         test_ad_common_setup,
                                         test_ad_common_teardown),
 #endif
