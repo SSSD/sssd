@@ -391,6 +391,9 @@ sdap_domain_remove(struct sdap_options *opts,
 struct sdap_domain *sdap_domain_get(struct sdap_options *opts,
                                     struct sss_domain_info *dom);
 
+struct sdap_domain *sdap_domain_get_by_name(struct sdap_options *opts,
+                                            const char *dom_name);
+
 struct sdap_domain *sdap_domain_get_by_dn(struct sdap_options *opts,
                                           const char *dn);
 

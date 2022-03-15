@@ -176,6 +176,51 @@ void test_get_by_dn_fail(void **state)
     do_test_get_by_dn(dn, dns, 1, dns2, 1, DN_NOT_IN_DOMS);
 }
 
+void test_sdap_domain_get_by_name(void **state)
+{
+    struct sdap_options *opts;
+    struct sss_domain_info dom1 = { 0 };
+    dom1.name  = discard_const("dom1");
+    struct sss_domain_info dom2 = { 0 };
+    dom2.name  = discard_const("dom2");
+    struct sss_domain_info dom3 = { 0 };
+    dom3.name  = discard_const("dom3");
+    int ret;
+    struct sdap_domain *sdom;
+
+    opts = talloc_zero(NULL, struct sdap_options);
+    assert_non_null(opts);
+
+    ret = sdap_domain_add(opts, &dom1, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sdap_domain_add(opts, &dom2, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sdap_domain_add(opts, &dom3, NULL);
+    assert_int_equal(ret, EOK);
+
+    sdom = sdap_domain_get_by_name(opts, NULL);
+    assert_null(sdom);
+
+    sdom = sdap_domain_get_by_name(opts, "abc");
+    assert_null(sdom);
+
+    sdom = sdap_domain_get_by_name(opts, "dom1");
+    assert_non_null(sdom);
+    assert_ptr_equal(sdom->dom, &dom1);
+
+    sdom = sdap_domain_get_by_name(opts, "dom2");
+    assert_non_null(sdom);
+    assert_ptr_equal(sdom->dom, &dom2);
+
+    sdom = sdap_domain_get_by_name(opts, "dom3");
+    assert_non_null(sdom);
+    assert_ptr_equal(sdom->dom, &dom3);
+
+    talloc_free(opts);
+}
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -183,7 +228,8 @@ int main(void)
         cmocka_unit_test(test_search_bases_success),
         cmocka_unit_test(test_get_by_dn_fail),
         cmocka_unit_test(test_get_by_dn),
-        cmocka_unit_test(test_get_by_dn2)
+        cmocka_unit_test(test_get_by_dn2),
+        cmocka_unit_test(test_sdap_domain_get_by_name)
      };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

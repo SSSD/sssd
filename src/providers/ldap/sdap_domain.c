@@ -45,6 +45,27 @@ sdap_domain_get(struct sdap_options *opts,
 }
 
 struct sdap_domain *
+sdap_domain_get_by_name(struct sdap_options *opts,
+                        const char *dom_name)
+{
+    struct sdap_domain *sditer = NULL;
+
+    if (dom_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing domain name.\n");
+        return NULL;
+    }
+
+    DLIST_FOR_EACH(sditer, opts->sdom) {
+        if (sditer->dom->name != NULL
+                && strcasecmp(sditer->dom->name, dom_name) == 0) {
+            break;
+        }
+    }
+
+    return sditer;
+}
+
+struct sdap_domain *
 sdap_domain_get_by_dn(struct sdap_options *opts,
                       const char *dn)
 {
