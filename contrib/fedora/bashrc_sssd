@@ -73,6 +73,8 @@ SSS_WARNINGS='-Wall \
               -Wextra \
               -Wno-unused-parameter \
               -Wno-sign-compare \
+              -Wshadow \
+              -Wunused-variable \
               -Wformat-security'
 
 # Build (or finish building) all objects and then run the build-tests against
