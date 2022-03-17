@@ -17,6 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# USER does not have to be defined in containers
+if [ -z $USER ]; then
+    declare -r USER=`id -nu $UID`
+    echo "\$USER is not set, using: $USER"
+fi
+
 set -o nounset -o pipefail -o errexit
 declare -r CI_DIR=`dirname "\`readlink -f \"\$0\"\`"`
 export PATH=$CI_DIR:$PATH
