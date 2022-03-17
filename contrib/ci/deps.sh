@@ -43,7 +43,6 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         rpm-build
         uid_wrapper
         pam_wrapper
-        python-requests
         curl-devel
         krb5-server
         krb5-workstation
@@ -52,16 +51,19 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
 
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-31* ||
           "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
-          "$DISTRO_BRANCH" == -redhat-centos-8.*- ]]; then
+          "$DISTRO_BRANCH" == -redhat-centos*-8*- ]]; then
         DEPS_LIST+=(
             python2
             python2-devel
+            python2-requests
         )
     fi
 
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[1-9]* ||
           "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
-          "$DISTRO_BRANCH" == -redhat-centos-8.*- ]]; then
+          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-9.*- ||
+          "$DISTRO_BRANCH" == -redhat-centos*-8*- ||
+          "$DISTRO_BRANCH" == -redhat-centos*-9*- ]]; then
         DEPS_LIST+=(
             python3-dbus
             python3-ldap
