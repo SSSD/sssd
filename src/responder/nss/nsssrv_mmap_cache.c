@@ -1273,7 +1273,7 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                             enum sss_mc_type type, size_t n_elem,
                             time_t timeout, struct sss_mc_ctx **mcc)
 {
-    /* sss_mc_header alone occupies whole slot,
+    /* sss_mc_rec alone occupies whole slot,
      * so each entry takes 2 slots at the very least
      */
     static const int PAYLOAD_FACTOR = 2;
