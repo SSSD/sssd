@@ -239,6 +239,12 @@ struct sss_names_ctx {
     sss_regexp_t *re;
 };
 
+#define SSS_DEFAULT_RE "(?P<name>[^@]+)@?(?P<domain>[^@]*$)"
+
+#define SSS_IPA_AD_DEFAULT_RE "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
+                              "((?P<name>.+)@(?P<domain>[^@]+$))|" \
+                              "(^(?P<name>[^@\\\\]+)$))"
+
 /* initialize sss_names_ctx directly from arguments */
 int sss_names_init_from_args(TALLOC_CTX *mem_ctx,
                              const char *re_pattern,

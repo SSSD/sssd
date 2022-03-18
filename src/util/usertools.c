@@ -56,11 +56,6 @@ char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name)
     return realm;
 }
 
-
-#define IPA_AD_DEFAULT_RE "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
-                         "((?P<name>.+)@(?P<domain>[^@]+$))|" \
-                         "(^(?P<name>[^@\\\\]+)$))"
-
 static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
                                           struct confdb_ctx *cdb,
                                           const char *conf_path,
@@ -73,8 +68,8 @@ static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
     struct provider_default_re {
         const char *name;
         const char *re;
-    } provider_default_re[] = {{"ipa", IPA_AD_DEFAULT_RE},
-                               {"ad", IPA_AD_DEFAULT_RE},
+    } provider_default_re[] = {{"ipa", SSS_IPA_AD_DEFAULT_RE},
+                               {"ad", SSS_IPA_AD_DEFAULT_RE},
                                {NULL, NULL}};
 
     ret = confdb_get_string(cdb, mem_ctx, conf_path, CONFDB_DOMAIN_ID_PROVIDER,
@@ -224,8 +219,7 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
     }
 
     if (!re_pattern) {
-        re_pattern = talloc_strdup(tmpctx,
-                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)");
+        re_pattern = talloc_strdup(tmpctx, SSS_DEFAULT_RE);
         if (!re_pattern) {
             ret = ENOMEM;
             goto done;
@@ -263,7 +257,7 @@ done:
 int sss_ad_default_names_ctx(TALLOC_CTX *mem_ctx,
                              struct sss_names_ctx **_out)
 {
-    return sss_names_init_from_args(mem_ctx, IPA_AD_DEFAULT_RE,
+    return sss_names_init_from_args(mem_ctx, SSS_IPA_AD_DEFAULT_RE,
                                     CONFDB_DEFAULT_FULL_NAME_FORMAT,
                                     _out);
 }
