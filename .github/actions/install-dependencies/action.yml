@@ -5,6 +5,4 @@ runs:
   steps:
   - shell: bash
     run: |
-      cd contrib/ci/
-      . deps.sh
-      deps_install
+      sudo ./contrib/ci/run --deps-only
