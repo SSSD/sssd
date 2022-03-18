@@ -10,7 +10,6 @@ import subprocess
 import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
-import re
 from constants import ds_instance_name
 
 
