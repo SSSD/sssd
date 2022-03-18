@@ -530,8 +530,7 @@ class SSSDChangeConf(IPAChangeConf):
         optkw.append({'type': 'empty', 'value': 'empty'})
         addkw = {'type': 'section',
                  'name': name,
-                 'value': optkw,
-                }
+                 'value': optkw}
         self.opts.insert(index, addkw)
 
     def delete_section(self, name):
