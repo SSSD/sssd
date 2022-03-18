@@ -14,9 +14,8 @@ It accepts options to choose from three test sets: "essential", "moderate" and
 Essential tests include building everything and running the built-in test
 suite under Valgrind, completing in under 5 minutes.
 
-Moderate tests include essential tests, plus a distcheck target build and mock
-package builds for Fedora and RHEL on Red Hat distros. They complete in about
-15 minutes.
+Moderate tests include essential tests, plus a distcheck target build. They
+complete in about 15 minutes.
 
 Rigorous tests include moderate tests, plus a pass with Clang static analyzer
 over the whole build and test execution with code coverage collection and
@@ -59,15 +58,6 @@ apt-get on Debian, so CI can request non-interactive package installation:
 
     Defaults!/usr/bin/apt-get env_keep += "DEBIAN_FRONTEND"
 
-On Red Hat distros a repository carrying dependencies missing from some
-distros needs to be added to yum configuration. See instructions on the
-[Copr project page](http://copr-fe.cloud.fedoraproject.org/coprs/lslebodn/sssd-deps/).
-That repository is also automatically used by CI during mock builds.
-
 Package installation can be disabled with the -n/--no-deps option, e.g.  for
 manual dependency management, or for shaving off a few seconds of execution
 time, when dependency changes are not expected.
-
-On Red Hat distros, where mock builds are ran, it is better to have the
-invoking user added to the `mock` group. Otherwise mock builds will be
-executed through sudo.
