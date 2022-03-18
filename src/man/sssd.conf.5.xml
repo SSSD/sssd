@@ -1234,6 +1234,33 @@ fallback_homedir = /home/%u
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>memcache_size_sid (integer)</term>
+                    <listitem>
+                        <para>
+                            Size (in megabytes) of the data table allocated inside
+                            fast in-memory cache for SID related requests.
+                            Only SID-by-ID and ID-by-SID requests are currently
+                            cached in fast in-memory cache.
+                            Setting the size to 0 will disable the SID
+                            in-memory cache.
+                        </para>
+                        <para>
+                            Default: 6
+                        </para>
+                        <para>
+                            WARNING: Disabled or too small in-memory cache can
+                            have significant negative impact on SSSD's
+                            performance.
+                        </para>
+                        <para>
+                            NOTE: If the environment variable
+                            SSS_NSS_USE_MEMCACHE is set to "NO", client
+                            applications will not use the fast in-memory
+                            cache.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>user_attributes (string)</term>
                     <listitem>
                         <para>

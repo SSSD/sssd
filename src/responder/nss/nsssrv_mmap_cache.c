@@ -380,6 +380,8 @@ static const char *mc_type_to_str(enum sss_mc_type type)
         return "GROUP";
     case SSS_MC_INITGROUPS:
         return "INITGROUPS";
+    case SSS_MC_SID:
+        return "SID";
     default:
         return "-UNKNOWN-";
     }

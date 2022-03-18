@@ -29,6 +29,7 @@ enum sss_mc_type {
     SSS_MC_PASSWD,
     SSS_MC_GROUP,
     SSS_MC_INITGROUPS,
+    SSS_MC_SID,
 };
 
 errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,

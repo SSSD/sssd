@@ -255,12 +255,14 @@ static int setup_memcaches(struct nss_ctx *nctx)
     static const size_t SSS_MC_CACHE_PASSWD_SIZE    =  8;
     static const size_t SSS_MC_CACHE_GROUP_SIZE     =  6;
     static const size_t SSS_MC_CACHE_INITGROUP_SIZE = 10;
+    static const size_t SSS_MC_CACHE_SID_SIZE       =  6;
 
     int ret;
     int memcache_timeout;
     int mc_size_passwd;
     int mc_size_group;
     int mc_size_initgroups;
+    int mc_size_sid;
 
     /* Remove the CLEAR_MC_FLAG file if exists. */
     ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
@@ -282,7 +284,7 @@ static int setup_memcaches(struct nss_ctx *nctx)
         return ret;
     }
 
-    /* Get all memcache sizes from confdb (pwd, grp, initgr) */
+    /* Get all memcache sizes from confdb (pwd, grp, initgr, sid) */
 
     ret = confdb_get_int(nctx->rctx->cdb,
                          CONFDB_NSS_CONF_ENTRY,
@@ -316,6 +318,18 @@ static int setup_memcaches(struct nss_ctx *nctx)
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to get '"CONFDB_NSS_MEMCACHE_SIZE_INITGROUPS
+              "' option from confdb.\n");
+        return ret;
+    }
+
+    ret = confdb_get_int(nctx->rctx->cdb,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_MEMCACHE_SIZE_SID,
+                         SSS_MC_CACHE_SID_SIZE,
+                         &mc_size_sid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get '"CONFDB_NSS_MEMCACHE_SIZE_SID
               "' option from confdb.\n");
         return ret;
     }
@@ -355,6 +369,18 @@ static int setup_memcaches(struct nss_ctx *nctx)
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to initialize initgroups mmap cache: '%s'\n",
+              sss_strerror(ret));
+    }
+
+    ret = sss_mmap_cache_init(nctx, "sid",
+                              nctx->mc_uid, nctx->mc_gid,
+                              SSS_MC_SID,
+                              mc_size_sid * SSS_MC_CACHE_SLOTS_PER_MB,
+                              (time_t)memcache_timeout,
+                              &nctx->sid_mc_ctx);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize sid mmap cache: '%s'\n",
               sss_strerror(ret));
     }
 
