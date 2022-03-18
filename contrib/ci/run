@@ -155,20 +155,6 @@ function stage()
     return "$status"
 }
 
-# Execute mock as is, or, if the user is not in the "mock" group, under sudo,
-# which has password prompt/input on the console, instead of stderr/stdin.
-# Args: [mock_arg...]
-function mock_privileged()
-{
-    if memberof mock; then
-        mock "$@"
-    else
-        declare prompt=$'Not a "mock" group member.\n'
-        prompt+="To run mock enter sudo password for $USER: "
-        sudo -p "$prompt" mock "$@"
-    fi
-}
-
 # Run debug build checks.
 function build_debug()
 {
@@ -232,13 +218,6 @@ function build_debug()
                 status=$?
         mv "$test_dir_distcheck" ci-test-dir-distcheck
         ((status == 0))
-
-        if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
-            stage make-srpm     env -u CFLAGS -- make srpm
-            stage mock-build    mock_privileged  \
-                                     --resultdir ci-mock-result \
-                                     rpmbuild/SRPMS/*.src.rpm
-        fi
     fi
 
     unset CFLAGS

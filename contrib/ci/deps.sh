@@ -37,7 +37,6 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         fakeroot
         libfaketime
         libcmocka-devel
-        mock
         nss_wrapper
         openldap-clients
         openldap-servers
