@@ -116,6 +116,7 @@
 #define CONFDB_NSS_MEMCACHE_SIZE_PASSWD "memcache_size_passwd"
 #define CONFDB_NSS_MEMCACHE_SIZE_GROUP "memcache_size_group"
 #define CONFDB_NSS_MEMCACHE_SIZE_INITGROUPS "memcache_size_initgroups"
+#define CONFDB_NSS_MEMCACHE_SIZE_SID "memcache_size_sid"
 #define CONFDB_NSS_HOMEDIR_SUBSTRING "homedir_substring"
 #define CONFDB_DEFAULT_HOMEDIR_SUBSTRING "/home"
 
