@@ -55,6 +55,7 @@ declare PEP8_IGNORE="--ignore=E121,E123,E126,E226,E24,E704,W503,W504,W605"
 declare PEP8_MAX_LENGTH="--max-line-length=119"
 declare BASE_PFX=""
 declare DEPS=true
+declare DEPS_ONLY=false
 declare BASE_DIR=`pwd`
 declare MODERATE=false
 declare RIGOROUS=false
@@ -83,6 +84,7 @@ Options:
     -p, --prefix=STRING Use STRING as the prefix to prepend to file and
                         directory paths in output.
     -n, --no-deps       Don't attempt to install dependencies.
+    -d, --deps-only     Only install dependencies, don't run tests.
     -e, --essential     Run the essential subset of tests.
     -m, --moderate      Run the moderate subset of tests.
     -r, --rigorous,
@@ -320,8 +322,8 @@ function run_build()
 #
 declare args_expr
 args_expr=`getopt --name \`basename "\$0"\` \
-                  --options hp:nemrf \
-                  --longoptions help,prefix:,no-deps \
+                  --options hp:dnemrf \
+                  --longoptions help,prefix:,no-deps,deps-only \
                   --longoptions essential,moderate,rigorous,full \
                   -- "$@"`
 eval set -- "$args_expr"
@@ -332,6 +334,8 @@ while true; do
             usage;          exit 0;;
         -p|--prefix)
             BASE_PFX="$2";  shift 2;;
+        -d|--deps-only)
+            DEPS_ONLY=true; shift;;
         -n|--no-deps)
             DEPS=false;     shift;;
         -e|--essential)
@@ -360,6 +364,13 @@ export V=1
 if "$DEPS"; then
     stage install-deps  deps_install
 fi
+
+if "$DEPS_ONLY"; then
+    unset V
+    trap - EXIT
+    exit
+fi
+
 if [[ "$DISTRO_BRANCH" != redhat-* ]]; then
     # Ignore "E722 do not use bare except" exceptions
     # that are only raised on debian_testing machines.
