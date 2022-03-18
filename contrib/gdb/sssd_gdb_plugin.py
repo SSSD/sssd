@@ -125,7 +125,7 @@ class SysdbAttrsPrinter(StringPrinter):
 # --- register pretty printers ---
 # ---
 @gdb_printer_decorator
-def ldb_val_element_printer(val):
+def ldb_dn_element_printer(val):
     if str(val.type) == 'struct ldb_dn':
         return LdbDnPrinter(val)
     return None
