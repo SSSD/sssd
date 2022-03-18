@@ -915,12 +915,11 @@ struct name_init_test_ctx {
 };
 
 #define GLOBAL_FULL_NAME_FORMAT "%1$s@%2$s"
-#define GLOBAL_RE_EXPRESSION "(?P<name>[^@]+)@?(?P<domain>[^@]*$)"
-
-#define TEST_DOMAIN_NAME "test.dom"
+#define TEST_DOMAIN_NAME_LDAP "test.dom"
+#define TEST_DOMAIN_NAME_IPA "test.ipa"
+#define TEST_DOMAIN_NAMES TEST_DOMAIN_NAME_LDAP "," TEST_DOMAIN_NAME_IPA
 #define DOMAIN_FULL_NAME_FORMAT "%3$s\\%1$s"
-#define DOMAIN_RE_EXPRESSION "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
-                             "((?P<name>[^@]+)@(?P<domain>.+$))|" \
+#define DOMAIN_RE_EXPRESSION "(((?P<name>[^@]+)@(?P<domain>.+$))|" \
                              "(^(?P<name>[^@\\\\]+)$))"
 
 static int confdb_test_setup(void **state)
@@ -945,7 +944,7 @@ static int confdb_test_setup(void **state)
 
     talloc_free(conf_db);
 
-    val[0] = TEST_DOMAIN_NAME;
+    val[0] = TEST_DOMAIN_NAMES;
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);
     assert_int_equal(ret, EOK);
@@ -955,12 +954,12 @@ static int confdb_test_setup(void **state)
                            "config/sssd", "full_name_format", val);
     assert_int_equal(ret, EOK);
 
-    val[0] = GLOBAL_RE_EXPRESSION;
+    val[0] = SSS_DEFAULT_RE;
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "re_expression", val);
     assert_int_equal(ret, EOK);
 
-    dompath = talloc_asprintf(test_ctx, "config/domain/%s", TEST_DOMAIN_NAME);
+    dompath = talloc_asprintf(test_ctx, "config/domain/%s", TEST_DOMAIN_NAME_LDAP);
     assert_non_null(dompath);
 
     val[0] = "ldap";
@@ -974,6 +973,26 @@ static int confdb_test_setup(void **state)
     assert_int_equal(ret, EOK);
 
     val[0] = DOMAIN_RE_EXPRESSION;
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           dompath, "re_expression", val);
+    assert_int_equal(ret, EOK);
+
+    talloc_free(dompath);
+
+    dompath = talloc_asprintf(test_ctx, "config/domain/%s", TEST_DOMAIN_NAME_IPA);
+    assert_non_null(dompath);
+
+    val[0] = "ipa";
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           dompath, "id_provider", val);
+    assert_int_equal(ret, EOK);
+
+    val[0] = DOMAIN_FULL_NAME_FORMAT;
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           dompath, "full_name_format", val);
+    assert_int_equal(ret, EOK);
+
+    val[0] = SSS_IPA_AD_DEFAULT_RE;
     ret = confdb_add_param(test_ctx->confdb, true,
                            dompath, "re_expression", val);
     assert_int_equal(ret, EOK);
@@ -1008,17 +1027,63 @@ void test_sss_names_init(void **state)
     ret = sss_names_init(test_ctx, test_ctx->confdb, NULL, &names_ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(names_ctx);
-    assert_string_equal(names_ctx->re_pattern, GLOBAL_RE_EXPRESSION);
+    assert_string_equal(names_ctx->re_pattern, SSS_DEFAULT_RE);
     assert_string_equal(names_ctx->fq_fmt, GLOBAL_FULL_NAME_FORMAT);
 
     talloc_free(names_ctx);
 
-    ret = sss_names_init(test_ctx, test_ctx->confdb, TEST_DOMAIN_NAME,
+    ret = sss_names_init(test_ctx, test_ctx->confdb, TEST_DOMAIN_NAME_LDAP,
                          &names_ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(names_ctx);
     assert_string_equal(names_ctx->re_pattern, DOMAIN_RE_EXPRESSION);
     assert_string_equal(names_ctx->fq_fmt, DOMAIN_FULL_NAME_FORMAT);
+
+    talloc_free(names_ctx);
+}
+
+void test_sss_names_ipa_ad_regexp(void **state)
+{
+    struct name_init_test_ctx *test_ctx;
+    struct sss_names_ctx *names_ctx;
+    char *name;
+    char *domain;
+    int ret;
+
+    test_ctx = talloc_get_type(*state, struct name_init_test_ctx);
+
+    ret = sss_names_init(test_ctx, test_ctx->confdb, TEST_DOMAIN_NAME_IPA,
+                         &names_ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(names_ctx);
+    assert_non_null(names_ctx->re_pattern);
+
+    ret = sss_parse_name(names_ctx, names_ctx, "user@domain", &domain, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(name, "user");
+    assert_string_equal(domain, "domain");
+    talloc_free(name);
+    talloc_free(domain);
+
+    ret = sss_parse_name(names_ctx, names_ctx, "mail@group@domain", &domain, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(name, "mail@group");
+    assert_string_equal(domain, "domain");
+    talloc_free(name);
+    talloc_free(domain);
+
+    ret = sss_parse_name(names_ctx, names_ctx, "domain\\user", &domain, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(name, "user");
+    assert_string_equal(domain, "domain");
+    talloc_free(name);
+    talloc_free(domain);
+
+    ret = sss_parse_name(names_ctx, names_ctx, "user", &domain, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(name, "user");
+    assert_null(domain);
+    talloc_free(name);
 
     talloc_free(names_ctx);
 }
@@ -2105,6 +2170,9 @@ int main(int argc, const char *argv[])
                                         setup_dom_list, teardown_dom_list),
 
         cmocka_unit_test_setup_teardown(test_sss_names_init,
+                                        confdb_test_setup,
+                                        confdb_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_names_ipa_ad_regexp,
                                         confdb_test_setup,
                                         confdb_test_teardown),
 
