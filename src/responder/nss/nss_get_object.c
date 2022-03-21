@@ -363,6 +363,22 @@ static void nss_get_object_finish_req(struct tevent_req *req,
 
     state = tevent_req_data(req, struct nss_get_object_state);
 
+    /*  - SIDs are unique between domains, so there are no other entries
+     *    to delete in 'EOK' case.
+     *  - Since request hits nss-responder, there is already no valid entry
+     *    in the mem-cache to delete (*) in 'ENOENT' case.
+     *    (*) This is possible in theory:
+     *      - entry is valid in the mem-cache and
+     *      - entry is expired in ldb-cache and
+     *      - object was deleted on the server and
+     *      - SSS_NSS_USE_MEMCACHE=NO is used by the client,
+     *      but it is so unrealistic that it's not worth bothering.
+     */
+     if (state->memcache == SSS_MC_SID) {
+         (ret == EOK) ? tevent_req_done(req) : tevent_req_error(req, ret);
+         return;
+     }
+
     switch (ret) {
     case EOK:
         if (state->memcache != SSS_MC_NONE) {

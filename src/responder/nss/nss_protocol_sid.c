@@ -91,6 +91,7 @@ static errno_t
 nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
                     struct cache_req_result *result,
                     const char **_sid,
+                    uint64_t *_id,
                     enum sss_id_type *_type)
 {
     errno_t ret;
@@ -110,7 +111,17 @@ nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
             DEBUG(SSSDBG_CRIT_FAILURE, "Missing SID.\n");
             return EINVAL;
         }
-        return nss_get_id_type(cmd_ctx, result, _type);
+        ret = nss_get_id_type(cmd_ctx, result, _type);
+        if (ret == EOK ) {
+            if (*_type == SSS_ID_TYPE_GID) {
+                *_id = ldb_msg_find_attr_as_uint64(result->msgs[0],
+                                                   SYSDB_GIDNUM, 0);
+            } else {
+                *_id = ldb_msg_find_attr_as_uint64(result->msgs[0],
+                                                   SYSDB_UIDNUM, 0);
+            }
+        }
+        return ret;
     }
 
     for (c = 0; c < result->count; c++) {
@@ -163,15 +174,18 @@ nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
     } else if (user_sid != NULL && group_sid == NULL) {
         /* There is only one user with a SID in the results */
         *_sid = user_sid;
+        *_id = user_uid;
         *_type = SSS_ID_TYPE_UID;
     } else if (user_sid == NULL && group_sid != NULL) {
         /* There is only one group with a SID in the results */
         *_sid = group_sid;
+        *_id = group_gid;
         *_type = SSS_ID_TYPE_GID;
     } else if (user_sid != NULL && group_sid != NULL && user_uid != 0
                     && user_uid == user_gid && user_gid == group_gid) {
         /* Manually created user-private-group */
         *_sid = user_sid;
+        *_id = user_uid;
         *_type = SSS_ID_TYPE_UID;
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -195,12 +209,13 @@ nss_protocol_fill_sid(struct nss_ctx *nss_ctx,
     struct sized_string sz_sid;
     enum sss_id_type id_type;
     const char *sid;
+    uint64_t id;
     size_t rp = 0;
     size_t body_len;
     uint8_t *body;
     errno_t ret;
 
-    ret = nss_get_sid_id_type(cmd_ctx, result, &sid, &id_type);
+    ret = nss_get_sid_id_type(cmd_ctx, result, &sid, &id, &id_type);
     if (ret != EOK) {
         return ret;
     }
@@ -219,6 +234,23 @@ nss_protocol_fill_sid(struct nss_ctx *nss_ctx,
     SAFEALIGN_SET_UINT32(&body[rp], 0, &rp); /* Reserved. */
     SAFEALIGN_SET_UINT32(&body[rp], id_type, &rp);
     SAFEALIGN_SET_STRING(&body[rp], sz_sid.str, sz_sid.len, &rp);
+
+    if (nss_ctx->sid_mc_ctx != NULL) {
+        /* no need to check for SSS_NSS_EX_FLAG_INVALIDATE_CACHE since
+         * SID related requests don't support 'flags'
+         */
+        if (id == 0 || id >= UINT32_MAX) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid POSIX ID %lu\n", id);
+            return EOK;
+        }
+        ret = sss_mmap_cache_sid_store(&nss_ctx->sid_mc_ctx, &sz_sid,
+                                       (uint32_t)id, id_type);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to store SID='%s' / ID=%lu in mmap cache [%d]: %s!\n",
+                  sz_sid.str, id, ret, sss_strerror(ret));
+        }
+    }
 
     return EOK;
 }
@@ -556,6 +588,8 @@ nss_protocol_fill_id(struct nss_ctx *nss_ctx,
     enum sss_id_type id_type;
     uint64_t id64;
     uint32_t id;
+    const char *sid = NULL;
+    struct sized_string sid_key;
     size_t rp = 0;
     size_t body_len;
     uint8_t *body;
@@ -596,6 +630,24 @@ nss_protocol_fill_id(struct nss_ctx *nss_ctx,
     SAFEALIGN_SET_UINT32(&body[rp], 0, &rp); /* Reserved. */
     SAFEALIGN_SET_UINT32(&body[rp], id_type, &rp);
     SAFEALIGN_SET_UINT32(&body[rp], id, &rp);
+
+    if (nss_ctx->sid_mc_ctx != NULL) {
+        /* no need to check for SSS_NSS_EX_FLAG_INVALIDATE_CACHE since
+         * SID related requests don't support 'flags'
+         */
+        sid = ldb_msg_find_attr_as_string(msg, SYSDB_SID_STR, NULL);
+        if (!sid) {
+            DEBUG(SSSDBG_OP_FAILURE, "Missing SID?!\n");
+            return EOK;
+        }
+        to_sized_string(&sid_key, sid);
+        ret = sss_mmap_cache_sid_store(&nss_ctx->sid_mc_ctx, &sid_key, id, id_type);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to store SID='%s' / ID=%d in mmap cache [%d]: %s!\n",
+                  sid, id, ret, sss_strerror(ret));
+        }
+    }
 
     return EOK;
 }
