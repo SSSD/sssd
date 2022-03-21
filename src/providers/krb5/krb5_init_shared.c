@@ -71,6 +71,12 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
         goto done;
     }
 
+    ret = get_pac_check_config(bectx->cdb, &krb5_auth_ctx->check_pac_flags);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to get pac_check option.\n");
+        goto done;
+    }
+
     ret = parse_krb5_map_user(krb5_auth_ctx,
                               dp_opt_get_cstring(krb5_auth_ctx->opts,
                                                  KRB5_MAP_USER),
