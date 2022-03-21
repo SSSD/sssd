@@ -38,42 +38,42 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                             time_t valid_time, struct sss_mc_ctx **mcc);
 
 errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
-                                struct sized_string *name,
-                                struct sized_string *pw,
+                                const struct sized_string *name,
+                                const struct sized_string *pw,
                                 uid_t uid, gid_t gid,
-                                struct sized_string *gecos,
-                                struct sized_string *homedir,
-                                struct sized_string *shell);
+                                const struct sized_string *gecos,
+                                const struct sized_string *homedir,
+                                const struct sized_string *shell);
 
 errno_t sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
-                                struct sized_string *name,
-                                struct sized_string *pw,
+                                const struct sized_string *name,
+                                const struct sized_string *pw,
                                 gid_t gid, size_t memnum,
-                                char *membuf, size_t memsize);
+                                const char *membuf, size_t memsize);
 
 errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
-                                    struct sized_string *name,
-                                    struct sized_string *unique_name,
+                                    const struct sized_string *name,
+                                    const struct sized_string *unique_name,
                                     uint32_t num_groups,
-                                    uint8_t *gids_buf);
+                                    const uint8_t *gids_buf);
 
 errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
-                                 struct sized_string *sid,
+                                 const struct sized_string *sid,
                                  uint32_t id,
                                  uint32_t type);  /* enum sss_id_type*/
 
 errno_t sss_mmap_cache_pw_invalidate(struct sss_mc_ctx *mcc,
-                                     struct sized_string *name);
+                                     const struct sized_string *name);
 
 errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid);
 
 errno_t sss_mmap_cache_gr_invalidate(struct sss_mc_ctx *mcc,
-                                     struct sized_string *name);
+                                     const struct sized_string *name);
 
 errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid);
 
 errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx *mcc,
-                                         struct sized_string *name);
+                                         const struct sized_string *name);
 
 errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx,
                               uid_t uid, gid_t gid,

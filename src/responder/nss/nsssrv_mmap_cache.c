@@ -535,7 +535,7 @@ static errno_t sss_mc_get_strs_len(struct sss_mc_ctx *mcc,
 }
 
 static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
-                                             struct sized_string *key)
+                                             const struct sized_string *key)
 {
     struct sss_mc_rec *rec = NULL;
     uint32_t hash;
@@ -619,7 +619,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
 
 static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
                                  size_t rec_len,
-                                 struct sized_string *key,
+                                 const struct sized_string *key,
                                  struct sss_mc_rec **_rec)
 {
     struct sss_mc_ctx *mcc = *_mcc;
@@ -705,7 +705,7 @@ static inline void sss_mmap_chain_in_rec(struct sss_mc_ctx *mcc,
  ***************************************************************************/
 
 static errno_t sss_mmap_cache_invalidate(struct sss_mc_ctx *mcc,
-                                         struct sized_string *key)
+                                         const struct sized_string *key)
 {
     struct sss_mc_rec *rec;
 
@@ -730,12 +730,12 @@ static errno_t sss_mmap_cache_invalidate(struct sss_mc_ctx *mcc,
  ***************************************************************************/
 
 errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
-                                struct sized_string *name,
-                                struct sized_string *pw,
+                                const struct sized_string *name,
+                                const struct sized_string *pw,
                                 uid_t uid, gid_t gid,
-                                struct sized_string *gecos,
-                                struct sized_string *homedir,
-                                struct sized_string *shell)
+                                const struct sized_string *gecos,
+                                const struct sized_string *homedir,
+                                const struct sized_string *shell)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -804,7 +804,7 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
 }
 
 errno_t sss_mmap_cache_pw_invalidate(struct sss_mc_ctx *mcc,
-                                     struct sized_string *name)
+                                     const struct sized_string *name)
 {
     return sss_mmap_cache_invalidate(mcc, name);
 }
@@ -874,10 +874,10 @@ done:
  ***************************************************************************/
 
 int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
-                            struct sized_string *name,
-                            struct sized_string *pw,
+                            const struct sized_string *name,
+                            const struct sized_string *pw,
                             gid_t gid, size_t memnum,
-                            char *membuf, size_t memsize)
+                            const char *membuf, size_t memsize)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -942,7 +942,7 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
 }
 
 errno_t sss_mmap_cache_gr_invalidate(struct sss_mc_ctx *mcc,
-                                     struct sized_string *name)
+                                     const struct sized_string *name)
 {
     return sss_mmap_cache_invalidate(mcc, name);
 }
@@ -1008,10 +1008,10 @@ done:
 }
 
 errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
-                                    struct sized_string *name,
-                                    struct sized_string *unique_name,
+                                    const struct sized_string *name,
+                                    const struct sized_string *unique_name,
                                     uint32_t num_groups,
-                                    uint8_t *gids_buf)
+                                    const uint8_t *gids_buf)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -1075,13 +1075,13 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
 }
 
 errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx *mcc,
-                                         struct sized_string *name)
+                                         const struct sized_string *name)
 {
     return sss_mmap_cache_invalidate(mcc, name);
 }
 
 errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
-                                 struct sized_string *sid,
+                                 const struct sized_string *sid,
                                  uint32_t id,
                                  uint32_t type)
 {
