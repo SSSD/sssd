@@ -134,8 +134,8 @@ nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
             }
             if (tmp != NULL && group_sid != NULL) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "Search for SID found multiple users with a SID, "
-                      "request failed.\n");
+                      "Search for SID found multiple groups with SIDs: %s, %s;"
+                      " request failed.\n", tmp, group_sid);
                 return EINVAL;
             }
             group_sid = tmp;
@@ -149,8 +149,8 @@ nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
             }
             if (tmp != NULL && user_sid != NULL) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "Search for SID found multiple users with a SID, "
-                      "request failed.\n");
+                      "Search for SID found multiple users with SIDs: %s, %s; "
+                      "request failed.\n", tmp, user_sid);
                 return EINVAL;
             }
             user_sid = tmp;
