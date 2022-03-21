@@ -1621,6 +1621,7 @@ sssd_pac_SOURCES = \
     src/responder/pac/pacsrv.c \
     src/responder/pac/pacsrv_cmd.c \
     src/providers/ad/ad_pac_common.c \
+    src/util/pac_utils.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_pac_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4240,6 +4241,7 @@ libsss_krb5_common_la_SOURCES = \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
     src/util/become_user.c \
+    src/util/pac_utils.c \
     $(NULL)
 libsss_krb5_common_la_CFLAGS = \
     $(AM_CFLAGS) \
