@@ -138,8 +138,7 @@ errno_t ad_gpo_parse_ini_file(const char *smb_path, int *_gpt_version)
         goto done;
     }
 
-    ini_filename = talloc_asprintf(tmp_ctx, GPO_CACHE_PATH"%s%s",
-                                   smb_path, GPT_INI);
+    ini_filename = talloc_asprintf(tmp_ctx, "%s%s", smb_path, GPT_INI);
     if (ini_filename == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;

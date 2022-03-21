@@ -578,6 +578,13 @@ perform_smb_operations(int cached_gpt_version,
     SMBCCTX *smbc_ctx;
     int ret;
     int sysvol_gpt_version;
+    char *smb_cache_path = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
 
     smbc_ctx = smbc_new_context();
     if (smbc_ctx == NULL) {
@@ -607,7 +614,15 @@ perform_smb_operations(int cached_gpt_version,
         goto done;
     }
 
-    ret = ad_gpo_parse_ini_file(smb_path, &sysvol_gpt_version);
+    smb_cache_path = talloc_asprintf(tmp_ctx, "%s%s",
+                                     GPO_CACHE_PATH, smb_path);
+    if (smb_cache_path == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ad_gpo_parse_ini_file(smb_cache_path, &sysvol_gpt_version);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot parse ini file: [%d][%s]\n", ret, strerror(ret));
@@ -632,6 +647,7 @@ perform_smb_operations(int cached_gpt_version,
     *_sysvol_gpt_version = sysvol_gpt_version;
 
  done:
+    talloc_free(tmp_ctx);
     smbc_free_context(smbc_ctx, 0);
     return ret;
 }

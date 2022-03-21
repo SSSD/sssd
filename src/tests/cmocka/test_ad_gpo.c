@@ -433,8 +433,8 @@ void test_ad_gpo_parse_ini_file(void **state)
     int version = -1;
     const char *path;
 
-    path = talloc_asprintf(test_ctx, "%s"ABS_SRC_DIR"/src/tests/cmocka/",
-                           reverse_path(test_ctx, GPO_CACHE_PATH));
+    path = talloc_asprintf(test_ctx, "%s%s",
+                           ABS_SRC_DIR, "/src/tests/cmocka/");
 
     ad_gpo_parse_ini_file(path, &version);
 
