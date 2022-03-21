@@ -147,6 +147,7 @@ struct krb5_ctx {
     const char *use_fast_str;
     const char *fast_principal;
     bool fast_use_anonymous_pkinit;
+    uint32_t check_pac_flags;
 
     bool canonicalize;
 };

@@ -66,6 +66,7 @@ struct cli_opts {
     char *rtime;
     char *use_fast_str;
     char *fast_principal;
+    uint32_t check_pac_flags;
     bool canonicalize;
     bool fast_use_anonymous_pkinit;
 };
@@ -228,6 +229,13 @@ static errno_t sss_send_pac(krb5_authdata **pac_authdata)
 
     ret = sss_pac_make_request(SSS_PAC_ADD_PAC_USER, &sss_data,
                                NULL, NULL, &errnop);
+    DEBUG(SSSDBG_TRACE_ALL,
+          "NSS return code [%d], request return code [%d][%s].\n", ret,
+          errnop, sss_strerror(errnop));
+    if (errnop == ERR_CHECK_PAC_FAILED) {
+        return ERR_CHECK_PAC_FAILED;
+    }
+
     if (ret == NSS_STATUS_UNAVAIL) {
         DEBUG(SSSDBG_MINOR_FAILURE, "failed to contact PAC responder\n");
         return EIO;
@@ -1683,20 +1691,48 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
 
     /* Try to find and send the PAC to the PAC responder.
      * Failures are not critical. */
-    if (kr->send_pac) {
+    if (kr->send_pac || kr->cli_opts->check_pac_flags != 0) {
         kerr = sss_extract_pac(kr->ctx, validation_ccache, validation_princ,
-                               kr->creds->client, keytab, &pac_authdata);
+                               kr->creds->client, keytab,
+                               kr->cli_opts->check_pac_flags, &pac_authdata);
         if (kerr != 0) {
+            if (kerr == ERR_CHECK_PAC_FAILED) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "PAC check failed for principal [%s].\n", kr->name);
+                goto done;
+            }
             DEBUG(SSSDBG_OP_FAILURE, "sss_extract_and_send_pac failed, group " \
                                       "membership for user with principal [%s] " \
                                       "might not be correct.\n", kr->name);
             kerr = 0;
             goto done;
         }
+    }
+
+    if (kr->send_pac) {
+        if(unsetenv("_SSS_LOOPS") != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unset _SSS_LOOPS, "
+                      "sss_pac_make_request will most certainly fail.\n");
+        }
 
         kerr = sss_send_pac(pac_authdata);
-        krb5_free_authdata(kr->ctx, pac_authdata);
+
+        if(setenv("_SSS_LOOPS", "NO", 0) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set _SSS_LOOPS.\n");
+        }
+
         if (kerr != 0) {
+            if (kerr == ERR_CHECK_PAC_FAILED) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "PAC for principal [%s] is not valid.\n", kr->name);
+                goto done;
+            }
+            if (kr->cli_opts->check_pac_flags != 0) {
+                DEBUG(SSSDBG_IMPORTANT_INFO,
+                      "pac_check is set but PAC responder is not running, "
+                      "failed to properly validate PAC, ignored, "
+                      "authentication for [%s] can proceed.\n", kr->name);
+            }
             DEBUG(SSSDBG_OP_FAILURE, "sss_send_pac failed, group " \
                                       "membership for user with principal [%s] " \
                                       "might not be correct.\n", kr->name);
@@ -1705,6 +1741,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     }
 
 done:
+    krb5_free_authdata(kr->ctx, pac_authdata);
     if (validation_ccache != NULL) {
         krb5_cc_destroy(kr->ctx, validation_ccache);
     }
@@ -3712,6 +3749,7 @@ int main(int argc, const char *argv[])
     uint64_t chain_id = 0;
     struct cli_opts cli_opts = { 0 };
     int sss_creds_password = 0;
+    long dummy_long = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -3742,6 +3780,8 @@ int main(int argc, const char *argv[])
          0, _("Use custom version of krb5_get_init_creds_password"), NULL},
         {CHILD_OPT_CHAIN_ID, 0, POPT_ARG_LONG, &chain_id,
          0, _("Tevent chain ID used for logging purposes"), NULL},
+        {CHILD_OPT_CHECK_PAC, 0, POPT_ARG_LONG, &dummy_long, 0,
+         _("Check PAC flags"), NULL},
         POPT_TABLEEND
     };
 
@@ -3766,6 +3806,16 @@ int main(int argc, const char *argv[])
             poptPrintUsage(pc, stderr, 0);
             _exit(-1);
         }
+    }
+
+    cli_opts.check_pac_flags = 0;
+    if (dummy_long >= 0 && dummy_long <= UINT32_MAX) {
+        cli_opts.check_pac_flags = (uint32_t) dummy_long;
+    } else {
+        fprintf(stderr, "\nInvalid value [%ld] of check-pac option\n\n",
+                        dummy_long);
+        poptPrintUsage(pc, stderr, 0);
+        _exit(-1);
     }
 
     poptFreeContext(pc);
@@ -3814,6 +3864,13 @@ int main(int argc, const char *argv[])
     ret = k5c_recv_data(kr, STDIN_FILENO, &offline);
     if (ret != EOK) {
         goto done;
+    }
+
+    /* To be able to read the PAC we have to request a service ticket where we
+     * have a key to decrypt it, this is the same step we use for validating
+     * the ticket. */
+    if (cli_opts.check_pac_flags != 0) {
+        kr->validate = true;
     }
 
     kerr = privileged_krb5_setup(kr, offline);

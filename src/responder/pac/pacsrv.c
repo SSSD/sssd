@@ -130,6 +130,12 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    ret = get_pac_check_config(pac_ctx->rctx->cdb, &pac_ctx->pac_check_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get pac_check");
+        goto fail;
+    }
+
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL, NULL, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");

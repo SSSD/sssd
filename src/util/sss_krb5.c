@@ -895,15 +895,14 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
                                 krb5_principal server_principal,
                                 krb5_principal client_principal,
                                 krb5_keytab keytab,
+                                uint32_t check_pac_flags,
                                 krb5_authdata ***_pac_authdata)
 {
-#ifdef HAVE_PAC_RESPONDER
     krb5_error_code kerr;
     krb5_creds mcred;
     krb5_creds cred;
     krb5_authdata **pac_authdata = NULL;
     krb5_pac pac = NULL;
-    int ret;
     krb5_ticket *ticket = NULL;
     krb5_keytab_entry entry;
 
@@ -942,7 +941,11 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
 
     if (pac_authdata == NULL || pac_authdata[0] == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "No PAC authdata available.\n");
-        kerr = ENOENT;
+        if (check_pac_flags & CHECK_PAC_PRESENT) {
+            kerr = ERR_CHECK_PAC_FAILED;
+        } else {
+            kerr = ENOENT;
+        }
         goto done;
     }
 
@@ -973,12 +976,6 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
         goto done;
     }
 
-    ret = unsetenv("_SSS_LOOPS");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unset _SSS_LOOPS, "
-                  "sss_pac_make_request will most certainly fail.\n");
-    }
-
     *_pac_authdata = pac_authdata;
     kerr = 0;
 
@@ -996,9 +993,6 @@ done:
 
     krb5_free_cred_contents(ctx, &cred);
     return kerr;
-#else
-    return ENOTSUP;
-#endif
 }
 
 char * sss_get_ccache_name_for_principal(TALLOC_CTX *mem_ctx,
