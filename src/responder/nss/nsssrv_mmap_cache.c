@@ -502,6 +502,9 @@ static errno_t sss_mc_get_strs_offset(struct sss_mc_ctx *mcc,
     case SSS_MC_INITGROUPS:
         *_offset = offsetof(struct sss_mc_initgr_data, gids);
         return EOK;
+    case SSS_MC_SID:
+        *_offset = offsetof(struct sss_mc_sid_data, sid);
+        return EOK;
     default:
         DEBUG(SSSDBG_FATAL_FAILURE, "Unknown memory cache type.\n");
         return EINVAL;
@@ -521,6 +524,9 @@ static errno_t sss_mc_get_strs_len(struct sss_mc_ctx *mcc,
         return EOK;
     case SSS_MC_INITGROUPS:
         *_len = ((struct sss_mc_initgr_data *)&rec->data)->data_len;
+        return EOK;
+    case SSS_MC_SID:
+        *_len = ((struct sss_mc_sid_data *)&rec->data)->sid_len;
         return EOK;
     default:
         DEBUG(SSSDBG_FATAL_FAILURE, "Unknown memory cache type.\n");
@@ -1072,6 +1078,54 @@ errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx *mcc,
                                          struct sized_string *name)
 {
     return sss_mmap_cache_invalidate(mcc, name);
+}
+
+errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
+                                 struct sized_string *sid,
+                                 uint32_t id,
+                                 uint32_t type)
+{
+    struct sss_mc_ctx *mcc = *_mcc;
+    struct sss_mc_rec *rec;
+    struct sss_mc_sid_data *data;
+    char idkey[16];
+    size_t rec_len;
+    int ret;
+
+    if (mcc == NULL) {
+        return EINVAL;
+    }
+
+    ret = snprintf(idkey, sizeof(idkey), "%u-%ld", type, (long)id);
+    if (ret > (sizeof(idkey) - 1)) {
+        return EINVAL;
+    }
+
+    rec_len = sizeof(struct sss_mc_rec) +
+              sizeof(struct sss_mc_sid_data) +
+              sid->len;
+
+    ret = sss_mc_get_record(_mcc, rec_len, sid, &rec);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    data = (struct sss_mc_sid_data *)rec->data;
+    MC_RAISE_BARRIER(rec);
+
+    sss_mmap_set_rec_header(mcc, rec, rec_len, mcc->valid_time_slot,
+                            sid->str, sid->len, idkey, strlen(idkey) + 1);
+
+    data->name = MC_PTR_DIFF(data->sid, data);
+    data->type = type;
+    data->id = id;
+    data->sid_len = sid->len;
+    memcpy(data->sid, sid->str, sid->len);
+
+    MC_LOWER_BARRIER(rec);
+    sss_mmap_chain_in_rec(mcc, rec);
+
+    return EOK;
 }
 
 /***************************************************************************

@@ -146,6 +146,14 @@ struct sss_mc_initgr_data {
                              * after gids */
 };
 
+struct sss_mc_sid_data {
+    rel_ptr_t name;         /* ptr to SID string, rel. to struct base addr */
+    uint32_t type;          /* enum sss_id_type */
+    uint32_t id;            /* gid or uid */
+    uint32_t sid_len;       /* length of sid */
+    char sid[0];
+};
+
 #pragma pack()
 
 
