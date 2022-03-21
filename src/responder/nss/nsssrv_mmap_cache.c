@@ -25,6 +25,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include "util/mmap_cache.h"
+#include "sss_client/idmap/sss_nss_idmap.h"
 #include "responder/nss/nss_private.h"
 #include "responder/nss/nsssrv_mmap_cache.h"
 
@@ -1096,7 +1097,9 @@ errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
         return EINVAL;
     }
 
-    ret = snprintf(idkey, sizeof(idkey), "%u-%ld", type, (long)id);
+    ret = snprintf(idkey, sizeof(idkey), "%d-%ld",
+                   (type == SSS_ID_TYPE_GID) ? SSS_ID_TYPE_GID : SSS_ID_TYPE_UID,
+                   (long)id);
     if (ret > (sizeof(idkey) - 1)) {
         return EINVAL;
     }
