@@ -126,12 +126,13 @@ nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
             continue;
         }
 
+        tmp = ldb_msg_find_attr_as_string(result->msgs[c],
+                                           SYSDB_SID_STR, NULL);
+        if (tmp == NULL) {
+            continue;
+        }
+
         if (ltype == SSS_ID_TYPE_GID) {
-            tmp = ldb_msg_find_attr_as_string(result->msgs[c],
-                                               SYSDB_SID_STR, NULL);
-            if (tmp == NULL) {
-                continue;
-            }
             if (tmp != NULL && group_sid != NULL) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "Search for SID found multiple groups with SIDs: %s, %s;"
@@ -142,11 +143,6 @@ nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
             group_gid = ldb_msg_find_attr_as_uint64(result->msgs[c],
                                                     SYSDB_GIDNUM, 0);
         } else {
-            tmp = ldb_msg_find_attr_as_string(result->msgs[c],
-                                              SYSDB_SID_STR, NULL);
-            if (tmp == NULL) {
-                continue;
-            }
             if (tmp != NULL && user_sid != NULL) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "Search for SID found multiple users with SIDs: %s, %s; "
