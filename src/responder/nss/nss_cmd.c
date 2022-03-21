@@ -533,7 +533,9 @@ static errno_t invalidate_cache(struct nss_cmd_ctx *cmd_ctx,
         is_user = false;
         break;
     default:
-        /* nothing to do */
+        /* nothing to do -
+         * other requests don't support SSS_NSS_EX_FLAG_INVALIDATE_CACHE
+         */
         return EOK;
     }
 
@@ -1151,26 +1153,29 @@ static errno_t nss_cmd_getsidbyname(struct cli_ctx *cli_ctx)
 
 static errno_t nss_cmd_getsidbyid(struct cli_ctx *cli_ctx)
 {
-    const char *attrs[] = { SYSDB_SID_STR, NULL };
+    const char *attrs[] = { SYSDB_SID_STR, SYSDB_UIDNUM, SYSDB_GIDNUM,
+                            SYSDB_OBJECTCATEGORY, NULL };
 
     return nss_getby_id(cli_ctx, false, CACHE_REQ_OBJECT_BY_ID, attrs,
-                        SSS_MC_NONE, nss_protocol_fill_sid);
+                        SSS_MC_SID, nss_protocol_fill_sid);
 }
 
 static errno_t nss_cmd_getsidbyuid(struct cli_ctx *cli_ctx)
 {
-    const char *attrs[] = { SYSDB_SID_STR, NULL };
+    const char *attrs[] = { SYSDB_SID_STR, SYSDB_UIDNUM, SYSDB_GIDNUM,
+                            SYSDB_OBJECTCATEGORY, NULL };
 
     return nss_getby_id(cli_ctx, false, CACHE_REQ_USER_BY_ID, attrs,
-                        SSS_MC_NONE, nss_protocol_fill_sid);
+                        SSS_MC_SID, nss_protocol_fill_sid);
 }
 
 static errno_t nss_cmd_getsidbygid(struct cli_ctx *cli_ctx)
 {
-    const char *attrs[] = { SYSDB_SID_STR, NULL };
+    const char *attrs[] = { SYSDB_SID_STR, SYSDB_UIDNUM, SYSDB_GIDNUM,
+                            SYSDB_OBJECTCATEGORY, NULL };
 
     return nss_getby_id(cli_ctx, false, CACHE_REQ_GROUP_BY_ID, attrs,
-                        SSS_MC_NONE, nss_protocol_fill_sid);
+                        SSS_MC_SID, nss_protocol_fill_sid);
 }
 
 static errno_t nss_cmd_getnamebysid(struct cli_ctx *cli_ctx)
