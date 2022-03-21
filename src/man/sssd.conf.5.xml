@@ -2218,6 +2218,76 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pac_check (string)</term>
+                    <listitem>
+                        <para>
+                            Apply additional checks on the PAC of the Kerberos
+                            ticket which is available in Active Directory and
+                            FreeIPA domains, if configured. The following
+                            options can be used alone or in a comma-separated
+                            list:
+                            <variablelist>
+                            <varlistentry>
+                                <term>no_check</term>
+                                <listitem>
+                                    <para>The PAC must not be present and even
+                                    if it is present no addtional checks will be
+                                    done.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>pac_present</term>
+                                <listitem>
+                                    <para>The PAC must be present in the
+                                    service ticket which SSSD will request with
+                                    the help of the user's TGT. If the PAC is
+                                    not available the authentication will fail.
+                                    </para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>check_upn</term>
+                                <listitem>
+                                    <para>If the PAC is present check if the
+                                    user principal name (UPN) information is
+                                    consistent.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>upn_dns_info_present</term>
+                                <listitem>
+                                    <para>The PAC must contain the UPN-DNS-INFO
+                                    buffer, implies 'check_upn'.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>check_upn_dns_info_ex</term>
+                                <listitem>
+                                    <para>If the PAC is present and the
+                                    extension to the UPN-DNS-INFO buffer is
+                                    available check if the information in the
+                                    extension is consistent.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>upn_dns_info_ex_present</term>
+                                <listitem>
+                                    <para>The PAC must contain the extension of
+                                    the UPN-DNS-INFO buffer, implies
+                                    'check_upn_dns_info_ex',
+                                    'upn_dns_info_present' and 'check_upn'.
+                                    </para>
+                                </listitem>
+                            </varlistentry>
+                            </variablelist>
+                        </para>
+                        <para>
+                            Default: no_check (AD and IPA provider
+                            'pac_present, check_upn, check_upn_dns_info_ex')
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 

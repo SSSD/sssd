@@ -322,7 +322,7 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
         return EINVAL;
     }
 
-    extra_args = talloc_zero_array(mem_ctx, const char *, 11);
+    extra_args = talloc_zero_array(mem_ctx, const char *, 12);
     if (extra_args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
         return ENOMEM;
@@ -420,6 +420,18 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
             }
             c++;
         }
+    }
+
+    if (krb5_ctx->check_pac_flags != 0) {
+        extra_args[c] = talloc_asprintf(extra_args,
+                                        "--"CHILD_OPT_CHECK_PAC"=%"PRIu32,
+                                        krb5_ctx->check_pac_flags);
+        if (extra_args[c] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        c++;
     }
 
     if (krb5_ctx->canonicalize) {

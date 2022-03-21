@@ -816,4 +816,18 @@ uint64_t get_start_time(void);
 const char *sss_format_time(uint64_t us);
 uint64_t get_spend_time_us(uint64_t st);
 
+/* from pac_utils.h */
+#define CHECK_PAC_NO_CHECK_STR "no_check"
+#define CHECK_PAC_PRESENT_STR "pac_present"
+#define CHECK_PAC_PRESENT (1 << 0)
+#define CHECK_PAC_CHECK_UPN_STR "check_upn"
+#define CHECK_PAC_CHECK_UPN (1 << 1)
+#define CHECK_PAC_UPN_DNS_INFO_PRESENT_STR "upn_dns_info_present"
+#define CHECK_PAC_UPN_DNS_INFO_PRESENT (1 << 2)
+#define CHECK_PAC_CHECK_UPN_DNS_INFO_EX_STR "check_upn_dns_info_ex"
+#define CHECK_PAC_CHECK_UPN_DNS_INFO_EX (1 << 3)
+#define CHECK_PAC_UPN_DNS_INFO_EX_PRESENT_STR "upn_dns_info_ex_present"
+#define CHECK_PAC_UPN_DNS_INFO_EX_PRESENT (1 << 4)
+
+errno_t get_pac_check_config(struct confdb_ctx *cdb, uint32_t *pac_check_opts);
 #endif /* __SSSD_UTIL_H__ */

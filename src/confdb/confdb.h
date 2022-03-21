@@ -178,6 +178,9 @@
 /* PAC */
 #define CONFDB_PAC_CONF_ENTRY "config/pac"
 #define CONFDB_PAC_LIFETIME "pac_lifetime"
+#define CONFDB_PAC_CHECK "pac_check"
+#define CONFDB_PAC_CHECK_DEFAULT "no_check"
+#define CONFDB_PAC_CHECK_IPA_AD_DEFAULT "pac_present, check_upn, check_upn_dns_info_ex"
 
 /* InfoPipe */
 #define CONFDB_IFP_CONF_ENTRY "config/ifp"

@@ -133,6 +133,7 @@ class SSSDOptions(object):
         # [pac]
         'allowed_uids': _('List of UIDs or user names allowed to access the PAC responder'),
         'pac_lifetime': _('How long the PAC data is considered valid'),
+        'pac_check': _('Validate the PAC'),
 
         # [ifp]
         'user_attributes': _('List of user attributes the InfoPipe is allowed to publish'),

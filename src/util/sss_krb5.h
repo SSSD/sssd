@@ -179,6 +179,7 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
                                 krb5_principal server_principal,
                                 krb5_principal client_principal,
                                 krb5_keytab keytab,
+                                uint32_t check_pac_flags,
                                 krb5_authdata ***_pac_authdata);
 
 char * sss_get_ccache_name_for_principal(TALLOC_CTX *mem_ctx,
@@ -203,5 +204,4 @@ krb5_error_code sss_krb5_init_context(krb5_context *context);
 void get_krb5_data_from_cred(struct sss_iobuf *iobuf, krb5_data *k5data);
 
 bool sss_krb5_creds_compare(krb5_context kctx, krb5_creds *a, krb5_creds *b);
-
 #endif /* __SSS_KRB5_H__ */
