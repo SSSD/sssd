@@ -769,6 +769,7 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
     char *conf_path;
     char *id_provider;
     bool add_pac = false;
+    bool implicit_pac_responder = true;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -783,6 +784,16 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
     if (ret == ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "No domains configured!\n");
         goto done;
+    }
+
+    ret = confdb_get_bool(cdb, CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_IMPLICIT_PAC_RESPONDER, true,
+                          &implicit_pac_responder);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read implicit_pac_responder option, "
+              "using default 'true'.\n");
+        implicit_pac_responder = true;
     }
 
     for (c = 0; domain_names[c] != NULL; c++) {
@@ -810,7 +821,15 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
 
             if (strcasecmp(id_provider, "IPA") == 0
                         || strcasecmp(id_provider, "AD") == 0) {
-                add_pac = true;
+                if (implicit_pac_responder) {
+                    add_pac = true;
+                } else {
+                    DEBUG(SSSDBG_CONF_SETTINGS,
+                          "PAC resonder not enabled for id provider [%s] "
+                          "because implicit_pac_responder is set to 'false'.\n",
+                          id_provider);
+                    add_pac = false;
+                }
             }
         } else {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to get id_provider for " \

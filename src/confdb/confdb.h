@@ -79,6 +79,7 @@
 #define CONFDB_MONITOR_DISABLE_NETLINK "disable_netlink"
 #define CONFDB_MONITOR_ENABLE_FILES_DOM "enable_files_domain"
 #define CONFDB_MONITOR_DOMAIN_RESOLUTION_ORDER "domain_resolution_order"
+#define CONFDB_MONITOR_IMPLICIT_PAC_RESPONDER "implicit_pac_responder"
 
 /* Both monitor and domains */
 #define CONFDB_NAME_REGEX   "re_expression"
