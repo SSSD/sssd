@@ -204,7 +204,7 @@ def environment_setup(session_multihost, request):
     """
     client = session_multihost.client[0]
     client.run_command("yum "
-                       "--enablerepo=rhel-CRB install"
+                       "--enablerepo=*-CRB install"
                        " -y shadow-utils*")
     client.run_command("yum install -y gcc")
     client.run_command("yum install -y podman")
