@@ -166,7 +166,8 @@ static int check_flags(struct nss_input *inp, uint32_t flags,
     return 0;
 }
 
-int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
+static int sss_get_ex(struct nss_input *inp, uint32_t flags,
+                      unsigned int timeout)
 {
     uint8_t *repbuf = NULL;
     size_t replen;
