@@ -352,6 +352,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'domain_resolution_order',
             'try_inotify',
             'monitor_resolv_conf',
+            'implicit_pac_responder',
         ]
 
         self.assertTrue(type(options) == dict,
