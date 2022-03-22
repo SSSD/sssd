@@ -63,8 +63,9 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                 if (retries_left - 1 > 0) {
                     ret = usleep(wait);
                     if (ret == -1) {
+                        ret = errno;
                         DEBUG(SSSDBG_MINOR_FAILURE,
-                              "usleep() failed -> ignoring\n");
+                              "usleep() failed with %d -> ignoring\n", ret);
                     }
                 }
             } else {
@@ -76,6 +77,9 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
         } else if (ret == 0) {
             /* File successfully locked */
             break;
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Unexpected fcntl() return code: %d\n", ret);
         }
     }
     if (retries_left == 0) {
