@@ -437,7 +437,7 @@ def sssd_sudo_conf(session_multihost, request):
               'sudo_provider': 'ldap'}
     domain_section = f'domain/{ds_instance_name}'
     tools.sssd_conf(domain_section, params, action='update')
-    multihost.client[0].service_sssd('start')
+    session_multihost.client[0].service_sssd('start')
 
     def restore_sssd_conf():
         """ Restore sssd.conf """
