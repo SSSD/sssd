@@ -35,7 +35,7 @@ def multihost(session_multihost):
 def package_install(session_multihost):
     """ Install required packages """
     distro = session_multihost.master[0].distro
-    pkg_list = 'authselect nss-tools 389-ds-base krb5-server '\
+    pkg_list = 'acl authselect nss-tools 389-ds-base krb5-server '\
                'openldap-clients krb5-workstation '\
                'sssd sssd-dbus sssd-kcm ' \
                'expect ldb-tools sssd-tools'
