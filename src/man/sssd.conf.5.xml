@@ -693,6 +693,20 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>implicit_pac_responder (boolean)</term>
+                        <listitem>
+                            <para>
+                                The PAC responder is enabled automatically for
+                                the IPA and AD provider to evaluate and check
+                                the PAC. If it has to be disabled
+                                set this option to 'false'.
+                            </para>
+                            <para>
+                                Default: true
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>
