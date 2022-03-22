@@ -808,7 +808,8 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
                 continue;
             }
 
-            if (strcasecmp(id_provider, "IPA") == 0) {
+            if (strcasecmp(id_provider, "IPA") == 0
+                        || strcasecmp(id_provider, "AD") == 0) {
                 add_pac = true;
             }
         } else {
