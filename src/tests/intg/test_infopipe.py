@@ -191,8 +191,6 @@ def format_basic_conf(ldap_conn, schema, config):
     if schema == SCHEMA_RFC2307_BIS:
         schema_conf += "ldap_group_object_class = groupOfNames\n"
 
-    valgrind_cmd = "valgrind --log-file=%s/valgrind_ifp.log" % config.LOG_PATH
-    ifp_command = "%s %s/sssd/sssd_ifp " % (valgrind_cmd, config.LIBEXEC_PATH)
     return unindent("""\
         [sssd]
         debug_level         = 0xffff
@@ -205,10 +203,6 @@ def format_basic_conf(ldap_conn, schema, config):
 
         [ifp]
         debug_level         = 0xffff
-        # it need to be executed with valgrind because there is a problem
-        # problem with "ifp" + client registration in monitor
-        # There is not such problem in 1st test. Just in following tests.
-        command = {ifp_command} --uid 0 --gid 0 --logger=files
         user_attributes = +extraName
         ca_db               = {config.PAM_CERT_DB_PATH}
 
