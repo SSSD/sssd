@@ -126,6 +126,7 @@ struct err_string error_to_str[] = {
     { "Multiple objects were found when only one was expected" }, /* ERR_MULTIPLE_ENTRIES */
     { "Unsupported range type" }, /* ERR_UNSUPPORTED_RANGE_TYPE */
     { "proxy_child terminated by a signal" }, /* ERR_PROXY_CHILD_SIGNAL */
+    { "PAC check failed" }, /* ERR_CHECK_PAC_FAILED */
 
     /* DBUS Errors */
     { "Connection was killed on demand" }, /* ERR_SBUS_KILL_CONNECTION */

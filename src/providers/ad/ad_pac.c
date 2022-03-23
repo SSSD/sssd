@@ -480,7 +480,7 @@ errno_t ad_get_pac_data_from_user_entry(TALLOC_CTX *mem_ctx,
 
     ret = ad_get_data_from_pac(tmp_ctx, el->values[0].data,
                                el->values[0].length,
-                               &logon_info);
+                               &logon_info, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "get_data_from_pac failed.\n");
         goto done;

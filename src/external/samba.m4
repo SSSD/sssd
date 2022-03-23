@@ -160,4 +160,9 @@ AC_CHECK_MEMBERS([struct PAC_LOGON_INFO.resource_groups], , ,
                  [[ #include <ndr.h>
                     #include <gen_ndr/krb5pac.h>
                     #include <gen_ndr/krb5pac.h>]])
+AC_CHECK_MEMBERS([struct PAC_UPN_DNS_INFO.ex], ,
+                 [AC_MSG_NOTICE([union PAC_UPN_DNS_INFO_EX is not available, PAC checks will be limited])],
+                 [[ #include <ndr.h>
+                    #include <gen_ndr/krb5pac.h>
+                    #include <gen_ndr/krb5pac.h>]])
 CFLAGS=$SAVE_CFLAGS
