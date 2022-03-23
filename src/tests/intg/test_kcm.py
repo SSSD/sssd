@@ -35,11 +35,6 @@ from intg.files_ops import passwd_ops_setup
 
 MAX_SECRETS = 10
 
-USER1 = dict(name='user1', passwd='x', uid=1000, gid=1000,
-             gecos='User for tests',
-             dir='/home/user1',
-             shell='/bin/bash')
-
 
 class KcmTestEnv(object):
     def __init__(self, k5kdc, k5util):
@@ -211,8 +206,18 @@ def setup_for_kcm_renewals_secdb(passwd_ops_setup, request, kdc_instance):
     kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
     sssd_conf = create_sssd_conf_renewals(kcm_path, "secdb",
                                           "10d", "60s", "10s")
-    passwd_ops_setup.useradd(**USER1)
-    return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
+
+    testenv = common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
+
+    user = dict(name='user1', passwd='x',
+                uid=testenv.my_uid(), gid=testenv.my_uid(),
+                gecos='User for tests',
+                dir='/home/user1',
+                shell='/bin/bash')
+
+    passwd_ops_setup.useradd(**user)
+
+    return testenv
 
 
 def kcm_init_list_destroy(testenv):
