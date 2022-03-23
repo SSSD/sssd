@@ -34,7 +34,6 @@
 
 #define INI_GENERAL_SECTION "General"
 #define GPT_INI_VERSION "Version"
-#define GPT_INI "/GPT.INI"
 
 static errno_t parse_ini_file_with_libini(struct ini_cfgobj *ini_config,
                                           int *_gpt_version)
@@ -120,11 +119,10 @@ static errno_t gpo_sanitize_buffer_content(uint8_t *buf, int buflen)
  * This function parses the GPT_INI file stored in the gpo_cache, and uses the
  * results to populate the output parameters ...
  */
-errno_t ad_gpo_parse_ini_file(const char *smb_path, int *_gpt_version)
+errno_t ad_gpo_parse_ini_file(const char *ini_filename, int *_gpt_version)
 {
     struct ini_cfgfile *file_ctx = NULL;
     struct ini_cfgobj *ini_config = NULL;
-    const char *ini_filename;
     int ret;
     int gpt_version = -1;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -134,13 +132,6 @@ errno_t ad_gpo_parse_ini_file(const char *smb_path, int *_gpt_version)
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ini_filename = talloc_asprintf(tmp_ctx, "%s%s", smb_path, GPT_INI);
-    if (ini_filename == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
         goto done;
     }
