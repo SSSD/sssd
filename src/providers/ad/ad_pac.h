@@ -47,7 +47,8 @@ errno_t check_if_pac_is_available(TALLOC_CTX *mem_ctx,
 
 errno_t ad_get_data_from_pac(TALLOC_CTX *mem_ctx,
                              uint8_t *pac_blob, size_t pac_len,
-                             struct PAC_LOGON_INFO **_logon_info);
+                             struct PAC_LOGON_INFO **_logon_info,
+                             struct PAC_UPN_DNS_INFO **_upn_dns_info);
 
 errno_t ad_get_sids_from_pac(TALLOC_CTX *mem_ctx,
                              struct sss_idmap_ctx *idmap_ctx,
@@ -79,4 +80,6 @@ errno_t ad_handle_pac_initgr_recv(struct tevent_req *req,
                                   int *_dp_error, const char **_err,
                                   int *sdap_ret);
 
+errno_t check_upn_from_user_and_pac(struct ldb_message *msg,
+                                    struct PAC_UPN_DNS_INFO *upn_dns_info);
 #endif /* AD_PAC_H_ */
