@@ -242,7 +242,7 @@ static void test_ad_get_data_from_pac(void **state)
     assert_non_null(test_pac_blob_size);
 
     ret = ad_get_data_from_pac(test_ctx, test_pac_blob, test_pac_blob_size,
-                               &logon_info);
+                               &logon_info, NULL);
     assert_int_equal(ret, EOK);
     assert_non_null(logon_info);
     assert_string_equal(logon_info->info3.base.account_name.string, "tu1");
@@ -292,7 +292,7 @@ static void test_ad_get_sids_from_pac(void **state)
     assert_non_null(test_pac_blob_size);
 
     ret = ad_get_data_from_pac(test_ctx, test_pac_blob, test_pac_blob_size,
-                               &logon_info);
+                               &logon_info, NULL);
     assert_int_equal(ret, EOK);
 
     ret = ad_get_sids_from_pac(test_ctx, idmap_ctx, logon_info, &user_sid,
@@ -358,7 +358,7 @@ static void test_ad_get_sids_from_pac_with_resource_groups(void **state)
     assert_non_null(test_pac_blob_size);
 
     ret = ad_get_data_from_pac(test_ctx, test_pac_blob, test_pac_blob_size,
-                               &logon_info);
+                               &logon_info, NULL);
     assert_int_equal(ret, EOK);
 
     ret = ad_get_sids_from_pac(test_ctx, idmap_ctx, logon_info, &user_sid,
