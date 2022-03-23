@@ -213,6 +213,7 @@ m4_include([src/external/service.m4])
 m4_include([src/external/test_ca.m4])
 m4_include([src/external/ax_valgrind_check.m4])
 m4_include([src/external/libjansson.m4])
+m4_include([src/external/libpath_utils.m4])
 
 AS_IF([test x$with_kcm = xyes], [
     m4_include([src/external/libuuid.m4])

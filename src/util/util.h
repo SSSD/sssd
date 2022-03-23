@@ -51,7 +51,9 @@
 #define SSSD_PIDFILE PID_PATH"/"SSSD_MONITOR_NAME".pid"
 #define MAX_PID_LENGTH 10
 
+#ifndef _
 #define _(STRING) gettext (STRING)
+#endif
 
 #define ENUM_INDICATOR "*"
 

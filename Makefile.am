@@ -1496,6 +1496,7 @@ sssd_LDADD = \
     $(KEYUTILS_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(PATHUTILS_LIBS) \
     libsss_iface.la \
     libsss_sbus.la \
     $(NULL)
@@ -3733,6 +3734,7 @@ test_inotify_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(LIBADD_DL) \
+    $(PATHUTILS_LIBS) \
     libsss_test_common.la \
     $(NULL)
 
@@ -4314,6 +4316,7 @@ libsss_files_la_LIBADD = \
     $(LDB_LIBS) \
     $(PAM_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(PATHUTILS_LIBS) \
     libsss_certmap.la \
     $(NULL)
 libsss_files_la_LDFLAGS = \

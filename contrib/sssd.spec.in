@@ -106,6 +106,7 @@ BuildRequires: libini_config-devel >= 1.1
 BuildRequires: libldb-devel >= %{ldb_version}
 BuildRequires: libnfsidmap-devel
 BuildRequires: libnl3-devel
+BuildRequires: libpath_utils-devel
 BuildRequires: libselinux-devel
 BuildRequires: libsemanage-devel
 BuildRequires: libsmbclient-devel

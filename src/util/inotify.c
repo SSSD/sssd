@@ -21,6 +21,7 @@
 #include <limits.h>
 #include <sys/inotify.h>
 #include <sys/time.h>
+#include <path_utils.h>
 
 #include "util/inotify.h"
 #include "util/util.h"
@@ -383,16 +384,28 @@ static errno_t resolve_filename(struct snotify_ctx *snctx,
                                 char *resolved,
                                 size_t resolved_size)
 {
-    /* NOTE: The code below relies in the GNU extensions for realpath,
-     * which will store in 'resolved' the prefix of 'filename' that does
-     * not exists if realpath call fails and errno is set to ENOENT */
     if (realpath(filename, resolved) == NULL) {
         char fcopy[PATH_MAX + 1];
         char *p;
         struct stat st;
+        errno_t ret;
 
         if (errno != ENOENT) {
             return errno;
+        }
+
+        /*
+         * From glibc 2.35 onwards the "GNU extension" of realpath() that is
+         * specified in the man page doesn't work if the file doesn't exist.
+         * So, it's neccesary to get its parent folder's absolute path and
+         * then concatenate the file name.
+         */
+        if (strstr(resolved, filename) == NULL) {
+            ret = make_normalized_absolute_path(resolved, resolved_size,
+                                                filename);
+            if (ret != EOK) {
+                return ret;
+            }
         }
 
         /* Check if the unique missing component is the basename. The
