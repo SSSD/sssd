@@ -403,40 +403,11 @@ void test_ad_gpo_parse_sd(void **state)
 
 errno_t ad_gpo_parse_ini_file(const char *smb_path, int *_gpt_version);
 
-static const char *reverse_path(TALLOC_CTX *ctx, const char *path)
-{
-    if (!path) return NULL;
-    unsigned len = strlen(path);
-    if (!len) return NULL;
-    if (path[0] != '/') return NULL;
-
-    char *reverse = talloc_size(ctx, len);
-    if (!reverse) return NULL;
-
-    reverse[0] = '/';
-    unsigned pos = 1;
-
-    for (unsigned i = 0; i < len; ++i) {
-        if (path[i] == '/') {
-            reverse[pos] = reverse[pos+1] = '.';
-            reverse[pos+2] = '/';
-            pos += 3;
-        }
-    }
-    reverse[pos] = 0;
-
-    return reverse;
-}
-
 void test_ad_gpo_parse_ini_file(void **state)
 {
     int version = -1;
-    const char *path;
 
-    path = talloc_asprintf(test_ctx, "%s%s",
-                           ABS_SRC_DIR, "/src/tests/cmocka/");
-
-    ad_gpo_parse_ini_file(path, &version);
+    ad_gpo_parse_ini_file(ABS_SRC_DIR"/src/tests/cmocka/GPT.INI", &version);
 
     assert_int_equal(version, 6);
 }
