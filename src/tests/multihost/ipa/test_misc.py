@@ -7,6 +7,7 @@
 :status: approved
 """
 
+import datetime
 import re
 import time
 import subprocess
@@ -534,6 +535,198 @@ class Testipabz(object):
                                     "2014249/2015070"
         assert hashing_true, "Hostnames not hashed"
         assert hashing_false, "Hostnames hashed"
+
+    @staticmethod
+    def test_ssh_expiration_warning(multihost, reset_password, hbac_sshd_rule,
+                                    setup_ipa_client, backupsssdconf):
+        """test_ssh_expiration_warning
+
+        :title: IDM-SSSD-TC: ipa_provider: Show password expiration warning
+          when IdM users login with SSH keys
+        :description: When an IdM user logs in with SSH key based
+          authentication, they should see password expiration warnings.
+          Customer would like to see password expiration warnings even when
+          logging in with SSH keys so users can proactively change their
+          passwords before they expire.
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1765354
+        :id: c1c20cff-edb4-41cd-a879-0eeb98a9c53a
+        :customerscenario: true
+        :setup:
+          1. Generate ssh keys for an user.
+          2. Upload public key to ipa for the user.
+          3. Change the password expiration to tomorrow for the user.
+          4. Configure hbac rule for the user enabling sshd service.
+          5. Configure ipa_access_order and pwd_expiration_warning
+          6. Set user password to expire in one day.
+        :steps:
+          1. Login using ssh key as the user to the client machine.
+          2. Check the output of the ssh.
+        :expectedresults:
+          1. User is logged in.
+          2. Password expiration message is shown.
+        """
+        # pylint: disable=W0613
+
+        client = sssdTools(multihost.client[0])
+        domain_name = client.get_domain_section_name()
+        client.sssd_conf(
+            'domain/%s' % domain_name,
+            {'ipa_access_order': 'pwd_expire_policy_warn',
+             'pwd_expiration_warning': '3'}
+        )
+
+        client.clear_sssd_cache()
+
+        # Make sure that user home is not present with unwanted files and
+        # possibly wrong ownership
+        multihost.client[0].run_command(
+            'rm -rf /home/foobar1', raiseonerr=False)
+
+        multihost.client[0].run_command(
+            'getent passwd foobar1@testrealm.test', raiseonerr=False)
+
+        # Generate keypair
+        multihost.client[0].run_command(
+            r"""su -l foobar1@testrealm.test -c 'ssh-keygen -b 2048 -t rsa"""
+            r""" -q -f /home/foobar1/.ssh/id_rsa -N ""' """, raiseonerr=False)
+
+        # Get the pubkey
+        pubkey = multihost.client[0].get_file_contents(
+            "/home/foobar1/.ssh/id_rsa.pub").decode('utf-8').strip()
+
+        multihost.master[0].run_command('kinit admin', stdin_text='Secret123',
+                                        raiseonerr=False)
+        # Upload the pubkey to IPA
+        multihost.master[0].run_command(
+            f'ipa user-mod foobar1 --sshpubkey="{pubkey}"', raiseonerr=False)
+
+        # Make password expiring tomorrow
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+        date_for_ipa = tomorrow.strftime("%Y%m%d%H%M%SZ")
+        multihost.master[0].run_command(
+            f'ipa user-mod foobar1 --setattr=krbPasswordExpiration='
+            f'"{date_for_ipa}"', raiseonerr=False)
+
+        client.clear_sssd_cache()
+
+        # Run ssh
+        cmd = 'su - foobar1@testrealm.test -c " ssh -v ' \
+              '-o StrictHostKeychecking=no -o UserKnownHostsFile=/dev/null ' \
+              '-o GSSAPIAuthentication=no -o PasswordAuthentication=no ' \
+              '-l foobar1@testrealm.test localhost \'whoami\' " 2>&1'
+
+        ssh_cmd = multihost.client[0].run_command(cmd, raiseonerr=False)
+
+        # Teardown
+        multihost.master[0].run_command(
+            'ipa user-mod foobar1 --setattr=krbPasswordExpiration='
+            '"20370101000000Z"', raiseonerr=False)
+
+        multihost.master[0].run_command(
+            'ipa user-mod foobar1 --sshpubkey=""', raiseonerr=False)
+
+        multihost.client[0].run_command(
+            'rm -rf /home/foobar1', raiseonerr=False)
+
+        # Test result evaluation
+        assert ssh_cmd.returncode == 0, "Ssh login failed."
+        assert "Your password will expire in " in ssh_cmd.stdout_text,\
+            "The password expiration notice was not shown."
+
+    @staticmethod
+    def test_ssh_expired_warning(multihost, reset_password, hbac_sshd_rule,
+                                 setup_ipa_client, backupsssdconf):
+        """test_ssh_expired_warning
+
+        :title: IDM-SSSD-TC: ipa_provider: Show password expired warning
+          when IdM users login with SSH keys
+        :description: When an IdM user logs in with SSH key based
+          authentication, they should see password warning if
+          their psssword is expired.
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1765354
+        :id: 2fe08fa9-6491-46df-81a6-4c5e80d8e671
+        :customerscenario: true
+        :setup:
+          1. Generate ssh keys for an user.
+          2. Upload public key to ipa for the user.
+          3. Change the password expiration to tomorrow for the user.
+          4. Configure hbac rule for the user enabling sshd service.
+          5. Configure ipa_access_order and pwd_expiration_warning
+          6. Expire user password
+        :steps:
+          1. Login using ssh key as the user to the client machine.
+          2. Check the output of the ssh.
+        :expectedresults:
+          1. User is logged in.
+          2. Password expiration message is shown.
+        """
+        # pylint: disable=W0613
+
+        client = sssdTools(multihost.client[0])
+        domain_name = client.get_domain_section_name()
+        client.sssd_conf(
+            'domain/%s' % domain_name,
+            {'ipa_access_order': 'pwd_expire_policy_warn',
+             'pwd_expiration_warning': '3'}
+        )
+
+        client.clear_sssd_cache()
+
+        # Make sure that user home is not present with unwanted files and
+        # possibly wrong ownership
+        multihost.client[0].run_command(
+            'rm -rf /home/foobar1', raiseonerr=False)
+
+        multihost.client[0].run_command(
+            'getent passwd foobar1@testrealm.test', raiseonerr=False)
+
+        # Generate keypair
+        multihost.client[0].run_command(
+            r"""su -l foobar1@testrealm.test -c 'ssh-keygen -b 2048 -t rsa"""
+            r""" -q -f /home/foobar1/.ssh/id_rsa -N ""' """, raiseonerr=False)
+
+        # Get the pubkey
+        pubkey = multihost.client[0].get_file_contents(
+            "/home/foobar1/.ssh/id_rsa.pub").decode('utf-8').strip()
+
+        multihost.master[0].run_command('kinit admin', stdin_text='Secret123',
+                                        raiseonerr=False)
+        # Upload the pubkey to IPA
+        multihost.master[0].run_command(
+            f'ipa user-mod foobar1 --sshpubkey="{pubkey}"', raiseonerr=False)
+
+        # Make password expired yesterday
+        yesterday = datetime.date.today() - datetime.timedelta(days=1)
+        date_for_ipa = yesterday.strftime("%Y%m%d%H%M%SZ")
+        multihost.master[0].run_command(
+            f'ipa user-mod foobar1 --setattr=krbPasswordExpiration='
+            f'"{date_for_ipa}"', raiseonerr=False)
+
+        client.clear_sssd_cache()
+
+        # Run ssh
+        cmd = 'su - foobar1@testrealm.test -c " ssh -v ' \
+              '-o StrictHostKeychecking=no -o UserKnownHostsFile=/dev/null ' \
+              '-o GSSAPIAuthentication=no -o PasswordAuthentication=no ' \
+              '-l foobar1@testrealm.test localhost \'whoami\' " 2>&1'
+
+        ssh_cmd = multihost.client[0].run_command(cmd, raiseonerr=False)
+
+        # Teardown
+        multihost.master[0].run_command(
+            'ipa user-mod foobar1 --setattr=krbPasswordExpiration='
+            '"20370101000000Z"', raiseonerr=False)
+
+        multihost.master[0].run_command(
+            'ipa user-mod foobar1 --sshpubkey=""', raiseonerr=False)
+
+        multihost.client[0].run_command(
+            'rm -rf /home/foobar1', raiseonerr=False)
+
+        # Test result evaluation
+        assert ssh_cmd.returncode == 0, "Ssh login failed."
+        assert "Your password has expired" in ssh_cmd.stdout_text, \
+            "The password expiration notice was not shown."
 
     def test_anonymous_pkinit_for_fast(self, multihost, backupsssdconf):
         """
