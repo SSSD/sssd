@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     printf("[\n");
     printf("\t{\n");
     printf("\t\t\"type\": \"default\",\n");
-    printf("\t\t\"retval\": %d,\n", error);
+    printf("\t\t\"retval\": %u,\n", error);
     if (error == SSS_SUDO_ERROR_OK) {
         print_sss_result(result);
     }
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
     printf("\t{\n");
     printf("\t\t\"type\": \"rules\",\n");
-    printf("\t\t\"retval\": %d,\n", error);
+    printf("\t\t\"retval\": %u,\n", error);
     if (error == SSS_SUDO_ERROR_OK) {
         print_sss_result(result);
     }

@@ -138,7 +138,7 @@ nodes_domains(TALLOC_CTX *mem_ctx,
     domain = ctx->rctx->domains;
     do {
         nodes[count] = sbus_opath_escape(nodes, domain->name);
-        if (nodes == NULL) {
+        if (nodes[count] == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "sbus_opath_escape_part() failed\n");
             talloc_free(nodes);
             return ENOMEM;
