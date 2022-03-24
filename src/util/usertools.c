@@ -726,7 +726,7 @@ char **sss_create_internal_fqname_list(TALLOC_CTX *mem_ctx,
         fqname_list[i] = sss_create_internal_fqname(fqname_list,
                                                     shortname_list[i],
                                                     dom_name);
-        if (fqname_list == NULL) {
+        if (fqname_list[i] == NULL) {
             talloc_free(fqname_list);
             return NULL;
         }
