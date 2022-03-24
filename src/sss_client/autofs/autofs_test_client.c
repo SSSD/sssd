@@ -76,7 +76,7 @@ int main(int argc, const char *argv[])
     requested_protocol = pc_protocol;
     protocol = _sss_auto_protocol_version(requested_protocol);
     if (protocol != requested_protocol) {
-        fprintf(stderr, "Unsupported protocol version: %d -> %d\n",
+        fprintf(stderr, "Unsupported protocol version: %u -> %u\n",
                 requested_protocol, protocol);
         exit(EXIT_FAILURE);
     }

@@ -31,7 +31,7 @@
 #include "lib/idmap/sss_idmap_private.h"
 #include "shared/murmurhash3.h"
 
-#define SID_FMT "%s-%d"
+#define SID_FMT "%s-%"PRIu32
 #define SID_STR_MAX_LEN 1024
 
 /* Hold all parameters for unix<->sid mapping relevant for
