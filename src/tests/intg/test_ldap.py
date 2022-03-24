@@ -2040,8 +2040,7 @@ def test_local_negative_timeout_disabled(ldap_conn,
     cleanup_ldap_entries(ldap_conn, ent_list)
 
 
-@pytest.fixture
-def users_with_email_setup(request, ldap_conn):
+def users_with_email_setup(request, ldap_conn, cache_first):
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user1", 1001, 2001, mail="user1.email@LDAP")
 
@@ -2054,27 +2053,35 @@ def users_with_email_setup(request, ldap_conn):
     create_ldap_fixture(request, ldap_conn, ent_list)
 
     conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+
+    conf += unindent("""
+        [nss]
+        cache_first = {0}
+    """).format(str(cache_first))
+
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    return None
 
 
-def test_lookup_by_email(ldap_conn, users_with_email_setup):
+@pytest.mark.parametrize('cache_first', [True, False])
+def test_lookup_by_email(request, ldap_conn, cache_first):
     """
     Test the simple case of looking up a user by e-mail
     """
+    users_with_email_setup(request, ldap_conn, cache_first)
     ent.assert_passwd_by_name("user1.email@LDAP",
                               dict(name="user1", uid=1001, gid=2001))
 
 
-def test_conflicting_mail_addresses_and_fqdn(ldap_conn,
-                                             users_with_email_setup):
+@pytest.mark.parametrize('cache_first', [True, False])
+def test_conflicting_mail_addresses_and_fqdn(request, ldap_conn, cache_first):
     """
     Test that we handle the case where one user's mail address is the
     same as another user's FQDN
 
     This is a regression test for https://github.com/SSSD/sssd/issues/4630
     """
+    users_with_email_setup(request, ldap_conn, cache_first)
     # With #3607 unfixed, these two lookups would prime the cache with
     # nameAlias: emailuser@LDAP for both entries..
     ent.assert_passwd_by_name("emailuser@LDAP",
@@ -2090,12 +2097,13 @@ def test_conflicting_mail_addresses_and_fqdn(ldap_conn,
                               dict(name="emailuser2", uid=1003, gid=2003))
 
 
-def test_conflicting_mail_addresses(ldap_conn,
-                                    users_with_email_setup):
+@pytest.mark.parametrize('cache_first', [True, False])
+def test_conflicting_mail_addresses(request, ldap_conn, cache_first):
     """
     Negative test: looking up a user by e-mail which belongs to more than
     one account fails in the back end.
     """
+    users_with_email_setup(request, ldap_conn, cache_first)
     with pytest.raises(KeyError):
         pwd.getpwnam("userxy@LDAP")
 

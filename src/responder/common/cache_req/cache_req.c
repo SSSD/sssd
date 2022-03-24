@@ -1435,18 +1435,21 @@ static void cache_req_process_result(struct tevent_req *subreq)
         if (ret == EOK) {
             /* We're done searching and we have found nothing. */
             ret = ENOENT;
+        }
+    }
 
-            if (state->domain_name != NULL) {
-                /* Lookup domain was specified as input. Since we haven't
-                 * found anything yet we may want to try UPN search with
-                 * some plug-ins. */
+    /* Have have tried all domains and found nothing. Let's try UPN search. */
+    if (ret == ENOENT) {
+        if (state->domain_name != NULL) {
+            /* Lookup domain was specified as input. Since we haven't
+             * found anything yet we may want to try UPN search with
+             * some plug-ins. */
 
-                if (cache_req_assume_upn(state->cr)) {
-                    /* Try UPN now. */
-                    state->first_iteration = true;
-                    ret = cache_req_select_domains(req, NULL,
-                                            state->cr->data->requested_domains);
-                }
+            if (cache_req_assume_upn(state->cr)) {
+                /* Try UPN now. */
+                state->first_iteration = true;
+                ret = cache_req_select_domains(req, NULL,
+                                        state->cr->data->requested_domains);
             }
         }
     }
