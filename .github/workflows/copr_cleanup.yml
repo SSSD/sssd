@@ -2,6 +2,9 @@ name: copr cleanup
 on:
   pull_request_target:
     types: [closed]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   delete:
     runs-on: ubuntu-latest
