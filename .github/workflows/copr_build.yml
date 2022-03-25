@@ -22,6 +22,9 @@ name: copr
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 env:
   COPR_ACCOUNT: '@sssd'
   COPR_PROJECT: pr${{ github.event.pull_request.number }}
