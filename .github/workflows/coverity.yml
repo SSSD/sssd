@@ -4,7 +4,9 @@ on:
   # https://scan.coverity.com/faq#frequency
   schedule:
     - cron: "30 0 * * *"
-
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   coverity:
     runs-on: ubuntu-latest

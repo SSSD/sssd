@@ -7,7 +7,9 @@ on:
   schedule:
     # Everyday at midnight
     - cron: '0 0 * * *'
-
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   codeql:
     runs-on: ubuntu-latest
