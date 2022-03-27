@@ -27,6 +27,7 @@
 #include <nss.h>
 
 #include "sss_client/sss_cli.h"
+#include "sss_client/nss_mc.h"
 #include "sss_client/idmap/sss_nss_idmap.h"
 #include "sss_client/idmap/sss_nss_idmap_private.h"
 #include "util/strtonum.h"
@@ -201,6 +202,27 @@ done:
     return ret;
 }
 
+static errno_t sss_nss_mc_get(union input inp, enum sss_cli_command cmd,
+                              struct output *out)
+{
+    switch (cmd) {
+    case SSS_NSS_GETSIDBYID:
+        return sss_nss_mc_get_sid_by_id(inp.id, &out->d.str, &out->type);
+
+    case SSS_NSS_GETSIDBYUID:
+        return sss_nss_mc_get_sid_by_uid(inp.id, &out->d.str, &out->type);
+
+    case SSS_NSS_GETSIDBYGID:
+        return sss_nss_mc_get_sid_by_gid(inp.id, &out->d.str, &out->type);
+
+    case SSS_NSS_GETIDBYSID:
+        return sss_nss_mc_get_id_by_sid(inp.str, &out->d.id, &out->type);
+
+    default:
+        return ENOENT;
+    }
+}
+
 static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
                                unsigned int timeout, struct output *out)
 {
@@ -219,6 +241,11 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
     char **names;
     enum sss_id_type *types;
     int time_left = SSS_CLI_SOCKET_TIMEOUT;
+
+    ret = sss_nss_mc_get(inp, cmd, out);
+    if (ret == EOK) {
+        return 0;
+    }
 
     switch (cmd) {
     case SSS_NSS_GETSIDBYNAME:
@@ -265,6 +292,13 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
         if (ret != 0) {
             return ret;
         }
+    }
+
+    /* previous thread might already initialize entry in mmap cache */
+    ret = sss_nss_mc_get(inp, cmd, out);
+    if (ret == EOK) {
+        sss_nss_unlock();
+        return 0;
     }
 
     nret = sss_nss_make_request_timeout(cmd, &rd, time_left, &repbuf, &replen,

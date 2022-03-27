@@ -57,7 +57,7 @@ struct nss_input {
     } result;
 };
 
-errno_t sss_nss_mc_get(struct nss_input *inp)
+static errno_t sss_nss_mc_get(struct nss_input *inp)
 {
     switch(inp->cmd) {
     case SSS_NSS_GETPWNAM:
