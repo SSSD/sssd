@@ -90,4 +90,10 @@ errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
                                   gid_t group, long int *start, long int *size,
                                   gid_t **groups, long int limit);
 
+/* SID db */
+errno_t sss_nss_mc_get_sid_by_id(uint32_t id, char **sid, uint32_t *type);
+errno_t sss_nss_mc_get_sid_by_uid(uint32_t id, char **sid, uint32_t *type);
+errno_t sss_nss_mc_get_sid_by_gid(uint32_t id, char **sid, uint32_t *type);
+errno_t sss_nss_mc_get_id_by_sid(const char *sid, uint32_t *id, uint32_t *type);
+
 #endif /* _NSS_MC_H_ */

@@ -1376,6 +1376,7 @@ libsss_nss_idmap_la_SOURCES = \
     src/sss_client/common.c \
     src/sss_client/idmap/common_ex.c \
     src/sss_client/nss_mc_passwd.c \
+    src/sss_client/nss_mc_sid.c \
     src/sss_client/nss_passwd.c \
     src/sss_client/nss_mc_group.c \
     src/sss_client/nss_group.c \
