@@ -65,11 +65,6 @@ nss_get_id_type(struct nss_cmd_ctx *cmd_ctx,
     errno_t ret;
     bool mpg;
 
-    if (cmd_ctx->sid_id_type != SSS_ID_TYPE_NOT_SPECIFIED) {
-        *_type = cmd_ctx->sid_id_type;
-        return EOK;
-    }
-
     /* Well known objects are always groups. */
     if (result->well_known_object) {
         *_type = SSS_ID_TYPE_GID;
