@@ -289,7 +289,8 @@ errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
 
     /* Parse command line. */
     ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL, NULL, NULL,
-                           "FILE", "Output file", &file, NULL);
+                           "FILE", "Output file", SSS_TOOL_OPT_REQUIRED,
+                           &file, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         return ret;
@@ -335,7 +336,7 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
     ret = sss_tool_popt_ex(cmdline, long_options, SSS_TOOL_OPT_OPTIONAL, NULL,
                            NULL, "DEBUG_LEVEL_TO_SET",
                            _("Specify debug level you want to set"),
-                           &debug_as_string, NULL);
+                           SSS_TOOL_OPT_REQUIRED, &debug_as_string, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         return ret;

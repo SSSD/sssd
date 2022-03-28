@@ -91,6 +91,7 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
                          void *popt_fn_pvt,
                          const char *fopt_name,
                          const char *fopt_help,
+                         enum sss_tool_opt fopt_require,
                          const char **_fopt,
                          bool *_opt_set);
 
