@@ -71,7 +71,7 @@ static errno_t parse_cmdline(struct sss_cmdline *cmdline,
 
     ret = sss_tool_popt_ex(cmdline, options, require,
                            NULL, NULL, "NAME", _("Specify name."),
-                           &input_name, NULL);
+                           SSS_TOOL_OPT_REQUIRED, &input_name, NULL);
     if (ret != EXIT_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         return ret;
@@ -170,7 +170,8 @@ static errno_t parse_cmdline_find(struct sss_cmdline *cmdline,
     };
 
     ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
-                           NULL, NULL, NULL, NULL, NULL, NULL);
+                           NULL, NULL, NULL, NULL, SSS_TOOL_OPT_REQUIRED,
+                           NULL, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         return ret;
@@ -200,7 +201,7 @@ static errno_t parse_cmdline_import(struct sss_cmdline *cmdline,
 
     ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "FILE", "File to import the data from.",
-                           _file, NULL);
+                           SSS_TOOL_OPT_REQUIRED, _file, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         return ret;
@@ -216,7 +217,7 @@ static errno_t parse_cmdline_export(struct sss_cmdline *cmdline,
 
     ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "FILE", "File to export the data to.",
-                           _file, NULL);
+                           SSS_TOOL_OPT_REQUIRED, _file, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         return ret;

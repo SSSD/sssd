@@ -238,7 +238,7 @@ errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
 
     ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "USERNAME", _("Specify user name."),
-                           &user, NULL);
+                           SSS_TOOL_OPT_REQUIRED, &user, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         return ret;

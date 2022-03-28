@@ -384,6 +384,7 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
                          void *popt_fn_pvt,
                          const char *fopt_name,
                          const char *fopt_help,
+                         enum sss_tool_opt fopt_require,
                          const char **_fopt,
                          bool *_opt_set)
 {
@@ -440,14 +441,19 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
         }
     }
 
-    /* Parse free option which is always required if requested. */
+    /* Parse free option which is required if requested and fopt_require
+     * is SSS_TOOL_OPT_REQUIRED */
+    opt_set = true;
     fopt = poptGetArg(pc);
     if (_fopt != NULL) {
         if (fopt == NULL) {
-            ERROR("Missing option: %s\n\n", fopt_help);
-            poptPrintHelp(pc, stderr, 0);
-            ret = EINVAL;
-            goto done;
+            if (fopt_require == SSS_TOOL_OPT_REQUIRED) {
+                ERROR("Missing option: %s\n\n", fopt_help);
+                poptPrintHelp(pc, stderr, 0);
+                ret = EINVAL;
+                goto done;
+            }
+            opt_set = false;
         }
 
         /* No more arguments expected. If something follows it is an error. */
@@ -467,8 +473,8 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
         goto done;
     }
 
-    opt_set = true;
-    if ((_fopt != NULL && cmdline->argc < 2) || cmdline->argc < 1) {
+    if ((_fopt != NULL && fopt_require == SSS_TOOL_OPT_REQUIRED && cmdline->argc < 2)
+            || cmdline->argc < 1) {
         opt_set = false;
 
         /* If at least one option is required and not provided, print error. */
@@ -499,7 +505,8 @@ errno_t sss_tool_popt(struct sss_cmdline *cmdline,
                       void *popt_fn_pvt)
 {
     return sss_tool_popt_ex(cmdline, options, require_option,
-                            popt_fn, popt_fn_pvt, NULL, NULL, NULL, NULL);
+                            popt_fn, popt_fn_pvt, NULL, NULL,
+                            SSS_TOOL_OPT_REQUIRED, NULL, NULL);
 }
 
 int sss_tool_main(int argc, const char **argv,

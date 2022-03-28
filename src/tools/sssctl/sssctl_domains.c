@@ -331,7 +331,7 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
 
     ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "DOMAIN", _("Specify domain name."),
-                           &opts.domain, &opt_set);
+                           SSS_TOOL_OPT_REQUIRED, &opts.domain, &opt_set);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         return ret;
