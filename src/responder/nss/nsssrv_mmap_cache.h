@@ -60,7 +60,8 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
 errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
                                  const struct sized_string *sid,
                                  uint32_t id,
-                                 uint32_t type);  /* enum sss_id_type*/
+                                 uint32_t type,          /* enum sss_id_type*/
+                                 bool explicit_lookup);  /* false ~ by_id(), true ~ by_uid/gid() */
 
 errno_t sss_mmap_cache_pw_invalidate(struct sss_mc_ctx *mcc,
                                      const struct sized_string *name);
