@@ -564,7 +564,7 @@ static errno_t parse_cmdline(struct sss_cmdline *cmdline,
 
     ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "NAME", _("Specify name."),
-                           &input_name, NULL);
+                           SSS_TOOL_OPT_REQUIRED, &input_name, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         return ret;
