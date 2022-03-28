@@ -95,6 +95,8 @@ struct pam_test_ctx {
 
     int ncache_hits;
     int exp_pam_status;
+    enum prompt_config_type exp_prompt_config_type;
+    struct pam_data *pd;
     bool provider_contacted;
 
     const char *pam_user_fqdn;
@@ -172,6 +174,7 @@ void test_pam_setup(struct sss_test_conf_param dom_params[],
     pam_test_ctx = talloc_zero(NULL, struct pam_test_ctx);
     assert_non_null(pam_test_ctx);
 
+    test_dom_suite_setup(TESTS_PATH);
     pam_test_ctx->tctx = create_dom_test_ctx(pam_test_ctx, TESTS_PATH,
                                              TEST_CONF_DB, TEST_DOM_NAME,
                                              TEST_ID_PROVIDER, dom_params);
@@ -212,6 +215,9 @@ void test_pam_setup(struct sss_test_conf_param dom_params[],
     assert_non_null(prctx);
     pam_test_ctx->cctx->protocol_ctx = prctx;
     prctx->cli_protocol_version = register_cli_protocol_version();
+
+    pam_test_ctx->pd = create_pam_data(pam_test_ctx);
+    assert_non_null(pam_test_ctx->pd);
 }
 
 static void pam_test_setup_common(void)
@@ -387,6 +393,8 @@ static int pam_test_teardown(void **state)
                             pam_test_ctx->wrong_user_fqdn, 0);
     assert_int_equal(ret, EOK);
 
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
+
     talloc_free(pam_test_ctx);
     return 0;
 }
@@ -466,6 +474,9 @@ int __wrap_pam_dp_send_req(struct pam_auth_req *preq, int timeout)
 
     /* Set expected status */
     preq->pd->pam_status = pam_test_ctx->exp_pam_status;
+    if (pam_test_ctx->pd->resp_list != NULL) {
+        preq->pd->resp_list = pam_test_ctx->pd->resp_list;
+    }
 
     preq->callback(preq);
 
@@ -3560,6 +3571,272 @@ void test_not_appsvc_app_dom(void **state)
     assert_int_equal(ret, EOK);
 }
 
+#define MY_PW_PROMPT "my_pw_prompt"
+#define MY_2FA_SINGLE_PROMPT "my_2fa_single_prompt"
+#define MY_FIRST_PROMPT "my_first_prompt"
+#define MY_SECOND_PROMPT "my_second_prompt"
+#define MY_SERVICE "my_service"
+
+static int pam_test_setup_pw_prompt(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param prompt_params[] = {
+        { "password_prompt", MY_PW_PROMPT},
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    ret = pam_test_setup(state);
+    assert_int_equal(ret, EOK);
+
+    ret = add_confdb_params(prompt_params, pam_test_ctx->rctx->cdb, CONFDB_PC_CONF_ENTRY "/" CONFDB_PC_TYPE_PASSWORD);
+    assert_int_equal(ret, EOK);
+
+    return 0;
+}
+
+static int test_pam_prompt_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    size_t rp = 0;
+    uint32_t val;
+    uint8_t val8t;
+    int ret;
+    struct prompt_config **pc = NULL;
+
+    assert_int_equal(status, 0);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, pam_test_ctx->exp_pam_status);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 3);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_PROMPT_CONFIG);
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    ret = pc_list_from_response(val, body + rp, &pc);
+    assert_int_equal(ret, EOK);
+    assert_non_null(pc[0]);
+    assert_int_equal(pc_get_type(pc[0]), pam_test_ctx->exp_prompt_config_type);
+    switch (pam_test_ctx->exp_prompt_config_type) {
+    case PC_TYPE_PASSWORD:
+        assert_string_equal(pc_get_password_prompt(pc[0]), MY_PW_PROMPT);
+        break;
+    case PC_TYPE_2FA_SINGLE:
+        assert_string_equal(pc_get_2fa_single_prompt(pc[0]), MY_2FA_SINGLE_PROMPT);
+        break;
+    case PC_TYPE_2FA:
+        assert_string_equal(pc_get_2fa_1st_prompt(pc[0]), MY_FIRST_PROMPT);
+        assert_string_equal(pc_get_2fa_2nd_prompt(pc[0]), MY_SECOND_PROMPT);
+        break;
+    default:
+        assert_false(true);
+    }
+    assert_null(pc[1]);
+    pc_list_free(pc);
+    rp += val;
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 9);
+    assert_string_equal(body + rp, TEST_DOM_NAME);
+    rp += val;
+
+
+    switch (pam_test_ctx->exp_prompt_config_type) {
+    case PC_TYPE_PASSWORD:
+        SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+        assert_int_equal(val, SSS_PASSWORD_PROMPTING);
+        SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+        assert_int_equal(val, 0);
+        break;
+    case PC_TYPE_2FA_SINGLE:
+    case PC_TYPE_2FA:
+        SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+        assert_int_equal(val, SSS_PAM_OTP_INFO);
+        SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+        assert_int_equal(val, 3);
+        SAFEALIGN_COPY_UINT8_CHECK(&val8t, body + rp, blen, &rp);
+        assert_int_equal(val8t, 0);
+        SAFEALIGN_COPY_UINT8_CHECK(&val8t, body + rp, blen, &rp);
+        assert_int_equal(val8t, 0);
+        SAFEALIGN_COPY_UINT8_CHECK(&val8t, body + rp, blen, &rp);
+        assert_int_equal(val8t, 0);
+        break;
+    default:
+        assert_false(true);
+    }
+
+    assert_int_equal(rp, blen);
+
+    return EOK;
+}
+
+void test_pam_prompting_password(void **state)
+{
+    int ret;
+
+    pam_test_ctx->pctx->prompting_config_sections = NULL;
+    pam_test_ctx->pctx->num_prompting_config_sections = 0;
+    ret = confdb_get_sub_sections(pam_test_ctx->pctx, pam_test_ctx->pctx->rctx->cdb, CONFDB_PC_CONF_ENTRY,
+                                  &pam_test_ctx->pctx->prompting_config_sections,
+                                  &pam_test_ctx->pctx->num_prompting_config_sections);
+    assert_int_equal(ret, EOK);
+
+    ret = pam_add_response(pam_test_ctx->pd, SSS_PASSWORD_PROMPTING, 0, NULL);
+    assert_int_equal(ret, EOK);
+
+    mock_input_pam(pam_test_ctx, "pamuser", NULL, NULL);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    pam_test_ctx->exp_prompt_config_type = PC_TYPE_PASSWORD;
+    set_cmd_cb(test_pam_prompt_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+static int pam_test_setup_2fa_single_prompt(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param prompt_params[] = {
+        { "first_prompt", MY_2FA_SINGLE_PROMPT},
+        { "single_prompt", "true"},
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    ret = pam_test_setup(state);
+    assert_int_equal(ret, EOK);
+
+    ret = add_confdb_params(prompt_params, pam_test_ctx->rctx->cdb, CONFDB_PC_CONF_ENTRY "/" CONFDB_PC_TYPE_2FA);
+    assert_int_equal(ret, EOK);
+
+    return 0;
+}
+
+void test_pam_prompting_2fa_single(void **state)
+{
+    int ret;
+    uint8_t otp_info[3] = { '\0' };
+
+    pam_test_ctx->pctx->prompting_config_sections = NULL;
+    pam_test_ctx->pctx->num_prompting_config_sections = 0;
+    ret = confdb_get_sub_sections(pam_test_ctx->pctx, pam_test_ctx->pctx->rctx->cdb, CONFDB_PC_CONF_ENTRY,
+                                  &pam_test_ctx->pctx->prompting_config_sections,
+                                  &pam_test_ctx->pctx->num_prompting_config_sections);
+    assert_int_equal(ret, EOK);
+
+    ret = pam_add_response(pam_test_ctx->pd, SSS_PAM_OTP_INFO, 3, otp_info);
+    assert_int_equal(ret, EOK);
+
+    mock_input_pam(pam_test_ctx, "pamuser", NULL, NULL);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    pam_test_ctx->exp_prompt_config_type = PC_TYPE_2FA_SINGLE;
+    set_cmd_cb(test_pam_prompt_check);
+
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+static int pam_test_setup_2fa_single_and_service_prompt(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param prompt_service_params[] = {
+        { "first_prompt", MY_FIRST_PROMPT},
+        { "second_prompt", MY_SECOND_PROMPT},
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    ret = pam_test_setup_2fa_single_prompt(state);
+    assert_int_equal(ret, EOK);
+
+    ret = add_confdb_params(prompt_service_params, pam_test_ctx->rctx->cdb, CONFDB_PC_CONF_ENTRY "/" CONFDB_PC_TYPE_2FA "/" MY_SERVICE);
+    assert_int_equal(ret, EOK);
+
+    return 0;
+}
+
+void test_pam_prompting_2fa_single_and_service_glob(void **state)
+{
+    int ret;
+    uint8_t otp_info[3] = { '\0' };
+
+    pam_test_ctx->pctx->prompting_config_sections = NULL;
+    pam_test_ctx->pctx->num_prompting_config_sections = 0;
+    ret = confdb_get_sub_sections(pam_test_ctx->pctx, pam_test_ctx->pctx->rctx->cdb, CONFDB_PC_CONF_ENTRY,
+                                  &pam_test_ctx->pctx->prompting_config_sections,
+                                  &pam_test_ctx->pctx->num_prompting_config_sections);
+    assert_int_equal(ret, EOK);
+
+    ret = pam_add_response(pam_test_ctx->pd, SSS_PAM_OTP_INFO, 3, otp_info);
+    assert_int_equal(ret, EOK);
+
+    mock_input_pam(pam_test_ctx, "pamuser", NULL, NULL);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    pam_test_ctx->exp_prompt_config_type = PC_TYPE_2FA_SINGLE;
+    set_cmd_cb(test_pam_prompt_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_prompting_2fa_single_and_service_srv(void **state)
+{
+    int ret;
+    uint8_t otp_info[3] = { '\0' };
+
+    pam_test_ctx->pctx->prompting_config_sections = NULL;
+    pam_test_ctx->pctx->num_prompting_config_sections = 0;
+    ret = confdb_get_sub_sections(pam_test_ctx->pctx, pam_test_ctx->pctx->rctx->cdb, CONFDB_PC_CONF_ENTRY,
+                                  &pam_test_ctx->pctx->prompting_config_sections,
+                                  &pam_test_ctx->pctx->num_prompting_config_sections);
+    assert_int_equal(ret, EOK);
+
+    ret = pam_add_response(pam_test_ctx->pd, SSS_PAM_OTP_INFO, 3, otp_info);
+    assert_int_equal(ret, EOK);
+
+    mock_input_pam_ex(pam_test_ctx, "pamuser", NULL, NULL, MY_SERVICE, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    pam_test_ctx->exp_prompt_config_type = PC_TYPE_2FA;
+    set_cmd_cb(test_pam_prompt_check);
+
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -3760,8 +4037,16 @@ int main(int argc, const char *argv[])
                                         pam_test_setup_appsvc_app_dom,
                                         pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_not_appsvc_app_dom,
-                                        pam_test_setup_appsvc_posix_dom,
+                                        pam_test_setup_appsvc_app_dom,
                                         pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_prompting_password,
+                                        pam_test_setup_pw_prompt, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_prompting_2fa_single,
+                                        pam_test_setup_2fa_single_prompt, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_prompting_2fa_single_and_service_glob,
+                                        pam_test_setup_2fa_single_and_service_prompt, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_prompting_2fa_single_and_service_srv,
+                                        pam_test_setup_2fa_single_and_service_prompt, pam_test_teardown),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
@@ -3785,7 +4070,6 @@ int main(int argc, const char *argv[])
      * they might not after a failed run. Remove the old DB to be sure */
     tests_set_cwd();
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
-    test_dom_suite_setup(TESTS_PATH);
 
     rv = cmocka_run_group_tests(tests, NULL, NULL);
     if (rv == 0 && !no_cleanup) {
