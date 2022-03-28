@@ -33,8 +33,9 @@
 static struct sss_cli_mc_ctx sid_mc_ctx = { UNINITIALIZED, -1, 0, NULL, 0, NULL, 0,
                                             NULL, 0, 0 };
 
-static errno_t mc_get_sid_by_typed_id(uint32_t id, enum sss_id_type lookup_type,
-                                      char **sid, uint32_t *type)
+static errno_t mc_get_sid_by_typed_id(uint32_t id, enum sss_id_type object_type,
+                                      char **sid, uint32_t *type,
+                                      uint32_t *populated_by)
 {
     int ret;
     char key[16];
@@ -44,7 +45,7 @@ static errno_t mc_get_sid_by_typed_id(uint32_t id, enum sss_id_type lookup_type,
     struct sss_mc_rec *rec = NULL;
     const struct sss_mc_sid_data *data = NULL;
 
-    key_len = snprintf(key, sizeof(key), "%u-%ld", lookup_type, (long)id);
+    key_len = snprintf(key, sizeof(key), "%d-%ld", object_type, (long)id);
     if (key_len > (sizeof(key) - 1)) {
         return EINVAL;
     }
@@ -77,6 +78,9 @@ static errno_t mc_get_sid_by_typed_id(uint32_t id, enum sss_id_type lookup_type,
                 goto done;
             }
             *type = data->type;
+            if (populated_by) {
+                *populated_by = data->populated_by;
+            }
             *sid = strdup(data->sid);
             if (!*sid) {
                 ret = ENOMEM;
@@ -97,17 +101,18 @@ done:
 
 errno_t sss_nss_mc_get_sid_by_uid(uint32_t id, char **sid, uint32_t *type)
 {
-    return mc_get_sid_by_typed_id(id, SSS_ID_TYPE_UID, sid, type);
+    return mc_get_sid_by_typed_id(id, SSS_ID_TYPE_UID, sid, type, NULL);
 }
 
 errno_t sss_nss_mc_get_sid_by_gid(uint32_t id, char **sid, uint32_t *type)
 {
-    return mc_get_sid_by_typed_id(id, SSS_ID_TYPE_GID, sid, type);
+    return mc_get_sid_by_typed_id(id, SSS_ID_TYPE_GID, sid, type, NULL);
 }
 
 errno_t sss_nss_mc_get_sid_by_id(uint32_t id, char **sid, uint32_t *type)
 {
     errno_t ret;
+    uint32_t populated_by;
 
     /* MC should behave the same way sssd_nss does.
      * If user object exists sssd_nss would always return this user object.
@@ -121,9 +126,17 @@ errno_t sss_nss_mc_get_sid_by_id(uint32_t id, char **sid, uint32_t *type)
      * Consider a case of manually created user private group:
      * since MC could be primed via explicit by-gid() lookup,
      * missing user object doesn't mean sssd_nss wouldn't return
-     * it, hence request should go to sssd_nss.
+     * it, hence only return group object if cache was primed via
+     * by-id() lookup.
      */
-    return ENOENT;
+    ret = mc_get_sid_by_typed_id(id, SSS_ID_TYPE_GID, sid, type, &populated_by);
+    if ((ret == 0) && (populated_by == 1)) {
+        /* Cache was primed via explicit by-gid() lookup - request should go to sssd_nss */
+        free(*sid);
+        ret = ENOENT;
+    }
+
+    return ret;
 }
 
 errno_t sss_nss_mc_get_id_by_sid(const char *sid, uint32_t *id, uint32_t *type)
