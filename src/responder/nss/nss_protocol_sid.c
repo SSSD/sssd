@@ -239,7 +239,8 @@ nss_protocol_fill_sid(struct nss_ctx *nss_ctx,
             return EOK;
         }
         ret = sss_mmap_cache_sid_store(&nss_ctx->sid_mc_ctx, &sz_sid,
-                                       (uint32_t)id, id_type);
+                                       (uint32_t)id, id_type,
+                                       cmd_ctx->type != CACHE_REQ_OBJECT_BY_ID);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to store SID='%s' / ID=%lu in mmap cache [%d]: %s!\n",
@@ -636,7 +637,8 @@ nss_protocol_fill_id(struct nss_ctx *nss_ctx,
             return EOK;
         }
         to_sized_string(&sid_key, sid);
-        ret = sss_mmap_cache_sid_store(&nss_ctx->sid_mc_ctx, &sid_key, id, id_type);
+        ret = sss_mmap_cache_sid_store(&nss_ctx->sid_mc_ctx, &sid_key, id, id_type,
+                                       cmd_ctx->type != CACHE_REQ_OBJECT_BY_ID);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to store SID='%s' / ID=%d in mmap cache [%d]: %s!\n",

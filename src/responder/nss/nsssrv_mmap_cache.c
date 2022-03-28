@@ -1084,7 +1084,8 @@ errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx *mcc,
 errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
                                  const struct sized_string *sid,
                                  uint32_t id,
-                                 uint32_t type)
+                                 uint32_t type,
+                                 bool explicit_lookup)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -1122,6 +1123,7 @@ errno_t sss_mmap_cache_sid_store(struct sss_mc_ctx **_mcc,
     data->name = MC_PTR_DIFF(data->sid, data);
     data->type = type;
     data->id = id;
+    data->populated_by = (explicit_lookup ? 1 : 0);
     data->sid_len = sid->len;
     memcpy(data->sid, sid->str, sid->len);
 
