@@ -124,7 +124,7 @@ static errno_t pam_set_prompting_options(struct confdb_ctx *cdb,
     dummy = talloc_asprintf(tmp_ctx, "%s/%s", section_path,
                                               service_name);
     for (c = 0; c < num_sections; c++) {
-        if (strcmp(sections[c], CONFDB_PC_TYPE_PASSWORD) == 0) {
+        if (strcmp(sections[c], section_path) == 0) {
             global = true;
         }
         if (dummy != NULL && strcmp(sections[c], dummy) == 0) {
