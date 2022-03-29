@@ -673,6 +673,9 @@ def sssdproxyldap(session_multihost, request):
 def nslcd(session_multihost, request):
     """ Setup nslcd.conf """
     ldap_uri = session_multihost.master[0].sys_hostname
+    session_multihost.client[0].run_command("yum install "
+                                            "-y nss-pam-ldapd",
+                                            raiseonerr=False)
     basedn = 'dc=example0,dc=test'
     contents = '''uid nslcd
 gid ldap
