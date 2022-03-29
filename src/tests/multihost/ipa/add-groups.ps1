@@ -44,7 +44,7 @@ foreach ($group in $groups) {
 		try
 		{
 			Write-Output "Adding $($user.SamAccountName) as member to $($group.GroupName)"
-			Add-ADGroupMember -Identity $group.GroupName -Member $user.SamAccountName
+			Add-ADGroupMember -Identity $group.GroupName -Members $user.SamAccountName
 		}
 		catch [System.Object]
 		{
@@ -58,7 +58,7 @@ foreach ($nestedgroup in $nestedgroups) {
                 try
                 {
                         Write-Output "Add $($group.GroupName) as member of $($nestedgroup.NestedGroupName)"
-                        Add-ADGroupMember -Identity $nestedgroup.NestedGroupName -Member $group.GroupName
+                        Add-ADGroupMember -Identity $nestedgroup.NestedGroupName -Members $group.GroupName
                 }
                 catch [System.Object]
                 {
