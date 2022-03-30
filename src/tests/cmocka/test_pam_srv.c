@@ -81,6 +81,8 @@
 #define TEST5_KEY_ID "1195833C424AB00297F582FC43FFFFAB47A64CC9"
 #define TEST5_LABEL "SSSD test cert 0005"
 
+int no_cleanup;
+
 static char CACHED_AUTH_TIMEOUT_STR[] = "4";
 static const int CACHED_AUTH_TIMEOUT = 4;
 
@@ -393,7 +395,9 @@ static int pam_test_teardown(void **state)
                             pam_test_ctx->wrong_user_fqdn, 0);
     assert_int_equal(ret, EOK);
 
-    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
+    if (!no_cleanup) {
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
+    }
 
     talloc_free(pam_test_ctx);
     return 0;
@@ -3839,15 +3843,18 @@ void test_pam_prompting_2fa_single_and_service_srv(void **state)
 
 int main(int argc, const char *argv[])
 {
-    int rv;
-    int no_cleanup = 0;
     poptContext pc;
     int opt;
+    const char *single = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
         { "no-cleanup", 'n', POPT_ARG_NONE, &no_cleanup, 0,
-          _("Do not delete the test database after a test run"), NULL },
+          _("Do not delete the test database after a single test is run"),
+          NULL },
+        { "list-tests", 'l', POPT_ARG_NONE, NULL, 'l',
+          _("Show all available tests"),
+          NULL },
         POPT_TABLEEND
     };
 
@@ -4053,8 +4060,13 @@ int main(int argc, const char *argv[])
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
+    poptSetOtherOptionHelp(pc, "[OPTION...] [name_of_a_single_test]");
     while ((opt = poptGetNextOpt(pc)) != -1) {
         switch (opt) {
+        case 'l':
+            fprintf(stderr, "\nAvailable tests:\n");
+            list_tests(stderr, " -", tests, sizeof(tests)/sizeof(tests[0]));
+            return 0;
         default:
             fprintf(stderr, "\nInvalid option %s: %s\n\n",
                     poptBadOption(pc, 0), poptStrerror(opt));
@@ -4062,6 +4074,16 @@ int main(int argc, const char *argv[])
             return 1;
         }
     }
+
+    single = poptGetArg(pc);
+
+    if (single == NULL && no_cleanup) {
+        fprintf(stderr, "\nThe --no-cleanup makes only sense when running "
+                        "a single test.\n\n");
+        poptPrintUsage(pc, stderr, 0);
+        return 1;
+    }
+
     poptFreeContext(pc);
 
     DEBUG_CLI_INIT(debug_level);
@@ -4071,10 +4093,7 @@ int main(int argc, const char *argv[])
     tests_set_cwd();
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
 
-    rv = cmocka_run_group_tests(tests, NULL, NULL);
-    if (rv == 0 && !no_cleanup) {
-        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
-    }
+    return sss_cmocka_run_group_tests(tests, sizeof(tests)/sizeof(tests[0]),
+                                      single);
 
-    return rv;
 }
