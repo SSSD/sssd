@@ -2,7 +2,9 @@ name: "Analyze (target)"
 on:
   pull_request_target:
     branches: [master]
-
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   cppcheck:
     runs-on: ubuntu-latest
@@ -25,3 +27,56 @@ jobs:
         pull_request_id: ${{ github.event.pull_request.number }}
         allow_approve: false
         enable_checks: "warning,unusedFunction,missingInclude"
+
+  covscan:
+    runs-on: covscan
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout target branch
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.base_ref }}
+        path: target
+
+    - name: Checkout pull request branch
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.head_ref }}
+        path: pr
+
+    - name: Build source rpm - ${{ github.base_ref }}
+      id: target
+      uses: ./target/.github/actions/build-sssd-srpm
+      with:
+        working-directory: target
+        version: ${{ github.base_ref }}
+
+    - name: Build source rpm - pr${{ github.event.pull_request.number }}
+      id: pr
+      uses: ./target/.github/actions/build-sssd-srpm
+      with:
+        working-directory: pr
+        version: pr${{ github.event.pull_request.number }}
+
+    - name: Run covscan
+      run: |
+        run-covscan --base-srpm "${{ steps.target.outputs.path }}" --srpm "${{ steps.pr.outputs.path }}" --output-dir logs
+
+    - name: Print result
+      uses: next-actions/print-logs@master
+      if: always()
+      with:
+        working-directory: logs
+        files: |
+          added.err
+          *.err
+
+    - name: Upload artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        if-no-files-found: ignore
+        name: covscan
+        path: |
+          ./logs/*.err
