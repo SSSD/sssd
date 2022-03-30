@@ -53,4 +53,10 @@ enum sss_test_wrapper_call {
     WRAP_CALL_REAL
 };
 
+void list_tests(FILE *file, const char *pref,
+                const struct CMUnitTest tests[], size_t test_count);
+
+int sss_cmocka_run_group_tests(const struct CMUnitTest * const tests,
+                               const size_t num_tests,
+                               const char *single);
 #endif /* __COMMON_MOCK_H_ */
