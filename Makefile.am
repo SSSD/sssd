@@ -2573,6 +2573,7 @@ EXTRA_pam_srv_tests_DEPENDENCIES += p11_child
 pam_srv_tests_SOURCES = \
     $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_pam_srv.c \
+    src/tests/cmocka/common_utils.c \
     src/sss_client/pam_message.c \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_p11.c \
