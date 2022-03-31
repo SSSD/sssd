@@ -22,7 +22,7 @@ class TestSssCache(object):
         :id: c310f1b4-e89b-11eb-84ce-845cf3eff344
         :steps:
             1. Make a change to group entry in LDAP
-            2. Run 'ssh_cache -E' on clients
+            2. Run 'sss_cache -E' on clients
             3. Check with 'getent group' on clients to see if correct\
         :expectedresults:
             1. Should succeed
