@@ -864,6 +864,22 @@ AC_DEFUN([WITH_SECRETS_DB_PATH],
     AC_DEFINE_UNQUOTED(SECRETS_DB_PATH, "$config_secdbpath", [Path to the SSSD Secrets databases])
   ])
 
+AC_DEFUN([WITH_OIDC_CHILD],
+  [ AC_ARG_WITH([oidc-child],
+                [AC_HELP_STRING([--with-oidc-child],
+                                [Whether to build with oidc_child support [yes]]
+                               )
+                ],
+                [with_oidc_child=$withval],
+                with_oidc_child=yes
+               )
+
+    if test x"$with_oidc_child" = xyes; then
+        AC_DEFINE(BUILD_OIDC_CHILD, 1, [whether to build with oidc_child support])
+    fi
+    AM_CONDITIONAL([BUILD_OIDC_CHILD], [test x"$with_oidc_child" = xyes])
+  ])
+
 AC_ARG_ENABLE([files-domain],
               [AS_HELP_STRING([--enable-files-domain],
                               [If this feature is enabled, then SSSD always enables

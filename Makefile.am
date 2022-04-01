@@ -188,7 +188,9 @@ if BUILD_SEMANAGE
 sssdlibexec_PROGRAMS += selinux_child
 endif
 sssdlibexec_PROGRAMS += p11_child
+if BUILD_OIDC_CHILD
 sssdlibexec_PROGRAMS += oidc_child
+endif
 if SSSD_USER
 if HAVE_POLKIT_RULES_D
 polkit_rulesdir = $(polkitdir)
@@ -4674,6 +4676,7 @@ p11_child_LDADD += \
     $(SSL_LIBS) \
     $(NULL)
 
+if BUILD_OIDC_CHILD
 oidc_child_SOURCES = \
     src/oidc_child/oidc_child.c \
     src/oidc_child/oidc_child_curl.c \
@@ -4697,6 +4700,7 @@ oidc_child_LDADD = \
     $(JOSE_LIBS) \
     $(CURL_LIBS) \
     $(NULL)
+endif
 
 memberof_la_SOURCES = \
     src/ldb_modules/memberof.c \
