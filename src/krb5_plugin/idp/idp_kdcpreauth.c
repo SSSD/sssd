@@ -30,6 +30,7 @@
 
 #include "shared/safealign.h"
 #include "idp.h"
+#include "util/util.h"
 
 struct sss_idpkdc_state {
     const char *server;
@@ -230,6 +231,38 @@ sss_idpkdc_get_complete_attr(const krad_packet *rres,
     *_data = data;
 
     return 0;
+}
+
+/* From krad internals, RFC 2865 */
+#ifndef UCHAR_MAX
+#define UCHAR_MAX 255
+#endif
+#define MAX_ATTRSIZE (UCHAR_MAX - 2)
+
+static krb5_error_code
+sss_idpkdc_put_complete_attr(krad_attrset *attrset,
+                             krad_attr attr,
+                             const krb5_data *datap)
+{
+    krb5_data state = {0};
+    char *p = datap->data;
+    unsigned int len = datap->length;
+    krb5_error_code ret = 0;
+
+    do {
+        /* - 5 to make sure we fit into minimal value length */
+        state.data = p;
+        state.length = MIN(MAX_ATTRSIZE - 5, len);
+        p += state.length;
+
+        ret = krad_attrset_add(attrset, attr, &(state));
+        if (ret != 0) {
+            break;
+        }
+        len -= state.length;
+    } while (len > 0);
+
+    return ret;
 }
 
 struct sss_idpkdc_radius {
@@ -550,8 +583,9 @@ sss_idpkdc_verify_send(krb5_context kctx,
         goto done;
     }
 
-    ret = krad_attrset_add(state->radius->attrs, krad_attr_name2num("State"),
-                           rstate);
+    ret = sss_idpkdc_put_complete_attr(state->radius->attrs,
+                                       krad_attr_name2num("Proxy-State"),
+                                       rstate);
     if (ret != 0) {
         goto done;
     }
