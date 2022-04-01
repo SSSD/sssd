@@ -172,6 +172,7 @@ WITH_SSSD_USER
 SSSD_RUNSTATEDIR
 WITH_SECRETS_DB_PATH
 WITH_KCM
+WITH_OIDC_CHILD
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
@@ -213,8 +214,10 @@ m4_include([src/external/service.m4])
 m4_include([src/external/test_ca.m4])
 m4_include([src/external/ax_valgrind_check.m4])
 m4_include([src/external/libjansson.m4])
-m4_include([src/external/libcurl.m4])
-m4_include([src/external/libjose.m4])
+AS_IF([test x$with_oidc_child = xyes], [
+    m4_include([src/external/libcurl.m4])
+    m4_include([src/external/libjose.m4])
+])
 
 AS_IF([test x$with_kcm = xyes], [
     m4_include([src/external/libuuid.m4])
