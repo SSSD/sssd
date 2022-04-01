@@ -30,6 +30,7 @@ pkcs12 = $(addprefix SSSD_test_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 
 
 extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens softhsm2_ocsp softhsm2_2certs_same_id softhsm2_pss_one SSSD_test_cert_x509_0001.der SSSD_test_cert_x509_0007.der
+extra += SSSD_test_CA_crl.pem
 if HAVE_FAKETIME
 extra += SSSD_test_CA_expired_crl.pem
 endif
@@ -37,7 +38,7 @@ endif
 # If openssl is run in parallel there might be conflicts with the serial
 .NOTPARALLEL:
 
-ca_all: clean serial SSSD_test_CA.pem $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) $(extra)
+ca_all: clean serial SSSD_test_CA.pem SSSD_test_CA_crl.pem $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) $(extra)
 
 $(pwdfile):
 	@echo "123456" > $@
@@ -96,6 +97,9 @@ SSSD_test_cert_pubsshkey_%.h: SSSD_test_cert_pubsshkey_%.pub
 
 SSSD_test_CA_expired_crl.pem:
 	$(FAKETIME) -f '-7d' $(OPENSSL) ca -gencrl -out $@ -keyfile $(openssl_ca_key) -config ${openssl_ca_config} -crlhours 1
+
+SSSD_test_CA_crl.pem: $(openssl_ca_key) SSSD_test_CA.pem
+	$(OPENSSL) ca -gencrl -out $@ -keyfile $(openssl_ca_key) -config $(openssl_ca_config) -crldays 99999
 
 # The softhsm2 PKCS#11 setups are used in
 # - src/tests/cmocka/test_pam_srv.c
@@ -206,6 +210,7 @@ CLEANFILES = \
     index.txt.attr.old  index.txt.old \
     serial  serial.old  \
     SSSD_test_CA.pem $(pwdfile) SSSD_test_CA_expired_crl.pem \
+    SSSD_test_CA_crl.pem \
     $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) \
     softhsm2_*.conf \
     SSSD_test_*.der \
