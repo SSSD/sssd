@@ -180,13 +180,14 @@ sss_idpkdc_get_cookie(krb5_context context,
     return 0;
 }
 
-/* Reply-Message attribute has limited length. In order to accept longer values,
- * we will concatenate all Reply-Message values to single krb5_data. */
+/* Some attributes have limited length. In order to accept longer values,
+ * we will concatenate all attribute values to single krb5_data. */
 static krb5_error_code
-sss_idpkdc_get_full_reply_message(const krad_packet *rres,
-                                  krb5_data *_data)
+sss_idpkdc_get_complete_attr(const krad_packet *rres,
+                             const char *attr_name,
+                             krb5_data *_data)
 {
-    krad_attr attr = krad_attr_name2num("Reply-Message");
+    krad_attr attr = krad_attr_name2num(attr_name);
     const krb5_data *rmsg;
     krb5_data data = {0};
     unsigned int memindex;
@@ -338,7 +339,7 @@ sss_idpkdc_challenge_done(krb5_error_code rret,
     struct sss_idpkdc_challenge *state;
     struct sss_idp_oauth2 *idp_oauth2 = NULL;
     krb5_pa_data *padata = NULL;
-    const krb5_data *rstate;
+    krb5_data rstate = {0};
     krb5_data rmsg = {0};
     krb5_error_code ret;
 
@@ -354,13 +355,12 @@ sss_idpkdc_challenge_done(krb5_error_code rret,
         goto done;
     }
 
-    rstate = krad_packet_get_attr(rres, krad_attr_name2num("State"), 0);
-    if (rstate == NULL) {
-        ret = EINVAL;
+    ret = sss_idpkdc_get_complete_attr(rres, "Proxy-State", &rstate);
+    if (ret != 0) {
         goto done;
     }
 
-    ret = sss_idpkdc_get_full_reply_message(rres, &rmsg);
+    ret = sss_idpkdc_get_complete_attr(rres, "Reply-Message", &rmsg);
     if (ret != 0) {
         goto done;
     }
@@ -368,7 +368,7 @@ sss_idpkdc_challenge_done(krb5_error_code rret,
     /* Remember the RADIUS state so it can be set in the Access-Request message
      * sent in sss_idpkdc_verify(), thus allowing the RADIUS server to
      * associate the message with its internal state. */
-    ret = sss_idpkdc_set_cookie(state->kctx, state->cb, state->rock, rstate);
+    ret = sss_idpkdc_set_cookie(state->kctx, state->cb, state->rock, &rstate);
     if (ret != 0) {
         goto done;
     }
@@ -391,6 +391,7 @@ done:
     state->respond(state->arg, ret, padata);
     sss_idpkdc_challenge_free(state);
     sss_idp_oauth2_free(idp_oauth2);
+    free(rstate.data);
     free(rmsg.data);
 
     /* padata should not be freed */
