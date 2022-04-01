@@ -16,12 +16,12 @@ pubkeys = $(addprefix SSSD_test_ECC_cert_pubsshkey_,$(addsuffix .pub,$(ids)))
 pubkeys_h = $(addprefix SSSD_test_ECC_cert_pubsshkey_,$(addsuffix .h,$(ids)))
 pkcs12 = $(addprefix SSSD_test_ECC_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 
-extra = softhsm2_ecc_one
+extra = softhsm2_ecc_one SSSD_test_ECC_crl.pem
 
 # If openssl is run in parallel there might be conflicts with the serial
 .NOTPARALLEL:
 
-ca_all: clean serial SSSD_test_ECC_CA.pem $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) $(extra)
+ca_all: clean serial SSSD_test_ECC_crl.pem $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) $(extra)
 
 $(pwdfile):
 	@echo "123456" > $@
@@ -51,6 +51,9 @@ SSSD_test_ECC_cert_x509_%.h: SSSD_test_ECC_cert_x509_%.pem
 SSSD_test_ECC_cert_pubsshkey_%.h: SSSD_test_ECC_cert_pubsshkey_%.pub
 	@echo "#define SSSD_TEST_ECC_CERT_SSH_KEY_$* \""$(shell cut -d' ' -f2 $<)"\"" > $@
 
+SSSD_test_ECC_crl.pem: $(openssl_ecc_ca_key) SSSD_test_ECC_CA.pem
+	$(OPENSSL) ca -gencrl -out $@ -keyfile $(openssl_ecc_ca_key) -config $(openssl_ecc_ca_config) -crldays 99999
+
 
 softhsm2_ecc_one: softhsm2_ecc_one.conf
 	mkdir $@
@@ -67,7 +70,7 @@ CLEANFILES = \
     index.txt  index.txt.attr \
     index.txt.attr.old  index.txt.old \
     serial  serial.old  \
-    SSSD_test_ECC_CA.pem $(pwdfile) \
+    SSSD_test_ECC_CA.pem SSSD_test_ECC_crl.pem $(pwdfile) \
     $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) \
     softhsm2_*.conf \
     $(NULL)

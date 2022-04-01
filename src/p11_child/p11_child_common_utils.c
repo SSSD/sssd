@@ -43,7 +43,7 @@ static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
     cert_verify_opts->verification_partial_chain = false;
     cert_verify_opts->ocsp_default_responder = NULL;
     cert_verify_opts->ocsp_default_responder_signing_cert = NULL;
-    cert_verify_opts->crl_file = NULL;
+    cert_verify_opts->crl_files = NULL;
     cert_verify_opts->ocsp_dgst = CKM_SHA_1;
     cert_verify_opts->soft_ocsp = false;
     cert_verify_opts->soft_crl = false;
@@ -63,6 +63,39 @@ static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
 
 #define OCSP_DGST "ocsp_dgst="
 #define OCSP_DGST_LEN (sizeof(OCSP_DGST) -1)
+
+static errno_t parse_crl_files(const char *filename, size_t c,
+                               struct cert_verify_opts *_opts)
+{
+    int ret;
+
+    if (_opts->num_files == 0) {
+        _opts->crl_files = talloc_array(_opts, char *, 1);
+    } else {
+        _opts->crl_files = talloc_realloc(_opts, _opts->crl_files,
+                                          char *, _opts->num_files + 1);
+    }
+    if (_opts->crl_files == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    _opts->crl_files[_opts->num_files] = talloc_strdup(_opts,
+                                                       filename);
+    if (_opts->crl_files[_opts->num_files] == NULL
+            || *_opts->crl_files[_opts->num_files] == '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                "Failed to parse crl_file option [%s].\n", filename);
+        ret = EINVAL;
+        goto done;
+    }
+
+    _opts->num_files++;
+    ret = EOK;
+
+done:
+    return ret;
+}
 
 errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                                struct cert_verify_opts **_cert_verify_opts)
@@ -155,13 +188,8 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                   "Using OCSP default responder signing cert nickname [%s]\n",
                   cert_verify_opts->ocsp_default_responder_signing_cert);
         } else if (strncasecmp(opts[c], CRL_FILE, CRL_FILE_LEN) == 0) {
-            cert_verify_opts->crl_file = talloc_strdup(cert_verify_opts,
-                                                       &opts[c][CRL_FILE_LEN]);
-            if (cert_verify_opts->crl_file == NULL
-                    || *cert_verify_opts->crl_file == '\0') {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to parse crl_file option [%s].\n", opts[c]);
-                ret = EINVAL;
+            ret = parse_crl_files(&opts[c][CRL_FILE_LEN], c, cert_verify_opts);
+            if (ret != EOK) {
                 goto done;
             }
         } else if (strncasecmp(opts[c], OCSP_DGST, OCSP_DGST_LEN) == 0) {

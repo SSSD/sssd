@@ -1764,7 +1764,7 @@ static void test_parse_cert_verify_opts(void **state)
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
-    assert_null(cv_opts->crl_file);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context, "wedfkwefjk", &cv_opts);
@@ -1774,7 +1774,7 @@ static void test_parse_cert_verify_opts(void **state)
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
-    assert_null(cv_opts->crl_file);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context, "no_ocsp", &cv_opts);
@@ -1784,7 +1784,7 @@ static void test_parse_cert_verify_opts(void **state)
     assert_false(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
-    assert_null(cv_opts->crl_file);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context, "no_verification",
@@ -1795,7 +1795,7 @@ static void test_parse_cert_verify_opts(void **state)
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
-    assert_null(cv_opts->crl_file);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context,
@@ -1806,7 +1806,7 @@ static void test_parse_cert_verify_opts(void **state)
     assert_false(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
-    assert_null(cv_opts->crl_file);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context,
@@ -1828,7 +1828,7 @@ static void test_parse_cert_verify_opts(void **state)
     assert_true(cv_opts->do_ocsp);
     assert_string_equal(cv_opts->ocsp_default_responder, "abc");
     assert_string_equal(cv_opts->ocsp_default_responder_signing_cert, "def");
-    assert_null(cv_opts->crl_file);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context, "crl_file=hij",
@@ -1839,7 +1839,20 @@ static void test_parse_cert_verify_opts(void **state)
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
-    assert_string_equal(cv_opts->crl_file, "hij");
+    assert_string_equal(cv_opts->crl_files[0], "hij");
+    talloc_free(cv_opts);
+
+    ret = parse_cert_verify_opts(global_talloc_context,
+                                 "crl_file=file1.pem,crl_file=file2.pem",
+                                 &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->verification_partial_chain);
+    assert_true(cv_opts->do_ocsp);
+    assert_null(cv_opts->ocsp_default_responder);
+    assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    assert_string_equal(cv_opts->crl_files[0], "file1.pem");
+    assert_string_equal(cv_opts->crl_files[1], "file2.pem");
     talloc_free(cv_opts);
 
     ret = parse_cert_verify_opts(global_talloc_context, "partial_chain", &cv_opts);
@@ -1849,7 +1862,7 @@ static void test_parse_cert_verify_opts(void **state)
     assert_true(cv_opts->do_ocsp);
     assert_null(cv_opts->ocsp_default_responder);
     assert_null(cv_opts->ocsp_default_responder_signing_cert);
-    assert_null(cv_opts->crl_file);
+    assert_null(cv_opts->crl_files);
     talloc_free(cv_opts);
 }
 

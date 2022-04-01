@@ -38,7 +38,8 @@ struct cert_verify_opts {
     bool verification_partial_chain;
     char *ocsp_default_responder;
     char *ocsp_default_responder_signing_cert;
-    char *crl_file;
+    char **crl_files;
+    int num_files;
     CK_MECHANISM_TYPE ocsp_dgst;
     bool soft_ocsp;
     bool soft_crl;
