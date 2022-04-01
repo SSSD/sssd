@@ -645,6 +645,7 @@ errno_t init_verification(struct p11_ctx *p11_ctx,
     int ret;
     X509_STORE *store = NULL;
     unsigned long err;
+    int file_index = 0;
     X509_LOOKUP *lookup = NULL;
     X509_VERIFY_PARAM *verify_param = NULL;
 
@@ -688,7 +689,7 @@ errno_t init_verification(struct p11_ctx *p11_ctx,
         X509_VERIFY_PARAM_set_flags(verify_param, X509_V_FLAG_PARTIAL_CHAIN);
     }
 
-    if (cert_verify_opts->crl_file != NULL) {
+    if (cert_verify_opts->crl_files != NULL) {
         if ((ret = ensure_verify_param (&verify_param)) != EOK) {
             goto done;
         }
@@ -696,14 +697,21 @@ errno_t init_verification(struct p11_ctx *p11_ctx,
         X509_VERIFY_PARAM_set_flags(verify_param, (X509_V_FLAG_CRL_CHECK
                                                   | X509_V_FLAG_CRL_CHECK_ALL));
 
-        ret = X509_load_crl_file(lookup, cert_verify_opts->crl_file,
-                                 X509_FILETYPE_PEM);
-        if (ret == 0) {
-            err = ERR_get_error();
-            DEBUG(SSSDBG_OP_FAILURE, "X509_load_crl_file failed [%lu][%s].\n",
-                                     err, ERR_error_string(err, NULL));
-            ret = EIO;
-            goto done;
+        while (file_index < cert_verify_opts->num_files) {
+            ret = X509_load_crl_file(lookup,
+                                     cert_verify_opts->crl_files[file_index],
+                                     X509_FILETYPE_PEM);
+            if (ret == 0) {
+                err = ERR_get_error();
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "X509_load_crl_file for [%s] failed [%lu][%s].\n",
+                      cert_verify_opts->crl_files[file_index],
+                      err, ERR_error_string(err, NULL));
+                ret = EIO;
+                goto done;
+            }
+
+            file_index++;
         }
     }
 

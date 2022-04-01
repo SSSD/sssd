@@ -2056,6 +2056,33 @@ static int test_lookup_by_cert_wrong_user_cb(void *pvt)
     return EOK;
 }
 
+static void pam_preauth(struct sss_test_conf_param monitor_params[],
+                        acct_cb_t acct_cb, const char *cert,
+                        cmd_cb_fn_t fn)
+{
+    int ret;
+
+    ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
+                        NULL, acct_cb, cert);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(fn);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 
 void test_pam_preauth_cert_nomatch(void **state)
 {
@@ -3186,6 +3213,81 @@ void test_pam_preauth_ocsp_soft_ocsp(void **state)
     assert_int_equal(ret, EOK);
 }
 
+/* With one valid and one invalid CRL files,
+ * a certificate should be returned */
+void test_pam_preauth_crl_valid_crl_invalid_files(void **state)
+{
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification",
+            "crl_file=" ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA_crl.pem,"
+            "crl_file=" ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA_expired_crl.pem" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    pam_preauth(monitor_params, test_lookup_by_cert_cb, SSSD_TEST_CERT_0001,
+                test_pam_cert_check);
+}
+
+/* With one CRL from another CA and the other one from the same CA but invalid,
+ * no certificate should be returned */
+void test_pam_preauth_crl_another_ca_crl_invalid_files(void **state)
+{
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification",
+            "crl_file=" ABS_BUILD_DIR "/src/tests/test_ECC_CA/SSSD_test_ECC_crl.pem,"
+            "crl_file=" ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA_expired_crl.pem" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    pam_preauth(monitor_params, NULL, NULL, test_pam_simple_check);
+}
+
+/* With one CRL from the same CA but invalid and the other one from another CA,
+ * no certificate should be returned */
+void test_pam_preauth_crl_invalid_crl_another_ca_files(void **state)
+{
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification",
+            "crl_file=" ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA_expired_crl.pem,"
+            "crl_file=" ABS_BUILD_DIR "/src/tests/test_ECC_CA/SSSD_test_ECC_crl.pem" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    pam_preauth(monitor_params, NULL, NULL, test_pam_simple_check);
+}
+
+/* With two valid CRL files,
+ * the first one from another CA and the second from the same CA,
+ * a certificate should be returned */
+void test_pam_preauth_first_crl_another_ca_files(void **state)
+{
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification",
+            "crl_file=" ABS_BUILD_DIR "/src/tests/test_ECC_CA/SSSD_test_ECC_crl.pem,"
+            "crl_file=" ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA_crl.pem" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    pam_preauth(monitor_params, test_lookup_by_cert_cb, SSSD_TEST_CERT_0001,
+                test_pam_cert_check);
+}
+
+/* With two valid CRL files,
+ * the first one from the same CA and the second from another CA,
+ * a certificate should be returned */
+void test_pam_preauth_last_crl_another_ca_files(void **state)
+{
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification",
+            "crl_file=" ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA_crl.pem,"
+            "crl_file=" ABS_BUILD_DIR "/src/tests/test_ECC_CA/SSSD_test_ECC_crl.pem" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    pam_preauth(monitor_params, test_lookup_by_cert_cb, SSSD_TEST_CERT_0001,
+                test_pam_cert_check);
+}
+
 void test_filter_response(void **state)
 {
     int ret;
@@ -4021,12 +4123,22 @@ int main(int argc, const char *argv[])
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_expired_crl_file_soft,
                                         pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_preauth_crl_valid_crl_invalid_files,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_preauth_crl_another_ca_crl_invalid_files,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_preauth_crl_invalid_crl_another_ca_files,
+                                        pam_test_setup, pam_test_teardown),
 #endif /* HAVE_FAKETIME */
         cmocka_unit_test_setup_teardown(test_pam_preauth_ocsp,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_ocsp_no_ocsp,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_ocsp_soft_ocsp,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_preauth_first_crl_another_ca_files,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_preauth_last_crl_another_ca_files,
                                         pam_test_setup, pam_test_teardown),
 #endif /* HAVE_TEST_CA */
 
