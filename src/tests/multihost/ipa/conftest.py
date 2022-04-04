@@ -210,9 +210,9 @@ def environment_setup(session_multihost, request):
     client.run_command("yum install -y podman")
     with pytest.raises(subprocess.CalledProcessError):
         client.run_command("grep subid /etc/nsswitch.conf")
-    file_location = "/src/tests/multihost/ipa/data/list_subid_ranges.c"
-    client.transport.put_file(os.getcwd() +
-                              file_location,
+    file_location = "/data/list_subid_ranges.c"
+    client.transport.put_file(os.path.dirname(os.path.abspath(__file__))
+                              + file_location,
                               '/tmp/list_subid_ranges.c')
     client.run_command("gcc /tmp/list_subid_ranges.c"
                        "  -lsubid -o /tmp/list_subid_ranges")
