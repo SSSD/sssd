@@ -7,6 +7,10 @@ inputs:
     description: Package release.
     required: false
     default: '${{ github.run_number }}'
+  working-directory:
+    description: Working directory.
+    required: false
+    default: '.'
 outputs:
   file:
     description: Source rpm file name.
@@ -20,6 +24,7 @@ runs:
   - name: Generate tarball and spec file
     shell: bash
     run: |
+      pushd '${{ inputs.working-directory }}'
       version="${{ inputs.version }}"
       release="${{ inputs.release }}"
       name="sssd-$version"
@@ -30,9 +35,10 @@ runs:
       sed -iE "s/@PACKAGE_NAME@/sssd/g" ./sssd.spec
       sed -iE "s/@PACKAGE_VERSION@/$version/g" ./sssd.spec
       sed -iE "s/@PRERELEASE_VERSION@/$release/g" ./sssd.spec
+      popd
   - name: Build source rpm
     id: srpm
     uses: SSSD/action-build-srpm@master
     with:
-      tarball: sssd-${{ inputs.version }}.tar.gz
-      specfile: sssd.spec
+      tarball: ${{ inputs.working-directory }}/sssd-${{ inputs.version }}.tar.gz
+      specfile: ${{ inputs.working-directory }}/sssd.spec
