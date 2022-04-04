@@ -688,6 +688,7 @@ sss_idpkdc_edata(krb5_context kctx,
 {
     struct sss_idpkdc_config *config = NULL;
     struct sss_idpkdc_state *state;
+    krb5_keyblock *armor_key;
     char *configstr = NULL;
     krb5_error_code ret;
 
@@ -695,6 +696,12 @@ sss_idpkdc_edata(krb5_context kctx,
 
     ret = sss_idpkdc_enabled(kctx, cb, rock, &configstr);
     if (ret != 0) {
+        goto done;
+    }
+
+    armor_key = cb->fast_armor(kctx, rock);
+    if (armor_key == NULL) {
+        ret = ENOENT;
         goto done;
     }
 
