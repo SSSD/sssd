@@ -1,47 +1,31 @@
-Install
-=======
-* sssd.testlib is a python library which contains shared functions to be used with
-  py.test to automate System Services Security Daemon (SSSD).
+.. _setup-virtualenv:
 
-Dependencies
-------------
-sssd.testlib requires the following packages:
+Setup Python Virtual Environment
+================================
 
-1. python-paramiko
-2. python-pytest-multihost
-3. PyYAML
-4. pytest
+Fedora 35
+*********
 
-RHEL7
------
-To install above dependencies on RHEL7.4 get the:
+* On Fedora 35, Install below packages using **dnf**::
 
-* python-paramiko package (available at Extras repo)
+    $ sudo dnf install python3-pip python3-virtualenv gcc git openldap-devel
+     python3-pyyaml python3-ldap python3-paramiko python3-pytest-multihost
 
-* `pytest-multihost copr repo(epel7) <https://copr.fedorainfracloud.org/coprs/mrniranjan/python-pytest-multihost/repo/epel-7/mrniranjan-python-pytest-multihost-epel-7.repo>`_ file::
+* Clone the upstream sssd using **git** tool::
 
-    $ wget -O /etc/yum.repos.d/pytest-multihost.repo \
-    https://copr.fedorainfracloud.org/coprs/mrniranjan/python-pytest-multihost/repo/epel-7/mrniranjan-python-pytest-multihost-epel-7.repo
-    $ yum install python-pytest-multihost
+    $ git clone https://github.com/SSSD/sssd.git
 
-* `sssd-testlib copr repo(epel7) <https://copr.fedorainfracloud.org/coprs/mrniranjan/sssd-testlib/repo/epel-7/mrniranjan-sssd-testlib-epel-7.repo>`_ file::
+* Default branch when sssd is cloned is the master branch::
 
-    $ wget -O /etc/yum.repos.d/sssd-testlib.repo \
-    https://copr.fedorainfracloud.org/coprs/mrniranjan/sssd-testlib/repo/epel-7/mrniranjan-sssd-testlib-epel-7.repo
-    $ yum install sssd-testlib
+   $ [testuser@dhcp201-228 sssd]$ git branch
+   * master
 
-Fedora
-------
-To install the above dependencies on Fedora get the:
+* Create a Isolated Python Environment::
 
-* `pytest-multihost copr repo(F26) <https://copr.fedorainfracloud.org/coprs/mrniranjan/python-pytest-multihost/repo/fedora-26/mrniranjan-python-pytest-multihost-fedora-26.repo>`_ file::
+    $ [testuser@dhcp201-228 ~]$ virtualenv ~/sssd-env
 
-    $ wget -O /etc/yum.repos.d/pytest-multihost.repo \
-    https://copr.fedorainfracloud.org/coprs/mrniranjan/python-pytest-multihost/repo/fedora-24/mrniranjan-python-pytest-multihost-fedora-24.repo
-    $ dnf install python-pytest-multihost
+* Activate the Virtual environment::
 
-* `sssd-testlib copr repo(f26) <https://copr.fedorainfracloud.org/coprs/mrniranjan/sssd-testlib/repo/fedora-26/mrniranjan-sssd-testlib-fedora-26.repo>`_ file::
+    $ [testuser@dhcp201-228 ~]$ source ~/sssd-env/bin/activate
+    $ (sssd-env) [testuser@dhcp201-228 ~]$
 
-    $ wget -O /etc/yum.repos.d/sssd-testlib.repo \
-    https://copr.fedorainfracloud.org/coprs/mrniranjan/sssd-testlib/repo/fedora-24/mrniranjan-sssd-testlib-fedora-24.repo
-    $ dnf install sssd-testlib
