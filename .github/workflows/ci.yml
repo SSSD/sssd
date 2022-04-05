@@ -102,26 +102,15 @@ jobs:
         working-directory: /sssd
         script: ./contrib/ci/run --moderate
 
-    - name: Print make check result
+    - name: Print logs
+      uses: next-actions/print-logs@master
       if: always()
-      run: |
-        if [ -f ./sssd/ci-build-debug/test-suite.log ]; then
-          cat ./sssd/ci-build-debug/test-suite.log
-        fi
-
-    - name: Print make intgcheck result
-      if: always()
-      run: |
-        if [ -f ./sssd/ci-build-debug/ci-make-intgcheck.log ]; then
-          cat ./sssd/ci-build-debug/ci-make-intgcheck.log
-        fi
-
-    - name: Print make distcheck result
-      if: always()
-      run: |
-        if [ -f ./sssd/ci-build-debug/ci-make-distcheck.log ]; then
-          cat ./sssd/ci-build-debug/ci-make-distcheck.log
-        fi
+      with:
+        working-directory: ./sssd/ci-build-debug
+        files: |
+          test-suite.log
+          ci-make-intgcheck.log
+          ci-make-distcheck.log
 
     - name: Upload main artifacts
       if: always()
