@@ -59,20 +59,20 @@ jobs:
 
     - name: Initialize copr actions
       id: copr
-      uses: SSSD/action-copr/init@master
+      uses: next-actions/copr/init@master
       with:
         token: ${{ secrets.COPR_SECRETS }}
 
     - name: Get copr chroots
       id: chroots
-      uses: SSSD/action-copr/filter-chroots@master
+      uses: next-actions/copr/filter-chroots@master
       with:
         coprcfg: ${{ secrets.COPR_SECRETS }}
         filter: "fedora-.+-x86_64|centos-stream-9-x86_64"
         exclude: "fedora-eln-.+"
 
     - name: Create copr project
-      uses: SSSD/action-copr/create-project@master
+      uses: next-actions/copr/create-project@master
       with:
         coprcfg: ${{ steps.copr.outputs.coprcfg }}
         chroots: ${{ steps.chroots.outputs.list }}
@@ -82,7 +82,7 @@ jobs:
         instructions: 'Use this for test purpose only. Do not use this in production.'
 
     - name: Cancel pending builds
-      uses: SSSD/action-copr/cancel-builds@master
+      uses: next-actions/copr/cancel-builds@master
       with:
         coprcfg: ${{ steps.copr.outputs.coprcfg }}
         project: ${{ env.COPR_PROJECT }}
@@ -115,12 +115,12 @@ jobs:
 
     - name: Initialize copr actions
       id: copr
-      uses: SSSD/action-copr/init@master
+      uses: next-actions/copr/init@master
       with:
         token: ${{ secrets.COPR_SECRETS }}
 
     - name: Build srpm in copr for ${{ matrix.chroot }}
-      uses: SSSD/action-copr/submit-build@master
+      uses: next-actions/copr/submit-build@master
       with:
         coprcfg: ${{ steps.copr.outputs.coprcfg }}
         srpm: ${{ needs.prepare.outputs.srpm }}
