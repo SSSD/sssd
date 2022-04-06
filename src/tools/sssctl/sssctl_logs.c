@@ -356,9 +356,6 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
 
     CHECK_ROOT(ret, debug_prg_name);
 
-    /* free pc_config_file? */
-    /* free debug_as_string? */
-
     debug_to_set = parse_debug_level(debug_as_string);
     CHECK(debug_to_set == SSSDBG_INVALID, fini, "Invalid debug level.");
 
@@ -387,6 +384,10 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
 
 fini:
     talloc_free(ctx);
+    /* pc_config_file is allocated by popt using malloc().
+     * debug_as_string is not allocated but points to the command line. */
+    free(discard_const(pc_config_file));
+
     return ret;
 }
 
