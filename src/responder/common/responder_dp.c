@@ -190,7 +190,6 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     struct sss_dp_get_account_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    struct be_conn *be_conn;
     uint32_t entry_type;
     uint32_t dp_flags;
     char *filter;
@@ -252,11 +251,9 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = sss_dp_get_domain_conn(rctx, dom->conn_name, &be_conn);
-    if (ret != EOK) {
+    if (rctx->sbus_conn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "BUG: The Data Provider connection for %s is not available!\n",
-              dom->name);
+            "BUG: The D-Bus connection is not available!\n");
         ret = EIO;
         goto done;
     }
@@ -273,8 +270,8 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
           dom->name, entry_type, be_req2str(entry_type),
           filter, extra == NULL ? "-" : extra);
 
-    subreq = sbus_call_dp_dp_getAccountInfo_send(state, be_conn->conn,
-                 be_conn->bus_name, SSS_BUS_PATH, dp_flags,
+    subreq = sbus_call_dp_dp_getAccountInfo_send(state, rctx->sbus_conn,
+                 dom->conn_name, SSS_BUS_PATH, dp_flags,
                  entry_type, filter, dom->name, extra,
                  rctx->client_id_num);
     if (subreq == NULL) {
@@ -360,7 +357,6 @@ sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
     struct sss_dp_resolver_get_state *state;
     struct tevent_req *req;
     struct tevent_req *subreq;
-    struct be_conn *be_conn;
     uint32_t dp_flags;
     errno_t ret;
 
@@ -386,11 +382,9 @@ sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_dp_get_domain_conn(rctx, dom->conn_name, &be_conn);
-    if (ret != EOK) {
+    if (rctx->sbus_conn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "BUG: The Data Provider connection for %s is not available!\n",
-              dom->name);
+            "BUG: The D-Bus connection is not available!\n");
         ret = EIO;
         goto done;
     }
@@ -401,8 +395,8 @@ sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
           filter_type, filter_value ? filter_value : "-");
 
     dp_flags = fast_reply ? DP_FAST_REPLY : 0;
-    subreq = sbus_call_dp_dp_resolverHandler_send(state, be_conn->conn,
-                                                  be_conn->bus_name,
+    subreq = sbus_call_dp_dp_resolverHandler_send(state, rctx->sbus_conn,
+                                                  dom->conn_name,
                                                   SSS_BUS_PATH,
                                                   dp_flags, entry_type,
                                                   filter_type, filter_value,

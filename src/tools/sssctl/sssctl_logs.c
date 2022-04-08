@@ -109,7 +109,7 @@ static struct sbus_sync_connection *connect_to_sbus(TALLOC_CTX *mem_ctx)
 {
     struct sbus_sync_connection *conn;
 
-    conn = sbus_sync_connect_private(mem_ctx, SSS_MONITOR_ADDRESS, NULL);
+    conn = sbus_sync_connect_private(mem_ctx, SSS_MASTER_ADDRESS, NULL);
     if (conn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to connect to the sbus monitor\n");
     }
@@ -134,7 +134,7 @@ static const char *get_busname(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb,
             goto done;
         }
 
-        busname = sss_iface_domain_bus(mem_ctx, domain);
+        busname = confdb_get_domain_bus(mem_ctx, domain);
     } else {
         busname = talloc_asprintf(mem_ctx, "sssd.%s", component);
     }

@@ -35,23 +35,18 @@ errno_t
 pam_dp_send_req(struct pam_auth_req *preq)
 {
     struct tevent_req *subreq;
-    struct be_conn *be_conn;
-    errno_t ret;
 
-    ret = sss_dp_get_domain_conn(preq->cctx->rctx, preq->domain->conn_name,
-                                 &be_conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "The Data Provider connection for %s is not "
-              "available! This maybe a bug, it shouldn't happen!\n",
-               preq->domain->conn_name);
+    if (preq->cctx->rctx->sbus_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+            "BUG: The D-Bus connection is not available!\n");
         return EIO;
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Sending request with the following data:\n");
     DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, preq->pd);
 
-    subreq = sbus_call_dp_dp_pamHandler_send(preq, be_conn->conn,
-                 be_conn->bus_name, SSS_BUS_PATH, preq->pd);
+    subreq = sbus_call_dp_dp_pamHandler_send(preq, preq->cctx->rctx->sbus_conn,
+                 preq->domain->conn_name, SSS_BUS_PATH, preq->pd);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         return ENOMEM;
