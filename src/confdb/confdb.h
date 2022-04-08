@@ -746,6 +746,18 @@ int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
                             struct sss_domain_info *dom);
 
 /**
+ * Return domain bus name.
+ *
+ * @param[in] domain The domain where the bus name is stored
+ *
+ * @return NULL - A safe name could not be created
+ * @return bus_name - A concatenated safe name for the domain's bus
+ */
+char *
+confdb_get_domain_bus(TALLOC_CTX *mem_ctx,
+                      struct sss_domain_info *domain);
+
+/**
  * @}
  */
 #endif

@@ -369,7 +369,7 @@ proxy_cli_init(struct pc_ctx *ctx)
         goto done;
     }
 
-    sbus_busname = sss_iface_domain_bus(tmp_ctx, ctx->domain);
+    sbus_busname = confdb_get_domain_bus(tmp_ctx, ctx->domain);
     if (sbus_busname == NULL) {
         ret = ENOMEM;
         goto done;
