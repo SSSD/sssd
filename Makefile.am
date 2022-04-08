@@ -1233,6 +1233,7 @@ libsss_iface_sync_la_LDFLAGS = \
 
 pkglib_LTLIBRARIES += libsss_util.la
 libsss_util_la_SOURCES = \
+    src/sbus/sbus_opath.c \
     src/confdb/confdb.c \
     src/db/sysdb.c \
     src/db/sysdb_ops.c \

@@ -135,7 +135,7 @@ static const char *get_busname(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb,
             goto done;
         }
 
-        busname = sss_iface_domain_bus(mem_ctx, domain);
+        busname = talloc_strdup(mem_ctx, domain->conn_name);
     } else {
         busname = talloc_asprintf(mem_ctx, "sssd.%s", component);
     }

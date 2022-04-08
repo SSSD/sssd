@@ -39,31 +39,6 @@ sss_iface_domain_address(TALLOC_CTX *mem_ctx,
 }
 
 char *
-sss_iface_domain_bus(TALLOC_CTX *mem_ctx,
-                     struct sss_domain_info *domain)
-{
-    struct sss_domain_info *head;
-    char *safe_name;
-    char *bus_name;
-
-
-    /* There is only one bus that belongs to the top level domain. */
-    head = get_domains_head(domain);
-
-    safe_name = sbus_opath_escape(mem_ctx, head->name);
-    if (safe_name == NULL) {
-        return NULL;
-    }
-
-    /* Parts of bus names must not start with digit thus we concatenate
-     * the name with underscore instead of period. */
-    bus_name = talloc_asprintf(mem_ctx, "sssd.domain_%s", safe_name);
-    talloc_free(safe_name);
-
-    return bus_name;
-}
-
-char *
 sss_iface_proxy_bus(TALLOC_CTX *mem_ctx,
                     uint32_t id)
 {
