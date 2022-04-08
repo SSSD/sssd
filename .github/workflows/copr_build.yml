@@ -78,6 +78,7 @@ jobs:
         chroots: ${{ steps.chroots.outputs.list }}
         project: ${{ env.COPR_PROJECT }}
         account: ${{ env.COPR_ACCOUNT }}
+        fedora-review: off
         description: 'Development package for [sssd pull request #${{ env.PR_ID }}](${{ env.PR_URL }}).'
         instructions: 'Use this for test purpose only. Do not use this in production.'
 
