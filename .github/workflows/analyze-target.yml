@@ -42,7 +42,7 @@ jobs:
     - name: Checkout pull request branch
       uses: actions/checkout@v2
       with:
-        ref: ${{ github.head_ref }}
+        ref: ${{ github.event.pull_request.head.sha }}
         path: pr
 
     - name: Build source rpm - ${{ github.base_ref }}
