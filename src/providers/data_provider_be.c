@@ -588,9 +588,9 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    be_ctx->sbus_name = sss_iface_domain_bus(be_ctx, be_ctx->domain);
+    be_ctx->sbus_name = talloc_strdup(be_ctx, be_ctx->domain->conn_name);
     if (be_ctx->sbus_name == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not get sbus backend name.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory when copying D-Bus name.\n");
         ret = ENOMEM;
         goto done;
     }

@@ -67,13 +67,6 @@ sss_iface_domain_address(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain);
 
 /**
- * Return domain bus name.
- */
-char *
-sss_iface_domain_bus(TALLOC_CTX *mem_ctx,
-                     struct sss_domain_info *domain);
-
-/**
  * Return proxy child bus name.
  */
 char *

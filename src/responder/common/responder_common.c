@@ -755,9 +755,9 @@ sss_dp_init(struct resp_ctx *rctx,
         goto done;
     }
 
-    be_conn->bus_name = sss_iface_domain_bus(be_conn, domain);
+    be_conn->bus_name = talloc_strdup(be_conn, domain->conn_name);
     if (be_conn->bus_name == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not locate DP address.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory when copying D-Bus name.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -1525,7 +1525,7 @@ int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
     if (!rctx->be_conns) return ENOENT;
 
     for (iter = rctx->be_conns; iter; iter = iter->next) {
-        if (strcasecmp(domain, iter->domain->name) == 0) break;
+        if (strcasecmp(domain, iter->domain->conn_name) == 0) break;
     }
 
     if (!iter) return ENOENT;

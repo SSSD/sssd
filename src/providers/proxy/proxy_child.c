@@ -339,7 +339,6 @@ proxy_cli_init(struct pc_ctx *ctx)
     TALLOC_CTX *tmp_ctx;
     struct tevent_req *subreq;
     char *sbus_address;
-    char *sbus_busname;
     char *sbus_cliname;
     errno_t ret;
 
@@ -369,12 +368,6 @@ proxy_cli_init(struct pc_ctx *ctx)
         goto done;
     }
 
-    sbus_busname = sss_iface_domain_bus(tmp_ctx, ctx->domain);
-    if (sbus_busname == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     sbus_cliname = sss_iface_proxy_bus(tmp_ctx, ctx->id);
     if (sbus_cliname == NULL) {
         ret = ENOMEM;
@@ -398,7 +391,8 @@ proxy_cli_init(struct pc_ctx *ctx)
     DEBUG(SSSDBG_TRACE_FUNC, "Sending ID to Proxy Backend: (%"PRIu32")\n",
           ctx->id);
 
-    subreq = sbus_call_proxy_client_Register_send(ctx, ctx->conn, sbus_busname,
+    subreq = sbus_call_proxy_client_Register_send(ctx, ctx->conn,
+                                                  ctx->domain->conn_name,
                                                   SSS_BUS_PATH, ctx->id);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
