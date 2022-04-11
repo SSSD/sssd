@@ -142,17 +142,15 @@ endif
 
 usertools_tests_SOURCES = \
     test_usertools.c \
-    common_mock_nss_dl_load.c \
-    ../../../src/util/usertools.c \
     $(NULL)
 usertools_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 usertools_tests_LDADD = \
-    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
+    $(abs_top_builddir)/libsss_util.la \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_test_common.la \
     $(NULL)
@@ -162,10 +160,9 @@ endif
 
 responder_common_tests_SOURCES =\
     test_responder_common.c \
-    common_mock_nss_dl_load.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     ../../../src/responder/common/negcache_files.c \
-    ../../../src/util/usertools.c \
+    ../../../src/util/nss_dl_load.c \
     ../../../src/responder/common/negcache.c \
     ../../../src/responder/common/responder_common.c \
     ../../../src/responder/common/responder_packet.c \
@@ -183,6 +180,7 @@ responder_common_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
+    $(abs_top_builddir)/libsss_util.la \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_test_common.la \
     $(abs_top_builddir)/libsss_iface.la \
