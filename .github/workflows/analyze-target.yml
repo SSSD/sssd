@@ -19,14 +19,15 @@ jobs:
         persist-credentials: false
 
     - name: Perform cppcheck analysis
-      # This is the commit following v0.0.10
-      uses: linuxdeepin/action-cppcheck@2b799eee1e9939e7bb6d0b1e199c65d21aae4812
+      # v0.0.11 is the latest release but we need a later commit
+      uses: linuxdeepin/action-cppcheck@9ef62c4ec8cd5660952cd02c58b83fa57c16a42b
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         repository: ${{ github.repository }}
         pull_request_id: ${{ github.event.pull_request.number }}
         allow_approve: false
         enable_checks: "warning,unusedFunction,missingInclude"
+        comment_result: false
 
   covscan:
     runs-on: covscan
