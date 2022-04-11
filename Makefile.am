@@ -888,7 +888,6 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/test_expire_common.h \
     src/tests/cmocka/test_sdap_access.h \
     src/tests/cmocka/data_provider/mock_dp.h \
-    src/tests/cwrap/common_mock_nss_dl_load.h \
     src/sss_client/pam_message.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
@@ -1271,8 +1270,6 @@ libsss_util_la_SOURCES = \
     src/util/sss_regexp.c \
     src/util/sss_chain_id_tevent.c \
     src/util/sss_chain_id.c \
-    src/util/nss_dl_load.c \
-    src/util/nss_dl_load_extra.c \
     src/util/sss_time.c \
     $(NULL)
 libsss_util_la_CFLAGS = \

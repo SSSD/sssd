@@ -23,8 +23,6 @@
 #include <pwd.h>
 #include <grp.h>
 #include <netdb.h>
-#include <stdbool.h>
-
 #include "util/util_errors.h"
 #include "sss_client/nss_compat.h"
 
@@ -120,6 +118,5 @@ struct sss_nss_symbols {
 errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname,
                              struct sss_nss_symbols *syms, size_t nsyms);
 
-errno_t sss_load_nss_pw_symbols(struct sss_nss_ops *ops);
 
 #endif /* __SSSD_NSS_DL_LOAD_H__ */
