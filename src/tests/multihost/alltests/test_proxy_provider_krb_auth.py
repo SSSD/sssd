@@ -19,6 +19,7 @@ def execute_cmd(multihost, command):
 
 @pytest.mark.usefixtures('setup_sssd_krb',
                          'create_posix_usersgroups',
+                         'install_nslcd',
                          'sssdproxyldap',
                          'sssdproxyldap_test')
 @pytest.mark.tier1_3

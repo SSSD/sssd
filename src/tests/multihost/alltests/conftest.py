@@ -133,6 +133,36 @@ def localusers(session_multihost, request):
 
 
 @pytest.fixture(scope='function')
+def create_350_posix_users(session_multihost, request):
+    """ Create posix user and groups """
+    ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
+    ds_rootdn = 'cn=Directory Manager'
+    ds_rootpw = 'Secret123'
+    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    krb = krb5srv(session_multihost.master[0], 'EXAMPLE.TEST')
+    for i in range(1, 351):
+        user_info = {'cn': 'doo%d' % i,
+                     'uid': 'doo%d' % i,
+                     'uidNumber': '145831%d' % i,
+                     'gidNumber': f'145641{i}'}
+        if ldap_inst.posix_user("ou=People",
+                                "dc=example,dc=test",
+                                user_info):
+            krb.add_principal('doo%d' % i, 'user', 'Secret123')
+        else:
+            print("Unable to add ldap User %s" % (user_info))
+            assert False
+
+    def remove_users():
+        """ Remove default sssd.conf """
+        for i in range(1, 351):
+            ldap_inst.del_dn(f'uid=doo{i},ou=People,dc=example,dc=test')
+            krb.delete_principal(f'doo{i}')
+
+    request.addfinalizer(remove_users)
+
+
+@pytest.fixture(scope='function')
 def enable_sss_sudo_nsswitch(session_multihost, request):
     """Enable sss backend for sudoers in nsswitch.conf """
     distro = session_multihost.client[0].distro
@@ -670,31 +700,42 @@ def sssdproxyldap(session_multihost, request):
 
 
 @pytest.fixture(scope='class')
+def install_nslcd(session_multihost, request):
+    """ Install nss-pam-ldapd Configure nslcd.conf """
+    client = session_multihost.client[0]
+    client.run_command("yum install -y nss-pam-ldapd")
+    execute_cmd(session_multihost, "echo 'uid nslcd' > /etc/nslcd.conf")
+    execute_cmd(session_multihost, "echo 'gid ldap' >> /etc/nslcd.conf")
+    execute_cmd(session_multihost, f"echo 'uri ldap://"
+                                   f"{session_multihost.master[0].ip}'"
+                                   f" >> /etc/nslcd.conf")
+    execute_cmd(session_multihost, f"echo 'base {ds_suffix}' >> "
+                                   f"/etc/nslcd.conf")
+    execute_cmd(session_multihost, "systemctl restart nslcd")
+
+    def restore_install_nslcd():
+        """ Restore"""
+        client.run_command("rm -vf /etc/nslcd.conf")
+        execute_cmd(session_multihost, "systemctl stop nslcd")
+
+    request.addfinalizer(restore_install_nslcd)
+
+
+@pytest.fixture(scope='class')
 def sssdproxyldap_test(session_multihost, request):
     """ Configure  sssdproxyldap
         Configure  sssd.conf
-        Configure  nslcd.conf
         Transport sssdproxyldap.sh to client machine
         configure password for ldap user
     """
     master = session_multihost.master[0]
     client = session_multihost.client[0]
-    client.run_command("yum install -y nss-pam-ldapd",
-                       raiseonerr=False)
     tools = sssdTools(session_multihost.client[0])
     domain_name = tools.get_domain_section_name()
     domain_params = {'proxy_pam_target': 'sssdproxyldap',
                      'id_provider': 'proxy',
                      'proxy_lib_name': 'ldap'}
     tools.sssd_conf('domain/' + domain_name, domain_params)
-    execute_cmd(session_multihost, "> /etc/nslcd.conf")
-    execute_cmd(session_multihost, "echo 'uid nslcd' > /etc/nslcd.conf")
-    execute_cmd(session_multihost, "echo 'gid ldap' >> /etc/nslcd.conf")
-    execute_cmd(session_multihost, f"echo 'uri ldap://{master.ip}' "
-                                   f">> /etc/nslcd.conf")
-    execute_cmd(session_multihost, f"echo 'base {ds_suffix}' "
-                                   f">> /etc/nslcd.conf")
-    execute_cmd(session_multihost, "systemctl restart nslcd")
     file_location = '/script/sssdproxyldap.sh'
     client.transport.put_file(os.path.dirname(os.path.abspath(__file__))
                               + file_location,
@@ -708,7 +749,6 @@ def sssdproxyldap_test(session_multihost, request):
     def restore_sssdproxyldap_test():
         """ Restore"""
         client.run_command("rm -vf /tmp/sssdproxyldap.sh")
-        client.run_command("rm -vf /etc/nslcd.conf")
     request.addfinalizer(restore_sssdproxyldap_test)
 
 
