@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-01-25 11:35+0100\n"
-"PO-Revision-Date: 2021-12-22 10:38+0000\n"
+"PO-Revision-Date: 2022-01-26 16:16+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/uk/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.10\n"
+"X-Generator: Weblate 4.10.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -20614,18 +20614,15 @@ msgstr "ldap_idmap_range_min (ціле число)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:123
-#, fuzzy
-#| msgid ""
-#| "Specifies the lower bound of the range of POSIX IDs to use for mapping "
-#| "Active Directory user and group SIDs."
 msgid ""
 "Specifies the lower (inclusive) bound of the range of POSIX IDs to use for "
 "mapping Active Directory user and group SIDs. It is the first POSIX ID which "
 "can be used for the mapping."
 msgstr ""
-"Визначає нижню межу діапазону ідентифікаторів POSIX, які слід "
+"Визначає нижню (включну) межу діапазону ідентифікаторів POSIX, які слід "
 "використовувати для встановлення відповідності SID користувачів і груп "
-"Active Directory."
+"Active Directory. Це перший ідентифікатор POSIX, яким можна скористатися для "
+"прив'язки."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:129
@@ -20660,6 +20657,11 @@ msgid ""
 "cannot be used for the mapping anymore, i.e. one larger than the last one "
 "which can be used for the mapping."
 msgstr ""
+"Визначає верхню (виключну) межу діапазону ідентифікаторів POSIX, які слід "
+"використовувати для встановлення відповідності SID користувачів і груп "
+"Active Directory. Це перший ідентифікатор POSIX, яким не можна скористатися "
+"для прив'язки, тобто ідентифікатор, який на одиницю більший за останній, "
+"яким можна скористатися для прив'язки."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:155
