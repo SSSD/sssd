@@ -48,7 +48,7 @@ class pexpect_ssh(object):
         self.ssh.sendline("echo $?")
         self.ssh.prompt()
         returncode = self.ssh.before
-        ret = returncode.decode('utf-8').split('\r')[1].strip('\n')
+        ret = returncode.decode('utf-8').splitlines()[1].strip('\n')
         output_str = output_utf8.decode('utf-8')
         if raiseonerr:
             if (int(ret)) != 0:
