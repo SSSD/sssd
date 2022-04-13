@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-01-25 11:35+0100\n"
-"PO-Revision-Date: 2021-12-31 15:16+0000\n"
+"PO-Revision-Date: 2022-01-30 16:16+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
@@ -20204,17 +20204,14 @@ msgstr "ldap_idmap_range_min (heltal)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:123
-#, fuzzy
-#| msgid ""
-#| "Specifies the lower bound of the range of POSIX IDs to use for mapping "
-#| "Active Directory user and group SIDs."
 msgid ""
 "Specifies the lower (inclusive) bound of the range of POSIX IDs to use for "
 "mapping Active Directory user and group SIDs. It is the first POSIX ID which "
 "can be used for the mapping."
 msgstr ""
-"Anger den lägre gränsen för intervallet av POSIX ID:n att använda för "
-"översättning av användar- och grupp-SID:n från Active Directory."
+"Anger den lägre (inklusiva) gränsen för intervallet av POSIX ID:n att "
+"använda för översättning av användar- och grupp-SID:n från Active Directory. "
+"Det är det första POSIX-ID:t som kan användas för översättning."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:129
@@ -20250,6 +20247,10 @@ msgid ""
 "cannot be used for the mapping anymore, i.e. one larger than the last one "
 "which can be used for the mapping."
 msgstr ""
+"Anger den övre (exklusiva) gränsen för intervallet av POSIX ID:n att använda "
+"för översättning av användar- och grupp-SID:n från Active Directory. Det är "
+"det första POSIX-ID:t som inte kan användas för översättning längre, d.v.s. "
+"ett mer än det sista som kan användas för översättningen."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:155
