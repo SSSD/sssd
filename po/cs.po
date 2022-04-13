@@ -1,22 +1,22 @@
 # Zdenek <chmelarz@gmail.com>, 2017. #zanata
-# Pavel Borecki <pavel.borecki@gmail.com>, 2018. #zanata, 2021.
-# Pavel Borecki <pavel.borecki@gmail.com>, 2019. #zanata, 2021.
+# Pavel Borecki <pavel.borecki@gmail.com>, 2018. #zanata, 2021, 2022.
+# Pavel Borecki <pavel.borecki@gmail.com>, 2019. #zanata, 2021, 2022.
 # Pavel Brezina <pbrezina@redhat.com>, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2021-12-23 12:58+0100\n"
-"PO-Revision-Date: 2021-12-03 22:16+0000\n"
+"PO-Revision-Date: 2022-02-16 22:16+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"master/cs/>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.9.1\n"
+"X-Generator: Weblate 4.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2011,7 +2011,7 @@ msgstr "Použít uživatelsky určenou verzi krb5_get_init_creds_password"
 
 #: src/providers/krb5/krb5_child.c:3351
 msgid "Tevent chain ID used for logging purposes"
-msgstr ""
+msgstr "Identifikátor Tevent řetězce použitého pro účely přihlašování se"
 
 #: src/providers/krb5/krb5_child.c:3379 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2686,11 +2686,10 @@ msgid "Specify debug level you want to set"
 msgstr "Zadejte stupeň podrobností ladících informací, který chcete nastavit"
 
 #: src/tools/sssctl/sssctl_logs.c:398
-#, fuzzy
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
-"POZN.: chybí podpora pro identifikátor tevent řetězce, analýza požadavku "
-"bude jen základní.\n"
+"Chyba: chybí podpora pro identifikátor tevent řetězce, analýza záznamu "
+"událostí není podporována.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 msgid "SSSD InfoPipe user lookup result:\n"
