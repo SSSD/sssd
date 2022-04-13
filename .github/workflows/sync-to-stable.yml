@@ -1,0 +1,40 @@
+name: "Synchronize latest stable branch"
+on:
+  push:
+    branches: [master]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  sync-branch:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Get latest stable branch
+      id: latest
+      run: |
+        set -e -o pipefail
+
+        echo "::group::Fetch remotes"
+        git fetch
+        echo "::endgroup::"
+
+        echo "::group::List branches"
+        branches=`git branch -r --list origin/sssd-*-*`
+        echo "$branches"
+        echo "::endgroup::"
+
+        # Find latest version sorted sssd-x-y branch
+        branch=`echo "$branches" | grep -E -o 'sssd-[[:digit:]]+-[[:digit:]]+' | sort -V | tail -1`
+
+        echo "Found latest stable branch: $branch"
+        echo "::set-output name=branch::$branch"
+
+    - name: Synchronize ${{ steps.latest.outputs.branch }} with ${{ github.ref }}
+      uses: connor-baer/action-sync-branch@8b53d62c7921f3da9cc43fd6859168e944328cb0
+      with:
+        branch: ${{ steps.latest.outputs.branch }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        force: true
