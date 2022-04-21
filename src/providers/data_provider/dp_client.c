@@ -166,6 +166,17 @@ dp_client_handshake_timeout(struct tevent_context *ev,
     talloc_zfree(conn);
 }
 
+void dp_client_cancel_timeout(struct sbus_connection *conn)
+{
+    struct dp_client *dp_cli;
+
+    dp_cli = sbus_connection_get_data(conn, struct dp_client);
+    if (dp_cli != NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Cancel DP client timeout [%p]\n", dp_cli->timeout);
+        talloc_zfree(dp_cli->timeout);
+    }
+}
+
 errno_t
 dp_client_init(struct sbus_connection *cli_conn,
                struct data_provider *provider)

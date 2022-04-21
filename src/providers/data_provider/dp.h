@@ -128,6 +128,8 @@ dp_init_send(TALLOC_CTX *mem_ctx,
 errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
                      struct tevent_req *req);
 
+void dp_client_cancel_timeout(struct sbus_connection *conn);
+
 bool _dp_target_enabled(struct data_provider *provider,
                         const char *module_name,
                         ...);
