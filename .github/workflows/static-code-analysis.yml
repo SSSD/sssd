@@ -48,7 +48,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name:
-      uses: ikerexxe/lintly-flake8-github-action@fix_execution
+      uses: grantmcconnaughey/lintly-flake8-github-action@d9db4fd0be9fb1cd19206a48ec0773bd93b82cbd
       if: github.event_name == 'pull_request'
       with:
           token: ${{ secrets.GITHUB_TOKEN }}
