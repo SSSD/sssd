@@ -44,7 +44,7 @@ static const char *user_clients[] = {
 
 static const char *all_clients[] = {
     SSS_BUS_NSS,
-    SSS_BUS_PAM,
+//     SSS_BUS_PAM,
     SSS_BUS_IFP,
     SSS_BUS_PAC,
     SSS_BUS_SUDO,
