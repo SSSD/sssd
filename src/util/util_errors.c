@@ -125,6 +125,7 @@ struct err_string error_to_str[] = {
     { "Group ID is duplicated" }, /* ERR_GID_DUPLICATED */
     { "Multiple objects were found when only one was expected" }, /* ERR_MULTIPLE_ENTRIES */
     { "Unsupported range type" }, /* ERR_UNSUPPORTED_RANGE_TYPE */
+    { "proxy_child terminated by a signal" }, /* ERR_PROXY_CHILD_SIGNAL */
 
     /* DBUS Errors */
     { "Connection was killed on demand" }, /* ERR_SBUS_KILL_CONNECTION */
