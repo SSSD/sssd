@@ -348,16 +348,16 @@ static errno_t proxy_child_init_recv(struct tevent_req *req,
 struct proxy_child_sig_ctx {
     struct proxy_auth_ctx *auth_ctx;
     pid_t pid;
+    struct tevent_req *req;
 };
 static void proxy_child_sig_handler(struct tevent_context *ev,
                                     struct tevent_signal *sige, int signum,
                                     int count, void *__siginfo, void *pvt);
-static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
-                                              struct proxy_auth_ctx *auth_ctx,
-                                              struct sbus_connection *conn,
-                                              struct pam_data *pd,
-                                              pid_t pid,
-                                              uint32_t id);
+static struct tevent_req *
+proxy_pam_conv_send(TALLOC_CTX *mem_ctx, struct proxy_auth_ctx *auth_ctx,
+                    struct sbus_connection *conn,
+                    struct proxy_child_sig_ctx *sig_ctx, struct pam_data *pd,
+                    pid_t pid, uint32_t id);
 static void proxy_child_init_conv_done(struct tevent_req *subreq);
 static void proxy_child_init_done(struct tevent_req *subreq) {
     int ret;
@@ -376,11 +376,19 @@ static void proxy_child_init_done(struct tevent_req *subreq) {
         return;
     }
 
+    sig_ctx = talloc_zero(child_ctx->auth_ctx, struct proxy_child_sig_ctx);
+    if (sig_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
     /* An initialized child is available, awaiting the PAM command */
     subreq = proxy_pam_conv_send(req, child_ctx->auth_ctx,
-                                 child_ctx->conn, child_ctx->pd,
+                                 child_ctx->conn, sig_ctx, child_ctx->pd,
                                  child_ctx->pid, child_ctx->id);
     if (!subreq) {
+        talloc_free(sig_ctx);
         DEBUG(SSSDBG_CRIT_FAILURE,"Could not start PAM conversation\n");
         tevent_req_error(req, EIO);
         return;
@@ -391,12 +399,6 @@ static void proxy_child_init_done(struct tevent_req *subreq) {
      * that way if the child exits after completion of the
      * request, it will still be handled.
      */
-    sig_ctx = talloc_zero(child_ctx->auth_ctx, struct proxy_child_sig_ctx);
-    if(sig_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
     sig_ctx->auth_ctx = child_ctx->auth_ctx;
     sig_ctx->pid = child_ctx->pid;
 
@@ -478,6 +480,11 @@ static void proxy_child_sig_handler(struct tevent_context *ev,
             return;
         }
 
+        /* Free request if it is still running */
+        if (sig_ctx->req != NULL) {
+            tevent_req_error(sig_ctx->req, ERR_PROXY_CHILD_SIGNAL);
+        }
+
         imm = tevent_create_immediate(ev);
         if (imm == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "tevent_create_immediate failed.\n");
@@ -510,18 +517,18 @@ static void remove_sige(struct tevent_context *ev,
 struct proxy_conv_ctx {
     struct proxy_auth_ctx *auth_ctx;
     struct sbus_connection *conn;
+    struct proxy_child_sig_ctx *sig_ctx;
     struct pam_data *pd;
     pid_t pid;
 };
 
 static void proxy_pam_conv_done(struct tevent_req *subreq);
 
-static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
-                                              struct proxy_auth_ctx *auth_ctx,
-                                              struct sbus_connection *conn,
-                                              struct pam_data *pd,
-                                              pid_t pid,
-                                              uint32_t id)
+static struct tevent_req *
+proxy_pam_conv_send(TALLOC_CTX *mem_ctx, struct proxy_auth_ctx *auth_ctx,
+                    struct sbus_connection *conn,
+                    struct proxy_child_sig_ctx *sig_ctx, struct pam_data *pd,
+                    pid_t pid, uint32_t id)
 {
     struct proxy_conv_ctx *state;
     struct tevent_req *req;
@@ -536,6 +543,7 @@ static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
 
     state->auth_ctx = auth_ctx;
     state->conn = conn;
+    state->sig_ctx = sig_ctx;
     state->pd = pd;
     state->pid = pid;
 
@@ -555,6 +563,8 @@ static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
+
+    state->sig_ctx->req = subreq;
 
     tevent_req_set_callback(subreq, proxy_pam_conv_done, req);
 
@@ -579,6 +589,8 @@ static void proxy_pam_conv_done(struct tevent_req *subreq)
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct proxy_conv_ctx);
+
+    state->sig_ctx->req = NULL;
 
     ret = sbus_call_proxy_auth_PAM_recv(state, subreq, &response);
     talloc_zfree(subreq);
