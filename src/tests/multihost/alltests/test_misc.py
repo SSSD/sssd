@@ -478,3 +478,40 @@ class TestMisc(object):
         assert "Failed to connect to '/var/lib/sss/db/config.ldb'" \
             not in log_str
         assert "The confdb initialization failed" not in log_str
+
+    @pytest.mark.tier1_3
+    def test_0009_gssapi_ssh(self, multihost, backupsssdconf):
+        """
+        :title: gssapi ssh log in with 'krb5_confd_path'
+        :description: User should log in with GSSAPI after setting
+         'krb5_confd_path' option in sssd.conf
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1961182
+        :id: 752b69ab-55a8-464f-814b-4985c06dc49a
+        :customerscenario: true
+        :steps:
+            1. Set 'krb5_confd_path' option in sssd.conf
+            2. restart SSSD with empty cache.
+            3. Fetch kerberos ticket for user
+            4. Check user is able to log in with GSSAPI
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+            4. User should be to log in with GSSAPI
+        """
+        client = sssdTools(multihost.client[0])
+        domain_name = client.get_domain_section_name()
+        section = f"domain/{domain_name}"
+        section_params = {"krb5_confd_path": "/etc/krb5.conf"}
+        client.sssd_conf(section, section_params, action="update")
+        client.clear_sssd_cache(start=True)
+        user = f'foo1@{domain_name}'
+        ssh_client = pexpect_ssh(
+            multihost.client[0].sys_hostname, user, 'Wrong', debug=False)
+        try:
+            ssh_client.login(
+                login_timeout=30, sync_multiplier=5, auto_prompt_reset=False)
+        except SSHLoginException:
+            pass
+        else:
+            ssh_client.logout()
