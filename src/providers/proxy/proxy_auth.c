@@ -787,6 +787,12 @@ static void proxy_pam_handler_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct proxy_pam_handler_state);
 
     ret = proxy_child_recv(subreq, state, &state->pd);
+
+    /* During the proxy_child_send request SIGKILL will be sent to the child
+     * process unconditionally, so we can assume here that the child process
+     * is gone even if the request returns an error. */
+    state->auth_ctx->running--;
+
     talloc_zfree(subreq);
     if (ret != EOK) {
         state->pd->pam_status = PAM_SYSTEM_ERR;
@@ -794,7 +800,6 @@ static void proxy_pam_handler_done(struct tevent_req *subreq)
     }
 
     /* Start the next auth in the queue, if any */
-    state->auth_ctx->running--;
     imm = tevent_create_immediate(state->be_ctx->ev);
     if (imm == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_create_immediate failed.\n");
