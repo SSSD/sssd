@@ -1182,7 +1182,6 @@ struct sdap_process_group_state {
     struct ldb_message_element* ghost_dns;
     const char **attrs;
     const char *filter;
-    size_t count;
     size_t check_count;
 
     bool enumeration;
@@ -1458,7 +1457,6 @@ sdap_process_group_members_2307bis(struct tevent_req *req,
         memberel->values = talloc_steal(state->group, state->sysdb_dns->values);
         memberel->num_values = state->sysdb_dns->num_values;
     } else {
-        state->count = state->check_count;
         ret = EBUSY;
     }
 
@@ -1693,7 +1691,6 @@ next:
         DEBUG(SSSDBG_TRACE_FUNC,
               "Error reading group member[%d]: %s. Skipping\n",
                ret, strerror(ret));
-        state->count--;
     }
 
     if (state->check_count == 0) {
