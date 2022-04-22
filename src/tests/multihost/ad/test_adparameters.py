@@ -10,10 +10,8 @@ import time
 import random
 import re
 import pytest
-import paramiko
 
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.utils import SSHClient
 
 
 @pytest.mark.adparameters
@@ -399,19 +397,17 @@ class TestBugzillaAutomation(object):
             group = '%s_group' % (user)
             client.create_ad_user(user, group, user_mail)
         multihost.client[0].service_sssd('restart')
+        result = True
         for user in user_list:
             ad_user = '%s@%s' % (user, ad_realm)
-            try:
-                ssh = SSHClient(multihost.client[0].sys_hostname,
-                                username=ad_user, password='Secret123')
-            except paramiko.ssh_exception.AuthenticationException:
-                pytest.fail('%s failed to login' % user)
-            else:
-                ssh.close()
+            res = client.auth_from_client(ad_user, 'Secret123')
+            result = result and (res == 3)
+
         for user in user_list:
             group = '%s_group' % (user)
             client.remove_ad_user_group(group)
             client.remove_ad_user_group(user)
+        assert result, "One ore more users failed to login!"
 
     @pytest.mark.tier1
     def test_0011_bz1571526(self, multihost, adjoin):

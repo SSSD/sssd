@@ -6,13 +6,14 @@
 :upstream: yes
 """
 
+import re
+import tempfile
 import pytest
-import time
-from sssd.testlib.common.utils import SSHClient
+from pexpect import pxssh
 
 
-test_password = "Secret123"
-user = 'admin'
+TEST_PASSWORD = "Secret123"
+USER = 'admin'
 
 
 def execute_cmd(multihost, command):
@@ -22,19 +23,16 @@ def execute_cmd(multihost, command):
 
 
 def ipa_subid_find(multihost):
-    ssh1 = SSHClient(multihost.client[0].ip,
-                     username=user, password=test_password)
-    (result, result1, exit_status) = ssh1.exec_command(f"ipa  "
-                                                       f"subid-find"
-                                                       f"  --owner  "
-                                                       f"{user}")
-    user_details = result1.readlines()
+    """Grab and store information about admin subid ranges"""
+    cmd = multihost.client[0].run_command(
+        f'su - {USER} -c "ipa subid-find --owner {USER}"', raiseonerr=False)
+    user_details = cmd.stdout_text.splitlines()
+
     global uid_start, uid_range, gid_start, gid_range
     uid_start = int(user_details[5].split(': ')[1].split('\n')[0])
     uid_range = int(user_details[6].split(': ')[1].split('\n')[0])
     gid_start = int(user_details[7].split(': ')[1].split('\n')[0])
     gid_range = int(user_details[8].split(': ')[1].split('\n')[0])
-    ssh1.close()
 
 
 @pytest.mark.usefixtures('environment_setup',
@@ -45,7 +43,9 @@ class TestSubid(object):
     """
     This is for ipa bugs automation
     """
-    def test_podmanmap_feature(self, multihost):
+
+    @staticmethod
+    def test_podmanmap_feature(multihost):
         """
         :Title: Podman supports subid ranges managed by FreeIPA
         :id: 0e86df9c-50f1-11ec-82f3-845cf3eff344
@@ -59,28 +59,22 @@ class TestSubid(object):
             2. Should succeed
         """
         ipa_subid_find(multihost)
-        ssh1 = SSHClient(multihost.client[0].ip,
-                         username=user,
-                         password=test_password)
         map1 = "/proc/self/uid_map"
-        (results1, results2, results3) = ssh1.exec_command(f"podman "
-                                                           f"unshare "
-                                                           f"cat "
-                                                           f"{map1}")
-        actual_result = results2.readlines()
+        cmd = multihost.client[0].run_command(
+            f'su - {USER} -c "podman unshare cat {map1}"', raiseonerr=False)
+        actual_result = cmd.stdout_text.splitlines()
+
         assert str(uid_start) == actual_result[1].split()[1]
         assert str(uid_range) == actual_result[1].split()[2]
         map2 = "/proc/self/gid_map"
-        (results1, results2, results3) = ssh1.exec_command(f"podman "
-                                                           f"unshare "
-                                                           f"cat "
-                                                           f"{map2}")
-        actual_result = results2.readlines()
+        cmd = multihost.client[0].run_command(
+            f'su - {USER} -c "podman unshare cat {map2}"', raiseonerr=False)
+        actual_result = cmd.stdout_text.splitlines()
         assert str(gid_start) == actual_result[1].split()[1]
         assert str(gid_range) == actual_result[1].split()[2]
-        ssh1.close()
 
-    def test_subid_feature(self, multihost):
+    @staticmethod
+    def test_subid_feature(multihost):
         """
         :Title: support subid ranges managed by FreeIPA
         :id: 50bcdc28-00c8-11ec-bef4-845cf3eff344
@@ -94,48 +88,46 @@ class TestSubid(object):
             2. Should succeed
         """
         ipa_subid_find(multihost)
-        ssh1 = SSHClient(multihost.client[0].ip,
-                         username=user, password=test_password)
-        (results1, results2, results3) = ssh1.exec_command("unshare"
-                                                           " -U bash"
-                                                           " -c 'echo $$"
-                                                           ">/tmp/unshare.pid;"
-                                                           "sleep 1000'")
-        time.sleep(2)
-        proces_id = int(execute_cmd(multihost,
-                                    "cat "
-                                    "/tmp/unshare.pid").stdout_text.strip())
-        uid = 0
-        gid = 1000
-        count = 1
-        (std_out, std_err, exit_status) = ssh1.exec_command(f"newuidmap "
-                                                            f"{proces_id}"
-                                                            f" {uid}"
-                                                            f" {uid_start}"
-                                                            f" {count}")
-        for i in exit_status.readlines():
-            assert "write to uid_map failed" not in i
-        (result, result1, exit_status) = ssh1.exec_command(f"newgidmap "
-                                                           f"{proces_id} "
-                                                           f"{gid} "
-                                                           f"{gid_start} "
-                                                           f"{count}")
-        for i in exit_status.readlines():
-            assert "write to gid_map failed" not in i
-        result = execute_cmd(multihost, f"cat /proc/{proces_id}/uid_map")
-        assert str(uid) == result.stdout_text.split()[0]
-        assert str(uid_start) == result.stdout_text.split()[1]
-        assert str(count) == result.stdout_text.split()[2]
-        result = execute_cmd(multihost, f"cat /proc/{proces_id}/gid_map")
-        assert str(gid) == result.stdout_text.split()[0]
-        assert str(gid_start) == result.stdout_text.split()[1]
-        assert str(count) == result.stdout_text.split()[2]
-        multihost.client[0].run_command(f'kill -9 {proces_id}')
-        multihost.client[0].run_command("rm -vf "
-                                        "/tmp/unshare.pid")
-        ssh1.close()
+        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+            tfile.write('#!/usr/bin/bash\n')
+            tfile.write('whoami\n')
+            tfile.write('unshare -U bash -c \'echo $$ >/tmp/unshare.pid;'
+                        ' sleep 240; \' &\n')
+            tfile.write('ps -ef | grep unshare\n')
+            tfile.write('MYPID="$(cat /tmp/unshare.pid)"\n')
+            tfile.write(f'newuidmap $MYPID 0 {uid_start} 1\n')
+            tfile.write('echo "uidmap_ $(cat /proc/$MYPID/uid_map) _uidmap"\n')
+            tfile.write(f'newgidmap $MYPID 1000 {gid_start} 1\n')
+            tfile.write('echo "gidmap_ $(cat /proc/$MYPID/gid_map) _gidmap"\n')
+            tfile.write('rm -vf /tmp/unshare.pid\n')
+            tfile.flush()
+            multihost.client[0].transport.put_file(tfile.name, '/tmp/maps.sh')
+        multihost.client[0].run_command(
+            'chmod ugo+x /tmp/maps.sh', raiseonerr=False)
 
-    def test_list_subid_ranges(self, multihost):
+        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
+                          "UserKnownHostsFile": "/dev/null"}, timeout=600)
+        ssh.force_password = True
+        try:
+            ssh.login(multihost.client[0].ip, USER, TEST_PASSWORD)
+            ssh.sendline('/tmp/maps.sh')
+            ssh.prompt(timeout=600)
+            ssh_output = str(ssh.before)
+            ssh.logout()
+        except pxssh.ExceptionPxssh as ex:
+            pytest.fail(str(ex))
+        multihost.client[0].run_command(
+            f'echo "{ssh_output}"', raiseonerr=False)
+
+        umap = re.search(f'uidmap_.*0.*{uid_start}.*1.*_uidmap', ssh_output)
+        gmap = re.search(f'gidmap_.*1000.*{gid_start}.*1.*_gidmap', ssh_output)
+        assert umap, "Expected uid map not found!"
+        assert gmap, "Expected gid map not found!"
+        assert "write to uid_map failed" not in ssh_output
+        assert "write to gid_map failed" not in ssh_output
+
+    @staticmethod
+    def test_list_subid_ranges(multihost):
         """
         :Title: support subid ranges managed by FreeIPA
         :id: 4ab33f84-00c8-11ec-ad91-845cf3eff344
@@ -149,18 +141,17 @@ class TestSubid(object):
             2. Should succeed
         """
         ipa_subid_find(multihost)
-        ssh1 = SSHClient(multihost.client[0].ip,
-                         username=user, password=test_password)
+        multihost.client[0].run_command(
+            f'su -l {USER} -c "whoami"', raiseonerr=False)
         cmd = multihost.client[0].run_command(f"cd /tmp/; "
                                               f"./list_subid_ranges "
-                                              f"{user}")
-        assert str(user) == cmd.stdout_text.split()[1]
+                                              f"{USER}")
+        assert str(USER) == cmd.stdout_text.split()[1]
         assert str(uid_start) == cmd.stdout_text.split()[2]
         assert str(uid_range) == cmd.stdout_text.split()[3]
         cmd = multihost.client[0].run_command(f"cd /tmp/;"
                                               f" ./list_subid_ranges"
-                                              f" -g {user}")
-        assert str(user) == cmd.stdout_text.split()[1]
+                                              f" -g {USER}")
+        assert str(USER) == cmd.stdout_text.split()[1]
         assert str(gid_start) == cmd.stdout_text.split()[2]
         assert str(gid_range) == cmd.stdout_text.split()[3]
-        ssh1.close()

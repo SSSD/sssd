@@ -8,8 +8,7 @@
 import time
 import re
 import pytest
-import paramiko
-from sssd.testlib.common.utils import SSHClient
+from pexpect import pxssh
 from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name, ds_suffix
 
@@ -20,8 +19,10 @@ from constants import ds_instance_name, ds_suffix
 class TestSudo(object):
     """ Sudo test suite """
 
+    @staticmethod
+    @pytest.mark.usefixtures('backupsssdconf')
     @pytest.mark.tier1_2
-    def test_bz1294670(self, multihost, backupsssdconf, localusers):
+    def test_bz1294670(multihost, localusers):
         """
         :title: sudo: Local users with local sudo rules causes LDAP queries
         :id: e8c5c396-e5e5-4eff-84f8-feff01defda1
@@ -52,18 +53,20 @@ class TestSudo(object):
             add_rule2 = "echo 'Defaults:%s !requiretty'"\
                         " >> /etc/sudoers.d/%s" % (user, user)
             multihost.client[0].run_command(add_rule2)
+
+            ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
+                                       "UserKnownHostsFile": "/dev/null"})
+            ssh.force_password = True
             try:
-                ssh = SSHClient(multihost.client[0].sys_hostname,
-                                username=user, password='Secret123')
-            except paramiko.ssh_exception.AuthenticationException:
-                pytest.fail("Authentication Failed as user %s" % (user))
-            else:
-                for count in range(1, 10):
-                    sudo_cmd = 'sudo fdisk -l'
-                    (_, _, _) = ssh.execute_cmd(args=sudo_cmd)
-                    sudo_cmd = 'sudo ls -l /usr/sbin/'
-                    (_, _, _) = ssh.execute_cmd(args=sudo_cmd)
-                ssh.close()
+                ssh.login(multihost.client[0].sys_hostname, user, 'Secret123')
+                for _ in range(1, 10):
+                    ssh.sendline('sudo fdisk -l')
+                    ssh.prompt(timeout=5)
+                    ssh.sendline('sudo ls -l /usr/sbin/')
+                    ssh.prompt(timeout=5)
+                ssh.logout()
+            except pxssh.ExceptionPxssh:
+                pytest.fail(f"Authentication Failed as user {user}")
         pkill = 'pkill tcpdump'
         multihost.client[0].run_command(pkill)
         for user in localusers.keys():
@@ -76,9 +79,10 @@ class TestSudo(object):
         rm_pcap_file = 'rm -f %s' % sudo_pcapfile
         multihost.client[0].run_command(rm_pcap_file)
 
+    @staticmethod
+    @pytest.mark.usefixtures('backupsssdconf')
     @pytest.mark.tier2
-    def test_timed_sudoers_entry(self,
-                                 multihost, backupsssdconf, timed_sudoers):
+    def test_timed_sudoers_entry(multihost, timed_sudoers):
         """
         :title: sudo: sssd accepts timed entries without minutes and or
          seconds to attribute
@@ -98,31 +102,39 @@ class TestSudo(object):
         sssd_params = {'services': 'nss, pam, sudo'}
         tools.sssd_conf(section, sssd_params, action='update')
         multihost.client[0].service_sssd('start')
-        try:
-            ssh = SSHClient(multihost.client[0].sys_hostname,
-                            username='foo1@example.test', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("%s failed to login" % 'foo1')
-        else:
-            print("Executing %s command as %s user"
-                  % ('sudo -l', 'foo1@example.test'))
-            (std_out, _, exit_status) = ssh.execute_cmd('id')
-            for line in std_out.readlines():
-                print(line)
-            (std_out, _, exit_status) = ssh.execute_cmd('sudo -l')
-            for line in std_out.readlines():
-                if 'NOPASSWD' in line:
-                    evar = list(line.strip().split()[1].split('=')[1])[10:14]
-                    assert evar == list('0000')
-            if exit_status != 0:
-                journalctl_cmd = 'journalctl -x -n 100 --no-pager'
-                multihost.master[0].run_command(journalctl_cmd)
-                pytest.fail("%s cmd failed for user %s" % ('sudo -l', 'foo1'))
-            ssh.close()
 
+        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
+                          "UserKnownHostsFile": "/dev/null"})
+        ssh.force_password = True
+        try:
+            ssh.login(multihost.client[0].sys_hostname,
+                      'foo1@example.test', 'Secret123')
+            ssh.sendline('id')
+            ssh.prompt(timeout=5)
+            id_out = str(ssh.before)
+            ssh.sendline('sudo -l')
+            ssh.prompt(timeout=5)
+            sudo_out = str(ssh.before)
+            ssh.logout()
+        except pxssh.ExceptionPxssh:
+            pytest.fail("Failed to login via ssh.")
+        assert 'foo1' in id_out, "id command did not work."
+        assert 'NOTBEFORE=' in sudo_out or 'NOTAFTER=' in sudo_out,\
+            "Expected sudo rule not found!"
+        # Make sure that the rule validity time works without minutes
+        # and seconds 0000Z is at the end of the NOTAFTER part of rule
+        rule_time = re.search(
+            r"(NOTBEFORE|NOTAFTER)=[0-9]{10}0000Z NOPASSWD: /usr/bin/head",
+            sudo_out)
+        if not rule_time:
+            journalctl_cmd = 'journalctl -x -n 100 --no-pager'
+            multihost.master[0].run_command(journalctl_cmd)
+            pytest.fail("sudo -l cmd failed for user foo1")
+
+    @staticmethod
+    @pytest.mark.usefixtures('backupsssdconf', 'sudo_rule')
     @pytest.mark.tier2
-    def test_randomize_sudo_timeout(self, multihost,
-                                    backupsssdconf, sudo_rule):
+    def test_randomize_sudo_timeout(multihost):
         """
         :title: sudo: randomize sudo refresh timeouts
         :id: 57720975-29ba-4ed7-868a-f9b784bbfed2
@@ -166,7 +178,7 @@ class TestSudo(object):
         log = multihost.client[0].get_file_contents(logfile).decode('utf-8')
         for line in log.split('\n'):
             if line:
-                if (regex_tmout.findall(line)):
+                if regex_tmout.findall(line):
                     rfrsh_type = regex_tmout.findall(line)[0].split()[1]
                     timeout = regex_tmout.findall(line)[0].split()[5]
                     if rfrsh_type == 'Smart':
@@ -185,11 +197,10 @@ class TestSudo(object):
                 index += 1
             assert rand_intvl > same_intvl
 
+    @staticmethod
+    @pytest.mark.usefixtures('backupsssdconf', 'sudo_rule', 'sssd_sudo_conf')
     @pytest.mark.tier2
-    def test_improve_refresh_timers_sudo_timeout(self, multihost,
-                                                 backupsssdconf,
-                                                 sssd_sudo_conf,
-                                                 sudo_rule):
+    def test_improve_refresh_timers_sudo_timeout(multihost):
         """
         :title: sudo: improve sudo full and smart refresh timeouts
         :id: 3860d1b9-28fc-4d44-9537-caf28ab033c8
@@ -231,7 +242,7 @@ class TestSudo(object):
         rschdl_tstmp = []
         log = multihost.client[0].get_file_contents(logfile).decode('utf-8')
         for line in log.split('\n'):
-            if (regex_tmout.findall(line)):
+            if regex_tmout.findall(line):
                 dt_time = line.split('):')[0]
                 tstmp = dt_time.split()[1]
                 ref_type = line.split()[7]
@@ -239,7 +250,7 @@ class TestSudo(object):
                     smrt_rfsh_tstmp.append(tstmp)
                 elif ref_type == 'Full':
                     full_rfsh_tstmp.append(tstmp)
-            if (rgx_rs_tstmp.findall(line)):
+            if rgx_rs_tstmp.findall(line):
                 dt_time = line.split('):')[0]
                 tstmp = dt_time.split()[1]
                 rschdl_tstmp.append(tstmp)
