@@ -602,18 +602,20 @@ class sssdTools(object):
         if user successfully login then return status is 3
         if not then return status is 10
         """
+        shortname = username.split("@")[0]
         expect_script = 'spawn ssh -o NumberOfPasswordPrompts=1 ' \
                         '-o StrictHostKeyChecking=no '\
                         '-o UserKnownHostsFile=/dev/null ' \
                         '-l ' + username + ' localhost whoami' + '\n'
         expect_script += 'expect "*assword: "\n'
-        expect_script += 'send "' + password + '\r"\n'
+        expect_script += 'send "' + password + '\\r"\n'
         expect_script += 'sleep 30 \n'
         expect_script += 'expect {\n'
         expect_script += '\ttimeout { set result_code 0 }\n'
+        expect_script += '\t"Permission denied " { exit 10 }\n'
         expect_script += '\t"' + username + '" { set result_code 3 }\n'
-        expect_script += '\teof {}\n'
-        expect_script += '\t"Permission denied " { set result_code 10 }\n'
+        expect_script += '\t"' + shortname + '" { set result_code 3 }\n'
+        expect_script += '\teof { set result_code 10 }\n'
         expect_script += '}\n'
         expect_script += 'exit $result_code\n'
         print(expect_script)
