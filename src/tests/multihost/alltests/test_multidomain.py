@@ -9,9 +9,7 @@ from __future__ import print_function
 import re
 import datetime
 import pytest
-import paramiko
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.utils import SSHClient
 
 
 @pytest.mark.usefixtures('posix_users_multidomain', 'sssdproxyldap',
@@ -59,8 +57,9 @@ class TestMultiDomain(object):
             if not find.search(cmd.stdout_text):
                 pytest.fail('puser10 user not found in cache')
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0003_proxyldap2(self, multihost, multidomain_sssd):
+    def test_0003_proxyldap2(multihost, multidomain_sssd):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain:
          checking lookup and authentication for proxy domain with filter_users
@@ -81,14 +80,12 @@ class TestMultiDomain(object):
             else:
                 assert getent.returncode == 0
         for user in ['puser11@proxy', 'quser10']:
-            ssh = SSHClient(multihost.client[0].external_hostname,
-                            username=user,
-                            password='Secret123')
-            assert ssh.connect
-            ssh.close()
+            ssh = tools.auth_from_client(user, 'Secret123') == 3
+            assert ssh, f"Ssh failed for user {user}!"
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0004_proxyldap2(self, multihost, multidomain_sssd):
+    def test_0004_proxyldap2(multihost, multidomain_sssd):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain:
          checking lookup and authentication for ldap domain with filter_users
@@ -109,11 +106,8 @@ class TestMultiDomain(object):
             else:
                 assert getent.returncode == 0
         for user in ['puser11', 'quser11@ldap2']:
-            ssh = SSHClient(multihost.client[0].external_hostname,
-                            username=user,
-                            password='Secret123')
-            assert ssh.connect
-            ssh.close()
+            ssh = tools.auth_from_client(user, 'Secret123') == 3
+            assert ssh, f"Ssh failed for user {user}!"
 
     @pytest.mark.tier2
     def test_0005_proxyldap2(self, multihost, multidomain_sssd):
@@ -427,33 +421,33 @@ class TestMultiDomain(object):
                 cmd = multihost.client[0].run_command(lookup_g)
                 assert cmd.returncode == 0
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0022_ldapldap(self, multihost, multidomain_sssd):
+    def test_0022_ldapldap(multihost, multidomain_sssd):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: User
          information not updated on login for secondary domains bz678593
         :id: df54756c-b141-4127-8e51-75ead63df10c
         """
         multidomain_sssd(domains='ldap_ldap')
+        tools = sssdTools(multihost.client[0])
         ret = multihost.client[0].service_sssd('start')
         assert ret == 0
         suffix = ['p', 'q']
         for dom in range(2):
             for idx in range(5):
                 user = '%suser%d@ldap%d' % (suffix[dom], idx, dom + 1)
-                ssh = SSHClient(multihost.client[0].external_hostname,
-                                username=user,
-                                password='Secret123')
-                assert ssh.connect
-                ssh.close()
+                ssh = tools.auth_from_client(user, 'Secret123') == 3
+                assert ssh, f"Ssh failed for user {user}!"
         pamlogfile = '/var/log/sssd/sssd_pam.log'
         find1 = re.compile(r'\[puser0\@ldap1\]')
         find2 = re.compile(r'\[quser0\@ldap2\]')
         log = multihost.client[0].get_file_contents(pamlogfile).decode('utf-8')
         assert find1.search(log) and find2.search(log)
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0023_ldapldap(self, multihost, multidomain_sssd):
+    def test_0023_ldapldap(multihost, multidomain_sssd):
         """
         :title: IDM-SSSD-TC: ldap_provider: test_for_multidomain: Login time
          increases strongly while authenticating against a user from second
@@ -486,17 +480,12 @@ class TestMultiDomain(object):
                 print("start time = ", starttime)
                 user = '%suser1@ldap%d' % (suffix[dom], dom + 1)
                 print("user =", user)
-                try:
-                    ssh = SSHClient(multihost.client[0].external_hostname,
-                                    username=user, password='Secret123')
-                except paramiko.ssh_exception.AuthenticationException:
-                    pytest.fail('%s failed to login' % user)
-                else:
-                    ssh.close()
-                    t2 = datetime.datetime.now()
-                    endtime = t2.second
-                    print("end time = ", endtime)
-                    timer.append(endtime - starttime)
+                ssh = client_tools.auth_from_client(user, 'Secret123') == 3
+                assert ssh, f"Ssh failed for user {user}!"
+                t2 = datetime.datetime.now()
+                endtime = t2.second
+                print("end time = ", endtime)
+                timer.append(endtime - starttime)
             print(timer)
 
     @pytest.mark.tier2

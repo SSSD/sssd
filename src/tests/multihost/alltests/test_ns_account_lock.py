@@ -7,11 +7,11 @@
 """
 
 from __future__ import print_function
-import pytest
 import time
-import paramiko
-from sssd.testlib.common.utils import LdapOperations, sssdTools, SSHClient
 import ldap
+import pytest
+from sssd.testlib.common.utils import LdapOperations
+from sssd.testlib.common.utils import sssdTools
 
 
 def execute_cmd(multihost, command):
@@ -21,7 +21,7 @@ def execute_cmd(multihost, command):
 
 
 def lock_check(multihost, user):
-    "Check if user is locked"
+    """Check if user is locked"""
     out_put = execute_cmd(multihost,
                           'grep "Performing RHDS access '
                           'check for user" /var/log/sssd/'
@@ -43,7 +43,7 @@ def lock_check(multihost, user):
 
 
 def unlock_check(multihost, user):
-    "Check if user is unlocked"
+    """Check if user is unlocked"""
     assert f"Performing RHDS access " \
            f"check for user [{user}@example1]" \
            in execute_cmd(multihost,
@@ -57,7 +57,7 @@ def unlock_check(multihost, user):
 
 
 def manage_user_roles(multihost, user, lock, type1):
-    "Manage users and roles"
+    """Manage users and roles"""
     master_e = multihost.master[0].ip
     assert f"Entry {user},ou=people," \
            f"dc=example,dc=test is {lock}" in \
@@ -71,8 +71,9 @@ def manage_user_roles(multihost, user, lock, type1):
 
 
 def clean_sys(multihost):
-    "Clean logs and restart"
+    """Clean logs and restart"""
     tools = sssdTools(multihost.client[0])
+    execute_cmd(multihost, "rm -vf /var/log/sssd/*")
     execute_cmd(multihost, "> /var/log/secure")
     tools.clear_sssd_cache()
 
@@ -86,7 +87,8 @@ class TestNsAccountLock(object):
     """
     This is for ns_account automation
     """
-    def test_user_inactivated_locked(self, multihost):
+    @staticmethod
+    def test_user_inactivated_locked(multihost):
         """
         :title: User is inactivated or locked
         :id: 5787bb3e-3045-11ec-8da7-845cf3eff344
@@ -100,31 +102,29 @@ class TestNsAccountLock(object):
             3. Should succeed
         """
         clean_sys(multihost)
-        client_e = multihost.client[0].ip
+        client = sssdTools(multihost.client[0])
         assert "foo1@example1" in \
                execute_cmd(multihost, "getent -s sss passwd"
                                       " foo1@example1").stdout_text
         assert "ldapusers@example1" in \
                execute_cmd(multihost, "getent -s sss group "
                                       "ldapusers@example1").stdout_text
+
         manage_user_roles(multihost, "uid=foo1", "lock", "account")
-        with pytest.raises(paramiko.ssh_exception.AuthenticationException):
-            SSHClient(client_e,
-                      username="foo1@example1",
-                      password="Secret123")
+        ssh0 = client.auth_from_client("foo1@example1", 'Secret123') == 3
         time.sleep(3)
         lock_check(multihost, "foo1")
         # User is activated or unlocked
         clean_sys(multihost)
         manage_user_roles(multihost, "uid=foo1", "unlock", "account")
-        ssh1 = SSHClient(client_e,
-                         username="foo1@example1",
-                         password="Secret123")
-        ssh1.close()
+        ssh1 = client.auth_from_client("foo1@example1", 'Secret123') == 3
         time.sleep(3)
         unlock_check(multihost, "foo1")
+        assert not ssh0, "Ssh passed instead of failing!"
+        assert ssh1, "Ssh failed instead of passing!"
 
-    def test_inactive_managed_roles(self, multihost):
+    @staticmethod
+    def test_inactive_managed_roles(multihost):
         """
         title: Inactive managed roles
         :id: 4f685ee0-3045-11ec-b3f8-845cf3eff344
@@ -140,16 +140,12 @@ class TestNsAccountLock(object):
             4. Should succeed
         """
         clean_sys(multihost)
-        client_e = multihost.client[0].ip
-        master_e = multihost.master[0].ip
-        ldap_uri = f'ldap://{master_e}'
+        client = sssdTools(multihost.client[0])
+        ldap_uri = f'ldap://{multihost.master[0].ip}'
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         manage_user_roles(multihost, "cn=managed", "lock", "role")
-        with pytest.raises(paramiko.ssh_exception.AuthenticationException):
-            SSHClient(client_e,
-                      username="foo1@example1",
-                      password="Secret123")
+        ssh0 = client.auth_from_client("foo1@example1", 'Secret123') == 3
         time.sleep(3)
         lock_check(multihost, "foo1")
         # User added to the above inactive managed role
@@ -160,10 +156,7 @@ class TestNsAccountLock(object):
         add_member = [(ldap.MOD_ADD, 'nsRoleDN', role_dn.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(user_dn, add_member)
         assert ret == 'Success'
-        with pytest.raises(paramiko.ssh_exception.AuthenticationException):
-            SSHClient(client_e,
-                      username="foo2@example1",
-                      password="Secret123")
+        ssh1 = client.auth_from_client("foo2@example1", 'Secret123') == 3
         time.sleep(3)
         lock_check(multihost, "foo2")
         # User removed from the above inactive managed role
@@ -174,23 +167,22 @@ class TestNsAccountLock(object):
         add_member = [(ldap.MOD_DELETE, 'nsRoleDN', role_dn.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(user_dn, add_member)
         assert ret == 'Success'
-        ssh1 = SSHClient(client_e,
-                         username="foo2@example1",
-                         password="Secret123")
-        ssh1.close()
+        ssh2 = client.auth_from_client("foo2@example1", 'Secret123') == 3
         time.sleep(3)
         unlock_check(multihost, "foo2")
         # Activate managed role
         clean_sys(multihost)
         manage_user_roles(multihost, "cn=managed", "unlock", "role")
-        ssh1 = SSHClient(client_e,
-                         username="foo1@example1",
-                         password="Secret123")
-        ssh1.close()
+        ssh3 = client.auth_from_client("foo1@example1", 'Secret123') == 3
         time.sleep(3)
         unlock_check(multihost, "foo1")
+        assert not ssh0, "Ssh passed instead of failing for foo1!"
+        assert not ssh1, "Ssh passed instead of failing for foo2!"
+        assert ssh2, "Ssh failed for foo2!"
+        assert ssh3, "Ssh failed for foo1!"
 
-    def test_inactivated_filtered_roles(self, multihost):
+    @staticmethod
+    def test_inactivated_filtered_roles(multihost):
         """
         title: Inactivated filtered roles
         :id: 4286dac6-3045-11ec-8fd0-845cf3eff344
@@ -206,9 +198,8 @@ class TestNsAccountLock(object):
             4. Should succeed
         """
         clean_sys(multihost)
-        client_e = multihost.client[0].ip
-        master_e = multihost.master[0].ip
-        ldap_uri = f'ldap://{master_e}'
+        client = sssdTools(multihost.client[0])
+        ldap_uri = f'ldap://{multihost.master[0].ip}'
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
@@ -218,18 +209,14 @@ class TestNsAccountLock(object):
         (ret, _) = ldap_inst.modify_ldap(user_dn, add_member)
         assert ret == 'Success'
         manage_user_roles(multihost, "cn=filtered", "lock", "role")
-        with pytest.raises(paramiko.ssh_exception.AuthenticationException):
-            SSHClient(client_e,
-                      username="foo3@example1",
-                      password="Secret123")
+        ssh0 = client.auth_from_client("foo3@example1", 'Secret123') == 3
+
         time.sleep(3)
         lock_check(multihost, "foo3")
         # User added to the above inactive filtered role
         clean_sys(multihost)
-        with pytest.raises(paramiko.ssh_exception.AuthenticationException):
-            SSHClient(client_e,
-                      username="foo4@example1",
-                      password="Secret123")
+        ssh1 = client.auth_from_client("foo4@example1", 'Secret123') == 3
+
         time.sleep(3)
         lock_check(multihost, "foo4")
         # User removed from the above inactive filtered role
@@ -240,23 +227,22 @@ class TestNsAccountLock(object):
         add_member = [(ldap.MOD_DELETE, 'o', role_dn.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(user_dn, add_member)
         assert ret == 'Success'
-        ssh1 = SSHClient(client_e,
-                         username="foo3@example1",
-                         password="Secret123")
-        ssh1.close()
+        ssh2 = client.auth_from_client("foo3@example1", 'Secret123') == 3
         time.sleep(3)
         unlock_check(multihost, "foo3")
         # Activate filtered role
         clean_sys(multihost)
         manage_user_roles(multihost, "cn=filtered", "unlock", "role")
-        ssh1 = SSHClient(client_e,
-                         username="foo4@example1",
-                         password="Secret123")
-        ssh1.close()
+        ssh3 = client.auth_from_client("foo4@example1", 'Secret123') == 3
         time.sleep(3)
         unlock_check(multihost, "foo4")
+        assert not ssh0, "Ssh passed instead of failing!"
+        assert not ssh1, "Ssh passed instead of failing!"
+        assert ssh2, "Ssh failed for foo3!"
+        assert ssh3, "Ssh failed for foo4!"
 
-    def test_nested_role_inactivated(self, multihost):
+    @staticmethod
+    def test_nested_role_inactivated(multihost):
         """
         title: Nested role has both the above roles and inactivated
         :id: 312e42c8-3045-11ec-88d4-845cf3eff344
@@ -270,49 +256,43 @@ class TestNsAccountLock(object):
             3. Should succeed
         """
         clean_sys(multihost)
-        client_e = multihost.client[0].ip
+        client = sssdTools(multihost.client[0])
         master_e = multihost.master[0].ip
         ldap_uri = f'ldap://{master_e}'
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
-        user_info = {'cn': 'nested'.encode('utf-8'),
-                     'objectClass': [b'top',
-                                     b'LdapSubEntry',
-                                     b'nsRoleDefinition',
-                                     b'nsComplexRoleDefinition',
-                                     b'nsNestedRoleDefinition'],
-                     'nsRoleDN': [b'cn=filtered,ou=people,' +
-                                  b'dc=example,dc=test',
-                                  b'cn=managed,ou=people,' +
-                                  b'dc=example,dc=test']}
+        user_info = {
+            'cn': 'nested'.encode('utf-8'),
+            'objectClass': [b'top',
+                            b'LdapSubEntry',
+                            b'nsRoleDefinition',
+                            b'nsComplexRoleDefinition',
+                            b'nsNestedRoleDefinition'],
+            'nsRoleDN': [b'cn=filtered,ou=people,dc=example,dc=test',
+                         b'cn=managed,ou=people,dc=example,dc=test']
+        }
         user_dn = 'cn=nested,ou=People,dc=example,dc=test'
         (_, _) = ldap_inst.add_entry(user_info, user_dn)
         manage_user_roles(multihost, "cn=nested", "lock", "role")
-        with pytest.raises(paramiko.ssh_exception.AuthenticationException):
-            SSHClient(client_e,
-                      username="foo1@example1",
-                      password="Secret123")
+        ssh0 = client.auth_from_client("foo1@example1", 'Secret123') == 3
+
         time.sleep(3)
         lock_check(multihost, "foo1")
-        with pytest.raises(paramiko.ssh_exception.AuthenticationException):
-            SSHClient(client_e,
-                      username="foo4@example1",
-                      password="Secret123")
+        ssh1 = client.auth_from_client("foo4@example1", 'Secret123') == 3
+
         time.sleep(3)
         lock_check(multihost, "foo4")
         # Nested role has both the above roles and activated
         clean_sys(multihost)
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
         manage_user_roles(multihost, "cn=nested", "unlock", "role")
-        ssh1 = SSHClient(client_e,
-                         username="foo1@example1",
-                         password="Secret123")
-        ssh1.close()
-        ssh1 = SSHClient(client_e,
-                         username="foo4@example1",
-                         password="Secret123")
-        ssh1.close()
+        ssh2 = client.auth_from_client("foo1@example1", 'Secret123') == 3
+        ssh3 = client.auth_from_client("foo4@example1", 'Secret123') == 3
         time.sleep(3)
         unlock_check(multihost, "foo1")
         unlock_check(multihost, "foo4")
+        assert not ssh0, "Ssh passed instead of failing!"
+        assert not ssh1, "Ssh passed instead of failing!"
+        assert ssh2, "Ssh failed for foo3!"
+        assert ssh3, "Ssh failed for foo4!"

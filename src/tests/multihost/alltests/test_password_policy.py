@@ -6,12 +6,11 @@
 :upstream: yes
 """
 from __future__ import print_function
-from constants import ds_instance_name
-from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.utils import SSHClient
-import pytest
 import re
 import time
+import pytest
+from constants import ds_instance_name
+from sssd.testlib.common.utils import sssdTools
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups',
@@ -21,8 +20,9 @@ class TestPasswordCheck(object):
     """
     This is test case class for password policy test suite
     """
+    @staticmethod
     @pytest.mark.tier2
-    def test_0001_chnageuserpass(self, multihost):
+    def test_0001_changeuserpass(multihost):
         """
         :title: IDM-SSSD-TC: ldap_provider: password_policy: Change users
          password with ldap_pwmodify_mode in sssd.conf
@@ -46,10 +46,8 @@ class TestPasswordCheck(object):
                                                      'bumblebee@123')
             assert change_pass == 3
             # Verify the login of user with updated password
-            ssh = SSHClient(multihost.client[0].external_hostname,
-                            username=user, password='bumblebee@123')
-            assert ssh.connect
-            ssh.close()
+            ssh = tools.auth_from_client(user, 'bumblebee@123') == 3
+            assert ssh, "Authentication failed!"
 
             # Revert back the password to old one
             change_pass_old = tools.change_user_password(user, 'bumblebee@123',
@@ -58,8 +56,9 @@ class TestPasswordCheck(object):
                                                          'Secret123')
             assert change_pass_old == 3
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0002_newpassnotmatch(self, multihost):
+    def test_0002_newpassnotmatch(multihost):
         """
         :title: IDM-SSSD-TC: ldap_provider: password_policy: New password is
          not matching with retype password with ldap_pwmodify_mode in sssd.conf
@@ -83,8 +82,9 @@ class TestPasswordCheck(object):
                                                      'bumblebee')
             assert change_pass == 5
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0003_smallnewpass(self, multihost):
+    def test_0003_smallnewpass(multihost):
         """
         :title: IDM-SSSD-TC: ldap_provider: password_policy: Check new
          password quality check with ldap_pwmodify_mode in sssd.conf
@@ -114,8 +114,9 @@ class TestPasswordCheck(object):
                 '/var/log/secure')
             assert log1.search(test_str_log.decode())
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0004_wrongcurrentpass(self, multihost):
+    def test_0004_wrongcurrentpass(multihost):
         """
         :title: IDM-SSSD-TC: ldap_provider: password_policy: Check wrong
          current password with ldap_pwmodify_mode in sssd.conf
