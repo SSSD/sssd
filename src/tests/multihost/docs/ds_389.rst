@@ -67,8 +67,8 @@ Example-1: Setup DS instance on single host
 
 * session_multihost is the session fixture which gets activated when
   py.test is run with --multihost-config=mhc.yaml parameter. This
-  parameter connects to systems mentioned in mhc.yaml using paramiko
-  module and the session of each host is available through roles
+  parameter connects to systems mentioned in mhc.yaml using ssh
+  and the session of each host is available through roles
   defined in multihost config file. In the above example client[0] is
   the multihost handle for host `client1.example.test`
 

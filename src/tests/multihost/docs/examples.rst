@@ -1,6 +1,6 @@
 Examples of using Multihost Plugin with Fixture for SSSD
 ========================================================
-* pytest multihost plugin uses paramiko/OpenSSHTransport to connect to hosts and provides methods to
+* pytest multihost plugin uses OpenSSHTransport to connect to hosts and provides methods to
   run commands and copy files.
 
 Namespace hook

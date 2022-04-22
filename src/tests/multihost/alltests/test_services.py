@@ -6,14 +6,12 @@
 :upstream: yes
 """
 from __future__ import print_function
-import pytest
-import paramiko
 import subprocess
 import re
+import pytest
 import random
 import string
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.utils import SSHClient
 
 
 def exceute_cmd(multihost, command):
@@ -56,30 +54,24 @@ class TestServices(object):
         domain_params = {'id_provider': 'files'}
         tools.sssd_conf(domain_section, domain_params)
         multihost.client[0].service_sssd('restart')
+        failures = []
         for user in users.keys():
-            try:
-                ssh = SSHClient(multihost.client[0].external_hostname,
-                                username=user,
-                                password='Secret123')
-            except paramiko.ssh_exception.AuthenticationException:
-                pytest.fail("%s failed to login" % user)
-            else:
-                (stdout, _, exit_status) = ssh.execute_cmd('id')
-                for line in stdout.readlines():
-                    if '%s@implicit_files' % (user) in line:
-                        pytest.fail("id command contains implicit_files")
-                (_, _, exit_status) = ssh.execute_cmd('sudo su - -c id')
-                assert exit_status == 0
-            if exit_status != 0:
+            cmd = multihost.client[0].run_command(
+                f'su - {user} -c "id"', raiseonerr=False)
+            if f'{user}@implicit_files' in cmd.stdout_text:
+                failures.append(
+                    f"id command contains implicit_files for {user}")
+            cmd2 = multihost.client[0].run_command(
+                f'su - {user} -c "sudo su - -c id"', raiseonerr=False)
+            if cmd2.returncode != 0:
                 journalctl_cmd = 'journalctl -x -n 100 --no-pager'
                 multihost.client[0].run_command(journalctl_cmd)
-                pytest.fail("%s cmd failed for user %s" % ('sudo su - -c id',
-                                                           user))
-            ssh.close()
+                failures.append(f"'sudo su - -c id' cmd failed for {user}")
         for user in users.keys():
             sudoers_file = '/etc/sudoers.d/%s' % user
             delete_file = 'rm -f %s' % sudoers_file
             multihost.client[0].run_command(delete_file)
+        assert not failures, "\n".join(failures)
 
     @pytest.mark.tier1
     def test_0003_bz1713368(self, multihost):
@@ -267,10 +259,12 @@ class TestServices(object):
         tools.sssd_conf(domain_section, domain_params)
         # stop sssd, delete logs and cache, start sssd
         tools.clear_sssd_cache()
-        random_file1 = 'random' + ''.join(random.choice(string.ascii_lowercase) for i in range(5))
+        random_file1 = 'random' + ''.join(
+            random.choice(string.ascii_lowercase) for i in range(5))
         take_bk = 'cp -f /etc/krb5.conf /etc/krb5.conf.backup'
         multihost.client[0].run_command(take_bk, raiseonerr=False)
-        cmd_to_add = '{ echo "includedir /var/lib/sss/pubconf/krb5.include.d/"; cat /etc/krb5.conf; } > ' \
+        cmd_to_add = '{ echo "includedir /var/lib/sss/pubconf/krb5.include.d' \
+                     '/"; cat /etc/krb5.conf; } > ' \
                      f'/tmp/{random_file1}'
         multihost.client[0].run_command(cmd_to_add, raiseonerr=False)
         copy_radom = f'mv -f /tmp/{random_file1} /etc/krb5.conf'
@@ -278,21 +272,29 @@ class TestServices(object):
         start_sssd = multihost.client[0].service_sssd('restart')
         restore_krb = 'cp -f /etc/krb5.conf.backup /etc/krb5.conf'
         multihost.client[0].run_command(restore_krb, raiseonerr=False)
-        assert start_sssd == 0, "SSSD service fails to start after adding string in /etc/krb5.conf"
-        random_file2 = 'random' + ''.join(random.choice(string.ascii_lowercase) for i in range(5))
-        cmd_with_sp = '{ echo "includedir /var/lib/sss/pubconf/krb5.include.d/    "; cat /etc/krb5.conf; } > ' \
+        assert start_sssd == 0, "SSSD service fails to start after " \
+                                "adding string in /etc/krb5.conf"
+        random_file2 = 'random' + ''.join(
+            random.choice(string.ascii_lowercase) for i in range(5))
+        cmd_with_sp = '{ echo "includedir /var/lib/sss/pubconf/krb5.include' \
+                      '.d/"; cat /etc/krb5.conf; } > ' \
                       f'/tmp/{random_file2}'
         multihost.client[0].run_command(cmd_with_sp, raiseonerr=False)
         copy_radom2 = f'mv -f /tmp/{random_file2} /etc/krb5.conf'
         multihost.client[0].run_command(copy_radom2, raiseonerr=False)
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/log/sssd')
-        # Here sssd expected to fail, and if we use function from common to start, it will
-        # raise an exception, so added command to check log message after sssd fails to start.
-        start_sssd_sp = multihost.client[0].run_command('systemctl start sssd', raiseonerr=False)
-        log_str = multihost.client[0].get_file_contents('/var/log/sssd/sssd_LDAP.log').decode('utf-8')
+        # Here sssd expected to fail, and if we use function from common
+        # to start, it will raise an exception, so added command to check
+        # log message after sssd fails to start.
+        start_sssd_sp = multihost.client[0].run_command(
+            'systemctl start sssd', raiseonerr=False)
+        log_str = multihost.client[0].get_file_contents(
+            '/var/log/sssd/sssd_LDAP.log').decode('utf-8')
         multihost.client[0].run_command(restore_krb, raiseonerr=False)
-        multihost.client[0].run_command('rm -f /etc/krb5.conf.backup', raiseonerr=False)
+        multihost.client[0].run_command(
+            'rm -f /etc/krb5.conf.backup', raiseonerr=False)
         assert start_sssd_sp.returncode != 0
-        assert re.compile(r'Failed to init Kerberos context .Included profile directory could not be read').search(
+        assert re.compile(r'Failed to init Kerberos context .Included '
+                          r'profile directory could not be read').search(
             log_str)
