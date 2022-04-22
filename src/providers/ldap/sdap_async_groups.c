@@ -1351,8 +1351,7 @@ done:
 
 static int
 sdap_process_missing_member_2307bis(struct tevent_req *req,
-                                    char *user_dn,
-                                    unsigned num_users)
+                                    char *user_dn)
 {
     struct sdap_process_group_state *grp_state =
         tevent_req_data(req, struct sdap_process_group_state);
@@ -1432,8 +1431,7 @@ sdap_process_group_members_2307bis(struct tevent_req *req,
                 DEBUG(SSSDBG_TRACE_LIBS,
                       "Searching LDAP for missing user entry\n");
                 ret = sdap_process_missing_member_2307bis(req,
-                                                          member_dn,
-                                                          memberel->num_values);
+                                                          member_dn);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Error processing missing member #%d (%s):\n",
