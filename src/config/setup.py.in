@@ -18,13 +18,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-"""
-Python-level packaging using distutils.
-"""
+import setuptools
 
-from distutils.core import setup
-
-setup(
+setuptools.setup(
     name='SSSDConfig',
     version='@VERSION@',
     license='GPLv3+',

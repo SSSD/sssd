@@ -56,6 +56,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
             python2
             python2-devel
             python2-requests
+            python2-setuptools
         )
     fi
 
@@ -72,6 +73,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
             python3-pycodestyle
             python3-pytest
             python3-requests
+            python3-setuptools
         )
     else
         DEPS_LIST+=(
@@ -82,6 +84,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
             python-pep8
             python-psutil
             python-requests
+            python-setuptools
         )
     fi
 
