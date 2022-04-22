@@ -5,12 +5,12 @@
 :subsystemteam: sst_idm_sssd
 :upstream: yes
 """
-from sssd.testlib.common.utils import SSHClient
-import paramiko
-import pytest
 import os
 import re
+import pytest
+from pexpect import pxssh
 from utils_config import set_param
+from sssd.testlib.common.utils import sssdTools
 
 
 class TestSanityKCM(object):
@@ -50,50 +50,42 @@ class TestSanityKCM(object):
             'rm -f /var/lib/sss/secrets/secrets.ldb')
         self._restart_kcm(multihost)
 
-    def test_kinit_kcm(self, multihost, enable_kcm):
+    @pytest.mark.usefixtures("enable_kcm")
+    def test_kinit_kcm(self, multihost):
         """
         :title: kcm: Run kinit with KRB5CCNAME=KCM
         :id: 245eecf6-04b9-4c9f-8685-681d184fbbcf
         """
         self._start_kcm(multihost)
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo3', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("Authentication Failed as user %s" % ('foo3'))
-        else:
-            (_, _, exit_status) = ssh.execute_cmd('KRB5CCNAME=KCM:; kinit',
-                                                  stdin='Secret123')
-            assert exit_status == 0
-            (stdout, _, _) = ssh.execute_cmd('KRB5CCNAME=KCM:;klist')
-            for line in stdout.readlines():
-                if 'Ticket cache: KCM:14583103' in str(line.strip()):
-                    assert True
-                    break
-                else:
-                    assert False
-            assert exit_status == 0
-            ssh.close()
 
-    def test_ssh_login_kcm(self, multihost, enable_kcm):
+        user = 'foo3'
+        cmd = multihost.master[0].run_command(
+            f'su - {user} -c "KRB5CCNAME=KCM:; kinit"', stdin_text='Secret123',
+            raiseonerr=False)
+        assert cmd.returncode == 0, "kinit failed!"
+
+        cmd2 = multihost.master[0].run_command(
+            f'su - {user} -c "KRB5CCNAME=KCM:; klist"', raiseonerr=False)
+        assert cmd2.returncode == 0, "klist failed!"
+        assert 'Ticket cache: KCM:14583103' in cmd2.stdout_text
+
+    @staticmethod
+    @pytest.mark.usefixtures("enable_kcm")
+    def test_ssh_login_kcm(multihost):
         """
         :title: kcm: Verify ssh logins are successuful with kcm as default
         :id: 458ed1e4-b908-40d3-b2fd-392e8d2dcf4b
         """
         # pylint: disable=unused-argument
-        _pytest_fixture = [enable_kcm]
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo4', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            journalctl_cmd = 'journalctl -u sssd -n 50 --no-pager'
-            multihost.master[0].run_command(journalctl_cmd)
-            pytest.fail("Authentication Failed as user %s" % ('foo4'))
-        else:
-            assert True
-            ssh.close()
+        client = sssdTools(multihost.master[0])
+        ssh0 = client.auth_from_client("foo4", 'Secret123') == 3
+        if not ssh0:
+            multihost.master[0].run_command(
+                'journalctl -u sssd -n 50 --no-pager')
+        assert ssh0, "Authentication Failed as user foo4"
 
-    def test_kcm_debug_level_set(self, multihost, enable_kcm):
+    @pytest.mark.usefixtures("enable_kcm")
+    def test_kcm_debug_level_set(self, multihost):
         """
         :title: kcm: After kcm section with debug
          level set restaring sssd-kcm service enables kcm debugging
@@ -115,14 +107,13 @@ class TestSanityKCM(object):
 
         # Debugging is disabled, kinit and make sure that no debug messages
         # were produced
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo3', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("Authentication Failed as user %s" % ('foo3'))
-        else:
-            ssh.execute_cmd('kdestroy')
-            ssh.close()
+        user = 'foo3'
+        client = sssdTools(multihost.master[0])
+        ssh0 = client.auth_from_client(user, 'Secret123') == 3
+        assert ssh0, f"Authentication Failed as user {user}."
+
+        multihost.master[0].run_command(
+            f'su - {user} -c "kdestroy"', raiseonerr=False)
 
         log_lines_nodebug = self._kcm_log_length(multihost)
         assert log_lines_nodebug == log_lines_pre
@@ -132,89 +123,100 @@ class TestSanityKCM(object):
         set_param(multihost, 'kcm', 'debug_level', '9')
         self._restart_kcm(multihost)
 
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo3', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("Authentication Failed as user %s" % ('foo3'))
-        else:
-            ssh.execute_cmd('kdestroy')
-            ssh.close()
+        ssh1 = client.auth_from_client(user, 'Secret123') == 3
+        assert ssh1, f"Authentication Failed as user {user}."
+
+        multihost.master[0].run_command(
+            f'su - {user} -c "kdestroy"', raiseonerr=False)
 
         log_lines_debug = self._kcm_log_length(multihost)
         assert log_lines_debug > log_lines_pre + 100
 
-    def test_kdestroy_retval(self, multihost, enable_kcm):
+    @staticmethod
+    @pytest.mark.usefixtures("enable_kcm")
+    def test_kdestroy_retval(multihost):
         """
         :title: kcm: Test that destroying an empty cache does
          not return a non-zero return code
         :id: 2826097f-e6d7-4d99-ac85-3ee081aa681a
         """
-        ssh = SSHClient(multihost.master[0].sys_hostname,
-                        username='foo3', password='Secret123')
 
-        (_, _, exit_status) = ssh.execute_cmd('kdestroy')
-        assert exit_status == 0
+        user = 'foo3'
+        client = sssdTools(multihost.master[0])
+        ssh0 = client.auth_from_client(user, 'Secret123') == 3
+        assert ssh0, f"Authentication Failed as user {user}."
+
+        kd1 = multihost.master[0].run_command(
+            f'su -l {user} -c "kdestroy"', raiseonerr=False)
+        assert kd1.returncode == 0, "First kdestroy failed!"
+
         # Run the command again in case there was something in the ccache
         # previously
-        (_, _, exit_status) = ssh.execute_cmd('kdestroy')
-        assert exit_status == 0
+        kd2 = multihost.master[0].run_command(
+            f'su -l {user} -c "kdestroy"', raiseonerr=False)
+        assert kd2.returncode == 0, "Second kdestroy failed!"
 
-        ssh.close()
-
-    def test_ssh_forward_creds(self, multihost, enable_kcm):
+    @staticmethod
+    @pytest.mark.usefixtures("enable_kcm")
+    def test_ssh_forward_creds(multihost):
         """
         :title: kcm: Test that SSH can forward credentials with KCM
         :id: f4b0c785-a895-48a1-a55e-7519cf221393
         :ticket: https://github.com/SSSD/sssd/issues/4863
         """
-        ssh = SSHClient(multihost.master[0].sys_hostname,
-                        username='foo3', password='Secret123')
+        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
+                          "UserKnownHostsFile": "/dev/null"})
+        ssh.force_password = True
+        try:
+            ssh.login(multihost.master[0].sys_hostname, 'foo3', 'Secret123')
+            ssh.sendline('kdestroy -A -q')
+            ssh.prompt(timeout=5)
+            ssh.sendline('kinit foo9')
+            ssh.expect('Password for .*:', timeout=10)
+            ssh.sendline('Secret123')
+            ssh.prompt(timeout=5)
+            ssh.sendline('klist')
+            ssh.prompt(timeout=5)
+            klist = str(ssh.before)
+            ssh.sendline(f'ssh -v -o StrictHostKeyChecking=no -K -l foo9 '
+                         f'{multihost.master[0].sys_hostname} klist')
+            ssh.prompt(timeout=30)
+            ssh_output = str(ssh.before)
+            ssh.logout()
+        except pxssh.ExceptionPxssh as ex:
+            pytest.fail(ex)
+        # Note: The cache is based on uid so for foo3 it is 14583103 and
+        # for foo9 it is 14583109 (see create_posix_usersgroups fixture)
+        assert 'KCM:14583103' in klist, "kinit did not work!"
+        assert 'KCM:14583109' in ssh_output, "Ticket not forwarded!"
 
-        (_, _, exit_status) = ssh.execute_cmd('kdestroy')
-        assert exit_status == 0
-
-        (_, _, exit_status) = ssh.execute_cmd('kinit foo9',
-                                              stdin='Secret123')
-        assert exit_status == 0
-
-        ssh_k_cmd = 'ssh -oStrictHostKeyChecking=no -K -l foo9 ' + \
-                    multihost.master[0].sys_hostname + \
-                    ' klist'
-
-        (stdout, _, exit_status) = ssh.execute_cmd(ssh_k_cmd)
-        assert exit_status == 0
-
-        has_cache = False
-        for line in stdout.readlines():
-            if 'KCM:14583109' in line:
-                has_cache = True
-        assert has_cache is True
-
-    def test_kvno_display(self, multihost, enable_kcm):
+    @staticmethod
+    @pytest.mark.usefixtures("enable_kcm")
+    def test_kvno_display(multihost):
         """
         :title: kcm: Test kvno correctly displays version numbers of principals
         :id: 7c9178e6-fea5-44a1-b473-76667624cee2
         :ticket: https://github.com/SSSD/sssd/issues/4763
         """
-        ssh = SSHClient(multihost.master[0].sys_hostname,
-                        username='foo4', password='Secret123')
-        host_princ = 'host/%s@%s' % (multihost.master[0].sys_hostname,
-                                     'EXAMPLE.TEST')
-        kvno_cmd = 'kvno %s' % (host_princ)
-        (stdout, _, exit_status) = ssh.execute_cmd(kvno_cmd)
-        for line in stdout.readlines():
+        host_princ = f'host/{multihost.master[0].sys_hostname}@EXAMPLE.TEST'
+        kvno_cmd = f'kvno {host_princ}'
+
+        client = sssdTools(multihost.master[0])
+        client.auth_from_client('foo4', 'Secret123')
+
+        kvno = multihost.master[0].run_command(
+            f'su -l foo4 -c "{kvno_cmd}"', raiseonerr=False)
+        assert kvno.returncode == 0, "kvno failed!"
+
+        for line in kvno.stdout_text.splitlines():
             kvno_check = re.search(r'%s: kvno = (\d+)' % host_princ, line)
             if kvno_check:
                 print(kvno_check.group())
             else:
                 pytest.fail("kvno display was improper")
-        ssh.close()
 
-    def test_kcm_peruid_quota(self,
-                              multihost,
-                              enable_kcm,
-                              create_many_user_principals):
+    @pytest.mark.usefixtures("enable_kcm", "create_many_user_principals")
+    def test_kcm_peruid_quota(self, multihost):
         """
         :title: kcm: Make sure the quota limits a client, but only that client
         :id: 3ac8f62e-05e4-4ca7-b588-145fd6258c2a
@@ -223,46 +225,50 @@ class TestSanityKCM(object):
         # if they start from a clean slate
         self._remove_secret_db(multihost)
 
-        ssh_foo2 = SSHClient(multihost.master[0].sys_hostname,
-                             username='foo2', password='Secret123')
-        ssh_foo3 = SSHClient(multihost.master[0].sys_hostname,
-                             username='foo3', password='Secret123')
+        client = sssdTools(multihost.master[0])
+        client.auth_from_client('foo2', 'Secret123')
+        client.auth_from_client('foo3', 'Secret123')
 
         # The loop would request 63 users, plus there is foo3 we authenticated
         # earlier, so this should exactly deplete the quota, but should succeed
         for i in range(1, 64):
             username = "user%04d" % i
-            (_, _, exit_status) = ssh_foo3.execute_cmd('kinit %s' % username,
-                                                       stdin='Secret123')
-            assert exit_status == 0
+            kinit = multihost.master[0].run_command(
+                f'su -l foo3 -c "kinit {username}"',
+                stdin_text='Secret123', raiseonerr=False)
+            assert kinit.returncode == 0
 
         # this kinit should be exactly one over the peruid limit
-        (_, _, exit_status) = ssh_foo3.execute_cmd('kinit user0064',
-                                                   stdin='Secret123')
-        assert exit_status != 0
+        kinit_f = multihost.master[0].run_command(
+            'su -l foo3 -c "kinit user0064"',
+            stdin_text='Secret123', raiseonerr=False)
+        assert kinit_f.returncode != 0
 
         # Since this is a per-uid limit, another user should be able to kinit
         # just fine
-        (_, _, exit_status) = ssh_foo2.execute_cmd('kinit user0064',
-                                                   stdin='Secret123')
-        assert exit_status == 0
+        # this kinit should be exactly one over the peruid limit
+        kinit_o = multihost.master[0].run_command(
+            'su -l foo2 -c "kinit user0064"',
+            stdin_text='Secret123', raiseonerr=False)
+        assert kinit_o.returncode == 0
 
         # kdestroy as the original user, the quota should allow a subsequent
         # kinit
-        ssh_foo3.execute_cmd('kdestroy -A')
-        (_, _, exit_status) = ssh_foo3.execute_cmd('kinit user0064',
-                                                   stdin='Secret123')
-        assert exit_status == 0
+        multihost.master[0].run_command(
+            'su -l foo3 -c "kdestroy -A"', raiseonerr=False)
+        kinit_p = multihost.master[0].run_command(
+            'su -l foo3 -c "kinit user0064"',
+            stdin_text='Secret123', raiseonerr=False)
+        assert kinit_p.returncode == 0
 
-        ssh_foo2.execute_cmd('kdestroy -A')
-        ssh_foo2.close()
-        ssh_foo3.execute_cmd('kdestroy -A')
-        ssh_foo3.close()
+        multihost.master[0].run_command(
+            'su -l foo2 -c "kdestroy -A"', raiseonerr=False)
 
-    def test_kcm_peruid_quota_increase(self,
-                                       multihost,
-                                       enable_kcm,
-                                       create_many_user_principals):
+        multihost.master[0].run_command(
+            'su -l foo3 -c "kdestroy -A"', raiseonerr=False)
+
+    @pytest.mark.usefixtures("enable_kcm", "create_many_user_principals")
+    def test_kcm_peruid_quota_increase(self, multihost):
         """
         :title: kcm: Quota increase
         :id: 0b3cab49-befb-4ab2-bb12-b102d94249aa
@@ -272,37 +278,39 @@ class TestSanityKCM(object):
         # It is easier to keep these tests stable and independent from others
         # if they start from a clean slate
         self._remove_secret_db(multihost)
-
-        ssh_foo3 = SSHClient(multihost.master[0].sys_hostname,
-                             username='foo3', password='Secret123')
+        user = 'foo3'
+        client = sssdTools(multihost.master[0])
+        client.auth_from_client(user, 'Secret123')
 
         # The loop would request 63 users, plus there is foo3 we authenticated
         # earlier, so this should exactly deplete the quota, but should succeed
         for i in range(1, 64):
             username = "user%04d" % i
-            (_, _, exit_status) = ssh_foo3.execute_cmd('kinit %s' % username,
-                                                       stdin='Secret123')
-            assert exit_status == 0
+            kinit = multihost.master[0].run_command(
+                f'su -l {user} -c "kinit {username}"',
+                stdin_text='Secret123', raiseonerr=False)
+            assert kinit.returncode == 0
 
         # this kinit should be exactly one over the peruid limit
-        (_, _, exit_status) = ssh_foo3.execute_cmd('kinit user0064',
-                                                   stdin='Secret123')
-        assert exit_status != 0
+        kinit_f = multihost.master[0].run_command(
+            f'su -l {user} -c "kinit user0064"',
+            stdin_text='Secret123', raiseonerr=False)
+        assert kinit_f.returncode != 0
 
         set_param(multihost, 'kcm', 'max_uid_ccaches', '65')
         self._restart_kcm(multihost)
 
         # Now the kinit should work as we increased the limit
-        (_, _, exit_status) = ssh_foo3.execute_cmd('kinit user0064',
-                                                   stdin='Secret123')
-        assert exit_status == 0
+        kinit_p = multihost.master[0].run_command(
+            f'su -l {user} -c "kinit user0064"',
+            stdin_text='Secret123', raiseonerr=False)
+        assert kinit_p.returncode == 0
 
-        ssh_foo3.execute_cmd('kdestroy -A')
-        ssh_foo3.close()
+        multihost.master[0].run_command(
+            f'su -l {user} -c "kdestroy -A"', raiseonerr=False)
 
-    def test_kcm_payload_low_quota(self,
-                                   multihost,
-                                   enable_kcm):
+    @pytest.mark.usefixtures("enable_kcm")
+    def test_kcm_payload_low_quota(self, multihost):
         """
         :title: kcm: Quota enforcement
         :id: cb3daadb-c5e7-48f8-b419-11c616f0d602
@@ -312,11 +320,12 @@ class TestSanityKCM(object):
         # It is easier to keep these tests stable and independent from others
         # if they start from a clean slate
         self._remove_secret_db(multihost)
+        user = 'foo3'
+        client = sssdTools(multihost.master[0])
+        client.auth_from_client(user, 'Secret123')
 
-        ssh_foo3 = SSHClient(multihost.master[0].sys_hostname,
-                             username='foo3', password='Secret123')
-        ssh_foo3.execute_cmd('kdestroy -A')
-        ssh_foo3.close()
+        multihost.master[0].run_command(
+            f'su -l {user} -c "kdestroy -A"', raiseonerr=False)
 
         set_param(multihost, 'kcm', 'max_ccache_size', '1')
         self._restart_kcm(multihost)
@@ -324,9 +333,7 @@ class TestSanityKCM(object):
         # We use kinit to exceed the maximum ccache size as it creates payload
         # of 1280 bytes by acquiring tgt and also some control credentials.
         # SSH authentication is not sufficient as it stores only tgt.
-        ssh_foo3 = SSHClient(multihost.master[0].sys_hostname,
-                             username='foo3', password='Secret123')
-        (_, _, exit_status) = ssh_foo3.execute_cmd(
-            'kinit foo3@EXAMPLE.TEST', 'Secret123'
-        )
-        assert exit_status != 0
+        kv_p = multihost.master[0].run_command(
+            f'su -l foo3 -c "kinit {user}@EXAMPLE.TEST"',
+            stdin_text='Secret123', raiseonerr=False)
+        assert kv_p.returncode != 0

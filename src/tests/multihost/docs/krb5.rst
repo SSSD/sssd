@@ -52,8 +52,8 @@ Example-1: Setup a Kerberos instance on a single host
 
 * session_multihost is the session fixture which gets activated when
   py.test is run with --multihost-config=mhc.yaml parameter. This
-  parameter connects to systems mentioned in mhc.yaml using paramiko
-  module and this session of each host is available through roles
+  parameter connects to systems mentioned in mhc.yaml using ssh
+  and this session of each host is available through roles
   defined in multihost config file. In the above example client[0] is
   the multihost handle for host `server1.example.test`
 

@@ -5,55 +5,59 @@
 :subsystemteam: sst_idm_sssd
 :upstream: yes
 """
-from sssd.testlib.common.utils import SSHClient
-import paramiko
-import pytest
+
 import time
+import pytest
+from sssd.testlib.common.utils import sssdTools
 
 
 class TestSanitySudo(object):
     """ Basic Sanity Test cases for sudo service in sssd """
-    def test_case_senitivity(self, multihost, case_sensitive_sudorule,
-                             enable_sss_sudo_nsswitch,
-                             set_case_sensitive_false):
+    @staticmethod
+    @pytest.mark.usefixtures(
+        "case_sensitive_sudorule", "enable_sss_sudo_nsswitch",
+        "set_case_sensitive_false")
+    def test_case_senitivity(multihost):
         """
         :title: sudo: Verify case sensitivity in sudo responder
         :id: 64ab80be-17fd-4c3b-9d9b-7d07c6279975
         """
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='capsuser-1', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("%s failed to login" % 'capsuser-1')
-        else:
-            (stdout, _, exit_status) = ssh.execute_cmd('sudo -l')
-            result = []
-            assert exit_status == 0
-            for line in stdout.readlines():
-                if 'NOPASSWD' in line:
-                    line.strip()
-                    result.append(line.strip('(root) NOPASSWD: '))
-            assert '/usr/bin/less\n' in result
-            assert '/usr/bin/more\n' in result
-            ssh.close()
+        user = 'capsuser-1'
+        # Test ssh login
+        client = sssdTools(multihost.master[0])
+        ssh_result = client.auth_from_client(user, 'Secret123') == 3
+        cmd = multihost.master[0].run_command(
+            f'su - {user} -c "sudo -l"', raiseonerr=False)
+        rule_result = cmd.returncode == 0 and \
+            '(root) NOPASSWD: /usr/bin/less' in cmd.stdout_text
+        rule2_result = cmd.returncode == 0 and \
+            '(root) NOPASSWD: /usr/bin/more' in cmd.stdout_text
+        assert ssh_result, f"Ssh failed for user: {user}."
+        assert rule_result, f"Rules missing for user: {user}."
+        assert rule2_result, f"Rules missing for user: {user}."
 
-    def test_refresh_expired_rule(self, multihost,
-                                  enable_sss_sudo_nsswitch,
-                                  generic_sudorule,
-                                  set_entry_cache_sudo_timeout):
+    @staticmethod
+    @pytest.mark.usefixtures("enable_sss_sudo_nsswitch", "generic_sudorule",
+                             "set_entry_cache_sudo_timeout")
+    def test_refresh_expired_rule(multihost):
         """
         :title: sudo: Verify refreshing expired sudo rules
          do not crash sssd_sudo
         :id: 532513b2-15bc-46ac-8fc9-19fd0bf485c4
         """
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo1', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("%s failed to login" % 'foo1')
-        else:
-            print("Executing %s command as %s user" % ('sudo -l', 'foo1'))
-            (_, _, exit_status) = ssh.execute_cmd('sudo -l')
-            assert exit_status == 0
-            time.sleep(30)
-            ssh.close()
+
+        user = 'foo1'
+        # Test ssh login
+        client = sssdTools(multihost.master[0])
+        ssh_result = client.auth_from_client(user, 'Secret123') == 3
+        cmd = multihost.master[0].run_command(
+            f'su - {user} -c "sudo -l"', raiseonerr=False)
+        time.sleep(30)
+        cmd2 = multihost.master[0].run_command(
+            f'su - {user} -c "sudo -l"', raiseonerr=False)
+
+        assert ssh_result, f"Ssh failed for user: {user}."
+        assert cmd.returncode == 0, \
+            f"First sudo -l failed for user: {user}."
+        assert cmd2.returncode == 0, \
+            f"Second sudo -l failed for user: {user}."

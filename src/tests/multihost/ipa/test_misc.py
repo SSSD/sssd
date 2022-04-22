@@ -6,20 +6,23 @@
 :upstream: yes
 """
 
-import pytest
-import pexpect
+import re
 import time
 import subprocess
-from sssd.testlib.common.utils import sssdTools, SSHClient
+import pexpect
+import pexpect.pxssh
+import pytest
+from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.exceptions import SSSDException
-import re
 
 
 @pytest.mark.usefixtures('default_ipa_users', 'reset_password')
 @pytest.mark.tier1
 class Testipabz(object):
     """ IPA BZ Automations """
-    def test_blank_kinit(self, multihost):
+
+    @staticmethod
+    def test_blank_kinit(multihost):
         """
         :title: verify sssd fails to start with
          invalid default keytab file
@@ -41,23 +44,24 @@ class Testipabz(object):
         try:
             multihost.client[0].service_sssd('start')
         except SSSDException:
-            STATUS = 'PASS'
+            status = 'PASS'
             logs = 'journalctl -x -n 50 --no-pager'
             cmd = multihost.client[0].run_command(logs, raiseonerr=False)
             search_txt = 'krb5_kt_start_seq_get failed: '\
                          'Unsupported key table format version number'
             check = re.compile(r'%s' % search_txt)
             if not check.search(cmd.stdout_text):
-                STATUS = 'FAIL'
+                status = 'FAIL'
         else:
-            STATUS = 'FAIL'
+            status = 'FAIL'
             pytest.fail("sssd should fail to restart")
         # restore /etc/krb5.keytab
         restore = 'mv /etc/krb5.keytab.orig /etc/krb5.keytab'
         multihost.client[0].run_command(restore)
-        assert STATUS == 'PASS'
+        assert status == 'PASS'
 
-    def test_2f_auth_prompt(self, multihost, backupsssdconf):
+    @staticmethod
+    def test_2f_auth_prompt(multihost, backupsssdconf):
         """
         :title: 2f authentication prompt
         :id: cc596a8a-27d6-48f2-8d6c-c821ebfffd63
@@ -86,10 +90,12 @@ class Testipabz(object):
                                         stdin_text='Secret123',
                                         raiseonerr=False)
         usr = 'fubar'
-        cmd = f"echo 'Secret123' | ipa user-add --first fu --last bar --password {usr}"
+        cmd = f"echo 'Secret123' | ipa user-add --first fu --last" \
+              f" bar --password {usr}"
         multihost.client[0].run_command(cmd, raiseonerr=False)
         try:
-            multihost.client[0].run_command(f'ipa user-mod --user-auth-type=otp {usr}')
+            multihost.client[0].run_command(
+                f'ipa user-mod --user-auth-type=otp {usr}')
         except subprocess.CalledProcessError:
             pytest.fail(f"Failed to modify user-auth-type of {usr}")
         try:
@@ -109,14 +115,18 @@ class Testipabz(object):
                   'first_prompt': 'Password + OTP:'}
         client.sssd_conf(sec, params)
         client.clear_sssd_cache()
-        ssh_cmd = f'ssh -o StrictHostKeyChecking=no -l {usr}@{domain_name} {client_ip}'
+        ssh_cmd = f'ssh -o StrictHostKeyChecking=no -l {usr}@{domain_name}' \
+                  f' {client_ip}'
         child = pexpect.spawn(ssh_cmd)
-        index = child.expect(['.*assword:', '.*Password.*OTP:', '.*First.*Factor:'])
+        index = child.expect(['.*assword:', '.*Password.*OTP:',
+                              '.*First.*Factor:'])
         child.sendcontrol('c')
         multihost.client[0].run_command(f'ipa user-del {usr}', raiseonerr=False)
-        assert index == 1, "Authentication prompt does contain Password + OTP combination"
+        assert index == 1, \
+            "Authentication prompt does contain Password + OTP combination"
 
-    def test_sssdConfig_remove_Domains(self, multihost):
+    @staticmethod
+    def test_sssdconfig_remove_domains(multihost):
         """
         :title: Verify SSSDConfig.save_domain API removes
          all autofs entries from sssd.conf
@@ -131,7 +141,7 @@ class Testipabz(object):
                           "--server %s" % multihost.master[0].sys_hostname
         uninstall_automount = "ipa-client-automount --uninstall -U " \
                               "--server %s" % multihost.master[0].sys_hostname
-        for i in range(5):
+        for _ in range(5):
             cmd1 = multihost.client[0].run_command(setup_automount,
                                                    raiseonerr=False)
             time.sleep(5)
@@ -140,7 +150,8 @@ class Testipabz(object):
             assert cmd1.returncode == 0
             assert cmd2.returncode == 0
 
-    def test_filter_groups(self, multihost, default_ipa_groups,
+    @staticmethod
+    def test_filter_groups(multihost, default_ipa_groups,
                            add_group_member, backupsssdconf):
         """
         :title:  filter_groups option partially filters the group from id
@@ -193,8 +204,8 @@ class Testipabz(object):
                                                        str(gid_start + 5)]), \
             "The unexpected gid found in the id output!"
 
-    def test_asymmetric_auth_for_nsupdate(self, multihost,
-                                          create_reverse_zone):
+    @staticmethod
+    def test_asymmetric_auth_for_nsupdate(multihost, create_reverse_zone):
         """
         :title: Support asymmetric auth for nsupdate
         :id: 2bc5c4c7-7296-434b-8f38-2b7297b32b9b
@@ -240,7 +251,8 @@ class Testipabz(object):
         assert rc_ptrrecord.returncode == 0
         assert client_hostname in rc_ptrrecord.stdout_text
 
-    def test_authentication_indicators(self, multihost):
+    @staticmethod
+    def test_authentication_indicators(multihost, backupsssdconf):
         """
         :title: Add support to verify authentication
          indicators in pam_sss_gss
@@ -282,85 +294,96 @@ class Testipabz(object):
                                                       'sudo:pkinit, '
                                                       'sudo-i:otp'}
         client.sssd_conf('pam', domain_params)
-        multihost.client[0].run_command('cp -vf '
-                                        '/etc/pam.d/sudo '
-                                        '/etc/pam.d/sudo_indicators')
+        multihost.client[0].run_command(
+            'cp -vf /etc/pam.d/sudo /etc/pam.d/sudo_indicators')
         multihost.client[0].run_command("sed -i "
                                         "'2s/^/auth sufficient "
                                         "pam_sss_gss.so debug\\n/' "
                                         "/etc/pam.d/sudo")
-        multihost.client[0].run_command('cp -vf '
-                                        '/etc/pam.d/sudo-i '
-                                        '/etc/pam.d/sudo-i_indicators')
+        multihost.client[0].run_command(
+            'cp -vf /etc/pam.d/sudo-i /etc/pam.d/sudo-i_indicators')
         multihost.client[0].run_command("sed -i "
                                         "'2s/^/auth sufficient "
                                         "pam_sss_gss.so debug\\n/' "
                                         "/etc/pam.d/sudo-i")
-        multihost.client[0].run_command('systemctl stop sssd ; '
-                                        'rm -rf /var/log/sssd/* ; '
-                                        'rm -rf /var/lib/sss/db/* ; '
-                                        'systemctl start sssd')
+        client.clear_sssd_cache()
         multihost.client[0].run_command("sssctl debug-level 9")
-        ssh = SSHClient(multihost.client[0].ip,
-                        username='admin', password='Secret123')
-        (_, _, exit_status) = ssh.execute_cmd('kinit admin',
-                                              stdin='Secret123')
-        (result, errors, exit_status) = ssh.exec_command('klist')
-        (result, errors, exit_status) = ssh.execute_cmd('ipa '
-                                                        'sudocmd-add ALL2')
-        (result, errors, exit_status) = ssh.execute_cmd('ipa '
-                                                        'sudorule-add '
-                                                        'testrule2')
-        (result, errors, exit_status) = ssh.execute_cmd("ipa sudorule-add"
-                                                        "-allow-command "
-                                                        "testrule2 "
-                                                        "--sudocmds 'ALL2'")
-        (result, errors, exit_status) = ssh.execute_cmd('ipa '
-                                                        'sudorule-mod '
-                                                        'testrule2 '
-                                                        '--hostcat=all')
-        (result, errors, exit_status) = ssh.execute_cmd('ipa '
-                                                        'sudorule-add-user '
-                                                        'testrule2 '
-                                                        '--users admin')
-        (result, errors, exit_status) = ssh.execute_cmd('sudo -l')
-        ssh.close()
-        search = multihost.client[0].run_command('fgrep '
-                                                 'gssapi_ '
-                                                 '/var/log/sssd/sssd_pam.log '
-                                                 '|tail -10')
-        assert 'indicators: 0' in search.stdout_text
-        client = sssdTools(multihost.client[0])
+        user = 'admin'
+        test_password = "Secret123"
+        multihost.client[0].run_command(
+            f'su -l {user} -c "kinit"', stdin_text=test_password,
+            raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "klist"', raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudocmd-add ALL2"', raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudorule-add testrule2"', raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudorule-add-allow-command testrule2 '
+            f'--sudocmds \'ALL2\'"', raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudorule-mod testrule2 --hostcat=all"',
+            raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudorule-add-user testrule2 --users admin"',
+            raiseonerr=False)
+        ssh_error = ""
+        ssh = pexpect.pxssh.pxssh(
+            options={"StrictHostKeyChecking": "no",
+                     "UserKnownHostsFile": "/dev/null"}, timeout=600)
+        ssh.force_password = True
+        try:
+            ssh.login(multihost.client[0].ip, user, test_password)
+            ssh.sendline('sudo -l')
+            ssh.prompt(timeout=600)
+            ssh.logout()
+        except pexpect.pxssh.ExceptionPxssh:
+            ssh_error += "Could not login via ssh first time."
+
+        search = multihost.client[0].run_command(
+            'fgrep gssapi_ /var/log/sssd/sssd_pam.log | tail -10')
+
         domain_params = {'pam_gssapi_services': 'sudo, sudo-i',
                          'pam_gssapi_indicators_map': 'sudo-i:hardened'}
         client.sssd_conf('pam', domain_params)
-        multihost.client[0].run_command('systemctl stop sssd ; '
-                                        'rm -rf /var/log/sssd/* ; '
-                                        'rm -rf /var/lib/sss/db/* ; '
-                                        'systemctl start sssd')
-        ssh = SSHClient(multihost.client[0].ip,
-                        username='admin', password='Secret123')
-        (_, _, exit_status) = ssh.execute_cmd('kinit admin',
-                                              stdin='Secret123')
+        client.clear_sssd_cache()
         multihost.client[0].run_command("sssctl debug-level 9")
-        (result, errors, exit_status) = ssh.execute_cmd('sudo -l')
-        (result, errors, exit_status) = ssh.exec_command('klist')
-        (result, errors, exit_status) = ssh.execute_cmd('ipa '
-                                                        'sudocmd-del ALL2')
-        (result, errors, exit_status) = ssh.execute_cmd('ipa '
-                                                        'sudorule-del '
-                                                        'testrule2')
-        multihost.client[0].run_command('cp -vf /etc/pam.d/sudo_indicators '
-                                        '/etc/pam.d/sudo')
-        multihost.client[0].run_command('cp -vf /etc/pam.d/sudo-i_indicators '
-                                        '/etc/pam.d/sudo-i')
-        search = multihost.client[0].run_command('fgrep gssapi_ '
-                                                 '/var/log/sssd/sssd_pam.log'
-                                                 ' |tail -10')
-        ssh.close()
-        assert 'indicators: 2' in search.stdout_text
+        multihost.client[0].run_command(
+            f'su -l {user} -c "kinit admin"', stdin_text=test_password,
+            raiseonerr=False)
 
-    def test_pass_krb5cname_to_pam(self, multihost,
+        ssh = pexpect.pxssh.pxssh(options={"StrictHostKeyChecking": "no",
+                                           "UserKnownHostsFile": "/dev/null"},
+                                  timeout=600)
+        ssh.force_password = True
+        try:
+            ssh.login(multihost.client[0].ip, user, test_password)
+            ssh.sendline('sudo -l')
+            ssh.prompt(timeout=600)
+            ssh.logout()
+        except pexpect.pxssh.ExceptionPxssh:
+            ssh_error += "\nCould not login via ssh second time."
+
+        multihost.client[0].run_command(
+            f'su -l {user} -c "klist"', raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudorule-del testrule2"', raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudocmd-del ALL2"', raiseonerr=False)
+        multihost.client[0].run_command(
+            'cp -vf /etc/pam.d/sudo_indicators /etc/pam.d/sudo')
+        multihost.client[0].run_command(
+            'cp -vf /etc/pam.d/sudo-i_indicators /etc/pam.d/sudo-i')
+        search2 = multihost.client[0].run_command(
+            'fgrep gssapi_ /var/log/sssd/sssd_pam.log | tail -10')
+
+        assert not ssh_error, ssh_error
+        assert 'indicators: 0' in search.stdout_text
+        assert 'indicators: 2' in search2.stdout_text
+
+    @staticmethod
+    def test_pass_krb5cname_to_pam(multihost,
                                    backupsssdconf,
                                    backup_config_pam_gssapi_services):
         """
@@ -387,40 +410,59 @@ class Testipabz(object):
             7. Should succeed
         """
         tools = sssdTools(multihost.client[0])
-        tools.service_ctrl('restart', 'sssd')
+        tools.clear_sssd_cache()
         domain_name = tools.get_domain_section_name()
         user = "admin"
         test_password = "Secret123"
         sys_hostname = multihost.client[0].sys_hostname
-        ssh1 = SSHClient(multihost.client[0].ip, username=user,
-                         password=test_password)
-        (_, _, exit_status) = ssh1.execute_cmd('kinit',
-                                               stdin=test_password)
-        assert exit_status == 0
-        (_, _, _) = ssh1.execute_cmd("ipa sudocmd-add /usr/sbin/sssctl")
-        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add idm_user_sssctl")
-        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add-allow-command "
-                                     "idm_user_sssctl --sudocmds "
-                                     "'/usr/sbin/sssctl'")
-        (_, _, _) = ssh1.execute_cmd(f"ipa sudorule-add-host "
-                                     f"idm_user_sssctl "
-                                     f"--hosts {sys_hostname}")
-        (_, _, _) = ssh1.execute_cmd("ipa sudorule-add-user "
-                                     "idm_user_sssctl "
-                                     "--users admin")
+        multihost.client[0].run_command(
+            f'su -l {user} -c "kinit"', stdin_text=test_password,
+            raiseonerr=False)
+
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudocmd-add /usr/sbin/sssctl"',
+            raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudorule-add idm_user_sssctl"',
+            raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudorule-add-allow-command idm_user_sssctl'
+            f' --sudocmds \'/usr/sbin/sssctl\'"', raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudorule-add-host idm_user_sssctl --hosts'
+            f' {sys_hostname}"', raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "ipa sudorule-add-user idm_user_sssctl --users'
+            f' admin"', raiseonerr=False)
         tools.clear_sssd_cache()
-        ssh2 = SSHClient(multihost.client[0].ip, username=user,
-                         password=test_password)
-        (_, _, _) = ssh2.execute_cmd('kinit', stdin=test_password)
-        (_, _, _) = ssh2.execute_cmd('sudo -S -l', stdin=test_password)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "kinit"', stdin_text=test_password,
+            raiseonerr=False)
+        multihost.client[0].run_command(
+            f'su -l {user} -c "sudo -S -l"', stdin_text=test_password,
+            raiseonerr=False)
         file_name = 'domain_list_' + str(time.time())
-        (_, _, _) = ssh2.execute_cmd(f"sudo -S /usr/sbin/sssctl domain-list > "
-                                     f"/tmp/{file_name}", stdin=test_password)
+        ssh_error = ""
+        ssh = pexpect.pxssh.pxssh(
+            options={"StrictHostKeyChecking": "no",
+                     "UserKnownHostsFile": "/dev/null"}, timeout=600)
+        ssh.force_password = True
+        try:
+            ssh.login(multihost.client[0].ip, user, test_password)
+            ssh.sendline(f'sudo -S /usr/sbin/sssctl domain-list > '
+                         f'/tmp/{file_name}')
+            ssh.expect(".*:", timeout=10)
+            ssh.sendline(test_password)
+            ssh.prompt(timeout=60)
+            ssh.logout()
+        except pexpect.pxssh.ExceptionPxssh:
+            ssh_error += "Could not login via ssh."
         result = multihost.client[0].run_command(f"cat /tmp/{file_name}"
                                                  ).stdout_text
         assert domain_name in result
 
-    def test_ssh_hash_knownhosts(self, multihost, reset_password, backupsssdconf):
+    @staticmethod
+    def test_ssh_hash_knownhosts(multihost, reset_password, backupsssdconf):
         """
         :title: Current value of ssh_hash_known_hosts causes error in
          the default configuration in FIPS mode.
@@ -453,7 +495,7 @@ class Testipabz(object):
         server_host = multihost.master[0].sys_hostname
 
         def check_hostname_hash(hash_value=None):
-            #  no hash_value or hash_value = True or hash_value = False
+            """no hash_value or hash_value = True or hash_value = False"""
             multihost.client[0].service_sssd("stop")
             if hash_value is None:
                 tools.sssd_conf(
@@ -522,10 +564,9 @@ class Testipabz(object):
         sssd_client.clear_sssd_cache()
         cmd_kinit = multihost.client[0].run_command('kinit -n')
         assert cmd_kinit.returncode == 0
-        ssh = SSHClient(multihost.client[0].ip,
-                        username='foobar0', password='Secret123')
-        ssh.close()
-        cmd_klist = f'klist /var/lib/sss/db/fast_ccache_{sssd_client.get_domain_section_name().upper()}'
+        sssd_client.auth_from_client('foobar0', "Secret123")
+        cmd_klist = f'klist /var/lib/sss/db/fast_ccache_' \
+                    f'{sssd_client.get_domain_section_name().upper()}'
         output = multihost.client[0].run_command(cmd_klist).stdout_text
         principal = 'WELLKNOWN/ANONYMOUS@WELLKNOWN:ANONYMOUS'
         assert principal in output
@@ -564,10 +605,11 @@ class Testipabz(object):
         sssd_client.clear_sssd_cache()
         cmd_kinit = multihost.client[0].run_command('kinit -n')
         assert cmd_kinit.returncode == 0
-        ssh = SSHClient(multihost.client[0].ip,
-                        username='foobar1', password='Secret123')
-        ssh.close()
-        cmd_klist = f'klist /var/lib/sss/db/fast_ccache_{domain_section.upper()}'
+        sssd_client.auth_from_client('foobar1', "Secret123")
+        cmd_klist = f'klist /var/lib/sss/db/' \
+                    f'fast_ccache_{domain_section.upper()}'
         output = multihost.client[0].run_command(cmd_klist).stdout_text
-        principal = re.compile(rf'principal:.host.{multihost.client[0].sys_hostname}@{domain_section.upper()}')
+        principal = re.compile(rf'principal:.host.'
+                               rf'{multihost.client[0].sys_hostname}@'
+                               rf'{domain_section.upper()}')
         assert principal.search(output)

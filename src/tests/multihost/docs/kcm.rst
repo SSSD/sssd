@@ -196,9 +196,8 @@ Example1: Using single host to test sssd-kcm
 
   * create a test suite file called test1.py, to test KCM as user, or
     to check if the Kerberos user can ssh to the system, we can use
-    `SSHClient` module from `sssd.testlib.common.utils` module::
+    `auth_from_client` method of sssdTools from `sssd.testlib.common.utils` module::
 
-        from sssd.testlib.common.utils import SSHClient
         from sssd.testlib.common.uilts import sssdTools
 
         class TestBasicSSSD:
@@ -215,39 +214,31 @@ Example1: Using single host to test sssd-kcm
 
             def test_ssh_user_login(self, multihost):
                """ Check ssh login as LDAP user with Kerberos credentials """
-               ssh = SSHClient(multihost.master[0].sys_hostname,
-                               username='foo1', password='Secret123')
-               assert ssh.connstatus
-               ssh.close()
+               ssh = tools.auth_from_client('foo1', 'Secret123') == 3
+               assert ssh, "Authentication failed!"
 
             def test_kinit(self, multihost):
                """ Run kinit after user login """
-               ssh = SSHClient(multihost.master[0].sys_hostname,
-                               username='foo2', password='Secret123')
-               assert ssh.connstatus
-               (stdout, stderr, exit_status) = ssh.execute_cmd(args='kinit',
-                                                               stdin='Secret123')
-               assert exit_status == 0
-               (stdout, stderr, exit_status) = ssh.execute_cmd('klist')
-               for line in stdout.readlines():
-                   print(line)
-               assert exit_status == 0
-               ssh.close()
+                user = 'foo2'
+                cmd = multihost.master[0].run_command(
+                    f'su - {user} -c "kinit"', stdin_text='Secret123',
+                    raiseonerr=False)
+                assert cmd.returncode == 0, "kinit failed!"
+
+                cmd2 = multihost.master[0].run_command(
+                    f'su - {user} -c "klist"', raiseonerr=False)
+                assert cmd2.returncode == 0, "klist failed!"
+                assert 'Ticket cache: KCM:14583103' in cmd2.stdout_text
 
             def test_kinit_kcm(self, multihost):
                """ Run kinit with KRB5CCNAME=KCM: """
-               ssh = SSHClient(multihost.master[0].sys_hostname,
-                     username='foo3', password='Secret123')
-               assert ssh.connstatus
-               (out, err, status) = ssh.execute_cmd('KRB5CCNAME=KCM:; kinit',
-                                                    stdin='Secret123')
-               assert status == 0
-               (out, err, status) = ssh.execute_cmd('KRB5CCNAME=KCM:; klist')
-               for line in stdout.readlines():
-                    if 'Ticket cache: KCM:14583103' in str(line.strip()):
-                        assert True
-                        break
-                    else:
-                        assert False
-               assert exit_status == 0
-               ssh.close()
+                user = 'foo3'
+                cmd = multihost.master[0].run_command(
+                    f'su - {user} -c "KRB5CCNAME=KCM:; kinit"', stdin_text='Secret123',
+                    raiseonerr=False)
+                assert cmd.returncode == 0, "kinit failed!"
+
+                cmd2 = multihost.master[0].run_command(
+                    f'su - {user} -c "KRB5CCNAME=KCM:; klist"', raiseonerr=False)
+                assert cmd2.returncode == 0, "klist failed!"
+                assert 'Ticket cache: KCM:14583103' in cmd2.stdout_text

@@ -9,10 +9,9 @@
 import random
 import re
 import time
+from pexpect import pxssh
 import pytest
-import paramiko
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.utils import SSHClient
 from sssd.testlib.common.utils import ADOperations
 
 
@@ -21,7 +20,8 @@ from sssd.testlib.common.utils import ADOperations
 @pytest.mark.trust
 class TestADTrust(object):
     """ IPA AD Trust tests """
-    def test_basic_sssctl_list(self, multihost):
+    @staticmethod
+    def test_basic_sssctl_list(multihost):
         """
         :title: Verify sssctl lists trusted domain
         :id: 8da8919d-524c-4498-8dc8-608eb5e139b0
@@ -32,8 +32,9 @@ class TestADTrust(object):
         mylist = cmd.stdout_text.split()
         assert ad_domain_name in mylist
 
-    def test_pam_sss_gss_handle_large_krb_ticket(self, multihost,
-                                                 create_aduser_group):
+    @staticmethod
+    def test_pam_sss_gss_handle_large_krb_ticket(
+            multihost, create_aduser_group):
         """
         :title: Verify pam_sss_gss.so can handle large kerberos ticket
                 for sudo
@@ -62,7 +63,8 @@ class TestADTrust(object):
          9. Should not ask password, and should succeed
 
         """
-        (aduser, adgroup) = create_aduser_group
+        # pylint: disable=too-many-locals, too-many-statements
+        (aduser, _) = create_aduser_group
         ad_dmn_name = multihost.ad[0].domainname
         fq_aduser = f'{aduser}@{ad_dmn_name}'
         client = sssdTools(multihost.client[0], multihost.ad[0])
@@ -87,26 +89,35 @@ class TestADTrust(object):
         cmd = f'echo "{fq_aduser} ALL=(ALL) ALL" >> /etc/sudoers'
         multihost.client[0].run_command(cmd, raiseonerr=False)
         log = re.compile('.*System.*error.*Broken.*pipe.*')
+
+        p_ssh = pxssh.pxssh(
+            options={"StrictHostKeyChecking": "no",
+                     "UserKnownHostsFile": "/dev/null"}
+        )
+        p_ssh.force_password = True
         try:
-            ssh = SSHClient(multihost.client[0].ip,
-                            username=f'{fq_aduser}',
-                            password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail(f'{aduser} failed to login')
-        else:
-            (_, _, exit_status) = ssh.execute_cmd(f'kinit {fq_aduser}',
-                                                  stdin='Secret123')
-            assert exit_status == 0
-            (stdout, _, exit_status) = ssh.execute_cmd('sudo -l')
-            assert exit_status == 0
-            otpt = stdout.readlines()
-            for line in otpt:
-                res = log.search(line)
-                assert res is None
-            (stdout, _, exit_status) = ssh.execute_cmd('sudo id')
-            assert exit_status == 0
-            (stdout, _, exit_status) = ssh.execute_cmd('sudo -k')
-            assert exit_status == 0
+            p_ssh.login(multihost.client[0].ip, fq_aduser, 'Secret123')
+            p_ssh.sendline(f'kinit {fq_aduser}')
+            p_ssh.expect('Password for .*:', timeout=10)
+            p_ssh.sendline('Secret123')
+            p_ssh.prompt(timeout=5)
+            p_ssh.sendline('sudo -l')
+            p_ssh.prompt(timeout=5)
+            sudo_out_1 = str(p_ssh.before)
+            p_ssh.sendline('sudo id; echo "retcode:$?"')
+            p_ssh.prompt(timeout=5)
+            sudo_out_2 = str(p_ssh.before)
+            p_ssh.sendline('sudo -l; echo "retcode:$?"')
+            p_ssh.prompt(timeout=5)
+            sudo_out_3 = str(p_ssh.before)
+            p_ssh.logout()
+        except pxssh.ExceptionPxssh:
+            pytest.fail("Failed to login via ssh.")
+
+        result = True
+        for line in sudo_out_1.splitlines():
+            res = log.search(line)
+            result = result and res is None
         client.sssd_conf(domain_section, params, action='delete')
         for pam_file in "/etc/pam.d/sudo-i", "/etc/pam.d/sudo":
             cmd = f'sed -i "1d" {pam_file}'
@@ -115,8 +126,12 @@ class TestADTrust(object):
         multihost.client[0].run_command(cmd, raiseonerr=False)
         cmd = f'mv {bk_krbkcm} {krbkcm}'
         multihost.client[0].run_command(cmd, raiseonerr=False)
+        assert result is True, "Error occurred with large ticket!"
+        assert "retcode:0" in sudo_out_2, "sudo id failed"
+        assert "retcode:0" in sudo_out_3, "sudo -l failed"
 
-    def test_adgrpwith_at_ratesign(self, multihost):
+    @staticmethod
+    def test_adgrpwith_at_ratesign(multihost):
         """
         :title: user membership of AD group with @ sign
         :id: ee9ca809-6ea7-48f2-a0fe-d9eccadf5d81
@@ -146,14 +161,19 @@ class TestADTrust(object):
         ad_group = 'adgrp@7'
         ad.create_ad_unix_user_group(ad_user, ad_group)
         client.clear_sssd_cache()
-        cmd = multihost.client[0].run_command(f'getent group {ad_group}@{ad_dmn}', raiseonerr=False)
-        cmd1 = multihost.client[0].run_command(f'id {ad_user}@{ad_dmn}', raiseonerr=False)
+        cmd = multihost.client[0].run_command(
+            f'getent group {ad_group}@{ad_dmn}', raiseonerr=False)
+        cmd1 = multihost.client[0].run_command(
+            f'id {ad_user}@{ad_dmn}', raiseonerr=False)
         ad.delete_ad_user_group(ad_user)
         ad.delete_ad_user_group(ad_group)
-        assert ad_group in cmd.stdout_text, f"{ad_group} information is fetched correctly"
-        assert ad_group in cmd1.stdout_text, f"{ad_group} is available in {ad_user} information"
+        assert ad_group in cmd.stdout_text,\
+            f"{ad_group} information is fetched correctly"
+        assert ad_group in cmd1.stdout_text,\
+            f"{ad_group} is available in {ad_user} information"
 
-    def test_ipaserver_sss_cache_user(self, multihost):
+    @staticmethod
+    def test_ipaserver_sss_cache_user(multihost):
         """
         :title: Verify AD user is cached on IPA server
          when ipa client queries AD User
@@ -163,16 +183,17 @@ class TestADTrust(object):
         domain_name = ipaserver.get_domain_section_name()
         cache_path = '/var/lib/sss/db/cache_%s.ldb' % domain_name
         ad_domain_name = multihost.ad[0].domainname
-        user_name = 'Administrator@%s' % (ad_domain_name)
+        user_name = 'Administrator@%s' % ad_domain_name
         id_cmd = 'id %s' % user_name
         multihost.master[0].run_command(id_cmd, raiseonerr=False)
         multihost.client[0].run_command(id_cmd, raiseonerr=False)
-        dn = 'name=Administrator@%s,cn=users,cn=%s,cn=sysdb' % (ad_domain_name,
-                                                                ad_domain_name)
-        ldb_cmd = 'ldbsearch -H %s -b "%s"' % (cache_path, dn)
+        d_n = f'name=Administrator@{ad_domain_name},cn=users,' \
+              f'cn={ad_domain_name},cn=sysdb'
+        ldb_cmd = 'ldbsearch -H %s -b "%s"' % (cache_path, d_n)
         multihost.master[0].run_command(ldb_cmd, raiseonerr=False)
 
-    def test_enforce_gid(self, multihost):
+    @staticmethod
+    def test_enforce_gid(multihost):
         """
         :title: Verify whether the new gid is enforceable when
          gid of AD Group Domain Users is overridden
@@ -184,7 +205,7 @@ class TestADTrust(object):
         multihost.master[0].run_command(create_view)
         ad_domain_name = multihost.ad[0].domainname
         ad_grp = 'Domain Users@%s' % ad_domain_name
-        cmd = 'ipa idoverridegroup-add foo_bar "%s" --gid=40000000' % (ad_grp)
+        cmd = 'ipa idoverridegroup-add foo_bar "%s" --gid=40000000' % ad_grp
         multihost.master[0].run_command(cmd, raiseonerr=False)
         # apply the view on client
         client_hostname = multihost.client[0].sys_hostname
@@ -193,7 +214,7 @@ class TestADTrust(object):
         client = sssdTools(multihost.client[0])
         client.clear_sssd_cache()
         time.sleep(5)
-        user_name = 'Administrator@%s' % (ad_domain_name)
+        user_name = 'Administrator@%s' % ad_domain_name
         id_cmd = 'id %s' % user_name
         cmd = multihost.client[0].run_command(id_cmd, raiseonerr=False)
         group = "40000000(domain users@%s)" % ad_domain_name
@@ -202,19 +223,20 @@ class TestADTrust(object):
         client.clear_sssd_cache()
         assert group in cmd.stdout_text
 
-    def test_honour_idoverride(self, multihost, create_aduser_group):
+    @staticmethod
+    def test_honour_idoverride(multihost, create_aduser_group):
         """
         :title: Verify sssd honours the customized ID View
         :id: 0c0dcfbb-6099-4c61-81c9-3bd3a003ff58
         :bugzilla:
          https://bugzilla.redhat.com/show_bug.cgi?id=1826720
         """
-        (aduser, adgroup) = create_aduser_group
+        (aduser, _) = create_aduser_group
         domain = multihost.ad[0].domainname
         ipa_client = sssdTools(multihost.client[0])
         ipa_client.clear_sssd_cache()
         ad_user_fqdn = '%s@%s' % (aduser, domain)
-        id_cmd = 'id -g %s' % (ad_user_fqdn)
+        id_cmd = 'id -g %s' % ad_user_fqdn
         cmd = multihost.master[0].run_command(id_cmd, raiseonerr=False)
         current_gid = cmd.stdout_text.strip()
         create_view = 'ipa idview-add madrid_trust_view'
@@ -231,7 +253,7 @@ class TestADTrust(object):
         time.sleep(5)
         id_cmd = 'id %s' % ad_user_fqdn
         count = 0
-        for i in range(50):
+        for _ in range(50):
             cmd = multihost.client[0].run_command(id_cmd, raiseonerr=False)
             gid = cmd.stdout_text.strip()
             if gid == current_gid:
@@ -241,7 +263,8 @@ class TestADTrust(object):
         ipa_client.clear_sssd_cache()
         assert count == 0
 
-    def test_ipa_missing_secondary_ipa_posix_groups(self, multihost,
+    @staticmethod
+    def test_ipa_missing_secondary_ipa_posix_groups(multihost,
                                                     create_aduser_group):
         """
         :title: IPA missing secondary IPA Posix groups in latest sssd
@@ -268,6 +291,7 @@ class TestADTrust(object):
          https://bugzilla.redhat.com/show_bug.cgi?id=1937919
          https://bugzilla.redhat.com/show_bug.cgi?id=1945654
         """
+        # pylint: disable=too-many-locals
         ad_domain = multihost.ad[0].domainname
         ipaserver = sssdTools(multihost.master[0])
         ipa_domain = ipaserver.get_domain_section_name()
@@ -361,7 +385,8 @@ class TestADTrust(object):
                            f'{ipa_domain}:{ad_domain}'
         multihost.master[0].run_command(rev_resorder_cmd, raiseonerr=False)
 
-    def test_nss_get_by_name_with_private_group(self, multihost):
+    @staticmethod
+    def test_nss_get_by_name_with_private_group(multihost):
         """
         :title:
          SSSD fails nss_getby_name for IPA user with SID if the user has

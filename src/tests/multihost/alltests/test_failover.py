@@ -7,7 +7,6 @@
 """
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.utils import SSHClient
 from constants import ds_instance_name
 
 
@@ -24,8 +23,9 @@ class TestFailover(object):
       3. specify ldaps in ldap_uri pointing to 2 directory servers
       example: ldap_uri: ldaps://ldap1, ldaps://ldap2
     """
+    @staticmethod
     @pytest.mark.tier2
-    def test_0001_getent(self, multihost):
+    def test_0001_getent(multihost):
         """
         :title: failover: Verify users can be queried from
          second directory server when first directory server is down
@@ -57,8 +57,9 @@ class TestFailover(object):
         cmd = multihost.master[0].run_command(start_ds1, raiseonerr=False)
         assert cmd.returncode == 0
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0002_login(self, multihost):
+    def test_0002_login(multihost):
         """
         :title: failover: Verify users can login when the first
          ldap server is down
@@ -73,18 +74,15 @@ class TestFailover(object):
         tools.remove_sss_cache('/var/lib/sss/db')
         multihost.client[0].service_sssd('start')
         # login as user
-        ssh = SSHClient(multihost.client[0].external_hostname,
-                        username=user,
-                        password='Secret123')
-        assert ssh.connect
-        ssh.close()
-        # start the first directory server
+        ssh = tools.auth_from_client(user, 'Secret123') == 3
+        assert ssh, "Authentication failed!"
         start_ds1 = 'systemctl start dirsrv@example'
         cmd = multihost.master[0].run_command(start_ds1, raiseonerr=False)
         assert cmd.returncode == 0
 
+    @staticmethod
     @pytest.mark.tier2
-    def test_0003_stopsecondds(self, multihost):
+    def test_0003_stopsecondds(multihost):
         """
         :title: failover: Stop second ldap server and verify
          users are able to login from first ldap server
@@ -99,12 +97,8 @@ class TestFailover(object):
         multihost.client[0].service_sssd('start')
         user = 'foo3@%s' % ds_instance_name
         # login as user
-        ssh = SSHClient(multihost.client[0].external_hostname,
-                        username=user,
-                        password='Secret123')
-        assert ssh.connect
-        ssh.close()
-        # start the first directory server
+        ssh = tools.auth_from_client(user, 'Secret123') == 3
+        assert ssh, "Authentication failed!"
         start_ds1 = 'systemctl start dirsrv@example'
         cmd = multihost.master[0].run_command(start_ds1, raiseonerr=False)
         assert cmd.returncode == 0

@@ -11,7 +11,8 @@ import time
 import os
 import pytest
 import ldap
-from sssd.testlib.common.utils import sssdTools, SSHClient, LdapOperations
+from pexpect import pxssh
+from sssd.testlib.common.utils import sssdTools, LdapOperations
 from sssd.testlib.common.libkrb5 import krb5srv
 
 
@@ -102,7 +103,8 @@ class TestProxyMisc(object):
     """
     This is test case class for proxy provider suite
     """
-    def test_bz1036758(self, multihost, backupsssdconf):
+    @staticmethod
+    def test_bz1036758(multihost, backupsssdconf):
         """
         :title: Allow for custom attributes in RDN bz1036758
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1036758
@@ -129,7 +131,8 @@ class TestProxyMisc(object):
         execute_cmd(multihost, "rm -rf /var/lib/sss/{db,mc}/*")
         execute_cmd(multihost, "systemctl start sssd.service")
 
-    def test_bz785902(self, multihost):
+    @staticmethod
+    def test_bz785902(multihost):
         """
         :title: Errors with empty loginShell and proxy provider bz785902
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=785902
@@ -178,7 +181,8 @@ class TestProxyMisc(object):
             with pytest.raises(subprocess.CalledProcessError):
                 execute_cmd(multihost, f"grep {error_error} /var/log/sssd/*")
 
-    def test_bz804103(self, multihost):
+    @staticmethod
+    def test_bz804103(multihost):
         """
         :title: Nss-pam-ldapd returns empty netgroup when a
          nonexistent netgroup is requested
@@ -205,7 +209,8 @@ class TestProxyMisc(object):
         with pytest.raises(subprocess.CalledProcessError):
             execute_cmd(multihost, "getent netgroup testsumgroup")
 
-    def test_bz801377(self, multihost, backupsssdconf):
+    @staticmethod
+    def test_bz801377(multihost, backupsssdconf):
         """
         :title: Non existing netgroup returned with proxy provider
          when proxy lib name is file bz801377
@@ -241,7 +246,8 @@ class TestProxyMisc(object):
         execute_cmd(multihost, "getent netgroup QAeng")
         execute_cmd(multihost, 'echo "" > /etc/netgroup')
 
-    def test_bz647816(self, multihost, backupsssdconf):
+    @staticmethod
+    def test_bz647816(multihost, backupsssdconf):
         """
         :title: More than 10 auth attempt times out bz647816
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=647816
@@ -260,16 +266,14 @@ class TestProxyMisc(object):
                          'debug_level': '0xFFF0'}
         tools.sssd_conf('domain/' + domain_name, domain_params)
         tools.clear_sssd_cache()
-        client_e = multihost.client[0].ip
         for _ in range(12):
-            ssh1 = SSHClient(client_e, username="foo1@example1",
-                             password="Secret123")
-            ssh1.close()
+            tools.auth_from_client("foo1@example1", "Secret123")
         with pytest.raises(subprocess.CalledProcessError):
             execute_cmd(multihost, "grep 'All available child slots are full, "
                                    "queuing request' /var/log/sssd/*")
 
-    def test_bz871424(self, multihost, backupsssdconf):
+    @staticmethod
+    def test_bz871424(multihost, backupsssdconf):
         """
         :title: authconfig chokes on sssd.conf with chpass_provider directive
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=871424
@@ -295,7 +299,8 @@ class TestProxyMisc(object):
         tools.clear_sssd_cache()
         execute_cmd(multihost, "authselect test sssd")
 
-    def test_bz1221992(self, multihost, backupsssdconf):
+    @staticmethod
+    def test_bz1221992(multihost, backupsssdconf):
         """
         :title: sssd_be segfault at 0 ip sp error 6 in libtevent.so.0.9.21
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1221992
@@ -329,7 +334,8 @@ class TestProxyMisc(object):
                                      "stat -c %G /var/lib/sss/pipes"
                                      "/private/sbus-dp_example1.*").stdout_text
 
-    def test_0002_bz1209483(self, multihost, backupsssdconf):
+    @staticmethod
+    def test_0002_bz1209483(multihost, backupsssdconf):
         """
         :title: sssd does not work as expected when id provider
          equal to proxy and auth provider equal to ldap bz1209483
@@ -344,16 +350,17 @@ class TestProxyMisc(object):
           2. Should succeed
           3. Should succeed
         """
-        client_e = multihost.client[0].ip
         tools = sssdTools(multihost.client[0])
         # sssd does not work as expected when id provider equal to proxy
         # and auth provider equal to ldap bz1209483
         execute_cmd(multihost, "systemctl stop nslcd.service")
         execute_cmd(multihost, "systemctl stop sssd")
-        assert "uid=foo2,ou=People,dc=example,dc=test" in \
-               multihost.master[0].run_command("ldapsearch -x -LLL uid=foo2").stdout_text
+        ldap_s = multihost.master[0].run_command(
+            "ldapsearch -x -LLL uid=foo2")
+        assert "uid=foo2,ou=People,dc=example,dc=test" in ldap_s.stdout_text
         execute_cmd(multihost, "useradd -u 2001 foo2")
-        execute_cmd(multihost, "echo 'pam.d/         pam_ldap.conf' > /etc/pam")
+        execute_cmd(multihost,
+                    "echo 'pam.d/         pam_ldap.conf' > /etc/pam")
         services = {'filter_groups': 'root', 'filter_users': 'root'}
         tools.sssd_conf('nss', services)
         domain_name = tools.get_domain_section_name()
@@ -366,16 +373,64 @@ class TestProxyMisc(object):
                          'use_fully_qualified_names': 'False'}
         tools.sssd_conf('domain/' + domain_name, domain_params)
         tools.clear_sssd_cache()
-        assert "foo2:*:2001:2001::/home/foo2:/bin/bash" \
-               in execute_cmd(multihost, "getent passwd -s "
-                                         "sss foo2").stdout_text
-        ssh1 = SSHClient(client_e, username="foo2", password="Secret123")
-        ssh1.close()
+        getent = execute_cmd(multihost, "getent passwd -s sss foo2")
+        ssh_res = tools.auth_from_client("foo2", "Secret123") == 3
         execute_cmd(multihost, "userdel -rf foo2")
+        assert "foo2:*:2001:2001::/home/foo2:/bin/bash" in getent.stdout_text
+        assert ssh_res, "Ssh for user foo2 failed."
 
-    def test_bz1927195(self, multihost,
-                       backupsssdconf,
-                       proxy_sleep):
+    @staticmethod
+    def test_bz1368467(multihost, backupsssdconf, create_350_posix_users):
+        """
+        :title: sssd runs out of available child slots and
+         starts queuing requests in proxy mode bz1368467
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1368467
+        :id: 452376f2-e2f3-11ec-96b9-845cf3eff344
+        :steps:
+            1. Configure sssd with proxy
+            2. Create 350 users
+            3. Try to ssh with 350 users
+            4. Logs should not have error 'All available
+               child slots are full'
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+            4. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
+        domain_name = tools.get_domain_section_name()
+        domain_params = {'debug_level': '0xFFF0',
+                         'id_provider': 'ldap',
+                         'proxy_lib_name': 'ldap',
+                         'proxy_pam_target': 'sssdproxyldap',
+                         'auth_provider': 'proxy',
+                         'chpass_provider': 'ldap',
+                         'proxy_max_children': '10',
+                         'use_fully_qualified_names': 'False'}
+        tools.sssd_conf('domain/' + domain_name, domain_params)
+        tools.clear_sssd_cache()
+        # sssd runs out of available child slots and starts
+        # queuing requests in proxy mode
+        execute_cmd(multihost, "systemctl start nslcd.service")
+        for i in range(1, 351):
+            p_ssh = pxssh.pxssh(
+                options={"StrictHostKeyChecking": "no",
+                         "UserKnownHostsFile": "/dev/null"}
+            )
+            p_ssh.force_password = True
+            try:
+                p_ssh.login(multihost.client[0].ip, f"doo{i}", "Secret123")
+                p_ssh.logout()
+            except pxssh.ExceptionPxssh:
+                # We just trigger condition and check logs
+                pass
+        with pytest.raises(subprocess.CalledProcessError):
+            execute_cmd(multihost, "grep 'All available child slots are full, "
+                                   "queuing request' /var/log/sssd/*")
+
+    @staticmethod
+    def test_bz1927195(multihost, backupsssdconf, proxy_sleep):
         """
         :title: sssd runs out of proxy child slots and
           doesn't clear the counter for Active requests
@@ -414,8 +469,8 @@ class TestProxyMisc(object):
                          'access_provider': 'proxy'}
         tools.sssd_conf('domain/' + domain_name, domain_params)
         tools.clear_sssd_cache()
-        sssctl_user_check = 'for i in {1..11}; do sssctl user-checks foo1@example1' \
-                            ' > /dev/null 2>&1 & done'
+        sssctl_user_check = 'for i in {1..11}; do sssctl user-checks' \
+                            ' foo1@example1 > /dev/null 2>&1 & done'
         execute_cmd(multihost, sssctl_user_check)
         time.sleep(3)
         result = execute_cmd(multihost, "grep -c 'All available "
@@ -424,7 +479,8 @@ class TestProxyMisc(object):
                                         "/var/log/sssd/sssd_example1.log")
         assert result.stdout_text == '1\n'
         time.sleep(60)
-        sssctl_user_check = 'sssctl user-checks foo1@example1 > /dev/null 2>&1 &'
+        sssctl_user_check = 'sssctl user-checks foo1@example1 ' \
+                            '> /dev/null 2>&1 &'
         execute_cmd(multihost, sssctl_user_check)
         time.sleep(2)
         result = execute_cmd(multihost, "grep -c 'All available "
@@ -432,45 +488,3 @@ class TestProxyMisc(object):
                                         "queuing request' "
                                         "/var/log/sssd/sssd_example1.log")
         assert result.stdout_text == '1\n'
-
-    def test_bz1368467(self, multihost, backupsssdconf,
-                       create_350_posix_users):
-        """
-        :title: sssd runs out of available child slots and
-         starts queuing requests in proxy mode bz1368467
-        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1368467
-        :id: 452376f2-e2f3-11ec-96b9-845cf3eff344
-        :steps:
-            1. Configure sssd with proxy
-            2. Create 350 users
-            3. Try to ssh with 350 users
-            4. Logs should not have error 'All available
-               child slots are full'
-        :expectedresults:
-            1. Should succeed
-            2. Should succeed
-            3. Should succeed
-            4. Should succeed
-        """
-        tools = sssdTools(multihost.client[0])
-        client_e = multihost.client[0].ip
-        domain_name = tools.get_domain_section_name()
-        domain_params = {'debug_level': '0xFFF0',
-                         'id_provider': 'ldap',
-                         'proxy_lib_name': 'ldap',
-                         'proxy_pam_target': 'sssdproxyldap',
-                         'auth_provider': 'proxy',
-                         'chpass_provider': 'ldap',
-                         'proxy_max_children': '10',
-                         'use_fully_qualified_names': 'False'}
-        tools.sssd_conf('domain/' + domain_name, domain_params)
-        tools.clear_sssd_cache()
-        # sssd runs out of available child slots and starts
-        # queuing requests in proxy mode
-        execute_cmd(multihost, "systemctl start nslcd.service")
-        for i in range(1, 351):
-            ssh1 = SSHClient(client_e, username=f"doo{i}", password="Secret123")
-            ssh1.close()
-        with pytest.raises(subprocess.CalledProcessError):
-            execute_cmd(multihost, "grep 'All available child slots are full, "
-                                   "queuing request' /var/log/sssd/*")
