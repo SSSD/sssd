@@ -2124,6 +2124,7 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                                              false, NULL, NULL, 0, timeout,
                                              allow_paging);
     if (subreq == NULL) {
+        talloc_zfree(req);
         return NULL;
     }
     tevent_req_set_callback(subreq, sdap_get_generic_done, req);
