@@ -5375,9 +5375,13 @@ if BUILD_PYTHON2_BINDINGS
 		rm -f $(builddir)/src/config/SSSDConfig/sssdoptions.py ; \
 	fi
 
-	rm -f $(builddir)/src/config/SSSDConfig/*.pyc
-
 	cd $(builddir)/src/config; $(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config clean --all
+
+	rm -rf $(builddir)/src/config/dist
+	find "$(builddir)/src/config" \
+		-name "*.py[co]" -delete -o	\
+		-name "__pycache__" -delete -o	\
+		-name "*.egg-info" -exec rm -rf {} +
 endif
 if BUILD_PYTHON3_BINDINGS
 	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
@@ -5388,9 +5392,13 @@ if BUILD_PYTHON3_BINDINGS
 		rm -f $(builddir)/src/config/SSSDConfig/sssdoptions.py ; \
 	fi
 
-	rm -f $(builddir)/src/config/SSSDConfig/__pycache__/*.pyc
-
 	cd $(builddir)/src/config; $(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config clean --all
+
+	rm -rf $(builddir)/src/config/dist
+	find "$(builddir)/src/config" \
+		-name "*.py[co]" -delete -o	\
+		-name "__pycache__" -delete -o	\
+		-name "*.egg-info" -exec rm -rf {} +
 endif
 	for doc in $(SSSD_DOCS); do \
 		rm -Rf $$doc; \
