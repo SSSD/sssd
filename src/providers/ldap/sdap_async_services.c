@@ -374,10 +374,8 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
     }
 
     /* Identify the primary name of this services */
-    ret = sysdb_attrs_primary_name(
-            sysdb, attrs,
-            opts->service_map[SDAP_AT_SERVICE_NAME].name,
-            &name);
+    ret = sdap_get_primary_name(opts->service_map[SDAP_AT_SERVICE_NAME].name,
+                                attrs, dom, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not determine the primary name of the service\n");
