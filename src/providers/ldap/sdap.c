@@ -1702,17 +1702,111 @@ errno_t sdap_get_primary_name(const char *attr_name,
 {
     errno_t ret;
     const char *orig_name = NULL;
+    char *rdn_attr = NULL;
+    char *rdn_val = NULL;
+    struct ldb_message_element *sysdb_name_el;
+    struct ldb_message_element *orig_dn_el;
+    size_t i;
+    TALLOC_CTX *tmp_ctx = NULL;
 
-    ret = sysdb_attrs_primary_name(dom->sysdb, attrs, attr_name, &orig_name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "The object has no name attribute\n");
-        return EINVAL;
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
     }
+
+    ret = sysdb_attrs_get_el(attrs,
+                             SYSDB_NAME,
+                             &sysdb_name_el);
+    if (ret != EOK || sysdb_name_el->num_values == 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (sysdb_name_el->num_values == 1) {
+        /* Entry contains only one name. Just return that */
+        orig_name = (const char *)sysdb_name_el->values[0].data;
+        ret = EOK;
+        goto done;
+    }
+
+    /* Multiple values for name. Check whether one matches the RDN */
+
+    ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &orig_dn_el);
+    if (ret) {
+        goto done;
+    }
+    if (orig_dn_el->num_values == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Original DN is not available.\n");
+        ret = EINVAL;
+        goto done;
+    } else if (orig_dn_el->num_values == 1) {
+        ret = sysdb_get_rdn(dom->sysdb, tmp_ctx,
+                            (const char *) orig_dn_el->values[0].data,
+                            &rdn_attr,
+                            &rdn_val);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not get rdn from [%s]\n",
+                      (const char *) orig_dn_el->values[0].data);
+            goto done;
+        }
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Should not have more than one origDN\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* First check whether the attribute name matches */
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Comparing attribute names [%s] and [%s]\n",
+              rdn_attr, attr_name);
+    if (strcasecmp(rdn_attr, attr_name) != 0) {
+        /* Multiple entries, and the RDN attribute doesn't match.
+         * We have no way of resolving this deterministically,
+         * so we'll use the first value as a fallback.
+         */
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "The entry has multiple names and the RDN attribute does "
+                  "not match. Will use the first value as fallback.\n");
+        orig_name = (const char *)sysdb_name_el->values[0].data;
+        ret = EOK;
+        goto done;
+    }
+
+    for (i = 0; i < sysdb_name_el->num_values; i++) {
+        if (strcasecmp(rdn_val,
+                       (const char *)sysdb_name_el->values[i].data) == 0) {
+            /* This name matches the RDN. Use it */
+            break;
+        }
+    }
+    if (i < sysdb_name_el->num_values) {
+        /* Match was found */
+        orig_name = (const char *)sysdb_name_el->values[i].data;
+    } else {
+        /* If we can't match the name to the RDN, we just have to
+         * throw up our hands. There's no deterministic way to
+         * decide which name is correct.
+         */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Can't match the name to the RDN\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not determine primary name: [%d][%s]\n",
+                  ret, strerror(ret));
+    }
+    talloc_free(tmp_ctx);
 
     DEBUG(SSSDBG_TRACE_FUNC, "Processing object %s\n", orig_name);
 
     *_primary_name = orig_name;
-    return EOK;
+
+    return ret;
 }
 
 static errno_t
