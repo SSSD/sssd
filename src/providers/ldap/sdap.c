@@ -1785,6 +1785,89 @@ errno_t sdap_get_netgroup_primary_name(TALLOC_CTX *memctx,
                                  attrs, dom, _netgroup_name);
 }
 
+static errno_t _sysdb_attrs_primary_name_list(struct sss_domain_info *domain,
+                                              TALLOC_CTX *mem_ctx,
+                                              struct sysdb_attrs **attr_list,
+                                              size_t attr_count,
+                                              const char *ldap_attr,
+                                              bool qualify_names,
+                                              char ***name_list)
+{
+    errno_t ret;
+    size_t i, j;
+    char **list;
+    const char *name;
+
+    /* Assume that every entry has a primary name */
+    list = talloc_array(mem_ctx, char *, attr_count+1);
+    if (!list) {
+        return ENOMEM;
+    }
+
+    j = 0;
+    for (i = 0; i < attr_count; i++) {
+        ret = sysdb_attrs_primary_name(domain->sysdb,
+                                       attr_list[i],
+                                       ldap_attr,
+                                       &name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine primary name\n");
+            /* Skip and continue. Don't advance 'j' */
+            continue;
+        }
+
+        if (qualify_names == false) {
+            list[j] = talloc_strdup(list, name);
+        } else {
+            list[j] = sss_create_internal_fqname(list, name, domain->name);
+        }
+        if (!list[j]) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        j++;
+    }
+
+    /* NULL-terminate the list */
+    list[j] = NULL;
+
+    *name_list = list;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(list);
+    }
+    return ret;
+}
+
+errno_t sysdb_attrs_primary_name_list(struct sss_domain_info *domain,
+                                      TALLOC_CTX *mem_ctx,
+                                      struct sysdb_attrs **attr_list,
+                                      size_t attr_count,
+                                      const char *ldap_attr,
+                                      char ***name_list)
+{
+    return _sysdb_attrs_primary_name_list(domain, mem_ctx, attr_list,
+                                          attr_count, ldap_attr,
+                                          false, name_list);
+}
+
+errno_t sysdb_attrs_primary_fqdn_list(struct sss_domain_info *domain,
+                                      TALLOC_CTX *mem_ctx,
+                                      struct sysdb_attrs **attr_list,
+                                      size_t attr_count,
+                                      const char *ldap_attr,
+                                      char ***name_list)
+{
+    return _sysdb_attrs_primary_name_list(domain, mem_ctx, attr_list,
+                                          attr_count, ldap_attr,
+                                          true, name_list);
+}
+
+
 char *sdap_make_oc_list(TALLOC_CTX *mem_ctx, struct sdap_attr_map *map)
 {
     if (map[SDAP_OC_GROUP_ALT].name == NULL) {
