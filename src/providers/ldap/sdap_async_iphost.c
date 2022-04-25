@@ -366,9 +366,8 @@ sdap_save_iphost(TALLOC_CTX *mem_ctx,
     }
 
     /* Identify the primary name of this hosts */
-    ret = sysdb_attrs_primary_name(sysdb, attrs,
-                                   opts->iphost_map[SDAP_AT_IPHOST_NAME].name,
-                                   &name);
+    ret = sdap_get_primary_name(opts->iphost_map[SDAP_AT_IPHOST_NAME].name,
+                                attrs, dom, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not determine the primary name of the IP host\n");
