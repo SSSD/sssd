@@ -1695,6 +1695,42 @@ int sdap_replace_id(struct sysdb_attrs *entry, const char *attr, id_t val)
     return EOK;
 }
 
+static errno_t sdap_get_rdn_multi(TALLOC_CTX *mem_ctx, const char *dn,
+                                  const char *name, char **_val)
+{
+    int ret;
+    size_t c;
+    LDAPDN ldapdn = NULL;
+
+    ret = ldap_str2dn(dn, &ldapdn, LDAP_DN_FORMAT_LDAPV3);
+    if (ret != LDAP_SUCCESS || ldapdn == NULL || ldapdn[0] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to parse DN [%s].\n", dn);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = ENOENT;
+    for (c = 0; ldapdn[0][c] != NULL; c++) {
+        if (strncasecmp(name, ldapdn[0][c]->la_attr.bv_val,
+                        ldapdn[0][c]->la_attr.bv_len) == 0) {
+            *_val = talloc_strndup(mem_ctx, ldapdn[0][c]->la_value.bv_val,
+                                   ldapdn[0][c]->la_value.bv_len);
+            if (*_val == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to copy AVA value.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = EOK;
+            break;
+        }
+    }
+
+done:
+    ldap_dnfree(ldapdn);
+
+    return ret;
+}
+
 errno_t sdap_get_primary_name(const char *attr_name,
                               struct sysdb_attrs *attrs,
                               struct sss_domain_info *dom,
@@ -1702,7 +1738,6 @@ errno_t sdap_get_primary_name(const char *attr_name,
 {
     errno_t ret;
     const char *orig_name = NULL;
-    char *rdn_attr = NULL;
     char *rdn_val = NULL;
     struct ldb_message_element *sysdb_name_el;
     struct ldb_message_element *orig_dn_el;
@@ -1740,11 +1775,18 @@ errno_t sdap_get_primary_name(const char *attr_name,
         ret = EINVAL;
         goto done;
     } else if (orig_dn_el->num_values == 1) {
-        ret = sysdb_get_rdn(dom->sysdb, tmp_ctx,
-                            (const char *) orig_dn_el->values[0].data,
-                            &rdn_attr,
-                            &rdn_val);
-        if (ret != EOK) {
+        ret = sdap_get_rdn_multi(tmp_ctx,
+                                 (const char *) orig_dn_el->values[0].data,
+                                 attr_name, &rdn_val);
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "The entry has multiple names and the RDN attribute does "
+                  "not match. Will use the first value [%s] as fallback.\n",
+                  (const char *)sysdb_name_el->values[0].data);
+            orig_name = (const char *)sysdb_name_el->values[0].data;
+            ret = EOK;
+            goto done;
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not get rdn from [%s]\n",
                       (const char *) orig_dn_el->values[0].data);
             goto done;
@@ -1752,22 +1794,6 @@ errno_t sdap_get_primary_name(const char *attr_name,
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "Should not have more than one origDN\n");
         ret = EINVAL;
-        goto done;
-    }
-
-    /* First check whether the attribute name matches */
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Comparing attribute names [%s] and [%s]\n",
-              rdn_attr, attr_name);
-    if (strcasecmp(rdn_attr, attr_name) != 0) {
-        /* Multiple entries, and the RDN attribute doesn't match.
-         * We have no way of resolving this deterministically,
-         * so we'll use the first value as a fallback.
-         */
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "The entry has multiple names and the RDN attribute does "
-                  "not match. Will use the first value as fallback.\n");
-        orig_name = (const char *)sysdb_name_el->values[0].data;
-        ret = EOK;
         goto done;
     }
 
