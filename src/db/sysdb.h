@@ -435,10 +435,6 @@ int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
                                     const char *attr_name,
                                     const char *domain,
                                     const char *const *list);
-errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
-                                 struct sysdb_attrs *attrs,
-                                 const char *ldap_attr,
-                                 const char **_primary);
 errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
                                 struct sysdb_attrs *attrs,
                                 const char *primary,
