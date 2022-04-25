@@ -444,18 +444,6 @@ errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
                                 const char *primary,
                                 bool lowercase,
                                 const char ***_aliases);
-errno_t sysdb_attrs_primary_name_list(struct sss_domain_info *domain,
-                                      TALLOC_CTX *mem_ctx,
-                                      struct sysdb_attrs **attr_list,
-                                      size_t attr_count,
-                                      const char *ldap_attr,
-                                      char ***name_list);
-errno_t sysdb_attrs_primary_fqdn_list(struct sss_domain_info *domain,
-                                      TALLOC_CTX *mem_ctx,
-                                      struct sysdb_attrs **attr_list,
-                                      size_t attr_count,
-                                      const char *ldap_attr,
-                                      char ***name_list);
 errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
                             struct sss_domain_info *domain,
                             const char *name_or_upn,
