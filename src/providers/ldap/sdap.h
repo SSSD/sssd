@@ -679,19 +679,19 @@ errno_t sdap_get_netgroup_primary_name(TALLOC_CTX *memctx,
                                        struct sss_domain_info *dom,
                                        const char **_netgroup_name);
 
-errno_t sysdb_attrs_primary_name_list(struct sss_domain_info *domain,
-                                      TALLOC_CTX *mem_ctx,
-                                      struct sysdb_attrs **attr_list,
-                                      size_t attr_count,
-                                      const char *ldap_attr,
-                                      char ***name_list);
+errno_t sdap_get_primary_name_list(struct sss_domain_info *domain,
+                                   TALLOC_CTX *mem_ctx,
+                                   struct sysdb_attrs **attr_list,
+                                   size_t attr_count,
+                                   const char *ldap_attr,
+                                   char ***name_list);
 
-errno_t sysdb_attrs_primary_fqdn_list(struct sss_domain_info *domain,
-                                      TALLOC_CTX *mem_ctx,
-                                      struct sysdb_attrs **attr_list,
-                                      size_t attr_count,
-                                      const char *ldap_attr,
-                                      char ***name_list);
+errno_t sdap_get_primary_fqdn_list(struct sss_domain_info *domain,
+                                   TALLOC_CTX *mem_ctx,
+                                   struct sysdb_attrs **attr_list,
+                                   size_t attr_count,
+                                   const char *ldap_attr,
+                                   char ***name_list);
 
 errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
                                              struct sdap_options *opts,
