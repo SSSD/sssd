@@ -299,11 +299,10 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
          */
         ldap_grouplist = NULL;
     } else {
-        ret = sysdb_attrs_primary_name_list(
-                domain, tmp_ctx,
-                ldap_groups, ldap_groups_count,
-                opts->group_map[SDAP_AT_GROUP_NAME].name,
-                &ldap_grouplist);
+        ret = sdap_get_primary_name_list(domain, tmp_ctx, ldap_groups,
+                                       ldap_groups_count,
+                                       opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       &ldap_grouplist);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sysdb_attrs_primary_name_list failed [%d]: %s\n",
@@ -666,10 +665,9 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
     if (!tmp_ctx) return ENOMEM;
 
     if (count > 0) {
-        ret = sysdb_attrs_primary_fqdn_list(domain, tmp_ctx,
-                                            groups, count,
-                                            opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                            &groupnamelist);
+        ret = sdap_get_primary_fqdn_list(domain, tmp_ctx, groups, count,
+                                       opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       &groupnamelist);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "sysdb_attrs_primary_name_list failed [%d]: %s\n",
@@ -1309,11 +1307,10 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
     if (nparents == 0) {
         ldap_parent_name_list = NULL;
     } else {
-        ret = sysdb_attrs_primary_name_list(state->dom, tmp_ctx,
-                                            ldap_parentlist,
-                                            nparents,
-                                            state->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                            &ldap_parent_name_list);
+        ret = sdap_get_primary_name_list(state->dom, tmp_ctx, ldap_parentlist,
+                                nparents,
+                                state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                &ldap_parent_name_list);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sysdb_attrs_primary_name_list failed [%d]: %s\n",
@@ -1447,11 +1444,10 @@ sdap_initgr_nested_get_membership_diff(TALLOC_CTX *mem_ctx,
                group_name, parents_count);
 
     if (parents_count > 0) {
-        ret = sysdb_attrs_primary_fqdn_list(dom, tmp_ctx,
-                                            ldap_parentlist,
-                                            parents_count,
-                                            opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                            &ldap_parent_names_list);
+        ret = sdap_get_primary_fqdn_list(dom, tmp_ctx, ldap_parentlist,
+                                       parents_count,
+                                       opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                       &ldap_parent_names_list);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sysdb_attrs_primary_name_list failed [%d]: %s\n",
@@ -2106,10 +2102,10 @@ rfc2307bis_group_memberships_build(hash_entry_t *item, void *user_data)
     }
 
     if (group->parents_count > 0) {
-        ret = sysdb_attrs_primary_fqdn_list(mstate->dom, tmp_ctx,
-                            group->ldap_parents, group->parents_count,
-                            mstate->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                            &ldap_parents_names_list);
+        ret = sdap_get_primary_fqdn_list(mstate->dom, tmp_ctx,
+                               group->ldap_parents, group->parents_count,
+                               mstate->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                               &ldap_parents_names_list);
         if (ret != EOK) {
             goto done;
         }
@@ -2170,11 +2166,10 @@ errno_t save_rfc2307bis_user_memberships(
         ldap_grouplist = NULL;
     }
     else {
-        ret = sysdb_attrs_primary_fqdn_list(
-                state->dom, tmp_ctx,
-                state->direct_groups, state->num_direct_parents,
-                state->opts->group_map[SDAP_AT_GROUP_NAME].name,
-                &ldap_grouplist);
+        ret = sdap_get_primary_fqdn_list(state->dom, tmp_ctx,
+                                state->direct_groups, state->num_direct_parents,
+                                state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                &ldap_grouplist);
         if (ret != EOK) {
             goto error;
         }

@@ -1785,13 +1785,14 @@ errno_t sdap_get_netgroup_primary_name(TALLOC_CTX *memctx,
                                  attrs, dom, _netgroup_name);
 }
 
-static errno_t _sysdb_attrs_primary_name_list(struct sss_domain_info *domain,
-                                              TALLOC_CTX *mem_ctx,
-                                              struct sysdb_attrs **attr_list,
-                                              size_t attr_count,
-                                              const char *ldap_attr,
-                                              bool qualify_names,
-                                              char ***name_list)
+static errno_t
+_sdap_get_primary_name_list(struct sss_domain_info *domain,
+                            TALLOC_CTX *mem_ctx,
+                            struct sysdb_attrs **attr_list,
+                            size_t attr_count,
+                            const char *ldap_attr,
+                            bool qualify_names,
+                            char ***name_list)
 {
     errno_t ret;
     size_t i, j;
@@ -1843,28 +1844,26 @@ done:
     return ret;
 }
 
-errno_t sysdb_attrs_primary_name_list(struct sss_domain_info *domain,
-                                      TALLOC_CTX *mem_ctx,
-                                      struct sysdb_attrs **attr_list,
-                                      size_t attr_count,
-                                      const char *ldap_attr,
-                                      char ***name_list)
+errno_t sdap_get_primary_name_list(struct sss_domain_info *domain,
+                                   TALLOC_CTX *mem_ctx,
+                                   struct sysdb_attrs **attr_list,
+                                   size_t attr_count,
+                                   const char *ldap_attr,
+                                   char ***name_list)
 {
-    return _sysdb_attrs_primary_name_list(domain, mem_ctx, attr_list,
-                                          attr_count, ldap_attr,
-                                          false, name_list);
+    return _sdap_get_primary_name_list(domain, mem_ctx, attr_list, attr_count,
+                                       ldap_attr, false, name_list);
 }
 
-errno_t sysdb_attrs_primary_fqdn_list(struct sss_domain_info *domain,
-                                      TALLOC_CTX *mem_ctx,
-                                      struct sysdb_attrs **attr_list,
-                                      size_t attr_count,
-                                      const char *ldap_attr,
-                                      char ***name_list)
+errno_t sdap_get_primary_fqdn_list(struct sss_domain_info *domain,
+                                   TALLOC_CTX *mem_ctx,
+                                   struct sysdb_attrs **attr_list,
+                                   size_t attr_count,
+                                   const char *ldap_attr,
+                                   char ***name_list)
 {
-    return _sysdb_attrs_primary_name_list(domain, mem_ctx, attr_list,
-                                          attr_count, ldap_attr,
-                                          true, name_list);
+    return _sdap_get_primary_name_list(domain, mem_ctx, attr_list, attr_count,
+                                       ldap_attr, true, name_list);
 }
 
 

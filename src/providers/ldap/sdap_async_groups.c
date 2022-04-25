@@ -1999,7 +1999,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
     }
 
     if (state->no_members) {
-        ret = sysdb_attrs_primary_fqdn_list(state->dom, state,
+        ret = sdap_get_primary_fqdn_list(state->dom, state,
                                 state->groups, state->count,
                                 state->opts->group_map[SDAP_AT_GROUP_NAME].name,
                                 &sysdb_groupnamelist);
