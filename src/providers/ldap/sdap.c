@@ -1695,12 +1695,10 @@ int sdap_replace_id(struct sysdb_attrs *entry, const char *attr, id_t val)
     return EOK;
 }
 
-static errno_t
-sdap_get_primary_name(TALLOC_CTX *memctx,
-                      const char *attr_name,
-                      struct sysdb_attrs *attrs,
-                      struct sss_domain_info *dom,
-                      const char **_primary_name)
+errno_t sdap_get_primary_name(const char *attr_name,
+                              struct sysdb_attrs *attrs,
+                              struct sss_domain_info *dom,
+                              const char **_primary_name)
 {
     errno_t ret;
     const char *orig_name = NULL;
@@ -1713,7 +1711,7 @@ sdap_get_primary_name(TALLOC_CTX *memctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Processing object %s\n", orig_name);
 
-    *_primary_name = talloc_strdup(memctx, orig_name);
+    *_primary_name = orig_name;
     return EOK;
 }
 
@@ -1734,7 +1732,7 @@ sdap_get_primary_fqdn(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sdap_get_primary_name(tmp_ctx, attr_name, attrs, dom, &shortname);
+    ret = sdap_get_primary_name(attr_name, attrs, dom, &shortname);
     if (ret != EOK) {
         goto done;
     }
@@ -1774,14 +1772,12 @@ errno_t sdap_get_group_primary_name(TALLOC_CTX *memctx,
                                  attrs, dom, _group_name);
 }
 
-errno_t sdap_get_netgroup_primary_name(TALLOC_CTX *memctx,
-                                       struct sdap_options *opts,
+errno_t sdap_get_netgroup_primary_name(struct sdap_options *opts,
                                        struct sysdb_attrs *attrs,
                                        struct sss_domain_info *dom,
                                        const char **_netgroup_name)
 {
-    return sdap_get_primary_name(memctx,
-                                 opts->netgroup_map[SDAP_AT_NETGROUP_NAME].name,
+    return sdap_get_primary_name(opts->netgroup_map[SDAP_AT_NETGROUP_NAME].name,
                                  attrs, dom, _netgroup_name);
 }
 
@@ -1807,10 +1803,8 @@ _sdap_get_primary_name_list(struct sss_domain_info *domain,
 
     j = 0;
     for (i = 0; i < attr_count; i++) {
-        ret = sysdb_attrs_primary_name(domain->sysdb,
-                                       attr_list[i],
-                                       ldap_attr,
-                                       &name);
+        ret = sdap_get_primary_name(ldap_attr, attr_list[i], domain,
+                                    &name);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine primary name\n");
             /* Skip and continue. Don't advance 'j' */
