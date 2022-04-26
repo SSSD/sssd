@@ -675,12 +675,10 @@ errno_t sdap_get_user_primary_name(TALLOC_CTX *memctx,
 
 errno_t sdap_get_netgroup_primary_name(struct sdap_options *opts,
                                        struct sysdb_attrs *attrs,
-                                       struct sss_domain_info *dom,
                                        const char **_netgroup_name);
 
 errno_t sdap_get_primary_name(const char *attr_name,
                               struct sysdb_attrs *attrs,
-                              struct sss_domain_info *dom,
                               const char **_primary_name);
 
 errno_t sdap_get_primary_name_list(struct sss_domain_info *domain,

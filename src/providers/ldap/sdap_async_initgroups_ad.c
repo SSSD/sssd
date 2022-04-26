@@ -1370,7 +1370,7 @@ sdap_ad_get_domain_local_groups_parse_parents(TALLOC_CTX *mem_ctx,
          * fully-qualified name, so we can expand it unconditionally. */
         group_name = NULL;
         ret = sdap_get_primary_name(opts->group_map[SDAP_AT_GROUP_NAME].name,
-                                    gr->group, dom, &group_name);
+                                    gr->group, &group_name);
         if (ret != EOK || group_name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not determine primary name\n");
             group_name = sysdb_name;

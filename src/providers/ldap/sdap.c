@@ -1733,7 +1733,6 @@ done:
 
 errno_t sdap_get_primary_name(const char *attr_name,
                               struct sysdb_attrs *attrs,
-                              struct sss_domain_info *dom,
                               const char **_primary_name)
 {
     errno_t ret;
@@ -1852,7 +1851,7 @@ sdap_get_primary_fqdn(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sdap_get_primary_name(attr_name, attrs, dom, &shortname);
+    ret = sdap_get_primary_name(attr_name, attrs, &shortname);
     if (ret != EOK) {
         goto done;
     }
@@ -1894,11 +1893,10 @@ errno_t sdap_get_group_primary_name(TALLOC_CTX *memctx,
 
 errno_t sdap_get_netgroup_primary_name(struct sdap_options *opts,
                                        struct sysdb_attrs *attrs,
-                                       struct sss_domain_info *dom,
                                        const char **_netgroup_name)
 {
     return sdap_get_primary_name(opts->netgroup_map[SDAP_AT_NETGROUP_NAME].name,
-                                 attrs, dom, _netgroup_name);
+                                 attrs, _netgroup_name);
 }
 
 static errno_t
@@ -1923,8 +1921,7 @@ _sdap_get_primary_name_list(struct sss_domain_info *domain,
 
     j = 0;
     for (i = 0; i < attr_count; i++) {
-        ret = sdap_get_primary_name(ldap_attr, attr_list[i], domain,
-                                    &name);
+        ret = sdap_get_primary_name(ldap_attr, attr_list[i], &name);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine primary name\n");
             /* Skip and continue. Don't advance 'j' */
