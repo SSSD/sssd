@@ -1046,9 +1046,6 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
 
     MC_RAISE_BARRIER(rec);
 
-    /* We cannot use two keys for searching in initgroups cache.
-     * Use the first key twice.
-     */
     sss_mmap_set_rec_header(mcc, rec, rec_len, mcc->valid_time_slot,
                             name->str, name->len,
                             unique_name->str, unique_name->len);
