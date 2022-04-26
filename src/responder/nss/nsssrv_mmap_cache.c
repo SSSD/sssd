@@ -605,17 +605,13 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
         }
 
         if (strcmp(key->str, t_key) == 0) {
-            break;
+            return rec;
         }
 
         slot = sss_mc_next_slot_with_hash(rec, hash);
     }
 
-    if (slot == MC_INVALID_VAL) {
-        return NULL;
-    }
-
-    return rec;
+    return NULL;
 }
 
 static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
