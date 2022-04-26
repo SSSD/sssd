@@ -52,7 +52,7 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
     char *timestamp = NULL;
     char **missing = NULL;
 
-    ret = sdap_get_netgroup_primary_name(opts, attrs, dom, &name);
+    ret = sdap_get_netgroup_primary_name(opts, attrs, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get netgroup name\n");
         goto fail;
