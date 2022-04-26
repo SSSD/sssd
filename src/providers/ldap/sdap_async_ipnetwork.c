@@ -370,7 +370,7 @@ sdap_save_ipnetwork(TALLOC_CTX *mem_ctx,
 
     /* Identify the primary name of this network */
     ret = sdap_get_primary_name(opts->ipnetwork_map[SDAP_AT_IPNETWORK_NAME].name,
-                                attrs, dom, &name);
+                                attrs, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not determine the primary name of the IP network\n");
