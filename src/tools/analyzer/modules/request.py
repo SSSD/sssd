@@ -1,8 +1,6 @@
 import re
 import logging
 
-from sssd.source_files import Files
-from sssd.source_journald import Journald
 from sssd.parser import SubparsersAction
 from sssd.parser import Option
 
@@ -77,8 +75,10 @@ class RequestAnalyzer:
             Instantiated source object
         """
         if args.source == "journald":
+            from sssd.source_journald import Journald
             source = Journald()
         else:
+            from sssd.source_files import Files
             source = Files(args.logdir)
         return source
 
@@ -143,7 +143,7 @@ class RequestAnalyzer:
             self.consumed_logs.append(line.rstrip(line[-1]))
         else:
             # files source includes newline
-            if isinstance(source, Files):
+            if type(source).__name__ == 'Files':
                 print(line, end='')
             else:
                 print(line)
@@ -225,7 +225,7 @@ class RequestAnalyzer:
         source.set_component(component, False)
         self.done = ""
         for line in self.matched_line(source, patterns):
-            if isinstance(source, Journald):
+            if type(source).__name__ == 'Journald':
                 print(line)
             else:
                 self.print_formatted(line, args.verbose)
