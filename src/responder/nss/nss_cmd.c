@@ -512,7 +512,6 @@ static errno_t invalidate_cache(struct sss_nss_cmd_ctx *cmd_ctx,
     int ret;
     enum sss_mc_type memcache_type;
     const char *name;
-    char *output_name = NULL;
     bool is_user;
     struct sysdb_attrs *attrs = NULL;
 
@@ -539,28 +538,20 @@ static errno_t invalidate_cache(struct sss_nss_cmd_ctx *cmd_ctx,
         return EOK;
     }
 
-    /* Find output name to invalidate memory cache entry*/
+    /* Find output name to invalidate memory cache entry */
     name = sss_get_name_from_msg(result->domain, result->msgs[0]);
     if (name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Found object has no name.\n");
         return EINVAL;
     }
-    ret = sss_output_fqname(cmd_ctx, result->domain, name,
-                            cmd_ctx->nss_ctx->rctx->override_space,
-                            &output_name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_output_fqname failed.\n");
-        return ret;
-    }
 
     memcache_delete_entry(cmd_ctx->nss_ctx, cmd_ctx->nss_ctx->rctx, NULL,
-                          output_name, 0, memcache_type);
+                          name, 0, memcache_type);
     if (memcache_type == SSS_MC_INITGROUPS) {
         /* Invalidate the passwd data as well */
         memcache_delete_entry(cmd_ctx->nss_ctx, cmd_ctx->nss_ctx->rctx,
-                              result->domain, output_name, 0, SSS_MC_PASSWD);
+                              result->domain, name, 0, SSS_MC_PASSWD);
     }
-    talloc_free(output_name);
 
     /* Use sysdb name to invalidate disk cache entry */
     name = ldb_msg_find_attr_as_string(result->msgs[0], SYSDB_NAME, NULL);
