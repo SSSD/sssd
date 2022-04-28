@@ -214,7 +214,8 @@ int server_setup(const char *name, bool is_responder,
                  int flags,
                  uid_t uid, gid_t gid,
                  const char *conf_entry,
-                 struct main_context **main_ctx);
+                 struct main_context **main_ctx,
+                 bool allow_sss_loop);
 void server_loop(struct main_context *main_ctx);
 void orderly_shutdown(int status);
 

@@ -69,7 +69,7 @@ static errno_t get_trusted_uids(struct pam_ctx *pctx)
          DEBUG(SSSDBG_TRACE_FUNC, "All UIDs are allowed.\n");
          pctx->trusted_uids_count = 0;
     } else {
-        ret = csv_string_to_uid_array(pctx->rctx, uid_str, true,
+        ret = csv_string_to_uid_array(pctx->rctx, uid_str, false,
                                       &pctx->trusted_uids_count,
                                       &pctx->trusted_uids);
     }
@@ -489,7 +489,8 @@ int main(int argc, const char *argv[])
               "debugging might not work!\n");
     }
 
-    ret = server_setup("pam", true, 0, uid, gid, CONFDB_PAM_CONF_ENTRY, &main_ctx);
+    ret = server_setup("pam", true, 0, uid, gid, CONFDB_PAM_CONF_ENTRY,
+                       &main_ctx, false);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();

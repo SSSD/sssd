@@ -209,7 +209,7 @@ int main(int argc, const char *argv[])
     }
 
     ret = server_setup("ssh", true, 0, uid, gid,
-                       CONFDB_SSH_CONF_ENTRY, &main_ctx);
+                       CONFDB_SSH_CONF_ENTRY, &main_ctx, true);
     if (ret != EOK) {
         return 2;
     }

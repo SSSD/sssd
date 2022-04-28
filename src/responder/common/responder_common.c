@@ -194,7 +194,7 @@ errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
 }
 
 errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
-                                bool allow_sss_loop,
+                                bool prevent_sss_loops,
                                 size_t *_uid_count, uid_t **_uids)
 {
     int ret;
@@ -203,6 +203,17 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
     int list_size;
     uid_t *uids = NULL;
     char *endptr;
+    const char *envvar;
+    bool loops_were_allowed;
+
+    envvar = getenv("_SSS_LOOPS");
+    loops_were_allowed = (envvar == NULL || strcmp(envvar, "NO") != 0);
+
+    ret = setenv("_SSS_LOOPS", prevent_sss_loops ? "NO" : "YES" , 1);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to set _SSS_LOOPS.\n");
+        goto done;
+    }
 
     ret = split_on_separator(mem_ctx, csv_string, ',', true, false,
                              &list, &list_size);
@@ -217,14 +228,6 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
         DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
         ret = ENOMEM;
         goto done;
-    }
-
-    if (allow_sss_loop) {
-        ret = unsetenv("_SSS_LOOPS");
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to unset _SSS_LOOPS, getpwnam "
-                                      "might not find sssd users.\n");
-        }
     }
 
     for (c = 0; c < list_size; c++) {
@@ -262,8 +265,8 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
     ret = EOK;
 
 done:
-    if(setenv("_SSS_LOOPS", "NO", 0) != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to set _SSS_LOOPS.\n");
+    if (setenv("_SSS_LOOPS", loops_were_allowed ? "YES" : "NO" , 1) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to restore _SSS_LOOPS.\n");
     }
     talloc_free(list);
     if (ret != EOK) {

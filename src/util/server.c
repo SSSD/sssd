@@ -475,7 +475,8 @@ int server_setup(const char *name, bool is_responder,
                  int flags,
                  uid_t uid, gid_t gid,
                  const char *conf_entry,
-                 struct main_context **main_ctx)
+                 struct main_context **main_ctx,
+                 bool allow_sss_loop)
 {
     struct tevent_context *event_ctx;
     struct main_context *ctx;
@@ -536,8 +537,13 @@ int server_setup(const char *name, bool is_responder,
         }
     }
 
-    setenv("_SSS_LOOPS", "NO", 0);
-
+    if (!allow_sss_loop) {
+        ret = setenv("_SSS_LOOPS", "NO", 0);
+        if (ret != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set _SSS_LOOPS.\n");
+            return ret;
+        }
+    }
     /* To make sure the domain cannot be set from the environment, unset the
      * variable explicitly when setting up any server. Backends later set the
      * value after reading domain from the configuration */

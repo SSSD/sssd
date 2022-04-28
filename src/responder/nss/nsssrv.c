@@ -694,7 +694,7 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level, opt_logger);
 
     ret = server_setup("nss", true, 0, uid, gid, CONFDB_NSS_CONF_ENTRY,
-                       &main_ctx);
+                       &main_ctx, false);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();
