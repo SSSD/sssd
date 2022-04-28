@@ -2582,7 +2582,7 @@ int main(int argc, const char *argv[])
     if (ret != EOK) return 6;
 
     ret = server_setup(SSSD_MONITOR_NAME, false, flags, 0, 0,
-                       monitor->conf_path, &main_ctx);
+                       monitor->conf_path, &main_ctx, false);
     if (ret != EOK) return 2;
 
     /* Use confd initialized in server_setup. ldb_tdb module (1.4.0) check PID

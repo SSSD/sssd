@@ -217,7 +217,7 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level, opt_logger);
 
     ret = server_setup("autofs", true, 0, uid, gid,
-                       CONFDB_AUTOFS_CONF_ENTRY, &main_ctx);
+                       CONFDB_AUTOFS_CONF_ENTRY, &main_ctx, true);
     if (ret != EOK) {
         return 2;
     }

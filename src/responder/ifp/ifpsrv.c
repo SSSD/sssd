@@ -210,7 +210,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = csv_string_to_uid_array(ifp_ctx->rctx, uid_str, true,
+    ret = csv_string_to_uid_array(ifp_ctx->rctx, uid_str, false,
                                   &ifp_ctx->rctx->allowed_uids_count,
                                   &ifp_ctx->rctx->allowed_uids);
     talloc_free(uid_str);
@@ -343,7 +343,7 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level, opt_logger);
 
     ret = server_setup("ifp", true, 0, 0, 0,
-                       CONFDB_IFP_CONF_ENTRY, &main_ctx);
+                       CONFDB_IFP_CONF_ENTRY, &main_ctx, true);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();

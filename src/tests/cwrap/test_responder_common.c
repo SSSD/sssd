@@ -52,7 +52,7 @@ void test_uid_csv_to_uid_list(void **state)
 
     check_leaks_push(tmp_ctx);
 
-    ret = csv_string_to_uid_array(tmp_ctx, "1, 2, 3", false, &count, &list);
+    ret = csv_string_to_uid_array(tmp_ctx, "1, 2, 3", true, &count, &list);
     assert_int_equal(ret, EOK);
     assert_int_equal(count, 3);
     assert_int_equal(list[0], 1);
@@ -76,7 +76,7 @@ void test_name_csv_to_uid_list(void **state)
 
     check_leaks_push(tmp_ctx);
 
-    ret = csv_string_to_uid_array(tmp_ctx, "sssd, foobar", true, &count, &list);
+    ret = csv_string_to_uid_array(tmp_ctx, "sssd, foobar", false, &count, &list);
     assert_int_equal(ret, EOK);
     assert_int_equal(count, 2);
     assert_int_equal(list[0], 123);
@@ -99,7 +99,7 @@ void test_csv_to_uid_list_neg(void **state)
 
     check_leaks_push(tmp_ctx);
 
-    ret = csv_string_to_uid_array(tmp_ctx, "nosuchuser", true, &count, &list);
+    ret = csv_string_to_uid_array(tmp_ctx, "nosuchuser", false, &count, &list);
     assert_int_not_equal(ret, EOK);
 
     assert_true(check_leaks_pop(tmp_ctx));
