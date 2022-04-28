@@ -264,12 +264,6 @@ static int kcm_process_init(TALLOC_CTX *mem_ctx,
     kctx->rctx = rctx;
     kctx->rctx->pvt_ctx = kctx;
 
-    /* KCM operates independently, getpw* recursion is not a concern */
-    ret = unsetenv("_SSS_LOOPS");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unset _SSS_LOOPS");
-    }
-
     ret = kcm_get_config(kctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error getting KCM config\n");
@@ -358,7 +352,7 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level, opt_logger);
 
     ret = server_setup("kcm", true, 0, uid, gid, CONFDB_KCM_CONF_ENTRY,
-                       &main_ctx);
+                       &main_ctx, true);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();

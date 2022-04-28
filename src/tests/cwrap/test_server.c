@@ -102,7 +102,7 @@ void test_run_as_root_fg(void **state)
     pid = fork();
     if (pid == 0) {
         ret = server_setup(__FUNCTION__, false, 0, 0, 0,
-                           __FUNCTION__, &main_ctx);
+                           __FUNCTION__, &main_ctx, true);
         assert_int_equal(ret, 0);
         exit(0);
     }
@@ -125,7 +125,7 @@ void test_run_as_sssd_fg(void **state)
     pid = fork();
     if (pid == 0) {
         ret = server_setup(__FUNCTION__, false, 0, sssd->pw_uid, sssd->pw_gid,
-                           __FUNCTION__, &main_ctx);
+                           __FUNCTION__, &main_ctx, true);
         assert_int_equal(ret, 0);
         exit(0);
     }
@@ -150,7 +150,7 @@ void test_run_as_root_daemon(void **state)
     pid = fork();
     if (pid == 0) {
         ret = server_setup(__FUNCTION__, false, FLAGS_PID_FILE,
-                           0, 0, __FUNCTION__, &main_ctx);
+                           0, 0, __FUNCTION__, &main_ctx, true);
         assert_int_equal(ret, 0);
 
         server_loop(main_ctx);

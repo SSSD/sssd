@@ -372,7 +372,7 @@ errno_t schedule_get_domains_task(TALLOC_CTX *mem_ctx,
                                   void *callback_pvt);
 
 errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
-                                bool allow_sss_loop,
+                                bool prevent_sss_loops,
                                 size_t *_uid_count, uid_t **_uids);
 
 uid_t client_euid(struct cli_creds *creds);
