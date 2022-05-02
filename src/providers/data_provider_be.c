@@ -484,7 +484,9 @@ be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
             SBUS_SYNC(METHOD, sssd_service, rotateLogs, data_provider_logrotate, be_ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
-        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+        SBUS_PROPERTIES(
+            SBUS_SYNC(GETTER, sssd_service, debug_level, generic_get_debug_level, NULL)
+        )
     );
 
     struct sbus_path paths[] = {

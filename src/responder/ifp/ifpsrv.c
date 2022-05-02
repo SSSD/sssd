@@ -143,7 +143,9 @@ ifp_register_service_iface(struct ifp_ctx *ifp_ctx,
             SBUS_SYNC(METHOD, sssd_service, sysbusReconnect, ifp_sysbus_reconnect, ifp_ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
-        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+        SBUS_PROPERTIES(
+            SBUS_SYNC(GETTER, sssd_service, debug_level, generic_get_debug_level, NULL)
+        )
     );
 
     ret = sbus_connection_add_path(rctx->mon_conn, SSS_BUS_PATH, &iface_svc);
