@@ -147,7 +147,8 @@ sss_resp_register_service_iface(struct resp_ctx *rctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
         SBUS_PROPERTIES(
-            SBUS_SYNC(GETTER, sssd_service, debug_level, generic_get_debug_level, NULL)
+            SBUS_SYNC(GETTER, sssd_service, debug_level, generic_get_debug_level, NULL),
+            SBUS_SYNC(SETTER, sssd_service, debug_level, generic_set_debug_level, NULL)
         )
     );
 

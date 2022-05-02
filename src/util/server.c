@@ -436,6 +436,15 @@ errno_t generic_get_debug_level(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+errno_t generic_set_debug_level(TALLOC_CTX *mem_ctx,
+                                struct sbus_request *sbus_req,
+                                void *pvt_data,
+                                uint32_t new_debug_level)
+{
+    debug_level = new_debug_level;
+    return EOK;
+}
+
 static const char *get_db_path(void)
 {
 #ifdef UNIT_TESTING

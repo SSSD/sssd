@@ -66,6 +66,13 @@ sbus_get_service_debug_level
      uint32_t* _value);
 
 errno_t
+sbus_set_service_debug_level
+    (struct sbus_sync_connection *conn,
+     const char *busname,
+     const char *object_path,
+     uint32_t value);
+
+errno_t
 sbus_getall_service
     (TALLOC_CTX *mem_ctx,
      struct sbus_sync_connection *conn,
