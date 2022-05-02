@@ -58,4 +58,19 @@ sbus_call_systemd_StopUnit
      const char * arg_mode,
      const char ** _arg_job);
 
+errno_t
+sbus_get_service_debug_level
+    (struct sbus_sync_connection *conn,
+     const char *busname,
+     const char *object_path,
+     uint32_t* _value);
+
+errno_t
+sbus_getall_service
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_sync_connection *conn,
+     const char *busname,
+     const char *object_path,
+     struct sbus_all_service **_properties);
+
 #endif /* _SBUS_SSS_CLIENT_SYNC_H_ */

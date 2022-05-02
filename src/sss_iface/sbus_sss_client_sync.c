@@ -131,3 +131,118 @@ sbus_call_systemd_StopUnit
           _arg_job);
 }
 
+static errno_t
+sbus_get_u
+    (struct sbus_sync_connection *conn,
+     const char *bus,
+     const char *path,
+     const char *iface,
+     const char *property,
+     uint32_t* _value)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct _sbus_sss_invoker_args_u *out;
+    sbus_value_reader_fn reader;
+    sbus_value_reader_talloc_fn reader_talloc;
+    DBusMessage *reply;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    out = talloc_zero(tmp_ctx, struct _sbus_sss_invoker_args_u);
+    if (out == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to allocate space for output parameters!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sbus_call_DBusProperties_Get(tmp_ctx, conn,
+              bus, path, iface, property, &reply);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    reader = (sbus_value_reader_fn)sbus_iterator_read_u;
+    reader_talloc = NULL;
+    ret = sbus_parse_get_message(out, reader, reader_talloc, reply, &out->arg0);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    *_value = out->arg0;
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
+sbus_get_service_debug_level
+    (struct sbus_sync_connection *conn,
+     const char *busname,
+     const char *object_path,
+     uint32_t* _value)
+{
+    return sbus_get_u(conn, busname, object_path,
+                "sssd.service", "debug_level", _value);
+}
+
+errno_t
+sbus_getall_service
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_sync_connection *conn,
+     const char *busname,
+     const char *object_path,
+     struct sbus_all_service **_properties)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sbus_all_service *properties;
+    DBusMessage *reply;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    properties = talloc_zero(tmp_ctx, struct sbus_all_service);
+    if (properties == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    struct sbus_parse_getall_table table[] = {
+        {"debug_level", (sbus_value_reader_fn)sbus_iterator_read_u, NULL,
+         &properties->debug_level.value, &properties->debug_level.is_set},
+        {NULL, NULL, NULL, NULL, NULL}
+    };
+
+    ret = sbus_call_DBusProperties_GetAll(tmp_ctx, conn,
+              busname, object_path, "sssd.service", &reply);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sbus_parse_getall_message(properties, table, reply);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    *_properties = talloc_steal(mem_ctx, properties);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}

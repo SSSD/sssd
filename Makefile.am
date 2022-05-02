@@ -1921,6 +1921,7 @@ sssctl_LDADD = \
     $(LIBADD_DL) \
     libsss_certmap.la \
     libifp_iface_sync.la \
+    libsss_iface.la \
     libsss_iface_sync.la \
     libsss_sbus_sync.la \
     $(NULL)

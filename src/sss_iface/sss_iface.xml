@@ -23,6 +23,10 @@
         <method name="clearNegcache" />
         <method name="clearEnumCache" />
         <method name="sysbusReconnect" />
+        <property name="debug_level" type="u" access="read">
+            <annotation name="codegen.SyncCaller" value="true" />
+            <annotation name="codegen.AsyncCaller" value="false" />
+        </property>
     </interface>
 
     <interface name="sssd.ProxyChild.Client">

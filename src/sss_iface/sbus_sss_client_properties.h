@@ -25,4 +25,11 @@
 
 #include "sss_iface/sss_iface_types.h"
 
+struct sbus_all_service {
+    struct {
+        bool is_set;
+        uint32_t value;
+    } debug_level;
+};
+
 #endif /* _SBUS_SSS_CLIENT_PROPERTIES_H_ */
