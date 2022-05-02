@@ -203,6 +203,10 @@ errno_t generic_get_debug_level(TALLOC_CTX *mem_ctx,
                                 struct sbus_request *sbus_req,
                                 void *pvt_data,
                                 uint32_t *_debug_level);
+errno_t generic_set_debug_level(TALLOC_CTX *mem_ctx,
+                                struct sbus_request *sbus_req,
+                                void *pvt_data,
+                                uint32_t new_debug_level);
 int die_if_parent_died(void);
 int check_pidfile(const char *file);
 int pidfile(const char *file);

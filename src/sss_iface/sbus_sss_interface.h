@@ -1014,19 +1014,19 @@
 })
 
 #define SBUS_SETTER_SYNC_sssd_service_debug_level(handler, data) ({\
-    SBUS_CHECK_SYNC((handler), (data)); \
+    SBUS_CHECK_SYNC((handler), (data), uint32_t); \
     sbus_property_sync("debug_level", "u", SBUS_PROPERTY_WRITABLE, \
        NULL, \
-       _sbus_sss_invoke_in__out__send, \
+       _sbus_sss_invoke_in_u_out__send, \
        (handler), (data)); \
 })
 
 #define SBUS_SETTER_ASYNC_sssd_service_debug_level(handler_send, handler_recv, data) ({ \
-    SBUS_CHECK_SEND((handler_send), (data)); \
+    SBUS_CHECK_SEND((handler_send), (data), uint32_t); \
     SBUS_CHECK_RECV((handler_recv)); \
     sbus_property_async("debug_level", "u", SBUS_PROPERTY_WRITABLE, \
        NULL, \
-       _sbus_sss_invoke_in__out__send, \
+       _sbus_sss_invoke_in_u_out__send, \
        (handler_send), (handler_recv), (data)); \
 })
 

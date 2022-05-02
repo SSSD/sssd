@@ -2032,7 +2032,8 @@ static void monitor_sbus_connected(struct tevent_req *req)
         SBUS_METHODS(SBUS_NO_METHODS),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
         SBUS_PROPERTIES(
-            SBUS_SYNC(GETTER, sssd_service, debug_level, generic_get_debug_level, NULL)
+            SBUS_SYNC(GETTER, sssd_service, debug_level, generic_get_debug_level, NULL),
+            SBUS_SYNC(SETTER, sssd_service, debug_level, generic_set_debug_level, NULL)
         )
     );
 
