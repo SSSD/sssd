@@ -2018,17 +2018,27 @@ static void monitor_sbus_connected(struct tevent_req *req)
         goto done;
     }
 
-    SBUS_INTERFACE(iface,
+    SBUS_INTERFACE(iface_monitor,
         sssd_monitor,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_monitor, RegisterService, monitor_sbus_RegisterService, ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
-        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+        SBUS_PROPERTIES(
+            SBUS_NO_PROPERTIES)
+    );
+    SBUS_INTERFACE(iface_service,
+        sssd_service,
+        SBUS_METHODS(SBUS_NO_METHODS),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(
+            SBUS_SYNC(GETTER, sssd_service, debug_level, generic_get_debug_level, NULL)
+        )
     );
 
     struct sbus_path paths[] = {
-        {SSS_BUS_PATH, &iface},
+        {SSS_BUS_PATH, &iface_monitor},
+        {SSS_BUS_PATH, &iface_service},
         {NULL, NULL}
     };
 

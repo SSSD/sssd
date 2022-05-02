@@ -427,6 +427,15 @@ errno_t server_common_rotate_logs(struct confdb_ctx *confdb,
     return EOK;
 }
 
+errno_t generic_get_debug_level(TALLOC_CTX *mem_ctx,
+                                struct sbus_request *sbus_req,
+                                void *pvt_data,
+                                uint32_t *_debug_level)
+{
+    *_debug_level = debug_level;
+    return EOK;
+}
+
 static const char *get_db_path(void)
 {
 #ifdef UNIT_TESTING

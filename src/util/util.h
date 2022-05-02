@@ -195,8 +195,14 @@ struct main_context {
     pid_t parent_pid;
 };
 
+struct sbus_request;
+
 errno_t server_common_rotate_logs(struct confdb_ctx *confdb,
                                   const char *conf_entry);
+errno_t generic_get_debug_level(TALLOC_CTX *mem_ctx,
+                                struct sbus_request *sbus_req,
+                                void *pvt_data,
+                                uint32_t *_debug_level);
 int die_if_parent_died(void);
 int check_pidfile(const char *file);
 int pidfile(const char *file);
