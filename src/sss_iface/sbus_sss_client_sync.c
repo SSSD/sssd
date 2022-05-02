@@ -184,6 +184,50 @@ done:
     return ret;
 }
 
+static errno_t
+sbus_set_u
+    (struct sbus_sync_connection *conn,
+     const char *bus,
+     const char *path,
+     const char *iface,
+     const char *property,
+     uint32_t value)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct _sbus_sss_invoker_args_u in;
+    DBusMessage *raw_message;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    in.arg0 = value;
+
+    raw_message = sbus_create_set_call(tmp_ctx,
+                      (sbus_invoker_writer_fn)_sbus_sss_invoker_write_u,
+                      bus, path, iface, property,
+                      "u", &in);
+    if (raw_message == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sbus_call_DBusProperties_Set(conn, raw_message);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 errno_t
 sbus_get_service_debug_level
     (struct sbus_sync_connection *conn,
@@ -193,6 +237,17 @@ sbus_get_service_debug_level
 {
     return sbus_get_u(conn, busname, object_path,
                 "sssd.service", "debug_level", _value);
+}
+
+errno_t
+sbus_set_service_debug_level
+    (struct sbus_sync_connection *conn,
+     const char *busname,
+     const char *object_path,
+     uint32_t value)
+{
+    return sbus_set_u(conn, busname, object_path,
+               "sssd.service", "debug_level", value);
 }
 
 errno_t
