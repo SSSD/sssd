@@ -295,7 +295,7 @@ int main(int argc, const char **argv)
         SSS_TOOL_DELIMITER("Log files tools:"),
         SSS_TOOL_COMMAND("logs-remove", "Remove existing SSSD log files", 0, sssctl_logs_remove),
         SSS_TOOL_COMMAND("logs-fetch", "Archive SSSD log files in tarball", 0, sssctl_logs_fetch),
-        SSS_TOOL_COMMAND("debug-level", "Change SSSD debug level", 0, sssctl_debug_level),
+        SSS_TOOL_COMMAND("debug-level", "Change or print information about SSSD debug level", 0, sssctl_debug_level),
         SSS_TOOL_COMMAND("analyze", "Analyze logged data", 0, sssctl_analyze),
 #ifdef HAVE_LIBINI_CONFIG_V1_3
         SSS_TOOL_DELIMITER("Configuration files tools:"),
