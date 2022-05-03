@@ -112,7 +112,7 @@ static errno_t get_attr_name(TALLOC_CTX *mem_ctx,
         outname = sss_tc_fqname(mem_ctx, dom->names, dom, tmp_name);
         talloc_free(tmp_name);
         if (outname == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_tc_fqname() failed\n");
             return ENOMEM;
         }
     } else {
