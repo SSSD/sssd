@@ -20,6 +20,7 @@
 
 import re
 import os
+import sys
 import subprocess
 import config
 import shutil
@@ -81,8 +82,19 @@ def restore_envvar_file(name):
     os.rename(backup_path, path)
 
 
-def get_call_output(cmd, stderr_output=subprocess.PIPE):
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                               stderr=stderr_output)
-    output, ret = process.communicate()
-    return output.decode('utf-8')
+def get_call_output(cmd, stderr_output=subprocess.PIPE, check=False):
+    """
+        Executes the provided command.
+        When check is set to True, this function will throw an exception
+        if the command returns with a non-zero value.
+    """
+
+    if (sys.version_info.major < 3
+            or (sys.version_info.major == 3 and sys.version_info.minor < 7)):
+        output = subprocess.check_output(cmd, universal_newlines=True,
+                                         stderr=stderr_output)
+        return output
+
+    process = subprocess.run(cmd, check=check, text=True,
+                             stdout=subprocess.PIPE, stderr=stderr_output)
+    return process.stdout

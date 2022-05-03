@@ -409,3 +409,95 @@ def test_sssctl_snippets_only(conf_snippets_only, portable_LC_ALL):
 def test_sssctl_no_config(portable_LC_ALL):
     output = get_call_output(["sssctl", "config-check"])
     assert "There is no configuration" in output
+
+
+def test_debug_level_sanity(ldap_conn, sanity_rfc2307, portable_LC_ALL):
+    output = get_call_output(["sssctl", "debug-level", "0x00F0"],
+                             check=True)
+    assert output.strip() == ""
+    output = get_call_output(["sssctl", "debug-level"],
+                             check=True)
+    for line in output.splitlines():
+        elems = line.split()
+        assert elems[0] in ["sssd", "nss", "domain/LDAP", "domain/implicit_files"]
+        assert elems[1] == "0x00f0"
+
+    output = get_call_output(["sssctl", "debug-level", "--sssd", "0x0270"],
+                             check=True)
+    assert output.strip() == ""
+    output = get_call_output(["sssctl", "debug-level", "--sssd"],
+                             check=True)
+    assert "sssd " in output
+    assert "0x0270" in output
+
+    output = get_call_output(["sssctl", "debug-level", "--nss", "0x0370"],
+                             check=True)
+    assert output.strip() == ""
+    output = get_call_output(["sssctl", "debug-level", "--nss"],
+                             check=True)
+    assert "nss " in output
+    assert "0x0370" in output
+
+    output = get_call_output(["sssctl", "debug-level", "--domain=LDAP", "8"],
+                             check=True)
+    assert output.strip() == ""
+    output = get_call_output(["sssctl", "debug-level", "--domain=LDAP"],
+                             check=True)
+    assert "domain/LDAP " in output
+    assert "0x37f0" in output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "--domain=FAKE"],
+                        check=True)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "domain/FAKE " in cpe.output
+        assert " Unknown domain" in cpe.output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "--pac"],
+                        check=True)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "pac " in cpe.output
+        assert " Unreachable service" in cpe.output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "--domain=FAKE", "8"],
+                        check=True)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert cpe.output.strip() == ""
+
+
+def test_debug_level_no_sssd():
+    # Once we are sure all tests run using Python 3.5 or newer,
+    # we can remove the redirections STDOUT > STDERR and check cpe.stderr.
+
+    try:
+        get_call_output(["sssctl", "debug-level"], check=True,
+                        stderr_output=subprocess.STDOUT)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "SSSD is not running" in cpe.output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "0x70"], check=True,
+                        stderr_output=subprocess.STDOUT)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "SSSD is not running" in cpe.output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "--nss"], check=True,
+                        stderr_output=subprocess.STDOUT)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "SSSD is not running" in cpe.output
+
+    try:
+        get_call_output(["sssctl", "debug-level", "--nss", "0x70"], check=True,
+                        stderr_output=subprocess.STDOUT)
+    except subprocess.CalledProcessError as cpe:
+        assert cpe.returncode == 1
+        assert "SSSD is not running" in cpe.output
