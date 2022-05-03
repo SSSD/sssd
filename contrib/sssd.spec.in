@@ -599,7 +599,7 @@ rm -Rf ${RPM_BUILD_ROOT}/%{_docdir}/%{name}
 
 # Older versions of rpmbuild can only handle one -f option
 # So we need to append to the sssd*.lang file
-for file in `ls $RPM_BUILD_ROOT/%{python3_sitelib}/*.egg-info 2> /dev/null`
+for file in `find $RPM_BUILD_ROOT/%{python3_sitelib} -maxdepth 1 -name "*.egg-info" 2> /dev/null`
 do
     echo %{python3_sitelib}/`basename $file` >> python3_sssdconfig.lang
 done
