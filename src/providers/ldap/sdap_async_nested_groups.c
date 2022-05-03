@@ -2290,6 +2290,49 @@ immediately:
     return req;
 }
 
+static hash_table_t *
+convert_ldb_element_to_set(const struct ldb_message_element *members)
+{
+    errno_t ret;
+    hash_table_t *set = NULL;
+    hash_key_t key;
+    hash_value_t value;
+    size_t j;
+
+    ret = sss_hash_create(NULL, members->num_values, &set);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
+                                    ret, strerror(ret));
+        return NULL;
+    }
+
+    key.type = HASH_KEY_CONST_STRING;
+    value.type = HASH_VALUE_UNDEF;
+
+    for (j = 0; j < members->num_values; ++j) {
+        key.c_str = (const char*)members->values[j].data;
+        /* since hash table is used as a set, we don't care about value */
+        ret = hash_enter(set, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add '%s'\n", key.c_str);
+            hash_destroy(set);
+            return NULL;
+        }
+    }
+
+    return set;
+}
+
+static bool set_has_key(hash_table_t *set, const char *key)
+{
+    hash_key_t hkey;
+
+    hkey.type = HASH_KEY_CONST_STRING;
+    hkey.c_str = key;
+
+    return hash_has_key(set, &hkey);
+}
+
 static errno_t
 sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
 {
@@ -2298,11 +2341,10 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
     struct sdap_options *opts = NULL;
     struct sdap_deref_attrs **entries = NULL;
     struct ldb_message_element *members = NULL;
+    hash_table_t *members_set = NULL; /* will be used as a `set` */
     const char *orig_dn = NULL;
-    const char *member_dn = NULL;
     size_t num_entries = 0;
-    size_t i, j;
-    bool member_found;
+    size_t i;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -2310,6 +2352,11 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
 
     opts = state->group_ctx->opts;
     members = state->members;
+    members_set = convert_ldb_element_to_set(state->members);
+    if (members_set == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     ret = sdap_deref_search_recv(subreq, state, &num_entries, &entries);
     if (ret != EOK) {
@@ -2345,17 +2392,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
          * from deref/asq than we got from the initial lookup, as is the case
          * with Active Directory and its range retrieval mechanism.
          */
-        member_found = false;
-        for (j = 0; j < members->num_values; j++) {
-            /* FIXME: This is inefficient for very large sets of groups */
-            member_dn = (const char *)members->values[j].data;
-            if (strcasecmp(orig_dn, member_dn) == 0) {
-                member_found = true;
-                break;
-            }
-        }
-
-        if (!member_found) {
+        if (!set_has_key(members_set, orig_dn)) {
             /* Append newly found member to member list.
              * Changes in state->members will propagate into sysdb_attrs of
              * the group. */
@@ -2452,6 +2489,9 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
     ret = EOK;
 
 done:
+    if (members_set != NULL) {
+        hash_destroy(members_set);
+    }
     return ret;
 }
 
