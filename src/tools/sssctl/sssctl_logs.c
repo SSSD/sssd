@@ -38,6 +38,8 @@
 #include "tools/sssctl/sssctl.h"
 #include "tools/tools_util.h"
 #include "confdb/confdb.h"
+#include "sss_iface/sss_iface_sync.h"
+#include "responder/ifp/ifp_iface/ifp_iface_sync.h"
 
 #define LOG_FILE(file) " " LOG_PATH "/" file
 #define LOG_FILES LOG_FILE("*.log")
@@ -50,6 +52,22 @@
     } \
 } while(0)
 
+#define POPT_SERV_OPTION(NAME, VAR) {services[SERV_ ## NAME].name, \
+                                     '\0', POPT_BIT_SET, &VAR, \
+                                     services[SERV_ ## NAME].mask, \
+                                     _("Target the " #NAME " service"), NULL}
+
+#define STARTS_WITH(s, p)     (strncmp((s), (p), strlen(p)) == 0)
+#define REMOVE_PREFIX(s, p)   (STARTS_WITH(s, p) ? (s) + strlen(p) : (s))
+#define IS_DOMAIN(c)          STARTS_WITH((c), "domain/")
+#define DOMAIN_NAME(c)        REMOVE_PREFIX((c), "domain/")
+#define EMPTY_TARGETS(t)      ((t)[0] == NULL)
+
+enum debug_level_action {
+    ACTION_SET,
+    ACTION_GET
+};
+
 struct debuglevel_tool_ctx {
     struct confdb_ctx *confdb;
     char **sections;
@@ -60,13 +78,83 @@ struct sssctl_logs_opts {
     int archived;
 };
 
-errno_t set_debug_level(struct debuglevel_tool_ctx *tool_ctx,
-                        int debug_to_set, const char *config_file)
+struct sssctl_service_desc {
+    const char *name;
+    int mask;
+};
+
+enum serv_idx {
+    SERV_SSSD,
+    SERV_NSS,
+    SERV_PAM,
+    SERV_SUDO,
+    SERV_AUTOFS,
+    SERV_SSH,
+    SERV_PAC,
+    SERV_IFP,
+    SERV_COUNT
+};
+
+struct sssctl_service_desc services[] = {
+    { "sssd",   1U << SERV_SSSD  },
+    { "nss",    1U << SERV_NSS   },
+    { "pam",    1U << SERV_PAM   },
+    { "sudo",   1U << SERV_SUDO  },
+    { "autofs", 1U << SERV_AUTOFS},
+    { "ssh",    1U << SERV_SSH   },
+    { "pac",    1U << SERV_PAC   },
+    { "ifp",    1U << SERV_IFP   }
+};
+
+static struct sbus_sync_connection *connect_to_sbus(TALLOC_CTX *mem_ctx)
 {
-    int ret;
-    int err;
-    const char *values[2];
-    char **section = NULL;
+    struct sbus_sync_connection *conn;
+
+    conn = sbus_sync_connect_private(mem_ctx, SSS_MONITOR_ADDRESS, NULL);
+    if (conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to connect to the sbus monitor\n");
+    }
+
+    return conn;
+}
+
+static const char *get_busname(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb,
+                               const char *component)
+{
+    errno_t ret;
+    const char *busname;
+    struct sss_domain_info *domain;
+
+    if (strcmp(component, "sssd") == 0) {
+        busname = talloc_strdup(mem_ctx, SSS_BUS_MONITOR);
+    } else if (IS_DOMAIN(component)) {
+        ret = confdb_get_domain(confdb, DOMAIN_NAME(component), &domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain: %s\n", component);
+            busname = NULL;
+            goto done;
+        }
+
+        busname = sss_iface_domain_bus(mem_ctx, domain);
+    } else {
+        busname = talloc_asprintf(mem_ctx, "sssd.%s", component);
+    }
+
+done:
+    return busname;
+}
+
+/* in_out_value is an input argument when action is ACTION_SET; it is an output
+ * argument when action is ACTION_GET. */
+static errno_t do_debug_level(enum debug_level_action action,
+                                  struct sbus_sync_connection *conn,
+                                  struct confdb_ctx *confdb,
+                                  const char *component,
+                                  uint32_t *in_out_value)
+{
+    errno_t ret;
+    uint32_t value;
+    const char *busname;
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
 
     if (tmp_ctx == NULL) {
@@ -74,37 +162,101 @@ errno_t set_debug_level(struct debuglevel_tool_ctx *tool_ctx,
         return ENOMEM;
     }
 
-    /* convert debug_to_set to string */
-    values[0] = talloc_asprintf(tmp_ctx, "0x%.4x", debug_to_set);
-    if (values[0] == NULL) {
-        ret = ENOMEM;
-        goto done;
+    busname = get_busname(tmp_ctx, confdb, component);
+    if (busname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create the bus name for %s\n",
+              component);
     }
-    values[1] = NULL;
 
-    /* write to confdb */
-    for (section = tool_ctx->sections; *section != NULL; section++) {
-        ret = confdb_add_param(tool_ctx->confdb, 1, *section,
-                               CONFDB_SERVICE_DEBUG_LEVEL, values);
+    if (action == ACTION_GET) {
+        ret = sbus_get_service_debug_level(conn, busname, SSS_BUS_PATH, &value);
         if (ret != EOK) {
+            ret = ENOENT;
+            goto done;
+        }
+
+        *in_out_value = value;
+    } else {
+        ret = sbus_set_service_debug_level(conn, busname, SSS_BUS_PATH,
+                                           *in_out_value);
+        if (ret != EOK) {
+            ret = ENOENT;
             goto done;
         }
     }
-
-    /*
-     * Change atime and mtime of sssd.conf,
-     * so the configuration can be restored on next start.
-     */
-    errno = 0;
-    if (utime(config_file, NULL) == -1) {
-        err = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to change mtime of \"%s\": %s\n",
-              config_file, strerror(err));
-    }
-
     ret = EOK;
 
 done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t sssctl_do_debug_level(enum debug_level_action action,
+                                         struct debuglevel_tool_ctx *tool_ctx,
+                                         const char **targets,
+                                         uint32_t debug_to_set)
+{
+    bool all_targets = EMPTY_TARGETS(targets);
+    errno_t ret = EOK;
+    errno_t final_ret = EOK;
+    uint32_t current_level = SSSDBG_INVALID;
+    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+    const char *stripped_target;
+    const char **curr_target;
+    struct sbus_sync_connection *conn;
+
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    conn = connect_to_sbus(tmp_ctx);
+    if (conn == NULL) {
+        ERROR("SSSD is not running.\n");
+        ret = EIO;
+        goto fini;
+    }
+
+    curr_target = (all_targets ?
+                   discard_const_p(const char *, tool_ctx->sections) : targets);
+    while (*curr_target != NULL) {
+        stripped_target = REMOVE_PREFIX(*curr_target, "config/");
+
+        if (action == ACTION_GET) {
+            ret = do_debug_level(ACTION_GET, conn, tool_ctx->confdb,
+                                 stripped_target, &current_level);
+            CHECK(ret != EOK && ret != ENOENT, fini,
+                  "Could not read the debug level.");
+
+            if (ret == EOK) {
+                PRINT(_("%1$-25s %2$#.4x\n"), stripped_target, current_level);
+            } else {
+               if (!all_targets) {
+                    if (IS_DOMAIN(stripped_target)) {
+                        PRINT(_("%1$-25s Unknown domain\n"), stripped_target);
+                    } else {
+                        PRINT(_("%1$-25s Unreachable service\n"), stripped_target);
+                    }
+                    final_ret = ENOENT;
+                }
+            }
+        } else {
+            ret = do_debug_level(ACTION_SET, conn, tool_ctx->confdb,
+                                 stripped_target, &debug_to_set);
+            CHECK(ret != EOK && ret != ENOENT, fini,
+                  "Could not set the debug level.");
+            if (ret == ENOENT && !all_targets) {
+                final_ret = ret;
+            }
+        }
+        curr_target++;
+    }
+
+    if (ret == EOK) {
+        ret = final_ret;
+    }
+
+fini:
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -210,6 +362,68 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
 fail:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+static const char **get_targets(TALLOC_CTX *mem_ctx, int services_mask,
+                                const char **domainv)
+{
+    int i;
+    int count = 1;
+    const char **targets = NULL;
+    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return NULL;
+    }
+
+    targets = talloc_zero_array(tmp_ctx, const char *, count);
+    if (targets == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not allocate memory for the list of targets\n");
+        goto done;
+    }
+
+    if (services_mask != 0) {
+        for (i = 0; i < SERV_COUNT; i++) {
+            if (services_mask == 0 || (services_mask & services[i].mask) != 0) {
+                targets = talloc_realloc(tmp_ctx, targets, const char *, count + 1);
+                if (targets == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Could not allocate memory for the list of targets\n");
+                    goto done;
+                }
+                targets[count - 1] = talloc_strdup(tmp_ctx, services[i].name);
+                targets[count++] = NULL;
+            }
+        }
+    }
+
+    if (domainv != NULL) {
+        for (; *domainv != NULL; domainv++) {
+            targets = talloc_realloc(tmp_ctx, targets, const char *, count + 1);
+            if (targets == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Could not allocate memory for the list of targets\n");
+                goto done;
+            }
+            if (IS_DOMAIN(*domainv)) {
+                targets[count - 1] = talloc_strdup(tmp_ctx, *domainv);
+            } else {
+                targets[count - 1] = talloc_asprintf(tmp_ctx, "domain/%s", *domainv);
+            }
+            targets[count++] = NULL;
+        }
+    }
+
+    targets = talloc_steal(mem_ctx, targets);
+    for (i = 0; i < count; i++) {
+        targets[i] = talloc_steal(mem_ctx, targets[i]);
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return targets;
 }
 
 int parse_debug_level(const char *strlevel)
@@ -322,52 +536,54 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
                            void *pvt)
 {
     int ret;
-    int debug_to_set = SSSDBG_INVALID;
+    int pc_services = 0;
+    uint32_t debug_to_set = SSSDBG_INVALID;
+    const char **pc_domains = NULL;
+    const char **targets = NULL;
     const char *debug_as_string = NULL;
-    const char *config_file = NULL;
-    const char *pc_config_file = NULL;
+
     struct debuglevel_tool_ctx *ctx = NULL;
     struct poptOption long_options[] = {
-        {"config", 'c', POPT_ARG_STRING, &pc_config_file,
-            0, _("Specify a non-default config file"), NULL},
+        {"domain", '\0', POPT_ARG_ARGV, &pc_domains,
+            0, _("Target a specific domain"), NULL},
+        POPT_SERV_OPTION(SSSD, pc_services),
+        POPT_SERV_OPTION(NSS, pc_services),
+        POPT_SERV_OPTION(PAM, pc_services),
+        POPT_SERV_OPTION(SUDO, pc_services),
+        POPT_SERV_OPTION(AUTOFS, pc_services),
+        POPT_SERV_OPTION(SSH, pc_services),
+        POPT_SERV_OPTION(PAC, pc_services),
+        POPT_SERV_OPTION(IFP, pc_services),
         POPT_TABLEEND
     };
-
-    ret = sss_tool_popt_ex(cmdline, long_options, SSS_TOOL_OPT_OPTIONAL, NULL,
-                           NULL, "DEBUG_LEVEL_TO_SET",
-                           _("Specify debug level you want to set"),
-                           SSS_TOOL_OPT_REQUIRED, &debug_as_string, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
-    }
-
-    /* get config file */
-    if (pc_config_file) {
-        config_file = talloc_strdup(ctx, pc_config_file);
-    } else {
-        config_file = talloc_strdup(ctx, SSSD_CONFIG_FILE);
-    }
-
-    if (config_file == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
-        ret = ENOMEM;
-        goto fini;
-    }
-
-    CHECK_ROOT(ret, debug_prg_name);
-
-    debug_to_set = parse_debug_level(debug_as_string);
-    CHECK(debug_to_set == SSSDBG_INVALID, fini, "Invalid debug level.");
 
     /* allocate context */
     ctx = talloc_zero(NULL, struct debuglevel_tool_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not allocate memory for tools context\n");
-        ret = ENOMEM;
+        return ENOMEM;
+    }
+
+    ret = sss_tool_popt_ex(cmdline, long_options, SSS_TOOL_OPT_OPTIONAL, NULL,
+                           NULL, "DEBUG_LEVEL_TO_SET",
+                           _("Specify debug level you want to set"),
+                           SSS_TOOL_OPT_OPTIONAL, &debug_as_string, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         goto fini;
     }
+
+    CHECK_ROOT(ret, debug_prg_name);
+
+    if (debug_as_string != NULL) {
+        debug_to_set = (uint32_t) parse_debug_level(debug_as_string);
+        CHECK(debug_to_set == SSSDBG_INVALID, fini, "Invalid debug level.");
+    }
+
+    /* Create a list with all the target names (services + domains) */
+    targets = get_targets(ctx, pc_services, pc_domains);
+    CHECK(targets == NULL, fini, "Could not allocate memory.");
 
     ret = connect_to_confdb(ctx, &ctx->confdb);
     CHECK(ret != EOK, fini, "Could not connect to configuration database.");
@@ -375,20 +591,21 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
     ret = get_confdb_sections(ctx, ctx->confdb, &ctx->sections);
     CHECK(ret != EOK, fini, "Could not get all configuration sections.");
 
-    ret = set_debug_level(ctx, debug_to_set, config_file);
-    CHECK(ret != EOK, fini, "Could not set debug level.");
+    if (debug_as_string == NULL) {
+        ret = sssctl_do_debug_level(ACTION_GET, ctx, targets, 0);
+    } else {
+        ret = sssctl_do_debug_level(ACTION_SET, ctx, targets, debug_to_set);
+    }
 
-    ret = sss_signal(SIGHUP);
-    CHECK(ret != EOK, fini,
-          "Could not force sssd processes to reload configuration. "
-          "Is sssd running?");
+    /* Only report missing components that the user requested,
+       except for the monitor (sssd not running) */
+    if (ret != ENOENT && ret != EIO && EMPTY_TARGETS(targets)) {
+        ret = EOK;
+    }
 
 fini:
     talloc_free(ctx);
-    /* pc_config_file is allocated by popt using malloc().
-     * debug_as_string is not allocated but points to the command line. */
-    free(discard_const(pc_config_file));
-
+    /* debug_as_string is not allocated but points to the command line. */
     return ret;
 }
 
