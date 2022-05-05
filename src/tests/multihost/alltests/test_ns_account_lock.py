@@ -75,6 +75,7 @@ def clean_sys(multihost):
     "Clean logs and restart"
     execute_cmd(multihost, "rm -vf /var/log/sssd/*")
     execute_cmd(multihost, "> /var/log/secure")
+    time.sleep(5)
     execute_cmd(multihost, "systemctl restart sssd")
 
 
