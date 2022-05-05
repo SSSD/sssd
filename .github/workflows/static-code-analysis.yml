@@ -47,7 +47,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name:
+    - name: Run flake8
       uses: grantmcconnaughey/lintly-flake8-github-action@d9db4fd0be9fb1cd19206a48ec0773bd93b82cbd
       if: github.event_name == 'pull_request'
       with:
