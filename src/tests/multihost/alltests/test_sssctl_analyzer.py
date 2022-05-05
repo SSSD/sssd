@@ -1,4 +1,5 @@
 """Automation tests for sssctl analyze
+
 :requirement: sssctl analyze
 :casecomponent: sssd
 :subsystemteam: sst_idm_sssd
@@ -43,22 +44,22 @@ class TestSssctlAnalyze(object):
          are executed
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1294670
         :steps:
-        1. Configure sssd to authenticate against directory server
-        2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
-        3. Restart SSSD with cleared cache
-        4. Fetch user and group information using 'id' and 'getent' tools
-        5. Run 'sssctl analyze request list'
-        6. Check with sssctl analyze is listing id and getent instances
-        7. sssctl analyze with subcmd 'show' and request number is listing
-           logs related to that number only
+          1. Configure sssd to authenticate against directory server
+          2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
+          3. Restart SSSD with cleared cache
+          4. Fetch user and group information using 'id' and 'getent' tools
+          5. Run 'sssctl analyze request list'
+          6. Check with sssctl analyze is listing id and getent instances
+          7. sssctl analyze with subcmd 'show' and request number is listing
+             logs related to that number only
         :expectedresults:
-        1. Should succeed
-        2. Should succeed
-        3. Should succeed
-        4. Should succeed
-        5. Should succeed
-        6. Should succeed
-        7. Should succeed
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+          5. Should succeed
+          6. Should succeed
+          7. Should succeed
         """
         tools = sssdTools(multihost.client[0])
         dm_sec = ['nss', 'pam']
@@ -90,21 +91,21 @@ class TestSssctlAnalyze(object):
         :id: d297b394-3502-4ade-a5a5-5fb4c4333645
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1294670
         :steps:
-        1. Configure sssd to authenticate against directory server
-        2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
-        3. Restart SSSD with cleared cache
-        4. Fetch user as well as  information using 'id' and 'groups' tools
-        5. Log in as user via ssh
-        6. Copy sssd logs to a different location
-        7. Confirm --logdir allows analyze to parse logs from that location
+          1. Configure sssd to authenticate against directory server
+          2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
+          3. Restart SSSD with cleared cache
+          4. Fetch user as well as  information using 'id' and 'groups' tools
+          5. Log in as user via ssh
+          6. Copy sssd logs to a different location
+          7. Confirm --logdir allows analyze to parse logs from that location
         :expectedresults:
-        1. Should succeed
-        2. Should succeed
-        3. Should succeed
-        4. Should succeed
-        5. Should succeed
-        6. Should succeed
-        7. Should succeed
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+          5. Should succeed
+          6. Should succeed
+          7. Should succeed
         """
         tools = sssdTools(multihost.client[0])
         dm_sec = ['nss', 'pam']
@@ -145,17 +146,17 @@ class TestSssctlAnalyze(object):
          authentication logs
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1294670
         :steps:
-        1. Configure sssd to authenticate against directory server
-        2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
-        3. Restart SSSD with cleared cache
-        4. Log in as a user using ssh
-        5. Confirm --pam option is showing login related logs
+          1. Configure sssd to authenticate against directory server
+          2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
+          3. Restart SSSD with cleared cache
+          4. Log in as a user using ssh
+          5. Confirm --pam option is showing login related logs
         :expectedresults:
-        1. Should succeed
-        2. Should succeed
-        3. Should succeed
-        4. Should succeed
-        5. Should succeed
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+          5. Should succeed
         """
         tools = sssdTools(multihost.client[0])
         multihost.client[0].service_sssd('stop')
@@ -191,17 +192,17 @@ class TestSssctlAnalyze(object):
          IDs from responder logs
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2013259
         :steps:
-        1. Configure sssd to authenticate against directory server
-        2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
-        3. Restart SSSD with cleared cache
-        4. Log in as a user using ssh
-        5. Confirm tevent chain IDs(RID) is showing in logs
+          1. Configure sssd to authenticate against directory server
+          2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
+          3. Restart SSSD with cleared cache
+          4. Log in as a user using ssh
+          5. Confirm tevent chain IDs(RID) is showing in logs
         :expectedresults:
-        1. Should succeed
-        2. Should succeed
-        3. Should succeed
-        4. Should succeed
-        5. Should succeed
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+          5. Should succeed
         """
         tools = sssdTools(multihost.client[0])
         dm_sec = ['nss', 'pam']
@@ -232,21 +233,21 @@ class TestSssctlAnalyze(object):
          from  logs
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2013260
         :steps:
-        1. Configure sssd to authenticate against directory server
-        2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
-        3. Restart SSSD with cleared cache
-        4. Log in as a user using ssh
-        5. Confirm child krb logs  parsed
-        6. Fail log in with wrong credentials
-        7. Confirm parsed child logs show error message
+          1. Configure sssd to authenticate against directory server
+          2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
+          3. Restart SSSD with cleared cache
+          4. Log in as a user using ssh
+          5. Confirm child krb logs  parsed
+          6. Fail log in with wrong credentials
+          7. Confirm parsed child logs show error message
         :expectedresults:
-        1. Should succeed
-        2. Should succeed
-        3. Should succeed
-        4. Should succeed
-        5. Should succeed
-        6. Should succeed
-        7. Should succeed
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+          5. Should succeed
+          6. Should succeed
+          7. Should succeed
         """
         tools = sssdTools(multihost.client[0])
         dm_sec = ['nss', 'pam']
