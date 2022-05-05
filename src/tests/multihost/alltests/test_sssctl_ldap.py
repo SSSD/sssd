@@ -232,32 +232,29 @@ class Testsssctl(object):
          sssctl/sssctl_domains.c:sssctl_domain_status_active_server()
         :id: bf38d933-5eaf-43cc-b763-55cacf447bd1
         """
-        if client_version(multihost):
-            pytest.skip("Does not work on RHEL 9")
-        else:
-            multihost.client[0].run_command("yum install -y  nss-pam-ldapd")
-            tools = sssdTools(multihost.client[0])
-            domain_name = tools.get_domain_section_name()
-            multihost.client[0].run_command("systemctl stop sssd")
-            multihost.client[0].run_command("rm -rf /var/lib/sss/db/*")
-            sssd_params = {'domains': '%s, %s' % (domain_name, 'proxy')}
-            tools.sssd_conf("sssd", sssd_params, action='update')
-            proxy_params = {'auth_provider': 'proxy',
-                            'id_provider': 'proxy',
-                            'debug_level': '0xFFF0',
-                            'proxy_lib_name': 'ldap',
-                            'proxy_pam_target': 'sssdproxyldap'}
-            tools.sssd_conf("domain/proxy", proxy_params, action='add')
-            multihost.client[0].service_sssd('start')
-            cat = 'cat /etc/sssd/sssd.conf'
-            multihost.client[0].run_command(cat, raiseonerr=False)
-            sssctl_cmd = 'sssctl domain-status proxy'
-            cmd = multihost.client[0].run_command(sssctl_cmd, raiseonerr=False)
-            # when sssd crashes it returns with exit code of 139
-            assert cmd.returncode == 0
-            # remove the proxy section
-            tools.sssd_conf("domain/proxy", proxy_params, 'delete')
-            multihost.client[0].run_command(cat, raiseonerr=False)
+        multihost.client[0].run_command("yum install -y  nss-pam-ldapd")
+        tools = sssdTools(multihost.client[0])
+        domain_name = tools.get_domain_section_name()
+        multihost.client[0].run_command("systemctl stop sssd")
+        multihost.client[0].run_command("rm -rf /var/lib/sss/db/*")
+        sssd_params = {'domains': '%s, %s' % (domain_name, 'proxy')}
+        tools.sssd_conf("sssd", sssd_params, action='update')
+        proxy_params = {'auth_provider': 'proxy',
+                        'id_provider': 'proxy',
+                        'debug_level': '0xFFF0',
+                        'proxy_lib_name': 'ldap',
+                        'proxy_pam_target': 'sssdproxyldap'}
+        tools.sssd_conf("domain/proxy", proxy_params, action='add')
+        multihost.client[0].service_sssd('start')
+        cat = 'cat /etc/sssd/sssd.conf'
+        multihost.client[0].run_command(cat, raiseonerr=False)
+        sssctl_cmd = 'sssctl domain-status proxy'
+        cmd = multihost.client[0].run_command(sssctl_cmd, raiseonerr=False)
+        # when sssd crashes it returns with exit code of 139
+        assert cmd.returncode == 0
+        # remove the proxy section
+        tools.sssd_conf("domain/proxy", proxy_params, 'delete')
+        multihost.client[0].run_command(cat, raiseonerr=False)
 
     @pytest.mark.tier1_2
     def test_0009_bz1751691(self, multihost):
@@ -266,26 +263,23 @@ class Testsssctl(object):
          results intermittently
         :id: 09fed728-1631-44fa-ad5d-082cba4a8ea2
         """
-        if client_version(multihost):
-            pytest.skip("Does not work on RHEL 9")
-        else:
-            tools = sssdTools(multihost.client[0])
-            multihost.client[0].run_command("systemctl stop sssd")
-            multihost.client[0].run_command("rm -rf /var/lib/sss/db/*")
-            tools.sssd_conf("sssd", {'services': 'nss, pam, ifp'},
-                            action='update')
-            multihost.client[0].service_sssd('start')
-            sssctl_cmd = 'sssctl domain-list'
-            checks = ['example1', 'implicit_files']
-            for _ in range(10):
-                time.sleep(5)
-                cmd = multihost.client[0].run_command(sssctl_cmd,
-                                                      raiseonerr=False)
-                assert cmd.returncode == 0
-                for _ in checks:
-                    find = re.compile(r'%s' % _)
-                    result = find.search(cmd.stdout_text)
-                    assert result is not None
+        tools = sssdTools(multihost.client[0])
+        multihost.client[0].run_command("systemctl stop sssd")
+        multihost.client[0].run_command("rm -rf /var/lib/sss/db/*")
+        tools.sssd_conf("sssd", {'services': 'nss, pam, ifp'},
+                        action='update')
+        multihost.client[0].service_sssd('start')
+        sssctl_cmd = 'sssctl domain-list'
+        checks = ['example1']
+        for _ in range(10):
+            time.sleep(5)
+            cmd = multihost.client[0].run_command(sssctl_cmd,
+                                                  raiseonerr=False)
+            assert cmd.returncode == 0
+            for _ in checks:
+                find = re.compile(r'%s' % _)
+                result = find.search(cmd.stdout_text)
+                assert result is not None
 
     @pytest.mark.tier1_2
     def test_0010_bz1628122(self, multihost):
@@ -294,33 +288,30 @@ class Testsssctl(object):
          about domain with sssctl utility
         :id: 6997a8a4-0531-4e51-a10b-8c1d5791b67b
         """
-        if client_version(multihost):
-            pytest.skip("Does not work on RHEL 9")
+        tools = sssdTools(multihost.client[0])
+        multihost.client[0].run_command("systemctl stop sssd")
+        multihost.client[0].run_command("rm -rf /var/lib/sss/db/*")
+        tools.remove_sss_cache('/var/log/sssd')
+        multihost.client[0].service_sssd('start')
+        sssctl_cmd = 'sssctl domain-status %s -o' % ds_instance_name
+        sssctl_cmd = multihost.client[0].run_command(sssctl_cmd,
+                                                     raiseonerr=False)
+        cmd = sssctl_cmd.stdout_text.split()[-1]
+        log = 'cat /var/log/sssd/sssd_%s.log' % ds_instance_name
+        log = multihost.client[0].run_command(log, raiseonerr=False)
+        assert log.returncode == 0
+        if 'Back end is online' or \
+                'Backend is already online' in log.stdout_text:
+            status = 'Online'
         else:
-            tools = sssdTools(multihost.client[0])
-            multihost.client[0].run_command("systemctl stop sssd")
-            multihost.client[0].run_command("rm -rf /var/lib/sss/db/*")
-            tools.remove_sss_cache('/var/log/sssd')
-            multihost.client[0].service_sssd('start')
-            sssctl_cmd = 'sssctl domain-status %s -o' % ds_instance_name
-            sssctl_cmd = multihost.client[0].run_command(sssctl_cmd,
-                                                         raiseonerr=False)
-            cmd = sssctl_cmd.stdout_text.split()[-1]
-            log = 'cat /var/log/sssd/sssd_%s.log' % ds_instance_name
-            log = multihost.client[0].run_command(log, raiseonerr=False)
-            assert log.returncode == 0
-            if 'Back end is online' or \
-                    'Backend is already online' in log.stdout_text:
-                status = 'Online'
+            status = 'Offline'
+        if cmd == status:
+            assert True
+        else:
+            if sssctl_cmd.returncode == 1:
+                assert False, 'Invalid domain name'
             else:
-                status = 'Offline'
-            if cmd == status:
-                assert True
-            else:
-                if sssctl_cmd.returncode == 1:
-                    assert False, 'Invalid domain name'
-                else:
-                    assert False, 'domain status conflict'
+                assert False, 'domain status conflict'
 
     @pytest.mark.tier1_2
     def test_0011_bz1406678(self, multihost):
@@ -330,39 +321,36 @@ class Testsssctl(object):
         :id: f734660f-269e-49fd-9864-00de54b11b2c
         :customerscenario: True
         """
-        if client_version(multihost):
-            pytest.skip("Does not work on RHEL 9")
-        else:
-            multihost.client[0].run_command("systemctl stop sssd")
-            multihost.client[0].run_command("rm -rf /var/lib/sss/db/*")
-            multihost.client[0].service_sssd('start')
-            stop_ds = 'systemctl stop dirsrv@%s' % ds_instance_name
-            cmd = multihost.master[0].run_command(stop_ds, raiseonerr=False)
-            status_ds = 'systemctl status dirsrv@%s' % ds_instance_name
-            cmd = multihost.master[0].run_command(status_ds, raiseonerr=False)
-            find = re.compile(r'slapd stopped')
-            result = find.search(cmd.stdout_text)
-            sss_kill = 'kill -10 `pidof sssd`'
-            cmd = multihost.client[0].run_command(sss_kill, raiseonerr=False)
-            domain_status = 'sssctl domain-status %s' % ds_instance_name
-            cmd = multihost.client[0].run_command(domain_status,
-                                                  raiseonerr=False)
-            find = re.compile(r'Online status: Offline')
-            result = find.search(cmd.stdout_text)
-            assert result is not None
-            time.sleep(1)
-            touch = 'touch /etc/resolv.conf'
-            multihost.client[0].run_command(touch, raiseonerr=False)
-            time.sleep(3)
-            start_ds = 'systemctl start dirsrv@%s' % ds_instance_name
-            cmd = multihost.master[0].run_command(start_ds, raiseonerr=False)
-            cmd = multihost.master[0].run_command(status_ds, raiseonerr=False)
-            find = re.compile(r'slapd started')
-            result = find.search(cmd.stdout_text)
-            time.sleep(6)
-            domain_status = 'sssctl domain-status %s' % ds_instance_name
-            cmd = multihost.client[0].run_command(domain_status,
-                                                  raiseonerr=False)
-            find = re.compile(r'Online status: Online')
-            result = find.search(cmd.stdout_text)
-            assert result is not None
+        multihost.client[0].run_command("systemctl stop sssd")
+        multihost.client[0].run_command("rm -rf /var/lib/sss/db/*")
+        multihost.client[0].service_sssd('start')
+        stop_ds = 'systemctl stop dirsrv@%s' % ds_instance_name
+        multihost.master[0].run_command(stop_ds, raiseonerr=False)
+        status_ds = 'systemctl status dirsrv@%s' % ds_instance_name
+        cmd = multihost.master[0].run_command(status_ds, raiseonerr=False)
+        find = re.compile(r'slapd stopped')
+        find.search(cmd.stdout_text)
+        sss_kill = 'kill -10 `pidof sssd`'
+        multihost.client[0].run_command(sss_kill, raiseonerr=False)
+        domain_status = 'sssctl domain-status %s' % ds_instance_name
+        cmd = multihost.client[0].run_command(domain_status,
+                                              raiseonerr=False)
+        find = re.compile(r'Online status: Offline')
+        result = find.search(cmd.stdout_text)
+        assert result is not None
+        time.sleep(1)
+        touch = 'touch /etc/resolv.conf'
+        multihost.client[0].run_command(touch, raiseonerr=False)
+        time.sleep(3)
+        start_ds = 'systemctl start dirsrv@%s' % ds_instance_name
+        multihost.master[0].run_command(start_ds, raiseonerr=False)
+        cmd = multihost.master[0].run_command(status_ds, raiseonerr=False)
+        find = re.compile(r'slapd started')
+        find.search(cmd.stdout_text)
+        time.sleep(6)
+        domain_status = 'sssctl domain-status %s' % ds_instance_name
+        cmd = multihost.client[0].run_command(domain_status,
+                                              raiseonerr=False)
+        find = re.compile(r'Online status: Online')
+        result = find.search(cmd.stdout_text)
+        assert result is not None
