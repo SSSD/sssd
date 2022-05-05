@@ -1,6 +1,7 @@
 name: copr cleanup
 on:
   pull_request_target:
+    branches: [master, sssd-2-7]
     types: [closed]
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
