@@ -50,18 +50,16 @@ class TestDefaultDebugLevel(object):
             log = f'/var/log/sssd/{log_filename}.log'
             log_str = multihost.client[0].get_file_contents(log).decode(
                 'utf-8')
+            print(f'\n{log_filename}\n+===++++++===+\n{log_str}\n')
             pattern1 = re.compile(r'Starting with debug level = 0x0070')
             default_debug = pattern1.search(log_str)
             assert default_debug is not None
             log_split = log_str.split("\n")
             for index in range(len(log_split)-1):
                 log_single_line = log_split[index]
-                pattern2 = re.compile(r'(0x\w+)')
-                pattern3 = re.compile(r'(0x\d+)')
+                pattern2 = re.compile(r'\(0x\w+\)')
                 debug_str1 = pattern2.search(log_single_line)
-                debug_str2 = pattern3.search(log_single_line)
-                assert debug_str1.group() == '0x1f7c0' or \
-                    debug_str2.group() <= 0x0040
+                assert debug_str1.group() == '(0x3f7c0)'
 
     def test_0002_check_default_level_with_auth(self, multihost,
                                                 backupsssdconf):
