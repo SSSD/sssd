@@ -1405,7 +1405,7 @@ def execute_cmd(session_multihost, command):
 @pytest.fixture(scope='class')
 def ns_account_lock(session_multihost, request):
     """ Backup and restore sssd.conf """
-    version = float(re.findall("\d+\.\d+",
+    version = float(re.findall(r"\d+\.\d+",
                                session_multihost.client[0].distro)[0])
     if version >= 9:
         execute_cmd(session_multihost, "yum install -y 389-ds-base")
