@@ -6,7 +6,7 @@
 :upstream: yes
 """
 from __future__ import print_function
-from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.utils import sssdTools, LdapOperations
 import pytest
 
 
@@ -237,3 +237,50 @@ class TestHostMaps(object):
             status = 'FAIL'
         client.sssd_conf('domain/example1', domain_params, action='delete')
         assert status == 'PASS'
+
+    @pytest.mark.tier1_3
+    def test_more_than_one_cn(self, multihost):
+        """
+        :title: hosts: 'getent hosts' not return hosts
+         if they have more than one CN in LDAP
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2056035
+        :id: f2bacc70-ccff-11ec-9b25-845cf3eff344
+        :customerscenario: true
+        :steps:
+          1. Create hostname having multiple 'cn'
+          2. Entry having multiple 'cn' handled correctly by SSSD
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+        """
+        ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
+        ds_rootdn = 'cn=Directory Manager'
+        ds_rootpw = 'Secret123'
+        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        user_info = {'cn': ['node4'.encode('utf-8'),
+                            'node4.example.test'.encode('utf-8')],
+                     'objectClass': [b'top', b'ipHost', b'device'],
+                     'ipHostNumber': '192.168.1.4'.encode('utf-8')}
+        user_dn = 'cn=node4+ipHostNumber=192.168.1.4,ou=People,dc=example,dc=test'
+        (_, _) = ldap_inst.add_entry(user_info, user_dn)
+        client = sssdTools(multihost.client[0])
+        domain_params = {'ldap_iphost_search_base': 'ou=People,dc=example,dc=test'}
+        client.sssd_conf('domain/example1', domain_params)
+        client.clear_sssd_cache()
+        output = multihost.client[0].run_command("getent hosts node4").stdout_text
+        for i in ['node4.example.test', '192.168.1.4']:
+            assert i in output
+        output = multihost.client[0].run_command("getent "
+                                                 "hosts "
+                                                 "node4.example.test").stdout_text
+        for i in ['node4.example.test', '192.168.1.4']:
+            assert i in output
+        cmd = multihost.client[0].run_command("getent "
+                                              "hosts "
+                                              "node1 "
+                                              "node3 "
+                                              "node4").stdout_text
+        for i in ['192.168.1.1', '192.168.1.3', '192.168.1.4',
+                  'node1', 'node3', 'node4.example.test']:
+            assert i in cmd
+        ldap_inst.del_dn('cn=node4+ipHostNumber=192.168.1.4,ou=People,dc=example,dc=test')
