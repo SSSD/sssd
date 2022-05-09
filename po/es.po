@@ -19,16 +19,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-04-14 15:21+0200\n"
-"PO-Revision-Date: 2021-12-02 13:16+0000\n"
-"Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
+"PO-Revision-Date: 2022-05-09 13:26+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
-"sssd-master/es/>\n"
+"sssd-2-7/es/>\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.9.1\n"
+"X-Generator: Weblate 4.12.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -377,8 +377,7 @@ msgstr "Cuantos segundos esperará pam_sss a que termine p11_child"
 
 #: src/config/SSSDConfig/sssdoptions.py:105
 msgid "Which PAM services are permitted to contact application domains"
-msgstr ""
-"Que servicios PAM tienen permitido contactar con dominios de aplicación"
+msgstr "Que servicios PAM tienen permitido contactar con dominios de aplicación"
 
 #: src/config/SSSDConfig/sssdoptions.py:106
 msgid "Allowed services for using smartcards"
@@ -494,8 +493,8 @@ msgid ""
 msgstr ""
 "Una lista separada por comas de usuarios que deberían tener el registro de "
 "sesión habilitado. Coincide con los nombres de usuario que son devueltos por "
-"NSS. I.e. después de las posibles sustituciones de espacios, cambios de "
-"mayúsculas/minúsculas, etc."
+"NSS. I.e. después de las posibles sustituciones de espacios, cambios de mayú"
+"sculas/minúsculas, etc."
 
 #: src/config/SSSDConfig/sssdoptions.py:146
 msgid ""
@@ -1576,8 +1575,7 @@ msgstr "Atributo de clave pública SSH"
 
 #: src/config/SSSDConfig/sssdoptions.py:433
 msgid "attribute listing allowed authentication types for a user"
-msgstr ""
-"atributo listando los tipos de autenticación permitidos para un usuario"
+msgstr "atributo listando los tipos de autenticación permitidos para un usuario"
 
 #: src/config/SSSDConfig/sssdoptions.py:434
 msgid "attribute containing the X509 certificate of the user"
@@ -1726,8 +1724,7 @@ msgstr "Fijar el límite más bajo de IDs permitidas desde el servidor LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:476
 msgid "Set upper boundary for allowed IDs from the LDAP server"
-msgstr ""
-"Fijar el límite más alto para las IDs permitidas desde el servidor LDAP"
+msgstr "Fijar el límite más alto para las IDs permitidas desde el servidor LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:477
 msgid "DN for ppolicy queries"
@@ -1757,8 +1754,7 @@ msgstr "Las reglas que deberían ser utilizadas para evaluar control de acceso"
 
 #: src/config/SSSDConfig/sssdoptions.py:490
 msgid "URI of an LDAP server where password changes are allowed"
-msgstr ""
-"URI de un servidor LDAP donde se permite la modificación de contraseñas"
+msgstr "URI de un servidor LDAP donde se permite la modificación de contraseñas"
 
 #: src/config/SSSDConfig/sssdoptions.py:491
 msgid "URI of a backup LDAP server where password changes are allowed"
@@ -2304,8 +2300,7 @@ msgstr "sss_ssh_knownhostsproxy: Podría no resolver el nombre de host %s\n"
 
 #: src/tools/sss_cache.c:245
 msgid "No cache object matched the specified search\n"
-msgstr ""
-"No hay objetos en el cache que coincidan con la búsqueda especificada\n"
+msgstr "No hay objetos en el cache que coincidan con la búsqueda especificada\n"
 
 #: src/tools/sss_cache.c:536
 #, c-format
