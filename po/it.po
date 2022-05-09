@@ -10,16 +10,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-04-14 15:21+0200\n"
-"PO-Revision-Date: 2020-09-15 08:29+0000\n"
-"Last-Translator: Milo Casagrande <milo@milo.name>\n"
+"PO-Revision-Date: 2022-05-09 13:26+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
 "Language-Team: Italian <https://translate.fedoraproject.org/projects/sssd/"
-"sssd-master/it/>\n"
+"sssd-2-7/it/>\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.2.2\n"
+"X-Generator: Weblate 4.12.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -179,8 +179,7 @@ msgstr "Indica se mostrare gli utenti filtrati nei gruppi"
 
 #: src/config/SSSDConfig/sssdoptions.py:65
 msgid "The value of the password field the NSS provider should return"
-msgstr ""
-"Il valore del campo password che deve essere ritornato dal provider NSS"
+msgstr "Il valore del campo password che deve essere ritornato dal provider NSS"
 
 #: src/config/SSSDConfig/sssdoptions.py:66
 msgid "Override homedir value from the identity provider with this value"
