@@ -120,7 +120,8 @@ class TestSssctlAnalyze(object):
         client = pexpect_ssh(client_hostname, user, 'Secret123',
                              debug=False)
         try:
-            client.login()
+            client.login(login_timeout=30, sync_multiplier=5,
+                         auto_prompt_reset=False)
         except SSHLoginException:
             pytest.fail(f'{user} failed to login')
         else:
@@ -172,7 +173,8 @@ class TestSssctlAnalyze(object):
         client = pexpect_ssh(client_hostname, user, 'Secret123',
                              debug=False)
         try:
-            client.login()
+            client.login(login_timeout=30, sync_multiplier=5,
+                         auto_prompt_reset=False)
         except SSHLoginException:
             pytest.fail(f"{user} failed to login")
         else:
@@ -217,7 +219,8 @@ class TestSssctlAnalyze(object):
         client = pexpect_ssh(client_hostname, user, 'Secret123',
                              debug=False)
         try:
-            client.login()
+            client.login(login_timeout=30, sync_multiplier=5,
+                         auto_prompt_reset=False)
         except SSHLoginException:
             pytest.fail(f"{user} failed to login")
         else:
@@ -260,7 +263,8 @@ class TestSssctlAnalyze(object):
         client = pexpect_ssh(client_hostname, user, 'Secret123',
                              debug=False)
         try:
-            client.login()
+            client.login(login_timeout=30, sync_multiplier=5,
+                         auto_prompt_reset=False)
         except SSHLoginException:
             _, stdout = analyze(multihost, 'show --pam --child 1')
             assert 'Preauthentication failed' in stdout
@@ -274,7 +278,8 @@ class TestSssctlAnalyze(object):
         client = pexpect_ssh(client_hostname, user, 'NOSecret123',
                              debug=False)
         try:
-            client.login()
+            client.login(login_timeout=30, sync_multiplier=5,
+                         auto_prompt_reset=False)
         except SSHLoginException:
             _, stdout = analyze(multihost, 'show --pam --child 1')
             assert re.findall(r"RID#[0-9]*] Received error code", stdout)
