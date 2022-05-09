@@ -24,6 +24,9 @@ jobs:
     - name: Configure sssd
       uses: ./.github/actions/configure
 
+    - name: Register gcc problem matcher
+      uses: ammaraskar/gcc-problem-matcher@a141586609e2a558729b99a8c574c048f7f56204
+
     - name: make
       shell: bash
       working-directory: x86_64
