@@ -303,7 +303,7 @@ static errno_t rsa_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
     unsigned char exponent[OPENSSL_RSA_MAX_PUBEXP_BITS/8];
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    RSA *rsa_pub_key = NULL;
+    const RSA *rsa_pub_key = NULL;
     rsa_pub_key = EVP_PKEY_get0_RSA(cert_pub_key);
     if (rsa_pub_key == NULL) {
         ret = ENOMEM;
