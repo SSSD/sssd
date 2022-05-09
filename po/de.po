@@ -13,16 +13,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-04-14 15:21+0200\n"
-"PO-Revision-Date: 2021-02-02 14:40+0000\n"
-"Last-Translator: Sumit Bose <sbose@redhat.com>\n"
+"PO-Revision-Date: 2022-05-09 13:26+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
 "Language-Team: German <https://translate.fedoraproject.org/projects/sssd/"
-"sssd-master/de/>\n"
+"sssd-2-7/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.4.2\n"
+"X-Generator: Weblate 4.12.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -701,8 +701,8 @@ msgid ""
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
 "Falls 2-Faktor-Authentifizierung genutzt wird und die Anmeldedaten "
-"gespeichert werden sollen, gibt dieser Wert an wie lang der erste Faktor "
-"(langlebiges Passwort) mindestens sein muss um als SHA512 Hash-Wert im Cache "
+"gespeichert werden sollen, gibt dieser Wert an wie lang der erste Faktor ("
+"langlebiges Passwort) mindestens sein muss um als SHA512 Hash-Wert im Cache "
 "gespeichert zu werden."
 
 #: src/config/SSSDConfig/sssdoptions.py:218
@@ -756,8 +756,7 @@ msgstr "Der Automounter-Ort, den dieser IPA-Client verwendet"
 
 #: src/config/SSSDConfig/sssdoptions.py:231
 msgid "Search base for object containing info about IPA domain"
-msgstr ""
-"Suchbasis für Objekte, die Informationen über eine IPA-Domain enthalten"
+msgstr "Suchbasis für Objekte, die Informationen über eine IPA-Domain enthalten"
 
 #: src/config/SSSDConfig/sssdoptions.py:232
 msgid "Search base for objects containing info about ID ranges"
@@ -2289,8 +2288,8 @@ msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
-"Domain %1$s kann nicht geöffnet werden. Falls es sich um eine Subdomain "
-"(trusted domain) handelt, verwenden Sie den voll ausgeschriebenen Namen "
+"Domain %1$s kann nicht geöffnet werden. Falls es sich um eine Subdomain ("
+"trusted domain) handelt, verwenden Sie den voll ausgeschriebenen Namen "
 "anstelle des Parameters --domain/-d.\n"
 
 #: src/tools/sss_cache.c:922
