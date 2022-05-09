@@ -15,16 +15,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-04-14 15:21+0200\n"
-"PO-Revision-Date: 2017-10-15 03:02-0400\n"
-"Last-Translator: Robert Antoni Buj Gelonch <rbuj@fedoraproject.org>\n"
-"Language-Team: Catalan (http://www.transifex.com/projects/p/sssd/language/"
-"ca/)\n"
+"PO-Revision-Date: 2022-05-09 13:26+0000\n"
+"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"Language-Team: Catalan <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-2-7/ca/>\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 4.6.2\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.12.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -192,8 +192,7 @@ msgstr "Si els usuaris filtrats han d'aparèixer als grups"
 
 #: src/config/SSSDConfig/sssdoptions.py:65
 msgid "The value of the password field the NSS provider should return"
-msgstr ""
-"El valor del camp de la contrasenya que ha de retornar el proveïdor NSS"
+msgstr "El valor del camp de la contrasenya que ha de retornar el proveïdor NSS"
 
 #: src/config/SSSDConfig/sssdoptions.py:66
 msgid "Override homedir value from the identity provider with this value"
@@ -596,8 +595,7 @@ msgstr "La part del domini de la consulta DNS del descobriment del servei"
 
 #: src/config/SSSDConfig/sssdoptions.py:182
 msgid "Override GID value from the identity provider with this value"
-msgstr ""
-"Substitueix el valor del GID del proveïdor d'identitat amb aquest valor"
+msgstr "Substitueix el valor del GID del proveïdor d'identitat amb aquest valor"
 
 #: src/config/SSSDConfig/sssdoptions.py:183
 msgid "Treat usernames as case sensitive"
@@ -973,37 +971,37 @@ msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Noms dels serveis del PAM que s'assignen als ajusts de les polítiques "
-"(Deny)InteractiveLogonRight del GPO"
+"Noms dels serveis del PAM que s'assignen als ajusts de les polítiques (Deny)"
+"InteractiveLogonRight del GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:295
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Noms dels serveis del PAM que s'assignen als ajusts de les polítiques "
-"(Deny)RemoteInteractiveLogonRight del GPO"
+"Noms dels serveis del PAM que s'assignen als ajusts de les polítiques (Deny)"
+"RemoteInteractiveLogonRight del GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:297
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Noms dels serveis del PAM que s'assignen als ajusts de les polítiques "
-"(Deny)NetworkLogonRight del GPO"
+"Noms dels serveis del PAM que s'assignen als ajusts de les polítiques (Deny)"
+"NetworkLogonRight del GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:298
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"Noms dels serveis del PAM que s'assignen als ajusts de les polítiques "
-"(Deny)BatchLogonRight del GPO"
+"Noms dels serveis del PAM que s'assignen als ajusts de les polítiques (Deny)"
+"BatchLogonRight del GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:299
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Noms dels serveis del PAM que s'assignen als ajusts de les polítiques "
-"(Deny)ServiceLogonRight del GPO"
+"Noms dels serveis del PAM que s'assignen als ajusts de les polítiques (Deny)"
+"ServiceLogonRight del GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:300
 msgid "PAM service names for which GPO-based access is always granted"
@@ -1657,8 +1655,7 @@ msgstr "Política per avaluar el venciment de la contrasenya"
 
 #: src/config/SSSDConfig/sssdoptions.py:486
 msgid "Which attributes shall be used to evaluate if an account is expired"
-msgstr ""
-"Quins atributs s'haurien d'utilitzar per avaluar si el compte ha vençut"
+msgstr "Quins atributs s'haurien d'utilitzar per avaluar si el compte ha vençut"
 
 #: src/config/SSSDConfig/sssdoptions.py:487
 msgid "Which rules should be used to evaluate access control"
