@@ -360,8 +360,7 @@ class Testipabz(object):
                                                  ).stdout_text
         assert domain_name in result
 
-    def test_ssh_hash_knownhosts(self, multihost, reset_password,
-                                 setup_ipa_client, backupsssdconf):
+    def test_ssh_hash_knownhosts(self, multihost, reset_password, backupsssdconf):
         """
         :title: Current value of ssh_hash_known_hosts causes error in
          the default configuration in FIPS mode.
