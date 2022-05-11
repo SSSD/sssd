@@ -311,7 +311,6 @@ License: GPLv3+
 Requires: samba-client-libs >= %{samba_package_version}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
-Requires: sssd-idp = %{version}-%{release}
 Requires: libipa_hbac%{?_isa} = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
 Recommends: bind-utils
