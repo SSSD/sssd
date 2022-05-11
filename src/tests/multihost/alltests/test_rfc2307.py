@@ -88,7 +88,8 @@ class Testrfc2307(object):
         client = pexpect_ssh(multihost.client[0].sys_hostname, user,
                              'Secret123', debug=False)
         try:
-            client.login()
+            client.login(login_timeout=30, sync_multiplier=5,
+                         auto_prompt_reset=False)
         except SSHLoginException:
             pytest.fail(f'{user} failed to login')
         else:
