@@ -10,8 +10,7 @@ from __future__ import print_function
 import pytest
 import time
 import paramiko
-from sssd.testlib.common.utils import LdapOperations
-from sssd.testlib.common.utils import SSHClient
+from sssd.testlib.common.utils import LdapOperations, sssdTools, SSHClient
 import ldap
 
 
@@ -73,10 +72,9 @@ def manage_user_roles(multihost, user, lock, type1):
 
 def clean_sys(multihost):
     "Clean logs and restart"
-    execute_cmd(multihost, "rm -vf /var/log/sssd/*")
+    tools = sssdTools(multihost.client[0])
     execute_cmd(multihost, "> /var/log/secure")
-    time.sleep(5)
-    execute_cmd(multihost, "systemctl restart sssd")
+    tools.clear_sssd_cache()
 
 
 @pytest.mark.tier1_2
