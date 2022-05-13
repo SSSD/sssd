@@ -523,19 +523,22 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
         cert_auth_info = talloc_zero(tmp_ctx, struct cert_auth_info);
         if (cert_auth_info == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
 
         pn = memchr(p, '\n', buf_len - (p - buf));
         if (pn == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Missing new-line in p11_child response.\n");
-            return EINVAL;
+            ret = EINVAL;
+            goto done;
         }
         if (pn == p) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Missing token name in p11_child response.\n");
-            return EINVAL;
+            ret = EINVAL;
+            goto done;
         }
 
         cert_auth_info->token_name = talloc_strndup(cert_auth_info, (char *)p,
