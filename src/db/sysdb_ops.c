@@ -2240,7 +2240,7 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
 
             DEBUG(SSSDBG_OP_FAILURE,
                   "Another group with GID [%"SPRIgid"] already exists\n", gid);
-            ret = EEXIST;
+            ret = ERR_GID_DUPLICATED;
             goto done;
         }
     }
