@@ -534,7 +534,7 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
         }
         if (pn == p) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "Missing counter in p11_child response.\n");
+                  "Missing token name in p11_child response.\n");
             return EINVAL;
         }
 
