@@ -1011,19 +1011,23 @@ START_TEST (test_sysdb_incomplete_group_rename)
                 "sysdb_add_incomplete_group error [%d][%s]",
                 ret, strerror(ret));
 
-    /* Adding a group with the same GID and all the other characteristics uknown should fail */
+    /* Adding a group with the same GID and all the other characteristics unknown should succeed */
     ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group_new",
                                      20000, NULL, NULL, NULL, true, 0);
-    ck_assert_msg(ret == EEXIST, "Did not caught a duplicate\n");
+    ck_assert_msg(ret == ERR_GID_DUPLICATED,
+                "Did not catch a rename. ret: %d [%s]",
+                ret, sss_strerror(ret));
 
-    /* A different SID should also trigger a failure */
+    /* A different SID should also succeed */
     ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group_new",
                                      20000, NULL,
                                      "S-1-5-21-123-456-789-222",
                                      NULL, true, 0);
-    ck_assert_msg(ret == EEXIST, "Did not caught a duplicate\n");
+    ck_assert_msg(ret == ERR_GID_DUPLICATED,
+                "Did not catch a rename. ret: %d [%s]",
+                ret, sss_strerror(ret));
 
-    /* But if we know based on a SID that the group is in fact the same,
+    /* If we know based on a SID that the group is in fact the same,
      * let's just change its name
      */
     ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group_new",
@@ -1031,7 +1035,7 @@ START_TEST (test_sysdb_incomplete_group_rename)
                                      "S-1-5-21-123-456-789-111",
                                      NULL, true, 0);
     ck_assert_msg(ret == ERR_GID_DUPLICATED,
-                "Did not catch a legitimate rename. ret: %d [%s]",
+                "Did not catch a rename. ret: %d [%s]",
                 ret, sss_strerror(ret));
 }
 END_TEST
