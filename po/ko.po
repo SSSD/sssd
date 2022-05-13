@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-04-14 15:21+0200\n"
-"PO-Revision-Date: 2022-05-12 01:30+0000\n"
+"PO-Revision-Date: 2022-05-14 13:18+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-7/ko/>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.12.1\n"
+"X-Generator: Weblate 4.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2458,7 +2458,7 @@ msgstr "로컬 데이터의 백업 생성 중...\n"
 
 #: src/tools/sssctl/sssctl_data.c:237
 msgid "Unable to create backup of local data, can not remove the cache.\n"
-msgstr "로컬 데이터의 백업을 생성할 수 없습니다. 캐시를 제거할 수 없습니다.\n"
+msgstr "로컬 데이터의 백업을 생성 할 수 없으며, 캐쉬를 제거 할 수 없습니다.\n"
 
 #: src/tools/sssctl/sssctl_data.c:242
 msgid "Removing cache files...\n"
@@ -2466,7 +2466,7 @@ msgstr "캐시 파일 제거 중...\n"
 
 #: src/tools/sssctl/sssctl_data.c:245
 msgid "Unable to remove cache files\n"
-msgstr "캐시 파일을 제거할 수 없습니다\n"
+msgstr "캐쉬 파일을 제거 할 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_data.c:250
 msgid "Restoring local data...\n"
@@ -2561,7 +2561,7 @@ msgstr "로그 파일 삭제 중...\n"
 
 #: src/tools/sssctl/sssctl_logs.c:253
 msgid "Unable to remove log files\n"
-msgstr "로그 파일을 제거할 수 없습니다\n"
+msgstr "로그 파일을 제거 할 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_logs.c:270
 msgid "Truncating log files...\n"
