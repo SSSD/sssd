@@ -877,6 +877,7 @@ done
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/pam_sss_gss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
+%{_mandir}/man8/sssd_krb5_localauth_plugin.8*
 
 %files -n libsss_sudo
 %license src/sss_client/COPYING

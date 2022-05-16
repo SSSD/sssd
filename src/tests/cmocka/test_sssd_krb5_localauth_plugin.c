@@ -64,6 +64,36 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
     return test_data->status;
 }
 
+int getpwnam_r(const char *name, struct passwd *pwd,
+               char *buffer, size_t buflen, struct passwd **result)
+{
+    struct _nss_sss_getpwnam_r_test_data *test_data;
+
+    assert_non_null(name);
+    assert_non_null(pwd);
+    assert_non_null(result);
+    assert_non_null(buffer);
+    assert_int_not_equal(buflen, 0);
+
+    test_data = sss_mock_ptr_type(struct _nss_sss_getpwnam_r_test_data *);
+
+    if (test_data->status != NSS_STATUS_SUCCESS) {
+        *result = NULL;
+        return test_data->status == NSS_STATUS_NOTFOUND ? ENOENT : EIO;
+    }
+
+    pwd->pw_uid = test_data->uid;
+    if (test_data->name != NULL) {
+        assert_true(buflen > strlen(test_data->name));
+        strncpy(buffer, test_data->name, buflen);
+        pwd->pw_name = buffer;
+    }
+    *result = pwd;
+
+    return 0;
+}
+
+
 krb5_error_code
 localauth_sssd_initvt(krb5_context context, int maj_ver, int min_ver,
                        krb5_plugin_vtable vtable);
@@ -131,7 +161,7 @@ void test_sss_userok(void **state)
     for (c = 0; test_data[c].d1.uid != 0; c++) {
         will_return(_nss_sss_getpwnam_r, &test_data[c].d1);
         if (test_data[c].d2.uid != 0) {
-            will_return(_nss_sss_getpwnam_r, &test_data[c].d2);
+            will_return(getpwnam_r, &test_data[c].d2);
         }
         kerr = vtable.userok(krb5_ctx, NULL, princ, "name");
         assert_int_equal(kerr, test_data[c].kerr);
