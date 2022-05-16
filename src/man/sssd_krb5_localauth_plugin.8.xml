@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd_krb5_localauth_plugin</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd_krb5_localauth_plugin</refname>
+        <refpurpose>Kerberos local authorization plugin</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            The Kerberos local authorization plugin
+            <command>sssd_krb5_localauth_plugin</command> is used by libkrb5 to
+            either find the local name for a given Kerberos principal or to
+            check if a given local name and a given Kerberos principal relate
+            to each other.
+        </para>
+        <para>
+            SSSD handles the local names for users from a remote source and can
+            read the Kerberos user principal name from the remote source as
+	    well. With this information SSSD can easily handle the mappings
+            mentioned above even if the local name and the Kerberos principal
+            differ considerably.
+        </para>
+        <para>
+            Additionally with the information read from the remote source SSSD
+            can help to prevent unexpected or unwanted mappings in case the
+	    user part of the Kerberos principal accidentally corresponds to a
+            local name of a different user. By default libkrb5 might just strip
+            the realm part of the Kerberos principal to get the local name
+            which would lead to wrong mappings in this case.
+        </para>
+    </refsect1>
+
+    <refsect1 id='configuration'>
+        <title>CONFIGURATION</title>
+        <para>
+            The Kerberos local authorization plugin must be enabled explicitly
+            in the Kerberos configuration, see
+            <citerefentry>
+                <refentrytitle>krb5.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>.
+            SSSD will create a config snippet with the content like e.g.
+<programlisting>
+[plugins]
+ localauth = {
+  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so
+ }
+</programlisting>
+            automatically in the SSSD's public Kerberos configuration snippet
+            directory. If this directory is included in the local Kerberos
+            configuration the plugin will be enabled automatically.
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>
