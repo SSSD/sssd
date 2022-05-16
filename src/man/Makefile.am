@@ -66,7 +66,7 @@ EXTRA_DIST = $(wildcard $(srcdir)/*.xml) $(wildcard $(srcdir)/include/*.xml)
 man_MANS = \
     sssd.8 sssd.conf.5 sssd-ldap.5 sssd-ldap-attributes.5 \
     sssd-krb5.5 sssd-simple.5 sss-certmap.5 \
-    sssd_krb5_locator_plugin.8 \
+    sssd_krb5_locator_plugin.8 sssd_krb5_localauth_plugin.8 \
     pam_sss.8 pam_sss_gss.8 sss_obfuscate.8 sss_cache.8 sss_debuglevel.8 \
 	sss_seed.8 sss_override.8 idmap_sss.8 sssctl.8 sssd-session-recording.5 \
     $(NULL)
