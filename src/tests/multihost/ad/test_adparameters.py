@@ -756,3 +756,52 @@ class TestBugzillaAutomation(object):
         client.restore_sssd_conf()
 
         assert find.search(log), "Expected log record is missing."
+
+    @pytest.mark.tier1
+    def test_0019_bz2070189(self, multihost, adjoin):
+        """
+        :title: sssd error triggers backtrace :
+        [write_krb5info_file_from_fo_server] (0x0020): [RID#73501]
+        There is no server that can be written into kdc info file. is set
+        and files provider is also enabled
+        :id:
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2070189
+        :steps:
+          1. setup AD environment
+          2. Join linux machine into AD domain
+          3. Set the debug_level in sssd.conf for AD domain to 1,
+            make sure backtrace dump is enabled (debug_backtrace_enabled=True)
+            make sure that krb5_use_kdcinfo=True
+          4. clear the cache sss_cache -E
+          5. lookup AD user `id administrator@domain`
+        :results:
+           Backtrace is NOT triggered
+        """
+        adjoin(membersw='adcli')
+        backup = 'cp -f /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
+        restore = 'cp -f /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
+        multihost.client[0].run_command(backup)
+        client = sssdTools(multihost.client[0])
+        domain_name = multihost.ad[0].domainname
+        domain_log = '/var/log/sssd/sssd_%s.log' % domain_name
+        domain_sec_name = client.get_domain_section_name()
+        dom_section = 'domain/%s' % domain_sec_name
+        sssd_params = {'domains': 'files, %s' % domain_sec_name}
+        client.sssd_conf('sssd', sssd_params)
+        domain_params = {'debug_level': '1', 'krb5_use_kdcinfo': 'True',
+                         'debug_backtrace_enabled': 'True'}
+        client.sssd_conf(dom_section, domain_params)
+        file_section = 'domain/files'
+        file_params = {'id_provider': 'files'}
+        client.sssd_conf(file_section, file_params)
+        multihost.client[0].run_command('id')
+        multihost.client[0].run_command('sss_cache -E')
+        multihost.client[0].run_command('service sssd restart')
+        md5sum = multihost.client[0].run_command('md5sum %s' % domain_log)
+        multihost.client[0].run_command('id administrator@%s' % domain_name)
+        md5sum1 = multihost.client[0].run_command('md5sum %s' % domain_log)
+        multihost.client[0].run_command(restore)
+        remove_backup_file = 'rm -f /etc/sssd/sssd.conf.orig'
+        multihost.client[0].run_command(remove_backup_file)
+        assert md5sum.stdout_text == md5sum1.stdout_text
+
