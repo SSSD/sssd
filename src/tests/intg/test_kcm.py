@@ -514,6 +514,8 @@ def test_kcm_renewals(setup_for_kcm_renewals_secdb):
     """
     Test that basic KCM renewal works
     """
+    if "LC_TIME" in os.environ:
+        del os.environ["LC_TIME"]
     testenv = setup_for_kcm_renewals_secdb
     testenv.k5kdc.add_principal("user1", "Secret123")
 
