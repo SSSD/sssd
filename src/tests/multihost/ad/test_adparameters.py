@@ -174,7 +174,7 @@ class TestBugzillaAutomation(object):
         :steps:
           1. Create AD group with scope as "Global" and type "Security"
           2. Update the properties newly created group and update under
-           "Member of" tab and add Users BUILTIN group.
+             "Member of" tab and add Users BUILTIN group.
           3. Check the group lookup for BUILTIN group.
           4. Check the cache entry, for built in group.
         :expectedresults:
@@ -443,7 +443,7 @@ class TestBugzillaAutomation(object):
         :id: b8382774-e568-4e5b-b787-bdd4db380c28
         :steps:
           1. Add user and set its UPN different from the username,
-            Ex: TestUserUPN@ad.vm
+             Ex: TestUserUPN@ad.vm
           2. Run command "dbus-send --print-reply --system
              --dest=org.freedesktop.sssd.infopipe /org/freedesktop/sssd/
              infopipe org.freedesktop.sssd.infopipe.GetUserAttr string:

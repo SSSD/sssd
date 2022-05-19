@@ -244,14 +244,14 @@ class TestMisc(object):
         :customerscenario: true
         :steps:
             1. Configure SSSD with id_provider = ldap and
-            set ldap_schema = rfc2307bis
+               set ldap_schema = rfc2307bis
             2. Add necessary users and groups with uniqueMember.
             3. Check 'getent group ldapgroupname' output.
         :expectedresults:
             1. Should succeed
             2. Should succeed
             3. 'getent group ldapgroupname' should show
-            all it's member ldapusers.
+               all it's member ldapusers.
         """
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
