@@ -177,9 +177,9 @@ class TestServices(object):
           1. Find main sssd process id
           2. Send SIGHUP
           3. There should not be any logs for
-            Unable to signal service .* No such
-            file or directory
-            modifyTimestamp in the filter
+             'Unable to signal service .* No such
+             file or directory
+             modifyTimestamp' in the filter
         :expectedresults:
           1. Should succeed
           2. Should succeed

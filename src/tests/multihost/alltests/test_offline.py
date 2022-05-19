@@ -68,14 +68,14 @@ class TestOffline(object):
           2. Configure SSSD with only 1  id_provider.
           3. Block "id_provider" using "iptables" command.
           4. Step 6 should fail and similar messages
-            should be observed in log file
-            (/var/log/sssd/sssd_<domainname>.log).
+             should be observed in log file
+             (/var/log/sssd/sssd_<domainname>.log).
           5. The log snip should contain following
-           timeout parameters.
-            - ldap_opt_timeout
-            - ldap_search_timeout
-            - ldap_network_timeout
-            - dns_resolver_timeout
+             timeout parameters.
+             - ldap_opt_timeout
+             - ldap_search_timeout
+             - ldap_network_timeout
+             - dns_resolver_timeout
         :expectedresults:
           1. Should succeed
           2. Should succeed
