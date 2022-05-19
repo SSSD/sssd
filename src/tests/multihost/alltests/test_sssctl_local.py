@@ -94,13 +94,12 @@ class Testsssctl(object):
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1661182
         :steps:
           1. Configure sssd without any domain
-          2. Restart sssd (sssd should not be
-           running after this)
+          2. Restart sssd (sssd should not be running after this)
           3. Modify existing local user usermod -a -G wheel user1
           4. This message
-           [sss_cache] [confdb_get_domains] (0x0010):
-           No domains configured, fatal error!
-           must not appear in console
+             '[sss_cache] [confdb_get_domains] (0x0010):
+             No domains configured, fatal error!'
+             must not appear in console
         :expectedresults:
           1. Should succeed
           2. Should succeed

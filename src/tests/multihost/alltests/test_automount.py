@@ -206,9 +206,9 @@ class Testautofsresponder(object):
         :customerscenario: true
         :steps:
             1. Configure SSSD with autofs, automountMap,
-            automount, automountInformation
+               automount, automountInformation
             2. Add 2 automount entries in LDAP with
-            same key ( cn: MIT and cn: mit)
+               same key ( cn: MIT and cn: mit)
             3. We should have the 2 automounts working
         :expectedresults:
             1. Should succeed
@@ -314,7 +314,7 @@ class Testautofsresponder(object):
           1. Access nfs share /export/nfs-test with autofs provider not set
         :expectedresults:
           1. Verify automount maps are loaded from AD and client is able to
-           mount nfs share
+             mount nfs share
         """
         # pylint: disable=unused-argument
         client = sssdTools(multihost.client[0])
@@ -410,7 +410,7 @@ class Testautofsresponder(object):
         :id: 92640015-52b9-4e76-9e63-ea7357eec9cd
         :steps:
           1. Add Indirect map auto.idmtest which has mount point keys
-           from foo1 to foo20 pointing to /projects/foo1 to /projects/foo20
+             from foo1 to foo20 pointing to /projects/foo1 to /projects/foo20
         :expectedresults:
           1. Verify sssd doesn't use (cn=*)(objectclass=nisObject)
         """
