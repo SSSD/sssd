@@ -68,7 +68,7 @@ class TestKcm(object):
           1. Configure SSSD with sudo
           2. Leave ou=sudoers empty - do not define any rules
           3. See that smart refresh does not contain
-          modifyTimestamp in the filter
+             modifyTimestamp in the filter
         :expectedresults:
           1. Should succeed
           2. Should succeed

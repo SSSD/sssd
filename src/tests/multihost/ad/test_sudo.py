@@ -52,9 +52,8 @@ class TestSudo(object):
           1. Should succeed
           2. Verify the the user when logged in with upper
              and lower case can fetch the sudo rules from AD
-        Note: This test case also cover BZ-1622109 and BZ-bz1519287
-        Sudo rules used in the fixture contains multiple
-        sudoUser attributes added.
+        :description: Note: This test case also cover BZ-1622109 and BZ-bz1519287
+         Sudo rules used in the fixture contains multiple sudoUser attributes added.
         """
         multihost.client[0].service_sssd('restart')
         realm = multihost.ad[0].realm
@@ -174,10 +173,10 @@ class TestSudo(object):
         3. Set debug level to 2
 
         :steps:
-         1.Run sudo command as AD-user for whom rule is created
+          1. Run sudo command as AD-user for whom rule is created
         :expectedResuls:
-        1. There should be no error in the sudo or domain log related
-           to 'short-username or non-fqdn username'
+          1. There should be no error in the sudo or domain log related
+             to 'short-username or non-fqdn username'
         """
         client = sssdTools(multihost.client[0], multihost.ad[0])
         domain_name = client.get_domain_section_name()

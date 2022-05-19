@@ -109,7 +109,7 @@ class Testautofsresponder(object):
         :id: e8dbd94d-c557-4533-8ab7-bc891e1609a3
         :steps:
           1. Edit sssd.conf and specify below parameters: autofs_provider = ad
-           ldap_autofs_search_base = ou=automount,dc=<ad-domain>
+             ldap_autofs_search_base = ou=automount,dc=<ad-domain>
           2. Restart sssd
           3. Execute automount -m
           4. Access /export shared
@@ -205,7 +205,7 @@ class Testautofsresponder(object):
         :expectedresults:
           1. autofs_provider is not set
           2. Verify automount maps are loaded from AD and client is able to
-           mount nfs share
+             mount nfs share
         """
         # pylint: disable=unused-argument
         client = sssdTools(multihost.client[0])

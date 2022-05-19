@@ -192,16 +192,15 @@ class Testipabz(object):
             4. Enable SSSD debug logs
             5. Switch to 'admin' user
             6. obtain Kerberos ticket and check that it
-             was obtained using SPAKE pre-authentication.
+               was obtained using SPAKE pre-authentication.
             7. Create sudo configuration that allows an admin to
-             run SUDO rules
+               run SUDO rules
             8. Try 'sudo -l' as admin
             9. As root, check content of sssd_pam.log
-            10. Check if acquired service ticket has
-             req. indicators: 0
-            11. Add pam_sss_gss configuration to /etc/sssd/sssd.conf
-            12. Check if acquired service ticket has req.
-             indicators: 2
+           10. Check if acquired service ticket has req. indicators: 0
+           11. Add pam_sss_gss configuration to /etc/sssd/sssd.conf
+           12. Check if acquired service ticket has req.
+               indicators: 2
         :expectedresults:
             1. Should succeed
             2. Should succeed
@@ -212,9 +211,9 @@ class Testipabz(object):
             7. Should succeed
             8. Should succeed
             9. Should succeed
-            10. Should succeed
-            11. Should succeed
-            12. Should succeed
+           10. Should succeed
+           11. Should succeed
+           12. Should succeed
         """
         client = sssdTools(multihost.client[0])
         domain_params = {'pam_gssapi_services': 'sudo, sudo-i',
@@ -314,7 +313,7 @@ class Testipabz(object):
             3. Configure /etc/pam.d/sudo
             4. Configur /etc/pam.d/sudo-i
             5. Create IPA sudo rule of /usr/sbin/sssctl
-             for user admin
+               for user admin
             6. Check user admin can use sudo command
             7. Restore of files
         :expectedresults:
@@ -451,8 +450,7 @@ class Testipabz(object):
           3. Successfully set the option in sssd.conf.
           4. Successfully logged in to IPA user.
           5. Successfully get a ccache file with the FAST armor ticket
-        :bugzilla:
-        https://bugzilla.redhat.com/show_bug.cgi?id=1859751
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1859751
         """
         sssd_client = sssdTools(multihost.client[0])
         domain_name = f'domain/{sssd_client.get_domain_section_name()}'

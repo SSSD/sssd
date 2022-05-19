@@ -33,9 +33,9 @@ class TestDefaultDebugLevel(object):
           1. sssd should use default debug level with no level defined
           2. sssd services start successfully
           3. Log files has
-            a. default level set to 0x0070
-            b. 0x1f7c0 logs for "SSSDBG_IMPORTANT_INFO"
-            c. Other logs could be <= 0x0040
+             a. default level set to 0x0070
+             b. 0x1f7c0 logs for "SSSDBG_IMPORTANT_INFO"
+             c. Other logs could be <= 0x0040
         """
         section = f"domain/{ds_instance_name}"
         domain_params = {'debug_level': ''}
