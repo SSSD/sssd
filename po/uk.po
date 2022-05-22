@@ -4,19 +4,19 @@
 #
 # Translators:
 # sgallagh <sgallagh@redhat.com>, 2011
-# Yuri Chornoivan <yurchor@ukr.net>, 2011-2014, 2020, 2021.
-# Yuri Chornoivan <yurchor@ukr.net>, 2013, 2020, 2021.
-# Yuri Chornoivan <yurchor@ukr.net>, 2015. #zanata, 2020, 2021.
-# Yuri Chornoivan <yurchor@ukr.net>, 2017. #zanata, 2020, 2021.
-# Yuri Chornoivan <yurchor@ukr.net>, 2018. #zanata, 2020, 2021.
-# Yuri Chornoivan <yurchor@ukr.net>, 2019. #zanata, 2020, 2021.
-# Yuri Chornoivan <yurchor@ukr.net>, 2020. #zanata, 2021.
+# Yuri Chornoivan <yurchor@ukr.net>, 2011-2014, 2020, 2021, 2022.
+# Yuri Chornoivan <yurchor@ukr.net>, 2013, 2020, 2021, 2022.
+# Yuri Chornoivan <yurchor@ukr.net>, 2015. #zanata, 2020, 2021, 2022.
+# Yuri Chornoivan <yurchor@ukr.net>, 2017. #zanata, 2020, 2021, 2022.
+# Yuri Chornoivan <yurchor@ukr.net>, 2018. #zanata, 2020, 2021, 2022.
+# Yuri Chornoivan <yurchor@ukr.net>, 2019. #zanata, 2020, 2021, 2022.
+# Yuri Chornoivan <yurchor@ukr.net>, 2020. #zanata, 2021, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-04-14 15:21+0200\n"
-"PO-Revision-Date: 2021-12-25 00:16+0000\n"
+"PO-Revision-Date: 2022-04-21 19:17+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/uk/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.11.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1199,7 +1199,7 @@ msgstr "Визначає реєстраційний запис, який слі�
 
 #: src/config/SSSDConfig/sssdoptions.py:332
 msgid "Use anonymous PKINIT to request FAST credentials"
-msgstr ""
+msgstr "Анонімні PKINIT для запитів щодо реєстраційних даних FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:333
 msgid "Enables principal canonicalization"
@@ -1356,7 +1356,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:374
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "Ігнорувати непридатні до читання посилання LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:375
 msgid ""
@@ -2066,7 +2066,7 @@ msgstr "Група, від імені якої слід створити ccache 
 
 #: src/providers/krb5/krb5_child.c:3727
 msgid "Use anonymous PKINIT to request FAST armor ticket"
-msgstr ""
+msgstr "Анонімний PKINIT для запитів щодо квитка захисту FAST"
 
 #: src/providers/krb5/krb5_child.c:3729
 msgid "Kerberos realm to use"
@@ -2204,16 +2204,16 @@ msgstr "Спроба зміни пароля зазнала невдачі. "
 #: src/sss_client/pam_sss.c:1724
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
-msgstr ""
+msgstr "Пройдіть розпізнавання на %1$s і натисніть ENTER."
 
 #: src/sss_client/pam_sss.c:1727
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
-msgstr ""
+msgstr "Пройдіть розпізнавання за допомогою PIN %1$s на %2$s і натисніть ENTER."
 
 #: src/sss_client/pam_sss.c:1942
 msgid "Please (re)insert (different) Smartcard"
-msgstr ""
+msgstr "Будь ласка, вставте (повторно) (іншу) смарт-картку"
 
 #: src/sss_client/pam_sss.c:2141
 msgid "New Password: "

@@ -11,16 +11,16 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-04-14 15:20+0200\n"
-"PO-Revision-Date: 2021-12-03 22:16+0000\n"
+"PO-Revision-Date: 2022-05-20 09:18+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"manpage-master/cs/>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-manpage-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.9.1\n"
+"X-Generator: Weblate 4.12.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -38,7 +38,7 @@ msgstr "Manuálové stránky SSSD"
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.conf.5.xml:10 sssd.conf.5.xml:16
 msgid "sssd.conf"
-msgstr ""
+msgstr "sssd.conf"
 
 # auto translated by TM merge from project: Fedora Elections Guide, version:
 # master, DocId: Methods
@@ -79,6 +79,11 @@ msgid ""
 "<replaceable>key2</replaceable> = <replaceable>value2,value3</replaceable>\n"
 "            "
 msgstr ""
+"<replaceable>[sekce]</replaceable>\n"
+"<replaceable>klíč</replaceable> = <replaceable>hodnota</replaceable>\n"
+"<replaceable>klíč2</replaceable> = "
+"<replaceable>hodnota2,hodnota3</replaceable>\n"
+"            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:24
@@ -88,6 +93,10 @@ msgid ""
 "until the next section begins. An example of section with single and multi-"
 "valued parameters: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
+"Forma zápisu v souboru je ve stylu ini a sestává se ze sekcí a parametrů. "
+"Sekce začíná jejím názvem (v hranatých závorkách) a pokračuje až po začátek "
+"následující sekce. Příklad jedné sekce s jedno a vícehodnotovými parametry: "
+"<placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:36
@@ -95,6 +104,8 @@ msgid ""
 "The data types used are string (no quotes needed), integer and bool (with "
 "values of <quote>TRUE/FALSE</quote>)."
 msgstr ""
+"Používané datové typy jsou řetězce (není třeba obklopovat uvozovkami), celá "
+"čísla bolean (s hodnotami <quote>TRUE/FALSE</quote>)."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:41
@@ -102,6 +113,8 @@ msgid ""
 "A comment line starts with a hash sign (<quote>#</quote>) or a semicolon "
 "(<quote>;</quote>).  Inline comments are not supported."
 msgstr ""
+"Řádek s komentářem začíná na znak # (křížek) (<quote>#</quote>) nebo "
+"středník (<quote>;</quote>). Komentáře v rámci řádku nejsou podporovány."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:47
@@ -109,6 +122,8 @@ msgid ""
 "All sections can have an optional <replaceable>description</replaceable> "
 "parameter. Its function is only as a label for the section."
 msgstr ""
+"Všechny sekce mohou mít volitelný <replaceable>popis</replaceable> "
+"parametry. Jeho funkcí je pouze oštítkování sekce."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:53

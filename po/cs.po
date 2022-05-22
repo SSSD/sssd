@@ -7,16 +7,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-04-14 15:21+0200\n"
-"PO-Revision-Date: 2022-02-16 22:16+0000\n"
+"PO-Revision-Date: 2022-05-20 09:18+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"master/cs/>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1151,7 +1151,7 @@ msgstr "Vybírá principal pro použití pro FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:332
 msgid "Use anonymous PKINIT to request FAST credentials"
-msgstr ""
+msgstr "K vyžádání FAST přihlašovacích údajů použít anonymní PKINIT"
 
 #: src/config/SSSDConfig/sssdoptions.py:333
 msgid "Enables principal canonicalization"
@@ -1300,7 +1300,7 @@ msgstr "Počet členů který je třeba aby chyběli, aby bylo spuštěno plné 
 
 #: src/config/SSSDConfig/sssdoptions.py:374
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "Ignorovat nečitelné LDAP reference"
 
 #: src/config/SSSDConfig/sssdoptions.py:375
 msgid ""
@@ -1991,7 +1991,7 @@ msgstr "Skupina pod kterou vytvořit FAST ccache"
 
 #: src/providers/krb5/krb5_child.c:3727
 msgid "Use anonymous PKINIT to request FAST armor ticket"
-msgstr ""
+msgstr "K vyžádání FAST chráněného tiketu použít anonymní PKINIT"
 
 #: src/providers/krb5/krb5_child.c:3729
 msgid "Kerberos realm to use"
@@ -2128,16 +2128,16 @@ msgstr "Změna hesla se nezdařila. "
 #: src/sss_client/pam_sss.c:1724
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
-msgstr ""
+msgstr "Ověřit na %1$s a stisknout ENTER."
 
 #: src/sss_client/pam_sss.c:1727
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
-msgstr ""
+msgstr "Ověřte se PIN kódem %1$s na %2$s a stiskněte Enter."
 
 #: src/sss_client/pam_sss.c:1942
 msgid "Please (re)insert (different) Smartcard"
-msgstr ""
+msgstr "(Znovu) vložte (jinou?) Smartcard kartu"
 
 #: src/sss_client/pam_sss.c:2141
 msgid "New Password: "
