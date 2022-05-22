@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-04-14 15:20+0200\n"
-"PO-Revision-Date: 2022-01-30 16:16+0000\n"
+"PO-Revision-Date: 2022-05-18 08:18+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.12.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -1828,18 +1828,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1237
-#, fuzzy
-#| msgid "memcache_size_passwd (integer)"
 msgid "memcache_size_sid (integer)"
-msgstr "memcache_size_passwd (heltal)"
+msgstr "memcache_size_sid (integer)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1240
-#, fuzzy
-#| msgid ""
-#| "Size (in megabytes) of the data table allocated inside fast in-memory "
-#| "cache for passwd requests.  Setting the size to 0 will disable the passwd "
-#| "in-memory cache."
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for SID related requests.  Only SID-by-ID and ID-by-SID requests are "
@@ -1847,8 +1840,9 @@ msgid ""
 "disable the SID in-memory cache."
 msgstr ""
 "Storlek (i megabyte) på datatabellen som allokeras inuti en snabb i-minnes-"
-"cache för lösenordsbegäranden. Att sätta storleken till 0 kommer avaktivera "
-"lösenords-cachen i minnet."
+"cache för SID-realterade begäranden. Endast SID-via-ID- och ID-via-SID-"
+"begäranden sparas för närvarande i den snabba cachen i minnet. Att sätta "
+"storleken till 0 kommer avaktivera SID-cachen i minnet."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1264 sssd-ifp.5.xml:90
@@ -4680,12 +4674,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3331
-#, fuzzy
-#| msgid ""
-#| "Default for the AD and IPA provider: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
-#| "\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;[^@]+)@(?P&lt;domain&gt;.+$))|(^(?"
-#| "P&lt;name&gt;[^@\\\\]+)$))</quote> which allows three different styles "
-#| "for user names:"
 msgid ""
 "Default for the AD and IPA provider: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
 "\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))|(^(?"
@@ -4693,8 +4681,8 @@ msgid ""
 "user names:"
 msgstr ""
 "Standard för leverantörerna AD och IPA: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
-"\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;[^@]+)@(?P&lt;domain&gt;.+$))|(^(?"
-"P&lt;name&gt;[^@\\\\]+)$))</quote> vilket tillåter tre olika stilar av "
+"\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))|(^(?P&lt"
+";name&gt;[^@\\\\]+)$))</quote> vilket tillåter tre olika stilar av "
 "användarnamn:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -6895,10 +6883,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:690
-#, fuzzy
-#| msgid "ad_gpo_ignore_unreadable (boolean)"
 msgid "ldap_ignore_unreadable_references (bool)"
-msgstr "ad_gpo_ignore_unreadable (boolean)"
+msgstr "ldap_ignore_unreadable_references (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:693
@@ -6907,6 +6893,9 @@ msgid ""
 "this parameter is set to false an error will be returned and the operation "
 "will fail instead of just ignoring the unreadable entry."
 msgstr ""
+"Ignorera oläsbara LDAP-poster refererade i gruppens medlemsattribut. Om "
+"denna parameter sätts till falskt kommer ett fel returneras och åtgärden "
+"misslyckas istället för att den oläsbara posten bara ignoreras."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:700
@@ -6915,6 +6904,9 @@ msgid ""
 "account that sssd uses to connect to AD does not have access to a particular "
 "entry or LDAP sub-tree for security reasons."
 msgstr ""
+"Denna parameter kan vara användbar när man använder AD-leverantören och "
+"datorkontot som sssd använder för att ansluta till AD inte har tillgång till "
+"en viss post eller ett visst LDAP-underträd av säkerhetsskäl."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:713
@@ -9532,9 +9524,9 @@ msgstr ""
 "avaktiveras genom att ta bort filen med insticksmodulen. Det finns ingen "
 "möjlighet att avaktivera den i Kerberos konfiguration. Men miljövariabeln "
 "SSSD_KRB5_LOCATOR_DISABLE kan användas för att avaktivera insticksmodulen "
-"för individuella kommandon.  Alternativt kan SSSD-alternativet "
+"för individuella kommandon. Alternativt kan SSSD-alternativet "
 "krb5_use_kdcinfo=False användas för att inte generera de data som behövs av "
-"insticksmodulen.  Med denna anropas fortfarande insticksmodulen men den "
+"insticksmodulen. Med denna anropas fortfarande insticksmodulen men den "
 "tillhandahåller inga data till anroparen så att libkrb5 kan falla tillbaka "
 "på andra metoder som är definierade i krb5.conf."
 
@@ -9660,7 +9652,7 @@ msgid ""
 "first DNS resolving failure."
 msgstr ""
 "Om miljövariabeln SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES är satt till något "
-"värde kommer insticksmodulen försöka slå upp alla DNS-namn i filen kdcinfo.  "
+"värde kommer insticksmodulen försöka slå upp alla DNS-namn i filen kdcinfo. "
 "Som standard returneras KRB5_PLUGIN_NO_HANDLE till anroparen omedelbart vid "
 "den första misslyckade DNS-uppslagningen."
 
@@ -9698,7 +9690,7 @@ msgid ""
 "deny list of user or group names. The following rules apply:"
 msgstr ""
 "Åtkomstleverantören simple tillåter eller nekar åtkomst baserat på en "
-"åtkomst- eller nekandelista över användar- eller gruppnamn.  Följande regler "
+"åtkomst- eller nekandelista över användar- eller gruppnamn. Följande regler "
 "är tillämpliga:"
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
@@ -9712,7 +9704,7 @@ msgid ""
 "If any list is provided, the order of evaluation is allow,deny. This means "
 "that any matching deny rule will supersede any matched allow rule."
 msgstr ""
-"Om någon lista tillhandahålls är evalueringsordningen allow,deny.  Detta "
+"Om någon lista tillhandahålls är evalueringsordningen allow,deny. Detta "
 "betyder att en deny-regel som matchar kommer gå före en eventuell matchande "
 "allow-regel."
 
@@ -9804,7 +9796,7 @@ msgid ""
 "using automated scripts."
 msgstr ""
 "Att inte ange några värden för någon av listorna är likvärdigt med att hoppa "
-"över det helt.  Var medveten om detta när parametrar genereras för "
+"över det helt. Var medveten om detta när parametrar genereras för "
 "leverantören simple med automatiserade skript."
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -9824,7 +9816,7 @@ msgid ""
 "This examples shows only the simple access provider-specific options."
 msgstr ""
 "Följande exempel antar att SSSD är korrekt konfigurerat och att example.com "
-"är en av domänerna i avsnittet <replaceable>[sssd]</replaceable>.  Dessa "
+"är en av domänerna i avsnittet <replaceable>[sssd]</replaceable>. Dessa "
 "exempel visar endast alternativ som är specifika för åtkomstleverantören "
 "simple."
 
@@ -9965,12 +9957,12 @@ msgid ""
 "or '&#124;&#124;' (or)."
 msgstr ""
 "Matchningsregeln används för att välja ett certifikat som "
-"översättningsregeln skall tillämpas på.  Det använder ett system liknande "
-"det som används av alternativet <quote>pkinit_cert_match</quote> i MIT "
-"Kerberos.  Det består av ett nyckelord omgivet av ”&lt;” och ”&gt;” som "
-"identifierar en specifik del av certifikatet och ett mönster som skall "
-"finnas för att regeln skall matcha.  Flera nyckelord/mönster-par  kan "
-"antingen sammanfogas med ”&amp;&amp;” (och) eller ”&#124;&#124;” (eller)."
+"översättningsregeln skall tillämpas på. Det använder ett system liknande det "
+"som används av alternativet <quote>pkinit_cert_match</quote> i MIT Kerberos. "
+"Det består av ett nyckelord omgivet av ”&lt;” och ”&gt;” som identifierar en "
+"specifik del av certifikatet och ett mönster som skall finnas för att regeln "
+"skall matcha. Flera nyckelord/mönster-par kan antingen sammanfogas med "
+"”&amp;&amp;” (och) eller ”&#124;&#124;” (eller)."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:79
@@ -10001,11 +9993,11 @@ msgid ""
 "regular-expression."
 msgstr ""
 "För matchningen konverteras subject-namnet lagrat i certifikatet i DER-kodad "
-"ASN.1 till en sträng i enlighet med RFC 4514.  Detta betyder att den mest "
-"specifika namnkomponenten kommer först.  Observera att inte alla möjliga "
-"attributnamn täcks av RFC 4514.  De inkluderade namnen är ”CN”, ”L”, ”ST”, "
-"”O”, ”OU”, ”C”, ”STREET”, ”DC” och ”UID”. Andra attributnamn kan visas olika "
-"på olika plattformar och av olika verktyg. För att undvika förvirring är det "
+"ASN.1 till en sträng i enlighet med RFC 4514. Detta betyder att den mest "
+"specifika namnkomponenten kommer först. Observera att inte alla möjliga "
+"attributnamn täcks av RFC 4514. De inkluderade namnen är ”CN”, ”L”, ”ST”, ”O”"
+", ”OU”, ”C”, ”STREET”, ”DC” och ”UID”. Andra attributnamn kan visas olika på "
+"olika plattformar och av olika verktyg. För att undvika förvirring är det "
 "bäst att dessa attributnamn inte används eller täcks av ett lämpligt "
 "reguljärt uttryck."
 
@@ -10041,7 +10033,7 @@ msgid ""
 "With this a part or the whole issuer name of the certificate can be matched. "
 "All comments for &lt;SUBJECT&gt; apply her as well."
 msgstr ""
-"Med denna kan en del eller hela certifikatets issuer-namn matchas.  Alla "
+"Med denna kan en del eller hela certifikatets issuer-namn matchas. Alla "
 "kommentarer för &lt;SUBJECT&gt; är tillämpliga här också."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
@@ -10061,7 +10053,7 @@ msgid ""
 "should have. The following values can be used in a comma separated list:"
 msgstr ""
 "Detta alternativ kan användas för att specificera vilka "
-"nyckelanvändningsvärden certifikatet skall ha.  Följande värden kan användas "
+"nyckelanvändningsvärden certifikatet skall ha. Följande värden kan användas "
 "i en kommaseparerad lista:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -10135,7 +10127,7 @@ msgid ""
 "should have. The following value can be used in a comma separated list:"
 msgstr ""
 "Detta alternativ kan användas för att specificera vilka utökade-nyckel-"
-"användningsvärden certifikatet skall ha.  Följande värden kan användas i en "
+"användningsvärden certifikatet skall ha. Följande värden kan användas i en "
 "kommaseparerad lista:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -15178,10 +15170,9 @@ msgstr "Standard: inte satt, d.v.s. FAST används inte."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:299
-#, fuzzy
-#| msgid "NOTE: a keytab is required to use FAST."
 msgid "NOTE: a keytab or support for anonymous PKINIT is required to use FAST."
-msgstr "OBSERVERA: en keytab krävs för att använda FAST."
+msgstr ""
+"OBSERVERA: en keytab eller stöd för anonym PKINIT krävs för att använda FAST."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:303
@@ -15206,10 +15197,8 @@ msgstr "Anger serverhuvudmannen att använda för FAST."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:321
-#, fuzzy
-#| msgid "krb5_use_kdcinfo (boolean)"
 msgid "krb5_fast_use_anonymous_pkinit (boolean)"
-msgstr "krb5_use_kdcinfo (boolean)"
+msgstr "krb5_fast_use_anonymous_pkinit (boolean)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:324
@@ -15218,6 +15207,9 @@ msgid ""
 "required credential for FAST. The krb5_fast_principal options is ignored in "
 "this case."
 msgstr ""
+"Om satt till sant, försök använda anonym PKINIT istället för en keytab för "
+"att få de begärda kreditiven för FAST. Alternativet krb5_fast_prinicpal "
+"ignoreras i detta fall."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:364
@@ -20706,6 +20698,10 @@ msgid ""
 "internally the logged execution time of a request might be longer than it "
 "actually was."
 msgstr ""
+"<emphasis>9</emphasis>,<emphasis>0x20000</emphasis>: Prestanda och "
+"statistiska data, observera att på grund av hur förfrågningar behandlas "
+"internt kan den loggade exekveringstiden för en förfrågan vara längre än den "
+"faktiskt var."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:88 include/debug_levels_tools.xml:62

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2022-04-13 14:17+0000\n"
+"PO-Revision-Date: 2022-05-22 09:18+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.11.2\n"
+"X-Generator: Weblate 4.12.2\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -61,9 +61,8 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_groupmod</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
+"<command>sss_groupmod</command> <arg choice='opt'> <replaceable>옵션</"
+"replaceable> </arg> <arg choice='plain'><replaceable>그룹</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_groupmod.8.xml:30 sssd-ldap.5.xml:21 pam_sss.8.xml:63
@@ -323,6 +322,10 @@ msgid ""
 "are specified, the value of <replaceable>debug_level</replaceable> will be "
 "used."
 msgstr ""
+"SSSD 1.14와 그 향 후 버전에는 편의 기능으로 "
+"<replaceable>디버그_레벨l<replaceable>을 위한 </replaceable>디버그</"
+"replaceable> 별칭도 포함되어 있습니다. 만약 둘 다 지정되면, "
+"<replaceable>디버그_레벨</replaceable> 값이 사용됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:125
@@ -335,6 +338,8 @@ msgid ""
 "Add a timestamp to the debug messages.  If journald is enabled for SSSD "
 "debug logging this option is ignored."
 msgstr ""
+"디버그 메시지에 시간표기를 추가합니다. 만약 journald가 SSSD 디버그 로깅을 "
+"위해 활성화된 경우에 이와 같은 옵션은 무시됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:133 sssd.conf.5.xml:170 sssd.conf.5.xml:355
@@ -358,6 +363,8 @@ msgid ""
 "Add microseconds to the timestamp in debug messages.  If journald is enabled "
 "for SSSD debug logging this option is ignored."
 msgstr ""
+"밀리초를 디버그 메시지의 시간표기로 추가합니다.  만약 journald가 SSSD 디버그 "
+"로깅을 위해 활성화된 경우에 이와 같은 옵션은 무시됩니다."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:146 sssd.conf.5.xml:644 sssd.conf.5.xml:883
@@ -483,6 +490,10 @@ msgid ""
 "\"with_ssh\">, ssh</phrase> <phrase condition=\"with_pac_responder\">, pac</"
 "phrase> <phrase condition=\"with_ifp\">, ifp</phrase>"
 msgstr ""
+"지원 서비스: nss, pam <phrase condition=\"with_sudo\">, sudo</phrase> "
+"<phrase condition=\"with_autofs\">, autofs</phrase> <phrase condition="
+"\"with_ssh\">, ssh</phrase> <phrase condition=\"with_pac_responder\">, pac</"
+"phrase> <phrase condition=\"with_ifp\">, ifp</phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:246
@@ -840,7 +851,7 @@ msgstr "sha512"
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:532
 msgid "Default: sha1 (to allow compatibility with RFC5019-compliant responder)"
-msgstr ""
+msgstr "기본값: sha1 (RFC5019-호환 응답자와의 호환성 허용)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:538
@@ -884,7 +895,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:569
 msgid "ocsp_default_responder_signing_cert=NAME"
-msgstr ""
+msgstr "ocsp_default_responder_signing_cert=이름"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:571
@@ -1071,7 +1082,7 @@ msgstr "기본값: 8192(또는 limit.conf \"hard\" 제한)"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:748
 msgid "client_idle_timeout"
-msgstr ""
+msgstr "client_idle_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:751
@@ -1110,6 +1121,8 @@ msgid ""
 "new_delay = Minimum(old_delay * 2, offline_timeout_max) + random[0..."
 "offline_timeout_random_offset]"
 msgstr ""
+"new_delay = Minimum(old_delay * 2, offline_timeout_max) + random[0..."
+"offline_timeout_random_offset]"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:782
@@ -1187,7 +1200,8 @@ msgstr "offline_timeout_random_offset (정수)"
 msgid ""
 "When SSSD is in offline mode it keeps probing backend servers in specified "
 "time intervals:"
-msgstr ""
+msgstr "SSSD가 오프라인 모드일 때에 이는 지정된 시간 간격에서 백엔드 서버를 계속 "
+"조사합니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:838
@@ -3926,6 +3940,8 @@ msgid ""
 "<quote>proxy</quote> to forward lookups to another NSS library. See "
 "<quote>proxy_resolver_lib_name</quote>"
 msgstr ""
+"다른 NSS 라이브러리로 조회를 전달하기 위한<quote>proxy</quote>. "
+"<quote>proxy_resolver_lib_name</quote>를 참고하세요"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3275
@@ -3947,7 +3963,8 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3290
 msgid "<quote>none</quote> disallows fetching hosts and networks explicitly."
-msgstr ""
+msgstr "<quote>none</quote>은 호스트와 네트워크를 명시적으로 가져오는 것을 허용하지 "
+"않습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3303
@@ -4994,7 +5011,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:4234
 msgid "the <quote>domains</quote> option is ignored"
-msgstr ""
+msgstr "<quote>domains</quote> 옵션이 무시됩니다"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:4242
@@ -7288,17 +7305,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:74
 msgid "<option>quiet</option>"
-msgstr ""
+msgstr "<option>quiet</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:77
 msgid "Suppress log messages for unknown users."
-msgstr ""
+msgstr "알지 못하는 사용자를 위해 로그 메세지를 억제합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:82
 msgid "<option>forward_pass</option>"
-msgstr ""
+msgstr "<option>forward_pass</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:85
@@ -8152,7 +8169,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-simple.5.xml:17
 msgid "the configuration file for SSSD's 'simple' access-control provider"
-msgstr ""
+msgstr "SSSD의 '단순' 접근-제어 공급자를 위한 구성 파일"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-simple.5.xml:24
@@ -8175,7 +8192,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
 #: sssd-simple.5.xml:43
 msgid "If all lists are empty, access is granted"
-msgstr ""
+msgstr "만약 모든 항목이 공백이면, 접근은 허용됩니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
 #: sssd-simple.5.xml:47
@@ -8201,27 +8218,27 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-simple.5.xml:78
 msgid "simple_allow_users (string)"
-msgstr ""
+msgstr "simple_allow_users (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-simple.5.xml:81
 msgid "Comma separated list of users who are allowed to log in."
-msgstr ""
+msgstr "로그인이 허용된 사용자의 쉼표로-구분된 목록."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-simple.5.xml:88
 msgid "simple_deny_users (string)"
-msgstr ""
+msgstr "simple_deny_users (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-simple.5.xml:91
 msgid "Comma separated list of users who are explicitly denied access."
-msgstr ""
+msgstr "명시적으로 접근된 거부된 사용자의 쉼표로 구분된 목록."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-simple.5.xml:97
 msgid "simple_allow_groups (string)"
-msgstr ""
+msgstr "simple_allow_groups (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-simple.5.xml:100
@@ -8235,7 +8252,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-simple.5.xml:108
 msgid "simple_deny_groups (string)"
-msgstr ""
+msgstr "simple_deny_groups (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-simple.5.xml:111
@@ -12191,17 +12208,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_override.8.xml:243
 msgid "admins:administrators:"
-msgstr ""
+msgstr "admins:관리자:"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_override.8.xml:246
 msgid "Domain Users:Users:501"
-msgstr ""
+msgstr "Domain Users:Users:501"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:252
 msgid "<option>group-export</option> <emphasis>FILE</emphasis>"
-msgstr ""
+msgstr "<option>group-export</option> <emphasis>파일</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_override.8.xml:257
@@ -12242,9 +12259,9 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_useradd</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-"arg>"
+"<command>sss_useradd</command> <arg choice='opt'> <replaceable>옵션</"
+"replaceable> </arg> <arg "
+"choice='plain'><replaceable>로그인</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_useradd.8.xml:32
@@ -12895,9 +12912,8 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_groupadd</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
+"<command>sss_groupadd</command> <arg choice='opt'> <replaceable>옵션</"
+"replaceable> </arg> <arg choice='plain'><replaceable>그룹</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupadd.8.xml:32
@@ -12938,9 +12954,9 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_userdel</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-"arg>"
+"<command>sss_userdel</command> <arg choice='opt'> <replaceable>옵션</"
+"replaceable> </arg> <arg "
+"choice='plain'><replaceable>로그인</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_userdel.8.xml:32
@@ -13012,9 +13028,8 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
+"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>옵션</"
+"replaceable> </arg> <arg choice='plain'><replaceable>그룹</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupdel.8.xml:32
@@ -13040,9 +13055,8 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_groupshow</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
+"<command>sss_groupshow</command> <arg choice='opt'> <replaceable>옵션</"
+"replaceable> </arg> <arg choice='plain'><replaceable>그룹</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupshow.8.xml:32
@@ -13082,9 +13096,9 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_usermod</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-"arg>"
+"<command>sss_usermod</command> <arg choice='opt'> <replaceable>옵션</"
+"replaceable> </arg> <arg "
+"choice='plain'><replaceable>로그인</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_usermod.8.xml:32
@@ -18235,7 +18249,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><title>
 #: include/ldap_id_mapping.xml:273
 msgid "Well-Known SIDs"
-msgstr ""
+msgstr "잘-알려진 SIDs"
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:275
@@ -18251,22 +18265,23 @@ msgstr ""
 msgid ""
 "The SID name space is organized in authorities which can be seen as "
 "different domains. The authorities for the Well-Known SIDs are"
-msgstr ""
+msgstr "SID 이름 공간은 다른 도메인으로 볼 수 있는 기관으로 구성됩니다. 잘-알려진 "
+"SIDs를 위한 권한은 다음과 같습니다"
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:284
 msgid "Null Authority"
-msgstr ""
+msgstr "Null 권한"
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:285
 msgid "World Authority"
-msgstr ""
+msgstr "세계 권위"
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:286
 msgid "Local Authority"
-msgstr ""
+msgstr "지역 기관"
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:287
@@ -18306,17 +18321,17 @@ msgstr ""
 #. type: Content of: <varlistentry><term>
 #: include/param_help.xml:3
 msgid "<option>-?</option>,<option>--help</option>"
-msgstr ""
+msgstr "<option>-?</option>,<option>--help</option>"
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/param_help.xml:7 include/param_help_py.xml:7
 msgid "Display help message and exit."
-msgstr ""
+msgstr "도움말 메시지를 출력하고 종료합니다."
 
 #. type: Content of: <varlistentry><term>
 #: include/param_help_py.xml:3
 msgid "<option>-h</option>,<option>--help</option>"
-msgstr ""
+msgstr "<option>-h</option>,<option>--help</option>"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:3 include/debug_levels_tools.xml:3
@@ -18777,6 +18792,8 @@ msgid ""
 "defaults, these option names and AD provider-specific defaults are listed "
 "below:"
 msgstr ""
+"특정 옵션 기본값은 해당 백엔드 공급자 기본값과 일치하지 않으며, 이들 옵션 "
+"이름과 AD 공급자-별 기본값은 아래에 나열되어 있습니다:"
 
 #. type: Content of: <refsect1><refsect2><title>
 #: include/ad_modified_defaults.xml:9 include/ipa_modified_defaults.xml:9
@@ -18893,6 +18910,8 @@ msgid ""
 "defaults, these option names and IPA provider-specific defaults are listed "
 "below:"
 msgstr ""
+"특정 옵션 기본값은 해당 백엔드 공급자 기본값과 일치하지 않으며, 이들 옵션 "
+"이름과 IPA 공급자-별 기본값은 아래에 나열되어 있습니다:"
 
 #. type: Content of: <refsect1><refsect2><itemizedlist><listitem><para>
 #: include/ipa_modified_defaults.xml:18
@@ -19035,13 +19054,13 @@ msgstr "시간 단위에 의해 바로 따라오는 정수로 제공되는 전�
 #: include/krb5_options.xml:43 include/krb5_options.xml:77
 #: include/krb5_options.xml:114
 msgid "<emphasis>s</emphasis> for seconds"
-msgstr ""
+msgstr "<emphasis>s</emphasis>초 동안"
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:46 include/krb5_options.xml:80
 #: include/krb5_options.xml:117
 msgid "<emphasis>m</emphasis> for minutes"
-msgstr ""
+msgstr "<emphasis>m</emphasis>분 동안"
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:49 include/krb5_options.xml:83

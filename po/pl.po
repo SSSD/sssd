@@ -3,20 +3,20 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Piotr Drąg <piotrdrag@gmail.com>, 2011-2014, 2020, 2021.
+# Piotr Drąg <piotrdrag@gmail.com>, 2011-2014, 2020, 2021, 2022.
 # sgallagh <sgallagh@redhat.com>, 2011
-# Piotr Drąg <piotrdrag@gmail.com>, 2015. #zanata, 2020, 2021.
-# Piotr Drąg <piotrdrag@gmail.com>, 2016. #zanata, 2020, 2021.
-# Piotr Drąg <piotrdrag@gmail.com>, 2017. #zanata, 2020, 2021.
-# Piotr Drąg <piotrdrag@gmail.com>, 2018. #zanata, 2020, 2021.
-# Piotr Drąg <piotrdrag@gmail.com>, 2019. #zanata, 2020, 2021.
-# Piotr Drąg <piotrdrag@gmail.com>, 2020. #zanata, 2021.
+# Piotr Drąg <piotrdrag@gmail.com>, 2015. #zanata, 2020, 2021, 2022.
+# Piotr Drąg <piotrdrag@gmail.com>, 2016. #zanata, 2020, 2021, 2022.
+# Piotr Drąg <piotrdrag@gmail.com>, 2017. #zanata, 2020, 2021, 2022.
+# Piotr Drąg <piotrdrag@gmail.com>, 2018. #zanata, 2020, 2021, 2022.
+# Piotr Drąg <piotrdrag@gmail.com>, 2019. #zanata, 2020, 2021, 2022.
+# Piotr Drąg <piotrdrag@gmail.com>, 2020. #zanata, 2021, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-04-14 15:21+0200\n"
-"PO-Revision-Date: 2021-12-24 10:33+0000\n"
+"PO-Revision-Date: 2022-04-23 08:49+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pl/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.12\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1165,7 +1165,7 @@ msgstr "Wybiera naczelnika do użycia dla FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:332
 msgid "Use anonymous PKINIT to request FAST credentials"
-msgstr ""
+msgstr "Używa anonimowego PKINIT do żądania danych uwierzytelniających FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:333
 msgid "Enables principal canonicalization"
@@ -1316,7 +1316,7 @@ msgstr "Suma liczb, których musi brakować, aby wywołać pełne „deref”"
 
 #: src/config/SSSDConfig/sssdoptions.py:374
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "Ignoruje nieczytelne odniesienia LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:375
 msgid ""
@@ -2005,7 +2005,7 @@ msgstr "Grupa, jako którą utworzyć ccache FAST"
 
 #: src/providers/krb5/krb5_child.c:3727
 msgid "Use anonymous PKINIT to request FAST armor ticket"
-msgstr ""
+msgstr "Używa anonimowego PKINIT do żądania opakowanego biletu FAST"
 
 #: src/providers/krb5/krb5_child.c:3729
 msgid "Kerberos realm to use"
@@ -2141,16 +2141,18 @@ msgstr "Zmiana hasła się nie powiodła. "
 #: src/sss_client/pam_sss.c:1724
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
-msgstr ""
+msgstr "Proszę uwierzytelnić pod adresem %1$s i nacisnąć klawisz Enter."
 
 #: src/sss_client/pam_sss.c:1727
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
 msgstr ""
+"Proszę uwierzytelnić za pomocą kodu PIN %1$s pod adresem %2$s i nacisnąć "
+"klawisz Enter."
 
 #: src/sss_client/pam_sss.c:1942
 msgid "Please (re)insert (different) Smartcard"
-msgstr ""
+msgstr "Proszę (ponownie) włożyć (inną) kartę smartcard"
 
 #: src/sss_client/pam_sss.c:2141
 msgid "New Password: "

@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-04-14 15:20+0200\n"
-"PO-Revision-Date: 2022-01-26 16:16+0000\n"
+"PO-Revision-Date: 2022-04-21 19:17+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/uk/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.11.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -1882,18 +1882,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1237
-#, fuzzy
-#| msgid "memcache_size_passwd (integer)"
 msgid "memcache_size_sid (integer)"
-msgstr "memcache_size_passwd (ціле число)"
+msgstr "memcache_size_sid (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1240
-#, fuzzy
-#| msgid ""
-#| "Size (in megabytes) of the data table allocated inside fast in-memory "
-#| "cache for passwd requests.  Setting the size to 0 will disable the passwd "
-#| "in-memory cache."
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for SID related requests.  Only SID-by-ID and ID-by-SID requests are "
@@ -1901,7 +1894,9 @@ msgid ""
 "disable the SID in-memory cache."
 msgstr ""
 "Розмір (у мегабайтах) таблиці даних, розміщеної у швидкому кеші у пам'яті, "
-"для запитів passwd. Встановлення розміру 0 вимкне кеш у пам'яті для passwd."
+"для пов'язаних із SID запитів. У поточній версії передбачено кешування у "
+"швидкій пам'яті лише для запитів SID-за-ID і ID-за-SID. Встановлення розміру "
+"0 вимкне кеш у пам'яті для SID."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1264 sssd-ifp.5.xml:90
@@ -4789,22 +4784,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3331
-#, fuzzy
-#| msgid ""
-#| "Default for the AD and IPA provider: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
-#| "\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;[^@]+)@(?P&lt;domain&gt;.+$))|(^(?"
-#| "P&lt;name&gt;[^@\\\\]+)$))</quote> which allows three different styles "
-#| "for user names:"
 msgid ""
 "Default for the AD and IPA provider: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
 "\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))|(^(?"
 "P&lt;name&gt;[^@\\\\]+)$))</quote> which allows three different styles for "
 "user names:"
 msgstr ""
-"Типовий для засобів надання AD і IPA: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\"
-"\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;[^@]+)@(?P&lt;domain&gt;.+$))|(^(?"
-"P&lt;name&gt;[^@\\\\]+)$))</quote> За його допомогою можна визначати три "
-"різні стилі запису імен користувачів:"
+"Типовий для засобів надання AD і IPA: <quote>(((?P&lt;domain&gt;[^\\\\]+)\\\\"
+"(?P&lt;name&gt;.+$))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))|(^(?P&lt;n"
+"ame&gt;[^@\\\\]+)$))</quote> За його допомогою можна визначати три різні "
+"стилі запису імен користувачів:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:3336
@@ -7051,10 +7040,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:690
-#, fuzzy
-#| msgid "ad_gpo_ignore_unreadable (boolean)"
 msgid "ldap_ignore_unreadable_references (bool)"
-msgstr "ad_gpo_ignore_unreadable (булеве значення)"
+msgstr "ldap_ignore_unreadable_references (булеве значення)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:693
@@ -7063,6 +7050,10 @@ msgid ""
 "this parameter is set to false an error will be returned and the operation "
 "will fail instead of just ignoring the unreadable entry."
 msgstr ""
+"Ігнорувати непридатні до читання записи LDAP, на які посилається атрибут "
+"учасника групи. Якщо для цього параметра встановлено значення «false», буде "
+"повернуто повідомлення про помилку, а дія завершиться помилкою, замість "
+"простого ігнорування непридатного до читання запису."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:700
@@ -7071,6 +7062,10 @@ msgid ""
 "account that sssd uses to connect to AD does not have access to a particular "
 "entry or LDAP sub-tree for security reasons."
 msgstr ""
+"Цей параметр може бути корисним, якщо використано надавач даних AD, і "
+"обліковий запис комп'ютера, який sssd використовує для встановлення "
+"з'єднання із AD, не має доступу до певного запису або піддерева LDAP з "
+"міркувань безпеки."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:713
@@ -15501,12 +15496,10 @@ msgstr "Типове значення: не встановлено, тобто F
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:299
-#, fuzzy
-#| msgid "NOTE: a keytab is required to use FAST."
 msgid "NOTE: a keytab or support for anonymous PKINIT is required to use FAST."
 msgstr ""
 "Зауваження: будь ласка, зауважте, що для використання FAST потрібна таблиця "
-"ключів."
+"ключів або підтримка анонімного PKINIT."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:303
@@ -15533,10 +15526,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:321
-#, fuzzy
-#| msgid "krb5_use_kdcinfo (boolean)"
 msgid "krb5_fast_use_anonymous_pkinit (boolean)"
-msgstr "krb5_use_kdcinfo (булеве значення)"
+msgstr "krb5_fast_use_anonymous_pkinit (булеве значення)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:324
@@ -15545,6 +15536,9 @@ msgid ""
 "required credential for FAST. The krb5_fast_principal options is ignored in "
 "this case."
 msgstr ""
+"Якщо встановлено значення «true» намагатися скористатися анонімним PKINIT "
+"замість таблиці ключів для отримання бажаних реєстраційних даних для FAST. У "
+"цьому випадку параметри krb5_fast_principal буде проігноровано."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:364
@@ -21117,6 +21111,10 @@ msgid ""
 "internally the logged execution time of a request might be longer than it "
 "actually was."
 msgstr ""
+"<emphasis>9</emphasis>, <emphasis>0x20000</emphasis>: швидкодія і "
+"статистичні дані; будь ласка, зауважте, що через спосіб, у яких програма "
+"обробляє запити на внутрішньому рівні записаний до журналу час виконання "
+"запиту може бути довшим за справжній."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:88 include/debug_levels_tools.xml:62
