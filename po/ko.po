@@ -4,13 +4,14 @@
 # Ludek Janda <ljanda@redhat.com>, 2021.
 # simmon <simmon@nplob.com>, 2021.
 # seo hojin <jinswhat@naver.com>, 2021.
+# 김인수 <simmon@nplob.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-04-14 15:21+0200\n"
-"PO-Revision-Date: 2021-12-25 00:16+0000\n"
-"Last-Translator: simmon <simmon@nplob.com>\n"
+"PO-Revision-Date: 2022-05-14 13:18+0000\n"
+"Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
 "Language: ko\n"
@@ -18,7 +19,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -335,7 +336,7 @@ msgstr "p11_child가 완료될 때까지 pam_ss가 몇 초 동안 대기합니�
 
 #: src/config/SSSDConfig/sssdoptions.py:105
 msgid "Which PAM services are permitted to contact application domains"
-msgstr "애플리케이션 도메인에 접속할 수 있는 PAM 서비스"
+msgstr "응용프로그램 도메인에 접속 할 수 있는 PAM 서비스"
 
 #: src/config/SSSDConfig/sssdoptions.py:106
 msgid "Allowed services for using smartcards"
@@ -506,7 +507,7 @@ msgstr "해결 공급자"
 
 #: src/config/SSSDConfig/sssdoptions.py:166
 msgid "Whether the domain is usable by the OS or by applications"
-msgstr "도메인이 OS 또는 애플리케이션에서 사용 가능한지 여부"
+msgstr "도메인이 OS 또는 응용프로그램에서 사용 가능한지 여부"
 
 #: src/config/SSSDConfig/sssdoptions.py:167
 msgid "Enable or disable the domain"
@@ -864,7 +865,7 @@ msgstr "호스트 범주(예: 'all')가 포함된 LDAP 속성입니다."
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
-msgstr "이 규칙이 일치하는 모든 호스트/호스트 그룹이 포함된 LDAP 속성입니다."
+msgstr "이 규칙이 일치하는 모든 호스트/호스트그룹이 포함된 LDAP 속성입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:269
 msgid ""
@@ -1080,7 +1081,7 @@ msgstr "FAST에 사용할 주체를 선택"
 
 #: src/config/SSSDConfig/sssdoptions.py:332
 msgid "Use anonymous PKINIT to request FAST credentials"
-msgstr ""
+msgstr "익명 PKINIT를 사용하여 FAST 인증서를 요청합니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:333
 msgid "Enables principal canonicalization"
@@ -1229,7 +1230,7 @@ msgstr "전체 참조 해제를 트리거하려면 누락되어야 하는 구성
 
 #: src/config/SSSDConfig/sssdoptions.py:374
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "읽을 수 없는 LDAP 참조를 무시합니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:375
 msgid ""
@@ -1909,7 +1910,7 @@ msgstr "FAST ccache를 생성할 그룹"
 
 #: src/providers/krb5/krb5_child.c:3727
 msgid "Use anonymous PKINIT to request FAST armor ticket"
-msgstr ""
+msgstr "익명의 PKINIT를 사용하여 FAST 강화된 티켓을 요청합니다"
 
 #: src/providers/krb5/krb5_child.c:3729
 msgid "Kerberos realm to use"
@@ -2044,16 +2045,16 @@ msgstr "암호 변경에 실패함. "
 #: src/sss_client/pam_sss.c:1724
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
-msgstr ""
+msgstr "%1$s에 인증하고 ENTER를 누릅니다."
 
 #: src/sss_client/pam_sss.c:1727
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
-msgstr ""
+msgstr "PIN %1$s(%2$s에서)으로 인증하고 ENTER를 누릅니다."
 
 #: src/sss_client/pam_sss.c:1942
 msgid "Please (re)insert (different) Smartcard"
-msgstr ""
+msgstr "다른 스마트카드를 (다시)입력해 주세요"
 
 #: src/sss_client/pam_sss.c:2141
 msgid "New Password: "
@@ -2487,7 +2488,7 @@ msgstr "로컬 데이터의 백업 생성 중...\n"
 
 #: src/tools/sssctl/sssctl_data.c:237
 msgid "Unable to create backup of local data, can not remove the cache.\n"
-msgstr "로컬 데이터의 백업을 생성할 수 없습니다. 캐시를 제거할 수 없습니다.\n"
+msgstr "로컬 데이터의 백업을 생성 할 수 없으며, 캐쉬를 제거 할 수 없습니다.\n"
 
 #: src/tools/sssctl/sssctl_data.c:242
 msgid "Removing cache files...\n"
@@ -2495,7 +2496,7 @@ msgstr "캐시 파일 제거 중...\n"
 
 #: src/tools/sssctl/sssctl_data.c:245
 msgid "Unable to remove cache files\n"
-msgstr "캐시 파일을 제거할 수 없습니다\n"
+msgstr "캐쉬 파일을 제거 할 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_data.c:250
 msgid "Restoring local data...\n"
@@ -2590,7 +2591,7 @@ msgstr "로그 파일 삭제 중...\n"
 
 #: src/tools/sssctl/sssctl_logs.c:253
 msgid "Unable to remove log files\n"
-msgstr "로그 파일을 제거할 수 없습니다\n"
+msgstr "로그 파일을 제거 할 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_logs.c:270
 msgid "Truncating log files...\n"
