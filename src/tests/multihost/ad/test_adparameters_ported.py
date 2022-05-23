@@ -5,6 +5,7 @@
 :subsystemteam: sst_idm_sssd
 :upstream: yes
 """
+# pylint: disable=too-many-lines
 import time
 import random
 import re
@@ -186,7 +187,7 @@ def set_ssh_key_ldap(session_multihost, user, pubkey, operation="replace"):
 @pytest.mark.usefixtures("change_client_hostname")
 class TestADParamsPorted:
     """ BZ Automated Test Cases for AD Parameters ported from bash"""
-
+    # pylint: disable=too-many-public-methods
     @staticmethod
     def test_0001_ad_parameters_domain(
             multihost, adjoin, create_aduser_group):
@@ -217,7 +218,6 @@ class TestADParamsPorted:
         # Create AD user and group
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -291,7 +291,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to ad_domain = junk
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -367,7 +366,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd with junk domain
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_realm = multihost.ad[0].domainname.upper()
         ad_domain_short = ad_realm.rsplit('.', 1)[0]
@@ -482,7 +480,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to disable ldap_id_mapping and enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_realm = multihost.ad[0].domainname.upper()
         ad_domain_short = ad_realm.rsplit('.', 1)[0]
@@ -559,7 +556,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
         # Configure sssd to disable ldap_id_mapping and enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_realm = multihost.ad[0].domainname.upper()
         ad_domain_short = ad_realm.rsplit('.', 1)[0]
@@ -629,7 +625,6 @@ class TestADParamsPorted:
         # Create AD user and group
         (aduser, _) = create_plain_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -677,7 +672,6 @@ class TestADParamsPorted:
         # Create AD user and group
         (aduser, _) = create_plain_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -725,7 +719,6 @@ class TestADParamsPorted:
         # Create AD user and group
         (aduser, _) = create_plain_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -752,9 +745,8 @@ class TestADParamsPorted:
                usr_cmd.stdout_text
 
     @staticmethod
-    @pytest.mark.skip(reason="The ldap sasl authid just does not work.")
     def test_0009_ad_parameters_ldap_sasl_full(
-            multihost, adjoin, create_aduser_group, fetch_ca_cert):
+            multihost, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Using full principal
           bz877972
@@ -779,17 +771,18 @@ class TestADParamsPorted:
         :customerscenario: False
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=877972
         """
-        hostname_cmd = multihost.client[0].run_command(
-            'hostname',
-            raiseonerr=False
-        )
-        hostname = hostname_cmd.stdout_text.rstrip()
-        adjoin(membersw='adcli')
+        hostname = multihost.client[0].run_command(
+            'hostname', raiseonerr=False).stdout_text.rstrip()
+        ad_realm = multihost.ad[0].domainname.upper()
+        # Join AD manually to set the user-principal for sasl
+        joincmd = f"realm join --user=Administrator --user-principal=host/" \
+                  f"{hostname}@{ad_realm} {multihost.ad[0].domainname.lower()}"
+        multihost.client[0].run_command(
+            joincmd, stdin_text=multihost.ad[0].ssh_password,
+            raiseonerr=False)
         # Create AD user
         (aduser, _) = create_aduser_group
         # Configure sssd
-        ad_realm = multihost.ad[0].domainname.upper()
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -798,48 +791,29 @@ class TestADParamsPorted:
             'ad_domain': multihost.ad[0].domainname.lower(),
             'ad_server': multihost.ad[0].hostname,
             'id_provider': 'ad',
-            'use_fully_qualified_names': 'False',
+            'use_fully_qualified_names': 'True',
             'cache_credentials': 'True',
             'ldap_id_mapping': 'True',
             'ldap_sasl_authid': f'host/{hostname}@{ad_realm}',
-            'subdomains_provider': 'none',
-
         }
         client.sssd_conf(dom_section, sssd_params)
-        nss_params = {
-            'filter_groups': 'root',
-            'filter_users': 'root',
-            'default_shell': '/bin/bash',
-            'override_homedir': '/home/%u',
-        }
-        client.sssd_conf('nss', nss_params)
-
-        # Setup Ad certificate
-        cert_conf = 'cp /etc/openldap/ldap.conf /etc/openldap/ldap.conf.orig' \
-                    '; echo -e "TLS_CACERT /etc/openldap/certs/cacert.pem\n' \
-                    'SASL_NOCANON on\n" > /etc/openldap/ldap.conf'
-        multihost.client[0].run_command(cert_conf, raiseonerr=False)
-        cat = 'cat /etc/openldap/ldap.conf'
-        multihost.client[0].run_command(cat, raiseonerr=False)
-
         client.clear_sssd_cache()
         # Search for the user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}@{ad_realm}', raiseonerr=False)
         # Run su command
-        su_result = client.su_success(aduser, with_password=False)
-
+        su_result = client.su_success(f'{aduser}@{ad_realm}',
+                                      with_password=False)
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
         # TEARDOWN
-        cert_deconf = 'cp -f /etc/openldap/ldap.conf.orig ' \
-                      '/etc/openldap/ldap.conf'
-        multihost.client[0].run_command(cert_deconf, raiseonerr=False)
         client.restore_sssd_conf()
         client.clear_sssd_cache()
+        multihost.client[0].run_command(
+            f"realm leave {ad_realm}", raiseonerr=False)
 
         # EVALUATION
         assert f"Option ldap_sasl_authid has value " \
@@ -854,9 +828,8 @@ class TestADParamsPorted:
         assert su_result, f"Su for user {aduser} failed!"
 
     @staticmethod
-    @pytest.mark.skip(reason="The ldap sasl authid just does not work.")
     def test_0010_ad_parameters_ldap_sasl_short(
-            multihost, adjoin, create_aduser_group):
+            multihost, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Using short principal
         :id: 6f1cc204-0dd3-40eb-a3e2-a113cc7c2df3
@@ -868,7 +841,11 @@ class TestADParamsPorted:
           1. Run getent passwd for the user.
           2. Run su for the user.
           3. Check sssd domain log for expected/unexpected messages:
-             <TBD>
+             Option ldap_sasl_authid has value host/<HOSTNAME>
+             Will look for host/<HOSTNAME>@<AD_REALM> in
+             Trying to find principal host/<HOSTNAME>@<AD_REALM> in keytab
+             Principal matched to the sample (host/<HOSTNAME>@<AD_REALM>)
+             "authid contains realm [<AD_REALM>]" should not be in the log
         :expectedresults:
           1. User is found.
           2. Su passes.
@@ -876,19 +853,20 @@ class TestADParamsPorted:
         :customerscenario: False
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1137015
         """
-        ad_domain = multihost.ad[0].domainname
-        hostname_cmd = multihost.client[0].run_command(
-            'hostname -s',
-            raiseonerr=False
-        )
-        shortname = hostname_cmd.stdout_text.rstrip()
 
-        adjoin(membersw='adcli')
+        hostname = multihost.client[0].run_command(
+            'hostname', raiseonerr=False).stdout_text.rstrip()
+        ad_realm = multihost.ad[0].domainname.upper()
+
+        # Join AD manually to set the user-principal for sasl
+        joincmd = f"realm join --user=Administrator --user-principal=host/" \
+                  f"{hostname}@{ad_realm} {multihost.ad[0].domainname.lower()}"
+        multihost.client[0].run_command(
+            joincmd, stdin_text=multihost.ad[0].ssh_password,
+            raiseonerr=False)
         # Create AD user
         (aduser, _) = create_aduser_group
         # Configure sssd
-        ad_realm = multihost.ad[0].domainname.upper()
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -896,47 +874,41 @@ class TestADParamsPorted:
             'debug_level': '9',
             'ad_domain': multihost.ad[0].domainname.lower(),
             'ad_server': multihost.ad[0].hostname,
-            'use_fully_qualified_names': 'False',
-            'ldap_id_mapping': 'True',
+            'id_provider': 'ad',
+            'use_fully_qualified_names': 'True',
             'cache_credentials': 'True',
-            'ldap_sasl_authid': f'host/{shortname}.'
-                                f'{multihost.ad[0].domainname.lower()}',
+            'ldap_id_mapping': 'True',
+            'ldap_sasl_authid': f'host/{hostname}',
         }
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
+
         # Search for the user
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {aduser}', raiseonerr=False)
+            f'getent passwd {aduser}@{ad_realm}', raiseonerr=False)
         # Run su command
-        su_result = client.su_success(aduser)
-
+        su_result = client.su_success(f'{aduser}@{ad_realm}',
+                                      with_password=False)
         # Download the sssd domain log
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
-        # TODO: DELETE
-        multihost.client[0].run_command(
-            'klist -k /etc/krb5.keytab', raiseonerr=False)
-        multihost.client[0].run_command(
-            'cat /etc/sssd/sssd.conf', raiseonerr=False)
-        multihost.client[0].run_command(
-            f"cat /var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log",
-            raiseonerr=False
-        )
-
+        # TEARDOWN
         client.restore_sssd_conf()
         client.clear_sssd_cache()
+        multihost.client[0].run_command(
+            f"realm leave {ad_realm}", raiseonerr=False)
 
-        # Evaluate test results
-        assert f"Option ldap_sasl_authid has value host/{shortname}" in log_str
+        # EVALUATION
+        assert f"Option ldap_sasl_authid has value " \
+               f"host/{hostname}" in log_str
         assert "authid contains realm" not in log_str
-        assert f"Will look for host/{shortname}.{ad_domain}@{ad_realm} in" \
-               in log_str
-        assert f"Trying to find principal host/{shortname}.{ad_domain}@" \
-               f"{ad_realm} in keytab" in log_str
-        assert f"Principal matched to the sample (host/{shortname}." \
-               f"{ad_domain}@{ad_realm})" in log_str
+        assert f"Will look for host/{hostname}@{ad_realm} in" in log_str
+        assert f"Trying to find principal host/{hostname}@{ad_realm} in " \
+               f"keytab" in log_str
+        assert f"Principal matched to the sample " \
+               f"(host/{hostname}@{ad_realm})" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert su_result, f"Su for user {aduser} failed!"
 
@@ -970,14 +942,11 @@ class TestADParamsPorted:
         :customerscenario: False
         """
         adjoin(membersw='adcli')
-        ad_realm = multihost.ad[0].domainname.upper()
         # Create AD user
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
-        dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'debug_level': '9',
             'ad_domain': multihost.ad[0].domainname.lower(),
@@ -985,7 +954,8 @@ class TestADParamsPorted:
             'use_fully_qualified_names': 'False',
             'cache_credentials': 'True',
         }
-        client.sssd_conf(dom_section, sssd_params)
+        client.sssd_conf(
+            f'domain/{client.get_domain_section_name()}', sssd_params)
         client.clear_sssd_cache()
 
         # Search for the user and get its uid
@@ -1016,7 +986,8 @@ class TestADParamsPorted:
 
         assert f"Option ad_domain has value " \
                f"{multihost.ad[0].domainname.lower()}" in log_str
-        assert f"Option krb5_realm set to {ad_realm}" in log_str
+        assert f"Option krb5_realm set to " \
+               f"{multihost.ad[0].domainname.upper()}" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert uid_cmd.returncode == 0, f"User with {uid} was not found!"
@@ -1048,7 +1019,6 @@ class TestADParamsPorted:
         # Create AD user
         (aduser, _) = create_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -1108,7 +1078,6 @@ class TestADParamsPorted:
         # Create AD user
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -1171,7 +1140,6 @@ class TestADParamsPorted:
         # Create AD user
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -1222,7 +1190,7 @@ class TestADParamsPorted:
           3. Run su to the user.
         :expectedresults:
           1. User is found.
-          2. Log contains the expected line and does nota have unexpected one:
+          2. Log contains the expected line and does not have unexpected one:
              Expected: Will look for host1.kautest.com@<ad_realm>
              Unexpected: Setting ad_hostname to [host1.kautest.com]
           3. User is switched successfully.
@@ -1245,8 +1213,8 @@ class TestADParamsPorted:
 
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
-        # Configure sssd to disable ldap_id_mapping and enable logging
-        multihost.client[0].service_sssd('stop')
+
+        # Configure sssd to enable logging
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_realm = multihost.ad[0].domainname.upper()
         sssd_params = {
@@ -1262,17 +1230,17 @@ class TestADParamsPorted:
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
 
-        # Download sssd log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
-
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
             f'getent passwd {aduser}', raiseonerr=False)
 
         # Run su
         su_result = client.su_success(aduser)
+
+        # Download sssd log
+        log_str = multihost.client[0].get_file_contents(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
+            decode('utf-8')
 
         # Reset hostname
         multihost.client[0].run_command(
@@ -1332,7 +1300,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
         # Configure sssd to disable ldap_id_mapping and enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_realm = multihost.ad[0].domainname.upper()
         sssd_params = {
@@ -1417,7 +1384,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to disable ldap_id_mapping and enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'True',
@@ -1506,9 +1472,7 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
         # Configure sssd to disable ldap_id_mapping and enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
-
         sssd_params = {
             'ldap_id_mapping': 'True',
             'ad_domain': multihost.ad[0].domainname,
@@ -1589,6 +1553,7 @@ class TestADParamsPorted:
           1. Remove AD users and groups.
         :customerscenario: False
         """
+        # pylint: disable=too-many-locals
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
@@ -1596,7 +1561,6 @@ class TestADParamsPorted:
         (aduser, adgroup) = create_aduser_group
         (userplain, group_plain) = create_plain_aduser_group
         # Configure sssd to disable ldap_id_mapping and enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -1692,7 +1656,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -1759,7 +1722,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -1838,7 +1800,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -1921,7 +1882,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -1998,8 +1958,6 @@ class TestADParamsPorted:
         # Create AD user without posix attributes
         (userplain, _) = create_plain_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
-        dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'True',
             'ad_domain': multihost.ad[0].domainname,
@@ -2010,7 +1968,8 @@ class TestADParamsPorted:
             'krb5_store_password_if_offline': 'True',
             'fallback_homedir': '/home/%d/%u',
         }
-        client.sssd_conf(dom_section, sssd_params)
+        client.sssd_conf(
+            f'domain/{client.get_domain_section_name()}', sssd_params)
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
 
@@ -2021,13 +1980,13 @@ class TestADParamsPorted:
         ad_op.add_user_member_of_group(parent_grp, "Domain Users")
 
         # Get GIDs
-        dom_usr_gid_cmd = multihost.client[0].run_command(
-            'getent group "domain users" | cut -d: -f3', raiseonerr=False)
-        dom_usr_gid = dom_usr_gid_cmd.stdout_text.rstrip()
+        dom_usr_gid = multihost.client[0].run_command(
+            'getent group "domain users" | cut -d: -f3',
+            raiseonerr=False).stdout_text.rstrip()
 
-        parent_usr_gid_cmd = multihost.client[0].run_command(
-            f'getent group "{parent_grp}" | cut -d: -f3', raiseonerr=False)
-        par_grp_gid = parent_usr_gid_cmd.stdout_text.rstrip()
+        par_grp_gid = multihost.client[0].run_command(
+            f'getent group "{parent_grp}" | cut -d: -f3',
+            raiseonerr=False).stdout_text.rstrip()
 
         test1_cmd = multihost.client[0].run_command(
             f'id -G {userplain} | grep {dom_usr_gid} | grep {par_grp_gid}',
@@ -2076,7 +2035,6 @@ class TestADParamsPorted:
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'True',
@@ -2138,7 +2096,6 @@ class TestADParamsPorted:
         # Create AD user with no posix attributes
         (userplain, _) = create_plain_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'True',
@@ -2218,7 +2175,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
         # Configure sssd to disable ldap_id_mapping and enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -2294,7 +2250,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'id_provider': 'ldap',
@@ -2366,7 +2321,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'id_provider': 'ldap',
@@ -2455,7 +2409,6 @@ class TestADParamsPorted:
         multihost.client[0].run_command(ldap_cmd)
 
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'id_provider': 'ldap',
@@ -2531,7 +2484,6 @@ class TestADParamsPorted:
         # Create AD user and group
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -2598,7 +2550,6 @@ class TestADParamsPorted:
         ad_realm = multihost.ad[0].domainname.upper()
         ad_realm_short = ad_realm.rsplit('.', 1)[0]
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -2679,10 +2630,8 @@ class TestADParamsPorted:
         client = sssdTools(multihost.client[0], multihost.ad[0])
         # Backup the conf because with broken config we can't leave ad
         client.backup_sssd_conf()
-        ad_realm = multihost.ad[0].domainname.upper()
-        ad_realm_short = ad_realm.rsplit('.', 1)[0]
+        ad_realm_short = multihost.ad[0].domainname.upper().rsplit('.', 1)[0]
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -2775,11 +2724,8 @@ class TestADParamsPorted:
         client = sssdTools(multihost.client[0], multihost.ad[0])
         # Backup the conf because with broken config we can't leave ad
         client.backup_sssd_conf()
-        ad_realm = multihost.ad[0].domainname.upper()
-        ad_realm_short = ad_realm.rsplit('.', 1)[0]
+        ad_realm_short = multihost.ad[0].domainname.upper().rsplit('.', 1)[0]
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
-        dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'True',
             'krb5_realm': f'{ad_realm_short}',
@@ -2790,7 +2736,8 @@ class TestADParamsPorted:
             'krb5_store_password_if_offline': 'True',
             'ignore_group_members': 'True',
         }
-        client.sssd_conf(dom_section, sssd_params)
+        client.sssd_conf(
+            f'domain/{client.get_domain_section_name()}', sssd_params)
 
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
@@ -2799,13 +2746,12 @@ class TestADParamsPorted:
         rand_num = random.randint(999, 9999)
         test_group = f'testgrp-{rand_num}-1'
         test_user = f'testusr-{rand_num}'
-        group_count = 8
         ad_op = ADOperations(multihost.ad[0])
         ad_op.create_ad_unix_user_group(test_user, test_group)
 
-        # Create additional groups
+        # Create additional 8 groups
         groups = [test_group, ]
-        for idx in range(2, group_count+2):
+        for idx in range(2, 10):
             group_name = f'testgrp-{rand_num}-{idx}'
             ad_op.create_ad_nonposix_group(group_name)
             ad_op.add_user_member_of_group(group_name, test_user)
@@ -2861,6 +2807,7 @@ class TestADParamsPorted:
         :customerscenario: False
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1279971
         """
+        # pylint: disable=too-many-locals
         adjoin(membersw='adcli')
         ad_domain = multihost.ad[0].domainname
         ad_realm = ad_domain.upper()
@@ -2868,7 +2815,6 @@ class TestADParamsPorted:
         # Create AD user and group
         (user1, _) = create_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -2984,7 +2930,6 @@ class TestADParamsPorted:
         ad_realm = multihost.ad[0].domainname.upper()
         ad_realm_short = ad_realm.rsplit('.', 1)[0]
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'True',
@@ -3055,7 +3000,6 @@ class TestADParamsPorted:
         ad_realm = multihost.ad[0].domainname.upper()
         ad_realm_short = ad_realm.rsplit('.', 1)[0]
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'True',
@@ -3111,11 +3055,9 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd with junk domain
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_domain = multihost.ad[0].domainname
-        ad_realm = ad_domain.upper()
-        ad_realm_short = ad_realm.rsplit('.', 1)[0]
+        ad_realm_short = ad_domain.upper().rsplit('.', 1)[0]
         sssd_params = {
             'ldap_id_mapping': 'False',
             'krb5_realm': ad_realm_short,
@@ -3231,7 +3173,6 @@ class TestADParamsPorted:
         ad_realm = multihost.ad[0].domainname.upper()
         ad_realm_short = ad_realm.rsplit('.', 1)[0]
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -3300,7 +3241,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'id_provider': 'ad',
@@ -3319,22 +3259,15 @@ class TestADParamsPorted:
             'krb5_store_password_if_offline': 'True',
         }
         client.sssd_conf(dom_section, sssd_params)
-
-        sssd_sect = {
-            'services':  'nss, pam, ssh',
-        }
-        client.sssd_conf('sssd', sssd_sect)
+        client.sssd_conf('sssd', {'services': 'nss, pam, ssh'})
 
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
         ssh_setup(multihost, user='root')
 
         # Get ssh key
-        cmd = multihost.client[0].run_command(
-            'cat /root/.ssh/id_rsa.pub',
-            raiseonerr=False
-        )
-        pub_key = cmd.stdout_text
+        pub_key = multihost.client[0].run_command(
+            'cat /root/.ssh/id_rsa.pub', raiseonerr=False).stdout_text
 
         # Backup sshd config
         multihost.client[0].run_command(
@@ -3425,7 +3358,6 @@ class TestADParamsPorted:
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd with junk domain
-        multihost.client[0].service_sssd('stop')
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_domain = multihost.ad[0].domainname
         ad_realm = ad_domain.upper()
@@ -3515,7 +3447,6 @@ class TestADParamsPorted:
         # Create AD user and group
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
-        multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
         client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -3607,6 +3538,12 @@ class TestADParamsPorted:
             'fallback_homedir': '/home/%u',
         }
         client.sssd_conf(dom_section, sssd_params)
+
+        multihost.client[0].run_command(
+             "semanage port -a -t kerberos_port_t -p tcp 6666;"
+             " semanage port -a -t kerberos_port_t -p udp 6666",
+             raiseonerr=False
+        )
 
         # Forward ports on AD machine so 6666 works
         multihost.ad[0].run_command(
