@@ -116,6 +116,43 @@ class TestADTrust(object):
         cmd = f'mv {bk_krbkcm} {krbkcm}'
         multihost.client[0].run_command(cmd, raiseonerr=False)
 
+    def test_adgrpwith_at_ratesign(self, multihost):
+        """
+        :title: user membership of AD group with @ sign
+        :id: ee9ca809-6ea7-48f2-a0fe-d9eccadf5d81
+        :customerscenario: True
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=2061795
+        :description:
+         In the IPA-AD trust, IPA-user having group membership of an
+         AD-group, containing '@' sign in it's name, should be resolvable
+         with default re_expression on a ipa-client system.
+        :steps:
+          1. Create an AD-group having '@' sign in it's name
+          2. Create an AD-user and add it to above created group
+          3. From ipaclient, ad-group with '@' sign is correctly fetched
+          4. From ipaclient, confirm ad-user is showing correct group
+             membership
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. Should succeed
+        """
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        ad = ADOperations(multihost.ad[0])
+        ad_dmn = multihost.ad[0].domainname
+        ad_user = 'aduser7'
+        ad_group = 'adgrp@7'
+        ad.create_ad_unix_user_group(ad_user, ad_group)
+        client.clear_sssd_cache()
+        cmd = multihost.client[0].run_command(f'getent group {ad_group}@{ad_dmn}', raiseonerr=False)
+        cmd1 = multihost.client[0].run_command(f'id {ad_user}@{ad_dmn}', raiseonerr=False)
+        ad.delete_ad_user_group(ad_user)
+        ad.delete_ad_user_group(ad_group)
+        assert ad_group in cmd.stdout_text, f"{ad_group} information is fetched correctly"
+        assert ad_group in cmd1.stdout_text, f"{ad_group} is available in {ad_user} information"
+
     def test_ipaserver_sss_cache_user(self, multihost):
         """
         :title: Verify AD user is cached on IPA server
