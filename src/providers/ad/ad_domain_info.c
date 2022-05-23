@@ -217,8 +217,23 @@ ad_domain_info_send(TALLOC_CTX *mem_ctx,
     state->opts = conn->id_ctx->opts;
     state->dom_name = dom_name;
     state->sdom = sdap_domain_get_by_name(state->opts, state->dom_name);
+    /* The first domain in the list is the domain configured in sssd.conf and
+     * here it might be possible that the domain name from the config file and
+     * the DNS domain name do not match. All other sub-domains are discovered
+     * at runtime with the help of DNS lookups so it is expected that the
+     * names matches. Hence it makes sense to fall back to the first entry in
+     * the list if no matching domain was found since it is most probably
+     * related to the configured domain. */
+    if (state->sdom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "No internal domain data found for [%s], "
+                                 "falling back to first domain.\n",
+                                 state->dom_name);
+        state->sdom = state->opts->sdom;
+    }
     if (state->sdom == NULL || state->sdom->search_bases == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Missing internal domain data.\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Missing internal domain data for domain [%s].\n",
+              state->dom_name);
         ret = EINVAL;
         goto immediate;
     }
