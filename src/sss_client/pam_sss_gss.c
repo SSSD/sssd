@@ -492,7 +492,8 @@ static errno_t sss_cli_getenv(const char *variable_name, char **_value)
 {
     char *value = getenv(variable_name);
     if (value == NULL) {
-        return ENOENT;
+        *_value = NULL;
+        return EOK;
     }
 
     *_value = strdup(value);
