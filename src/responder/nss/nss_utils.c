@@ -27,7 +27,7 @@
 #include "responder/nss/nss_private.h"
 
 const char *
-nss_get_pwfield(struct nss_ctx *nctx,
+sss_nss_get_pwfield(struct sss_nss_ctx *nctx,
                struct sss_domain_info *dom)
 {
     if (dom->pwfield != NULL) {

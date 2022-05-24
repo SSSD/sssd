@@ -21,12 +21,12 @@
 #include "responder/nss/nss_protocol.h"
 
 static errno_t
-nss_get_grent(TALLOC_CTX *mem_ctx,
-              struct nss_ctx *nss_ctx,
-              struct sss_domain_info *domain,
-              struct ldb_message *msg,
-              uint32_t *_gid,
-              struct sized_string **_name)
+sss_nss_get_grent(TALLOC_CTX *mem_ctx,
+                  struct sss_nss_ctx *nss_ctx,
+                  struct sss_domain_info *domain,
+                  struct ldb_message *msg,
+                  uint32_t *_gid,
+                  struct sized_string **_name)
 {
     const char *name;
     uint32_t gid;
@@ -66,8 +66,8 @@ nss_get_grent(TALLOC_CTX *mem_ctx,
 }
 
 static struct ldb_message_element *
-nss_get_group_members(struct sss_domain_info *domain,
-                      struct ldb_message *msg)
+sss_nss_get_group_members(struct sss_domain_info *domain,
+                          struct ldb_message *msg)
 {
     struct ldb_message_element *el;
 
@@ -86,9 +86,9 @@ nss_get_group_members(struct sss_domain_info *domain,
 }
 
 static struct ldb_message_element *
-nss_get_group_ghosts(struct sss_domain_info *domain,
-                     struct ldb_message *msg,
-                     const char *group_name)
+sss_nss_get_group_ghosts(struct sss_domain_info *domain,
+                         struct ldb_message *msg,
+                         const char *group_name)
 {
     struct ldb_message_element *el;
 
@@ -113,13 +113,13 @@ nss_get_group_ghosts(struct sss_domain_info *domain,
 }
 
 static errno_t
-nss_protocol_fill_members(struct sss_packet *packet,
-                          struct nss_ctx *nss_ctx,
-                          struct sss_domain_info *domain,
-                          struct ldb_message *msg,
-                          const char *group_name,
-                          size_t *_rp,
-                          uint32_t *_num_members)
+sss_nss_protocol_fill_members(struct sss_packet *packet,
+                              struct sss_nss_ctx *nss_ctx,
+                              struct sss_domain_info *domain,
+                              struct ldb_message *msg,
+                              const char *group_name,
+                              size_t *_rp,
+                              uint32_t *_num_members)
 {
     TALLOC_CTX *tmp_ctx;
     struct resp_ctx *rctx = nss_ctx->rctx;
@@ -138,8 +138,8 @@ nss_protocol_fill_members(struct sss_packet *packet,
         return ENOMEM;
     }
 
-    members[0] = nss_get_group_members(domain, msg);
-    members[1] = nss_get_group_ghosts(domain, msg, group_name);
+    members[0] = sss_nss_get_group_members(domain, msg);
+    members[1] = sss_nss_get_group_ghosts(domain, msg, group_name);
 
     if (is_files_provider(domain) && members[1] != NULL) {
         /* If there is a ghost member in files provider it means that we
@@ -209,10 +209,10 @@ done:
 }
 
 errno_t
-nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
-                        struct nss_cmd_ctx *cmd_ctx,
-                        struct sss_packet *packet,
-                        struct cache_req_result *result)
+sss_nss_protocol_fill_grent(struct sss_nss_ctx *nss_ctx,
+                            struct sss_nss_cmd_ctx *cmd_ctx,
+                            struct sss_packet *packet,
+                            struct cache_req_result *result)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -250,9 +250,9 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
         msg = result->msgs[i];
 
         /* Password field content. */
-        to_sized_string(&pwfield, nss_get_pwfield(nss_ctx, result->domain));
+        to_sized_string(&pwfield, sss_nss_get_pwfield(nss_ctx, result->domain));
 
-        ret = nss_get_grent(tmp_ctx, nss_ctx, result->domain, msg,
+        ret = sss_nss_get_grent(tmp_ctx, nss_ctx, result->domain, msg,
                             &gid, &name);
         if (ret != EOK) {
             continue;
@@ -280,7 +280,7 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
         rp_members = rp;
 
         /* Fill members. */
-        ret = nss_protocol_fill_members(packet, nss_ctx, result->domain, msg,
+        ret = sss_nss_protocol_fill_members(packet, nss_ctx, result->domain, msg,
                                         name->str, &rp, &num_members);
         if (ret != EOK) {
             goto done;
@@ -355,10 +355,10 @@ static bool is_group_filtered(struct sss_nc_ctx *ncache,
 }
 
 errno_t
-nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
-                         struct nss_cmd_ctx *cmd_ctx,
-                         struct sss_packet *packet,
-                         struct cache_req_result *result)
+sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
+                             struct sss_nss_cmd_ctx *cmd_ctx,
+                             struct sss_packet *packet,
+                             struct cache_req_result *result)
 {
     struct sss_domain_info *domain;
     struct sss_domain_info *grp_dom;

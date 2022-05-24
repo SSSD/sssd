@@ -23,9 +23,9 @@
 #include "responder/nss/nss_protocol.h"
 
 static errno_t
-nss_protocol_fill_netgr_triple(struct sss_packet *packet,
-                               struct sysdb_netgroup_ctx *entry,
-                               size_t *_rp)
+sss_nss_protocol_fill_netgr_triple(struct sss_packet *packet,
+                                   struct sysdb_netgroup_ctx *entry,
+                                   size_t *_rp)
 {
     struct sized_string host;
     struct sized_string user;
@@ -71,9 +71,9 @@ nss_protocol_fill_netgr_triple(struct sss_packet *packet,
 }
 
 static errno_t
-nss_protocol_fill_netgr_member(struct sss_packet *packet,
-                               struct sysdb_netgroup_ctx *entry,
-                               size_t *_rp)
+sss_nss_protocol_fill_netgr_member(struct sss_packet *packet,
+                                   struct sysdb_netgroup_ctx *entry,
+                                   size_t *_rp)
 {
     struct sized_string group;
     size_t body_len;
@@ -102,14 +102,14 @@ nss_protocol_fill_netgr_member(struct sss_packet *packet,
 }
 
 errno_t
-nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
-                           struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_netgrent(struct sss_nss_ctx *nss_ctx,
+                           struct sss_nss_cmd_ctx *cmd_ctx,
                            struct sss_packet *packet,
                            struct cache_req_result *result)
 {
     struct sysdb_netgroup_ctx **entries;
     struct sysdb_netgroup_ctx *entry;
-    struct nss_enum_index *idx;
+    struct sss_nss_enum_index *idx;
     uint32_t num_results;
     size_t rp;
     size_t body_len;
@@ -147,10 +147,10 @@ nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
 
         switch (entry->type) {
         case SYSDB_NETGROUP_TRIPLE_VAL:
-            ret = nss_protocol_fill_netgr_triple(packet, entry, &rp);
+            ret = sss_nss_protocol_fill_netgr_triple(packet, entry, &rp);
             break;
         case SYSDB_NETGROUP_GROUP_VAL:
-            ret = nss_protocol_fill_netgr_member(packet, entry, &rp);
+            ret = sss_nss_protocol_fill_netgr_member(packet, entry, &rp);
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected value type %d!\n", entry->type);
