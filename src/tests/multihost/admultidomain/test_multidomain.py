@@ -138,12 +138,19 @@ class TestADMultiDomain(object):
         domain_list_cmd = multihost.client[0].run_command(
             'sssctl domain-list', raiseonerr=False)
         domain_list = domain_list_cmd.stdout_text.split('\n')
-        domain_list.remove("implicit_files")
-        domain_list = domain_list[:-1]
-        multihost_list = multihost.ad
-        multihost_list = multihost_list[:-1]
+        if "" in domain_list:
+            domain_list.remove("")
+        if "implicit_files" in domain_list:
+            domain_list.remove("implicit_files")
+        multihost_list = []
+        for x in multihost.ad:
+            multihost_list.append(x.domainname)
+        # This is necessary because the AD server in the second forest needs to
+        # be removed from the list.
+        multihost_list.pop()
 
-        for x in multihost_list:
-            assert x.domainname in domain_list
+        domain_list.sort()
+        multihost_list.sort()
 
-        assert len(domain_list) == len(multihost_list)
+        assert domain_list == multihost_list
+
