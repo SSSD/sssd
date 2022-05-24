@@ -45,30 +45,30 @@
 #define TEST_ID_PROVIDER "ldap"
 #define TEST_DOM_SID "S-1-5-21-444379608-1639770488-2995963434"
 
-struct nss_test_ctx {
+struct sss_nss_test_ctx {
     struct sss_test_ctx *tctx;
     struct sss_domain_info *subdom;
 
     struct resp_ctx *rctx;
     struct cli_ctx *cctx;
-    struct sss_cmd_table *nss_cmds;
-    struct nss_ctx *nctx;
+    struct sss_cmd_table *sss_nss_cmds;
+    struct sss_nss_ctx *nctx;
 
     int ncache_hits;
 };
 
 const char *global_extra_attrs[] = {"phone", "mobile", NULL};
 
-struct nss_test_ctx *nss_test_ctx;
+struct sss_nss_test_ctx *sss_nss_test_ctx;
 
 /* Mock NSS structure */
-struct nss_ctx *
+struct sss_nss_ctx *
 mock_nctx(TALLOC_CTX *mem_ctx)
 {
-    struct nss_ctx *nctx;
+    struct sss_nss_ctx *nctx;
     enum idmap_error_code err;
 
-    nctx = talloc_zero(mem_ctx, struct nss_ctx);
+    nctx = talloc_zero(mem_ctx, struct sss_nss_ctx);
     if (!nctx) {
         return NULL;
     }
@@ -130,18 +130,18 @@ void __wrap_sss_cmd_done(struct cli_ctx *cctx, void *freectx)
     check_cb = sss_mock_ptr_type(cmd_cb_fn_t);
 
     if (check_cb == NULL) {
-        nss_test_ctx->tctx->error = ENOENT;
+        sss_nss_test_ctx->tctx->error = ENOENT;
     } else {
         pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
         packet = pctx->creq->out;
 
         __real_sss_packet_get_body(packet, &body, &blen);
 
-        nss_test_ctx->tctx->error = check_cb(sss_packet_get_status(packet),
+        sss_nss_test_ctx->tctx->error = check_cb(sss_packet_get_status(packet),
                                              body, blen);
     }
 
-    nss_test_ctx->tctx->done = true;
+    sss_nss_test_ctx->tctx->done = true;
     talloc_free(freectx);
 }
 
@@ -152,8 +152,8 @@ enum sss_cli_command __wrap_sss_packet_get_cmd(struct sss_packet *packet)
 
 int __wrap_sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx)
 {
-    nss_test_ctx->tctx->done = true;
-    nss_test_ctx->tctx->error = ENOENT;
+    sss_nss_test_ctx->tctx->done = true;
+    sss_nss_test_ctx->tctx->error = ENOENT;
     return EOK;
 }
 
@@ -168,7 +168,7 @@ int __wrap_sss_ncache_check_user(struct sss_nc_ctx *ctx,
 
     ret = __real_sss_ncache_check_user(ctx, dom, name);
     if (ret == EEXIST) {
-        nss_test_ctx->ncache_hits++;
+        sss_nss_test_ctx->ncache_hits++;
     }
     return ret;
 }
@@ -183,7 +183,7 @@ int __wrap_sss_ncache_check_upn(struct sss_nc_ctx *ctx,
 
     ret = __real_sss_ncache_check_upn(ctx, dom, name);
     if (ret == EEXIST) {
-        nss_test_ctx->ncache_hits++;
+        sss_nss_test_ctx->ncache_hits++;
     }
     return ret;
 }
@@ -198,7 +198,7 @@ int __wrap_sss_ncache_check_uid(struct sss_nc_ctx *ctx,
 
     ret = __real_sss_ncache_check_uid(ctx, dom, uid);
     if (ret == EEXIST) {
-        nss_test_ctx->ncache_hits++;
+        sss_nss_test_ctx->ncache_hits++;
     }
     return ret;
 }
@@ -211,7 +211,7 @@ int __wrap_sss_ncache_check_sid(struct sss_nc_ctx *ctx, const char *sid)
 
     ret = __real_sss_ncache_check_sid(ctx, sid);
     if (ret == EEXIST) {
-        nss_test_ctx->ncache_hits++;
+        sss_nss_test_ctx->ncache_hits++;
     }
     return ret;
 }
@@ -224,7 +224,7 @@ int __wrap_sss_ncache_check_cert(struct sss_nc_ctx *ctx, const char *cert)
 
     ret = __real_sss_ncache_check_cert(ctx, cert);
     if (ret == EEXIST) {
-        nss_test_ctx->ncache_hits++;
+        sss_nss_test_ctx->ncache_hits++;
     }
     return ret;
 }
@@ -237,7 +237,7 @@ static void mock_input_user_or_group(const char *input)
     const char *domname;
     char *separator;
 
-    copy = talloc_strdup(nss_test_ctx, input);
+    copy = talloc_strdup(sss_nss_test_ctx, input);
     assert_non_null(copy);
 
     separator = strrchr(copy, '@');
@@ -269,7 +269,7 @@ static void mock_input_user_or_group_ex(bool do_parse_inp, const char *input,
 
     len = strlen(input);
     len++;
-    data = talloc_size(nss_test_ctx, len + sizeof(uint32_t));
+    data = talloc_size(sss_nss_test_ctx, len + sizeof(uint32_t));
     assert_non_null(data);
     memcpy(data, input, len);
     SAFEALIGN_COPY_UINT32(data + len, &flags, NULL);
@@ -279,7 +279,7 @@ static void mock_input_user_or_group_ex(bool do_parse_inp, const char *input,
     will_return(__wrap_sss_packet_get_body, len + sizeof(uint32_t));
 
     if (do_parse_inp) {
-        copy = talloc_strdup(nss_test_ctx, input);
+        copy = talloc_strdup(sss_nss_test_ctx, input);
         assert_non_null(copy);
 
         separator = strrchr(copy, '@');
@@ -408,7 +408,7 @@ static int parse_group_packet(uint8_t *body, size_t blen, struct group *gr, uint
     gr->gr_mem = NULL;
 
     if (*nmem > 0) {
-        gr->gr_mem = talloc_zero_array(nss_test_ctx, char *, *nmem);
+        gr->gr_mem = talloc_zero_array(sss_nss_test_ctx, char *, *nmem);
         if (gr->gr_mem == NULL) return ENOMEM;
 
         for (i = 0; i < *nmem; i++) {
@@ -444,7 +444,7 @@ static void check_initgr_packet(uint8_t *body, size_t blen,
     }
 }
 
-static errno_t store_user(struct nss_test_ctx *ctx,
+static errno_t store_user(struct sss_nss_test_ctx *ctx,
                           struct sss_domain_info *dom,
                           struct passwd *user,
                           struct sysdb_attrs *attrs,
@@ -475,7 +475,7 @@ static errno_t store_user(struct nss_test_ctx *ctx,
     return ret;
 }
 
-static errno_t delete_user(struct nss_test_ctx *ctx,
+static errno_t delete_user(struct sss_nss_test_ctx *ctx,
                            struct sss_domain_info *dom,
                            struct passwd *user)
 {
@@ -495,7 +495,7 @@ static errno_t delete_user(struct nss_test_ctx *ctx,
     return ret;
 }
 
-static errno_t set_user_attr(struct nss_test_ctx *ctx,
+static errno_t set_user_attr(struct sss_nss_test_ctx *ctx,
                              struct sss_domain_info *dom,
                              struct passwd *user,
                              struct sysdb_attrs *attrs)
@@ -510,7 +510,7 @@ static errno_t set_user_attr(struct nss_test_ctx *ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_set_user_attr(nss_test_ctx->tctx->dom,
+    ret = sysdb_set_user_attr(sss_nss_test_ctx->tctx->dom,
                               fqname,
                               attrs, SYSDB_MOD_REP);
     talloc_free(fqname);
@@ -545,7 +545,7 @@ static void assert_users_equal(struct passwd *a, struct passwd *b)
     assert_string_equal(a->pw_passwd, b->pw_passwd);
 }
 
-static errno_t store_group(struct nss_test_ctx *ctx,
+static errno_t store_group(struct sss_nss_test_ctx *ctx,
                            struct sss_domain_info *dom,
                            struct group *group,
                            struct sysdb_attrs *attrs,
@@ -569,7 +569,7 @@ static errno_t store_group(struct nss_test_ctx *ctx,
     return ret;
 }
 
-static errno_t delete_group(struct nss_test_ctx *ctx,
+static errno_t delete_group(struct sss_nss_test_ctx *ctx,
                             struct sss_domain_info *dom,
                             struct group *group)
 {
@@ -626,7 +626,7 @@ static void assert_groups_equal(struct group *expected,
     }
 }
 
-static errno_t store_group_member(struct nss_test_ctx *ctx,
+static errno_t store_group_member(struct sss_nss_test_ctx *ctx,
                                   const char *shortname_group,
                                   struct sss_domain_info *group_dom,
                                   const char *shortname_member,
@@ -661,7 +661,7 @@ static errno_t store_group_member(struct nss_test_ctx *ctx,
     return ret;
 }
 
-static errno_t remove_group_member(struct nss_test_ctx *ctx,
+static errno_t remove_group_member(struct sss_nss_test_ctx *ctx,
                                    const char *shortname_group,
                                    struct sss_domain_info *group_dom,
                                    const char *shortname_member,
@@ -710,10 +710,10 @@ struct passwd getpwnam_usr = {
 };
 
 /* Check getting cached and valid user from cache. Account callback will
- * not be called and test_nss_getpwnam_check will make sure the user is
+ * not be called and test_sss_nss_getpwnam_check will make sure the user is
  * the same as the test entered before starting
  */
-static int test_nss_getpwnam_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_sss_nss_getpwnam_check(uint32_t status, uint8_t *body, size_t blen)
 {
     struct passwd pwd;
     errno_t ret;
@@ -727,11 +727,11 @@ static int test_nss_getpwnam_check(uint32_t status, uint8_t *body, size_t blen)
     return EOK;
 }
 
-void test_nss_getpwnam(void **state)
+void test_sss_nss_getpwnam(void **state)
 {
     errno_t ret;
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &getpwnam_usr, NULL, 0);
     assert_int_equal(ret, EOK);
 
@@ -740,55 +740,55 @@ void test_nss_getpwnam(void **state)
     mock_fill_user();
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwnam_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
 /* Test that searching for a nonexistent user yields ENOENT.
  * Account callback will be called
  */
-void test_nss_getpwnam_neg(void **state)
+void test_sss_nss_getpwnam_neg(void **state)
 {
     errno_t ret;
 
     mock_input_user_or_group("testuser_neg");
     mock_account_recv_simple();
 
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     /* Test that subsequent search for a nonexistent user yields
      * ENOENT and Account callback is not called, on the other hand
      * the ncache functions will be called
      */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
     mock_input_user_or_group("testuser_neg");
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
     /* Negative cache was hit this time */
-    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 1);
 }
 
 struct passwd getpwnam_search_usr = {
@@ -801,14 +801,14 @@ struct passwd getpwnam_search_usr = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getpwnam_search_acct_cb(void *pvt)
+static int test_sss_nss_getpwnam_search_acct_cb(void *pvt)
 {
-    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+    struct sss_nss_test_ctx *ctx = talloc_get_type(pvt, struct sss_nss_test_ctx);
 
     return store_user(ctx, ctx->tctx->dom, &getpwnam_search_usr, NULL, 0);
 }
 
-static int test_nss_getpwnam_search_check(uint32_t status,
+static int test_sss_nss_getpwnam_search_check(uint32_t status,
                                           uint8_t *body, size_t blen)
 {
     struct passwd pwd;
@@ -823,32 +823,32 @@ static int test_nss_getpwnam_search_check(uint32_t status,
     return EOK;
 }
 
-void test_nss_getpwnam_search(void **state)
+void test_sss_nss_getpwnam_search(void **state)
 {
     errno_t ret;
     struct ldb_result *res;
 
     mock_input_user_or_group("testuser_search");
-    mock_account_recv(0, 0, NULL, test_nss_getpwnam_search_acct_cb, nss_test_ctx);
+    mock_account_recv(0, 0, NULL, test_sss_nss_getpwnam_search_acct_cb, sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     mock_fill_user();
-    set_cmd_cb(test_nss_getpwnam_search_check);
+    set_cmd_cb(test_sss_nss_getpwnam_search_check);
 
-    ret = get_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = get_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                    "testuser_search", &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 0);
 
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
-    /* test_nss_getpwnam_search_check will check the user attributes */
-    ret = get_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    /* test_sss_nss_getpwnam_search_check will check the user attributes */
+    ret = get_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                    "testuser_search", &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
@@ -870,15 +870,15 @@ struct passwd getpwnam_update = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getpwnam_update_acct_cb(void *pvt)
+static int test_sss_nss_getpwnam_update_acct_cb(void *pvt)
 {
-    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+    struct sss_nss_test_ctx *ctx = talloc_get_type(pvt, struct sss_nss_test_ctx);
 
     getpwnam_update.pw_shell = discard_const("/bin/ksh");
     return store_user(ctx, ctx->tctx->dom, &getpwnam_update, NULL, 0);
 }
 
-static int test_nss_getpwnam_update_check(uint32_t status,
+static int test_sss_nss_getpwnam_update_check(uint32_t status,
                                           uint8_t *body, size_t blen)
 {
     struct passwd pwd;
@@ -893,13 +893,13 @@ static int test_nss_getpwnam_update_check(uint32_t status,
     return EOK;
 }
 
-void test_nss_getpwnam_update(void **state)
+void test_sss_nss_getpwnam_update(void **state)
 {
     errno_t ret;
     struct ldb_result *res;
     const char *shell;
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &getpwnam_update, NULL, 1);
     assert_int_equal(ret, EOK);
 
@@ -908,23 +908,23 @@ void test_nss_getpwnam_update(void **state)
     /* Mock client command */
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     /* Call this function when user is updated by the mock DP request */
-    mock_account_recv(0, 0, NULL, test_nss_getpwnam_update_acct_cb, nss_test_ctx);
+    mock_account_recv(0, 0, NULL, test_sss_nss_getpwnam_update_acct_cb, sss_nss_test_ctx);
     /* Call this function to check what the responder returned to the client */
-    set_cmd_cb(test_nss_getpwnam_update_check);
+    set_cmd_cb(test_sss_nss_getpwnam_update_check);
     /* Mock output buffer */
     mock_fill_user();
 
     /* Fire the command */
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Check the user was updated in the cache */
-    ret = get_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = get_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                    "testuser_update" , &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
@@ -946,7 +946,7 @@ struct passwd getpwnam_fqdn = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getpwnam_check_fqdn(uint32_t status,
+static int test_sss_nss_getpwnam_check_fqdn(uint32_t status,
                                         uint8_t *body, size_t blen)
 {
     struct passwd pwd;
@@ -954,7 +954,7 @@ static int test_nss_getpwnam_check_fqdn(uint32_t status,
 
     assert_int_equal(status, EOK);
 
-    nss_test_ctx->cctx->rctx->domains[0].fqnames = false;
+    sss_nss_test_ctx->cctx->rctx->domains[0].fqnames = false;
 
     ret = parse_user_packet(body, blen, &pwd);
     assert_int_equal(ret, EOK);
@@ -964,11 +964,11 @@ static int test_nss_getpwnam_check_fqdn(uint32_t status,
     return EOK;
 }
 
-void test_nss_getpwnam_fqdn(void **state)
+void test_sss_nss_getpwnam_fqdn(void **state)
 {
     errno_t ret;
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &getpwnam_fqdn, NULL, 0);
     assert_int_equal(ret, EOK);
 
@@ -977,14 +977,14 @@ void test_nss_getpwnam_fqdn(void **state)
     mock_fill_user();
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwnam_check_fqdn);
-    nss_test_ctx->cctx->rctx->domains[0].fqnames = true;
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_check_fqdn);
+    sss_nss_test_ctx->cctx->rctx->domains[0].fqnames = true;
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
@@ -1000,7 +1000,7 @@ struct passwd getpwnam_space = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getpwnam_check_space(uint32_t status,
+static int test_sss_nss_getpwnam_check_space(uint32_t status,
                                          uint8_t *body, size_t blen)
 {
     struct passwd pwd;
@@ -1015,12 +1015,12 @@ static int test_nss_getpwnam_check_space(uint32_t status,
     return EOK;
 }
 
-void test_nss_getpwnam_space(void **state)
+void test_sss_nss_getpwnam_space(void **state)
 {
     errno_t ret;
 
     /* Prime the cache with a valid user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &getpwnam_space, NULL, 0);
     assert_int_equal(ret, EOK);
 
@@ -1029,18 +1029,18 @@ void test_nss_getpwnam_space(void **state)
     mock_fill_user();
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwnam_check_space);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_check_space);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
 }
 
-static int test_nss_getpwnam_check_space_sub(uint32_t status,
+static int test_sss_nss_getpwnam_check_space_sub(uint32_t status,
                                              uint8_t *body, size_t blen)
 {
     struct passwd pwd;
@@ -1058,49 +1058,49 @@ static int test_nss_getpwnam_check_space_sub(uint32_t status,
     return EOK;
 }
 
-void test_nss_getpwnam_space_sub(void **state)
+void test_sss_nss_getpwnam_space_sub(void **state)
 {
     errno_t ret;
 
     /* Set whitespace substitution */
-    nss_test_ctx->rctx->override_space = '_';
+    sss_nss_test_ctx->rctx->override_space = '_';
 
     mock_input_user_or_group("space user");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     mock_fill_user();
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwnam_check_space_sub);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_check_space_sub);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
-    nss_test_ctx->rctx->override_space = '\0';
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
+    sss_nss_test_ctx->rctx->override_space = '\0';
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getpwnam_space_sub_query(void **state)
+void test_sss_nss_getpwnam_space_sub_query(void **state)
 {
     errno_t ret;
 
     /* Set whitespace substitution */
-    nss_test_ctx->rctx->override_space = '_';
+    sss_nss_test_ctx->rctx->override_space = '_';
 
     mock_input_user_or_group("space_user");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     mock_fill_user();
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwnam_check_space_sub);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_check_space_sub);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
-    nss_test_ctx->rctx->override_space = '\0';
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
+    sss_nss_test_ctx->rctx->override_space = '\0';
     assert_int_equal(ret, EOK);
 }
 
@@ -1118,7 +1118,7 @@ struct passwd getpwnam_fancy_fqdn = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getpwnam_check_fancy_fqdn(uint32_t status,
+static int test_sss_nss_getpwnam_check_fancy_fqdn(uint32_t status,
                                               uint8_t *body, size_t blen)
 {
     struct passwd pwd;
@@ -1126,7 +1126,7 @@ static int test_nss_getpwnam_check_fancy_fqdn(uint32_t status,
 
     assert_int_equal(status, EOK);
 
-    nss_test_ctx->cctx->rctx->domains[0].fqnames = false;
+    sss_nss_test_ctx->cctx->rctx->domains[0].fqnames = false;
 
     ret = parse_user_packet(body, blen, &pwd);
     assert_int_equal(ret, EOK);
@@ -1138,12 +1138,12 @@ static int test_nss_getpwnam_check_fancy_fqdn(uint32_t status,
     return EOK;
 }
 
-void test_nss_getpwnam_fqdn_fancy(void **state)
+void test_sss_nss_getpwnam_fqdn_fancy(void **state)
 {
     errno_t ret;
 
     /* Prime the cache with a valid user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &getpwnam_fancy_fqdn, NULL, 0);
     assert_int_equal(ret, EOK);
 
@@ -1152,19 +1152,19 @@ void test_nss_getpwnam_fqdn_fancy(void **state)
     mock_fill_user();
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwnam_check_fancy_fqdn);
-    nss_test_ctx->cctx->rctx->domains[0].fqnames = true;
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_check_fancy_fqdn);
+    sss_nss_test_ctx->cctx->rctx->domains[0].fqnames = true;
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
 /* Check getting cached and valid id from cache. Account callback will
- * not be called and test_nss_getpwuid_check will make sure the id is
+ * not be called and test_sss_nss_getpwuid_check will make sure the id is
  * the same as the test entered before starting
  */
 struct passwd getpwuid_usr = {
@@ -1177,7 +1177,7 @@ struct passwd getpwuid_usr = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getpwuid_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_sss_nss_getpwuid_check(uint32_t status, uint8_t *body, size_t blen)
 {
     struct passwd pwd;
     errno_t ret;
@@ -1191,71 +1191,71 @@ static int test_nss_getpwuid_check(uint32_t status, uint8_t *body, size_t blen)
     return EOK;
 }
 
-void test_nss_getpwuid(void **state)
+void test_sss_nss_getpwuid(void **state)
 {
     errno_t ret;
     uint32_t id = 101;
 
     /* Prime the cache with a valid user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &getpwuid_usr, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_id(nss_test_ctx, id);
+    mock_input_id(sss_nss_test_ctx, id);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID);
     mock_fill_user();
 
     /* Query for that id, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwuid_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwuid_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWUID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
 /* Test that searching for a nonexistent id yields ENOENT.
  * Account callback will be called
  */
-void test_nss_getpwuid_neg(void **state)
+void test_sss_nss_getpwuid_neg(void **state)
 {
     errno_t ret;
     uid_t uid_neg = 102;
 
-    mock_input_id(nss_test_ctx, uid_neg);
+    mock_input_id(sss_nss_test_ctx, uid_neg);
     mock_account_recv_simple();
 
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWUID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     /* Test that subsequent search for a nonexistent id yields
      * ENOENT and Account callback is not called, on the other hand
      * the ncache functions will be called
      */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
-    mock_input_id(nss_test_ctx, uid_neg);
+    mock_input_id(sss_nss_test_ctx, uid_neg);
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWUID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
     /* Negative cache was hit this time */
-    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 1);
 }
 
 /* Test that lookup by UID for a user that does
@@ -1271,14 +1271,14 @@ struct passwd getpwuid_srch = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getpwuid_search_acct_cb(void *pvt)
+static int test_sss_nss_getpwuid_search_acct_cb(void *pvt)
 {
-    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+    struct sss_nss_test_ctx *ctx = talloc_get_type(pvt, struct sss_nss_test_ctx);
 
     return store_user(ctx, ctx->tctx->dom, &getpwuid_srch, NULL, 0);
 }
 
-static int test_nss_getpwuid_search_check(uint32_t status,
+static int test_sss_nss_getpwuid_search_check(uint32_t status,
                                           uint8_t *body, size_t blen)
 {
     struct passwd pwd;
@@ -1293,32 +1293,32 @@ static int test_nss_getpwuid_search_check(uint32_t status,
     return EOK;
 }
 
-void test_nss_getpwuid_search(void **state)
+void test_sss_nss_getpwuid_search(void **state)
 {
     errno_t ret;
     struct ldb_result *res;
 
-    mock_input_id(nss_test_ctx, getpwuid_srch.pw_uid);
-    mock_account_recv(0, 0, NULL, test_nss_getpwuid_search_acct_cb, nss_test_ctx);
+    mock_input_id(sss_nss_test_ctx, getpwuid_srch.pw_uid);
+    mock_account_recv(0, 0, NULL, test_sss_nss_getpwuid_search_acct_cb, sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID);
     mock_fill_user();
-    set_cmd_cb(test_nss_getpwuid_search_check);
+    set_cmd_cb(test_sss_nss_getpwuid_search_check);
 
-    ret = sysdb_getpwuid(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = sysdb_getpwuid(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                          getpwuid_srch.pw_uid, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 0);
 
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWUID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
-    /* test_nss_getpwuid_search_check will check the id attributes */
-    ret = sysdb_getpwuid(nss_test_ctx, nss_test_ctx->tctx->dom,
+    /* test_sss_nss_getpwuid_search_check will check the id attributes */
+    ret = sysdb_getpwuid(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                          getpwuid_srch.pw_uid, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
@@ -1339,15 +1339,15 @@ struct passwd getpwuid_update = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getpwuid_update_acct_cb(void *pvt)
+static int test_sss_nss_getpwuid_update_acct_cb(void *pvt)
 {
-    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+    struct sss_nss_test_ctx *ctx = talloc_get_type(pvt, struct sss_nss_test_ctx);
 
     getpwuid_update.pw_shell = discard_const("/bin/ksh");
     return store_user(ctx, ctx->tctx->dom, &getpwuid_update, NULL, 0);
 }
 
-static int test_nss_getpwuid_update_check(uint32_t status,
+static int test_sss_nss_getpwuid_update_check(uint32_t status,
                                           uint8_t *body, size_t blen)
 {
     struct passwd pwd;
@@ -1362,39 +1362,39 @@ static int test_nss_getpwuid_update_check(uint32_t status,
     return EOK;
 }
 
-void test_nss_getpwuid_update(void **state)
+void test_sss_nss_getpwuid_update(void **state)
 {
     errno_t ret;
     struct ldb_result *res;
     const char *shell;
 
     /* Prime the cache with a valid but expired user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &getpwuid_update, NULL, 1);
     assert_int_equal(ret, EOK);
 
     /* Mock client input */
-    mock_input_id(nss_test_ctx, getpwuid_update.pw_uid);
+    mock_input_id(sss_nss_test_ctx, getpwuid_update.pw_uid);
     /* Mock client command */
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID);
     /* Call this function when id is updated by the mock DP request */
-    mock_account_recv(0, 0, NULL, test_nss_getpwuid_update_acct_cb, nss_test_ctx);
+    mock_account_recv(0, 0, NULL, test_sss_nss_getpwuid_update_acct_cb, sss_nss_test_ctx);
     /* Call this function to check what the responder returned to the client */
-    set_cmd_cb(test_nss_getpwuid_update_check);
+    set_cmd_cb(test_sss_nss_getpwuid_update_check);
     /* Mock output buffer */
     mock_fill_user();
 
     /* Fire the command */
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWUID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Check the user was updated in the cache */
-    ret = sysdb_getpwuid(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = sysdb_getpwuid(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                          getpwuid_update.pw_uid, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
@@ -1404,57 +1404,57 @@ void test_nss_getpwuid_update(void **state)
 }
 
 /* Testsuite setup and teardown */
-void test_nss_setup(struct sss_test_conf_param params[],
+void test_sss_nss_setup(struct sss_test_conf_param params[],
                     void **state)
 {
     errno_t ret;
 
-    nss_test_ctx = talloc_zero(NULL, struct nss_test_ctx);
-    assert_non_null(nss_test_ctx);
+    sss_nss_test_ctx = talloc_zero(NULL, struct sss_nss_test_ctx);
+    assert_non_null(sss_nss_test_ctx);
 
-    nss_test_ctx->tctx = create_dom_test_ctx(nss_test_ctx, TESTS_PATH,
+    sss_nss_test_ctx->tctx = create_dom_test_ctx(sss_nss_test_ctx, TESTS_PATH,
                                              TEST_CONF_DB, TEST_DOM_NAME,
                                              TEST_ID_PROVIDER, params);
-    assert_non_null(nss_test_ctx->tctx);
+    assert_non_null(sss_nss_test_ctx->tctx);
 
-    nss_test_ctx->tctx->dom->domain_id = discard_const(TEST_DOM_SID);
+    sss_nss_test_ctx->tctx->dom->domain_id = discard_const(TEST_DOM_SID);
 
-    nss_test_ctx->nss_cmds = get_nss_cmds();
-    assert_non_null(nss_test_ctx->nss_cmds);
+    sss_nss_test_ctx->sss_nss_cmds = get_sss_nss_cmds();
+    assert_non_null(sss_nss_test_ctx->sss_nss_cmds);
 
     /* FIXME - perhaps this should be folded into sssd_domain_init or strictly
      * used together
      */
-    ret = sss_names_init(nss_test_ctx, nss_test_ctx->tctx->confdb,
-                         TEST_DOM_NAME, &nss_test_ctx->tctx->dom->names);
+    ret = sss_names_init(sss_nss_test_ctx, sss_nss_test_ctx->tctx->confdb,
+                         TEST_DOM_NAME, &sss_nss_test_ctx->tctx->dom->names);
     assert_int_equal(ret, EOK);
 
     /* Initialize the NSS responder */
-    nss_test_ctx->nctx = mock_nctx(nss_test_ctx);
-    assert_non_null(nss_test_ctx->nctx);
+    sss_nss_test_ctx->nctx = mock_nctx(sss_nss_test_ctx);
+    assert_non_null(sss_nss_test_ctx->nctx);
 
-    nss_test_ctx->rctx = mock_rctx(nss_test_ctx, nss_test_ctx->tctx->ev,
-                                   nss_test_ctx->tctx->dom, nss_test_ctx->nctx);
-    assert_non_null(nss_test_ctx->rctx);
-    nss_test_ctx->rctx->cdb = nss_test_ctx->tctx->confdb;
-    nss_test_ctx->nctx->rctx = nss_test_ctx->rctx;
+    sss_nss_test_ctx->rctx = mock_rctx(sss_nss_test_ctx, sss_nss_test_ctx->tctx->ev,
+                                   sss_nss_test_ctx->tctx->dom, sss_nss_test_ctx->nctx);
+    assert_non_null(sss_nss_test_ctx->rctx);
+    sss_nss_test_ctx->rctx->cdb = sss_nss_test_ctx->tctx->confdb;
+    sss_nss_test_ctx->nctx->rctx = sss_nss_test_ctx->rctx;
 
-    ret = sss_ad_default_names_ctx(nss_test_ctx->nctx,
-                                   &nss_test_ctx->nctx->rctx->global_names);
+    ret = sss_ad_default_names_ctx(sss_nss_test_ctx->nctx,
+                                   &sss_nss_test_ctx->nctx->rctx->global_names);
     assert_int_equal(ret, EOK);
-    assert_non_null(nss_test_ctx->nctx->rctx->global_names);
+    assert_non_null(sss_nss_test_ctx->nctx->rctx->global_names);
 
     /* Create client context */
-    nss_test_ctx->cctx = mock_cctx(nss_test_ctx, nss_test_ctx->rctx);
-    assert_non_null(nss_test_ctx->cctx);
+    sss_nss_test_ctx->cctx = mock_cctx(sss_nss_test_ctx, sss_nss_test_ctx->rctx);
+    assert_non_null(sss_nss_test_ctx->cctx);
 
     /* Add nss specific state_ctx */
-    nss_connection_setup(nss_test_ctx->cctx);
-    assert_non_null(nss_test_ctx->cctx->state_ctx);
+    sss_nss_connection_setup(sss_nss_test_ctx->cctx);
+    assert_non_null(sss_nss_test_ctx->cctx->state_ctx);
 
     /* do after previous setup as the former nulls protocol_ctx */
-    nss_test_ctx->cctx->protocol_ctx = mock_prctx(nss_test_ctx->cctx);
-    assert_non_null(nss_test_ctx->cctx->protocol_ctx);
+    sss_nss_test_ctx->cctx->protocol_ctx = mock_prctx(sss_nss_test_ctx->cctx);
+    assert_non_null(sss_nss_test_ctx->cctx->protocol_ctx);
 }
 
 struct group getgrnam_no_members = {
@@ -1464,7 +1464,7 @@ struct group getgrnam_no_members = {
     .gr_mem = NULL,
 };
 
-static int test_nss_getgrnam_no_members_check(uint32_t status,
+static int test_sss_nss_getgrnam_no_members_check(uint32_t status,
                                               uint8_t *body, size_t blen)
 {
     int ret;
@@ -1484,12 +1484,12 @@ static int test_nss_getgrnam_no_members_check(uint32_t status,
 /* Test that requesting a valid, cached group with no members returns a valid
  * group structure
  */
-void test_nss_getgrnam_no_members(void **state)
+void test_sss_nss_getgrnam_no_members(void **state)
 {
     errno_t ret;
 
     /* Prime the cache with a valid group */
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &getgrnam_no_members, NULL, 0);
     assert_int_equal(ret, EOK);
 
@@ -1498,13 +1498,13 @@ void test_nss_getgrnam_no_members(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_no_members_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
@@ -1535,7 +1535,7 @@ struct group testgroup_members = {
     .gr_mem = NULL,
 };
 
-static int test_nss_getgrnam_members_check(uint32_t status,
+static int test_sss_nss_getgrnam_members_check(uint32_t status,
                                            uint8_t *body, size_t blen)
 {
     int ret;
@@ -1563,35 +1563,35 @@ static int test_nss_getgrnam_members_check(uint32_t status,
 /* Test that requesting a valid, cached group with some members returns a valid
  * group structure with those members present
  */
-void test_nss_getgrnam_members(void **state)
+void test_sss_nss_getgrnam_members(void **state)
 {
     errno_t ret;
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &testgroup_members, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testmember1, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testmember2, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testgroup_members.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              testmember1.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testgroup_members.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              testmember2.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
@@ -1600,17 +1600,17 @@ void test_nss_getgrnam_members(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_members_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_members_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_members_check_fqdn(uint32_t status,
+static int test_sss_nss_getgrnam_members_check_fqdn(uint32_t status,
                                                 uint8_t *body, size_t blen)
 {
     int ret;
@@ -1624,19 +1624,19 @@ static int test_nss_getgrnam_members_check_fqdn(uint32_t status,
     };
     TALLOC_CTX *tmp_ctx;
 
-    tmp_ctx = talloc_new(nss_test_ctx);
+    tmp_ctx = talloc_new(sss_nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    exp_members[0] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
-                                   nss_test_ctx->tctx->dom, testmember1.pw_name);
+    exp_members[0] = sss_tc_fqname(tmp_ctx, sss_nss_test_ctx->tctx->dom->names,
+                                   sss_nss_test_ctx->tctx->dom, testmember1.pw_name);
     assert_non_null(exp_members[0]);
-    exp_members[1] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
-                                   nss_test_ctx->tctx->dom, testmember2.pw_name);
+    exp_members[1] = sss_tc_fqname(tmp_ctx, sss_nss_test_ctx->tctx->dom->names,
+                                   sss_nss_test_ctx->tctx->dom, testmember2.pw_name);
     assert_non_null(exp_members[1]);
 
     expected.gr_name = sss_tc_fqname(tmp_ctx,
-                                     nss_test_ctx->tctx->dom->names,
-                                     nss_test_ctx->tctx->dom,
+                                     sss_nss_test_ctx->tctx->dom->names,
+                                     sss_nss_test_ctx->tctx->dom,
                                      testgroup_members.gr_name);
     assert_non_null(expected.gr_name);
 
@@ -1656,27 +1656,27 @@ static int test_nss_getgrnam_members_check_fqdn(uint32_t status,
 /* Test that requesting a valid, cached group with some members returns a valid
  * group structure with those members present as fully qualified names
  */
-void test_nss_getgrnam_members_fqdn(void **state)
+void test_sss_nss_getgrnam_members_fqdn(void **state)
 {
     errno_t ret;
 
-    nss_test_ctx->tctx->dom->fqnames = true;
+    sss_nss_test_ctx->tctx->dom->fqnames = true;
 
     mock_input_user_or_group("testgroup_members@"TEST_DOM_NAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_members_check_fqdn);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_members_check_fqdn);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
 
     /* Restore FQDN settings */
-    nss_test_ctx->tctx->dom->fqnames = false;
+    sss_nss_test_ctx->tctx->dom->fqnames = false;
     assert_int_equal(ret, EOK);
 }
 
@@ -1711,7 +1711,7 @@ struct group testsubdomgroup = {
     .gr_mem = NULL,
 };
 
-static int test_nss_getgrnam_members_check_subdom(uint32_t status,
+static int test_sss_nss_getgrnam_members_check_subdom(uint32_t status,
                                                   uint8_t *body, size_t blen)
 {
     int ret;
@@ -1725,24 +1725,24 @@ static int test_nss_getgrnam_members_check_subdom(uint32_t status,
     };
     TALLOC_CTX *tmp_ctx;
 
-    tmp_ctx = talloc_new(nss_test_ctx);
+    tmp_ctx = talloc_new(sss_nss_test_ctx);
     assert_non_null(tmp_ctx);
 
     exp_members[0] = sss_tc_fqname(tmp_ctx,
-                                   nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom,
+                                   sss_nss_test_ctx->subdom->names,
+                                   sss_nss_test_ctx->subdom,
                                    submember1.pw_name);
     assert_non_null(exp_members[0]);
 
     exp_members[1] = sss_tc_fqname(tmp_ctx,
-                                   nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom,
+                                   sss_nss_test_ctx->subdom->names,
+                                   sss_nss_test_ctx->subdom,
                                    submember2.pw_name);
     assert_non_null(exp_members[1]);
 
     expected.gr_name = sss_tc_fqname(tmp_ctx,
-                                     nss_test_ctx->subdom->names,
-                                     nss_test_ctx->subdom,
+                                     sss_nss_test_ctx->subdom->names,
+                                     sss_nss_test_ctx->subdom,
                                      testsubdomgroup.gr_name);
     assert_non_null(expected.gr_name);
 
@@ -1759,7 +1759,7 @@ static int test_nss_getgrnam_members_check_subdom(uint32_t status,
     return EOK;
 }
 
-void test_nss_getgrnam_members_subdom(void **state)
+void test_sss_nss_getgrnam_members_subdom(void **state)
 {
     errno_t ret;
 
@@ -1768,18 +1768,18 @@ void test_nss_getgrnam_members_subdom(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_members_check_subdom);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_members_check_subdom);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
 
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getgrnam_members_subdom_nonfqnames(void **state)
+void test_sss_nss_getgrnam_members_subdom_nonfqnames(void **state)
 {
     errno_t ret;
 
@@ -1789,18 +1789,18 @@ void test_nss_getgrnam_members_subdom_nonfqnames(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_members_check_subdom);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_members_check_subdom);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
 
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_check_mix_dom(uint32_t status,
+static int test_sss_nss_getgrnam_check_mix_dom(uint32_t status,
                                            uint8_t *body, size_t blen)
 {
     int ret;
@@ -1815,12 +1815,12 @@ static int test_nss_getgrnam_check_mix_dom(uint32_t status,
     };
     TALLOC_CTX *tmp_ctx;
 
-    tmp_ctx = talloc_new(nss_test_ctx);
+    tmp_ctx = talloc_new(sss_nss_test_ctx);
     assert_non_null(tmp_ctx);
 
     exp_members[0] = sss_tc_fqname(tmp_ctx,
-                                   nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom,
+                                   sss_nss_test_ctx->subdom->names,
+                                   sss_nss_test_ctx->subdom,
                                    submember1.pw_name);
     assert_non_null(exp_members[0]);
     exp_members[1] = testmember1.pw_name;
@@ -1839,15 +1839,15 @@ static int test_nss_getgrnam_check_mix_dom(uint32_t status,
     return EOK;
 }
 
-void test_nss_getgrnam_mix_dom(void **state)
+void test_sss_nss_getgrnam_mix_dom(void **state)
 {
     errno_t ret;
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testgroup_members.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              submember1.pw_name,
-                             nss_test_ctx->subdom,
+                             sss_nss_test_ctx->subdom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
@@ -1856,25 +1856,25 @@ void test_nss_getgrnam_mix_dom(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_check_mix_dom);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_check_mix_dom);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getgrnam_mix_dom_nonfqnames(void **state)
+void test_sss_nss_getgrnam_mix_dom_nonfqnames(void **state)
 {
     errno_t ret;
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testgroup_members.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              submember1.pw_name,
-                             nss_test_ctx->subdom,
+                             sss_nss_test_ctx->subdom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
@@ -1883,17 +1883,17 @@ void test_nss_getgrnam_mix_dom_nonfqnames(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_check_mix_dom);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_check_mix_dom);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
+static int test_sss_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
                                                 uint8_t *body, size_t blen)
 {
     int ret;
@@ -1907,26 +1907,26 @@ static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
     };
     TALLOC_CTX *tmp_ctx;
 
-    tmp_ctx = talloc_new(nss_test_ctx);
+    tmp_ctx = talloc_new(sss_nss_test_ctx);
     assert_non_null(tmp_ctx);
 
     exp_members[0] = sss_tc_fqname(tmp_ctx,
-                                   nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom,
+                                   sss_nss_test_ctx->subdom->names,
+                                   sss_nss_test_ctx->subdom,
                                    submember1.pw_name);
     assert_non_null(exp_members[0]);
 
-    if (nss_test_ctx->tctx->dom->fqnames) {
-        exp_members[1] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
-                                       nss_test_ctx->tctx->dom, testmember1.pw_name);
+    if (sss_nss_test_ctx->tctx->dom->fqnames) {
+        exp_members[1] = sss_tc_fqname(tmp_ctx, sss_nss_test_ctx->tctx->dom->names,
+                                       sss_nss_test_ctx->tctx->dom, testmember1.pw_name);
         assert_non_null(exp_members[1]);
-        exp_members[2] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
-                                       nss_test_ctx->tctx->dom, testmember2.pw_name);
+        exp_members[2] = sss_tc_fqname(tmp_ctx, sss_nss_test_ctx->tctx->dom->names,
+                                       sss_nss_test_ctx->tctx->dom, testmember2.pw_name);
         assert_non_null(exp_members[2]);
 
         expected.gr_name = sss_tc_fqname(tmp_ctx,
-                                         nss_test_ctx->tctx->dom->names,
-                                         nss_test_ctx->tctx->dom,
+                                         sss_nss_test_ctx->tctx->dom->names,
+                                         sss_nss_test_ctx->tctx->dom,
                                          testgroup_members.gr_name);
         assert_non_null(expected.gr_name);
     } else {
@@ -1948,48 +1948,48 @@ static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
     return EOK;
 }
 
-void test_nss_getgrnam_mix_dom_fqdn(void **state)
+void test_sss_nss_getgrnam_mix_dom_fqdn(void **state)
 {
     errno_t ret;
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testgroup_members.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              submember1.pw_name,
-                             nss_test_ctx->subdom,
+                             sss_nss_test_ctx->subdom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
-    nss_test_ctx->tctx->dom->fqnames = true;
+    sss_nss_test_ctx->tctx->dom->fqnames = true;
 
     mock_input_user_or_group("testgroup_members@"TEST_DOM_NAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_check_mix_dom_fqdn);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_check_mix_dom_fqdn);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
 
     /* Restore FQDN settings */
-    nss_test_ctx->tctx->dom->fqnames = false;
+    sss_nss_test_ctx->tctx->dom->fqnames = false;
     assert_int_equal(ret, EOK);
 }
 
 
-void test_nss_getgrnam_mix_dom_fqdn_nonfqnames(void **state)
+void test_sss_nss_getgrnam_mix_dom_fqdn_nonfqnames(void **state)
 {
     errno_t ret;
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testgroup_members.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              submember1.pw_name,
-                             nss_test_ctx->subdom,
+                             sss_nss_test_ctx->subdom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
@@ -1998,20 +1998,20 @@ void test_nss_getgrnam_mix_dom_fqdn_nonfqnames(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_check_mix_dom_fqdn);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_check_mix_dom_fqdn);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
 
     /* Restore FQDN settings */
-    nss_test_ctx->tctx->dom->fqnames = false;
+    sss_nss_test_ctx->tctx->dom->fqnames = false;
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_check_mix_subdom(uint32_t status,
+static int test_sss_nss_getgrnam_check_mix_subdom(uint32_t status,
                                               uint8_t *body, size_t blen)
 {
     int ret;
@@ -2025,18 +2025,18 @@ static int test_nss_getgrnam_check_mix_subdom(uint32_t status,
     };
     TALLOC_CTX *tmp_ctx;
 
-    tmp_ctx = talloc_new(nss_test_ctx);
+    tmp_ctx = talloc_new(sss_nss_test_ctx);
     assert_non_null(tmp_ctx);
 
     exp_members[0] = sss_tc_fqname(tmp_ctx,
-                                   nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom,
+                                   sss_nss_test_ctx->subdom->names,
+                                   sss_nss_test_ctx->subdom,
                                    submember1.pw_name);
     assert_non_null(exp_members[0]);
 
     exp_members[1] = sss_tc_fqname(tmp_ctx,
-                                   nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom,
+                                   sss_nss_test_ctx->subdom->names,
+                                   sss_nss_test_ctx->subdom,
                                    submember2.pw_name);
     assert_non_null(exp_members[1]);
 
@@ -2046,8 +2046,8 @@ static int test_nss_getgrnam_check_mix_subdom(uint32_t status,
     exp_members[2] = testmember1.pw_name;
 
     expected.gr_name = sss_tc_fqname(tmp_ctx,
-                                     nss_test_ctx->subdom->names,
-                                     nss_test_ctx->subdom,
+                                     sss_nss_test_ctx->subdom->names,
+                                     sss_nss_test_ctx->subdom,
                                      testsubdomgroup.gr_name);
     assert_non_null(expected.gr_name);
 
@@ -2064,15 +2064,15 @@ static int test_nss_getgrnam_check_mix_subdom(uint32_t status,
     return EOK;
 }
 
-void test_nss_getgrnam_mix_subdom(void **state)
+void test_sss_nss_getgrnam_mix_subdom(void **state)
 {
     errno_t ret;
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testsubdomgroup.gr_name,
-                             nss_test_ctx->subdom,
+                             sss_nss_test_ctx->subdom,
                              testmember1.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
@@ -2081,25 +2081,25 @@ void test_nss_getgrnam_mix_subdom(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_check_mix_subdom);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_check_mix_subdom);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getgrnam_mix_subdom_nonfqnames(void **state)
+void test_sss_nss_getgrnam_mix_subdom_nonfqnames(void **state)
 {
     errno_t ret;
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testsubdomgroup.gr_name,
-                             nss_test_ctx->subdom,
+                             sss_nss_test_ctx->subdom,
                              testmember1.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
@@ -2109,13 +2109,13 @@ void test_nss_getgrnam_mix_subdom_nonfqnames(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_check_mix_subdom);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_check_mix_subdom);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
@@ -2126,7 +2126,7 @@ struct group space_group = {
     .gr_mem = NULL,
 };
 
-static int test_nss_getgrnam_space_check(uint32_t status,
+static int test_sss_nss_getgrnam_space_check(uint32_t status,
                                          uint8_t *body, size_t blen)
 {
     int ret;
@@ -2148,12 +2148,12 @@ static int test_nss_getgrnam_space_check(uint32_t status,
 /* Test that requesting a valid, cached group with space in its name returns a valid
  * group structure
  */
-void test_nss_getgrnam_space(void **state)
+void test_sss_nss_getgrnam_space(void **state)
 {
     errno_t ret;
 
     /* Prime the cache with a valid group */
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &space_group, NULL, 0);
     assert_int_equal(ret, EOK);
 
@@ -2162,17 +2162,17 @@ void test_nss_getgrnam_space(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_space_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_space_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_space_sub_check(uint32_t status,
+static int test_sss_nss_getgrnam_space_sub_check(uint32_t status,
                                              uint8_t *body, size_t blen)
 {
     int ret;
@@ -2195,30 +2195,30 @@ static int test_nss_getgrnam_space_sub_check(uint32_t status,
 /* Test that requesting a valid, cached group with space in its name returns a valid
  * group structure
  */
-void test_nss_getgrnam_space_sub(void **state)
+void test_sss_nss_getgrnam_space_sub(void **state)
 {
     errno_t ret;
 
     /* Set whitespace substitution */
-    nss_test_ctx->rctx->override_space = '_';
+    sss_nss_test_ctx->rctx->override_space = '_';
 
     mock_input_user_or_group("space group");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_space_sub_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_space_sub_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
-    nss_test_ctx->rctx->override_space = '\0';
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
+    sss_nss_test_ctx->rctx->override_space = '\0';
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_well_known_sid_check(uint32_t status,
+static int test_sss_nss_well_known_sid_check(uint32_t status,
                                          uint8_t *body, size_t blen)
 {
     const char *name;
@@ -2243,7 +2243,7 @@ static int test_nss_well_known_sid_check(uint32_t status,
     return EOK;
 }
 
-void test_nss_well_known_getnamebysid(void **state)
+void test_sss_nss_well_known_getnamebysid(void **state)
 {
     errno_t ret;
 
@@ -2252,19 +2252,19 @@ void test_nss_well_known_getnamebysid(void **state)
     will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    will_return(test_nss_well_known_sid_check, "Print Operators@BUILTIN");
+    will_return(test_sss_nss_well_known_sid_check, "Print Operators@BUILTIN");
 
-    set_cmd_cb(test_nss_well_known_sid_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_well_known_sid_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_well_known_getnamebysid_special(void **state)
+void test_sss_nss_well_known_getnamebysid_special(void **state)
 {
     errno_t ret;
 
@@ -2273,19 +2273,19 @@ void test_nss_well_known_getnamebysid_special(void **state)
     will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    will_return(test_nss_well_known_sid_check, "LOCAL@LOCAL AUTHORITY");
+    will_return(test_sss_nss_well_known_sid_check, "LOCAL@LOCAL AUTHORITY");
 
-    set_cmd_cb(test_nss_well_known_sid_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_well_known_sid_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_well_known_getnamebysid_non_existing(void **state)
+void test_sss_nss_well_known_getnamebysid_non_existing(void **state)
 {
     errno_t ret;
 
@@ -2293,19 +2293,19 @@ void test_nss_well_known_getnamebysid_non_existing(void **state)
     will_return(__wrap_sss_packet_get_body, "S-1-5-32-123");
     will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
-    will_return(test_nss_well_known_sid_check, NULL);
+    will_return(test_sss_nss_well_known_sid_check, NULL);
 
-    set_cmd_cb(test_nss_well_known_sid_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_well_known_sid_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_well_known_getidbysid_failure(void **state)
+void test_sss_nss_well_known_getidbysid_failure(void **state)
 {
     errno_t ret;
 
@@ -2313,19 +2313,19 @@ void test_nss_well_known_getidbysid_failure(void **state)
     will_return(__wrap_sss_packet_get_body, "S-1-5-32-550");
     will_return(__wrap_sss_packet_get_body, 0);
     will_return_always(__wrap_sss_packet_get_cmd, SSS_NSS_GETIDBYSID);
-    will_return(test_nss_well_known_sid_check, NULL);
+    will_return(test_sss_nss_well_known_sid_check, NULL);
 
-    set_cmd_cb(test_nss_well_known_sid_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETIDBYSID,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_well_known_sid_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETIDBYSID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_well_known_getsidbyname(void **state)
+void test_sss_nss_well_known_getsidbyname(void **state)
 {
     errno_t ret;
     const char *names[] = { "Cryptographic Operators@BUILTIN",
@@ -2333,53 +2333,53 @@ void test_nss_well_known_getsidbyname(void **state)
     size_t c;
 
     for (c = 0; names[c] != NULL; c++) {
-        nss_test_ctx->tctx->done = false;
+        sss_nss_test_ctx->tctx->done = false;
 
         will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
         will_return(__wrap_sss_packet_get_body, names[c]);
         will_return(__wrap_sss_packet_get_body, 0);
         will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
         will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-        will_return(test_nss_well_known_sid_check, "S-1-5-32-569");
+        will_return(test_sss_nss_well_known_sid_check, "S-1-5-32-569");
 
-        set_cmd_cb(test_nss_well_known_sid_check);
-        ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
-                              nss_test_ctx->nss_cmds);
+        set_cmd_cb(test_sss_nss_well_known_sid_check);
+        ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                              sss_nss_test_ctx->sss_nss_cmds);
         assert_int_equal(ret, EOK);
 
         /* Wait until the test finishes with EOK */
-        ret = test_ev_loop(nss_test_ctx->tctx);
+        ret = test_ev_loop(sss_nss_test_ctx->tctx);
         assert_int_equal(ret, EOK);
     }
 }
 
-void test_nss_well_known_getsidbyname_nonexisting(void **state)
+void test_sss_nss_well_known_getsidbyname_nonexisting(void **state)
 {
     errno_t ret;
     const char *names[] = { "Abc@BUILTIN", "BUILTIN\\Abc", NULL };
     size_t c;
 
     for (c = 0; names[c] != NULL; c++) {
-        nss_test_ctx->tctx->done = false;
+        sss_nss_test_ctx->tctx->done = false;
 
         will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
         will_return(__wrap_sss_packet_get_body, names[c]);
         will_return(__wrap_sss_packet_get_body, 0);
         will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
-        will_return(test_nss_well_known_sid_check, NULL);
+        will_return(test_sss_nss_well_known_sid_check, NULL);
 
-        set_cmd_cb(test_nss_well_known_sid_check);
-        ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
-                              nss_test_ctx->nss_cmds);
+        set_cmd_cb(test_sss_nss_well_known_sid_check);
+        ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                              sss_nss_test_ctx->sss_nss_cmds);
         assert_int_equal(ret, EOK);
 
         /* Wait until the test finishes with EOK */
-        ret = test_ev_loop(nss_test_ctx->tctx);
+        ret = test_ev_loop(sss_nss_test_ctx->tctx);
         assert_int_equal(ret, EOK);
     }
 }
 
-void test_nss_well_known_getsidbyname_special(void **state)
+void test_sss_nss_well_known_getsidbyname_special(void **state)
 {
     errno_t ret;
     const char *names[] = { "CREATOR OWNER@CREATOR AUTHORITY",
@@ -2387,27 +2387,27 @@ void test_nss_well_known_getsidbyname_special(void **state)
     size_t c;
 
     for (c = 0; names[c] != NULL; c++) {
-        nss_test_ctx->tctx->done = false;
+        sss_nss_test_ctx->tctx->done = false;
 
         will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
         will_return(__wrap_sss_packet_get_body, names[c]);
         will_return(__wrap_sss_packet_get_body, 0);
         will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
         will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-        will_return(test_nss_well_known_sid_check, "S-1-3-0");
+        will_return(test_sss_nss_well_known_sid_check, "S-1-3-0");
 
-        set_cmd_cb(test_nss_well_known_sid_check);
-        ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
-                              nss_test_ctx->nss_cmds);
+        set_cmd_cb(test_sss_nss_well_known_sid_check);
+        ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                              sss_nss_test_ctx->sss_nss_cmds);
         assert_int_equal(ret, EOK);
 
         /* Wait until the test finishes with EOK */
-        ret = test_ev_loop(nss_test_ctx->tctx);
+        ret = test_ev_loop(sss_nss_test_ctx->tctx);
         assert_int_equal(ret, EOK);
     }
 }
 
-static int test_nss_getorigbyname_check(uint32_t status, uint8_t *body,
+static int test_sss_nss_getorigbyname_check(uint32_t status, uint8_t *body,
                                         size_t blen)
 {
     const char *s;
@@ -2473,13 +2473,13 @@ struct passwd orig_name = {
     .pw_passwd = discard_const("*"),
 };
 
-void test_nss_getorigbyname(void **state)
+void test_sss_nss_getorigbyname(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *test_upn = "testuserorig@upndomain.test";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4");
@@ -2496,7 +2496,7 @@ void test_nss_getorigbyname(void **state)
     assert_int_equal(ret, EOK);
 
     /* Prime the cache with a valid user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &orig_name, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -2505,34 +2505,34 @@ void test_nss_getorigbyname(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getorigbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getorigbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Also test looking up the same stuff with UPN */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
     mock_input_upn(test_upn);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getorigbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getorigbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getorigbyname_extra_check(uint32_t status, uint8_t *body,
+static int test_sss_nss_getorigbyname_extra_check(uint32_t status, uint8_t *body,
                                               size_t blen)
 {
     const char *s;
@@ -2608,12 +2608,12 @@ struct passwd orig_extra = {
     .pw_passwd = discard_const("*"),
 };
 
-void test_nss_getorigbyname_extra_attrs(void **state)
+void test_sss_nss_getorigbyname_extra_attrs(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4");
@@ -2635,7 +2635,7 @@ void test_nss_getorigbyname_extra_attrs(void **state)
     ret = sysdb_attrs_add_string(attrs, "not_extra", "abc");
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &orig_extra, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -2644,17 +2644,17 @@ void test_nss_getorigbyname_extra_attrs(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getorigbyname_extra_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getorigbyname_extra_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getorigbyname_multi_check(uint32_t status, uint8_t *body,
+static int test_sss_nss_getorigbyname_multi_check(uint32_t status, uint8_t *body,
                                               size_t blen)
 {
     const char *s;
@@ -2740,12 +2740,12 @@ struct passwd orig_multi = {
     .pw_passwd = discard_const("*"),
 };
 
-void test_nss_getorigbyname_multi_value_attrs(void **state)
+void test_sss_nss_getorigbyname_multi_value_attrs(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4");
@@ -2767,7 +2767,7 @@ void test_nss_getorigbyname_multi_value_attrs(void **state)
     ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_MEMBEROF, "cn=123");
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &orig_multi, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -2776,13 +2776,13 @@ void test_nss_getorigbyname_multi_value_attrs(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getorigbyname_multi_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getorigbyname_multi_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
@@ -2803,7 +2803,7 @@ struct group orig_group_dup = {
     .gr_mem = NULL,
 };
 
-static int test_nss_getorigbyusername_check(uint32_t status, uint8_t *body,
+static int test_sss_nss_getorigbyusername_check(uint32_t status, uint8_t *body,
                                             size_t blen)
 {
     const char *s;
@@ -2839,7 +2839,7 @@ static int test_nss_getorigbyusername_check(uint32_t status, uint8_t *body,
     return EOK;
 }
 
-static int test_nss_getorigbygroupname_check(uint32_t status, uint8_t *body,
+static int test_sss_nss_getorigbygroupname_check(uint32_t status, uint8_t *body,
                                              size_t blen)
 {
     const char *s;
@@ -2865,12 +2865,12 @@ static int test_nss_getorigbygroupname_check(uint32_t status, uint8_t *body,
     return EOK;
 }
 
-static void test_nss_getorigbyname_dup_add(void)
+static void test_sss_nss_getorigbyname_dup_add(void)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4");
@@ -2880,87 +2880,87 @@ static void test_nss_getorigbyname_dup_add(void)
                                  "orig_name");
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &orig_user_dup, attrs, 0);
     assert_int_equal(ret, EOK);
     talloc_free(attrs);
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-5");
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &orig_group_dup, attrs, 0);
     assert_int_equal(ret, EOK);
     talloc_free(attrs);
 }
 
 
-static int test_nss_EINVAL_check(uint32_t status, uint8_t *body, size_t blen);
-/* test_nss_getorigbyname_dup is expected to fail because there are a user and
+static int test_sss_nss_EINVAL_check(uint32_t status, uint8_t *body, size_t blen);
+/* test_sss_nss_getorigbyname_dup is expected to fail because there are a user and
  * a group with the same name in the cache. */
-void test_nss_getorigbyname_dup(void **state)
+void test_sss_nss_getorigbyname_dup(void **state)
 {
     errno_t ret;
 
-    test_nss_getorigbyname_dup_add();
+    test_sss_nss_getorigbyname_dup_add();
 
     mock_input_user_or_group("testdup");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYNAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYNAME);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getorigbyusername(void **state)
+void test_sss_nss_getorigbyusername(void **state)
 {
     errno_t ret;
 
-    test_nss_getorigbyname_dup_add();
+    test_sss_nss_getorigbyname_dup_add();
 
     mock_input_user_or_group("testdup");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYUSERNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getorigbyusername_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYUSERNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getorigbyusername_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETORIGBYUSERNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getorigbygroupname(void **state)
+void test_sss_nss_getorigbygroupname(void **state)
 {
     errno_t ret;
 
-    test_nss_getorigbyname_dup_add();
+    test_sss_nss_getorigbyname_dup_add();
 
     mock_input_user_or_group("testdup");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYGROUPNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getorigbygroupname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYGROUPNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getorigbygroupname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETORIGBYGROUPNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
@@ -2974,7 +2974,7 @@ struct passwd upn_user = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getpwnam_upn_check(uint32_t status,
+static int test_sss_nss_getpwnam_upn_check(uint32_t status,
                                        uint8_t *body,
                                        size_t blen)
 {
@@ -2990,19 +2990,19 @@ static int test_nss_getpwnam_upn_check(uint32_t status,
     return EOK;
 }
 
-void test_nss_getpwnam_upn(void **state)
+void test_sss_nss_getpwnam_upn(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, "upnuser@upndomain.test");
     assert_int_equal(ret, EOK);
 
     /* Prime the cache with a valid user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &upn_user, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -3011,29 +3011,29 @@ void test_nss_getpwnam_upn(void **state)
     mock_fill_user();
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwnam_upn_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_upn_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getpwnam_upn_same_domain(void **state)
+void test_sss_nss_getpwnam_upn_same_domain(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, "upnuser_upn@" TEST_DOM_NAME);
     assert_int_equal(ret, EOK);
 
     /* Prime the cache with a valid user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &upn_user, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -3043,59 +3043,59 @@ void test_nss_getpwnam_upn_same_domain(void **state)
     mock_fill_user();
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwnam_upn_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_upn_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
 /* Test that searching for a nonexistent user yields ENOENT.
  * Account callback will be called
  */
-void test_nss_getpwnam_upn_neg(void **state)
+void test_sss_nss_getpwnam_upn_neg(void **state)
 {
     errno_t ret;
 
     mock_input_upn("nosuchupnuser@upndomain.test");
     mock_account_recv_simple();
 
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     /* Test that subsequent search for a nonexistent user yields
      * ENOENT and Account callback is not called, on the other hand
      * the ncache functions will be called
      */
-    nss_test_ctx->tctx->done = false;
-    nss_test_ctx->ncache_hits = 0;
+    sss_nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->ncache_hits = 0;
 
     mock_input_upn("nosuchupnuser@upndomain.test");
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
     /* Negative cache was hit this time */
-    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 1);
 }
 
-static int test_nss_initgr_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_sss_nss_initgr_check(uint32_t status, uint8_t *body, size_t blen)
 {
     gid_t expected_gids[] = { 3211, 3212 };
 
@@ -3128,12 +3128,12 @@ struct group testinitgr_gr2 = {
     .gr_mem = NULL,
 };
 
-void test_nss_initgroups(void **state)
+void test_sss_nss_initgroups(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
@@ -3143,31 +3143,31 @@ void test_nss_initgroups(void **state)
     ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, "upninitgr@upndomain.test");
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testinitgr_usr, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &testinitgr_gr1, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &testinitgr_gr2, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testinitgr_gr1.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              testinitgr_usr.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testinitgr_gr2.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              testinitgr_usr.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
@@ -3176,13 +3176,13 @@ void test_nss_initgroups(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_initgr_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_initgr_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
@@ -3200,24 +3200,24 @@ void test_initgr_neg_by_name(const char *name, bool is_upn)
     }
     mock_account_recv_simple();
 
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     /* Test that subsequent search for a nonexistent user yields
      * ENOENT and Account callback is not called, on the other hand
      * the ncache functions will be called
      */
-    nss_test_ctx->tctx->done = false;
-    nss_test_ctx->ncache_hits = 0;
+    sss_nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->ncache_hits = 0;
 
     if (is_upn) {
         mock_input_upn(name);
@@ -3225,18 +3225,18 @@ void test_initgr_neg_by_name(const char *name, bool is_upn)
         mock_input_user_or_group(name);
     }
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
     /* Negative cache was hit this time */
-    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 1);
 }
 
-void test_nss_initgr_neg(void **state)
+void test_sss_nss_initgr_neg(void **state)
 {
     test_initgr_neg_by_name("testinitgr_neg", false);
 }
@@ -3265,50 +3265,50 @@ struct group testinitgr_srch_gr2 = {
     .gr_mem = NULL,
 };
 
-static int test_nss_initgr_search_acct_cb(void *pvt)
+static int test_sss_nss_initgr_search_acct_cb(void *pvt)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
                                  time(NULL) + 300);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testinitgr_srch_usr, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &testinitgr_srch_gr1, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &testinitgr_srch_gr2, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testinitgr_srch_gr1.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              testinitgr_srch_usr.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testinitgr_srch_gr2.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              testinitgr_srch_usr.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
     return EOK;
 }
 
-static int test_nss_initgr_search_check(uint32_t status,
+static int test_sss_nss_initgr_search_check(uint32_t status,
                                         uint8_t *body, size_t blen)
 {
     gid_t expected_gids[] = { 4211, 4212 };
@@ -3318,32 +3318,32 @@ static int test_nss_initgr_search_check(uint32_t status,
     return EOK;
 }
 
-void test_nss_initgr_search(void **state)
+void test_sss_nss_initgr_search(void **state)
 {
     errno_t ret;
     struct ldb_result *res;
 
     mock_input_user_or_group("testinitgr_srch");
-    mock_account_recv(0, 0, NULL, test_nss_initgr_search_acct_cb, nss_test_ctx);
+    mock_account_recv(0, 0, NULL, test_sss_nss_initgr_search_acct_cb, sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    set_cmd_cb(test_nss_initgr_search_check);
+    set_cmd_cb(test_sss_nss_initgr_search_check);
 
-    ret = get_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = get_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                    "testinitgr_srch", &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 0);
 
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
-    /* test_nss_getpwnam_search_check will check the user attributes */
-    ret = get_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    /* test_sss_nss_getpwnam_search_check will check the user attributes */
+    ret = get_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                    "testinitgr_srch", &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
@@ -3373,40 +3373,40 @@ struct group testinitgr_update_gr2 = {
     .gr_mem = NULL,
 };
 
-static int test_nss_initgr_update_acct_cb(void *pvt)
+static int test_sss_nss_initgr_update_acct_cb(void *pvt)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
                                  time(NULL) + 300);
     assert_int_equal(ret, EOK);
 
-    ret = set_user_attr(nss_test_ctx,
-                        nss_test_ctx->tctx->dom,
+    ret = set_user_attr(sss_nss_test_ctx,
+                        sss_nss_test_ctx->tctx->dom,
                         &testinitgr_update_usr,
                         attrs);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &testinitgr_update_gr2, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testinitgr_update_gr2.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              testinitgr_update_usr.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
     return EOK;
 }
 
-static int test_nss_initgr_update_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_sss_nss_initgr_update_check(uint32_t status, uint8_t *body, size_t blen)
 {
     gid_t expected_gids[] = { 5211, 5212 };
 
@@ -3415,47 +3415,47 @@ static int test_nss_initgr_update_check(uint32_t status, uint8_t *body, size_t b
     return EOK;
 }
 
-void test_nss_initgr_update(void **state)
+void test_sss_nss_initgr_update(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
                                  time(NULL) - 1);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testinitgr_update_usr, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &testinitgr_update_gr1, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testinitgr_update_gr1.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              testinitgr_update_usr.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
     mock_input_user_or_group("testinitgr_update");
-    mock_account_recv(0, 0, NULL, test_nss_initgr_update_acct_cb, nss_test_ctx);
+    mock_account_recv(0, 0, NULL, test_sss_nss_initgr_update_acct_cb, sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    set_cmd_cb(test_nss_initgr_update_check);
+    set_cmd_cb(test_sss_nss_initgr_update_check);
 
     /* Query for that user, call a callback when command finishes */
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
@@ -3483,38 +3483,38 @@ struct group testinitgr_2attr_gr2 = {
     .gr_mem = NULL,
 };
 
-static int test_nss_initgr_update_acct_2expire_attributes_cb(void *pvt)
+static int test_sss_nss_initgr_update_acct_2expire_attributes_cb(void *pvt)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
                                  time(NULL) + 300);
     assert_int_equal(ret, EOK);
 
-    ret = set_user_attr(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = set_user_attr(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                         &testinitgr_2attr_usr, attrs);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &testinitgr_2attr_gr2, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testinitgr_2attr_gr2.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              testinitgr_2attr_usr.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
     return EOK;
 }
 
-static int test_nss_initgr_update_2expire_attributes_check(uint32_t status,
+static int test_sss_nss_initgr_update_2expire_attributes_check(uint32_t status,
                                                            uint8_t *body,
                                                            size_t blen)
 {
@@ -3531,12 +3531,12 @@ static int test_nss_initgr_update_2expire_attributes_check(uint32_t status,
  *
  * Test result: DP should be contacted for update.
  */
-void test_nss_initgr_update_two_expire_attributes(void **state)
+void test_sss_nss_initgr_update_two_expire_attributes(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
@@ -3547,41 +3547,41 @@ void test_nss_initgr_update_two_expire_attributes(void **state)
                                  time(NULL) + 100);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testinitgr_2attr_usr, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &testinitgr_2attr_gr1, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testinitgr_2attr_gr1.gr_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              testinitgr_2attr_usr.pw_name,
-                             nss_test_ctx->tctx->dom,
+                             sss_nss_test_ctx->tctx->dom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
     mock_input_user_or_group("testinitgr_2attr");
     mock_account_recv(0, 0, NULL,
-                      test_nss_initgr_update_acct_2expire_attributes_cb,
-                      nss_test_ctx);
+                      test_sss_nss_initgr_update_acct_2expire_attributes_cb,
+                      sss_nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    set_cmd_cb(test_nss_initgr_update_2expire_attributes_check);
+    set_cmd_cb(test_sss_nss_initgr_update_2expire_attributes_check);
 
     /* Query for that user, call a callback when command finishes */
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_initgroups_upn(void **state)
+void test_sss_nss_initgroups_upn(void **state)
 {
     errno_t ret;
 
@@ -3590,36 +3590,36 @@ void test_nss_initgroups_upn(void **state)
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_initgr_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_initgr_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
 /* Test that searching for a nonexistent user yields ENOENT.
  * Account callback will be called
  */
-void test_nss_initgr_neg_upn(void **state)
+void test_sss_nss_initgr_neg_upn(void **state)
 {
     test_initgr_neg_by_name("upninitgr_neg@upndomain.test", true);
 }
 
-static int nss_test_setup(void **state)
+static int sss_nss_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "enumerate", "false" },
         { NULL, NULL },             /* Sentinel */
     };
 
-    test_nss_setup(params, state);
+    test_sss_nss_setup(params, state);
     return 0;
 }
 
-static int nss_fqdn_test_setup(void **state)
+static int sss_nss_fqdn_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "enumerate", "false" },
@@ -3627,24 +3627,24 @@ static int nss_fqdn_test_setup(void **state)
         { NULL, NULL },             /* Sentinel */
     };
 
-    test_nss_setup(params, state);
+    test_sss_nss_setup(params, state);
     return 0;
 }
 
-static int nss_test_setup_extra_attr(void **state)
+static int sss_nss_test_setup_extra_attr(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "enumerate", "false" },
         { NULL, NULL },             /* Sentinel */
     };
 
-    test_nss_setup(params, state);
+    test_sss_nss_setup(params, state);
 
-    nss_test_ctx->nctx->extra_attributes = global_extra_attrs;
+    sss_nss_test_ctx->nctx->extra_attributes = global_extra_attrs;
     return 0;
 }
 
-static int nss_subdom_test_setup_common(void **state, bool nonfqnames)
+static int sss_nss_subdom_test_setup_common(void **state, bool nonfqnames)
 {
     const char *const testdom[4] = { TEST_SUBDOM_NAME, "TEST.SUB", "test", "S-3" };
     struct sss_domain_info *dom;
@@ -3652,25 +3652,25 @@ static int nss_subdom_test_setup_common(void **state, bool nonfqnames)
     struct sss_domain_info *subdomain;
     errno_t ret;
 
-    nss_test_setup(state);
+    sss_nss_test_setup(state);
 
-    subdomain = new_subdomain(nss_test_ctx, nss_test_ctx->tctx->dom,
+    subdomain = new_subdomain(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                               testdom[0], testdom[1], testdom[2], testdom[3],
                               false, false, NULL, NULL, 0,
-                              nss_test_ctx->tctx->confdb, true);
+                              sss_nss_test_ctx->tctx->confdb, true);
     assert_non_null(subdomain);
 
-    ret = sysdb_subdomain_store(nss_test_ctx->tctx->sysdb,
+    ret = sysdb_subdomain_store(sss_nss_test_ctx->tctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
                                 MPG_DISABLED, false, NULL, 0, NULL);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(nss_test_ctx->tctx->dom,
-                                  nss_test_ctx->tctx->confdb);
+    ret = sysdb_update_subdomains(sss_nss_test_ctx->tctx->dom,
+                                  sss_nss_test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     if (nonfqnames) {
-        for (dom = nss_test_ctx->rctx->domains;
+        for (dom = sss_nss_test_ctx->rctx->domains;
              dom != NULL;
              dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
             if (strcmp(dom->name, subdomain->name) == 0) {
@@ -3680,37 +3680,37 @@ static int nss_subdom_test_setup_common(void **state, bool nonfqnames)
         }
     }
 
-    ret = sss_resp_populate_cr_domains(nss_test_ctx->rctx);
+    ret = sss_resp_populate_cr_domains(sss_nss_test_ctx->rctx);
     assert_int_equal(ret, EOK);
-    assert_non_null(nss_test_ctx->rctx->cr_domains);
+    assert_non_null(sss_nss_test_ctx->rctx->cr_domains);
 
-    nss_test_ctx->subdom = nss_test_ctx->tctx->dom->subdomains;
+    sss_nss_test_ctx->subdom = sss_nss_test_ctx->tctx->dom->subdomains;
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->subdom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->subdom,
                       &testsubdomgroup, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->subdom,
                      &submember1, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->subdom,
                      &submember2, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testsubdomgroup.gr_name,
-                             nss_test_ctx->subdom,
+                             sss_nss_test_ctx->subdom,
                              submember1.pw_name,
-                             nss_test_ctx->subdom,
+                             sss_nss_test_ctx->subdom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
-    ret = store_group_member(nss_test_ctx,
+    ret = store_group_member(sss_nss_test_ctx,
                              testsubdomgroup.gr_name,
-                             nss_test_ctx->subdom,
+                             sss_nss_test_ctx->subdom,
                              submember2.pw_name,
-                             nss_test_ctx->subdom,
+                             sss_nss_test_ctx->subdom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
@@ -3718,17 +3718,17 @@ static int nss_subdom_test_setup_common(void **state, bool nonfqnames)
 
 }
 
-static int nss_subdom_test_setup(void **state)
+static int sss_nss_subdom_test_setup(void **state)
 {
-    return nss_subdom_test_setup_common(state, false);
+    return sss_nss_subdom_test_setup_common(state, false);
 }
 
-static int nss_subdom_test_setup_nonfqnames(void **state)
+static int sss_nss_subdom_test_setup_nonfqnames(void **state)
 {
-    return nss_subdom_test_setup_common(state, true);
+    return sss_nss_subdom_test_setup_common(state, true);
 }
 
-static int nss_fqdn_fancy_test_setup(void **state)
+static int sss_nss_fqdn_fancy_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "enumerate", "false" },
@@ -3736,46 +3736,46 @@ static int nss_fqdn_fancy_test_setup(void **state)
         { NULL, NULL },             /* Sentinel */
     };
 
-    test_nss_setup(params, state);
+    test_sss_nss_setup(params, state);
     return 0;
 }
 
-static int nss_test_teardown(void **state)
+static int sss_nss_test_teardown(void **state)
 {
-    talloc_free(nss_test_ctx);
+    talloc_free(sss_nss_test_ctx);
     return 0;
 }
 
-static int nss_subdom_test_teardown(void **state)
+static int sss_nss_subdom_test_teardown(void **state)
 {
     errno_t ret;
 
-    ret = remove_group_member(nss_test_ctx,
+    ret = remove_group_member(sss_nss_test_ctx,
                               testsubdomgroup.gr_name,
-                              nss_test_ctx->subdom,
+                              sss_nss_test_ctx->subdom,
                               submember2.pw_name,
-                              nss_test_ctx->subdom,
+                              sss_nss_test_ctx->subdom,
                               SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
-    ret = remove_group_member(nss_test_ctx,
+    ret = remove_group_member(sss_nss_test_ctx,
                               testsubdomgroup.gr_name,
-                              nss_test_ctx->subdom,
+                              sss_nss_test_ctx->subdom,
                               submember1.pw_name,
-                              nss_test_ctx->subdom,
+                              sss_nss_test_ctx->subdom,
                               SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
-    ret = delete_user(nss_test_ctx, nss_test_ctx->subdom, &submember2);
+    ret = delete_user(sss_nss_test_ctx, sss_nss_test_ctx->subdom, &submember2);
     assert_int_equal(ret, EOK);
 
-    ret = delete_user(nss_test_ctx, nss_test_ctx->subdom, &submember1);
+    ret = delete_user(sss_nss_test_ctx, sss_nss_test_ctx->subdom, &submember1);
     assert_int_equal(ret, EOK);
 
-    ret = delete_group(nss_test_ctx, nss_test_ctx->subdom, &testsubdomgroup);
+    ret = delete_group(sss_nss_test_ctx, sss_nss_test_ctx->subdom, &testsubdomgroup);
     assert_int_equal(ret, EOK);
 
-    return nss_test_teardown(state);
+    return sss_nss_test_teardown(state);
 }
 
 struct passwd testbysid = {
@@ -3788,7 +3788,7 @@ struct passwd testbysid = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getnamebysid_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_sss_nss_getnamebysid_check(uint32_t status, uint8_t *body, size_t blen)
 {
     size_t rp = 2 * sizeof(uint32_t); /* num_results and reserved */
     uint32_t id_type;
@@ -3805,23 +3805,23 @@ static int test_nss_getnamebysid_check(uint32_t status, uint8_t *body, size_t bl
     return EOK;
 }
 
-static void test_nss_getnamebysid(void **state)
+static void test_sss_nss_getnamebysid(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     char *user_sid;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     user_sid = talloc_asprintf(attrs, "%s-500",
-                               nss_test_ctx->tctx->dom->domain_id);
+                               sss_nss_test_ctx->tctx->dom->domain_id);
     assert_non_null(user_sid);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, user_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testbysid, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -3831,60 +3831,60 @@ static void test_nss_getnamebysid(void **state)
 
     /* Query for that user, call a callback when command finishes */
     /* Should go straight to back end, without contacting DP */
-    set_cmd_cb(test_nss_getnamebysid_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getnamebysid_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
 /* Test that searching for a nonexistent user yields ENOENT.
  * Account callback will be called
  */
-void test_nss_getnamebysid_neg(void **state)
+void test_sss_nss_getnamebysid_neg(void **state)
 {
     errno_t ret;
     char *user_sid;
 
-    user_sid = talloc_asprintf(nss_test_ctx, "%s-499",
-                               nss_test_ctx->tctx->dom->domain_id);
+    user_sid = talloc_asprintf(sss_nss_test_ctx, "%s-499",
+                               sss_nss_test_ctx->tctx->dom->domain_id);
     assert_non_null(user_sid);
 
     mock_input_sid(user_sid);
     mock_account_recv_simple();
 
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     /* Test that subsequent search for a nonexistent user yields
      * ENOENT and Account callback is not called, on the other hand
      * the ncache functions will be called
      */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
     mock_input_sid(user_sid);
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
     /* Negative cache was hit this time */
-    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 1);
 }
 
 struct passwd testbysid_update = {
@@ -3897,7 +3897,7 @@ struct passwd testbysid_update = {
     .pw_passwd = discard_const("*"),
 };
 
-static int test_nss_getnamebysid_update_check(uint32_t status,
+static int test_sss_nss_getnamebysid_update_check(uint32_t status,
                                               uint8_t *body,
                                               size_t blen)
 {
@@ -3916,20 +3916,20 @@ static int test_nss_getnamebysid_update_check(uint32_t status,
     return EOK;
 }
 
-static int test_nss_getnamebysid_update_acct_cb(void *pvt)
+static int test_sss_nss_getnamebysid_update_acct_cb(void *pvt)
 {
     errno_t ret;
-    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+    struct sss_nss_test_ctx *ctx = talloc_get_type(pvt, struct sss_nss_test_ctx);
 
     testbysid_update.pw_shell = discard_const("/bin/ksh");
-    ret = store_user(ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(ctx, sss_nss_test_ctx->tctx->dom,
                      &testbysid_update, NULL, 0);
     assert_int_equal(ret, EOK);
 
     return EOK;
 }
 
-void test_nss_getnamebysid_update(void **state)
+void test_sss_nss_getnamebysid_update(void **state)
 {
     errno_t ret;
     struct ldb_result *res;
@@ -3937,18 +3937,18 @@ void test_nss_getnamebysid_update(void **state)
     const char *shell;
     char *user_sid;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     user_sid = talloc_asprintf(attrs, "%s-123456",
-                               nss_test_ctx->tctx->dom->domain_id);
+                               sss_nss_test_ctx->tctx->dom->domain_id);
     assert_non_null(user_sid);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, user_sid);
     assert_int_equal(ret, EOK);
 
     /* Prime the cache with a valid but expired user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testbysid_update, attrs, 1);
     assert_int_equal(ret, EOK);
 
@@ -3957,24 +3957,24 @@ void test_nss_getnamebysid_update(void **state)
     /* Mock client command */
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
     /* Call this function when user is updated by the mock DP request */
-    mock_account_recv(0, 0, NULL, test_nss_getnamebysid_update_acct_cb,
-                      nss_test_ctx);
+    mock_account_recv(0, 0, NULL, test_sss_nss_getnamebysid_update_acct_cb,
+                      sss_nss_test_ctx);
     /* Call this function to check what the responder returned to the client */
-    set_cmd_cb(test_nss_getnamebysid_update_check);
+    set_cmd_cb(test_sss_nss_getnamebysid_update_check);
     /* Mock output buffer */
     mock_fill_bysid();
 
     /* Fire the command */
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Check the user was updated in the cache */
-    ret = get_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = get_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                    testbysid_update.pw_name, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
@@ -4027,7 +4027,7 @@ struct passwd testbycert2 = {
 "zotpoBIZmdH+ipYsu58HohHVlM9Wi5H4QmiiXl+Soldkq7eXYlafcmT7wv8+cKwz" \
 "Nz0Tm3+eYpFqRo3skr6QzXi525Jkg3r6r+kkhxU="
 
-static int test_nss_getnamebycert_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_sss_nss_getnamebycert_check(uint32_t status, uint8_t *body, size_t blen)
 {
     size_t rp = 2 * sizeof(uint32_t); /* num_results and reserved */
     uint32_t id_type;
@@ -4044,7 +4044,7 @@ static int test_nss_getnamebycert_check(uint32_t status, uint8_t *body, size_t b
     return EOK;
 }
 
-static int test_nss_getlistbycert_check_exp(uint32_t status, uint8_t *body,
+static int test_sss_nss_getlistbycert_check_exp(uint32_t status, uint8_t *body,
                                             size_t blen, size_t exp)
 {
     size_t rp = 0;
@@ -4095,29 +4095,29 @@ static int test_nss_getlistbycert_check_exp(uint32_t status, uint8_t *body,
     return EOK;
 }
 
-static int test_nss_getlistbycert_check_one(uint32_t status, uint8_t *body,
+static int test_sss_nss_getlistbycert_check_one(uint32_t status, uint8_t *body,
                                             size_t blen)
 {
-    return test_nss_getlistbycert_check_exp(status, body, blen, 1);
+    return test_sss_nss_getlistbycert_check_exp(status, body, blen, 1);
 }
 
-static int test_nss_getlistbycert_check_two(uint32_t status, uint8_t *body,
+static int test_sss_nss_getlistbycert_check_two(uint32_t status, uint8_t *body,
                                             size_t blen)
 {
-    return test_nss_getlistbycert_check_exp(status, body, blen, 2);
+    return test_sss_nss_getlistbycert_check_exp(status, body, blen, 2);
 }
 
-static void test_nss_getnamebycert(void **state)
+static void test_sss_nss_getnamebycert(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     unsigned char *der = NULL;
     size_t der_size;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
-    der = sss_base64_decode(nss_test_ctx, TEST_TOKEN_CERT, &der_size);
+    der = sss_base64_decode(sss_nss_test_ctx, TEST_TOKEN_CERT, &der_size);
     assert_non_null(der);
 
     ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
@@ -4125,7 +4125,7 @@ static void test_nss_getnamebycert(void **state)
     assert_int_equal(ret, EOK);
 
     /* Prime the cache with a valid user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testbycert, attrs, 0);
     assert_int_equal(ret, EOK);
     talloc_free(attrs);
@@ -4136,65 +4136,65 @@ static void test_nss_getnamebycert(void **state)
 
     /* Query for that user, call a callback when command finishes */
     /* Should go straight to back end, without contacting DP */
-    set_cmd_cb(test_nss_getnamebycert_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getnamebycert_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getnamebycert_neg(void **state)
+void test_sss_nss_getnamebycert_neg(void **state)
 {
     errno_t ret;
 
     mock_input_cert(TEST_TOKEN_CERT);
     mock_account_recv_simple();
 
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
-    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 0);
 
     /* Test that subsequent search for a nonexistent user yields
      * ENOENT and Account callback is not called, on the other hand
      * the ncache functions will be called
      */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
     mock_input_cert(TEST_TOKEN_CERT);
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
     /* Negative cache was hit this time */
-    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+    assert_int_equal(sss_nss_test_ctx->ncache_hits, 1);
 }
 
-static void test_nss_getlistbycert(void **state)
+static void test_sss_nss_getlistbycert(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     unsigned char *der = NULL;
     size_t der_size;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
-    der = sss_base64_decode(nss_test_ctx, TEST_TOKEN_CERT, &der_size);
+    der = sss_base64_decode(sss_nss_test_ctx, TEST_TOKEN_CERT, &der_size);
     assert_non_null(der);
 
     ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
@@ -4202,7 +4202,7 @@ static void test_nss_getlistbycert(void **state)
     assert_int_equal(ret, EOK);
 
     /* Prime the cache with a valid user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testbycert, attrs, 0);
     assert_int_equal(ret, EOK);
     talloc_free(attrs);
@@ -4215,48 +4215,48 @@ static void test_nss_getlistbycert(void **state)
     /* Should go straight to back end, without contacting DP. */
     /* If there is only a single user mapped the result will look like the */
     /* result of getnamebycert. */
-    set_cmd_cb(test_nss_getlistbycert_check_one);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETLISTBYCERT,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getlistbycert_check_one);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETLISTBYCERT,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-static void test_nss_getlistbycert_multi(void **state)
+static void test_sss_nss_getlistbycert_multi(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     unsigned char *der = NULL;
     size_t der_size;
 
-    der = sss_base64_decode(nss_test_ctx, TEST_TOKEN_CERT, &der_size);
+    der = sss_base64_decode(sss_nss_test_ctx, TEST_TOKEN_CERT, &der_size);
     assert_non_null(der);
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
     assert_int_equal(ret, EOK);
 
     /* Prime the cache with two valid user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testbycert, attrs, 0);
     assert_int_equal(ret, EOK);
     talloc_free(attrs);
 
     /* Looks like attrs is modified during store_user() makes sure we start
      * with fresh data. */
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
     talloc_free(der);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->subdom,
                      &testbycert2, attrs, 0);
     assert_int_equal(ret, EOK);
     talloc_free(attrs);
@@ -4267,13 +4267,13 @@ static void test_nss_getlistbycert_multi(void **state)
 
     /* Query for that user, call a callback when command finishes */
     /* Should go straight to back end, without contacting DP */
-    set_cmd_cb(test_nss_getlistbycert_check_two);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETLISTBYCERT,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getlistbycert_check_two);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETLISTBYCERT,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
@@ -4302,7 +4302,7 @@ struct group sid_user_group = {
     .gr_gid = 5678,
 };
 
-static int test_nss_getsidbyname_check(uint32_t status,
+static int test_sss_nss_getsidbyname_check(uint32_t status,
                                        uint8_t *body,
                                        size_t blen)
 {
@@ -4328,19 +4328,19 @@ static int test_nss_getsidbyname_check(uint32_t status,
     return EOK;
 }
 
-void test_nss_getsidbyname(void **state)
+void test_sss_nss_getsidbyname(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testuser_sid = "S-1-2-3-4";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &sid_user, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -4348,36 +4348,36 @@ void test_nss_getsidbyname(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    will_return(test_nss_getsidbyname_check, testuser_sid);
+    will_return(test_sss_nss_getsidbyname_check, testuser_sid);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getsidbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getsidbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getsidbyname_ipa_upg(void **state)
+void test_sss_nss_getsidbyname_ipa_upg(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testuser_sid = "S-1-2-3-4";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &sid_user_upg, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &sid_user_group, NULL, 0);
     assert_int_equal(ret, EOK);
 
@@ -4385,44 +4385,44 @@ void test_nss_getsidbyname_ipa_upg(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    will_return(test_nss_getsidbyname_check, testuser_sid);
+    will_return(test_sss_nss_getsidbyname_check, testuser_sid);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getsidbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getsidbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getsidbyname_ipa_upg_manual(void **state)
+void test_sss_nss_getsidbyname_ipa_upg_manual(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testuser_sid = "S-1-2-3-4";
     const char *testgroup_sid = "S-1-2-3-5";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &sid_user_upg, attrs, 0);
     assert_int_equal(ret, EOK);
 
     talloc_free(attrs);
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testgroup_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &sid_user_group, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -4430,113 +4430,113 @@ void test_nss_getsidbyname_ipa_upg_manual(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    will_return(test_nss_getsidbyname_check, testuser_sid);
+    will_return(test_sss_nss_getsidbyname_check, testuser_sid);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getsidbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getsidbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getsidbyid(void **state)
+void test_sss_nss_getsidbyid(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testuser_sid = "S-1-2-3-4";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &sid_user, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_id(nss_test_ctx, 1234);
+    mock_input_id(sss_nss_test_ctx, 1234);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYID);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    will_return(test_nss_getsidbyname_check, testuser_sid);
+    will_return(test_sss_nss_getsidbyname_check, testuser_sid);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getsidbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYID,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getsidbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getsidbyuid(void **state)
+void test_sss_nss_getsidbyuid(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testuser_sid = "S-1-2-3-4";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &sid_user, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_id(nss_test_ctx, 1234);
+    mock_input_id(sss_nss_test_ctx, 1234);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYUID);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    will_return(test_nss_getsidbyname_check, testuser_sid);
+    will_return(test_sss_nss_getsidbyname_check, testuser_sid);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getsidbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYUID,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getsidbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYUID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getsidbygid_no_group(void **state)
+void test_sss_nss_getsidbygid_no_group(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testuser_sid = "S-1-2-3-4";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &sid_user, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_id(nss_test_ctx, 1234);
+    mock_input_id(sss_nss_test_ctx, 1234);
     mock_account_recv_simple();
     set_cmd_cb(NULL);
 
     /* Query for that user, call a callback when command finishes */
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYGID,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYGID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT (because there is no such
      * group) */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
 }
 
@@ -4545,7 +4545,7 @@ struct group sid_group = {
     .gr_gid = 5555,
 };
 
-static int test_nss_getsidbyname_group_check(uint32_t status,
+static int test_sss_nss_getsidbyname_group_check(uint32_t status,
                                              uint8_t *body,
                                              size_t blen)
 {
@@ -4571,19 +4571,19 @@ static int test_nss_getsidbyname_group_check(uint32_t status,
     return EOK;
 }
 
-void test_nss_getsidbyname_group(void **state)
+void test_sss_nss_getsidbyname_group(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testgroup_sid = "S-1-2-3-5";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testgroup_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &sid_group, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -4591,124 +4591,124 @@ void test_nss_getsidbyname_group(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    will_return(test_nss_getsidbyname_group_check, testgroup_sid);
+    will_return(test_sss_nss_getsidbyname_group_check, testgroup_sid);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getsidbyname_group_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getsidbyname_group_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getsidbyid_group(void **state)
+void test_sss_nss_getsidbyid_group(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testgroup_sid = "S-1-2-3-5";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testgroup_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &sid_group, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_id(nss_test_ctx, 5555);
+    mock_input_id(sss_nss_test_ctx, 5555);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYID);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    will_return(test_nss_getsidbyname_group_check, testgroup_sid);
+    will_return(test_sss_nss_getsidbyname_group_check, testgroup_sid);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getsidbyname_group_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYID,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getsidbyname_group_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getsidbygid_group(void **state)
+void test_sss_nss_getsidbygid_group(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testgroup_sid = "S-1-2-3-5";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testgroup_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &sid_group, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_id(nss_test_ctx, 5555);
+    mock_input_id(sss_nss_test_ctx, 5555);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYGID);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    will_return(test_nss_getsidbyname_group_check, testgroup_sid);
+    will_return(test_sss_nss_getsidbyname_group_check, testgroup_sid);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getsidbyname_group_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYGID,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getsidbyname_group_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYGID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getsidbyuid_no_user(void **state)
+void test_sss_nss_getsidbyuid_no_user(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testgroup_sid = "S-1-2-3-5";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testgroup_sid);
     assert_int_equal(ret, EOK);
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                       &sid_group, attrs, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_id(nss_test_ctx, 5555);
+    mock_input_id(sss_nss_test_ctx, 5555);
     mock_account_recv_simple();
     set_cmd_cb(NULL);
 
     /* Query for that user, call a callback when command finishes */
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYUID,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYUID,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT (because there is no such
      * user) */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
 }
 
-void test_nss_getsidbyupn(void **state)
+void test_sss_nss_getsidbyupn(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
     const char *testuser_sid = "S-1-2-3-4";
     const char *testuser_upn = "testusersid@upndomain.test";
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
@@ -4717,7 +4717,7 @@ void test_nss_getsidbyupn(void **state)
     ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, testuser_upn);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &sid_user, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -4725,20 +4725,20 @@ void test_nss_getsidbyupn(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    will_return(test_nss_getsidbyname_check, testuser_sid);
+    will_return(test_sss_nss_getsidbyname_check, testuser_sid);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getsidbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getsidbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getsidbyname_neg(void **state)
+void test_sss_nss_getsidbyname_neg(void **state)
 {
     errno_t ret;
 
@@ -4747,16 +4747,16 @@ void test_nss_getsidbyname_neg(void **state)
 
     /* Query for that user, call a callback when command finishes */
     set_cmd_cb(NULL);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
-                          nss_test_ctx->nss_cmds);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with ENOENT (because there is no such SID */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
 }
 
-static int test_nss_EINVAL_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_sss_nss_EINVAL_check(uint32_t status, uint8_t *body, size_t blen)
 {
     assert_int_equal(status, EINVAL);
     assert_int_equal(blen, 0);
@@ -4765,15 +4765,15 @@ static int test_nss_EINVAL_check(uint32_t status, uint8_t *body, size_t blen)
 }
 
 #define RESET_TCTX do { \
-    nss_test_ctx->tctx->done = false; \
-    nss_test_ctx->tctx->error = EIO; \
+    sss_nss_test_ctx->tctx->done = false; \
+    sss_nss_test_ctx->tctx->error = EIO; \
 } while (0)
 
-void test_nss_getpwnam_ex(void **state)
+void test_sss_nss_getpwnam_ex(void **state)
 {
     errno_t ret;
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &getpwnam_usr, NULL, 0);
     assert_int_equal(ret, EOK);
 
@@ -4782,13 +4782,13 @@ void test_nss_getpwnam_ex(void **state)
     mock_fill_user();
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwnam_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -4798,12 +4798,12 @@ void test_nss_getpwnam_ex(void **state)
     will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM_EX);
 
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -4813,13 +4813,13 @@ void test_nss_getpwnam_ex(void **state)
                                     |SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM_EX);
 
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -4830,13 +4830,13 @@ void test_nss_getpwnam_ex(void **state)
     mock_fill_user();
     mock_account_recv_simple();
 
-    set_cmd_cb(test_nss_getpwnam_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -4846,103 +4846,103 @@ void test_nss_getpwnam_ex(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM_EX);
     mock_fill_user();
 
-    set_cmd_cb(test_nss_getpwnam_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwnam_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getpwuid_ex(void **state)
+void test_sss_nss_getpwuid_ex(void **state)
 {
     errno_t ret;
     uint32_t id = 101;
 
     /* Prime the cache with a valid user */
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &getpwuid_usr, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_id_ex(nss_test_ctx, id, 0);
+    mock_input_id_ex(sss_nss_test_ctx, id, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID_EX);
     mock_fill_user();
 
     /* Query for that id, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwuid_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwuid_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
     /* Use old input format, expect failure */
-    mock_input_id(nss_test_ctx, id);
+    mock_input_id(sss_nss_test_ctx, id);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID_EX);
 
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
     /* Use unsupported flag combination, expect EINVAL */
-    mock_input_id_ex(nss_test_ctx, id, SSS_NSS_EX_FLAG_NO_CACHE
+    mock_input_id_ex(sss_nss_test_ctx, id, SSS_NSS_EX_FLAG_NO_CACHE
                                             |SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID_EX);
 
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
     /* Use flag SSS_NSS_EX_FLAG_NO_CACHE,
      * will cause a backend lookup -> mock_account_recv_simple() */
-    mock_input_id_ex(nss_test_ctx, id, SSS_NSS_EX_FLAG_NO_CACHE);
+    mock_input_id_ex(sss_nss_test_ctx, id, SSS_NSS_EX_FLAG_NO_CACHE);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID_EX);
     mock_fill_user();
     mock_account_recv_simple();
 
-    set_cmd_cb(test_nss_getpwuid_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwuid_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
     /* Use flag SSS_NSS_EX_FLAG_INVALIDATE_CACHE */
-    mock_input_id_ex(nss_test_ctx, id, SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    mock_input_id_ex(sss_nss_test_ctx, id, SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID_EX);
     mock_fill_user();
 
-    set_cmd_cb(test_nss_getpwuid_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getpwuid_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getgrnam_ex_no_members(void **state)
+void test_sss_nss_getgrnam_ex_no_members(void **state)
 {
     errno_t ret;
 
@@ -4956,13 +4956,13 @@ void test_nss_getgrnam_ex_no_members(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_no_members_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -4972,12 +4972,12 @@ void test_nss_getgrnam_ex_no_members(void **state)
     will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM_EX);
 
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -4987,13 +4987,13 @@ void test_nss_getgrnam_ex_no_members(void **state)
                                     |SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM_EX);
 
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -5008,13 +5008,13 @@ void test_nss_getgrnam_ex_no_members(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     mock_account_recv_simple();
 
-    set_cmd_cb(test_nss_getgrnam_no_members_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -5027,23 +5027,23 @@ void test_nss_getgrnam_ex_no_members(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    set_cmd_cb(test_nss_getgrnam_no_members_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getgrgid_ex_no_members(void **state)
+void test_sss_nss_getgrgid_ex_no_members(void **state)
 {
     errno_t ret;
 
     /* Test group is still in the cache */
 
-    mock_input_id_ex(nss_test_ctx, getgrnam_no_members.gr_gid, 0);
+    mock_input_id_ex(sss_nss_test_ctx, getgrnam_no_members.gr_gid, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRGID_EX);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -5052,49 +5052,49 @@ void test_nss_getgrgid_ex_no_members(void **state)
     mock_account_recv_simple();
 
     /* Query for that group, call a callback when command finishes */
-    set_cmd_cb(test_nss_getgrnam_no_members_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
     /* Use old input format, expect failure */
-    mock_input_id(nss_test_ctx, getgrnam_no_members.gr_gid);
+    mock_input_id(sss_nss_test_ctx, getgrnam_no_members.gr_gid);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRGID_EX);
 
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
     /* Use unsupported flag combination, expect EINVAL */
-    mock_input_id_ex(nss_test_ctx, getgrnam_no_members.gr_gid,
+    mock_input_id_ex(sss_nss_test_ctx, getgrnam_no_members.gr_gid,
                      SSS_NSS_EX_FLAG_NO_CACHE
                         |SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRGID_EX);
 
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
     /* Use flag SSS_NSS_EX_FLAG_NO_CACHE,
      * will cause a backend lookup -> mock_account_recv_simple() */
-    mock_input_id_ex(nss_test_ctx, getgrnam_no_members.gr_gid,
+    mock_input_id_ex(sss_nss_test_ctx, getgrnam_no_members.gr_gid,
                      SSS_NSS_EX_FLAG_NO_CACHE);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRGID_EX);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -5103,36 +5103,36 @@ void test_nss_getgrgid_ex_no_members(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     mock_account_recv_simple();
 
-    set_cmd_cb(test_nss_getgrnam_no_members_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
     /* Use flag SSS_NSS_EX_FLAG_INVALIDATE_CACHE */
-    mock_input_id_ex(nss_test_ctx, getgrnam_no_members.gr_gid,
+    mock_input_id_ex(sss_nss_test_ctx, getgrnam_no_members.gr_gid,
                      SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
 
-    set_cmd_cb(test_nss_getgrnam_no_members_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_initgroups_ex(void **state)
+void test_sss_nss_initgroups_ex(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
 
-    attrs = sysdb_new_attrs(nss_test_ctx);
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
@@ -5142,7 +5142,7 @@ void test_nss_initgroups_ex(void **state)
     ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, "upninitgr@upndomain.test");
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                      &testinitgr_usr, attrs, 0);
     assert_int_equal(ret, EOK);
 
@@ -5151,13 +5151,13 @@ void test_nss_initgroups_ex(void **state)
     mock_fill_user();
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_initgr_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_initgr_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -5167,12 +5167,12 @@ void test_nss_initgroups_ex(void **state)
     will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR_EX);
 
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -5182,13 +5182,13 @@ void test_nss_initgroups_ex(void **state)
                                     |SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR_EX);
 
-    set_cmd_cb(test_nss_EINVAL_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_EINVAL_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -5200,13 +5200,13 @@ void test_nss_initgroups_ex(void **state)
     mock_fill_user();
     mock_account_recv_simple();
 
-    set_cmd_cb(test_nss_initgr_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_initgr_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     RESET_TCTX;
 
@@ -5216,13 +5216,13 @@ void test_nss_initgroups_ex(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR_EX);
     mock_fill_user();
 
-    set_cmd_cb(test_nss_initgr_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_initgr_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
@@ -5270,11 +5270,11 @@ static int parse_host_packet(int af, uint8_t *body, size_t blen, struct hostent 
     hent->h_addrtype = af;
     hent->h_length = (af == AF_INET6 ? 16 : 4);
 
-    hent->h_name = talloc_strdup(nss_test_ctx, (char *) body+rp);
+    hent->h_name = talloc_strdup(sss_nss_test_ctx, (char *) body+rp);
     rp += strlen(hent->h_name) + 1;
 
     if (num_aliases > 0) {
-        hent->h_aliases = talloc_zero_array(nss_test_ctx, char *, num_aliases + 1);
+        hent->h_aliases = talloc_zero_array(sss_nss_test_ctx, char *, num_aliases + 1);
         for (i=0; i<num_aliases; i++) {
             hent->h_aliases[i] = talloc_strdup(hent->h_aliases, (char *) body+rp);
             hent->h_aliases[i + 1] = NULL;
@@ -5283,7 +5283,7 @@ static int parse_host_packet(int af, uint8_t *body, size_t blen, struct hostent 
     }
 
     if (num_addresses > 0) {
-        hent->h_addr_list = talloc_zero_array(nss_test_ctx, char *, num_addresses + 1);
+        hent->h_addr_list = talloc_zero_array(sss_nss_test_ctx, char *, num_addresses + 1);
         for (i=0; i<num_addresses; i++) {
             hent->h_addr_list[i] = talloc_strdup(hent->h_addr_list, (char *) body+rp);
             hent->h_addr_list[i + 1] = NULL;
@@ -5318,7 +5318,7 @@ static void assert_host_equal(int af, struct hostent *ref, struct hostent *b)
     assert_null(b->h_addr_list[i]);
 }
 
-static int test_nss_gethostbyname_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_sss_nss_gethostbyname_check(uint32_t status, uint8_t *body, size_t blen)
 {
     struct hostent hostent = { 0 };
     errno_t ret;
@@ -5333,7 +5333,7 @@ static int test_nss_gethostbyname_check(uint32_t status, uint8_t *body, size_t b
     return EOK;
 }
 
-static int test_nss_gethostbyaddr_v6_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_sss_nss_gethostbyaddr_v6_check(uint32_t status, uint8_t *body, size_t blen)
 {
     struct hostent hostent = { 0 };
     errno_t ret;
@@ -5348,7 +5348,7 @@ static int test_nss_gethostbyaddr_v6_check(uint32_t status, uint8_t *body, size_
     return EOK;
 }
 
-void test_nss_gethostbyname(void **state)
+void test_sss_nss_gethostbyname(void **state)
 {
     errno_t ret;
 
@@ -5358,64 +5358,64 @@ void test_nss_gethostbyname(void **state)
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     /* Query for that host, call a callback when command finishes */
-    set_cmd_cb(test_nss_gethostbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_gethostbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Test search by aliases */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
     mock_input_hostbyname("testhost_alias1");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYNAME);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
-    set_cmd_cb(test_nss_gethostbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_gethostbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Test search by aliases */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
     mock_input_hostbyname("testhost_alias2");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYNAME);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
-    set_cmd_cb(test_nss_gethostbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_gethostbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Test search by aliases */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
     mock_input_hostbyname("testhost_alias3");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYNAME);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
-    set_cmd_cb(test_nss_gethostbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_gethostbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
@@ -5447,93 +5447,93 @@ static void mock_input_netaddr(TALLOC_CTX *mem_ctx, int af, const char *addrstr)
     will_return(__wrap_sss_packet_get_body, blen);
 }
 
-void test_nss_gethostbyaddr(void **state)
+void test_sss_nss_gethostbyaddr(void **state)
 {
     errno_t ret;
 
     /* Host stored by previous tests */
-    mock_input_netaddr(nss_test_ctx, AF_INET, "1.2.3.4");
+    mock_input_netaddr(sss_nss_test_ctx, AF_INET, "1.2.3.4");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     /* Query for that host, call a callback when command finishes */
-    set_cmd_cb(test_nss_gethostbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETHOSTBYADDR,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_gethostbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYADDR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Test search by aliases */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
-    mock_input_netaddr(nss_test_ctx, AF_INET, "9.8.7.6");
+    mock_input_netaddr(sss_nss_test_ctx, AF_INET, "9.8.7.6");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     /* Query for that host, call a callback when command finishes */
-    set_cmd_cb(test_nss_gethostbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETHOSTBYADDR,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_gethostbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYADDR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Test search by aliases */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
-    mock_input_netaddr(nss_test_ctx, AF_INET6, "2001:DB8:1234:0::0000");
+    mock_input_netaddr(sss_nss_test_ctx, AF_INET6, "2001:DB8:1234:0::0000");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     /* Query for that host, call a callback when command finishes */
-    set_cmd_cb(test_nss_gethostbyaddr_v6_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETHOSTBYADDR,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_gethostbyaddr_v6_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYADDR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Test search by aliases */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
-    mock_input_netaddr(nss_test_ctx, AF_INET6, "2001:DB8:0000::1234");
+    mock_input_netaddr(sss_nss_test_ctx, AF_INET6, "2001:DB8:0000::1234");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
 
     /* Query for that host, call a callback when command finishes */
-    set_cmd_cb(test_nss_gethostbyaddr_v6_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETHOSTBYADDR,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_gethostbyaddr_v6_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETHOSTBYADDR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-static int nss_host_test_setup(void **state)
+static int sss_nss_host_test_setup(void **state)
 {
     const char **aliases = NULL;
     const char **addrs = NULL;
     errno_t ret;
     unsigned int i;
 
-    nss_test_setup(state);
+    sss_nss_test_setup(state);
 
     /* sysdb_host_add expects a talloc_array of aliases and addresses */
     for (i = 0; test_hostent.h_aliases[i]; i++) {
-        aliases = talloc_realloc(nss_test_ctx, aliases, const char *, i + 2);
+        aliases = talloc_realloc(sss_nss_test_ctx, aliases, const char *, i + 2);
         assert_non_null(aliases);
 
         aliases[i] = talloc_strdup(aliases, test_hostent.h_aliases[i]);
@@ -5543,7 +5543,7 @@ static int nss_host_test_setup(void **state)
     }
 
     for (i = 0; test_hostent.h_addr_list[i]; i++) {
-        addrs = talloc_realloc(nss_test_ctx, addrs, const char *, i + 2);
+        addrs = talloc_realloc(sss_nss_test_ctx, addrs, const char *, i + 2);
         assert_non_null(addrs);
 
         addrs[i] = talloc_strdup(addrs, test_hostent.h_addr_list[i]);
@@ -5552,7 +5552,7 @@ static int nss_host_test_setup(void **state)
         addrs[i + 1] = NULL;
     }
 
-    ret = sysdb_host_add(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = sysdb_host_add(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                          test_hostent.h_name, aliases, addrs,
                          NULL);
     assert_int_equal(ret, EOK);
@@ -5560,15 +5560,15 @@ static int nss_host_test_setup(void **state)
     return 0;
 }
 
-static int nss_host_test_teardown(void **state)
+static int sss_nss_host_test_teardown(void **state)
 {
     errno_t ret;
 
-    ret = sysdb_host_delete(nss_test_ctx->tctx->dom,
+    ret = sysdb_host_delete(sss_nss_test_ctx->tctx->dom,
                             test_hostent.h_name, NULL);
     assert_int_equal(ret, EOK);
 
-    return nss_test_teardown(state);
+    return sss_nss_test_teardown(state);
 }
 
 const char *test_netent_aliases[] = {
@@ -5612,7 +5612,7 @@ static int parse_network_packet(int type, uint8_t *body, size_t blen,
 
     netent->n_addrtype = type;
 
-    netent->n_name = talloc_strdup(nss_test_ctx, (char *) body+rp);
+    netent->n_name = talloc_strdup(sss_nss_test_ctx, (char *) body+rp);
     rp += strlen(netent->n_name) + 1;
 
     address = (char *) body+rp;
@@ -5623,7 +5623,7 @@ static int parse_network_packet(int type, uint8_t *body, size_t blen,
     rp += strlen(address) + 1;
 
     if (num_aliases > 0) {
-        netent->n_aliases = talloc_zero_array(nss_test_ctx, char *,
+        netent->n_aliases = talloc_zero_array(sss_nss_test_ctx, char *,
                                               num_aliases + 1);
         for (i=0; i<num_aliases; i++) {
             netent->n_aliases[i] = talloc_strdup(netent->n_aliases,
@@ -5656,7 +5656,7 @@ static void assert_network_equal(int type, struct netent *ref, struct netent *b)
     assert_null(b->n_aliases[i]);
 }
 
-static int test_nss_getnetbyname_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_sss_nss_getnetbyname_check(uint32_t status, uint8_t *body, size_t blen)
 {
     struct netent netent = { 0 };
     errno_t ret;
@@ -5671,7 +5671,7 @@ static int test_nss_getnetbyname_check(uint32_t status, uint8_t *body, size_t bl
     return EOK;
 }
 
-void test_nss_getnetbyname(void **state)
+void test_sss_nss_getnetbyname(void **state)
 {
     errno_t ret;
 
@@ -5681,98 +5681,98 @@ void test_nss_getnetbyname(void **state)
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
 
     /* Query for that network, call a callback when command finishes */
-    set_cmd_cb(test_nss_getnetbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getnetbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Test search by aliases */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
     mock_input_netbyname("test_network_alias1");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
 
-    set_cmd_cb(test_nss_getnetbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getnetbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Test search by aliases */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
     mock_input_netbyname("test_network_alias2");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
 
-    set_cmd_cb(test_nss_getnetbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getnetbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 
     /* Test search by aliases */
-    nss_test_ctx->tctx->done = false;
+    sss_nss_test_ctx->tctx->done = false;
 
     mock_input_netbyname("test_network_alias3");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
 
-    set_cmd_cb(test_nss_getnetbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getnetbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-void test_nss_getnetbyaddr(void **state)
+void test_sss_nss_getnetbyaddr(void **state)
 {
     errno_t ret;
 
-    mock_input_netaddr(nss_test_ctx, AF_INET, "1.2.3.4");
+    mock_input_netaddr(sss_nss_test_ctx, AF_INET, "1.2.3.4");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYADDR);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
 
     /* Query for that network, call a callback when command finishes */
-    set_cmd_cb(test_nss_getnetbyname_check);
-    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNETBYADDR,
-                          nss_test_ctx->nss_cmds);
+    set_cmd_cb(test_sss_nss_getnetbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETNETBYADDR,
+                          sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
     /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(nss_test_ctx->tctx);
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
 
-static int nss_network_test_setup(void **state)
+static int sss_nss_network_test_setup(void **state)
 {
     const char **aliases = NULL;
     errno_t ret;
     unsigned int i;
 
-    nss_test_setup(state);
+    sss_nss_test_setup(state);
 
     /* sysdb_ipnetwork_add expects a talloc_array of aliases */
     for (i = 0; test_netent.n_aliases[i]; i++) {
-        aliases = talloc_realloc(nss_test_ctx, aliases, const char *, i + 2);
+        aliases = talloc_realloc(sss_nss_test_ctx, aliases, const char *, i + 2);
         assert_non_null(aliases);
 
         aliases[i] = talloc_strdup(aliases, test_netent.n_aliases[i]);
@@ -5781,7 +5781,7 @@ static int nss_network_test_setup(void **state)
         aliases[i + 1] = NULL;
     }
 
-    ret = sysdb_ipnetwork_add(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = sysdb_ipnetwork_add(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
                               test_netent.n_name, aliases, "1.2.3.4",
                               NULL);
     assert_int_equal(ret, EOK);
@@ -5789,15 +5789,15 @@ static int nss_network_test_setup(void **state)
     return 0;
 }
 
-static int nss_network_test_teardown(void **state)
+static int sss_nss_network_test_teardown(void **state)
 {
     errno_t ret;
 
-    ret = sysdb_ipnetwork_delete(nss_test_ctx->tctx->dom,
+    ret = sysdb_ipnetwork_delete(sss_nss_test_ctx->tctx->dom,
                                  test_netent.n_name, NULL);
     assert_int_equal(ret, EOK);
 
-    return nss_test_teardown(state);
+    return sss_nss_test_teardown(state);
 }
 
 
@@ -5816,185 +5816,185 @@ int main(int argc, const char *argv[])
     };
 
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwuid,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_neg,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwuid_neg,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_search,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwuid_search,
-                                        nss_test_setup,
-                                        nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_update,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwuid_update,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_fqdn,
-                                        nss_fqdn_test_setup,
-                                        nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_fqdn_fancy,
-                                        nss_fqdn_fancy_test_setup,
-                                        nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_space,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_space_sub,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_space_sub_query,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_no_members,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_members,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_members_fqdn,
-                                        nss_fqdn_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_members_subdom,
-                                        nss_subdom_test_setup,
-                                        nss_subdom_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_members_subdom_nonfqnames,
-                                        nss_subdom_test_setup_nonfqnames,
-                                        nss_subdom_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom,
-                                        nss_subdom_test_setup,
-                                        nss_subdom_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_nonfqnames,
-                                        nss_subdom_test_setup_nonfqnames,
-                                        nss_subdom_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_fqdn,
-                                        nss_subdom_test_setup,
-                                        nss_subdom_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_fqdn_nonfqnames,
-                                        nss_subdom_test_setup_nonfqnames,
-                                        nss_subdom_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_subdom,
-                                        nss_subdom_test_setup,
-                                        nss_subdom_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_subdom_nonfqnames,
-                                        nss_subdom_test_setup_nonfqnames,
-                                        nss_subdom_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_space,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_space_sub,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_well_known_getnamebysid,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_well_known_getnamebysid_special,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_well_known_getnamebysid_non_existing,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_well_known_getidbysid_failure,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_well_known_getsidbyname,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_well_known_getsidbyname_nonexisting,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_well_known_getsidbyname_special,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getorigbyname,
-                                        nss_test_setup,
-                                        nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getorigbyname_extra_attrs,
-                                        nss_test_setup_extra_attr,
-                                        nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getorigbyname_multi_value_attrs,
-                                        nss_test_setup_extra_attr,
-                                        nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getorigbyname,
-                                        nss_test_setup,
-                                        nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getorigbyusername,
-                                        nss_test_setup,
-                                        nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getorigbygroupname,
-                                        nss_test_setup,
-                                        nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getorigbyname_dup,
-                                        nss_test_setup,
-                                        nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn_same_domain,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn_neg,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_initgroups,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_initgr_neg,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_initgr_search,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_initgr_update,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_initgr_update_two_expire_attributes,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_initgroups_upn,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_initgr_neg_upn,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getnamebysid,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getnamebysid_neg,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getnamebysid_update,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getnamebycert_neg,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getnamebycert,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getlistbycert,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getlistbycert_multi,
-                                        nss_subdom_test_setup,
-                                        nss_subdom_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbyname,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbyname_ipa_upg,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbyid,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbyuid,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbygid_no_group,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbyname_group,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbyid_group,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbygid_group,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbyuid_no_user,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbyupn,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbyname_neg,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getsidbyname_ipa_upg_manual,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwnam_ex,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getpwuid_ex,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrnam_ex_no_members,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getgrgid_ex_no_members,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_initgroups_ex,
-                                        nss_test_setup, nss_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_gethostbyname,
-                                        nss_host_test_setup,
-                                        nss_host_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_gethostbyaddr,
-                                        nss_host_test_setup,
-                                        nss_host_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getnetbyname,
-                                        nss_network_test_setup,
-                                        nss_network_test_teardown),
-        cmocka_unit_test_setup_teardown(test_nss_getnetbyaddr,
-                                        nss_network_test_setup,
-                                        nss_network_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwuid,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_neg,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwuid_neg,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_search,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwuid_search,
+                                        sss_nss_test_setup,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_update,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwuid_update,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_fqdn,
+                                        sss_nss_fqdn_test_setup,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_fqdn_fancy,
+                                        sss_nss_fqdn_fancy_test_setup,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_space,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_space_sub,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_space_sub_query,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_no_members,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_members,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_members_fqdn,
+                                        sss_nss_fqdn_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_members_subdom,
+                                        sss_nss_subdom_test_setup,
+                                        sss_nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_members_subdom_nonfqnames,
+                                        sss_nss_subdom_test_setup_nonfqnames,
+                                        sss_nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_mix_dom,
+                                        sss_nss_subdom_test_setup,
+                                        sss_nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_mix_dom_nonfqnames,
+                                        sss_nss_subdom_test_setup_nonfqnames,
+                                        sss_nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_mix_dom_fqdn,
+                                        sss_nss_subdom_test_setup,
+                                        sss_nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_mix_dom_fqdn_nonfqnames,
+                                        sss_nss_subdom_test_setup_nonfqnames,
+                                        sss_nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_mix_subdom,
+                                        sss_nss_subdom_test_setup,
+                                        sss_nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_mix_subdom_nonfqnames,
+                                        sss_nss_subdom_test_setup_nonfqnames,
+                                        sss_nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_space,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_space_sub,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_well_known_getnamebysid,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_well_known_getnamebysid_special,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_well_known_getnamebysid_non_existing,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_well_known_getidbysid_failure,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_well_known_getsidbyname,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_well_known_getsidbyname_nonexisting,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_well_known_getsidbyname_special,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getorigbyname,
+                                        sss_nss_test_setup,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getorigbyname_extra_attrs,
+                                        sss_nss_test_setup_extra_attr,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getorigbyname_multi_value_attrs,
+                                        sss_nss_test_setup_extra_attr,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getorigbyname,
+                                        sss_nss_test_setup,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getorigbyusername,
+                                        sss_nss_test_setup,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getorigbygroupname,
+                                        sss_nss_test_setup,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getorigbyname_dup,
+                                        sss_nss_test_setup,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_upn,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_upn_same_domain,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_upn_neg,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_initgroups,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_initgr_neg,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_initgr_search,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_initgr_update,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_initgr_update_two_expire_attributes,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_initgroups_upn,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_initgr_neg_upn,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getnamebysid,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getnamebysid_neg,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getnamebysid_update,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getnamebycert_neg,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getnamebycert,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getlistbycert,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getlistbycert_multi,
+                                        sss_nss_subdom_test_setup,
+                                        sss_nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyname,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyname_ipa_upg,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyid,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyuid,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbygid_no_group,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyname_group,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyid_group,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbygid_group,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyuid_no_user,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyupn,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyname_neg,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyname_ipa_upg_manual,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwnam_ex,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getpwuid_ex,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrnam_ex_no_members,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getgrgid_ex_no_members,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_initgroups_ex,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_gethostbyname,
+                                        sss_nss_host_test_setup,
+                                        sss_nss_host_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_gethostbyaddr,
+                                        sss_nss_host_test_setup,
+                                        sss_nss_host_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getnetbyname,
+                                        sss_nss_network_test_setup,
+                                        sss_nss_network_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getnetbyaddr,
+                                        sss_nss_network_test_setup,
+                                        sss_nss_network_test_teardown),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */

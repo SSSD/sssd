@@ -25,10 +25,10 @@
 #include "responder/nss/nss_protocol.h"
 
 static errno_t
-nss_get_hostent(TALLOC_CTX *mem_ctx,
-                struct sss_domain_info *domain,
-                struct ldb_message *msg,
-                struct sized_string *_name)
+sss_nss_get_hostent(TALLOC_CTX *mem_ctx,
+                    struct sss_domain_info *domain,
+                    struct ldb_message *msg,
+                    struct sized_string *_name)
 {
     TALLOC_CTX *tmp_ctx;
     const char *name;
@@ -67,12 +67,12 @@ done:
 }
 
 static errno_t
-nss_get_host_aliases(TALLOC_CTX *mem_ctx,
-                     struct sss_domain_info *domain,
-                     struct ldb_message *msg,
-                     const char *name,
-                     struct sized_string **_aliases,
-                     uint32_t *_num_aliases)
+sss_nss_get_host_aliases(TALLOC_CTX *mem_ctx,
+                         struct sss_domain_info *domain,
+                         struct ldb_message *msg,
+                         const char *name,
+                         struct sized_string **_aliases,
+                         uint32_t *_num_aliases)
 {
     struct ldb_message_element *el;
     struct sized_string *aliases = NULL;
@@ -123,12 +123,12 @@ done:
 }
 
 static errno_t
-nss_get_host_addresses(TALLOC_CTX *mem_ctx,
-                       struct sss_domain_info *domain,
-                       struct ldb_message *msg,
-                       const char *name,
-                       struct sized_string **_addresses,
-                       uint32_t *_num_addresses)
+sss_nss_get_host_addresses(TALLOC_CTX *mem_ctx,
+                           struct sss_domain_info *domain,
+                           struct ldb_message *msg,
+                           const char *name,
+                           struct sized_string **_addresses,
+                           uint32_t *_num_addresses)
 {
     struct ldb_message_element *el;
     struct sized_string *addresses = NULL;
@@ -175,10 +175,10 @@ done:
 }
 
 errno_t
-nss_protocol_fill_hostent(struct nss_ctx *nss_ctx,
-                          struct nss_cmd_ctx *cmd_ctx,
-                          struct sss_packet *packet,
-                          struct cache_req_result *result)
+sss_nss_protocol_fill_hostent(struct sss_nss_ctx *nss_ctx,
+                              struct sss_nss_cmd_ctx *cmd_ctx,
+                              struct sss_packet *packet,
+                              struct cache_req_result *result)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -213,7 +213,7 @@ nss_protocol_fill_hostent(struct nss_ctx *nss_ctx,
         talloc_free_children(tmp_ctx);
         msg = result->msgs[i];
 
-        ret = nss_get_hostent(tmp_ctx, result->domain, msg, &name);
+        ret = sss_nss_get_hostent(tmp_ctx, result->domain, msg, &name);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Unable to get host information, skipping... [%d]: %s\n",
@@ -221,7 +221,7 @@ nss_protocol_fill_hostent(struct nss_ctx *nss_ctx,
             continue;
         }
 
-        ret = nss_get_host_aliases(tmp_ctx, result->domain, msg, name.str,
+        ret = sss_nss_get_host_aliases(tmp_ctx, result->domain, msg, name.str,
                                   &aliases, &num_aliases);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -230,7 +230,7 @@ nss_protocol_fill_hostent(struct nss_ctx *nss_ctx,
             continue;
         }
 
-        ret = nss_get_host_addresses(tmp_ctx, result->domain, msg, name.str,
+        ret = sss_nss_get_host_addresses(tmp_ctx, result->domain, msg, name.str,
                                      &addresses, &num_addresses);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,

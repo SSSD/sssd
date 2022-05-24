@@ -30,7 +30,7 @@
 #include "responder/nss/nss_private.h"
 #include "sss_client/idmap/sss_nss_idmap.h"
 
-struct nss_cmd_ctx;
+struct sss_nss_cmd_ctx;
 
 /**
  * Fill SSSD response packet.
@@ -39,17 +39,17 @@ struct nss_cmd_ctx;
  * @return Other errno code on error, an error reply will be sent to client.
  */
 typedef errno_t
-(*nss_protocol_fill_packet_fn)(struct nss_ctx *nss_ctx,
-                               struct nss_cmd_ctx *cmd_ctx,
-                               struct sss_packet *packet,
-                               struct cache_req_result *result);
+(*sss_nss_protocol_fill_packet_fn)(struct sss_nss_ctx *nss_ctx,
+                                   struct sss_nss_cmd_ctx *cmd_ctx,
+                                   struct sss_packet *packet,
+                                   struct cache_req_result *result);
 
-struct nss_cmd_ctx {
+struct sss_nss_cmd_ctx {
     enum cache_req_type type;
     struct cli_ctx *cli_ctx;
-    struct nss_ctx *nss_ctx;
-    struct nss_state_ctx *state_ctx;
-    nss_protocol_fill_packet_fn fill_fn;
+    struct sss_nss_ctx *nss_ctx;
+    struct sss_nss_state_ctx *state_ctx;
+    sss_nss_protocol_fill_packet_fn fill_fn;
     uint32_t flags;
 
     /* For initgroups- */
@@ -57,8 +57,8 @@ struct nss_cmd_ctx {
 
     /* For enumeration. */
     bool enumeration;
-    struct nss_enum_ctx *enum_ctx;
-    struct nss_enum_index *enum_index;
+    struct sss_nss_enum_ctx *enum_ctx;
+    struct sss_nss_enum_index *enum_index;
     uint32_t enum_limit;
 
     /* For services. */
@@ -73,56 +73,56 @@ struct nss_cmd_ctx {
  * If error is ENOENT, create and send empty response.
  * On other error code, create and send an error.
  */
-errno_t nss_protocol_done(struct cli_ctx *cli_ctx, errno_t error);
+errno_t sss_nss_protocol_done(struct cli_ctx *cli_ctx, errno_t error);
 
 /**
  * Create and send SSSD response packet to the client.
  */
-void nss_protocol_reply(struct cli_ctx *cli_ctx,
-                        struct nss_ctx *nss_ctx,
-                        struct nss_cmd_ctx *cmd_ctx,
+void sss_nss_protocol_reply(struct cli_ctx *cli_ctx,
+                        struct sss_nss_ctx *nss_ctx,
+                        struct sss_nss_cmd_ctx *cmd_ctx,
                         struct cache_req_result *result,
-                        nss_protocol_fill_packet_fn fill_fn);
+                        sss_nss_protocol_fill_packet_fn fill_fn);
 
 /* Parse input packet. */
 
 errno_t
-nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname);
+sss_nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname);
 
 errno_t
-nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
+sss_nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
                            uint32_t *_flags);
 
 errno_t
-nss_protocol_parse_id(struct cli_ctx *cli_ctx, uint32_t *_id);
+sss_nss_protocol_parse_id(struct cli_ctx *cli_ctx, uint32_t *_id);
 
 errno_t
-nss_protocol_parse_id_ex(struct cli_ctx *cli_ctx, uint32_t *_id,
+sss_nss_protocol_parse_id_ex(struct cli_ctx *cli_ctx, uint32_t *_id,
                          uint32_t *_flags);
 
 errno_t
-nss_protocol_parse_limit(struct cli_ctx *cli_ctx, uint32_t *_limit);
+sss_nss_protocol_parse_limit(struct cli_ctx *cli_ctx, uint32_t *_limit);
 
 errno_t
-nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
+sss_nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
                             const char **_name,
                             const char **_protocol);
 
 errno_t
-nss_protocol_parse_svc_port(struct cli_ctx *cli_ctx,
+sss_nss_protocol_parse_svc_port(struct cli_ctx *cli_ctx,
                             uint16_t *_port,
                             const char **_protocol);
 
 errno_t
-nss_protocol_parse_cert(struct cli_ctx *cli_ctx,
+sss_nss_protocol_parse_cert(struct cli_ctx *cli_ctx,
                         const char **_derb64);
 
 errno_t
-nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
+sss_nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
                        const char **_sid);
 
 errno_t
-nss_protocol_parse_addr(struct cli_ctx *cli_ctx,
+sss_nss_protocol_parse_addr(struct cli_ctx *cli_ctx,
                         uint32_t *_af,
 			uint32_t *_addrlen,
 			uint8_t **_addr);
@@ -130,93 +130,93 @@ nss_protocol_parse_addr(struct cli_ctx *cli_ctx,
 /* Create response packet. */
 
 errno_t
-nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
-                        struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_pwent(struct sss_nss_ctx *nss_ctx,
+                        struct sss_nss_cmd_ctx *cmd_ctx,
                         struct sss_packet *packet,
                         struct cache_req_result *result);
 
 errno_t
-nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
-                        struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_grent(struct sss_nss_ctx *nss_ctx,
+                        struct sss_nss_cmd_ctx *cmd_ctx,
                         struct sss_packet *packet,
                         struct cache_req_result *result);
 
 errno_t
-nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
-                         struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
+                         struct sss_nss_cmd_ctx *cmd_ctx,
                          struct sss_packet *packet,
                          struct cache_req_result *result);
 
 #ifdef BUILD_SUBID
 errno_t
-nss_protocol_fill_subid_ranges(struct nss_ctx *nss_ctx,
-                               struct nss_cmd_ctx *cmd_ctx,
-                               struct sss_packet *packet,
-                               struct cache_req_result *result);
+sss_nss_protocol_fill_subid_ranges(struct sss_nss_ctx *sss_nss_ctx,
+                                   struct sss_nss_cmd_ctx *cmd_ctx,
+                                   struct sss_packet *packet,
+                                   struct cache_req_result *result);
 #endif
 
 errno_t
-nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
-                           struct nss_cmd_ctx *cmd_ctx,
-                           struct sss_packet *packet,
-                           struct cache_req_result *result);
+sss_nss_protocol_fill_netgrent(struct sss_nss_ctx *nss_ctx,
+                               struct sss_nss_cmd_ctx *cmd_ctx,
+                               struct sss_packet *packet,
+                               struct cache_req_result *result);
 
 errno_t
-nss_protocol_fill_svcent(struct nss_ctx *nss_ctx,
-                         struct nss_cmd_ctx *cmd_ctx,
-                         struct sss_packet *packet,
-                         struct cache_req_result *result);
+sss_nss_protocol_fill_svcent(struct sss_nss_ctx *nss_ctx,
+                             struct sss_nss_cmd_ctx *cmd_ctx,
+                             struct sss_packet *packet,
+                             struct cache_req_result *result);
 
 errno_t
-nss_protocol_fill_sid(struct nss_ctx *nss_ctx,
-                      struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_sid(struct sss_nss_ctx *nss_ctx,
+                      struct sss_nss_cmd_ctx *cmd_ctx,
                       struct sss_packet *packet,
                       struct cache_req_result *result);
 
 errno_t
-nss_protocol_fill_orig(struct nss_ctx *nss_ctx,
-                       struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
+                       struct sss_nss_cmd_ctx *cmd_ctx,
                        struct sss_packet *packet,
                        struct cache_req_result *result);
 
 errno_t
-nss_protocol_fill_name(struct nss_ctx *nss_ctx,
-                       struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_name(struct sss_nss_ctx *nss_ctx,
+                       struct sss_nss_cmd_ctx *cmd_ctx,
                        struct sss_packet *packet,
                        struct cache_req_result *result);
 
 errno_t
-nss_protocol_fill_single_name(struct nss_ctx *nss_ctx,
-                              struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_single_name(struct sss_nss_ctx *nss_ctx,
+                              struct sss_nss_cmd_ctx *cmd_ctx,
                               struct sss_packet *packet,
                               struct cache_req_result *result);
 
 errno_t
-nss_protocol_fill_name_list(struct nss_ctx *nss_ctx,
-                            struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_name_list(struct sss_nss_ctx *nss_ctx,
+                            struct sss_nss_cmd_ctx *cmd_ctx,
                             struct sss_packet *packet,
                             struct cache_req_result *result);
 
 errno_t
-nss_protocol_fill_name_list_all_domains(struct nss_ctx *nss_ctx,
-                                        struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_name_list_all_domains(struct sss_nss_ctx *nss_ctx,
+                                        struct sss_nss_cmd_ctx *cmd_ctx,
                                         struct sss_packet *packet,
                                         struct cache_req_result **results);
 
 errno_t
-nss_protocol_fill_id(struct nss_ctx *nss_ctx,
-                     struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_id(struct sss_nss_ctx *nss_ctx,
+                     struct sss_nss_cmd_ctx *cmd_ctx,
                      struct sss_packet *packet,
                      struct cache_req_result *result);
 
 errno_t
-nss_protocol_fill_hostent(struct nss_ctx *nss_ctx,
-                          struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_hostent(struct sss_nss_ctx *nss_ctx,
+                          struct sss_nss_cmd_ctx *cmd_ctx,
                           struct sss_packet *packet,
                           struct cache_req_result *result);
 errno_t
-nss_protocol_fill_netent(struct nss_ctx *nss_ctx,
-                         struct nss_cmd_ctx *cmd_ctx,
+sss_nss_protocol_fill_netent(struct sss_nss_ctx *nss_ctx,
+                         struct sss_nss_cmd_ctx *cmd_ctx,
                          struct sss_packet *packet,
                          struct cache_req_result *result);
 

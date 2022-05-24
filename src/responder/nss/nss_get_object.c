@@ -26,7 +26,7 @@
 #include "responder/nss/nsssrv_mmap_cache.h"
 
 static errno_t
-memcache_delete_entry_by_name(struct nss_ctx *nss_ctx,
+memcache_delete_entry_by_name(struct sss_nss_ctx *nss_ctx,
                               struct sized_string *name,
                               enum sss_mc_type type)
 {
@@ -58,7 +58,7 @@ memcache_delete_entry_by_name(struct nss_ctx *nss_ctx,
 }
 
 static errno_t
-memcache_delete_entry_by_id(struct nss_ctx *nss_ctx,
+memcache_delete_entry_by_id(struct sss_nss_ctx *nss_ctx,
                             uint32_t id,
                             enum sss_mc_type type)
 {
@@ -87,7 +87,7 @@ memcache_delete_entry_by_id(struct nss_ctx *nss_ctx,
 }
 
 errno_t
-memcache_delete_entry(struct nss_ctx *nss_ctx,
+memcache_delete_entry(struct sss_nss_ctx *nss_ctx,
                       struct resp_ctx *rctx,
                       struct sss_domain_info *domain,
                       const char *name,
@@ -241,8 +241,8 @@ hybrid_domain_user_to_group(struct cache_req_result *result)
     return EOK;
 }
 
-struct nss_get_object_state {
-    struct nss_ctx *nss_ctx;
+struct sss_nss_get_object_state {
+    struct sss_nss_ctx *nss_ctx;
     struct resp_ctx *rctx;
     struct tevent_context *ev;
     struct cli_ctx *cli_ctx;
@@ -256,30 +256,30 @@ struct nss_get_object_state {
     struct cache_req_result *result;
 };
 
-static void nss_get_object_done(struct tevent_req *subreq);
-static bool nss_is_hybrid_object_enabled(struct sss_domain_info *domains);
-static errno_t nss_get_hybrid_object_step(struct tevent_req *req);
-static void nss_get_hybrid_object_done(struct tevent_req *subreq);
-static void nss_get_hybrid_gid_verify_done(struct tevent_req *subreq);
-static void nss_get_object_finish_req(struct tevent_req *req,
-                                      errno_t ret);
+static void sss_nss_get_object_done(struct tevent_req *subreq);
+static bool sss_nss_is_hybrid_object_enabled(struct sss_domain_info *domains);
+static errno_t sss_nss_get_hybrid_object_step(struct tevent_req *req);
+static void sss_nss_get_hybrid_object_done(struct tevent_req *subreq);
+static void sss_nss_get_hybrid_gid_verify_done(struct tevent_req *subreq);
+static void sss_nss_get_object_finish_req(struct tevent_req *req,
+                                          errno_t ret);
 
 /* Cache request data memory context is stolen to internal state. */
 struct tevent_req *
-nss_get_object_send(TALLOC_CTX *mem_ctx,
-                    struct tevent_context *ev,
-                    struct cli_ctx *cli_ctx,
-                    struct cache_req_data *data,
-                    enum sss_mc_type memcache,
-                    const char *input_name,
-                    uint32_t input_id)
+sss_nss_get_object_send(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct cli_ctx *cli_ctx,
+                        struct cache_req_data *data,
+                        enum sss_mc_type memcache,
+                        const char *input_name,
+                        uint32_t input_id)
 {
-    struct nss_get_object_state *state;
+    struct sss_nss_get_object_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct nss_get_object_state);
+    req = tevent_req_create(mem_ctx, &state, struct sss_nss_get_object_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
@@ -289,7 +289,7 @@ nss_get_object_send(TALLOC_CTX *mem_ctx,
     state->data = talloc_steal(state, data);
 
     state->rctx = cli_ctx->rctx;
-    state->nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    state->nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sss_nss_ctx);
     state->memcache = memcache;
     state->input_id = input_id;
     state->input_name = talloc_strdup(state, input_name);
@@ -312,7 +312,7 @@ nss_get_object_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Client [%p][%d]: sent cache request #%u\n",
           cli_ctx, cli_ctx->cfd, cache_req_get_reqid(subreq));
 
-    tevent_req_set_callback(subreq, nss_get_object_done, req);
+    tevent_req_set_callback(subreq, sss_nss_get_object_done, req);
 
     ret = EAGAIN;
 
@@ -325,15 +325,15 @@ done:
     return req;
 }
 
-static void nss_get_object_done(struct tevent_req *subreq)
+static void sss_nss_get_object_done(struct tevent_req *subreq)
 {
-    struct nss_get_object_state *state;
+    struct sss_nss_get_object_state *state;
     struct tevent_req *req;
     errno_t ret;
     errno_t retry_ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct nss_get_object_state);
+    state = tevent_req_data(req, struct sss_nss_get_object_state);
 
     ret = cache_req_single_domain_recv(state, subreq, &state->result);
     talloc_zfree(subreq);
@@ -341,8 +341,8 @@ static void nss_get_object_done(struct tevent_req *subreq)
     /* Try to process hybrid object if any domain enables it. This will issue a
      * cache_req that will iterate only over domains with MPG_HYBRID. */
     if (ret == ENOENT
-            && nss_is_hybrid_object_enabled(state->nss_ctx->rctx->domains)) {
-        retry_ret = nss_get_hybrid_object_step(req);
+            && sss_nss_is_hybrid_object_enabled(state->nss_ctx->rctx->domains)) {
+        retry_ret = sss_nss_get_hybrid_object_step(req);
         if (retry_ret == EAGAIN) {
             /* Retrying hybrid search */
             return;
@@ -352,16 +352,16 @@ static void nss_get_object_done(struct tevent_req *subreq)
          */
     }
 
-    nss_get_object_finish_req(req, ret);
+    sss_nss_get_object_finish_req(req, ret);
     return;
 }
 
-static void nss_get_object_finish_req(struct tevent_req *req,
+static void sss_nss_get_object_finish_req(struct tevent_req *req,
                                       errno_t ret)
 {
-    struct nss_get_object_state *state;
+    struct sss_nss_get_object_state *state;
 
-    state = tevent_req_data(req, struct nss_get_object_state);
+    state = tevent_req_data(req, struct sss_nss_get_object_state);
 
     /*  - SIDs are unique between domains, so there are no other entries
      *    to delete in 'EOK' case.
@@ -408,7 +408,7 @@ static void nss_get_object_finish_req(struct tevent_req *req,
     }
 }
 
-static bool nss_is_hybrid_object_enabled(struct sss_domain_info *domains)
+static bool sss_nss_is_hybrid_object_enabled(struct sss_domain_info *domains)
 {
     struct sss_domain_info *dom;
 
@@ -422,12 +422,12 @@ static bool nss_is_hybrid_object_enabled(struct sss_domain_info *domains)
     return false;
 }
 
-static errno_t nss_get_hybrid_object_step(struct tevent_req *req)
+static errno_t sss_nss_get_hybrid_object_step(struct tevent_req *req)
 {
     struct tevent_req *subreq;
-    struct nss_get_object_state *state;
+    struct sss_nss_get_object_state *state;
 
-    state = tevent_req_data(req, struct nss_get_object_state);
+    state = tevent_req_data(req, struct sss_nss_get_object_state);
 
     state->data = hybrid_domain_retry_data(state,
                                             state->data,
@@ -450,19 +450,19 @@ static errno_t nss_get_hybrid_object_step(struct tevent_req *req)
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send cache request!\n");
         return ENOMEM;
     }
-    tevent_req_set_callback(subreq, nss_get_hybrid_object_done, req);
+    tevent_req_set_callback(subreq, sss_nss_get_hybrid_object_done, req);
 
     return EAGAIN;
 }
 
-static void nss_get_hybrid_object_done(struct tevent_req *subreq)
+static void sss_nss_get_hybrid_object_done(struct tevent_req *subreq)
 {
-    struct nss_get_object_state *state;
+    struct sss_nss_get_object_state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct nss_get_object_state);
+    state = tevent_req_data(req, struct sss_nss_get_object_state);
 
     ret = cache_req_single_domain_recv(state, subreq, &state->result);
     talloc_zfree(subreq);
@@ -487,7 +487,7 @@ static void nss_get_hybrid_object_done(struct tevent_req *subreq)
         talloc_zfree(state->data);
         state->data = hybrid_domain_verify_gid_data(state, state->result);
         if (state->data == NULL) {
-            nss_get_object_finish_req(req, EINVAL);
+            sss_nss_get_object_finish_req(req, EINVAL);
             return;
         }
 
@@ -504,24 +504,24 @@ static void nss_get_hybrid_object_done(struct tevent_req *subreq)
             tevent_req_error(req, ENOENT);
             return;
         }
-        tevent_req_set_callback(subreq, nss_get_hybrid_gid_verify_done, req);
+        tevent_req_set_callback(subreq, sss_nss_get_hybrid_gid_verify_done, req);
         return;
     }
 
 done:
-    nss_get_object_finish_req(req, ret);
+    sss_nss_get_object_finish_req(req, ret);
     return;
 }
 
-static void nss_get_hybrid_gid_verify_done(struct tevent_req *subreq)
+static void sss_nss_get_hybrid_gid_verify_done(struct tevent_req *subreq)
 {
-    struct nss_get_object_state *state;
+    struct sss_nss_get_object_state *state;
     struct cache_req_result *real_gr_result;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct nss_get_object_state);
+    state = tevent_req_data(req, struct sss_nss_get_object_state);
 
     ret = cache_req_single_domain_recv(state, subreq, &real_gr_result);
     talloc_zfree(subreq);
@@ -542,18 +542,18 @@ static void nss_get_hybrid_gid_verify_done(struct tevent_req *subreq)
     }
 
 done:
-    nss_get_object_finish_req(req, ret);
+    sss_nss_get_object_finish_req(req, ret);
     return;
 }
 
 errno_t
-nss_get_object_recv(TALLOC_CTX *mem_ctx,
+sss_nss_get_object_recv(TALLOC_CTX *mem_ctx,
                     struct tevent_req *req,
                     struct cache_req_result **_result,
                     const char **_rawname)
 {
-    struct nss_get_object_state *state;
-    state = tevent_req_data(req, struct nss_get_object_state);
+    struct sss_nss_get_object_state *state;
+    state = tevent_req_data(req, struct sss_nss_get_object_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

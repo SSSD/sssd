@@ -23,13 +23,13 @@
 #include "responder/nss/nss_protocol.h"
 
 static errno_t
-nss_get_svcent(TALLOC_CTX *mem_ctx,
-               struct sss_domain_info *domain,
-               struct ldb_message *msg,
-               const char *requested_protocol,
-               struct sized_string *_name,
-               struct sized_string *_protocol,
-               uint16_t *_port)
+sss_nss_get_svcent(TALLOC_CTX *mem_ctx,
+                   struct sss_domain_info *domain,
+                   struct ldb_message *msg,
+                   const char *requested_protocol,
+                   struct sized_string *_name,
+                   struct sized_string *_protocol,
+                   uint16_t *_port)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message_element *el;
@@ -108,12 +108,12 @@ done:
 }
 
 static errno_t
-nss_get_svc_aliases(TALLOC_CTX *mem_ctx,
-                    struct sss_domain_info *domain,
-                    struct ldb_message *msg,
-                    const char *name,
-                    struct sized_string **_aliases,
-                    uint32_t *_num_aliases)
+sss_nss_get_svc_aliases(TALLOC_CTX *mem_ctx,
+                        struct sss_domain_info *domain,
+                        struct ldb_message *msg,
+                        const char *name,
+                        struct sized_string **_aliases,
+                        uint32_t *_num_aliases)
 {
     struct ldb_message_element *el;
     struct sized_string *aliases = NULL;
@@ -164,10 +164,10 @@ done:
 }
 
 errno_t
-nss_protocol_fill_svcent(struct nss_ctx *nss_ctx,
-                         struct nss_cmd_ctx *cmd_ctx,
-                         struct sss_packet *packet,
-                         struct cache_req_result *result)
+sss_nss_protocol_fill_svcent(struct sss_nss_ctx *nss_ctx,
+                             struct sss_nss_cmd_ctx *cmd_ctx,
+                             struct sss_packet *packet,
+                             struct cache_req_result *result)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -202,7 +202,7 @@ nss_protocol_fill_svcent(struct nss_ctx *nss_ctx,
         talloc_free_children(tmp_ctx);
         msg = result->msgs[i];
 
-        ret = nss_get_svcent(tmp_ctx, result->domain, msg,
+        ret = sss_nss_get_svcent(tmp_ctx, result->domain, msg,
                              cmd_ctx->svc_protocol, &name, &protocol, &port);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -211,7 +211,7 @@ nss_protocol_fill_svcent(struct nss_ctx *nss_ctx,
             continue;
         }
 
-        ret = nss_get_svc_aliases(tmp_ctx, result->domain, msg, name.str,
+        ret = sss_nss_get_svc_aliases(tmp_ctx, result->domain, msg, name.str,
                                   &aliases, &num_aliases);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
