@@ -51,9 +51,9 @@
 #define DEFAULT_NSS_FD_LIMIT 8192
 
 static errno_t
-nss_clear_memcache(TALLOC_CTX *mem_ctx,
-                   struct sbus_request *sbus_req,
-                   struct nss_ctx *nctx)
+sss_nss_clear_memcache(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct sss_nss_ctx *nctx)
 {
     int memcache_timeout;
     errno_t ret;
@@ -132,9 +132,9 @@ done:
 }
 
 static errno_t
-nss_clear_negcache(TALLOC_CTX *mem_ctx,
-                   struct sbus_request *sbus_req,
-                   struct nss_ctx *nctx)
+sss_nss_clear_negcache(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct sss_nss_ctx *nctx)
 {
     errno_t ret;
 
@@ -159,9 +159,9 @@ done:
 }
 
 static errno_t
-nss_clear_netgroup_hash_table(TALLOC_CTX *mem_ctx,
-                              struct sbus_request *sbus_req,
-                              struct nss_ctx *nss_ctx)
+sss_nss_clear_netgroup_hash_table(TALLOC_CTX *mem_ctx,
+                                  struct sbus_request *sbus_req,
+                                  struct sss_nss_ctx *nss_ctx)
 {
     DEBUG(SSSDBG_TRACE_FUNC, "Invalidating netgroup hash table\n");
 
@@ -170,8 +170,8 @@ nss_clear_netgroup_hash_table(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static int nss_get_config(struct nss_ctx *nctx,
-                          struct confdb_ctx *cdb)
+static int sss_nss_get_config(struct sss_nss_ctx *nctx,
+                              struct confdb_ctx *cdb)
 {
     int ret;
     char *tmp_str;
@@ -248,7 +248,7 @@ done:
     return ret;
 }
 
-static int setup_memcaches(struct nss_ctx *nctx)
+static int setup_memcaches(struct sss_nss_ctx *nctx)
 {
     /* Default memcache sizes */
     static const size_t SSS_MC_CACHE_SLOTS_PER_MB   = 1024*1024/MC_SLOT_SIZE;
@@ -388,7 +388,7 @@ static int setup_memcaches(struct nss_ctx *nctx)
 }
 
 static errno_t
-nss_register_service_iface(struct nss_ctx *nss_ctx,
+sss_nss_register_service_iface(struct sss_nss_ctx *nss_ctx,
                            struct resp_ctx *rctx)
 {
     errno_t ret;
@@ -398,9 +398,9 @@ nss_register_service_iface(struct nss_ctx *nss_ctx,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),
             SBUS_SYNC(METHOD, sssd_service, rotateLogs, responder_logrotate, rctx),
-            SBUS_SYNC(METHOD, sssd_service, clearEnumCache, nss_clear_netgroup_hash_table, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_service, clearMemcache, nss_clear_memcache, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_service, clearNegcache, nss_clear_negcache, nss_ctx)
+            SBUS_SYNC(METHOD, sssd_service, clearEnumCache, sss_nss_clear_netgroup_hash_table, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_service, clearMemcache, sss_nss_clear_memcache, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_service, clearNegcache, sss_nss_clear_negcache, nss_ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
         SBUS_PROPERTIES(
@@ -418,7 +418,7 @@ nss_register_service_iface(struct nss_ctx *nss_ctx,
     return ret;
 }
 
-static int sssd_supplementary_group(struct nss_ctx *nss_ctx)
+static int sssd_supplementary_group(struct sss_nss_ctx *nss_ctx)
 {
     errno_t ret;
     int size;
@@ -491,33 +491,33 @@ done:
     return ret;
 }
 
-int nss_process_init(TALLOC_CTX *mem_ctx,
-                     struct tevent_context *ev,
-                     struct confdb_ctx *cdb)
+int sss_nss_process_init(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct confdb_ctx *cdb)
 {
     struct resp_ctx *rctx;
     struct sss_cmd_table *nss_cmds;
     struct be_conn *iter;
-    struct nss_ctx *nctx;
+    struct sss_nss_ctx *nctx;
     int ret;
     enum idmap_error_code err;
     int fd_limit;
 
-    nss_cmds = get_nss_cmds();
+    nss_cmds = get_sss_nss_cmds();
 
     ret = sss_process_init(mem_ctx, ev, cdb,
                            nss_cmds,
                            SSS_NSS_SOCKET_NAME, -1, NULL, -1,
                            CONFDB_NSS_CONF_ENTRY,
                            SSS_BUS_NSS, NSS_SBUS_SERVICE_NAME,
-                           nss_connection_setup,
+                           sss_nss_connection_setup,
                            &rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");
         return ret;
     }
 
-    nctx = talloc_zero(rctx, struct nss_ctx);
+    nctx = talloc_zero(rctx, struct sss_nss_ctx);
     if (!nctx) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing nss_ctx\n");
         ret = ENOMEM;
@@ -527,14 +527,14 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     nctx->rctx = rctx;
     nctx->rctx->pvt_ctx = nctx;
 
-    ret = nss_get_config(nctx, cdb);
+    ret = sss_nss_get_config(nctx, cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error getting nss config\n");
         goto fail;
     }
 
     for (iter = nctx->rctx->be_conns; iter; iter = iter->next) {
-        ret = nss_register_backend_iface(iter->conn, nctx);
+        ret = sss_nss_register_backend_iface(iter->conn, nctx);
         if (ret != EOK) {
             goto fail;
         }
@@ -548,21 +548,21 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    nctx->pwent = talloc_zero(nctx, struct nss_enum_ctx);
+    nctx->pwent = talloc_zero(nctx, struct sss_nss_enum_ctx);
     if (nctx->pwent == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize pwent context!\n");
         ret = ENOMEM;
         goto fail;
     }
 
-    nctx->grent = talloc_zero(nctx, struct nss_enum_ctx);
+    nctx->grent = talloc_zero(nctx, struct sss_nss_enum_ctx);
     if (nctx->grent == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize grent context!\n");
         ret = ENOMEM;
         goto fail;
     }
 
-    nctx->svcent = talloc_zero(nctx, struct nss_enum_ctx);
+    nctx->svcent = talloc_zero(nctx, struct sss_nss_enum_ctx);
     if (nctx->svcent == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize svcent context!\n");
         ret = ENOMEM;
@@ -576,14 +576,14 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    nctx->hostent = talloc_zero(nctx, struct nss_enum_ctx);
+    nctx->hostent = talloc_zero(nctx, struct sss_nss_enum_ctx);
     if (nctx->hostent == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize hostent context!\n");
         ret = ENOMEM;
         goto fail;
     }
 
-    nctx->netent = talloc_zero(nctx, struct nss_enum_ctx);
+    nctx->netent = talloc_zero(nctx, struct sss_nss_enum_ctx);
     if (nctx->netent == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize netent context!\n");
         ret = ENOMEM;
@@ -638,7 +638,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = nss_register_service_iface(nctx, rctx);
+    ret = sss_nss_register_service_iface(nctx, rctx);
     if (ret != EOK) {
         goto fail;
     }
@@ -704,9 +704,9 @@ int main(int argc, const char *argv[])
               "Could not set up to exit when parent process does\n");
     }
 
-    ret = nss_process_init(main_ctx,
-                           main_ctx->event_ctx,
-                           main_ctx->confdb_ctx);
+    ret = sss_nss_process_init(main_ctx,
+                               main_ctx->event_ctx,
+                               main_ctx->confdb_ctx);
     if (ret != EOK) return 3;
 
     /* loop on main */

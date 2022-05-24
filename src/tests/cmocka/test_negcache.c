@@ -85,13 +85,13 @@ struct cli_protocol_version *register_cli_protocol_version(void)
 }
 
 /* Mock NSS structure */
-static struct nss_ctx *
+static struct sss_nss_ctx *
 mock_nctx(TALLOC_CTX *mem_ctx)
 {
-    struct nss_ctx *nctx;
+    struct sss_nss_ctx *nctx;
     enum idmap_error_code err;
 
-    nctx = talloc_zero(mem_ctx, struct nss_ctx);
+    nctx = talloc_zero(mem_ctx, struct sss_nss_ctx);
     if (!nctx) {
         return NULL;
     }
@@ -110,7 +110,7 @@ mock_nctx(TALLOC_CTX *mem_ctx)
 
 struct test_state {
     struct sss_nc_ctx *ctx;
-    struct nss_ctx *nctx;
+    struct sss_nss_ctx *nctx;
     struct resp_ctx *rctx;
 };
 
@@ -848,8 +848,8 @@ static void test_sss_ncache_reset_prepopulate(void **state)
         { NULL, NULL },
     };
 
-    const char *nss_filter_users[] = { params[0].value, NULL};
-    const char *nss_filter_groups[] = { params[1].value, NULL};
+    const char *sss_nss_filter_users[] = { params[0].value, NULL};
+    const char *sss_nss_filter_groups[] = { params[1].value, NULL};
 
     ts = talloc_get_type_abort(*state, struct test_state);
 
@@ -868,11 +868,11 @@ static void test_sss_ncache_reset_prepopulate(void **state)
     assert_non_null(tc);
 
     ret = confdb_add_param(tc->confdb, true, "config/nss",
-                           "filter_users", nss_filter_users);
+                           "filter_users", sss_nss_filter_users);
     assert_int_equal(ret, EOK);
 
     ret = confdb_add_param(tc->confdb, true, "config/nss",
-                           "filter_groups", nss_filter_groups);
+                           "filter_groups", sss_nss_filter_groups);
     assert_int_equal(ret, EOK);
 
     ncache = ts->ctx;
@@ -1103,8 +1103,8 @@ static void run_sss_ncache_short_name_in_domain(void **state,
         { NULL, NULL },
     };
 
-    const char *nss_filter_users[] = { params[0].value, NULL};
-    const char *nss_filter_groups[] = { params[1].value, NULL};
+    const char *sss_nss_filter_users[] = { params[0].value, NULL};
+    const char *sss_nss_filter_groups[] = { params[1].value, NULL};
 
     ts = talloc_get_type_abort(*state, struct test_state);
 
@@ -1124,11 +1124,11 @@ static void run_sss_ncache_short_name_in_domain(void **state,
     assert_non_null(tc);
 
     ret = confdb_add_param(tc->confdb, true, "config/domain/"TEST_DOM_NAME,
-                           "filter_users", nss_filter_users);
+                           "filter_users", sss_nss_filter_users);
     assert_int_equal(ret, EOK);
 
     ret = confdb_add_param(tc->confdb, true, "config/domain"TEST_DOM_NAME,
-                           "filter_groups", nss_filter_groups);
+                           "filter_groups", sss_nss_filter_groups);
     assert_int_equal(ret, EOK);
 
     ncache = ts->ctx;

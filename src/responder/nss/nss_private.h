@@ -33,12 +33,12 @@
 #include "responder/nss/nsssrv_mmap_cache.h"
 #include "lib/idmap/sss_idmap.h"
 
-struct nss_enum_index {
+struct sss_nss_enum_index {
     unsigned int domain;
     unsigned int result;
 };
 
-struct nss_enum_ctx {
+struct sss_nss_enum_ctx {
     struct cache_req_result **result;
     struct sysdb_netgroup_ctx **netgroup;
     size_t netgroup_count;
@@ -54,18 +54,18 @@ struct nss_enum_ctx {
     struct setent_req_list *notify_list;
 };
 
-struct nss_state_ctx {
-    struct nss_enum_index pwent;
-    struct nss_enum_index grent;
-    struct nss_enum_index svcent;
-    struct nss_enum_index netgrent;
-    struct nss_enum_index hostent;
-    struct nss_enum_index netent;
+struct sss_nss_state_ctx {
+    struct sss_nss_enum_index pwent;
+    struct sss_nss_enum_index grent;
+    struct sss_nss_enum_index svcent;
+    struct sss_nss_enum_index netgrent;
+    struct sss_nss_enum_index hostent;
+    struct sss_nss_enum_index netent;
 
     const char *netgroup;
 };
 
-struct nss_ctx {
+struct sss_nss_ctx {
     struct resp_ctx *rctx;
     struct sss_idmap_ctx *idmap_ctx;
 
@@ -80,11 +80,11 @@ struct nss_ctx {
     const char **extra_attributes;
 
     /* Enumeration. */
-    struct nss_enum_ctx *pwent;
-    struct nss_enum_ctx *grent;
-    struct nss_enum_ctx *svcent;
-    struct nss_enum_ctx *hostent;
-    struct nss_enum_ctx *netent;
+    struct sss_nss_enum_ctx *pwent;
+    struct sss_nss_enum_ctx *grent;
+    struct sss_nss_enum_ctx *svcent;
+    struct sss_nss_enum_ctx *hostent;
+    struct sss_nss_enum_ctx *netent;
     hash_table_t *netgrent;
 
     /* Memory cache. */
@@ -96,12 +96,12 @@ struct nss_ctx {
     gid_t mc_gid;
 };
 
-struct sss_cmd_table *get_nss_cmds(void);
+struct sss_cmd_table *get_sss_nss_cmds(void);
 
-int nss_connection_setup(struct cli_ctx *cli_ctx);
+int sss_nss_connection_setup(struct cli_ctx *cli_ctx);
 
 errno_t
-memcache_delete_entry(struct nss_ctx *nss_ctx,
+memcache_delete_entry(struct sss_nss_ctx *nss_ctx,
                       struct resp_ctx *rctx,
                       struct sss_domain_info *domain,
                       const char *name,
@@ -109,49 +109,49 @@ memcache_delete_entry(struct nss_ctx *nss_ctx,
                       enum sss_mc_type type);
 
 struct tevent_req *
-nss_get_object_send(TALLOC_CTX *mem_ctx,
+sss_nss_get_object_send(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct cli_ctx *cli_ctx,
+                        struct cache_req_data *data,
+                        enum sss_mc_type memcache,
+                        const char *input_name,
+                        uint32_t input_id);
+
+errno_t
+sss_nss_get_object_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        struct cache_req_result **_result,
+                        const char **_rawname);
+
+struct tevent_req *
+sss_nss_setent_send(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
                     struct cli_ctx *cli_ctx,
-                    struct cache_req_data *data,
-                    enum sss_mc_type memcache,
-                    const char *input_name,
-                    uint32_t input_id);
+                    enum cache_req_type type,
+                    struct sss_nss_enum_ctx *enum_ctx);
 
 errno_t
-nss_get_object_recv(TALLOC_CTX *mem_ctx,
-                    struct tevent_req *req,
-                    struct cache_req_result **_result,
-                    const char **_rawname);
+sss_nss_setent_recv(struct tevent_req *req);
 
 struct tevent_req *
-nss_setent_send(TALLOC_CTX *mem_ctx,
-                struct tevent_context *ev,
-                struct cli_ctx *cli_ctx,
-                enum cache_req_type type,
-                struct nss_enum_ctx *enum_ctx);
+sss_nss_setnetgrent_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct cli_ctx *cli_ctx,
+                         enum cache_req_type type,
+                         hash_table_t *table,
+                         const char *netgroup);
 
 errno_t
-nss_setent_recv(struct tevent_req *req);
-
-struct tevent_req *
-nss_setnetgrent_send(TALLOC_CTX *mem_ctx,
-                     struct tevent_context *ev,
-                     struct cli_ctx *cli_ctx,
-                     enum cache_req_type type,
-                     hash_table_t *table,
-                     const char *netgroup);
-
-errno_t
-nss_setnetgrent_recv(struct tevent_req *req);
+sss_nss_setnetgrent_recv(struct tevent_req *req);
 
 /* Utils. */
 
 const char *
-nss_get_name_from_msg(struct sss_domain_info *domain,
-                      struct ldb_message *msg);
+sss_nss_get_name_from_msg(struct sss_domain_info *domain,
+                          struct ldb_message *msg);
 
 const char *
-nss_get_pwfield(struct nss_ctx *nctx,
-                struct sss_domain_info *dom);
+sss_nss_get_pwfield(struct sss_nss_ctx *nctx,
+                    struct sss_domain_info *dom);
 
 #endif /* _NSS_PRIVATE_H_ */

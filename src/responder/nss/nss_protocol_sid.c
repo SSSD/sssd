@@ -58,9 +58,9 @@ find_sss_id_type(struct ldb_message *msg,
 }
 
 static errno_t
-nss_get_id_type(struct nss_cmd_ctx *cmd_ctx,
-                struct cache_req_result *result,
-                enum sss_id_type *_type)
+sss_nss_get_id_type(struct sss_nss_cmd_ctx *cmd_ctx,
+                    struct cache_req_result *result,
+                    enum sss_id_type *_type)
 {
     errno_t ret;
     bool mpg;
@@ -83,11 +83,11 @@ nss_get_id_type(struct nss_cmd_ctx *cmd_ctx,
 }
 
 static errno_t
-nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
-                    struct cache_req_result *result,
-                    const char **_sid,
-                    uint64_t *_id,
-                    enum sss_id_type *_type)
+sss_nss_get_sid_id_type(struct sss_nss_cmd_ctx *cmd_ctx,
+                        struct cache_req_result *result,
+                        const char **_sid,
+                        uint64_t *_id,
+                        enum sss_id_type *_type)
 {
     errno_t ret;
     size_t c;
@@ -106,7 +106,7 @@ nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
             DEBUG(SSSDBG_CRIT_FAILURE, "Missing SID.\n");
             return EINVAL;
         }
-        ret = nss_get_id_type(cmd_ctx, result, _type);
+        ret = sss_nss_get_id_type(cmd_ctx, result, _type);
         if (ret == EOK ) {
             if (*_type == SSS_ID_TYPE_GID) {
                 *_id = ldb_msg_find_attr_as_uint64(result->msgs[0],
@@ -196,10 +196,10 @@ nss_get_sid_id_type(struct nss_cmd_ctx *cmd_ctx,
 }
 
 errno_t
-nss_protocol_fill_sid(struct nss_ctx *nss_ctx,
-                      struct nss_cmd_ctx *cmd_ctx,
-                      struct sss_packet *packet,
-                      struct cache_req_result *result)
+sss_nss_protocol_fill_sid(struct sss_nss_ctx *nss_ctx,
+                          struct sss_nss_cmd_ctx *cmd_ctx,
+                          struct sss_packet *packet,
+                          struct cache_req_result *result)
 {
     struct sized_string sz_sid;
     enum sss_id_type id_type;
@@ -210,7 +210,7 @@ nss_protocol_fill_sid(struct nss_ctx *nss_ctx,
     uint8_t *body;
     errno_t ret;
 
-    ret = nss_get_sid_id_type(cmd_ctx, result, &sid, &id, &id_type);
+    ret = sss_nss_get_sid_id_type(cmd_ctx, result, &sid, &id, &id_type);
     if (ret != EOK) {
         return ret;
     }
@@ -324,10 +324,10 @@ static errno_t process_attr_list(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
 }
 
 errno_t
-nss_protocol_fill_orig(struct nss_ctx *nss_ctx,
-                       struct nss_cmd_ctx *cmd_ctx,
-                       struct sss_packet *packet,
-                       struct cache_req_result *result)
+sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
+                           struct sss_nss_cmd_ctx *cmd_ctx,
+                           struct sss_packet *packet,
+                           struct cache_req_result *result)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg = result->msgs[0];
@@ -374,7 +374,7 @@ nss_protocol_fill_orig(struct nss_ctx *nss_ctx,
         return ENOMEM;
     }
 
-    ret = nss_get_id_type(cmd_ctx, result, &id_type);
+    ret = sss_nss_get_id_type(cmd_ctx, result, &id_type);
     if (ret != EOK) {
         return ret;
     }
@@ -437,10 +437,10 @@ done:
 }
 
 static errno_t
-nss_get_well_known_name(TALLOC_CTX *mem_ctx,
-                        struct resp_ctx *rctx,
-                        struct cache_req_result *result,
-                        struct sized_string **_sz_name)
+sss_nss_get_well_known_name(TALLOC_CTX *mem_ctx,
+                            struct resp_ctx *rctx,
+                            struct cache_req_result *result,
+                            struct sized_string **_sz_name)
 {
     struct sized_string *sz_name;
     const char *fq_name = NULL;
@@ -482,17 +482,17 @@ nss_get_well_known_name(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t
-nss_get_ad_name(TALLOC_CTX *mem_ctx,
-                struct resp_ctx *rctx,
-                struct cache_req_result *result,
-                struct sized_string **_sz_name)
+sss_nss_get_ad_name(TALLOC_CTX *mem_ctx,
+                    struct resp_ctx *rctx,
+                    struct cache_req_result *result,
+                    struct sized_string **_sz_name)
 {
     struct ldb_message *msg = result->msgs[0];
     const char *name;
     errno_t ret;
 
     if (result->well_known_object) {
-        return nss_get_well_known_name(mem_ctx, rctx, result, _sz_name);
+        return sss_nss_get_well_known_name(mem_ctx, rctx, result, _sz_name);
     }
 
     name = ldb_msg_find_attr_as_string(msg, ORIGINALAD_PREFIX SYSDB_NAME,
@@ -518,10 +518,10 @@ nss_get_ad_name(TALLOC_CTX *mem_ctx,
 }
 
 errno_t
-nss_protocol_fill_single_name(struct nss_ctx *nss_ctx,
-                              struct nss_cmd_ctx *cmd_ctx,
-                              struct sss_packet *packet,
-                              struct cache_req_result *result)
+sss_nss_protocol_fill_single_name(struct sss_nss_ctx *nss_ctx,
+                                  struct sss_nss_cmd_ctx *cmd_ctx,
+                                  struct sss_packet *packet,
+                                  struct cache_req_result *result)
 {
     if (result->ldb_result->count > 1) {
         DEBUG(SSSDBG_TRACE_FUNC, "Lookup returned more than one result "
@@ -529,14 +529,14 @@ nss_protocol_fill_single_name(struct nss_ctx *nss_ctx,
         return EEXIST;
     }
 
-    return nss_protocol_fill_name(nss_ctx, cmd_ctx, packet, result);
+    return sss_nss_protocol_fill_name(nss_ctx, cmd_ctx, packet, result);
 }
 
 errno_t
-nss_protocol_fill_name(struct nss_ctx *nss_ctx,
-                       struct nss_cmd_ctx *cmd_ctx,
-                       struct sss_packet *packet,
-                       struct cache_req_result *result)
+sss_nss_protocol_fill_name(struct sss_nss_ctx *nss_ctx,
+                           struct sss_nss_cmd_ctx *cmd_ctx,
+                           struct sss_packet *packet,
+                           struct cache_req_result *result)
 {
     struct sized_string *sz_name;
     enum sss_id_type id_type;
@@ -545,12 +545,12 @@ nss_protocol_fill_name(struct nss_ctx *nss_ctx,
     uint8_t *body;
     errno_t ret;
 
-    ret = nss_get_id_type(cmd_ctx, result, &id_type);
+    ret = sss_nss_get_id_type(cmd_ctx, result, &id_type);
     if (ret != EOK) {
         return ret;
     }
 
-    ret = nss_get_ad_name(cmd_ctx, nss_ctx->rctx, result, &sz_name);
+    ret = sss_nss_get_ad_name(cmd_ctx, nss_ctx->rctx, result, &sz_name);
     if (ret != EOK) {
         return ret;
     }
@@ -575,10 +575,10 @@ nss_protocol_fill_name(struct nss_ctx *nss_ctx,
 }
 
 errno_t
-nss_protocol_fill_id(struct nss_ctx *nss_ctx,
-                     struct nss_cmd_ctx *cmd_ctx,
-                     struct sss_packet *packet,
-                     struct cache_req_result *result)
+sss_nss_protocol_fill_id(struct sss_nss_ctx *nss_ctx,
+                         struct sss_nss_cmd_ctx *cmd_ctx,
+                         struct sss_packet *packet,
+                         struct cache_req_result *result)
 {
     struct ldb_message *msg = result->msgs[0];
     enum sss_id_type id_type;
@@ -596,7 +596,7 @@ nss_protocol_fill_id(struct nss_ctx *nss_ctx,
         return EINVAL;
     }
 
-    ret = nss_get_id_type(cmd_ctx, result, &id_type);
+    ret = sss_nss_get_id_type(cmd_ctx, result, &id_type);
     if (ret != EOK) {
         return ret;
     }
@@ -650,10 +650,10 @@ nss_protocol_fill_id(struct nss_ctx *nss_ctx,
 }
 
 errno_t
-nss_protocol_fill_name_list(struct nss_ctx *nss_ctx,
-                            struct nss_cmd_ctx *cmd_ctx,
-                            struct sss_packet *packet,
-                            struct cache_req_result *result)
+sss_nss_protocol_fill_name_list(struct sss_nss_ctx *nss_ctx,
+                                struct sss_nss_cmd_ctx *cmd_ctx,
+                                struct sss_packet *packet,
+                                struct cache_req_result *result)
 {
     enum sss_id_type *id_types;
     size_t rp = 0;
@@ -677,7 +677,7 @@ nss_protocol_fill_name_list(struct nss_ctx *nss_ctx,
 
     len = 0;
     for (c = 0; c < result->count; c++) {
-        ret = nss_get_id_type(cmd_ctx, result, &(id_types[c]));
+        ret = sss_nss_get_id_type(cmd_ctx, result, &(id_types[c]));
         if (ret != EOK) {
             return ret;
         }
@@ -713,10 +713,10 @@ nss_protocol_fill_name_list(struct nss_ctx *nss_ctx,
 }
 
 errno_t
-nss_protocol_fill_name_list_all_domains(struct nss_ctx *nss_ctx,
-                                        struct nss_cmd_ctx *cmd_ctx,
-                                        struct sss_packet *packet,
-                                        struct cache_req_result **results)
+sss_nss_protocol_fill_name_list_all_domains(struct sss_nss_ctx *nss_ctx,
+                                            struct sss_nss_cmd_ctx *cmd_ctx,
+                                            struct sss_packet *packet,
+                                            struct cache_req_result **results)
 {
     enum sss_id_type *id_types;
     size_t rp = 0;
@@ -752,7 +752,7 @@ nss_protocol_fill_name_list_all_domains(struct nss_ctx *nss_ctx,
     len = 0;
     for (d = 0; results[d] != NULL; d++) {
         for (c = 0; c < results[d]->count; c++) {
-            ret = nss_get_id_type(cmd_ctx, results[d], &(id_types[iter]));
+            ret = sss_nss_get_id_type(cmd_ctx, results[d], &(id_types[iter]));
             if (ret != EOK) {
                 return ret;
             }

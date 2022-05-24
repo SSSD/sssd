@@ -25,36 +25,36 @@
 #include "util/sss_ptr_hash.h"
 #include "responder/nss/nss_private.h"
 
-typedef errno_t (*nss_setent_set_timeout_fn)(struct tevent_context *ev,
-                                             struct nss_ctx *nss_ctx,
-                                             struct nss_enum_ctx *enum_ctx);
+typedef errno_t (*sss_nss_setent_set_timeout_fn)(struct tevent_context *ev,
+                                                 struct sss_nss_ctx *nss_ctx,
+                                                 struct sss_nss_enum_ctx *enum_ctx);
 
-struct nss_setent_internal_state {
+struct sss_nss_setent_internal_state {
     struct tevent_context *ev;
-    struct nss_ctx *nss_ctx;
-    struct nss_enum_ctx *enum_ctx;
-    nss_setent_set_timeout_fn timeout_handler;
+    struct sss_nss_ctx *nss_ctx;
+    struct sss_nss_enum_ctx *enum_ctx;
+    sss_nss_setent_set_timeout_fn timeout_handler;
     enum cache_req_type type;
 };
 
-static void nss_setent_internal_done(struct tevent_req *subreq);
+static void sss_nss_setent_internal_done(struct tevent_req *subreq);
 
 /* Cache request data is stealed on internal state. */
 static struct tevent_req *
-nss_setent_internal_send(TALLOC_CTX *mem_ctx,
+sss_nss_setent_internal_send(TALLOC_CTX *mem_ctx,
                          struct tevent_context *ev,
                          struct cli_ctx *cli_ctx,
                          struct cache_req_data *data,
                          enum cache_req_type type,
-                         struct nss_enum_ctx *enum_ctx,
-                         nss_setent_set_timeout_fn timeout_handler)
+                         struct sss_nss_enum_ctx *enum_ctx,
+                         sss_nss_setent_set_timeout_fn timeout_handler)
 {
-    struct nss_setent_internal_state *state;
+    struct sss_nss_setent_internal_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct nss_setent_internal_state);
+    req = tevent_req_create(mem_ctx, &state, struct sss_nss_setent_internal_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
@@ -63,7 +63,7 @@ nss_setent_internal_send(TALLOC_CTX *mem_ctx,
     talloc_steal(state, data);
 
     state->ev = ev;
-    state->nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    state->nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sss_nss_ctx);
     state->enum_ctx = enum_ctx;
     state->type = type;
     state->timeout_handler = timeout_handler;
@@ -101,7 +101,7 @@ nss_setent_internal_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    tevent_req_set_callback(subreq, nss_setent_internal_done, req);
+    tevent_req_set_callback(subreq, sss_nss_setent_internal_done, req);
     state->enum_ctx->ongoing = subreq;
 
     ret = EAGAIN;
@@ -118,17 +118,17 @@ done:
     return req;
 }
 
-static void nss_setent_internal_done(struct tevent_req *subreq)
+static void sss_nss_setent_internal_done(struct tevent_req *subreq)
 {
     struct cache_req_result **result;
-    struct nss_setent_internal_state *state;
+    struct sss_nss_setent_internal_state *state;
     struct setent_req_list **notify_list;
     struct tevent_req *req;
     errno_t ret;
     errno_t tret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct nss_setent_internal_state);
+    state = tevent_req_data(req, struct sss_nss_setent_internal_state);
 
     /* This is the ongoing request and it is finished. Remove it. */
     state->enum_ctx->ongoing = NULL;
@@ -193,7 +193,7 @@ done:
 }
 
 static errno_t
-nss_setent_internal_recv(struct tevent_req *req)
+sss_nss_setent_internal_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -201,12 +201,12 @@ nss_setent_internal_recv(struct tevent_req *req)
 }
 
 static void
-nss_setent_timeout(struct tevent_context *ev,
-                   struct tevent_timer *te,
-                   struct timeval current_time,
-                   void *pvt)
+sss_nss_setent_timeout(struct tevent_context *ev,
+                       struct tevent_timer *te,
+                       struct timeval current_time,
+                       void *pvt)
 {
-    struct nss_enum_ctx *enum_ctx = pvt;
+    struct sss_nss_enum_ctx *enum_ctx = pvt;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Enumeration result object has expired.\n");
 
@@ -216,15 +216,15 @@ nss_setent_timeout(struct tevent_context *ev,
 }
 
 static errno_t
-nss_setent_set_timeout(struct tevent_context *ev,
-                       struct nss_ctx *nss_ctx,
-                       struct nss_enum_ctx *enum_ctx)
+sss_nss_setent_set_timeout(struct tevent_context *ev,
+                           struct sss_nss_ctx *nss_ctx,
+                           struct sss_nss_enum_ctx *enum_ctx)
 {
     struct tevent_timer *te;
     struct timeval tv;
 
     tv = tevent_timeval_current_ofs(nss_ctx->enum_cache_timeout, 0);
-    te = tevent_add_timer(ev, nss_ctx, tv, nss_setent_timeout, enum_ctx);
+    te = tevent_add_timer(ev, nss_ctx, tv, sss_nss_setent_timeout, enum_ctx);
     if (te == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not set up life timer for enumeration object.\n");
@@ -235,11 +235,11 @@ nss_setent_set_timeout(struct tevent_context *ev,
 }
 
 struct tevent_req *
-nss_setent_send(TALLOC_CTX *mem_ctx,
-                struct tevent_context *ev,
-                struct cli_ctx *cli_ctx,
-                enum cache_req_type type,
-                struct nss_enum_ctx *enum_ctx)
+sss_nss_setent_send(TALLOC_CTX *mem_ctx,
+                    struct tevent_context *ev,
+                    struct cli_ctx *cli_ctx,
+                    enum cache_req_type type,
+                    struct sss_nss_enum_ctx *enum_ctx)
 {
     struct cache_req_data *data;
 
@@ -249,34 +249,34 @@ nss_setent_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    return nss_setent_internal_send(mem_ctx, ev, cli_ctx, data, type, enum_ctx,
-                                    nss_setent_set_timeout);
+    return sss_nss_setent_internal_send(mem_ctx, ev, cli_ctx, data, type, enum_ctx,
+                                        sss_nss_setent_set_timeout);
 }
 
-errno_t nss_setent_recv(struct tevent_req *req)
+errno_t sss_nss_setent_recv(struct tevent_req *req)
 {
-    return nss_setent_internal_recv(req);
+    return sss_nss_setent_internal_recv(req);
 }
 
 static void
-nss_setnetgrent_timeout(struct tevent_context *ev,
-                        struct tevent_timer *te,
-                        struct timeval current_time,
-                        void *pvt)
+sss_nss_setnetgrent_timeout(struct tevent_context *ev,
+                            struct tevent_timer *te,
+                            struct timeval current_time,
+                            void *pvt)
 {
-    struct nss_enum_ctx *enum_ctx;
+    struct sss_nss_enum_ctx *enum_ctx;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Enumeration result object has expired.\n");
 
     /* Free enumeration context. This will also remove it from the table. */
-    enum_ctx = talloc_get_type(pvt, struct nss_enum_ctx);
+    enum_ctx = talloc_get_type(pvt, struct sss_nss_enum_ctx);
     talloc_free(enum_ctx);
 }
 
 static errno_t
-nss_setnetgrent_set_timeout(struct tevent_context *ev,
-                            struct nss_ctx *nss_ctx,
-                            struct nss_enum_ctx *enum_ctx)
+sss_nss_setnetgrent_set_timeout(struct tevent_context *ev,
+                            struct sss_nss_ctx *nss_ctx,
+                            struct sss_nss_enum_ctx *enum_ctx)
 {
     struct tevent_timer *te;
     struct timeval tv;
@@ -296,7 +296,7 @@ nss_setnetgrent_set_timeout(struct tevent_context *ev,
     if (timeout < 10) timeout = 10;
 
     tv = tevent_timeval_current_ofs(timeout, 0);
-    te = tevent_add_timer(ev, enum_ctx, tv, nss_setnetgrent_timeout, enum_ctx);
+    te = tevent_add_timer(ev, enum_ctx, tv, sss_nss_setnetgrent_timeout, enum_ctx);
     if (te == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not set up life timer for enumeration object.\n");
@@ -306,24 +306,24 @@ nss_setnetgrent_set_timeout(struct tevent_context *ev,
     return EOK;
 }
 
-static struct nss_enum_ctx *
-nss_setnetgrent_set_enum_ctx(hash_table_t *table,
-                             const char *netgroup)
+static struct sss_nss_enum_ctx *
+sss_nss_setnetgrent_set_enum_ctx(hash_table_t *table,
+                                 const char *netgroup)
 {
-    struct nss_enum_ctx *enum_ctx;
+    struct sss_nss_enum_ctx *enum_ctx;
     errno_t ret;
 
-    enum_ctx = sss_ptr_hash_lookup(table, netgroup, struct nss_enum_ctx);
+    enum_ctx = sss_ptr_hash_lookup(table, netgroup, struct sss_nss_enum_ctx);
     if (enum_ctx != NULL) {
         return enum_ctx;
     }
 
-    enum_ctx = talloc_zero(table, struct nss_enum_ctx);
+    enum_ctx = talloc_zero(table, struct sss_nss_enum_ctx);
     if (enum_ctx == NULL) {
         return NULL;
     }
 
-    ret = sss_ptr_hash_add(table, netgroup, enum_ctx, struct nss_enum_ctx);
+    ret = sss_ptr_hash_add(table, netgroup, enum_ctx, struct sss_nss_enum_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to add enumeration context into table [%d]: %s\n",
@@ -336,17 +336,17 @@ nss_setnetgrent_set_enum_ctx(hash_table_t *table,
 }
 
 struct tevent_req *
-nss_setnetgrent_send(TALLOC_CTX *mem_ctx,
-                     struct tevent_context *ev,
-                     struct cli_ctx *cli_ctx,
-                     enum cache_req_type type,
-                     hash_table_t *table,
-                     const char *netgroup)
+sss_nss_setnetgrent_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct cli_ctx *cli_ctx,
+                         enum cache_req_type type,
+                         hash_table_t *table,
+                         const char *netgroup)
 {
-    struct nss_enum_ctx *enum_ctx;
+    struct sss_nss_enum_ctx *enum_ctx;
     struct cache_req_data *data;
 
-    enum_ctx = nss_setnetgrent_set_enum_ctx(table, netgroup);
+    enum_ctx = sss_nss_setnetgrent_set_enum_ctx(table, netgroup);
     if (enum_ctx == NULL) {
         return NULL;
     }
@@ -356,11 +356,11 @@ nss_setnetgrent_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    return nss_setent_internal_send(mem_ctx, ev, cli_ctx, data, type, enum_ctx,
-                                    nss_setnetgrent_set_timeout);
+    return sss_nss_setent_internal_send(mem_ctx, ev, cli_ctx, data, type, enum_ctx,
+                                        sss_nss_setnetgrent_set_timeout);
 }
 
-errno_t nss_setnetgrent_recv(struct tevent_req *req)
+errno_t sss_nss_setnetgrent_recv(struct tevent_req *req)
 {
-    return nss_setent_internal_recv(req);
+    return sss_nss_setent_internal_recv(req);
 }

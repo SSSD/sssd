@@ -52,7 +52,7 @@ struct output {
     } d;
 };
 
-static int nss_status_to_errno(enum nss_status nret) {
+static int sss_nss_status_to_errno(enum nss_status nret) {
     switch (nret) {
     case NSS_STATUS_TRYAGAIN:
         return EAGAIN;
@@ -304,7 +304,7 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
     nret = sss_nss_make_request_timeout(cmd, &rd, time_left, &repbuf, &replen,
                                         &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
-        ret = nss_status_to_errno(nret);
+        ret = sss_nss_status_to_errno(nret);
         goto done;
     }
 

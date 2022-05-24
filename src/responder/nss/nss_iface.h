@@ -25,7 +25,7 @@
 #include "responder/nss/nss_private.h"
 
 errno_t
-nss_register_backend_iface(struct sbus_connection *conn,
-                           struct nss_ctx *nss_ctx);
+sss_nss_register_backend_iface(struct sbus_connection *conn,
+                               struct sss_nss_ctx *nss_ctx);
 
 #endif /* _NSS_IFACE_H_ */

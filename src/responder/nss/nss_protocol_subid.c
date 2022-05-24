@@ -18,10 +18,10 @@
 #include "responder/nss/nss_protocol.h"
 
 errno_t
-nss_protocol_fill_subid_ranges(struct nss_ctx *nss_ctx,
-                               struct nss_cmd_ctx *cmd_ctx,
-                               struct sss_packet *packet,
-                               struct cache_req_result *result)
+sss_nss_protocol_fill_subid_ranges(struct sss_nss_ctx *nss_ctx,
+                                   struct sss_nss_cmd_ctx *cmd_ctx,
+                                   struct sss_packet *packet,
+                                   struct cache_req_result *result)
 {
     static const uint32_t one = 1;
     errno_t ret;

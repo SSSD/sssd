@@ -23,9 +23,9 @@
 #include "sss_iface/sss_iface_async.h"
 
 static void
-nss_update_initgr_memcache(struct nss_ctx *nctx,
-                           const char *fq_name, const char *domain,
-                           int gnum, uint32_t *groups)
+sss_nss_update_initgr_memcache(struct sss_nss_ctx *nctx,
+                               const char *fq_name, const char *domain,
+                               int gnum, uint32_t *groups)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct sss_domain_info *dom;
@@ -148,9 +148,9 @@ done:
 }
 
 static errno_t
-nss_memorycache_invalidate_users(TALLOC_CTX *mem_ctx,
-                                 struct sbus_request *sbus_req,
-                                 struct nss_ctx *nctx)
+sss_nss_memorycache_invalidate_users(TALLOC_CTX *mem_ctx,
+                                     struct sbus_request *sbus_req,
+                                     struct sss_nss_ctx *nctx)
 {
     DEBUG(SSSDBG_TRACE_LIBS, "Invalidating all users in memory cache\n");
     sss_mmap_cache_reset(nctx->pwd_mc_ctx);
@@ -159,9 +159,9 @@ nss_memorycache_invalidate_users(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t
-nss_memorycache_invalidate_groups(TALLOC_CTX *mem_ctx,
-                                  struct sbus_request *sbus_req,
-                                  struct nss_ctx *nctx)
+sss_nss_memorycache_invalidate_groups(TALLOC_CTX *mem_ctx,
+                                      struct sbus_request *sbus_req,
+                                      struct sss_nss_ctx *nctx)
 {
     DEBUG(SSSDBG_TRACE_LIBS, "Invalidating all groups in memory cache\n");
     sss_mmap_cache_reset(nctx->grp_mc_ctx);
@@ -170,9 +170,9 @@ nss_memorycache_invalidate_groups(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t
-nss_memorycache_invalidate_initgroups(TALLOC_CTX *mem_ctx,
-                                      struct sbus_request *sbus_req,
-                                      struct nss_ctx *nctx)
+sss_nss_memorycache_invalidate_initgroups(TALLOC_CTX *mem_ctx,
+                                          struct sbus_request *sbus_req,
+                                          struct sss_nss_ctx *nctx)
 {
     DEBUG(SSSDBG_TRACE_LIBS,
           "Invalidating all initgroup records in memory cache\n");
@@ -182,27 +182,27 @@ nss_memorycache_invalidate_initgroups(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t
-nss_memorycache_update_initgroups(TALLOC_CTX *mem_ctx,
-                                  struct sbus_request *sbus_req,
-                                  struct nss_ctx *nctx,
-                                  const char *user,
-                                  const char *domain,
-                                  uint32_t *groups)
+sss_nss_memorycache_update_initgroups(TALLOC_CTX *mem_ctx,
+                                      struct sbus_request *sbus_req,
+                                      struct sss_nss_ctx *nctx,
+                                      const char *user,
+                                      const char *domain,
+                                      uint32_t *groups)
 {
     DEBUG(SSSDBG_TRACE_LIBS, "Updating initgroups memory cache of [%s@%s]\n",
           user, domain);
 
-    nss_update_initgr_memcache(nctx, user, domain,
+    sss_nss_update_initgr_memcache(nctx, user, domain,
                                talloc_array_length(groups), groups);
 
     return EOK;
 }
 
 static errno_t
-nss_memorycache_invalidate_group_by_id(TALLOC_CTX *mem_ctx,
-                                      struct sbus_request *sbus_req,
-                                      struct nss_ctx *nctx,
-                                      uint32_t gid)
+sss_nss_memorycache_invalidate_group_by_id(TALLOC_CTX *mem_ctx,
+                                           struct sbus_request *sbus_req,
+                                           struct sss_nss_ctx *nctx,
+                                           uint32_t gid)
 {
 
     DEBUG(SSSDBG_TRACE_LIBS,
@@ -214,19 +214,19 @@ nss_memorycache_invalidate_group_by_id(TALLOC_CTX *mem_ctx,
 }
 
 errno_t
-nss_register_backend_iface(struct sbus_connection *conn,
-                           struct nss_ctx *nss_ctx)
+sss_nss_register_backend_iface(struct sbus_connection *conn,
+                               struct sss_nss_ctx *nss_ctx)
 {
     errno_t ret;
 
     SBUS_INTERFACE(iface,
         sssd_nss_MemoryCache,
         SBUS_METHODS(
-            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, UpdateInitgroups, nss_memorycache_update_initgroups, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllUsers, nss_memorycache_invalidate_users, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllGroups, nss_memorycache_invalidate_groups, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllInitgroups, nss_memorycache_invalidate_initgroups, nss_ctx),
-            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateGroupById, nss_memorycache_invalidate_group_by_id, nss_ctx)
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, UpdateInitgroups, sss_nss_memorycache_update_initgroups, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllUsers, sss_nss_memorycache_invalidate_users, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllGroups, sss_nss_memorycache_invalidate_groups, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllInitgroups, sss_nss_memorycache_invalidate_initgroups, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateGroupById, sss_nss_memorycache_invalidate_group_by_id, nss_ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
