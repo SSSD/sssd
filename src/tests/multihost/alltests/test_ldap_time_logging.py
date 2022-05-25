@@ -129,7 +129,7 @@ class TestLdapTimeLogging(object):
         intf = multihost.client[0].run_command(get_intf, raiseonerr=True)
         intf_list = intf.stdout_text.splitlines()
         print(f'List of interfaces - {intf_list}')
-        kernel_extra_pkg = 'yum install -y kernel-modules-extra'
+        kernel_extra_pkg = 'yum install -y kernel-modules-extra iproute-tc'
         multihost.client[0].run_command(kernel_extra_pkg, raiseonerr=True)
         for interface in intf_list:
             tc_rule = f'tc qdisc add dev {interface} root netem delay 800ms'
