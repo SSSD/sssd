@@ -353,6 +353,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'try_inotify',
             'monitor_resolv_conf',
             'implicit_pac_responder',
+            'core_dumpable',
         ]
 
         self.assertTrue(type(options) == dict,

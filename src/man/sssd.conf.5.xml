@@ -707,6 +707,21 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>core_dumpable (boolean)</term>
+                        <listitem>
+                            <para>
+                                This option can be used for general system
+                                hardening: setting it to 'false' forbids core
+                                dumps for all SSSD processes to avoid
+                                leaking plain text passwords. See man page
+                                prctl:PR_SET_DUMPABLE for details.
+                            </para>
+                            <para>
+                                Default: true
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>

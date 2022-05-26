@@ -40,6 +40,7 @@ int main(int argc, const char *argv[])
     errno_t ret;
     uint8_t buf[IN_BUF_SIZE];
     const char *action = NULL;
+    int dumpable;
     const char *guitar;
     const char *drums;
     int timestamp_opt;
@@ -48,6 +49,8 @@ int main(int argc, const char *argv[])
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
         SSSD_LOGGER_OPTS
+        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
+         _("Allow core dumps"), NULL },
         {"guitar", 0, POPT_ARG_STRING, &guitar, 0, _("Who plays guitar"), NULL },
         {"drums", 0, POPT_ARG_STRING, &drums, 0, _("Who plays drums"), NULL },
         POPT_TABLEEND
