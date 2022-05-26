@@ -2438,10 +2438,7 @@ int confdb_expand_app_domains(struct confdb_ctx *cdb)
         /* Not fatal */
     }
 
-    ret = confdb_get_string_as_list(cdb, tmp_ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
-                                    &domlist);
+    ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domlist);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured, fatal error!\n");
         goto done;
