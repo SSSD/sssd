@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/prctl.h>
 #include <ldb.h>
 #include "util/util.h"
 #include "confdb/confdb.h"
@@ -493,6 +494,7 @@ int server_setup(const char *name, bool is_responder,
     pid_t my_pid;
     char *pidfile_name;
     int cfg_debug_level = SSSDBG_INVALID;
+    bool dumpable = true;
 
     if (is_responder) {
         sss_chain_id_set_format(DEBUG_CHAIN_ID_FMT_CID);
@@ -734,6 +736,23 @@ int server_setup(const char *name, bool is_responder,
             DEBUG(SSSDBG_CRIT_FAILURE, "Watchdog setup failed.\n");
             return ret;
         }
+    }
+
+    ret = confdb_get_bool(ctx->confdb_ctx,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_DUMPABLE,
+                          true, /* default value */
+                          &dumpable);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to determine "CONFDB_MONITOR_DUMPABLE"\n");
+        return ret;
+    }
+    ret = prctl(PR_SET_DUMPABLE, dumpable ? 1 : 0);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set PR_SET_DUMPABLE\n");
+        return ret;
+    } else if (!dumpable) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Core dumps are disabled!\n");
     }
 
     sss_chain_id_setup(ctx->event_ctx);

@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <popt.h>
+#include <sys/prctl.h>
 
 #include "util/util.h"
 #include "util/child_common.h"
@@ -146,6 +147,7 @@ int main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
+    int dumpable = 1;
     int debug_fd = -1;
     const char *opt_logger = NULL;
     errno_t ret = 0;
@@ -169,6 +171,8 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
+        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
+         _("Allow core dumps"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         SSSD_LOGGER_OPTS
@@ -301,6 +305,8 @@ int main(int argc, const char *argv[])
     }
 
     poptFreeContext(pc);
+
+    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
 
     debug_prg_name = talloc_asprintf(NULL, "p11_child[%d]", getpid());
     if (debug_prg_name == NULL) {

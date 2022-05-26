@@ -28,6 +28,7 @@
 #include <tevent.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <sys/prctl.h>
 
 #include "util/util.h"
 #include "util/find_uid.h"
@@ -707,9 +708,9 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
 {
     /*
      * program name, debug_level, debug_timestamps,
-     * debug_microseconds and NULL
+     * debug_microseconds, PR_SET_DUMPABLE and NULL
      */
-    uint_t argc = 5;
+    uint_t argc = 6;
     char ** argv = NULL;
     errno_t ret = EINVAL;
     size_t i;
@@ -786,6 +787,13 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
 
         argv[--argc] = talloc_asprintf(argv, "--debug-microseconds=%d",
                                            child_debug_microseconds);
+        if (argv[argc] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        argv[--argc] = talloc_asprintf(argv, "--dumpable=%d",
+                                           prctl(PR_GET_DUMPABLE));
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;
