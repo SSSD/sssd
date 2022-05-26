@@ -1943,6 +1943,9 @@ pam_gssapi_services = sudo, sudo-i
                                 <listitem>
                                     <para>otp -- pre-authentication using integrated two-factor authentication (2FA or one-time password, OTP) in IPA.</para>
                                 </listitem>
+                                <listitem>
+                                    <para>idp -- pre-authentication using external identity provider.</para>
+                                </listitem>
                             </itemizedlist>
                         </para>
                         <para>
