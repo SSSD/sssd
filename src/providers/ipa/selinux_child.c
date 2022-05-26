@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <popt.h>
+#include <sys/prctl.h>
 
 #include "util/util.h"
 #include "util/child_common.h"
@@ -207,6 +208,7 @@ int main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int debug_fd = -1;
+    int dumpable = 1;
     errno_t ret;
     TALLOC_CTX *main_ctx = NULL;
     uint8_t *buf = NULL;
@@ -223,6 +225,8 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
+        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
+         _("Allow core dumps"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         {"chain-id", 0, POPT_ARG_LONG, &chain_id,
@@ -246,6 +250,8 @@ int main(int argc, const char *argv[])
     }
 
     poptFreeContext(pc);
+
+    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
 
     debug_prg_name = talloc_asprintf(NULL, "selinux_child[%d]", getpid());
     if (debug_prg_name == NULL) {

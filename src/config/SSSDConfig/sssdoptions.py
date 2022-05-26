@@ -54,6 +54,7 @@ class SSSDOptions(object):
                          'resolver. By default, we will attempt to use inotify for this, and will fall back to '
                          'polling resolv.conf every five seconds if inotify cannot be used.'),
         'implicit_pac_responder': _('Run PAC responder automatically for AD and IPA provider'),
+        'core_dumpable': _('Enable or disable core dumps for all SSSD processes.'),
 
         # [nss]
         'enum_cache_timeout': _('Enumeration cache timeout length (seconds)'),

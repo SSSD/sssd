@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <popt.h>
+#include <sys/prctl.h>
 #include <libsmbclient.h>
 #include <security/pam_modules.h>
 
@@ -656,6 +657,7 @@ main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
+    int dumpable = 1;
     int debug_fd = -1;
     uint64_t chain_id;
     const char *opt_logger = NULL;
@@ -672,6 +674,8 @@ main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
+        {"dumpable", 0, POPT_ARG_INT, &dumpable, 0,
+         _("Allow core dumps"), NULL },
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         {"chain-id", 0, POPT_ARG_LONG, &chain_id,
@@ -695,6 +699,8 @@ main(int argc, const char *argv[])
     }
 
     poptFreeContext(pc);
+
+    prctl(PR_SET_DUMPABLE, (dumpable == 0) ? 0 : 1);
 
     debug_prg_name = talloc_asprintf(NULL, "gpo_child[%d]", getpid());
     if (debug_prg_name == NULL) {
