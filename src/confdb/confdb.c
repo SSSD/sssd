@@ -2669,7 +2669,7 @@ static int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
                                     CONFDB_MONITOR_CONF_ENTRY,
                                     CONFDB_MONITOR_ACTIVE_DOMAINS,
                                     &domlist);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to get [%s] from [%s], error [%d] (%s)\n",
               CONFDB_MONITOR_ACTIVE_DOMAINS, "sssd",
@@ -2722,6 +2722,11 @@ static int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
                 goto done;
             }
         }
+    }
+
+    if (domlist == NULL || domlist[0] == NULL) {
+        ret = ENOENT;
+        goto done;
     }
 
     ret = EOK;
