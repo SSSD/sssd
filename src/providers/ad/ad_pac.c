@@ -478,7 +478,9 @@ errno_t ad_get_pac_data_from_user_entry(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ad_get_data_from_pac(tmp_ctx, el->values[0].data,
+    /* PAC was already checked when it was saved in the cache, so no
+     * additional check is needed here. */
+    ret = ad_get_data_from_pac(tmp_ctx, 0, el->values[0].data,
                                el->values[0].length,
                                &logon_info, NULL);
     if (ret != EOK) {
