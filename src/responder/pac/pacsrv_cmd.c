@@ -108,7 +108,8 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
         return EINVAL;
     }
 
-    ret = ad_get_data_from_pac(pr_ctx, body, blen,
+    ret = ad_get_data_from_pac(pr_ctx, pr_ctx->pac_ctx->pac_check_opts,
+                               body, blen,
                                &pr_ctx->logon_info, &pr_ctx->upn_dns_info);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ad_get_data_from_pac failed.\n");
@@ -243,7 +244,10 @@ static void pac_resolve_user_sid_done(struct tevent_req *req)
         return;
     }
 
-    ret = check_upn_from_user_and_pac(result->msgs[0], pr_ctx->upn_dns_info);
+    ret = check_upn_and_sid_from_user_and_pac(result->msgs[0],
+                                              pr_ctx->pac_ctx->idmap_ctx,
+                                              pr_ctx->upn_dns_info,
+                                              pr_ctx->pac_ctx->pac_check_opts);
     if (ret != EOK) {
         talloc_free(pr_ctx);
         pac_cmd_done(cctx, ret);
