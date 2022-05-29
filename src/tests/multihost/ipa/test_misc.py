@@ -7,7 +7,9 @@
 """
 
 import pytest
+import pexpect
 import time
+import subprocess
 from sssd.testlib.common.utils import sssdTools, SSHClient
 from sssd.testlib.common.exceptions import SSSDException
 import re
@@ -54,6 +56,65 @@ class Testipabz(object):
         restore = 'mv /etc/krb5.keytab.orig /etc/krb5.keytab'
         multihost.client[0].run_command(restore)
         assert STATUS == 'PASS'
+
+    def test_2f_auth_prompt(self, multihost, backupsssdconf):
+        """
+        :title: 2f authentication prompt
+        :id: cc596a8a-27d6-48f2-8d6c-c821ebfffd63
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1749279
+        :steps:
+            1. Set authentication of a ipa-user to the OTP
+            2. Add otptoken for that user
+            3. Add a section 'prompting/2fa' in sssd.conf and
+               add prompt related options
+            4. Confirm that when intended user tries to log in via ssh, the end
+               part of login prompt is as per option set in step3.
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+            4. Should succeed
+        :customerscenario: True
+        :description: 2F auth prompt should be as per the
+         option set in 'prompting/2fa' section of sssd.conf
+        """
+        client = sssdTools(multihost.client[0])
+        domain_name = client.get_domain_section_name()
+        client_ip = multihost.client[0].ip
+        k_admin = 'kinit admin'
+        multihost.client[0].run_command(k_admin,
+                                        stdin_text='Secret123',
+                                        raiseonerr=False)
+        usr = 'fubar'
+        cmd = f"echo 'Secret123' | ipa user-add --first fu --last bar --password {usr}"
+        multihost.client[0].run_command(cmd, raiseonerr=False)
+        try:
+            multihost.client[0].run_command(f'ipa user-mod --user-auth-type=otp {usr}')
+        except subprocess.CalledProcessError:
+            pytest.fail(f"Failed to modify user-auth-type of {usr}")
+        try:
+            multihost.client[0].run_command(f'ipa otptoken-add --owner={usr}')
+        except subprocess.CalledProcessError:
+            pytest.fail(f"Failed to add otptoken of user {usr}")
+        try:
+            client.sssd_conf('prompting/password', None, 'delete')
+        except SSSDException as err:
+            if 'section do not exist' in str(err):
+                print(f'{err}.  nothing to delete')
+            else:
+                print(f'unexpected exception: {err}')
+                raise SSSDException(str(err))
+        sec = 'prompting/2fa'
+        params = {'single_prompt': 'True',
+                  'first_prompt': 'Password + OTP:'}
+        client.sssd_conf(sec, params)
+        client.clear_sssd_cache()
+        ssh_cmd = f'ssh -o StrictHostKeyChecking=no -l {usr}@{domain_name} {client_ip}'
+        child = pexpect.spawn(ssh_cmd)
+        index = child.expect(['.*assword:', '.*Password.*OTP:', '.*First.*Factor:'])
+        child.sendcontrol('c')
+        multihost.client[0].run_command(f'ipa user-del {usr}', raiseonerr=False)
+        assert index == 1, "Authentication prompt does contain Password + OTP combination"
 
     def test_sssdConfig_remove_Domains(self, multihost):
         """
