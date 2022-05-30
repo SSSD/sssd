@@ -9,7 +9,6 @@ import re
 import subprocess
 import array
 import random
-import socket
 import shlex
 try:
     import ConfigParser
@@ -22,7 +21,6 @@ except ImportError:
     from io import StringIO
 import ldap
 import ldif
-import paramiko
 import pytest
 import pymmh3 as mmh3
 from ldap import modlist
@@ -31,9 +29,6 @@ from .exceptions import PkiLibException
 from .exceptions import LdapException
 from .exceptions import SSSDException
 from .paths import SSSD_DEFAULT_CONF
-
-PARAMIKO_VERSION = (int(paramiko.__version__.split('.')[0]),
-                    int(paramiko.__version__.split('.')[1]))
 
 GETENT_PASSWD_ITEMS = (
     'name', 'password', 'uid', 'gid', 'gecos', 'home', 'shell')
@@ -1864,63 +1859,3 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
         uid = range_size * slice_val + rid + range_min
         gid = range_size * slice_val + range_min + primary_group
         return uid, gid
-
-
-class SSHClient(paramiko.SSHClient):
-    """ This class Inherits paramiko.SSHClient and implements
-    client.exec_commands channel.exec_command """
-
-    def __init__(self, hostname=None, port=None, username=None, password=None):
-        """ Initialize connection to Remote Host using Paramiko SSHClient.
-        Can be initialized with hostname, port, username and password.
-        """
-        self.hostname = hostname
-        self.username = username
-        self.password = password
-
-        if port is None:
-            self.port = 22
-        else:
-            self.port = port
-
-        paramiko.SSHClient.__init__(self)
-        self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        try:
-            self.connect(self.hostname, port=self.port,
-                         username=self.username,
-                         password=self.password,
-                         timeout=30, allow_agent=False, look_for_keys=False)
-        except (paramiko.AuthenticationException,
-                paramiko.SSHException,
-                socket.error):
-            raise
-
-    def execute_cmd(self, args, stdin=None):
-        """ This Function executes commands using SSHClient.exec_commands().
-        :param str args: actual command to run
-        :param str stdin: stdin for the command
-        :Return tuple: stdin stdout stderr
-        :Exception: paramiko.SSHException
-        """
-        if PARAMIKO_VERSION >= (1, 15, 0):
-            try:
-                std_in, std_out, std_err = self.exec_command(args, timeout=30)
-            except paramiko.SSHException:
-                raise
-            else:
-                if stdin:
-                    std_in.write("%s\n" % (stdin))
-                    std_in.flush()
-                exit_status = std_out.channel.recv_exit_status()
-                return std_out, std_err, exit_status
-        else:
-            try:
-                std_in, std_out, std_err = self.exec_command(args)
-            except paramiko.SSHException:
-                raise
-            else:
-                if stdin:
-                    std_in.write("%s\n" % (stdin))
-                    std_in.flush()
-                exit_status = std_out.channel.recv_exit_status()
-                return std_out, std_err, exit_status
