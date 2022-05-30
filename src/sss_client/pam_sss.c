@@ -1788,6 +1788,7 @@ static int prompt_multi_cert(pam_handle_t *pamh, struct pam_items *pi)
 }
 
 #define SC_INSERT_PROMPT _("Please (re)insert (different) Smartcard")
+#define SC_INSERT_PROMPT_ENTER _("Please (re)insert (different) Smartcard and press enter")
 
 static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
 {
@@ -1802,7 +1803,16 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     struct cert_auth_info *cai = pi->selected_cert;
 
     if (cai == NULL && SERVICE_IS_GDM_SMARTCARD(pi)) {
-        ret = asprintf(&prompt, SC_INSERT_PROMPT);
+        /* Older versions of the GDM screen lock do not restart PAM if a
+         * Smartcard is removed and inserted again in contrast to the login
+         * screen. The PKCS11_LOGIN_TOKEN_NAME enviroment variable is used to
+         * detect the screen lock mode and the user is prompted to press the
+         * enter key. */
+        if (getenv("PKCS11_LOGIN_TOKEN_NAME") == NULL) {
+            ret = asprintf(&prompt, SC_INSERT_PROMPT);
+        } else {
+            ret = asprintf(&prompt, SC_INSERT_PROMPT_ENTER);
+        }
     } else if (cai == NULL || cai->token_name == NULL
                     || *cai->token_name == '\0') {
         return PAM_SYSTEM_ERR;
@@ -1817,6 +1827,12 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
 
     if (cai == NULL) {
         ret = do_pam_conversation(pamh, PAM_TEXT_INFO, prompt, NULL, NULL);
+        if (ret != PAM_SUCCESS) {
+            D(("Conversation failure: %s, ignored", pam_strerror(pamh, ret)));
+        }
+    } else {
+        /* clear previous messages, if any */
+        ret = do_pam_conversation(pamh, PAM_TEXT_INFO, "", NULL, NULL);
         if (ret != PAM_SUCCESS) {
             D(("Conversation failure: %s, ignored", pam_strerror(pamh, ret)));
         }
