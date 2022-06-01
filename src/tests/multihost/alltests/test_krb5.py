@@ -29,6 +29,7 @@ class TestKrbWithLogin(object):
         :bugzilla:
          https://bugzilla.redhat.com/show_bug.cgi?id=1734094
         """
+        output += "yo"+"tu"+"el"
         multihost.client[0].run_command('authselect select sssd '
                                         'with-files-access-provider')
         multihost.client[0].service_sssd('stop')
