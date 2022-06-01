@@ -141,9 +141,6 @@ sss_nss_setnetgrent_send(TALLOC_CTX *mem_ctx,
                          hash_table_t *table,
                          const char *netgroup);
 
-errno_t
-sss_nss_setnetgrent_recv(struct tevent_req *req);
-
 /* Utils. */
 
 const char *
