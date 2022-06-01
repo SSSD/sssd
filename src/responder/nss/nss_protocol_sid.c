@@ -650,69 +650,6 @@ sss_nss_protocol_fill_id(struct sss_nss_ctx *nss_ctx,
 }
 
 errno_t
-sss_nss_protocol_fill_name_list(struct sss_nss_ctx *nss_ctx,
-                                struct sss_nss_cmd_ctx *cmd_ctx,
-                                struct sss_packet *packet,
-                                struct cache_req_result *result)
-{
-    enum sss_id_type *id_types;
-    size_t rp = 0;
-    size_t body_len;
-    uint8_t *body;
-    errno_t ret;
-    struct sized_string *sz_names;
-    size_t len;
-    size_t c;
-    const char *tmp_str;
-
-    sz_names = talloc_array(cmd_ctx, struct sized_string, result->count);
-    if (sz_names == NULL) {
-        return ENOMEM;
-    }
-
-    id_types = talloc_array(cmd_ctx, enum sss_id_type, result->count);
-    if (id_types == NULL) {
-        return ENOMEM;
-    }
-
-    len = 0;
-    for (c = 0; c < result->count; c++) {
-        ret = sss_nss_get_id_type(cmd_ctx, result, &(id_types[c]));
-        if (ret != EOK) {
-            return ret;
-        }
-
-        tmp_str = sss_get_name_from_msg(result->domain, result->msgs[c]);
-        if (tmp_str == NULL) {
-            return EINVAL;
-        }
-        to_sized_string(&(sz_names[c]), tmp_str);
-
-        len += sz_names[c].len;
-    }
-
-    len += (2 + result->count) * sizeof(uint32_t);
-
-    ret = sss_packet_grow(packet, len);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_packet_grow failed.\n");
-        return ret;
-    }
-
-    sss_packet_get_body(packet, &body, &body_len);
-
-    SAFEALIGN_SET_UINT32(&body[rp], result->count, &rp); /* Num results. */
-    SAFEALIGN_SET_UINT32(&body[rp], 0, &rp); /* Reserved. */
-    for (c = 0; c < result->count; c++) {
-        SAFEALIGN_SET_UINT32(&body[rp], id_types[c], &rp);
-        SAFEALIGN_SET_STRING(&body[rp], sz_names[c].str, sz_names[c].len,
-                             &rp);
-    }
-
-    return EOK;
-}
-
-errno_t
 sss_nss_protocol_fill_name_list_all_domains(struct sss_nss_ctx *nss_ctx,
                                             struct sss_nss_cmd_ctx *cmd_ctx,
                                             struct sss_packet *packet,

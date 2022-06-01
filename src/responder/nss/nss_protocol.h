@@ -192,12 +192,6 @@ sss_nss_protocol_fill_single_name(struct sss_nss_ctx *nss_ctx,
                               struct cache_req_result *result);
 
 errno_t
-sss_nss_protocol_fill_name_list(struct sss_nss_ctx *nss_ctx,
-                            struct sss_nss_cmd_ctx *cmd_ctx,
-                            struct sss_packet *packet,
-                            struct cache_req_result *result);
-
-errno_t
 sss_nss_protocol_fill_name_list_all_domains(struct sss_nss_ctx *nss_ctx,
                                         struct sss_nss_cmd_ctx *cmd_ctx,
                                         struct sss_packet *packet,
