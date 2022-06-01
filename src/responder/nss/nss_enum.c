@@ -359,8 +359,3 @@ sss_nss_setnetgrent_send(TALLOC_CTX *mem_ctx,
     return sss_nss_setent_internal_send(mem_ctx, ev, cli_ctx, data, type, enum_ctx,
                                         sss_nss_setnetgrent_set_timeout);
 }
-
-errno_t sss_nss_setnetgrent_recv(struct tevent_req *req)
-{
-    return sss_nss_setent_internal_recv(req);
-}
