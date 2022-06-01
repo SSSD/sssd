@@ -24,7 +24,7 @@ jobs:
       uses: ./.github/actions/install-dependencies
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: cpp, python
         queries: +security-and-quality
@@ -39,4 +39,4 @@ jobs:
         make -j$PROCESSORS
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
