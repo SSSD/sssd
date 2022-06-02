@@ -58,7 +58,7 @@ class LdbMessageElementPrinter(StringPrinter):
 
         for i in range(nvals):
             ldbval = LdbValPrinter(self.val['values'][i])
-            ret += "\n%s" % (ldbval.as_string(indent+1))
+            ret += "\n%s" % (ldbval.as_string(indent + 1))
 
         return indent_string("{ <%s>\t%s }" % (self.val.type, ret), indent)
 
@@ -78,7 +78,7 @@ class LdbMessagePrinter(StringPrinter):
 
         for i in range(nels):
             el = LdbMessageElementPrinter(self.val['elements'][i])
-            ret += "\n%s" % (el.as_string(indent+1))
+            ret += "\n%s" % (el.as_string(indent + 1))
 
         return indent_string("{ <%s>\n%s }" % (self.val.type, ret), indent)
 
@@ -97,7 +97,7 @@ class LdbResultPrinter(StringPrinter):
 
         for i in range(count):
             msg = LdbMessagePrinter(self.val['msgs'][i])
-            ret += "\n%s" % (msg.as_string(indent+1))
+            ret += "\n%s" % (msg.as_string(indent + 1))
 
         return indent_string("{ <%s>\t%s }" % (self.val.type, ret), indent)
 
@@ -116,7 +116,7 @@ class SysdbAttrsPrinter(StringPrinter):
 
         for i in range(num):
             el = LdbMessageElementPrinter(self.val['a'][i])
-            ret += "\n%s" % (el.as_string(indent+1))
+            ret += "\n%s" % (el.as_string(indent + 1))
 
         return indent_string("{ <%s>\t%s }" % (self.val.type, ret), indent)
 
