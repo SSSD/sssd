@@ -784,6 +784,7 @@ def test_gid_zero_does_not_resolve(files_domain_only):
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.flaky(max_runs=5)
 def test_add_remove_add_file_group(
         setup_pw_with_canary, setup_gr_with_canary, files_domain_only
 ):
@@ -1107,6 +1108,7 @@ def realloc_groups(grp_ops, num):
     check_group(group)
 
 
+@pytest.mark.flaky(max_runs=5)
 def test_realloc_groups_exact(setup_gr_with_canary, files_domain_only):
     """
     Test that returning exactly FILES_REALLOC_CHUNK groups (see files_ops.c)
@@ -1116,6 +1118,7 @@ def test_realloc_groups_exact(setup_gr_with_canary, files_domain_only):
     realloc_groups(setup_gr_with_canary, FILES_REALLOC_CHUNK*3)
 
 
+@pytest.mark.flaky(max_runs=5)
 def test_realloc_groups(setup_gr_with_canary, files_domain_only):
     """
     Test that returning exactly FILES_REALLOC_CHUNK groups (see files_ops.c)
