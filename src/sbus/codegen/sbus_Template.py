@@ -291,7 +291,7 @@ class TemplateFile:
                 else:
                     raise
 
-        output = self.generate()
+        output = self.generate().rstrip() + '\n'
         if postprocess is not None:
             output = postprocess(output)
 
