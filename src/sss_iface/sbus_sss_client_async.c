@@ -2561,4 +2561,3 @@ sbus_call_service_sysbusReconnect_recv
 {
     return sbus_method_in__out__recv(req);
 }
-
