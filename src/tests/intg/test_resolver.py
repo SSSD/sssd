@@ -76,8 +76,8 @@ def cleanup_ldap_entries(ldap_conn, ent_list=None):
     if ent_list is None:
         for ou in ("Users", "Groups", "Netgroups", "Services", "Policies",
                    "Hosts", "Networks"):
-            for entry in ldap_conn.search_s("ou=" + ou + "," +
-                                            ldap_conn.ds_inst.base_dn,
+            for entry in ldap_conn.search_s(f"ou={ou},"
+                                            f"{ldap_conn.ds_inst.base_dn}",
                                             ldap.SCOPE_ONELEVEL,
                                             attrlist=[]):
                 ldap_conn.delete_s(entry[0])

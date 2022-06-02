@@ -471,7 +471,7 @@ def test_sc_auth_wrong_pin(simple_pam_cert_auth, env_for_sssctl):
     if sssctl.wait() != 0:
         raise Exception("sssctl failed")
 
-    assert err.find("pam_authenticate for user [user1]: " +
+    assert err.find("pam_authenticate for user [user1]: "
                     "Authentication failure") != -1
 
 
@@ -553,7 +553,7 @@ def test_require_sc_auth_no_cert(simple_pam_cert_auth_no_cert, env_for_sssctl):
         (end_time - start_time) >= 20 and \
         (end_time - start_time) < 40
     assert out.find("Please insert smart card\nPlease insert smart card") != -1
-    assert err.find("pam_authenticate for user [user1]: Authentication " +
+    assert err.find("pam_authenticate for user [user1]: Authentication "
                     "service cannot retrieve authentication info") != -1
 
 
@@ -578,7 +578,7 @@ def test_try_sc_auth_no_map(simple_pam_cert_auth, env_for_sssctl):
     if sssctl.wait() != 0:
         raise Exception("sssctl failed")
 
-    assert err.find("pam_authenticate for user [user2]: Authentication " +
+    assert err.find("pam_authenticate for user [user2]: Authentication "
                     "service cannot retrieve authentication info") != -1
 
 
@@ -630,7 +630,7 @@ def test_try_sc_auth_root(simple_pam_cert_auth, env_for_sssctl):
     if sssctl.wait() != 0:
         raise Exception("sssctl failed")
 
-    assert err.find("pam_authenticate for user [root]: Authentication " +
+    assert err.find("pam_authenticate for user [root]: Authentication "
                     "service cannot retrieve authentication info") != -1
 
 
@@ -713,7 +713,7 @@ def test_sc_auth_name_format(simple_pam_cert_auth_name_format, env_for_sssctl):
     if sssctl.wait() != 0:
         raise Exception("sssctl failed")
 
-    assert err.find(r"pam_authenticate for user [auth_only\user1]: " +
+    assert err.find(r"pam_authenticate for user [auth_only\user1]: "
                     "Success") != -1
 
 
@@ -793,7 +793,7 @@ def test_krb5_auth(setup_krb5, env_for_sssctl):
     if sssctl.wait() != 0:
         raise Exception("sssctl failed")
 
-    assert err.find(r"pam_authenticate for user [user2]: " +
+    assert err.find(r"pam_authenticate for user [user2]: "
                     "Authentication failure") != -1
 
 

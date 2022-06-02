@@ -82,7 +82,7 @@ class TestSssctlConfigCheck(object):
         sssdcfg = re.sub(b"services = nss, pam, sudo, ifp",
                          b"#services = nss, pam, sudo, ifp", sssdcfg)
         sssdcfg = re.sub(b".domain/EXAMPLE.TEST.",
-                         b"[domain/EXAMPLE.TEST]" +
+                         b"[domain/EXAMPLE.TEST]"
                          b"\nservices = nss, pam, sudo, ifp", sssdcfg)
         multihost.master[0].put_file_contents(cfgget, sssdcfg)
         sssctl_cmd = 'sssctl config-check'

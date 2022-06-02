@@ -110,7 +110,7 @@ class TestADSchema:
             'id_provider': 'ad',
             'ad_domain': multihost.ad[0].domainname.lower(),
             'ad_server': multihost.ad[0].hostname,
-            'ldap_idmap_range_size':  RANGE_SIZE,
+            'ldap_idmap_range_size': RANGE_SIZE,
         }
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
@@ -192,7 +192,7 @@ class TestADSchema:
             'id_provider': 'ad',
             'ad_domain': multihost.ad[0].domainname.lower(),
             'ad_server': multihost.ad[0].hostname,
-            'ldap_idmap_range_size':  RANGE_SIZE,
+            'ldap_idmap_range_size': RANGE_SIZE,
         }
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()

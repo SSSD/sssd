@@ -442,8 +442,8 @@ class DirSrvWrap(object):
 
         if u_port is None and e_port is None:
             for ldap_port, ldaps_port in zip(ds_ports, tls_ports):
-                if (self._check_remote_port(ldap_port) or
-                        self._check_remote_port(ldaps_port)):
+                if (self._check_remote_port(ldap_port)
+                        or self._check_remote_port(ldaps_port)):
                     pass
                 else:
                     return ldap_port, ldaps_port

@@ -113,8 +113,8 @@ class Testipabz(object):
         assert all(x not in cmd1.stdout_text for x in ["ipa-group1",
                                                        "ipa-group2"]), \
             "The unexpected group name found in the id output!"
-        assert all(x not in cmd1.stdout_text for x in [str(gid_start+1),
-                                                       str(gid_start+2)]), \
+        assert all(x not in cmd1.stdout_text for x in [str(gid_start + 1),
+                                                       str(gid_start + 2)]), \
             "The unexpected gid found in the id output!"
         enable_filtergroups2 = {'filter_groups': 'ipa-group3, ipa-group4, '
                                                  'ipa-group5'}
@@ -127,9 +127,9 @@ class Testipabz(object):
                                                        "ipa-group4",
                                                        "ipa-group5"]), \
             "The unexpected group name found in the id output!"
-        assert all(x not in cmd2.stdout_text for x in [str(gid_start+3),
-                                                       str(gid_start+4),
-                                                       str(gid_start+5)]), \
+        assert all(x not in cmd2.stdout_text for x in [str(gid_start + 3),
+                                                       str(gid_start + 4),
+                                                       str(gid_start + 5)]), \
             "The unexpected gid found in the id output!"
 
     def test_asymmetric_auth_for_nsupdate(self, multihost,

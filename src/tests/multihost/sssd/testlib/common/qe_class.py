@@ -346,7 +346,7 @@ def session_multihost(request):
 
     if pytest.num_ad > 0:
         mh.ad = []
-        for i in range(1, pytest.num_ad+1):
+        for i in range(1, pytest.num_ad + 1):
             print(i)
             print(mh.config.domains[i].hosts_by_role('ad'))
             mh.ad.extend(mh.config.domains[i].hosts_by_role('ad'))

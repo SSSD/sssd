@@ -222,21 +222,21 @@ def InitializeDataTypes():
     """Define which D-Bus types are supported by code generator."""
 
     # Standard types
-    DataType.Create("y", "uint8_t",      '" PRIu8 "')
-    DataType.Create("b", "bool",         "d")
-    DataType.Create("n", "int16_t",      '" PRId16 "')
-    DataType.Create("q", "uint16_t",     '" PRIu16 "')
-    DataType.Create("i", "int32_t",      '" PRId32 "')
-    DataType.Create("u", "uint32_t",     '" PRIu32 "')
-    DataType.Create("x", "int64_t",      '" PRId64 "')
-    DataType.Create("t", "uint64_t",     '" PRIu64 "')
-    DataType.Create("d", "double",       "f")
+    DataType.Create("y", "uint8_t", '" PRIu8 "')
+    DataType.Create("b", "bool", "d")
+    DataType.Create("n", "int16_t", '" PRId16 "')
+    DataType.Create("q", "uint16_t", '" PRIu16 "')
+    DataType.Create("i", "int32_t", '" PRId32 "')
+    DataType.Create("u", "uint32_t", '" PRIu32 "')
+    DataType.Create("x", "int64_t", '" PRId64 "')
+    DataType.Create("t", "uint64_t", '" PRIu64 "')
+    DataType.Create("d", "double", "f")
 
     # String types
     DataType.Create("s", "const char *", "s", DBusType="s", RequireTalloc=True)
-    DataType.Create("S", "char *",       "s", DBusType="s", RequireTalloc=True)
+    DataType.Create("S", "char *", "s", DBusType="s", RequireTalloc=True)
     DataType.Create("o", "const char *", "s", DBusType="o", RequireTalloc=True)
-    DataType.Create("O", "char *",       "s", DBusType="o", RequireTalloc=True)
+    DataType.Create("O", "char *", "s", DBusType="o", RequireTalloc=True)
 
     # Array types
     DataType.Create("ay", "uint8_t *", RequireTalloc=True)
@@ -251,9 +251,9 @@ def InitializeDataTypes():
 
     # String arrays
     DataType.Create("as", "const char **", DBusType="as", RequireTalloc=True)
-    DataType.Create("aS", "char **",       DBusType="as", RequireTalloc=True)
+    DataType.Create("aS", "char **", DBusType="as", RequireTalloc=True)
     DataType.Create("ao", "const char **", DBusType="ao", RequireTalloc=True)
-    DataType.Create("aO", "char **",       DBusType="ao", RequireTalloc=True)
+    DataType.Create("aO", "char **", DBusType="ao", RequireTalloc=True)
 
     # Custom types
     DataType.Create("pam_data", "struct pam_data *",
