@@ -442,7 +442,7 @@ class TestMisc(object):
 
         # Run getent passwd
         usr_cmd = multihost.client[0].run_command(
-            f'getent passwd {user}',  raiseonerr=False)
+            f'getent passwd {user}', raiseonerr=False)
 
         # Try ssh after socket activation is configured
         # Result does not matter we just need to trigger the PAM stack
@@ -458,7 +458,7 @@ class TestMisc(object):
 
         # Print pam log for debug purposes
         multihost.client[0].run_command(
-            'cat /var/log/sssd/sssd_pam.log',  raiseonerr=False)
+            'cat /var/log/sssd/sssd_pam.log', raiseonerr=False)
 
         # Download sssd pam log
         log_str = multihost.client[0].get_file_contents(
@@ -468,7 +468,7 @@ class TestMisc(object):
         # Disable socket activation
         multihost.client[0].run_command(
             "systemctl disable sssd-nss.socket sssd-pam.socket"
-            " sssd-pam-priv.socket",  raiseonerr=False)
+            " sssd-pam-priv.socket", raiseonerr=False)
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {user} was not found."

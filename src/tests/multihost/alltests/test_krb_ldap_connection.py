@@ -244,8 +244,9 @@ class TestKrbLdapConnectionTimeout(object):
                 assert False
 
             lines1 = lines1[0]
-            port = lines1[lines1.find(':') +
-                          1: lines1.find(' ', lines1.find(':'))]
+            port = lines1[
+                lines1.find(':') + 1: lines1.find(' ', lines1.find(':'))
+            ]
             return int(port)
 
         localport1 = find_local_port()

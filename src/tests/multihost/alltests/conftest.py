@@ -501,7 +501,7 @@ def sudo_rule(session_multihost, request):
         pytest.fail(f"Failed to add sudo rule {rule_dn}")
     else:
         extra_user = 'foo2'
-        add_extra = [(ldap.MOD_ADD,  'sudoUser',
+        add_extra = [(ldap.MOD_ADD, 'sudoUser',
                      extra_user.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(rule_dn, add_extra)
         assert ret == 'Success'
@@ -543,7 +543,7 @@ def timed_sudoers(session_multihost, request):
         pytest.fail("Failed to add sudo rule %s" % rule_dn)
     else:
         sudotime = request.param[0]
-        add_attr = [(ldap.MOD_ADD,  request.param[1],
+        add_attr = [(ldap.MOD_ADD, request.param[1],
                      sudotime.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(rule_dn, add_attr)
         assert ret == 'Success'
@@ -740,7 +740,7 @@ def sssdproxyldap_test(session_multihost, request):
     client.transport.put_file(os.path.dirname(os.path.abspath(__file__))
                               + file_location,
                               '/tmp/sssdproxyldap.sh')
-    execute_cmd(session_multihost, f"chmod 755 /tmp/sssdproxyldap.sh")
+    execute_cmd(session_multihost, "chmod 755 /tmp/sssdproxyldap.sh")
     master.run_command("kadmin.local -q "
                        "'addprinc -pw Secret123 "
                        "foo2@example1'")

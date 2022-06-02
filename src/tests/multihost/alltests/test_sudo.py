@@ -178,7 +178,7 @@ class TestSudo(object):
             index = 1
             rand_intvl, same_intvl = 0, 0
             while index < len(timeout):
-                if timeout[index] != timeout[index-1]:
+                if timeout[index] != timeout[index - 1]:
                     rand_intvl += 1
                 else:
                     same_intvl += 1
