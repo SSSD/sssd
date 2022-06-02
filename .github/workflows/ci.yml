@@ -48,11 +48,12 @@ jobs:
     - uses: actions/upload-artifact@v3
       if: always()
       with:
-        name: configure
+        name: build
         path: |
           x86_64/config.log
           x86_64/config.h
-        if-no-files-found: error
+          x86_64/test-suite.log
+        if-no-files-found: ignore
 
   prepare:
     runs-on: ubuntu-latest
