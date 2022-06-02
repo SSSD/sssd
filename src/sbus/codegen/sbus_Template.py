@@ -154,27 +154,27 @@ class Template:
 
     class Pattern:
         Template = re.compile(
-            ' *<template name="(\S+)">(.*?)</template>\r?\n?',
+            r' *<template name="(\S+)">(.*?)</template>\r?\n?',
             re.MULTILINE | re.DOTALL
         )
 
         Loop = re.compile(
-            ' *<loop name="(\S+)">(.*?)</loop>\r?\n?',
+            r' *<loop name="(\S+)">(.*?)</loop>\r?\n?',
             re.MULTILINE | re.DOTALL
         )
 
         LoopLine = re.compile(
-            '<loop line name="(\S+)">(.*?)</loop>',
+            r'<loop line name="(\S+)">(.*?)</loop>',
             re.MULTILINE | re.DOTALL
         )
 
         Toggle = re.compile(
-            ' *<toggle name="(\S+)">(.*?)(<or>(.*?))?</toggle>\r?\n?',
+            r' *<toggle name="(\S+)">(.*?)(<or>(.*?))?</toggle>\r?\n?',
             re.MULTILINE | re.DOTALL
         )
 
         ToggleLine = re.compile(
-            '<toggle line name="(\S+)">(.*?)(<or>(.*?))?</toggle>',
+            r'<toggle line name="(\S+)">(.*?)(<or>(.*?))?</toggle>',
             re.MULTILINE | re.DOTALL
         )
 

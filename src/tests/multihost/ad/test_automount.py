@@ -254,6 +254,7 @@ class Testautofsresponder(object):
             restart = 'systemctl restart %s' % service
             cmd = multihost.client[0].run_command(restart, raiseonerr=False)
             if cmd.returncode != 0:
+                journalctl_cmd = "journalctl -x -n 50 --no-pager"
                 multihost.client[0].run_command(journalctl_cmd)
                 pytest.fail("Failed to restart %s" % service)
         automount = 'automount -m'

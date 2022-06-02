@@ -45,7 +45,7 @@ LDAP_BASE_DN = "dc=example,dc=com"
 # However we can be sure when using twice the period because we know
 # that enumeration was indeed run at least once.
 ENUMERATION_TIMEOUT = 4
-INTERACTIVE_TIMEOUT = ENUMERATION_TIMEOUT*2
+INTERACTIVE_TIMEOUT = ENUMERATION_TIMEOUT * 2
 
 
 @pytest.fixture(scope="module")
@@ -85,8 +85,8 @@ def cleanup_ldap_entries(ldap_conn, ent_list=None):
     """Remove LDAP entries added by create_ldap_entries"""
     if ent_list is None:
         for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
-            for entry in ldap_conn.search_s("ou=" + ou + "," +
-                                            ldap_conn.ds_inst.base_dn,
+            for entry in ldap_conn.search_s(f"ou={ou},"
+                                            f"{ldap_conn.ds_inst.base_dn}",
                                             ldap.SCOPE_ONELEVEL,
                                             attrlist=[]):
                 ldap_conn.delete_s(entry[0])

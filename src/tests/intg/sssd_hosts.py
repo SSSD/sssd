@@ -100,7 +100,7 @@ def set_hostent_dict(res, result_p):
     while result_p[0].h_aliases[i] is not None:
         alias = result_p[0].h_aliases[i].decode('utf-8')
         hostent_dict['aliases'].append(alias)
-        i = i+1
+        i = i + 1
 
     i = 0
     while result_p[0].h_addr_list[i] is not None:
@@ -116,7 +116,7 @@ def set_hostent_dict(res, result_p):
             raise Exception("Failed to parse IP address")
 
         hostent_dict['addresses'].append(addr)
-        i = i+1
+        i = i + 1
 
     return hostent_dict
 

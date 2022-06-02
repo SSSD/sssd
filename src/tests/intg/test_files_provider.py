@@ -509,28 +509,32 @@ def check_group_list(exp_groups_list):
 
 
 def assert_user_overriden():
-    # There is an issue in nss_wrapper [0] and nss_wrapper always looks into
-    # the files first before using the NSS module. This lets this check fail
-    # because the user is found in the file and hence will be returned
-    # without overridden values.
-    # In order to work this around while there's no fix for nss_wrapper, let's
-    # use the fully-qualified name when looking up the USER1
-    #
-    # https://bugzilla.samba.org/show_bug.cgi?id=12883)
-    ent.assert_passwd_by_name(USER1["name"]+"@files", OV_USER1)
+    """
+    There is an issue in nss_wrapper [0] and nss_wrapper always looks into
+    the files first before using the NSS module. This lets this check fail
+    because the user is found in the file and hence will be returned
+    without overridden values.
+    In order to work this around while there's no fix for nss_wrapper, let's
+    use the fully-qualified name when looking up the USER1
+
+    https://bugzilla.samba.org/show_bug.cgi?id=12883)
+    """
+    ent.assert_passwd_by_name(USER1["name"] + "@files", OV_USER1)
     ent.assert_passwd_by_name(OV_USER1["name"], OV_USER1)
 
 
 def assert_group_overriden():
-    # There is an issue in nss_wrapper [0] and nss_wrapper always looks into
-    # the files first before using the NSS module. This lets this check fail
-    # because the user is found in the file and hence will be returned
-    # without overridden values.
-    # In order to work this around while there's no fix for nss_wrapper, let's
-    # use the fully-qualified name when looking up the GROUP1
-    #
-    # https://bugzilla.samba.org/show_bug.cgi?id=12883)
-    ent.assert_group_by_name(GROUP1["name"]+"@files", OV_GROUP1)
+    """
+    There is an issue in nss_wrapper [0] and nss_wrapper always looks into
+    the files first before using the NSS module. This lets this check fail
+    because the user is found in the file and hence will be returned
+    without overridden values.
+    In order to work this around while there's no fix for nss_wrapper, let's
+    use the fully-qualified name when looking up the GROUP1
+
+    https://bugzilla.samba.org/show_bug.cgi?id=12883)
+    """
+    ent.assert_group_by_name(GROUP1["name"] + "@files", OV_GROUP1)
     ent.assert_group_by_name(OV_GROUP1["name"], OV_GROUP1)
 
 
@@ -1077,7 +1081,7 @@ def realloc_users(pwd_ops, num):
         user = user_generator(i)
         pwd_ops.useradd(**user)
 
-    user = user_generator(num-1)
+    user = user_generator(num - 1)
     check_user(user)
 
 
@@ -1095,7 +1099,7 @@ def test_realloc_users(setup_pw_with_canary, files_domain_only):
     Test that returning exactly FILES_REALLOC_CHUNK users (see files_ops.c)
     works fine to test reallocation logic.
     """
-    realloc_users(setup_pw_with_canary, FILES_REALLOC_CHUNK*3)
+    realloc_users(setup_pw_with_canary, FILES_REALLOC_CHUNK * 3)
 
 
 def realloc_groups(grp_ops, num):
@@ -1103,7 +1107,7 @@ def realloc_groups(grp_ops, num):
         group = group_generator(i)
         grp_ops.groupadd(**group)
 
-    group = group_generator(num-1)
+    group = group_generator(num - 1)
     check_group(group)
 
 
@@ -1113,7 +1117,7 @@ def test_realloc_groups_exact(setup_gr_with_canary, files_domain_only):
     works fine to test reallocation logic. Test exact number of groups to
     check for off-by-one errors.
     """
-    realloc_groups(setup_gr_with_canary, FILES_REALLOC_CHUNK*3)
+    realloc_groups(setup_gr_with_canary, FILES_REALLOC_CHUNK * 3)
 
 
 def test_realloc_groups(setup_gr_with_canary, files_domain_only):
@@ -1122,7 +1126,7 @@ def test_realloc_groups(setup_gr_with_canary, files_domain_only):
     works fine to test reallocation logic. Test exact number of groups to
     check for off-by-one errors.
     """
-    realloc_groups(setup_gr_with_canary, FILES_REALLOC_CHUNK*3)
+    realloc_groups(setup_gr_with_canary, FILES_REALLOC_CHUNK * 3)
 
 
 # Files domain autoconfiguration tests
@@ -1203,8 +1207,8 @@ def test_multiple_files_created_after_startup(add_user_with_canary,
 
     # touch the files
     for fpath in (alt_passwd_path, alt_group_path):
-        with open(fpath, "w") as f:
-            pass
+        with open(fpath, "w"):
+            os.utime(fpath)
 
     alt_pwops = PasswdOps(alt_passwd_path)
     alt_grops = GroupOps(alt_group_path)
