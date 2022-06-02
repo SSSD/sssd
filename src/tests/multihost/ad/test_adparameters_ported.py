@@ -2805,7 +2805,7 @@ class TestADParamsPorted:
 
         # Create additional groups
         groups = [test_group, ]
-        for idx in range(2, group_count+2):
+        for idx in range(2, group_count + 2):
             group_name = f'testgrp-{rand_num}-{idx}'
             ad_op.create_ad_nonposix_group(group_name)
             ad_op.add_user_member_of_group(group_name, test_user)

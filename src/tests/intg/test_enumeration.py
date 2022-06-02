@@ -45,7 +45,7 @@ LDAP_BASE_DN = "dc=example,dc=com"
 # However we can be sure when using twice the period because we know
 # that enumeration was indeed run at least once.
 ENUMERATION_TIMEOUT = 4
-INTERACTIVE_TIMEOUT = ENUMERATION_TIMEOUT*2
+INTERACTIVE_TIMEOUT = ENUMERATION_TIMEOUT * 2
 
 
 @pytest.fixture(scope="module")

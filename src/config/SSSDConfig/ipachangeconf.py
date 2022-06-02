@@ -144,7 +144,7 @@ class IPAChangeConf(object):
     def getSectionLine(self, section):
         if len(self.sectnamdel) != 2:
             return section
-        return self.sectnamdel[0]+section+self.sectnamdel[1]+self.deol
+        return self.sectnamdel[0] + section + self.sectnamdel[1] + self.deol
 
     @staticmethod
     def _get_debug_level_val(value):
@@ -156,28 +156,28 @@ class IPAChangeConf(object):
     def dump(self, options, level=0):
         output = ""
         if level >= len(self.indent):
-            level = len(self.indent)-1
+            level = len(self.indent) - 1
 
         for o in options:
             if o['type'] == "section":
-                output += self.sectnamdel[0]+o['name']+self.sectnamdel[1]+self.deol
-                output += self.dump(o['value'], level+1)
+                output += self.sectnamdel[0] + o['name'] + self.sectnamdel[1] + self.deol
+                output += self.dump(o['value'], level + 1)
                 continue
             if o['type'] == "subsection":
-                output += self.indent[level]+o['name']+self.dassign+self.subsectdel[0]+self.deol
-                output += self.dump(o['value'], level+1)
-                output += self.indent[level]+self.subsectdel[1]+self.deol
+                output += self.indent[level] + o['name'] + self.dassign + self.subsectdel[0] + self.deol
+                output += self.dump(o['value'], level + 1)
+                output += self.indent[level] + self.subsectdel[1] + self.deol
                 continue
             if o['type'] == "option":
-                output += self.indent[level]+o['name']+self.dassign+o['value']+self.deol
+                output += self.indent[level] + o['name'] + self.dassign + o['value'] + self.deol
                 continue
             if o['type'] == "comment":
-                output += self.dcomment+o['value']+self.deol
+                output += self.dcomment + o['value'] + self.deol
                 continue
             if o['type'] == "empty":
                 output += self.deol
                 continue
-            raise SyntaxError('Unknown type: ['+o['type']+']')
+            raise SyntaxError('Unknown type: [' + o['type'] + ']')
 
         return output
 
@@ -212,27 +212,27 @@ class IPAChangeConf(object):
         opts = []
 
         if level >= len(self.indent):
-            level = len(self.indent)-1
+            level = len(self.indent) - 1
 
         for o in inopts:
             if o['type'] == 'section':
-                no = self.commentOpts(o['value'], level+1)
-                val = self.dcomment+self.sectnamdel[0]+o['name']+self.sectnamdel[1]
+                no = self.commentOpts(o['value'], level + 1)
+                val = self.dcomment + self.sectnamdel[0] + o['name'] + self.sectnamdel[1]
                 opts.append({'name': 'comment', 'type': 'comment', 'value': val})
                 for n in no:
                     opts.append(n)
                 continue
             if o['type'] == 'subsection':
-                no = self.commentOpts(o['value'], level+1)
-                val = self.indent[level]+o['name']+self.dassign+self.subsectdel[0]
+                no = self.commentOpts(o['value'], level + 1)
+                val = self.indent[level] + o['name'] + self.dassign + self.subsectdel[0]
                 opts.append({'name': 'comment', 'type': 'comment', 'value': val})
                 for n in no:
                     opts.append(n)
-                val = self.indent[level]+self.subsectdel[1]
+                val = self.indent[level] + self.subsectdel[1]
                 opts.append({'name': 'comment', 'type': 'comment', 'value': val})
                 continue
             if o['type'] == 'option':
-                val = self.indent[level]+o['name']+self.dassign+o['value']
+                val = self.indent[level] + o['name'] + self.dassign + o['value']
                 opts.append({'name': 'comment', 'type': 'comment', 'value': val})
                 continue
             if o['type'] == 'comment':
@@ -241,7 +241,7 @@ class IPAChangeConf(object):
             if o['type'] == 'empty':
                 opts.append({'name': 'comment', 'type': 'comment', 'value': ''})
                 continue
-            raise SyntaxError('Unknown type: ['+o['type']+']')
+            raise SyntaxError('Unknown type: [' + o['type'] + ']')
 
         return opts
 
@@ -266,7 +266,7 @@ class IPAChangeConf(object):
                     continue
                 if no['action'] == "remove":
                     continue
-                raise SyntaxError('Unknown action: ['+no['action']+']')
+                raise SyntaxError('Unknown action: [' + no['action'] + ']')
 
             if o['type'] == "comment" or o['type'] == "empty":
                 opts.append(o)
@@ -283,14 +283,14 @@ class IPAChangeConf(object):
                         continue
                     if no['action'] == 'comment':
                         opts.append({'name': 'comment', 'type': 'comment',
-                                     'value': self.dcomment+o['name']+self.dassign+o['value']})
+                                     'value': self.dcomment + o['name'] + self.dassign + o['value']})
                     continue
                 if no['action'] == 'set':
                     opts.append(no)
                     continue
-                raise SyntaxError('Unknown action: ['+o['action']+']')
+                raise SyntaxError('Unknown action: [' + o['action'] + ']')
 
-            raise SyntaxError('Unknown type: ['+o['type']+']')
+            raise SyntaxError('Unknown type: [' + o['type'] + ']')
 
         return opts
 
@@ -309,7 +309,7 @@ class IPAChangeConf(object):
                 if no['action'] == "set":
                     self.mergeNew(o['value'], no['value'])
                     continue
-                cline = num+1
+                cline = num + 1
                 continue
 
             if no['type'] == "option":
@@ -318,7 +318,7 @@ class IPAChangeConf(object):
                     if no['action'] == 'set':
                         opts.append(no)
                     continue
-                cline = num+1
+                cline = num + 1
                 continue
 
             if no['type'] == "comment" or no['type'] == "empty":
@@ -326,7 +326,7 @@ class IPAChangeConf(object):
                 cline += 1
                 continue
 
-            raise SyntaxError('Unknown type: ['+no['type']+']')
+            raise SyntaxError('Unknown type: [' + no['type'] + ']')
 
     def merge(self, oldopts, newopts):
 
@@ -404,7 +404,7 @@ class IPAChangeConf(object):
         f = None
         try:
             # Do not catch an unexisting file error, we want to fail in that case
-            shutil.copy2(file, file+self.backup_suffix)
+            shutil.copy2(file, file + self.backup_suffix)
 
             f = openLocked(file, 0o644)
 
@@ -436,7 +436,7 @@ class IPAChangeConf(object):
         f = None
         try:
             try:
-                shutil.copy2(file, file+self.backup_suffix)
+                shutil.copy2(file, file + self.backup_suffix)
             except IOError as err:
                 if err.errno == 2:
                     # The orign file did not exist

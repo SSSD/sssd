@@ -93,7 +93,7 @@ def set_netent_dict(res, result_p):
     while result_p[0].n_aliases[i] is not None:
         alias = result_p[0].n_aliases[i].decode('utf-8')
         netent_dict['aliases'].append(alias)
-        i = i+1
+        i = i + 1
 
     return netent_dict
 

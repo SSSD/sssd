@@ -55,7 +55,7 @@ class TestDefaultDebugLevel(object):
             default_debug = pattern1.search(log_str)
             assert default_debug is not None
             log_split = log_str.split("\n")
-            for index in range(len(log_split)-1):
+            for index in range(len(log_split) - 1):
                 log_single_line = log_split[index]
                 pattern2 = re.compile(r'\(0x\w+\)')
                 debug_str1 = pattern2.search(log_single_line)
