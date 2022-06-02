@@ -309,6 +309,7 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
     struct renewal_data *renewal_data;
     int lifetime;
     size_t period;
+    size_t offset;
     size_t initial_delay;
     const char *dummy;
     char **opt_list;
@@ -353,7 +354,7 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
         goto done;
     }
 
-    if (opt_list_size != 2) {
+    if (opt_list_size < 2 || opt_list_size > 3) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Wrong number of renewal options %d\n",
               opt_list_size);
         ret = EINVAL;
@@ -374,6 +375,17 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
         goto done;
     }
 
+    if (opt_list_size == 3) {
+        offset = strtouint32(opt_list[2], &endptr, 10);
+        if (errno != 0 || *endptr != '\0' || opt_list[2] == endptr) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse third renewal option.\n");
+            ret = EINVAL;
+            goto done;
+        }
+    } else {
+        offset = 0;
+    }
+
     ret = get_adcli_extra_args(dp_opt_get_cstring(ad_opts->basic, AD_DOMAIN),
                    dp_opt_get_cstring(ad_opts->basic, AD_HOSTNAME),
                    dp_opt_get_cstring(ad_opts->id_ctx->sdap_id_ctx->opts->basic,
@@ -387,7 +399,8 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
         goto done;
     }
 
-    ret = be_ptask_create(be_ctx, be_ctx, period, initial_delay, 0, 0, 60, 0,
+    ret = be_ptask_create(be_ctx, be_ctx, period, initial_delay, 0, offset,
+                          60, 0,
                           ad_machine_account_password_renewal_send,
                           ad_machine_account_password_renewal_recv,
                           renewal_data,

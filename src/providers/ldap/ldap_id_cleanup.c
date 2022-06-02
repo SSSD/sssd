@@ -56,6 +56,7 @@ errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
     errno_t ret;
     time_t first_delay;
     time_t period;
+    time_t offset;
     struct ldap_id_cleanup_ctx *cleanup_ctx = NULL;
     char *name = NULL;
 
@@ -66,6 +67,7 @@ errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
         ret = EOK;
         goto done;
     }
+    offset = dp_opt_get_int(id_ctx->opts->basic, SDAP_PURGE_CACHE_OFFSET);
 
     /* Run the first one in a couple of seconds so that we have time to
      * finish initializations first. */
@@ -86,7 +88,7 @@ errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
     }
 
     ret = be_ptask_create_sync(id_ctx, id_ctx->be, period, first_delay,
-                               5 /* enabled delay */, 0 /* random offset */,
+                               5 /* enabled delay */, offset /* random offset */,
                                period /* timeout */, 0,
                                ldap_cleanup_task, cleanup_ctx, name,
                                BE_PTASK_OFFLINE_SKIP,

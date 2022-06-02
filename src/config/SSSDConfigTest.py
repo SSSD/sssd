@@ -581,6 +581,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'dyndns_ttl',
             'dyndns_iface',
             'dyndns_refresh_interval',
+            'dyndns_refresh_interval_offset',
             'dyndns_update_ptr',
             'dyndns_force_tcp',
             'dyndns_auth',
@@ -607,6 +608,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'resolver_provider',
             'realmd_tags',
             'subdomain_refresh_interval',
+            'subdomain_refresh_interval_offset',
             'subdomain_inherit',
             'subdomain_homedir',
             'full_name_format',
@@ -615,7 +617,9 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'auto_private_groups',
             'pam_gssapi_services',
             'pam_gssapi_check_upn',
-            'pam_gssapi_indicators_map']
+            'pam_gssapi_indicators_map',
+            'refresh_expired_interval',
+            'refresh_expired_interval_offset']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -962,6 +966,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'resolver_provider',
             'realmd_tags',
             'subdomain_refresh_interval',
+            'subdomain_refresh_interval_offset',
             'subdomain_inherit',
             'subdomain_homedir',
             'full_name_format',
@@ -970,7 +975,11 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'auto_private_groups',
             'pam_gssapi_services',
             'pam_gssapi_check_upn',
-            'pam_gssapi_indicators_map']
+            'pam_gssapi_indicators_map',
+            'refresh_expired_interval',
+            'refresh_expired_interval_offset',
+            'dyndns_refresh_interval',
+            'dyndns_refresh_interval_offset']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")

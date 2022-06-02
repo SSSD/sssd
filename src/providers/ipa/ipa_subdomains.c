@@ -3081,6 +3081,7 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
     struct ipa_subdomains_ctx *sd_ctx;
     struct ipa_options *ipa_options;
     time_t period;
+    time_t offset;
     errno_t ret;
     /* Delay the first ptask that refreshes the trusted domains so that a race between
      * the first responder-induced request and the ptask doesn't cause issues, see
@@ -3109,8 +3110,9 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
                   struct ipa_subdomains_ctx, struct dp_subdomains_data, struct dp_reply_std);
 
     period = be_ctx->domain->subdomain_refresh_interval;
-    ret = be_ptask_create(sd_ctx, be_ctx, period, ptask_first_delay, 0, 0, period,
-                          0,
+    offset = be_ctx->domain->subdomain_refresh_interval_offset;
+    ret = be_ptask_create(sd_ctx, be_ctx, period, ptask_first_delay, 0, offset,
+                          period, 0,
                           ipa_subdomains_ptask_send, ipa_subdomains_ptask_recv, sd_ctx,
                           "Subdomains Refresh",
                           BE_PTASK_OFFLINE_DISABLE |

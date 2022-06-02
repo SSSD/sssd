@@ -41,6 +41,8 @@ LDAP_BASE_DN = "dc=example,dc=com"
 # not scheduled on precise time because of other sssd operation, it
 # takes some time to finish so each run moves it further away from
 # exact 4 seconds period, cpu scheduler, context switches, ...).
+# The random offset is set to 0 to prevent it from being applied to the
+# periodic tasks, but mainly to the initial delay.
 # I agree that just little bit longer timeout may work as well.
 # However we can be sure when using twice the period because we know
 # that enumeration was indeed run at least once.
@@ -122,30 +124,31 @@ def format_basic_conf(ldap_conn, schema):
         schema_conf += "ldap_group_object_class = groupOfNames\n"
     return unindent("""\
         [sssd]
-        debug_level         = 0xffff
-        domains             = LDAP
-        services            = nss, pam
-        enable_files_domain = false
+        debug_level                     = 0xffff
+        domains                         = LDAP
+        services                        = nss, pam
+        enable_files_domain             = false
 
         [nss]
-        debug_level         = 0xffff
-        memcache_timeout    = 0
+        debug_level                     = 0xffff
+        memcache_timeout                = 0
 
         [pam]
-        debug_level         = 0xffff
+        debug_level                     = 0xffff
 
         [domain/files]
-        id_provider         = files
+        id_provider                     = files
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
-        debug_level         = 0xffff
-        enumerate           = true
+        debug_level                     = 0xffff
+        enumerate                       = true
         {schema_conf}
-        id_provider         = ldap
-        auth_provider       = ldap
-        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
-        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+        id_provider                     = ldap
+        auth_provider                   = ldap
+        ldap_enumeration_refresh_offset = 0
+        ldap_uri                        = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base                = {ldap_conn.ds_inst.base_dn}
     """).format(**locals())
 
 
@@ -291,6 +294,7 @@ def sanity_rfc2307_bis(request, ldap_conn):
 
 
 def test_sanity_rfc2307(ldap_conn, sanity_rfc2307):
+    time.sleep(INTERACTIVE_TIMEOUT)
     passwd_pattern = ent.contains_only(
         dict(name='user1', passwd='*', uid=1001, gid=2001, gecos='1001',
              dir='/home/user1', shell='/bin/bash'),
@@ -323,6 +327,7 @@ def test_sanity_rfc2307(ldap_conn, sanity_rfc2307):
 
 
 def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
+    time.sleep(INTERACTIVE_TIMEOUT)
     passwd_pattern = ent.contains_only(
         dict(name='user1', passwd='*', uid=1001, gid=2001, gecos='1001',
              dir='/home/user1', shell='/bin/bash'),

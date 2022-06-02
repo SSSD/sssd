@@ -2456,6 +2456,7 @@ errno_t ad_subdomains_init(TALLOC_CTX *mem_ctx,
     const char *ad_domain;
     const char **ad_enabled_domains = NULL;
     time_t period;
+    time_t offset;
     errno_t ret;
 
     ad_domain = dp_opt_get_string(ad_id_ctx->ad_options->basic, AD_DOMAIN);
@@ -2488,7 +2489,8 @@ errno_t ad_subdomains_init(TALLOC_CTX *mem_ctx,
                   struct ad_subdomains_ctx, struct dp_subdomains_data, struct dp_reply_std);
 
     period = be_ctx->domain->subdomain_refresh_interval;
-    ret = be_ptask_create(sd_ctx, be_ctx, period, 0, 0, 0, period, 0,
+    offset = be_ctx->domain->subdomain_refresh_interval_offset;
+    ret = be_ptask_create(sd_ctx, be_ctx, period, 0, 0, offset, period, 0,
                           ad_subdomains_ptask_send, ad_subdomains_ptask_recv,
                           sd_ctx,
                           "Subdomains Refresh",
