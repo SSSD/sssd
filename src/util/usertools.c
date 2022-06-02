@@ -321,7 +321,7 @@ static struct sss_domain_info * match_any_domain_or_subdomain_name(
         return dom;
     }
 
-    return find_domain_by_name(dom, dmatch, true);
+    return find_domain_by_name_ex(dom, dmatch, true, SSS_GND_SUBDOMAINS);
 }
 
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,
