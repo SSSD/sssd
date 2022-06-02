@@ -699,7 +699,7 @@ def sssdproxyldap_test(session_multihost, request):
     client.transport.put_file(os.path.dirname(os.path.abspath(__file__))
                               + file_location,
                               '/tmp/sssdproxyldap.sh')
-    execute_cmd(session_multihost, f"chmod 755 /tmp/sssdproxyldap.sh")
+    execute_cmd(session_multihost, "chmod 755 /tmp/sssdproxyldap.sh")
     master.run_command("kadmin.local -q "
                        "'addprinc -pw Secret123 "
                        "foo2@example1'")
