@@ -2143,4 +2143,3 @@ static void _sbus_dbus_invoke_in_su_out_u_done(struct tevent_req *subreq)
     tevent_req_done(req);
     return;
 }
-

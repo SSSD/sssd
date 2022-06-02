@@ -88,4 +88,3 @@ _sbus_dbus_key_su_0
         sbus_req->sender->uid, sbus_req->type, sbus_req->interface, sbus_req->member,
         sbus_req->path, args->arg0);
 }
-

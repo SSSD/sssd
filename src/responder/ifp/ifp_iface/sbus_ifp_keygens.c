@@ -105,4 +105,3 @@ _sbus_ifp_key_u_0
         sbus_req->sender->uid, sbus_req->type, sbus_req->interface, sbus_req->member,
         sbus_req->path, args->arg0);
 }
-

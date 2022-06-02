@@ -420,4 +420,3 @@ _sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_User_UpdateGroupsList = {
         {NULL}
     }
 };
-

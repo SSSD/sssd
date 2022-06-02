@@ -808,4 +808,3 @@ errno_t _sbus_sss_invoker_write_uuusu
 
     return EOK;
 }
-

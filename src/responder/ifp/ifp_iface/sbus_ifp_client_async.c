@@ -28,4 +28,3 @@
 #include "responder/ifp/ifp_iface/sbus_ifp_arguments.h"
 #include "responder/ifp/ifp_iface/sbus_ifp_keygens.h"
 #include "responder/ifp/ifp_iface/sbus_ifp_client_properties.h"
-

@@ -269,4 +269,3 @@ errno_t _sbus_dbus_invoker_write_u
 
     return EOK;
 }
-

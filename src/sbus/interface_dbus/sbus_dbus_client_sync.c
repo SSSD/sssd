@@ -213,4 +213,3 @@ sbus_call_DBusProperties_Set
      return sbus_method_in_raw_out_(conn,
           raw_message);
 }
-
