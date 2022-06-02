@@ -235,6 +235,8 @@
 #define CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS "ignore_group_members"
 #define CONFDB_DOMAIN_SUBDOMAIN_REFRESH "subdomain_refresh_interval"
 #define CONFDB_DOMAIN_SUBDOMAIN_REFRESH_DEFAULT_VALUE 14400
+#define CONFDB_DOMAIN_SUBDOMAIN_REFRESH_OFFSET "subdomain_refresh_interval_offset"
+#define CONFDB_DOMAIN_SUBDOMAIN_REFRESH_OFFSET_DEFAULT_VALUE 300
 
 #define CONFDB_DOMAIN_USER_CACHE_TIMEOUT "entry_cache_user_timeout"
 #define CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT "entry_cache_group_timeout"
@@ -247,6 +249,7 @@
 #define CONFDB_DOMAIN_RESOLVER_CACHE_TIMEOUT "entry_cache_resolver_timeout"
 #define CONFDB_DOMAIN_PWD_EXPIRATION_WARNING "pwd_expiration_warning"
 #define CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL "refresh_expired_interval"
+#define CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL_OFFSET "refresh_expired_interval_offset"
 #define CONFDB_DOMAIN_OFFLINE_TIMEOUT "offline_timeout"
 #define CONFDB_DOMAIN_OFFLINE_TIMEOUT_MAX "offline_timeout_max"
 #define CONFDB_DOMAIN_OFFLINE_TIMEOUT_RANDOM_OFFSET "offline_timeout_random_offset"
@@ -389,7 +392,9 @@ struct sss_domain_info {
     uint32_t resolver_timeout;
 
     uint32_t refresh_expired_interval;
+    uint32_t refresh_expired_interval_offset;
     uint32_t subdomain_refresh_interval;
+    uint32_t subdomain_refresh_interval_offset;
     uint32_t cached_auth_timeout;
 
     int pwd_expiration_warning;

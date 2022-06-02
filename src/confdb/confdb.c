@@ -1340,19 +1340,39 @@ static errno_t confdb_init_domain_timeouts(struct confdb_ctx *cdb,
         goto done;
     }
 
-    /* detect and fix misconfiguration */
-    if (domain->refresh_expired_interval > entry_cache_timeout) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "refresh_expired_interval (%d) cannot be greater than "
-              "entry_cache_timeout (%u)\n",
-              domain->refresh_expired_interval, entry_cache_timeout);
+    /* Set refresh_expired_interval_offset, if specified */
+    ret = get_entry_as_uint32(res->msgs[0],
+                              &domain->refresh_expired_interval_offset,
+                              CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL_OFFSET,
+                              0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for [%s]\n",
+              CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL_OFFSET);
+        goto done;
+    }
 
-        domain->refresh_expired_interval = 0.75 * entry_cache_timeout;
+    /* detect and fix misconfiguration */
+    if (domain->refresh_expired_interval + domain->refresh_expired_interval_offset > entry_cache_timeout) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "refresh_expired_interval (%d) + "
+              "refresh_expired_interval_offset (%d) cannot be greater than "
+              "entry_cache_timeout (%u)\n",
+              domain->refresh_expired_interval,
+              domain->refresh_expired_interval_offset, entry_cache_timeout);
+
+        domain->refresh_expired_interval = 0.70 * entry_cache_timeout;
+        domain->refresh_expired_interval_offset =
+                0.10 * domain->refresh_expired_interval;
 
         DEBUG(SSSDBG_CONF_SETTINGS,
               "refresh_expired_interval is being set to recommended value "
-              "entry_cache_timeout * 0.75 (%u).\n",
+              "entry_cache_timeout * 0.70 (%u).\n",
               domain->refresh_expired_interval);
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "refresh_expired_interval_offset is being set to recommended value "
+              "refresh_expired_interval * 0.10 (%u).\n",
+              domain->refresh_expired_interval_offset);
     }
 
     ret = init_cached_auth_timeout(cdb, res->msgs[0],
@@ -1568,6 +1588,16 @@ static errno_t confdb_init_domain_subdomains(struct sss_domain_info *domain,
 
         domain->subdomain_refresh_interval =
             CONFDB_DOMAIN_SUBDOMAIN_REFRESH_DEFAULT_VALUE;
+    }
+
+    ret = get_entry_as_uint32(res->msgs[0],
+                              &domain->subdomain_refresh_interval_offset,
+                              CONFDB_DOMAIN_SUBDOMAIN_REFRESH_OFFSET,
+                              CONFDB_DOMAIN_SUBDOMAIN_REFRESH_OFFSET_DEFAULT_VALUE);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for [%s]\n", CONFDB_DOMAIN_SUBDOMAIN_REFRESH_OFFSET);
+        goto done;
     }
 
     ret = EOK;

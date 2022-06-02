@@ -159,6 +159,7 @@ static errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
 {
     struct be_refresh_ctx *ctx = NULL;
     uint32_t refresh_interval;
+    uint32_t offset;
     errno_t ret;
 
     ctx = talloc_zero(be_ctx, struct be_refresh_ctx);
@@ -177,7 +178,8 @@ static errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
 
     refresh_interval = be_ctx->domain->refresh_expired_interval;
     if (refresh_interval > 0) {
-        ret = be_ptask_create(be_ctx, be_ctx, refresh_interval, 30, 5, 0,
+        offset = be_ctx->domain->refresh_expired_interval_offset;
+        ret = be_ptask_create(be_ctx, be_ctx, refresh_interval, 30, 5, offset,
                               refresh_interval, 0,
                               be_refresh_send, be_refresh_recv,
                               ctx, "Refresh Records",

@@ -56,6 +56,7 @@ errno_t ad_dyndns_init(struct be_ctx *be_ctx,
     errno_t ret;
     const time_t ptask_first_delay = 10;
     int period;
+    int offset;
     uint32_t extraflags = 0;
 
     /* nsupdate is available. Dynamic updates
@@ -97,9 +98,12 @@ errno_t ad_dyndns_init(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_TRACE_FUNC, "DNS will not be updated periodically, "
               "dyndns_refresh_interval is 0\n");
         extraflags |= BE_PTASK_NO_PERIODIC;
+        offset = 0;
+    } else {
+        offset = dp_opt_get_int(ad_opts->dyndns_ctx->opts, DP_OPT_DYNDNS_REFRESH_OFFSET);
     }
 
-    ret = be_ptask_create(ad_opts, be_ctx, period, ptask_first_delay, 0, 0,
+    ret = be_ptask_create(ad_opts, be_ctx, period, ptask_first_delay, 0, offset,
                           period, 0,
                           ad_dyndns_update_send, ad_dyndns_update_recv, ad_opts,
                           "Dyndns update",

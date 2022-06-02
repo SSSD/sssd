@@ -133,29 +133,30 @@ def format_basic_conf(ldap_conn, schema):
         schema_conf += "ldap_group_object_class = groupOfNames\n"
     return unindent("""\
         [sssd]
-        debug_level         = 0xffff
-        domains             = LDAP
-        services            = nss, pam
+        debug_level                      = 0xffff
+        domains                          = LDAP
+        services                         = nss, pam
 
         [nss]
-        debug_level         = 0xffff
-        memcache_timeout    = 0
+        debug_level                      = 0xffff
+        memcache_timeout                 = 0
 
         [pam]
-        debug_level         = 0xffff
+        debug_level                      = 0xffff
 
         [domain/files]
-        id_provider         = files
+        id_provider                      = files
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
-        debug_level         = 0xffff
-        enumerate           = true
+        debug_level                      = 0xffff
+        enumerate                        = true
         {schema_conf}
-        id_provider         = ldap
-        auth_provider       = ldap
-        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
-        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+        id_provider                      = ldap
+        auth_provider                    = ldap
+        ldap_uri                         = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base                 = {ldap_conn.ds_inst.base_dn}
+        ldap_enumeration_refresh_offset  = 0
     """).format(**locals())
 
 

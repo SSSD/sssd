@@ -37,6 +37,7 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
     errno_t ret;
     time_t first_delay;
     time_t period;
+    time_t offset;
     time_t cleanup;
     bool has_enumerated;
     struct ldap_enum_ctx *ectx = NULL;
@@ -84,6 +85,7 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
     }
 
     period = dp_opt_get_int(id_ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    offset = dp_opt_get_int(id_ctx->opts->basic, SDAP_ENUM_REFRESH_OFFSET);
 
     ectx = talloc(sdom, struct ldap_enum_ctx);
     if (ectx == NULL) {
@@ -103,7 +105,7 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
                           period,                   /* period */
                           first_delay,              /* first_delay */
                           5,                        /* enabled delay */
-                          0,                        /* random offset */
+                          offset,                   /* random offset */
                           period,                   /* timeout */
                           0,                        /* max_backoff */
                           send_fn, recv_fn,
