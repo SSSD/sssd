@@ -395,4 +395,3 @@ errno_t _sbus_ifp_invoker_write_u
 
     return EOK;
 }
-

@@ -130,4 +130,3 @@ sbus_call_systemd_StopUnit
           busname, object_path, "org.freedesktop.systemd1.Manager", "StopUnit", arg_name, arg_mode,
           _arg_job);
 }
-

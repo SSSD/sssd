@@ -252,4 +252,3 @@ _sbus_dbus_args_org_freedesktop_DBus_Properties_Set = {
         {NULL}
     }
 };
-

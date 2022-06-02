@@ -173,4 +173,3 @@ _sbus_sss_key_uuusu_0_1_2_3_4
         sbus_req->sender->uid, sbus_req->type, sbus_req->interface, sbus_req->member,
         sbus_req->path, args->arg0, args->arg1, args->arg2, args->arg3, args->arg4);
 }
-
