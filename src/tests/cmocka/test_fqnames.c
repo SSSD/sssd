@@ -318,6 +318,41 @@ static int parse_name_test_setup(void **state)
     return 0;
 }
 
+static int parse_name_test_two_names_ctx_setup(void **state)
+{
+    struct parse_name_test_ctx *test_ctx;
+    struct sss_names_ctx *nctx1 = NULL;
+    struct sss_names_ctx *nctx2 = NULL;
+    struct sss_domain_info *dom;
+    int ret;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context, struct parse_name_test_ctx);
+    assert_non_null(test_ctx);
+
+    ret = sss_names_init_from_args(test_ctx, SSS_DEFAULT_RE,
+                                   "%1$s@%2$s", &nctx1);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_names_init_from_args(test_ctx, SSS_IPA_AD_DEFAULT_RE,
+                                   "%1$s@%2$s", &nctx2);
+    assert_int_equal(ret, EOK);
+
+    test_ctx->dom = create_test_domain(test_ctx, DOMNAME, FLATNAME,
+                                       NULL, nctx1);
+    assert_non_null(test_ctx->dom);
+
+    dom = create_test_domain(test_ctx, DOMNAME2, FLATNAME2,
+                                       NULL, nctx2);
+    assert_non_null(dom);
+    DLIST_ADD_END(test_ctx->dom, dom, struct sss_domain_info *);
+
+    check_leaks_push(test_ctx);
+    *state = test_ctx;
+    return 0;
+}
+
 static int parse_name_test_teardown(void **state)
 {
     struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
@@ -448,6 +483,18 @@ void test_init_nouser(void **state)
     assert_int_not_equal(ret, EOK);
 }
 
+void test_different_regexps(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                     struct parse_name_test_ctx);
+    parse_name_check(test_ctx, NAME"@"DOMNAME, NULL, EOK, NAME, DOMNAME);
+    parse_name_check(test_ctx, NAME"@"DOMNAME2, NULL, EOK, NAME, DOMNAME2);
+    parse_name_check(test_ctx, NAME"@WITH_AT@"DOMNAME2, NULL, EOK, NAME"@WITH_AT", DOMNAME2);
+    parse_name_check(test_ctx, FLATNAME"\\"NAME, NULL, EOK, FLATNAME"\\"NAME, NULL);
+    parse_name_check(test_ctx, FLATNAME2"\\"NAME, NULL, EOK, NAME, DOMNAME2);
+    parse_name_check(test_ctx, FLATNAME2"\\"NAME"@WITH_AT", NULL, EOK, NAME"@WITH_AT", DOMNAME2);
+}
+
 void sss_parse_name_fail(void **state)
 {
     struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
@@ -501,6 +548,9 @@ int main(int argc, const char *argv[])
                                         parse_name_test_teardown),
         cmocka_unit_test_setup_teardown(sss_parse_name_fail,
                                         parse_name_test_setup,
+                                        parse_name_test_teardown),
+        cmocka_unit_test_setup_teardown(test_different_regexps,
+                                        parse_name_test_two_names_ctx_setup,
                                         parse_name_test_teardown),
     };
 
