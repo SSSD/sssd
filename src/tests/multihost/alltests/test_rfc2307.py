@@ -9,7 +9,7 @@ from __future__ import print_function
 import pytest
 from sssd.testlib.common.libkrb5 import krb5srv
 from sssd.testlib.common.utils import sssdTools, LdapOperations
-from constants import ds_instance_name, ds_suffix, ds_rootdn, ds_rootpw
+from constants import ds_suffix, ds_rootdn, ds_rootpw
 from sssd.testlib.common.exceptions import SSHLoginException, LdapException
 from sssd.testlib.common.expect import pexpect_ssh
 

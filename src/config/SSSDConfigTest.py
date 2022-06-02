@@ -17,11 +17,11 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
+"""
 Created on Sep 18, 2009
 
 @author: sgallagh
-'''
+"""
 import unittest
 import os
 import shutil
@@ -374,12 +374,12 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['reconnection_retries'][0] == int,
-                        "reconnection_retries should require an int. " +
+                        "reconnection_retries should require an int. "
                         "list_options is requiring a %s" %
                         options['reconnection_retries'][0])
 
         self.assertTrue(options['reconnection_retries'][1] is None,
-                        "reconnection_retries should not require a subtype. " +
+                        "reconnection_retries should not require a subtype. "
                         "list_options is requiring a %s" %
                         options['reconnection_retries'][1])
 
@@ -390,12 +390,12 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['services'][0] == list,
-                        "services should require an list. " +
+                        "services should require an list. "
                         "list_options is requiring a %s" %
                         options['services'][0])
 
         self.assertTrue(options['services'][1] == str,
-                        "services should require a subtype of str. " +
+                        "services should require a subtype of str. "
                         "list_options is requiring a %s" %
                         options['services'][1])
 
@@ -426,12 +426,12 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['services'][0] == list,
-                        "services should require an list. " +
+                        "services should require an list. "
                         "list_options is requiring a %s" %
                         options['services'][0])
 
         self.assertTrue(options['services'][1] == str,
-                        "services should require a subtype of str. " +
+                        "services should require a subtype of str. "
                         "list_options is requiring a %s" %
                         options['services'][1])
 
@@ -636,12 +636,12 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['max_id'][0] == int,
-                        "max_id should require an int. " +
+                        "max_id should require an int. "
                         "list_options is requiring a %s" %
                         options['max_id'][0])
 
         self.assertTrue(options['max_id'][1] is None,
-                        "max_id should not require a subtype. " +
+                        "max_id should not require a subtype. "
                         "list_options is requiring a %s" %
                         options['max_id'][1])
 
@@ -991,12 +991,12 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['max_id'][0] == int,
-                        "config_file_version should require an int. " +
+                        "config_file_version should require an int. "
                         "list_options is requiring a %s" %
                         options['max_id'][0])
 
         self.assertTrue(options['max_id'][1] is None,
-                        "config_file_version should not require a subtype. " +
+                        "config_file_version should not require a subtype. "
                         "list_options is requiring a %s" %
                         options['max_id'][1])
 
@@ -1851,9 +1851,9 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('example.com2' in sssdconfig.list_inactive_domains())
 
         self.assertEqual(len(sssdconfig.list_active_domains()),
-                         len(activelist)-1)
+                         len(activelist) - 1)
         self.assertEqual(len(sssdconfig.list_inactive_domains()),
-                         len(inactivelist)+1)
+                         len(inactivelist) + 1)
 
         # Positive test - Set the domain active and save it
         activelist = sssdconfig.list_active_domains()
@@ -1865,9 +1865,9 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertFalse('example.com2' in sssdconfig.list_inactive_domains())
 
         self.assertEqual(len(sssdconfig.list_active_domains()),
-                         len(activelist)+1)
+                         len(activelist) + 1)
         self.assertEqual(len(sssdconfig.list_inactive_domains()),
-                         len(inactivelist)-1)
+                         len(inactivelist) - 1)
 
         # Positive test - Set the domain inactive and save it
         activelist = sssdconfig.list_active_domains()
@@ -1879,9 +1879,9 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('example.com2' in sssdconfig.list_inactive_domains())
 
         self.assertEqual(len(sssdconfig.list_active_domains()),
-                         len(activelist)-1)
+                         len(activelist) - 1)
         self.assertEqual(len(sssdconfig.list_inactive_domains()),
-                         len(inactivelist)+1)
+                         len(inactivelist) + 1)
 
         # Positive test - Set the domain active and save it
         activelist = sssdconfig.list_active_domains()
@@ -1893,9 +1893,9 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertFalse('example.com2' in sssdconfig.list_inactive_domains())
 
         self.assertEqual(len(sssdconfig.list_active_domains()),
-                         len(activelist)+1)
+                         len(activelist) + 1)
         self.assertEqual(len(sssdconfig.list_inactive_domains()),
-                         len(inactivelist)-1)
+                         len(inactivelist) - 1)
 
         # Positive test - Ensure that saved domains retain values
         domain.set_option('ldap_krb5_init_creds', True)

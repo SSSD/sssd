@@ -486,7 +486,6 @@ class TestBugzillaAutomation(object):
         :id: ac5e99cc-2d81-48f7-82ff-622f1c6b3684
         """
         adjoin(membersw='adcli')
-        realm = multihost.ad[0].domainname.strip().upper()
         backup = 'cp -f /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
         restore = 'cp -f /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
         multihost.client[0].run_command(backup)
@@ -662,7 +661,6 @@ class TestBugzillaAutomation(object):
         :id: 9d8b68a0-1208-446c-9dbd-93ee1f934903
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1707963
         """
-        tools = sssdTools(multihost.client[0])
         ad_hostname = multihost.ad[0].sys_hostname
         status = ''
         pcapfile = '/tmp/spnego.pcap'
@@ -680,11 +678,11 @@ class TestBugzillaAutomation(object):
             status = 'FAIL'
             print("Joining to %s failed" % ad_domain)
         multihost.client[0].run_command(pkill, raiseonerr=False)
-        bindRequest = "tshark -r %s -V -2 -R " \
-                      "'ldap.mechanism == GSS-SPNEGO'" % pcapfile
+        tshark_cmd = "tshark -r %s -V -2 -R " \
+                     "'ldap.mechanism == GSS-SPNEGO'" % pcapfile
         valid_etypes = 'etype: eTYPE-AES256-CTS-HMAC-SHA1-96'
         check_str = re.compile(r'%s' % valid_etypes)
-        cmd = multihost.client[0].run_command(bindRequest, raiseonerr=False)
+        cmd = multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
         if cmd.returncode != 0:
             status = 'FAIL'
             print("%s failed " % tshark_cmd)

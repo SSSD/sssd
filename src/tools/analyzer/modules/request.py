@@ -214,7 +214,7 @@ class RequestAnalyzer:
         resp = "nss"
         # Log messages matching the following regex patterns contain
         # the useful info we need to produce list output
-        patterns = ['\[cmd']
+        patterns = [r'\[cmd']
         patterns.append("(cache_req_send|cache_req_process_input|"
                         "cache_req_search_send)")
         if args.pam:
@@ -243,8 +243,8 @@ class RequestAnalyzer:
         be_results = False
         component = source.Component.NSS
         resp = "nss"
-        pattern = [f'REQ_TRACE.*\[CID #{cid}\\]']
-        pattern.append(f"\[CID#{cid}\\]")
+        pattern = [rf'REQ_TRACE.*\[CID #{cid}\\]']
+        pattern.append(rf"\[CID#{cid}\\]")
 
         if args.pam:
             component = source.Component.PAM
@@ -257,10 +257,10 @@ class RequestAnalyzer:
             resp_results = self.consume_line(match, source, args.merge)
 
         logger.info(f"********* Checking Backend for Client ID {cid} ********")
-        pattern = [f'REQ_TRACE.*\[sssd.{resp} CID #{cid}\]']
+        pattern = [rf'REQ_TRACE.*\[sssd.{resp} CID #{cid}\]']
         source.set_component(source.Component.BE, args.child)
 
-        be_id_regex = '\[RID#[0-9]+\]'
+        be_id_regex = r'\[RID#[0-9]+\]'
         be_ids = self.get_linked_ids(source, pattern, be_id_regex)
 
         pattern.clear()
