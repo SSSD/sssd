@@ -249,6 +249,7 @@ class Testautofsresponder(object):
         # pylint: disable=unused-argument
         nfstest = '/project1/project1-test'
         create_nfsfile = 'touch %s' % nfstest
+        journalctl_cmd = "journalctl -x -n 50 --no-pager"
         multihost.master[0].run_command(create_nfsfile)
         for service in ['sssd', 'autofs']:
             restart = 'systemctl restart %s' % service

@@ -687,7 +687,6 @@ class TestBugzillaAutomation(object):
         cmd = multihost.client[0].run_command(bindRequest, raiseonerr=False)
         if cmd.returncode != 0:
             status = 'FAIL'
-            print("%s failed " % tshark_cmd)
         else:
             if not check_str.search(cmd.stdout_text):
                 status = 'FAIL'
