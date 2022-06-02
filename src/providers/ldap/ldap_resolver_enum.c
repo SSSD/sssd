@@ -33,6 +33,7 @@ ldap_resolver_setup_enumeration(struct be_ctx *be_ctx,
     errno_t ret;
     time_t first_delay;
     time_t period;
+    time_t offset;
     time_t cleanup;
     bool has_enumerated;
     char *name = NULL;
@@ -81,6 +82,7 @@ ldap_resolver_setup_enumeration(struct be_ctx *be_ctx,
     }
 
     period = dp_opt_get_int(id_ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    offset = dp_opt_get_int(id_ctx->opts->basic, SDAP_ENUM_REFRESH_OFFSET);
 
     name = talloc_asprintf(resolver_ctx, "Enumeration [resolver] of %s",
                            id_ctx->opts->sdom->dom->name);
@@ -93,7 +95,7 @@ ldap_resolver_setup_enumeration(struct be_ctx *be_ctx,
                           period,                   /* period */
                           first_delay,              /* first_delay */
                           5,                        /* enabled delay */
-                          0,                        /* random offset */
+                          offset,                   /* random offset */
                           period,                   /* timeout */
                           0,                        /* max_backoff */
                           send_fn, recv_fn,
@@ -141,6 +143,7 @@ ldap_resolver_setup_cleanup(struct sdap_resolver_ctx *resolver_ctx)
     errno_t ret;
     time_t first_delay;
     time_t period;
+    time_t offset;
     char *name = NULL;
     struct sdap_id_ctx *id_ctx = resolver_ctx->id_ctx;
 
@@ -151,6 +154,7 @@ ldap_resolver_setup_cleanup(struct sdap_resolver_ctx *resolver_ctx)
         ret = EOK;
         goto done;
     }
+    offset = dp_opt_get_int(id_ctx->opts->basic, SDAP_PURGE_CACHE_OFFSET);
 
     /* Run the first one in a couple of seconds so that we have time to
      * finish initializations first. */
@@ -163,7 +167,7 @@ ldap_resolver_setup_cleanup(struct sdap_resolver_ctx *resolver_ctx)
     }
 
     ret = be_ptask_create_sync(resolver_ctx, id_ctx->be, period, first_delay,
-                               5 /* enabled delay */, 0 /* random offset */,
+                               5 /* enabled delay */, offset /* random offset */,
                                period /* timeout */, 0,
                                ldap_resolver_cleanup_task, resolver_ctx, name,
                                BE_PTASK_OFFLINE_SKIP,
