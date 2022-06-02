@@ -3002,4 +3002,3 @@ static void _sbus_ifp_invoke_in_u_out_o_done(struct tevent_req *subreq)
     tevent_req_done(req);
     return;
 }
-

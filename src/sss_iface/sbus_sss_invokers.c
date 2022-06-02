@@ -3575,4 +3575,3 @@ static void _sbus_sss_invoke_in_uuusu_out_qus_done(struct tevent_req *subreq)
     tevent_req_done(req);
     return;
 }
-

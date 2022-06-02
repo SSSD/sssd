@@ -749,4 +749,3 @@ sbus_call_DBusProperties_Set_recv
 {
     return sbus_method_in_raw_out__recv(req);
 }
-
