@@ -3321,7 +3321,7 @@ class TestADParamsPorted:
         client.sssd_conf(dom_section, sssd_params)
 
         sssd_sect = {
-            'services':  'nss, pam, ssh',
+            'services': 'nss, pam, ssh',
         }
         client.sssd_conf('sssd', sssd_sect)
 

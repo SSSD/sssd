@@ -471,7 +471,7 @@ def sudo_rule(session_multihost, request):
         pytest.fail(f"Failed to add sudo rule {rule_dn}")
     else:
         extra_user = 'foo2'
-        add_extra = [(ldap.MOD_ADD,  'sudoUser',
+        add_extra = [(ldap.MOD_ADD, 'sudoUser',
                      extra_user.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(rule_dn, add_extra)
         assert ret == 'Success'
@@ -513,7 +513,7 @@ def timed_sudoers(session_multihost, request):
         pytest.fail("Failed to add sudo rule %s" % rule_dn)
     else:
         sudotime = request.param[0]
-        add_attr = [(ldap.MOD_ADD,  request.param[1],
+        add_attr = [(ldap.MOD_ADD, request.param[1],
                      sudotime.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(rule_dn, add_attr)
         assert ret == 'Success'
