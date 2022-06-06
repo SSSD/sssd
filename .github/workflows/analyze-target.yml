@@ -81,21 +81,3 @@ jobs:
         name: covscan
         path: |
           ./logs/*.err
-
-  flake8:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        persist-credentials: false
-
-    - name: Run flake8
-      uses: grantmcconnaughey/lintly-flake8-github-action@d9db4fd0be9fb1cd19206a48ec0773bd93b82cbd
-      with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          failIf: new
