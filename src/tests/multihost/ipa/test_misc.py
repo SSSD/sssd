@@ -411,7 +411,9 @@ class Testipabz(object):
                                                           r"/pubconf"
                                                           r"/known_hosts")
 
-            if server_host in known_hosts.stdout_text:
+            print(f'cat /var/lib/sss/pubconf/known_hosts\n'
+                  f'{known_hosts.stdout_text}')
+            if re.search(fr'^{server_host}', known_hosts.stdout_text):
                 return 0   # hostname not hashed
             return 1   # hostname hashed
         # ssh_hash_known_hosts is not used, default value is False
