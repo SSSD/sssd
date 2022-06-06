@@ -107,7 +107,7 @@ class TestPoorManBacktrace(object):
         # backtrace is skipped
         assert pattern2.search(log_str2) and not pattern.search(log_str2)
 
-    def test_0001_bz1949149(self, multihost, backupsssdconf):
+    def test_0002_bz1949149(self, multihost, backupsssdconf):
         """
         :title: backtrace is disabled if debug level >= 9
         :id: 50f2d501-3296-4229-86a0-b81844381637
@@ -148,7 +148,7 @@ class TestPoorManBacktrace(object):
             find = re.compile(r'BACKTRACE DUMP ENDS HERE')
             assert not find.search(log_str)
 
-    def test_0002_bz1949149(self, multihost, backupsssdconf):
+    def test_0003_bz1949149(self, multihost, backupsssdconf):
         """
         :title: set debug_backtrace_enabled false
         :id: b8084e03-5e21-45ee-a463-65ab537fa110
@@ -188,7 +188,7 @@ class TestPoorManBacktrace(object):
             find = re.compile(r'BACKTRACE DUMP ENDS HERE')
             assert not find.search(log_str)
 
-    def test_0003_bz1949149(self, multihost, backupsssdconf):
+    def test_0004_bz1949149(self, multihost, backupsssdconf):
         """
         :title: backtrace level is 0 with debug level set to 0
         :id: 4376d596-a613-447c-8f85-e3f3fbc05728
@@ -232,7 +232,7 @@ class TestPoorManBacktrace(object):
                     log_level = log_lines[index - 1]
                     assert find2.search(log_level)
 
-    def test_0004_bz1949149(self, multihost, backupsssdconf):
+    def test_0005_bz1949149(self, multihost, backupsssdconf):
         """
         :title: backtrace level is 1 with debug level set to 1
         :id: 8a8adcdd-63bc-4a64-83cd-5c7b76fe745a
