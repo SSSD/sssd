@@ -2298,7 +2298,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             Default: no_check (AD and IPA provider
-                            'pac_present, check_upn, check_upn_dns_info_ex')
+                            'check_upn, check_upn_dns_info_ex')
                         </para>
                     </listitem>
                 </varlistentry>
