@@ -144,8 +144,14 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libtool-bin
         libxml2-utils
         make
-        python-dev
+        pycodestyle
+        python3-dbus
         python3-dev
+        python3-ldap
+        python3-ldb
+        python3-psutil
+        python3-pytest
+        python3-requests
         samba-dev
         systemd
         xml-core
@@ -156,8 +162,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libnss-wrapper
         libuid-wrapper
         libpam-wrapper
-        python-pytest
-        python-psutil
         ldap-utils
         slapd
         systemtap-sdt-dev
@@ -170,28 +174,12 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         krb5-user
         uuid-dev
         dbus
-        python-dbus
-        pep8
         libssl-dev
         gnutls-bin
         softhsm2
         libp11-kit-dev
         libunistring-dev
     )
-
-    if [[ "$DISTRO_BRANCH" == -debian-ubuntu-* ]]; then
-        DEPS_LIST+=(
-            python3-ldap
-            python3-ldb
-            python3-requests
-        )
-    else
-        DEPS_LIST+=(
-            python-ldap
-            python-ldb
-            python-requests
-        )
-    fi
 
     DEPS_INTGCHECK_SATISFIED=true
 fi
