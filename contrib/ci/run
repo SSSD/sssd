@@ -66,12 +66,6 @@ declare BASE_DIR=`pwd`
 declare MODERATE=false
 declare RIGOROUS=false
 
-# pep8 was renamed to pycodestyle
-declare PEP8_BIN="pep8"
-if command -v pycodestyle &> /dev/null; then
-  PEP8_BIN="pycodestyle"
-fi
-
 # Additional valgrind flags
 declare VALGRIND_FLAGS=""
 if [ -e "$CI_DIR/sssd.$DISTRO_ID.supp" ]; then
@@ -362,7 +356,7 @@ if [[ "$DISTRO_BRANCH" != redhat-* ]]; then
     PEP8_IGNORE+=",E722"
 fi
 stage pep8          find . -path ./src/config -prune -o \
-                           -name \*.py -exec $PEP8_BIN $PEP8_IGNORE \
+                           -name \*.py -exec pycodestyle $PEP8_IGNORE \
                            $PEP8_MAX_LENGTH {} +
 stage autoreconf    autoreconf --install --force
 run_build debug     build_debug
