@@ -61,6 +61,7 @@ fi
 # sufficient to make the CI work
 if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
     CONFIGURE_ARG_LIST+=(
+        "--without-python2-bindings"
         "--with-smb-idmap-interface-version=5"
     )
 fi
