@@ -720,6 +720,24 @@ def samba_share_permissions(session_multihost, request):
 # ################### Session scoped fixtures #########################
 
 
+@pytest.fixture(scope='session', autouse=True)
+def fips_ad_support_policy(session_multihost, request):
+    """ Enable FIPS:AD-SUPPORT crypto policy added in bz2056676"""
+    old_policy = session_multihost.client[0].run_command(
+        'update-crypto-policies --show', raiseonerr=False).stdout_text
+    old_policy = old_policy.strip()
+    if "FIPS" == old_policy:
+        session_multihost.client[0].run_command(
+            'update-crypto-policies --set FIPS:AD-SUPPORT', raiseonerr=False)
+
+    def restore_policy():
+        """ Restore crypto policy """
+        if "FIPS" == old_policy:
+            session_multihost.client[0].run_command(
+                f'update-crypto-policies --set {old_policy}', raiseonerr=False)
+    request.addfinalizer(restore_policy)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_session(request, session_multihost):
     """ Setup Session """
