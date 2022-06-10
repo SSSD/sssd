@@ -266,7 +266,7 @@ class TestProxyMisc(object):
                          'proxy_pam_target': 'sssdproxyldap',
                          'ldap_schema': 'rfc2307',
                          'enumerate': 'false',
-                         'cache_credentials': 'true' }
+                         'cache_credentials': 'true'}
         tools.sssd_conf('domain/' + domain_name, domain_params)
         tools.clear_sssd_cache()
         execute_cmd(multihost, "authselect test sssd")
@@ -293,7 +293,7 @@ class TestProxyMisc(object):
                          'auth_provider': 'ldap',
                          'chpass_provider': 'proxy',
                          'proxy_pam_target': 'sssdproxyldap',
-                         'proxy_lib_name': 'ldap' }
+                         'proxy_lib_name': 'ldap'}
         tools.sssd_conf('domain/' + domain_name, domain_params)
         execute_cmd(multihost, "> /var/log/messages")
         tools.clear_sssd_cache()
