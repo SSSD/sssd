@@ -39,7 +39,7 @@ def get_centos_matrix():
 
 
 def get_other_matrix():
-    return ['debian-10']
+    return ['debian-latest']
 
 
 if __name__ == "__main__":
