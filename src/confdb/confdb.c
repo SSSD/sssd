@@ -1769,7 +1769,8 @@ int confdb_get_domains(struct confdb_ctx *cdb,
 
     ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domlist);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "No domains configured, fatal error!\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured, fatal error!\n");
+        sss_log(SSS_LOG_CRIT, "No domains configured, fatal error!\n");
         goto done;
     }
     if (ret != EOK ) {
@@ -2441,6 +2442,7 @@ int confdb_expand_app_domains(struct confdb_ctx *cdb)
     ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domlist);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured, fatal error!\n");
+        sss_log(SSS_LOG_CRIT, "No domains configured, fatal error!\n");
         goto done;
     } else if (ret != EOK ) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Fatal error retrieving domains list!\n");
