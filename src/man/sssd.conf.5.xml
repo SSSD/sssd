@@ -2246,7 +2246,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                                 <term>no_check</term>
                                 <listitem>
                                     <para>The PAC must not be present and even
-                                    if it is present no addtional checks will be
+                                    if it is present no additional checks will be
                                     done.</para>
                                 </listitem>
                             </varlistentry>
