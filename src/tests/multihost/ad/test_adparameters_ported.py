@@ -3633,3 +3633,59 @@ class TestADParamsPorted:
         assert f"Initiating TCP connection to stream {multihost.ad[0].ip}:88" \
                not in log_str
         assert kinit_cmd.returncode == 0, "kinit failed."
+
+    @staticmethod
+    def test_0043_ad_parameters_homedir_override_lowercase(
+            multihost, adjoin, create_aduser_group):
+        """
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: override homedir
+          to lowercase
+        :id: c8f6f2f9-f8d1-441c-9fba-ec9da9de3df4
+        :setup:
+         1. Configure homedir override to lowercase in domain section,
+            clear cache and restart sssd.
+         2. Create an AD user.
+        :steps:
+          1. Run getent passwd for the user and verify the home location.
+        :expectedresults:
+          1. User is found and homedir is overridden.
+        :customerscenario: False
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1964121
+        """
+        ad_domain = multihost.ad[0].domainname
+        adjoin(membersw='adcli')
+        # Create AD user and group
+        (aduser, _) = create_aduser_group
+
+        # Modify user homedir to uppercase
+        multihost.ad[0].run_command(
+            f"powershell 'Import-Module ActiveDirectory; Set-ADUser -identity"
+            f" \"{aduser}\" -Replace @{{unixHomeDirectory="
+            f"\"/home/{aduser.upper()}\"}}'",
+            raiseonerr=False
+        )
+
+        # Configure sssd
+        multihost.client[0].service_sssd('stop')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        client.backup_sssd_conf()
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True',
+            'cache_credentials': 'True',
+            'override_homedir': '%h'
+        }
+        client.sssd_conf(dom_section, sssd_params)
+        client.clear_sssd_cache()
+        # Search for the user
+        usr_cmd = multihost.client[0].run_command(
+            f'getent passwd {aduser}@{ad_domain}',
+            raiseonerr=False
+        )
+
+        client.restore_sssd_conf()
+        client.clear_sssd_cache()
+
+        # Evaluate test results
+        assert f'/home/{aduser.lower()}' in usr_cmd.stdout_text
