@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-06-02 12:50+0200\n"
-"PO-Revision-Date: 2022-05-13 11:18+0000\n"
+"PO-Revision-Date: 2022-06-14 12:22+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ru/>\n"
@@ -1088,10 +1088,8 @@ msgstr "По умолчанию: не задано"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:697
-#, fuzzy
-#| msgid "ad_gpo_implicit_deny (boolean)"
 msgid "implicit_pac_responder (boolean)"
-msgstr "ad_gpo_implicit_deny (логическое значение)"
+msgstr "implicit_pac_responder (логическое значение)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:700
@@ -1100,6 +1098,9 @@ msgid ""
 "evaluate and check the PAC. If it has to be disabled set this option to "
 "'false'."
 msgstr ""
+"Ответчик PAC включается автоматически для поставщиков IPA и AD для оценки и "
+"проверки PAC. Если его необходимо отключить, установите для этого параметра "
+"значение «false»."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:208
@@ -2947,6 +2948,8 @@ msgstr ""
 #: sssd.conf.5.xml:1961
 msgid "idp -- pre-authentication using external identity provider."
 msgstr ""
+"idp -- предварительная аутентификация с использованием внешнего поставщика "
+"удостоверений."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1971
@@ -3307,15 +3310,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2236
-#, fuzzy
-#| msgid "ldap_schema (string)"
 msgid "pac_check (string)"
-msgstr "ldap_schema (строка)"
+msgstr "pac_check (строка)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2246
 msgid "no_check"
-msgstr ""
+msgstr "no_check"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2248
@@ -3323,13 +3324,13 @@ msgid ""
 "The PAC must not be present and even if it is present no addtional checks "
 "will be done."
 msgstr ""
+"PAC не должен присутствовать, и даже если он имеется, никакие дополнительные "
+"проверки выполняться не будут."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2254
-#, fuzzy
-#| msgid "present"
 msgid "pac_present"
-msgstr "присутствуют"
+msgstr "pac_present"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2256
@@ -3338,13 +3339,14 @@ msgid ""
 "the help of the user's TGT. If the PAC is not available the authentication "
 "will fail."
 msgstr ""
+"PAC должен присутствовать в билете службы, который SSSD запрашивает с "
+"помощью TGT пользователя. Если PAC недоступен, аутентификация завершится "
+"ошибкой."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2264
-#, fuzzy
-#| msgid "pam_gssapi_check_upn"
 msgid "check_upn"
-msgstr "pam_gssapi_check_upn"
+msgstr "check_upn"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2266
@@ -3352,21 +3354,25 @@ msgid ""
 "If the PAC is present check if the user principal name (UPN) information is "
 "consistent."
 msgstr ""
+"Если PAC присутствует, проверить, что информация об основном имени "
+"пользователя (UPN) верна."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2272
 msgid "upn_dns_info_present"
-msgstr ""
+msgstr "upn_dns_info_present"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2274
 msgid "The PAC must contain the UPN-DNS-INFO buffer, implies 'check_upn'."
 msgstr ""
+"PAC должен содержать буфер UPN-DNS-INFO, неявным образом устанавливает "
+"'check_upn'."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2279
 msgid "check_upn_dns_info_ex"
-msgstr ""
+msgstr "check_upn_dns_info_ex"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2281
@@ -3374,11 +3380,13 @@ msgid ""
 "If the PAC is present and the extension to the UPN-DNS-INFO buffer is "
 "available check if the information in the extension is consistent."
 msgstr ""
+"Если PAC присутствует и доступно расширение буфера UPN-DNS-INFO, проверить, "
+"согласованы ли данные в расширении."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2288
 msgid "upn_dns_info_ex_present"
-msgstr ""
+msgstr "upn_dns_info_ex_present"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2290
@@ -3386,6 +3394,8 @@ msgid ""
 "The PAC must contain the extension of the UPN-DNS-INFO buffer, implies "
 "'check_upn_dns_info_ex', 'upn_dns_info_present' and 'check_upn'."
 msgstr ""
+"PAC должен содержать расширение буфера UPN-DNS-INFO, неявным образом "
+"устанавливает 'check_upn_dns_info_ex', 'upn_dns_info_present' и 'check_upn'."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2239
@@ -3395,6 +3405,10 @@ msgid ""
 "options can be used alone or in a comma-separated list: <placeholder type="
 "\"variablelist\" id=\"0\"/>"
 msgstr ""
+"Применить дополнительные проверки PAC билета Kerberos, который, если "
+"настроен, доступен в доменах Active Directory и FreeIPA. Указанные ниже "
+"параметры можно использовать отдельно или в виде списка параметров, "
+"разделенного запятыми: <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2300
@@ -3402,6 +3416,8 @@ msgid ""
 "Default: no_check (AD and IPA provider 'pac_present, check_upn, "
 "check_upn_dns_info_ex')"
 msgstr ""
+"По умолчанию: no_check (для поставщиков AD и IPA provider — 'pac_present, "
+"check_upn, check_upn_dns_info_ex')"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:2309
@@ -20132,17 +20148,13 @@ msgstr "По умолчанию: ipNetworkNumber"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd_krb5_localauth_plugin.8.xml:10 sssd_krb5_localauth_plugin.8.xml:15
-#, fuzzy
-#| msgid "sssd_krb5_locator_plugin"
 msgid "sssd_krb5_localauth_plugin"
-msgstr "sssd_krb5_locator_plugin"
+msgstr "sssd_krb5_localauth_plugin"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd_krb5_localauth_plugin.8.xml:16
-#, fuzzy
-#| msgid "Kerberos locator plugin"
 msgid "Kerberos local authorization plugin"
-msgstr "Модуль локатора Kerberos"
+msgstr "Модуль локальной авторизации Kerberos"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:22
@@ -20152,6 +20164,11 @@ msgid ""
 "Kerberos principal or to check if a given local name and a given Kerberos "
 "principal relate to each other."
 msgstr ""
+"Подключаемый модуль локальной авторизации Kerberos "
+"<command>sssd_krb5_localauth_plugin</command> используется libkrb5 либо для "
+"поиска локального имени для данного принципала Kerberos, либо для проверки "
+"того, связаны ли данное локальное имя и данный принципал Kerberos друг с "
+"другом."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:29
@@ -20161,6 +20178,11 @@ msgid ""
 "information SSSD can easily handle the mappings mentioned above even if the "
 "local name and the Kerberos principal differ considerably."
 msgstr ""
+"SSSD обрабатывает локальные имена пользователей из удаленного источника, а "
+"также может считывать имя пользователя (UPN) Kerberos из удаленного "
+"источника. С помощью этой информации SSSD может легко обрабатывать "
+"сопоставления, упомянутые выше, даже если локальное имя и принципал Kerberos "
+"значительно различаются."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:36
@@ -20172,13 +20194,18 @@ msgid ""
 "principal to get the local name which would lead to wrong mappings in this "
 "case."
 msgstr ""
+"Кроме того, благодаря информации, считанной с удаленного источника, SSSD "
+"может предотвратить неожиданные или нежелательные привязки в случае, если "
+"пользовательская часть принципала Kerberos случайно совпадает с локальным "
+"именем другого пользователя. По умолчанию libkrb5 может просто удалить из "
+"регистрационной записи Kerberos часть, связанную с областью действия, для "
+"получения локального имени, что в этом случае может привести к ошибочным "
+"привязкам."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd_krb5_localauth_plugin.8.xml:46
-#, fuzzy
-#| msgid "CONFIGURATION FILE"
 msgid "CONFIGURATION"
-msgstr "ФАЙЛ КОНФИГУРАЦИИ"
+msgstr "КОНФИГУРАЦИЯ"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd_krb5_localauth_plugin.8.xml:56
@@ -20189,6 +20216,10 @@ msgid ""
 "  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
 " }\n"
 msgstr ""
+"[plugins]\n"
+" localauth = {\n"
+"  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
+" }\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:48
@@ -20201,6 +20232,13 @@ msgid ""
 "snippet directory. If this directory is included in the local Kerberos "
 "configuration the plugin will be enabled automatically."
 msgstr ""
+"Подключаемый модуль локальной авторизации Kerberos должен быть явно включен "
+"в конфигурации Kerberos, см. <citerefentry> <refentrytitle>krb5.conf</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>.  SSSD автоматически "
+"создаст фрагмент конфигурации, например, с таким содержимым: <placeholder "
+"type=\"programlisting\" id=\"0\"/> в общедоступном каталоге фрагментов "
+"конфигурации SSSD Kerberos. Если этот каталог включен в локальную "
+"конфигурацию Kerberos, подключаемый модуль будет включен автоматически."
 
 #. type: Content of: <variablelist><varlistentry><term>
 #: include/autofs_attributes.xml:3

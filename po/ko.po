@@ -1832,7 +1832,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:552
 msgid "The number of preforked proxy children."
-msgstr "미리 정렬된 프록시 하위 항목 수입니다."
+msgstr "미리 정렬된 프락시 하위 항목 수입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:555
 msgid "The name of the NSS library to use"
@@ -2147,12 +2147,12 @@ msgstr "호스트가 지정되지 않았습니다\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:245
 msgid "The path to the proxy command must be absolute\n"
-msgstr "프록시 명령의 경로는 절대 경로여야 합니다.\n"
+msgstr "프락시 명령의 경로는 절대 경로여야 합니다.\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:326
 #, c-format
 msgid "sss_ssh_knownhostsproxy: unable to proxy data: %s\n"
-msgstr "sss_ssh_knownhostsproxy: 데이터를 프록시할 수 없습니다. %s\n"
+msgstr "sss_ssh_knownhostsproxy: 프락시 자료에 연결 할 수 없습니다: %s\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:330
 #, c-format
