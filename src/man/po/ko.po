@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2022-05-22 09:18+0000\n"
+"PO-Revision-Date: 2022-06-12 21:18+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -3776,7 +3776,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3122
 msgid "<quote>none</quote> disallows fetching selinux settings explicitly."
-msgstr ""
+msgstr "<quote>none</quote>는 selinux 설정을 명시적으로 가져오지 않도록 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3125
@@ -12015,7 +12015,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_override.8.xml:56 sssctl.8.xml:41
 msgid "AVAILABLE COMMANDS"
-msgstr ""
+msgstr "이용 가능한 명령"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_override.8.xml:58
@@ -12084,7 +12084,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:124
 msgid "<option>user-import</option> <emphasis>FILE</emphasis>"
-msgstr ""
+msgstr "<option>user-import</option> <emphasis>파일</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_override.8.xml:129
@@ -12119,7 +12119,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:155
 msgid "<option>user-export</option> <emphasis>FILE</emphasis>"
-msgstr ""
+msgstr "<option>user-export</option> <emphasis>파일</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_override.8.xml:160
@@ -12183,7 +12183,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:221
 msgid "<option>group-import</option> <emphasis>FILE</emphasis>"
-msgstr ""
+msgstr "<option>group-import</option> <emphasis>파일</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_override.8.xml:226
@@ -12235,7 +12235,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_override.8.xml:269 sssctl.8.xml:52
 msgid "Those options are available with all commands."
-msgstr ""
+msgstr "이들 선택은 모든 명령과 함께 사용 할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:274 sssctl.8.xml:57
@@ -13911,7 +13911,7 @@ msgstr ""
 #. type: Content of: <refsect1><title>
 #: sss_rpcidmapd.5.xml:120 sssd-kcm.8.xml:316 include/seealso.xml:2
 msgid "SEE ALSO"
-msgstr ""
+msgstr "또 보세요"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_rpcidmapd.5.xml:122
@@ -17047,7 +17047,7 @@ msgstr "그룹의 id에 해당하는 LDAP 속성."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:687
 msgid "ldap_group_member (string)"
-msgstr ""
+msgstr "ldap_group_member (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:690
@@ -17062,7 +17062,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:700
 msgid "ldap_group_uuid (string)"
-msgstr ""
+msgstr "ldap_group_uuid (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:703
@@ -17089,7 +17089,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:742
 msgid "ldap_group_type (string)"
-msgstr ""
+msgstr "ldap_group_type (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:745
@@ -17156,7 +17156,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:802
 msgid "ldap_netgroup_name (string)"
-msgstr ""
+msgstr "ldap_netgroup_name (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:805
@@ -17623,7 +17623,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1258
 msgid "ldap_ipnetwork_number (string)"
-msgstr ""
+msgstr "ldap_ipnetwork_number (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1261
@@ -18189,7 +18189,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:210
 msgid "ldap_idmap_default_domain (string)"
-msgstr ""
+msgstr "ldap_idmap_default_domain (문자열)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:213
