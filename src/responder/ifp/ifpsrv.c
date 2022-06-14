@@ -210,7 +210,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = csv_string_to_uid_array(ifp_ctx->rctx, uid_str, false,
+    ret = csv_string_to_uid_array(ifp_ctx->rctx, uid_str,
                                   &ifp_ctx->rctx->allowed_uids_count,
                                   &ifp_ctx->rctx->allowed_uids);
     talloc_free(uid_str);
