@@ -194,7 +194,6 @@ errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
 }
 
 errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
-                                bool prevent_sss_loops,
                                 size_t *_uid_count, uid_t **_uids)
 {
     int ret;
@@ -209,10 +208,12 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
     envvar = getenv("_SSS_LOOPS");
     loops_were_allowed = (envvar == NULL || strcmp(envvar, "NO") != 0);
 
-    ret = setenv("_SSS_LOOPS", prevent_sss_loops ? "NO" : "YES" , 1);
-    if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to set _SSS_LOOPS.\n");
-        goto done;
+    if (!loops_were_allowed) {
+        ret = unsetenv("_SSS_LOOPS");
+        if (ret != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to unset _SSS_LOOPS.\n");
+            goto done;
+        }
     }
 
     ret = split_on_separator(mem_ctx, csv_string, ',', true, false,
@@ -265,8 +266,10 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
     ret = EOK;
 
 done:
-    if (setenv("_SSS_LOOPS", loops_were_allowed ? "YES" : "NO" , 1) != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to restore _SSS_LOOPS.\n");
+    if (!loops_were_allowed) {
+        if (setenv("_SSS_LOOPS", "NO" , 0) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to restore _SSS_LOOPS.\n");
+        }
     }
     talloc_free(list);
     if (ret != EOK) {

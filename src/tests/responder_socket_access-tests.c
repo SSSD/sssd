@@ -69,7 +69,7 @@ START_TEST(resp_str_to_array_test)
 
     for (c = 0; s2a_data[c].exp_ret != -1; c++) {
         ret = csv_string_to_uid_array(global_talloc_context, s2a_data[c].inp,
-                                      false, &uid_count, &uids);
+                                      &uid_count, &uids);
         ck_assert_msg(ret == s2a_data[c].exp_ret,
                     "csv_string_to_uid_array failed [%d][%s].", ret,
                                                                 strerror(ret));
