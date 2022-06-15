@@ -1243,6 +1243,10 @@ struct sdap_pam_chpass_handler_state {
 };
 
 static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq);
+static int
+sdap_pam_chpass_handler_change_step(struct sdap_pam_chpass_handler_state *state,
+                                    struct tevent_req *req,
+                                    enum pwexpire pw_expire_type);
 static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq);
 static void sdap_pam_chpass_handler_last_done(struct tevent_req *subreq);
 
@@ -1311,6 +1315,26 @@ immediately:
     return req;
 }
 
+static bool confdb_is_set_explicit(struct confdb_ctx *cdb, const char *section,
+                                   const char *attribute)
+{
+    int ret;
+    char **vals = NULL;
+    bool update_option_set_explictly = false;
+
+    ret = confdb_get_param(cdb, NULL, section, attribute, &vals);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to check if [%s] is set "
+              "explicitly in sssd.conf, assuming it is not set.\n",
+              attribute);
+    } else if (vals != NULL && vals[0] != NULL) {
+        update_option_set_explictly = true;
+    }
+    talloc_free(vals);
+
+    return update_option_set_explictly;
+}
+
 static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
 {
     struct sdap_pam_chpass_handler_state *state;
@@ -1368,30 +1392,13 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
         case ERR_PASSWORD_EXPIRED:
             DEBUG(SSSDBG_TRACE_LIBS,
                   "user [%s] successfully authenticated.\n", state->dn);
-            if (pw_expire_type == PWEXPIRE_SHADOW) {
-                /* TODO: implement async ldap modify request */
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Changing shadow password attributes not implemented.\n");
-                state->pd->pam_status = PAM_MODULE_UNKNOWN;
+            ret = sdap_pam_chpass_handler_change_step(state, req, pw_expire_type);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sdap_pam_chpass_handler_change_step() failed.\n");
                 goto done;
-            } else {
-                subreq = sdap_pam_change_password_send(state, state->ev,
-                                                       state->sh,
-                                                       state->auth_ctx->opts,
-                                                       state->pd,
-                                                       state->dn);
-                if (subreq == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, "Failed to change password for "
-                          "%s\n", state->pd->user);
-                    state->pd->pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-
-                tevent_req_set_callback(subreq,
-                                        sdap_pam_chpass_handler_chpass_done,
-                                        req);
-                return;
             }
+            return;
             break;
         case ERR_AUTH_DENIED:
         case ERR_AUTH_FAILED:
@@ -1422,6 +1429,63 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
 done:
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
+}
+
+static int
+sdap_pam_chpass_handler_change_step(struct sdap_pam_chpass_handler_state *state,
+                                    struct tevent_req *req,
+                                    enum pwexpire pw_expire_type)
+{
+    int ret;
+    struct tevent_req *subreq;
+    bool update_option_set_explictly = false;
+
+    if (pw_expire_type == PWEXPIRE_SHADOW) {
+
+        update_option_set_explictly = confdb_is_set_explicit(
+                   state->be_ctx->cdb, state->be_ctx->conf_path,
+                   state->auth_ctx->opts->basic[SDAP_CHPASS_UPDATE_LAST_CHANGE].opt_name);
+
+        if (!dp_opt_get_bool(state->auth_ctx->opts->basic,
+                             SDAP_CHPASS_UPDATE_LAST_CHANGE)
+                    && !update_option_set_explictly) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+               "Shadow password policy is selected but "
+               "ldap_chpass_update_last_change is not set, please "
+               "make sure your LDAP server can update the [%s] "
+               "attribute automatically. Otherwise SSSD might "
+               "consider your password as expired.\n",
+               state->auth_ctx->opts->user_map[SDAP_AT_SP_LSTCHG].name);
+        }
+        ret = sysdb_invalidate_cache_entry(state->be_ctx->domain,
+                                           state->pd->user, true);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+               "Failed to invalidate cache entry for user [%s] with error code "
+               "[%d][%s]. The last changed attribute [%s] might not get "
+               "refreshed after the password and the password might still be "
+               "considered as expired. Call sss_cache for this user "
+               "to expire the entry manually in this case.\n",
+               state->pd->user, ret, sss_strerror(ret),
+               state->auth_ctx->opts->user_map[SDAP_AT_SP_LSTCHG].name);
+        }
+    }
+    subreq = sdap_pam_change_password_send(state, state->ev,
+                                           state->sh,
+                                           state->auth_ctx->opts,
+                                           state->pd,
+                                           state->dn);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to change password for "
+              "%s\n", state->pd->user);
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq,
+                            sdap_pam_chpass_handler_chpass_done,
+                            req);
+    return EOK;
 }
 
 static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq)
