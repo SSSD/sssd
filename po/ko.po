@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-06-02 12:54+0200\n"
-"PO-Revision-Date: 2022-05-14 13:18+0000\n"
+"PO-Revision-Date: 2022-06-17 14:30+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-7/ko/>\n"
@@ -158,7 +158,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:56
 msgid "Run PAC responder automatically for AD and IPA provider"
-msgstr ""
+msgstr "AD와 IPA 공급자를 위해 자동으로 PAC 응답자 실행"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 #: src/config/SSSDConfig/sssdoptions.py:58
@@ -481,7 +481,7 @@ msgstr "PAC 데이터가 유효한 것으로 간주되는 기간"
 
 #: src/config/SSSDConfig/sssdoptions.py:137
 msgid "Validate the PAC"
-msgstr ""
+msgstr "PAC 검증"
 
 #: src/config/SSSDConfig/sssdoptions.py:140
 #: src/config/SSSDConfig/sssdoptions.py:138
@@ -2346,7 +2346,7 @@ msgstr "로깅 목적을 위해 사용되는 T이벤트 체인 ID"
 
 #: src/providers/krb5/krb5_child.c:3784
 msgid "Check PAC flags"
-msgstr ""
+msgstr "PAC 플래그 점검"
 
 #: src/providers/krb5/krb5_child.c:3826 src/providers/ldap/ldap_child.c:663
 #: src/providers/krb5/krb5_child.c:3776
