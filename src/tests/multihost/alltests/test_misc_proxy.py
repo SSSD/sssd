@@ -6,10 +6,10 @@
 :upstream: yes
 """
 from __future__ import print_function
-import pytest
 import subprocess
 import time
 import os
+import pytest
 import ldap
 from sssd.testlib.common.utils import sssdTools, SSHClient, LdapOperations
 from sssd.testlib.common.libkrb5 import krb5srv
@@ -19,6 +19,30 @@ def execute_cmd(multihost, command):
     """ Execute command on client """
     cmd = multihost.client[0].run_command(command)
     return cmd
+
+
+@pytest.fixture(scope='function')
+def proxy_sleep(multihost, request):
+    """ Create sssd proxy pam ldap config file """
+    execute_cmd(multihost, "echo 'auth required pam_exec.so "
+                           "/usr/bin/sleep 100' > "
+                           "/etc/pam.d/proxy_sleep")
+    execute_cmd(multihost, "echo 'password required pam_exec.so "
+                           "/usr/bin/sleep 100' >> "
+                           "/etc/pam.d/proxy_sleep")
+    execute_cmd(multihost, "echo 'account required pam_exec.so "
+                           "/usr/bin/sleep 100' >> "
+                           "/etc/pam.d/proxy_sleep")
+    execute_cmd(multihost, "echo 'session required pam_exec.so "
+                           "/usr/bin/sleep 100' >> "
+                           "/etc/pam.d/proxy_sleep")
+
+    def removeproxyldap():
+        """ Remove sssd proxy pam ldap config file """
+        remote = '/etc/pam.d/proxy_sleep'
+        cmd = 'rm -f %s' % remote
+        multihost.client[0].run_command(cmd)
+    request.addfinalizer(removeproxyldap)
 
 
 @pytest.fixture(scope='class')
@@ -49,19 +73,19 @@ def create_user_with_cn(multihost, request):
     (_, _) = ldap_inst.add_entry(user_info, user_dn)
     krb.add_principal('foo12', 'user', 'Secret123')
     execute_cmd(multihost, "useradd foo12")
-    execute_cmd(multihost, f"echo Secret123 | passwd --stdin foo12")
+    execute_cmd(multihost, "echo Secret123 | passwd --stdin foo12")
     client = multihost.client[0]
     file_location = '/script/sssdproxymisc.sh'
     client.transport.put_file(os.path.dirname(os.path.abspath(__file__))
                               + file_location,
                               '/tmp/sssdproxymisc.sh')
-    execute_cmd(multihost, f"chmod 755 /tmp/sssdproxymisc.sh")
+    execute_cmd(multihost, "chmod 755 /tmp/sssdproxymisc.sh")
 
     def restoresssdconf():
         """ Restore sssd.conf """
         execute_cmd(multihost, "userdel -rf foo12")
-        ldap_inst.del_dn(f'cn=foo12,ou=People,dc=example,dc=test')
-        krb.delete_principal(f'foo12')
+        ldap_inst.del_dn('cn=foo12,ou=People,dc=example,dc=test')
+        krb.delete_principal('foo12')
         execute_cmd(multihost, "rm -vf /tmp/sssdproxymisc.sh")
 
     request.addfinalizer(restoresssdconf)
@@ -348,6 +372,66 @@ class TestProxyMisc(object):
         ssh1 = SSHClient(client_e, username="foo2", password="Secret123")
         ssh1.close()
         execute_cmd(multihost, "userdel -rf foo2")
+
+    def test_bz1927195(self, multihost,
+                       backupsssdconf,
+                       proxy_sleep):
+        """
+        :title: sssd runs out of proxy child slots and
+          doesn't clear the counter for Active requests
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1927195
+        :id: 4c5b53e2-ec88-11ec-a41a-845cf3eff344
+        :customerscenario: true
+        :steps:
+            1. Configure sssd with proxy
+            2. Try sssctl user-checks user@domain 11 times
+            3. Logs should have one error 'All available
+               child slots are full'
+            4. 11th user-check should cause error "" in logs
+            5. 12th user-check should not cause error message in logs
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+            4. Logs should have single count of error
+               message caused by 11th user-check
+            5. Logs should have single count of error
+               message from 11th user-check, as 12th user-check works
+        """
+        # When using authentication provider as proxy,
+        # User authentication suddenly stops working and
+        # starts working again only after restarting the sssd service.
+        tools = sssdTools(multihost.client[0])
+        domain_name = tools.get_domain_section_name()
+        domain_params = {'debug_level': '9',
+                         'id_provider': 'ldap',
+                         'proxy_pam_target': 'proxy_sleep',
+                         'auth_provider': 'proxy',
+                         'chpass_provider': 'ldap',
+                         'proxy_max_children': '10',
+                         'enumerate': 'false',
+                         'entry_cache_timeout': '300',
+                         'access_provider': 'proxy'}
+        tools.sssd_conf('domain/' + domain_name, domain_params)
+        tools.clear_sssd_cache()
+        sssctl_user_check = 'for i in {1..11}; do sssctl user-checks foo1@example1' \
+                            ' > /dev/null 2>&1 & done'
+        execute_cmd(multihost, sssctl_user_check)
+        time.sleep(3)
+        result = execute_cmd(multihost, "grep -c 'All available "
+                                        "child slots are full, "
+                                        "queuing request' "
+                                        "/var/log/sssd/sssd_example1.log")
+        assert result.stdout_text == '1\n'
+        time.sleep(60)
+        sssctl_user_check = 'sssctl user-checks foo1@example1 > /dev/null 2>&1 &'
+        execute_cmd(multihost, sssctl_user_check)
+        time.sleep(2)
+        result = execute_cmd(multihost, "grep -c 'All available "
+                                        "child slots are full, "
+                                        "queuing request' "
+                                        "/var/log/sssd/sssd_example1.log")
+        assert result.stdout_text == '1\n'
 
     def test_bz1368467(self, multihost, backupsssdconf,
                        create_350_posix_users):
