@@ -1994,7 +1994,12 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         if (pin != NULL) {
             rv = module->C_Login(session, CKU_USER, discard_const(pin),
                                  strlen(pin));
-            if (rv != CKR_OK) {
+            if (rv == CKR_PIN_LOCKED) {
+                DEBUG(SSSDBG_OP_FAILURE, "C_Login failed: PIN locked\n");
+                ret = ERR_P11_PIN_LOCKED;
+                goto done;
+            }
+            else if (rv != CKR_OK) {
                 DEBUG(SSSDBG_OP_FAILURE, "C_Login failed [%lu][%s].\n",
                                  rv, p11_kit_strerror(rv));
                 ret = EIO;

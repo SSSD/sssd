@@ -604,6 +604,8 @@ enum user_info_type {
                                         * value of 0 indicates that no message
                                         * is following. @param String with the
                                         * specified length. */
+
+    SSS_PAM_USER_INFO_PIN_LOCKED, /**< Tell the user that the PIN is locked */
 };
 /**
  * @}
