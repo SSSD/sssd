@@ -943,13 +943,19 @@ class sssdTools(object):
         """ Enable autofs schema(rfc2307) on windows AD """
         self.ad_conn.autofs_ad_schema(self.ad_basedn)
 
-    def remove_automount(self):
+    def remove_automount(self, verbose=True):
         """ Deletes all map entries, maps and automount DN """
         automount_dn = '{},{}'.format('ou=automount', self.ad_basedn)
-        remove_automount = "powershell.exe -inputformat none -noprofile "\
-                           "'(Remove-ADOrganizationalUnit -Identity \"%s\" "\
-                           "-Recursive -Confirm:$false)'" % (automount_dn)
-        self.adhost.run_command(remove_automount)
+        # Unprotect the OU so it can be deleted recursively
+        mod_ou = f"powershell.exe -inputformat none -noprofile '" \
+                 f"Set-ADOrganizationalUnit  -Identity \"{automount_dn}\"" \
+                 f" -Confirm:$False -ProtectedFromAccidentalDeletion $false'"
+        self.adhost.run_command(mod_ou, log_stdout=verbose, raiseonerr=False)
+        remove_automount = f"powershell.exe -inputformat none -noprofile "\
+                           f"'(Remove-ADOrganizationalUnit -Recursive"\
+                           f"-Identity \"{automount_dn}\" -Confirm:$false)'"
+        self.adhost.run_command(
+            remove_automount, log_stdout=verbose, raiseonerr=False)
 
     def backup_sssd_conf(self):
         """ Backup sssd conf """
@@ -1684,28 +1690,60 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
         grp_result = self.ad_host.run_command(del_mbr, raiseonerr=False)
         return grp_result.returncode == 0
 
+    def add_autofs_schema(self):
+        """Create autofs schema on AD server"""
+        add_ou = f"powershell.exe -inputformat none -noprofile '" \
+                 f"New-ADOrganizationalUnit  -Name \"automount\" " \
+                 f"-Path \"{self.ad_basedn}\" -Confirm:$False " \
+                 f"-ProtectedFromAccidentalDeletion $false'"
+        self.ad_host.run_command(add_ou, raiseonerr=False)
+
+        add_top = f"powershell.exe -inputformat none -noprofile '" \
+                  f"New-ADObject -Name \"auto.master\" -Path \"OU=automount," \
+                  f"{self.ad_basedn}\" -Type nisMap -OtherAttributes " \
+                  f"@{{\"nisMapName\"=\"auto.master\"}}'"
+        self.ad_host.run_command(add_top)
+
+        add_root = f"powershell.exe -inputformat none -noprofile '" \
+                   f"New-ADObject -Name \"/-\" -Path \"CN=auto.master," \
+                   f"OU=automount,{self.ad_basedn}\" -Type nisObject " \
+                   f"-OtherAttributes @{{\"nisMapName\"=\"auto.master\" ; " \
+                   f"\"nisMapEntry\"=\"auto.direct\"}}'"
+        self.ad_host.run_command(add_root)
+
+        add_direct = f"powershell.exe -inputformat none -noprofile '" \
+                     f"New-ADObject -Name \"auto.direct\" -Path \"" \
+                     f"OU=automount,{self.ad_basedn}\" -Type nisMap " \
+                     f"-OtherAttributes @{{\"nisMapName\"=\"auto.direct\"}}'"
+        self.ad_host.run_command(add_direct)
+
+        add_home = f"powershell.exe -inputformat none -noprofile '" \
+                   f"New-ADObject -Name \"auto.home\" -Path \"" \
+                   f"OU=automount,{self.ad_basedn}\" -Type nisMap " \
+                   f"-OtherAttributes @{{\"nisMapName\"=\"auto.home\"}}'"
+        self.ad_host.run_command(add_home)
+
     def add_map(self, name, nfs_server):
         """ Add a nisobject to auto.direct map """
-        # TODO: Rewrite in powershell if possible.
-        ad_conn_inst = self.ad_conn()
-        entrydn = 'cn=%s,cn=auto.direct,ou=automount,%s' % (name,
-                                                            self.ad_basedn)
-        nismapentry = '-fstype=nfs,rw %s:%s' % (nfs_server, name)
-        attr = {
-            'objectclass': [b'top', b'nisObject'],
-            'cn': name.encode('utf-8'),
-            'nisMapEntry': nismapentry.encode('utf-8'),
-            'nisMapName': b'auto.direct'}
-        (ret, _) = ad_conn_inst.add_entry(attr, entrydn)
+        entrydn = f'cn=auto.direct,ou=automount,{self.ad_basedn}'
+        nismapentry = f'-fstype=nfs,rw {nfs_server}:{name}'
+
+        add_map = f"powershell.exe -inputformat none -noprofile '" \
+                  f"New-ADObject -Name \"{name}\" -Path \"" \
+                  f"{entrydn}\" -Type nisObject " \
+                  f"-OtherAttributes @{{\"nisMapName\"=\"auto.direct\" ; " \
+                  f"\"nisMapEntry\"=\"{nismapentry}\"}}'"
+        add = self.ad_host.run_command(add_map, raiseonerr=False)
+        ret = 'Success' if add.returncode == 0 else 'Failure'
         return ret
 
     def delete_map(self, name):
         """ Remove nismap """
-        # TODO: Rewrite in powershell if possible.
-        ad_conn_inst = self.ad_conn()
-        entrydn = 'cn=%s,cn=auto.direct,ou=automount,%s' % (name,
-                                                            self.ad_basedn)
-        (ret, _) = ad_conn_inst.del_dn(entrydn)
+        del_map = f"powershell.exe -inputformat none -noprofile '" \
+                  f"Remove-ADObject -Confirm:$False -Identity " \
+                  f"\"CN={name},cn=auto.direct,ou=automount,{self.ad_basedn}\"'"
+        del_cmd = self.ad_host.run_command(del_map, raiseonerr=False)
+        ret = 'Success' if del_cmd.returncode == 0 else 'Failure'
         return ret
 
     def expire_account(self, user):

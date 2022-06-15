@@ -390,13 +390,14 @@ def enable_autofs_schema(session_multihost, request):
     ad_password = session_multihost.ad[0].ssh_password
     ad_client = sssdTools(session_multihost.client[0], session_multihost.ad[0])
     try:
-        ad_client.remove_automount()
+        ad_client.remove_automount(verbose=False)
     except subprocess.CalledProcessError:
         print("Automount entry not found")
     else:
         print("Existing automount entry deleted")
     realm_output = ad_client.join_ad(ad_realm, ad_password)
-    ad_client.autofs_ad_schema()
+    ad = ADOperations(session_multihost.ad[0])
+    ad.add_autofs_schema()
 
     def remove_automount_entries():
         """ Remove autofs schema from Windows AD """
