@@ -1127,6 +1127,8 @@ host/*
                             <citerefentry><refentrytitle>shadow</refentrytitle>
                             <manvolnum>5</manvolnum></citerefentry> style
                             attributes to evaluate if the password has expired.
+                            Please see option "ldap_chpass_update_last_change"
+                            as well.
                         </para>
                         <para>
                             <emphasis>mit_kerberos</emphasis> - Use the attributes
@@ -1211,6 +1213,14 @@ host/*
                             ldap_user_shadow_last_change attribute with
                             days since the Epoch after a password change
                             operation.
+                        </para>
+                        <para>
+                            It is recommend to set this option explicitly if
+                            "ldap_pwd_policy = shadow" is used to let SSSD
+                            know if the LDAP server will update
+                            shadowLastChange LDAP attribute automatically
+                            after a password change or if SSSD has to update
+                            it.
                         </para>
                         <para>
                             Default: False
