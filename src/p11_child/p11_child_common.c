@@ -305,7 +305,8 @@ int main(int argc, const char *argv[])
     debug_prg_name = talloc_asprintf(NULL, "p11_child[%d]", getpid());
     if (debug_prg_name == NULL) {
         ERROR("talloc_asprintf failed.\n");
-        goto fail;
+        ret = ENOMEM;
+        goto done;
     }
 
     if (debug_fd != -1) {
@@ -338,7 +339,8 @@ int main(int argc, const char *argv[])
     if (main_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
         talloc_free(discard_const(debug_prg_name));
-        goto fail;
+        ret = ENOMEM;
+        goto done;
     }
     talloc_steal(main_ctx, debug_prg_name);
 
@@ -348,13 +350,15 @@ int main(int argc, const char *argv[])
         DEBUG(SSSDBG_FATAL_FAILURE,
               "--module_name, --token_name and --key_id must be given for "
               "authentication\n");
-        goto fail;
+        ret = EINVAL;
+        goto done;
     }
 
     ret = parse_cert_verify_opts(main_ctx, verify_opts, &cert_verify_opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse verify option.\n");
-        goto fail;
+        ret = EINVAL;
+        goto done;
     }
 
     if (mode == OP_VERIFIY && !cert_verify_opts->do_verification) {
@@ -367,32 +371,27 @@ int main(int argc, const char *argv[])
         ret = p11c_recv_data(main_ctx, STDIN_FILENO, &pin);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Failed to read PIN.\n");
-            goto fail;
+            ret = EINVAL;
+            goto done;
         }
     }
 
     ret = do_work(main_ctx, mode, ca_db, cert_verify_opts, wait_for_card,
                   cert_b64, pin, module_name, token_name, key_id, label, uri,
                   &multi);
-    if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "do_work failed.\n");
-        goto fail;
-    }
 
-    if (multi != NULL) {
-        fprintf(stdout, "%s", multi);
-    }
+done:
+    fprintf(stdout, "%d\n%s", ret, multi ? multi : "");
 
     talloc_free(main_ctx);
-    return EXIT_SUCCESS;
-fail:
-    DEBUG(SSSDBG_CRIT_FAILURE, "p11_child failed!\n");
-    close(STDOUT_FILENO);
-    talloc_free(main_ctx);
 
-    if (ret == ERR_CA_DB_NOT_FOUND) {
+    if (ret == EOK) {
+        return EXIT_SUCCESS;
+    } else if (ret == ERR_CA_DB_NOT_FOUND) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "p11_child failed - CA DB not found\n");
         return CA_DB_NOT_FOUND_EXIT_CODE;
     } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "p11_child failed (%d)\n", ret);
         return EXIT_FAILURE;
     }
 }

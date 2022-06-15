@@ -499,25 +499,48 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
     unsigned char *der = NULL;
     size_t der_size;
 
-    if (buf_len < 0) {
+    if (buf_len <= 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Error occurred while reading data from p11_child.\n");
+              "Error occurred while reading data from p11_child (len = %ld)\n",
+              buf_len);
         return EIO;
     }
 
-    if (buf_len == 0) {
-        DEBUG(SSSDBG_TRACE_LIBS, "No certificate found.\n");
-        ret = EOK;
-        goto done;
+    p = memchr(buf, '\n', buf_len);
+    if ((p == NULL) || (p == buf)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing status in p11_child response.\n");
+        return EINVAL;
     }
+    errno = 0;
+    ret = strtol((char *)buf, (char **)&pn, 10);
+    if ((errno != 0) || (pn == buf)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid status in p11_child response.\n");
+        return EINVAL;
+    }
+
+    if (ret != 0) {
+        if (ret == ERR_P11_PIN_LOCKED) {
+            DEBUG(SSSDBG_OP_FAILURE, "PIN locked\n");
+            return ret;
+        } else {
+            *_cert_list = NULL;
+            return EOK; /* other errors are treated as "no cert found" */
+        }
+    }
+
+    if ((p - buf + 1) == buf_len) {
+        DEBUG(SSSDBG_TRACE_LIBS, "No certificate found.\n");
+        *_cert_list = NULL;
+        return EOK;
+    }
+
+    p++;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
-
-    p = buf;
 
     do {
         cert_auth_info = talloc_zero(tmp_ctx, struct cert_auth_info);
@@ -697,6 +720,7 @@ struct pam_check_cert_state {
     struct child_io_fds *io;
 
     struct cert_auth_info *cert_list;
+    struct pam_data *pam_data;
 };
 
 static void p11_child_write_done(struct tevent_req *subreq);
@@ -748,6 +772,8 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         ret = EINVAL;
         goto done;
     }
+
+    state->pam_data = pd;
 
     /* extra_args are added in revers order */
     arg_c = 0;
@@ -972,6 +998,7 @@ static void p11_child_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct pam_check_cert_state *state = tevent_req_data(req,
                                                    struct pam_check_cert_state);
+    uint32_t user_info_type;
     int ret;
 
     talloc_zfree(state->timeout_handler);
@@ -988,7 +1015,14 @@ static void p11_child_done(struct tevent_req *subreq)
     ret = parse_p11_child_response(state, buf, buf_len, state->sss_certmap_ctx,
                                    &state->cert_list);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "parse_p11_child_response failed.\n");
+        if (ret == ERR_P11_PIN_LOCKED) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "PIN locked\n");
+            user_info_type = SSS_PAM_USER_INFO_PIN_LOCKED;
+            pam_add_response(state->pam_data, SSS_PAM_USER_INFO,
+                             sizeof(uint32_t), (const uint8_t *) &user_info_type);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "parse_p11_child_response failed.\n");
+        }
         tevent_req_error(req, ret);
         return;
     }

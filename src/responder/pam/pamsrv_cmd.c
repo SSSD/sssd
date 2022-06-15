@@ -2175,6 +2175,11 @@ static int pam_check_user_done(struct pam_auth_req *preq, int ret)
         pam_reply(preq);
         break;
 
+    case ERR_P11_PIN_LOCKED:
+        preq->pd->pam_status = PAM_AUTH_ERR;
+        pam_reply(preq);
+        break;
+
     case ERR_NO_CREDS:
         preq->pd->pam_status = PAM_CRED_INSUFFICIENT;
         pam_reply(preq);

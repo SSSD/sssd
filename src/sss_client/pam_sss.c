@@ -702,6 +702,20 @@ static int user_info_otp_chpass(pam_handle_t *pamh)
     return PAM_SUCCESS;
 }
 
+static int user_info_pin_locked(pam_handle_t *pamh)
+{
+    int ret;
+
+    ret = do_pam_conversation(pamh, PAM_TEXT_INFO, _("PIN locked"),
+                              NULL, NULL);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return PAM_SYSTEM_ERR;
+    }
+
+    return PAM_SUCCESS;
+}
+
 static int user_info_account_expired(pam_handle_t *pamh, size_t buflen,
                                      uint8_t *buf)
 {
@@ -848,6 +862,9 @@ static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
             break;
         case SSS_PAM_USER_INFO_CHPASS_ERROR:
             ret = user_info_chpass_error(pamh, buflen, buf);
+            break;
+        case SSS_PAM_USER_INFO_PIN_LOCKED:
+            ret = user_info_pin_locked(pamh);
             break;
         case SSS_PAM_USER_INFO_ACCOUNT_EXPIRED:
             ret = user_info_account_expired(pamh, buflen, buf);
