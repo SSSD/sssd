@@ -9,6 +9,31 @@ import time
 import pytest
 
 
+@pytest.fixture(scope="class", autouse=True)
+def add_etc_host_records(session_multihost, request):
+    """ Add master and AD to /etc/hosts so they can be resolved
+    :param obj session_multihost: multihost object
+    :param obj request: pytest request object
+    """
+    session_multihost.client[0].run_command(
+        'cp /etc/hosts /etc/hosts.orig', raiseonerr=False)
+    records = f"{session_multihost.master[0].ip} " \
+        f"{session_multihost.master[0].sys_hostname.strip().split('.')[0]} " \
+        f"{session_multihost.master[0].sys_hostname.strip()}\\n" \
+        f"{session_multihost.ad[0].ip} " \
+        f"{session_multihost.ad[0].sys_hostname.strip().split('.')[0]} " \
+        f"{session_multihost.ad[0].sys_hostname.strip()}\\n"
+    session_multihost.client[0].run_command(
+        f'echo -e "\\n{records}" >> /etc/hosts', raiseonerr=False)
+    session_multihost.client[0].run_command('cat /etc/hosts', raiseonerr=False)
+
+    def restore_etc_hosts():
+        """ Restore backed up hosts"""
+        session_multihost.client[0].run_command(
+            'cp -f /etc/hosts.orig /etc/hosts', raiseonerr=False)
+    request.addfinalizer(restore_etc_hosts)
+
+
 @pytest.mark.usefixtures('winbind_server',
                          'configure_samba',
                          'samba_share_permissions')
