@@ -20,13 +20,21 @@ class sambaTools(object):
         self.adhost = adhost
         self.adhost_ip = self.adhost.ip
         self.adhost_ops = ADOperations(self.adhost)
-        self.adhost_conn = self.adhost_ops.ad_conn()
+        self._ad_conn = None
         self.adhost_realm = self.adhost.realm
         self.adhost_password = self.adhost.ssh_password
         self.adhost_hostname = self.adhost.external_hostname
         self.adhost_basedn = self.adhost.domain_basedn_entry
         self.adhost_adminuser = 'Administrator'
         self.host_tools = sssdTools(self.host, self.adhost)
+
+    @property
+    def adhost_conn(self):
+        """AD LDAP connection in lazy initialized property"""
+        if self._ad_conn:
+            return self._ad_conn
+        self._ad_conn = self.adhost_ops.ad_conn()
+        return self._ad_conn
 
     def smbadsconf(self):
         """ Setup smbconf with security = ads """
