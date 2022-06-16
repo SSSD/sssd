@@ -58,7 +58,7 @@ class Testrfc2307(object):
         :description: user with a white space at the beginning in it's name
          should be able to log in
         :bugzilla:
-          https://bugzilla.redhat.com/show_bug.cgi?id=2015090
+          https://bugzilla.redhat.com/show_bug.cgi?id=1067476
           https://bugzilla.redhat.com/show_bug.cgi?id=1065534
         :steps:
           1. Create user with a white space at beginning in their name
