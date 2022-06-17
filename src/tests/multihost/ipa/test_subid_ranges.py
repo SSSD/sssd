@@ -93,7 +93,7 @@ class TestSubid(object):
             tfile.write('whoami\n')
             tfile.write('unshare -U bash -c \'echo $$ >/tmp/unshare.pid;'
                         ' sleep 240; \' &\n')
-            tfile.write('ps -ef | grep unshare\n')
+            tfile.write('ps -ef | grep sleep | grep -v grep\n')
             tfile.write('MYPID="$(cat /tmp/unshare.pid)"\n')
             tfile.write(f'newuidmap $MYPID 0 {uid_start} 1\n')
             tfile.write('echo "uidmap_ $(cat /proc/$MYPID/uid_map) _uidmap"\n')

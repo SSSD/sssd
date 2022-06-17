@@ -14,7 +14,6 @@ try:
     import ConfigParser
 except ImportError:
     import configparser as ConfigParser
-from subprocess import CalledProcessError
 try:
     from StringIO import StringIO
 except ImportError:
@@ -1722,7 +1721,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"Set-ADAccountExpiration -identity"
                 f" \"{user}\" -DateTime \"12/18/2011\"'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1738,7 +1737,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"Set-ADAccountExpiration -identity"
                 f" \"{user}\" -DateTime \"10/05/2036\"'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1753,7 +1752,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"powershell -inputformat none -noprofile '"
                 f"Disable-ADAccount -identity \"{user}\"'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1768,7 +1767,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"powershell -inputformat none -noprofile '"
                 f"Enable-ADAccount -identity \"{user}\"'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1783,7 +1782,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"powershell -inputformat none -noprofile 'Set-ADUser"
                 f" -identity \"{user}\" -Replace @{{pwdLastSet=0}}'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1798,7 +1797,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"powershell -inputformat none -noprofile 'Set-ADUser"
                 f" -identity \"{user}\" -Replace @{{pwdLastSet=-1}}'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
