@@ -885,28 +885,15 @@ class sssdTools(object):
             raise SSSDException("Unable to find RID for %s" % user)
 
     def reset_machine_password(self):
-        """ Reset Machine Password """
-        client_hostname = self.multihost.sys_hostname
-        client_short_name = client_hostname.strip().split('.')[0]
-        if len(client_short_name) > 15:
-            client_short_name = client_hostname.strip().split('.')[0][:15]
-        temp_conf = tempfile.NamedTemporaryFile(suffix='.ldif', delete=False)
-        client_dn_entry = 'CN={},{},{}'.format(client_short_name,
-                                               'CN=Computers',
-                                               self.ad_basedn)
-        users_dn_entry = '{},{}'.format('CN=Users', self.ad_basedn)
-        with open(temp_conf.name, 'w') as ldif_file:
-            ldif_file.write("dn: %s\n" % (client_dn_entry))
-            ldif_file.write("changetype: modify\n")
-            ldif_file.write("replace: pwdLastSet\n")
-            ldif_file.write("pwdLastSet: 0\n")
-        self.multihost.transport.put_file(temp_conf.name, '/tmp/mod.ldif')
-        ldapmodify_cmd = "ldapmodify -x -D cn=Administrator,%s -w " \
-                         "%s -h %s -f /tmp/mod.ldif" % (users_dn_entry,
-                                                        self.ad_password,
-                                                        self.ad_hostname)
-        cmd = self.multihost.run_command(ldapmodify_cmd)
-        os.unlink(temp_conf.name)
+        """ Reset Machine Password on AD """
+        client_hostname = self.multihost.sys_hostname.strip()
+        client_short_name = client_hostname.split('.')[0][:15]
+        client_dn_entry = f'CN={client_short_name},CN=Computers,' \
+                          f'{self.ad_basedn}'
+        ps_cmd = f"powershell.exe -inputformat none -noprofile "\
+                 f"'(Set-ADComputer -Identity \"{client_dn_entry}\" " \
+                 f"-Replace @{{pwdLastSet=0}} -Confirm:$false)'"
+        cmd = self.adhost.run_command(ps_cmd, raiseonerr=False)
         return cmd.returncode
 
     def create_ad_user(self, username, groupname, mail=None):
