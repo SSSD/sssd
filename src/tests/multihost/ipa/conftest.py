@@ -2,11 +2,9 @@
 
 from __future__ import print_function
 import subprocess
-
 import random
 import os
 import posixpath
-from subprocess import CalledProcessError
 import pexpect
 import pytest
 from sssd.testlib.common.qe_class import session_multihost
@@ -333,7 +331,7 @@ def disable_allow_all_hbac(session_multihost, request):
     disable_allow_all = 'ipa hbacrule-disable allow_all'
     try:
         session_multihost.master[0].run_command(disable_allow_all)
-    except CalledProcessError:
+    except subprocess.CalledProcessError:
         pytest.fail("Failed to disable allow_all rule")
 
     def allow_all_hbac():
@@ -341,7 +339,7 @@ def disable_allow_all_hbac(session_multihost, request):
         allow_all = 'ipa hbacrule-enable allow_all'
         try:
             session_multihost.master[0].run_command(allow_all)
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             pytest.fail("Failed to enable allow_all rule")
 
     request.addfinalizer(allow_all_hbac)
