@@ -110,6 +110,19 @@ def create_sssd_fixture(request):
             os.unlink(config.DB_PATH + "/" + path)
         for path in os.listdir(config.MCACHE_PATH):
             os.unlink(config.MCACHE_PATH + "/" + path)
+        # force sss_client libs to realize mem-cache files were deleted
+        try:
+            sssd_id.call_sssd_initgroups("user1", 2001)
+        except Exception:
+            pass
+        try:
+            grp.getgrnam("group1")
+        except Exception:
+            pass
+        try:
+            pwd.getpwnam("user1")
+        except Exception:
+            pass
     request.addfinalizer(teardown)
 
 
