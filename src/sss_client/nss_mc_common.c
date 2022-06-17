@@ -167,6 +167,7 @@ static errno_t sss_nss_mc_init_ctx(const char *name,
 
     ctx->fd = sss_open_cloexec(file, O_RDONLY, &ret);
     if (ctx->fd == -1) {
+        ret = EIO;
         goto done;
     }
 
