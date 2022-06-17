@@ -66,6 +66,12 @@ struct sss_cli_mc_ctx {
     uint32_t active_threads; /* count of threads which use memory cache */
 };
 
+#if HAVE_PTHREAD
+#define SSS_CLI_MC_CTX_INITIALIZER {UNINITIALIZED, PTHREAD_MUTEX_INITIALIZER, 1, 0, NULL, 0, NULL, 0, NULL, 0, 0}
+#else
+#define SSS_CLI_MC_CTX_INITIALIZER {UNINITIALIZED, 1, 0, NULL, 0, NULL, 0, NULL, 0, 0}
+#endif
+
 errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx);
 errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx);
 uint32_t sss_nss_mc_hash(struct sss_cli_mc_ctx *ctx,
