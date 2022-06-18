@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2022-06-12 21:18+0000\n"
+"PO-Revision-Date: 2022-06-18 15:34+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.12.2\n"
+"X-Generator: Weblate 4.13\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -395,13 +395,18 @@ msgid ""
 "to 0 or 1 then only those error levels will trigger backtrace, otherwise up "
 "to 2)."
 msgstr ""
+"SSSD 경우에서 9보다 낮은 디버그_수준으로 수행하면, 모든 것이 메모리에서 링 "
+"버퍼로 기록되고 `최소(0x0040, 디버그_수준)`을 포함한 것까지 오류로 로그 "
+"파일에 확 쏟아집니다 (예: 디버그_수준이 명시적으로 0 또는 1로 설정된 경우에 "
+"해당 오류 수준만 역추적으로 트리거 되고, 그렇지 않으면 2까지)."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:166
 msgid ""
 "Feature is only supported for `logger == files` (i.e.  setting doesn't have "
 "effect for other logger types)."
-msgstr ""
+msgstr "기능은 `logger == files`을 위해서만 지원됩니다 (예: 설정은 다른 로거 유형에 "
+"영향을 받지 않습니다)."
 
 #. type: Content of: outside any tag (error?)
 #: sssd.conf.5.xml:106 sssd.conf.5.xml:181 sssd-ldap.5.xml:1520
@@ -432,6 +437,9 @@ msgid ""
 "ensure that the process is alive and capable of answering requests. Note "
 "that after three missed heartbeats the process will terminate itself."
 msgstr ""
+"이 서비스에 대한 하트비트 사이의 초단위 시간초과. 이는 프로세스가 활성 "
+"상태이고 요청에 응답 할 수 있는지를 확인하는 데 사용됩니다. 참고로 "
+"하트비트를 세 번 놓치면 프로세스가 스스로 종료됩니다."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:193 sssd.conf.5.xml:1221 sssd.conf.5.xml:1647
@@ -3126,7 +3134,7 @@ msgstr "전체"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2481
 msgid "All discovered trusted domains will be enumerated"
-msgstr ""
+msgstr "모두 발견되어 신뢰된 도메인이 열거됩니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2484
@@ -3136,7 +3144,7 @@ msgstr "없음"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2485
 msgid "No discovered trusted domains will be enumerated"
-msgstr ""
+msgstr "발견되지 않은 신뢰된 도메인이 열거됩니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2476
@@ -3817,7 +3825,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3158
 msgid "<quote>none</quote> disallows fetching subdomains explicitly."
-msgstr ""
+msgstr "<quote>none</quote>는 하위 도메인을 명시적으로 가져오지 않도록 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3168
@@ -4221,7 +4229,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3601
 msgid "subdomain_inherit (string)"
-msgstr ""
+msgstr "subdomain_inherit (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3604
@@ -6194,7 +6202,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:920
 msgid "Default: the value of krb5_realm."
-msgstr ""
+msgstr "기본값: krb5_realm의 값."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:926
@@ -6228,7 +6236,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:947 sssd-krb5.5.xml:247
 msgid "Default: System keytab, normally <filename>/etc/krb5.keytab</filename>"
-msgstr ""
+msgstr "기본값: 시스템 키탭, 일반적으로 <filename>/etc/krb5.keytab</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:953
@@ -6305,7 +6313,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1017
 msgid "Default: System defaults, see <filename>/etc/krb5.conf</filename>"
-msgstr ""
+msgstr "기본값: 시스템 기본값, <filename>/etc/krb5.conf</filename>을 참고하세요"
 
 #. type: Content of: <variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1023 include/krb5_options.xml:145
@@ -6444,7 +6452,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1154
 msgid "Default: not set, i.e. service discovery is disabled"
-msgstr ""
+msgstr "기본값: 미설정, 예: 서비스 발견이 비활성화 되었습니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1160
@@ -6695,7 +6703,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1374
 msgid "Default: filter"
-msgstr ""
+msgstr "기본값: 필터"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1377
@@ -6707,7 +6715,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1384
 msgid "ldap_pwdlockout_dn (string)"
-msgstr ""
+msgstr "ldap_pwdlockout_dn (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1387
@@ -6721,7 +6729,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1395
 msgid "Example: cn=ppolicy,ou=policies,dc=example,dc=com"
-msgstr ""
+msgstr "예제: cn=ppolicy,ou=policies,dc=example,dc=com"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1398
@@ -6850,7 +6858,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1499
 msgid "Default: 0 (libldap debugging disabled)"
-msgstr ""
+msgstr "기본값: 0 (libldap 디버깅이 비활성화됨)"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:51
@@ -7077,7 +7085,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1720
 msgid "AUTOFS OPTIONS"
-msgstr ""
+msgstr "AUTOFS 옵션"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:1722
@@ -7099,7 +7107,7 @@ msgstr "LDAP의 automounter 마스터 맵의 이름입니다."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1734
 msgid "Default: auto.master"
-msgstr ""
+msgstr "기본값: auto.master"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:1745
@@ -7327,7 +7335,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:92
 msgid "<option>use_first_pass</option>"
-msgstr ""
+msgstr "<option>use_first_pass</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:95
@@ -7340,7 +7348,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:103
 msgid "<option>use_authtok</option>"
-msgstr ""
+msgstr "<option>use_authtok</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:106
@@ -7352,7 +7360,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:113
 msgid "<option>retry=N</option>"
-msgstr ""
+msgstr "<option>재시도=N</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:116
@@ -7384,7 +7392,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:137
 msgid "<option>ignore_authinfo_unavail</option>"
-msgstr ""
+msgstr "<option>ignore_authinfo_unavail</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:141
@@ -7396,7 +7404,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:148
 msgid "<option>domains</option>"
-msgstr ""
+msgstr "<option>도메인</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:152
@@ -7489,7 +7497,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:232
 msgid "<option>require_cert_auth</option>"
-msgstr ""
+msgstr "<option>require_cert_auth</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:236
@@ -7561,7 +7569,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:287 pam_sss_gss.8.xml:128
 msgid "PAM_AUTH_ERR"
-msgstr ""
+msgstr "PAM_AUTH_ERR"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:290
@@ -7585,7 +7593,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:305
 msgid "PAM_IGNORE"
-msgstr ""
+msgstr "PAM_IGNORE"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:308
@@ -7636,29 +7644,30 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:344 pam_sss_gss.8.xml:145
 msgid "PAM_SYSTEM_ERR"
-msgstr ""
+msgstr "PAM_SYSTEM_ERR"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:347 pam_sss_gss.8.xml:148
 msgid ""
 "A system error occurred. The SSSD log files may contain additional "
 "information about the error."
-msgstr ""
+msgstr "시스템 오류가 발생했습니다. SSSD 로그 파일은 오류에 대해 추가적인 정보가 "
+"포함 될 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:353
 msgid "PAM_CRED_ERR"
-msgstr ""
+msgstr "PAM_CRED_ERR"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:356
 msgid "Unable to set the credentials of the user."
-msgstr ""
+msgstr "사용자의 자격증명을 설정 할 수 없음."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:361
 msgid "PAM_CRED_INSUFFICIENT"
-msgstr ""
+msgstr "PAM_CRED_INSUFFICIENT"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:364
@@ -16738,36 +16747,37 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:409
 msgid "Default: loginAllowedTimeMap"
-msgstr ""
+msgstr "기본값: loginAllowedTimeMap"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:415
 msgid "ldap_user_principal (string)"
-msgstr ""
+msgstr "ldap_user_principal (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:418
 msgid ""
 "The LDAP attribute that contains the user's Kerberos User Principal Name "
 "(UPN)."
-msgstr ""
+msgstr "사용자의 커버러스 사용자 주체 이름(UPN)을 포함하는 LDAP 속성."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:422
 msgid "Default: krbPrincipalName"
-msgstr ""
+msgstr "기본값: krbPrincipalName"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:428
 msgid "ldap_user_extra_attrs (string)"
-msgstr ""
+msgstr "ldap_user_extra_attrs (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:431
 msgid ""
 "Comma-separated list of LDAP attributes that SSSD would fetch along with the "
 "usual set of user attributes."
-msgstr ""
+msgstr "SSSD가 일반적인 사용자 속성 집합과 함께 가져와야 할 LDAP 속성의 쉼표-구분된 "
+"목록입니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:436
@@ -17037,7 +17047,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:674
 msgid "ldap_group_gid_number (string)"
-msgstr ""
+msgstr "ldap_group_gid_number (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:677
@@ -17171,7 +17181,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:819
 msgid "ldap_netgroup_member (string)"
-msgstr ""
+msgstr "ldap_netgroup_member (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:822
@@ -17191,7 +17201,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:836
 msgid "ldap_netgroup_triple (string)"
-msgstr ""
+msgstr "ldap_netgroup_triple (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:839
@@ -17611,7 +17621,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1245
 msgid "ldap_ipnetwork_name (string)"
-msgstr ""
+msgstr "ldap_ipnetwork_name (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1248
@@ -18058,7 +18068,7 @@ msgstr ""
 #: include/ldap_id_mapping.xml:101
 msgid ""
 "Minimum configuration (in the <quote>[domain/DOMAINNAME]</quote> section):"
-msgstr ""
+msgstr "최대 구성 ( <quote>[도메인/도메인이름]</quote> 부분에서):"
 
 #. type: Content of: <refsect1><refsect2><para><programlisting>
 #: include/ldap_id_mapping.xml:106
@@ -18067,6 +18077,8 @@ msgid ""
 "ldap_id_mapping = True\n"
 "ldap_schema = ad\n"
 msgstr ""
+"ldap_id_mapping = True\n"
+"ldap_schema = ad\n"
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:111
@@ -18228,14 +18240,14 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><term>
 #: include/ldap_id_mapping.xml:249
 msgid "ldap_idmap_helper_table_size (integer)"
-msgstr ""
+msgstr "ldap_idmap_helper_table_size (정수)"
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:252
 msgid ""
 "Maximal number of secondary slices that is tried when performing mapping "
 "from UNIX id to SID."
-msgstr ""
+msgstr "유닉스 ID에서 SID로 대응을 수행 할 때에 시도되는 보조 조각의 최대 수."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:256

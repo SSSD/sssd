@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-06-02 12:51+0200\n"
-"PO-Revision-Date: 2022-04-23 08:49+0000\n"
+"PO-Revision-Date: 2022-06-16 10:35+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pl/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.12\n"
+"X-Generator: Weblate 4.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -174,6 +174,8 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:56
 msgid "Run PAC responder automatically for AD and IPA provider"
 msgstr ""
+"Automatycznie uruchamia program odpowiadający PAC w przypadku dostawców AD i "
+"IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Enumeration cache timeout length (seconds)"
@@ -463,7 +465,7 @@ msgstr "Jak długo dane PAC są uważane za prawidłowe"
 
 #: src/config/SSSDConfig/sssdoptions.py:137
 msgid "Validate the PAC"
-msgstr ""
+msgstr "Sprawdza poprawność PAC"
 
 #: src/config/SSSDConfig/sssdoptions.py:140
 msgid "List of user attributes the InfoPipe is allowed to publish"
@@ -2048,7 +2050,7 @@ msgstr "Identyfikator łańcucha tevent używany do celów zapisywania w dzienn
 
 #: src/providers/krb5/krb5_child.c:3784
 msgid "Check PAC flags"
-msgstr ""
+msgstr "Sprawdza flagi PAC"
 
 #: src/providers/krb5/krb5_child.c:3826 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2699,27 +2701,26 @@ msgstr "\n"
 
 #: src/tools/sssctl/sssctl_logs.c:58
 msgid "Target the "
-msgstr ""
+msgstr "Działa na usłudze "
 
 #: src/tools/sssctl/sssctl_logs.c:215
-#, fuzzy
 msgid "SSSD is not running.\n"
-msgstr "Usługa SSSD jest już uruchomiona\n"
+msgstr "Usługa SSSD nie jest uruchomiona.\n"
 
 #: src/tools/sssctl/sssctl_logs.c:232
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
-msgstr ""
+msgstr "%1$-25s %2$#.4x\n"
 
 #: src/tools/sssctl/sssctl_logs.c:236
 #, c-format
 msgid "%1$-25s Unknown domain\n"
-msgstr ""
+msgstr "%1$-25s Nieznana domena\n"
 
 #: src/tools/sssctl/sssctl_logs.c:238
 #, c-format
 msgid "%1$-25s Unreachable service\n"
-msgstr ""
+msgstr "%1$-25s Nie można połączyć się z usługą\n"
 
 #: src/tools/sssctl/sssctl_logs.c:453
 msgid "Delete log files instead of truncating"
@@ -2752,7 +2753,7 @@ msgstr "Nie można zarchiwizować plików dziennika\n"
 
 #: src/tools/sssctl/sssctl_logs.c:548
 msgid "Target a specific domain"
-msgstr ""
+msgstr "Działa na podanej domenie"
 
 #: src/tools/sssctl/sssctl_logs.c:570
 msgid "Specify debug level you want to set"
