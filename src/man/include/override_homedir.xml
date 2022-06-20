@@ -39,6 +39,13 @@
                     </para></listitem>
             </varlistentry>
             <varlistentry>
+                <term>%h</term>
+                <listitem><para>
+                    The original home directory retrieved
+                    from the identity provider, but in lower case.
+                    </para></listitem>
+            </varlistentry>
+            <varlistentry>
                 <term>%H</term>
                 <listitem><para>
                     The value of configure option
