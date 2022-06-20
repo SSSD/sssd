@@ -367,7 +367,7 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     struct ldb_message *primary_group_msg;
     const char *posix;
     struct sized_string rawname;
-    struct sized_string unique_name;
+    struct sized_string canonical_name;
     uint32_t num_results;
     uint8_t *body;
     size_t body_len;
@@ -464,10 +464,10 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
                 && ((cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0)
                 && (nss_ctx->initgr_mc_ctx != NULL)) {
         to_sized_string(&rawname, cmd_ctx->rawname);
-        to_sized_string(&unique_name, result->lookup_name);
+        to_sized_string(&canonical_name, sss_get_name_from_msg(domain, user));
 
         ret = sss_mmap_cache_initgr_store(&nss_ctx->initgr_mc_ctx, &rawname,
-                                          &unique_name, num_results,
+                                          &canonical_name, num_results,
                                           body + 2 * sizeof(uint32_t));
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
