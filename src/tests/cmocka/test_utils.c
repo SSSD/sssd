@@ -45,7 +45,8 @@
 #define FIRST_LETTER "s"
 #define UID      1234
 #define DOMAIN   "sssddomain"
-#define ORIGINAL_HOME "/home/user"
+#define ORIGINAL_HOME "/home/USER"
+#define LOWERCASE_HOME "/home/user"
 #define FLATNAME "flatname"
 #define HOMEDIR_SUBSTR "/mnt/home"
 
@@ -1380,6 +1381,12 @@ void test_expand_homedir_template(void **state)
     check_expanded_value(tmp_ctx, homedir_ctx, "%o"DUMMY, ORIGINAL_HOME DUMMY);
     check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%o"DUMMY2,
                                                DUMMY ORIGINAL_HOME DUMMY2);
+
+    check_expanded_value(tmp_ctx, homedir_ctx, "%h", LOWERCASE_HOME);
+    check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%h", DUMMY LOWERCASE_HOME);
+    check_expanded_value(tmp_ctx, homedir_ctx, "%h"DUMMY, LOWERCASE_HOME DUMMY);
+    check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%h"DUMMY2,
+                                               DUMMY LOWERCASE_HOME DUMMY2);
 
     check_expanded_value(tmp_ctx, homedir_ctx, "%F", FLATNAME);
     check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%F", DUMMY FLATNAME);
