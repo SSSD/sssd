@@ -146,13 +146,25 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx,
                 break;
 
             case 'o':
+            case 'h':
                 if (homedir_ctx->original == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Original home directory for %s is not available, "
                            "using empty string\n", homedir_ctx->username);
                     orig = "";
                 } else {
-                    orig = homedir_ctx->original;
+                    if (*n == 'o') {
+                        orig = homedir_ctx->original;
+                    } else {
+                        orig = sss_tc_utf8_str_tolower(tmp_ctx,
+                                                       homedir_ctx->original);
+                        if (orig == NULL) {
+                            DEBUG(SSSDBG_CRIT_FAILURE,
+                                  "Failed to lowercase the original home "
+                                  "directory.\n");
+                            goto done;
+                        }
+                    }
                 }
                 result = talloc_asprintf_append(result, "%s%s", p, orig);
                 break;
