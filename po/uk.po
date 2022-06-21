@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-06-02 12:51+0200\n"
+"POT-Creation-Date: 2022-06-21 13:22+0200\n"
 "PO-Revision-Date: 2022-06-14 12:22+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
@@ -24,8 +24,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.12.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
@@ -2161,8 +2161,8 @@ msgstr "Неочікувана помилка під час пошуку опи�
 msgid "Permission denied. "
 msgstr "Відмовлено у доступі. "
 
-#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:785
-#: src/sss_client/pam_sss.c:796
+#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:799
+#: src/sss_client/pam_sss.c:810
 msgid "Server message: "
 msgstr "Повідомлення сервера: "
 
@@ -2208,58 +2208,62 @@ msgstr ""
 "Після зміни пароля OTP вам слід вийти із системи і увійти до неї знову, щоб "
 "отримати про квиток"
 
-#: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
+#: src/sss_client/pam_sss.c:709
+msgid "PIN locked"
+msgstr ""
+
+#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "
 msgstr "Спроба зміни пароля зазнала невдачі. "
 
-#: src/sss_client/pam_sss.c:1724
+#: src/sss_client/pam_sss.c:1741
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
 msgstr "Пройдіть розпізнавання на %1$s і натисніть ENTER."
 
-#: src/sss_client/pam_sss.c:1727
+#: src/sss_client/pam_sss.c:1744
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
 msgstr ""
 "Пройдіть розпізнавання за допомогою PIN %1$s на %2$s і натисніть ENTER."
 
-#: src/sss_client/pam_sss.c:1942
+#: src/sss_client/pam_sss.c:1959
 msgid "Please (re)insert (different) Smartcard"
 msgstr "Будь ласка, вставте (повторно) (іншу) смарт-картку"
 
-#: src/sss_client/pam_sss.c:2141
+#: src/sss_client/pam_sss.c:2158
 msgid "New Password: "
 msgstr "Новий пароль: "
 
-#: src/sss_client/pam_sss.c:2142
+#: src/sss_client/pam_sss.c:2159
 msgid "Reenter new Password: "
 msgstr "Ще раз введіть новий пароль: "
 
-#: src/sss_client/pam_sss.c:2307 src/sss_client/pam_sss.c:2310
+#: src/sss_client/pam_sss.c:2324 src/sss_client/pam_sss.c:2327
 msgid "First Factor: "
 msgstr "Перший фактор: "
 
-#: src/sss_client/pam_sss.c:2308 src/sss_client/pam_sss.c:2483
+#: src/sss_client/pam_sss.c:2325 src/sss_client/pam_sss.c:2500
 msgid "Second Factor (optional): "
 msgstr "Другий фактор (необов'язковий): "
 
-#: src/sss_client/pam_sss.c:2311 src/sss_client/pam_sss.c:2486
+#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
 msgid "Second Factor: "
 msgstr "Другий фактор: "
 
-#: src/sss_client/pam_sss.c:2330
+#: src/sss_client/pam_sss.c:2347
 msgid "Password: "
 msgstr "Пароль: "
 
-#: src/sss_client/pam_sss.c:2482 src/sss_client/pam_sss.c:2485
+#: src/sss_client/pam_sss.c:2499 src/sss_client/pam_sss.c:2502
 msgid "First Factor (Current Password): "
 msgstr "Перший фактор (поточний пароль): "
 
-#: src/sss_client/pam_sss.c:2489
+#: src/sss_client/pam_sss.c:2506
 msgid "Current Password: "
 msgstr "Поточний пароль: "
 
-#: src/sss_client/pam_sss.c:2846
+#: src/sss_client/pam_sss.c:2863
 msgid "Password expired. Change your password now."
 msgstr "Строк дії пароля вичерпано. Змініть ваш пароль."
 

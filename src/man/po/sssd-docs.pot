@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.7.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2022-06-02 12:50+0200\n"
+"POT-Creation-Date: 2022-06-21 13:21+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2668,7 +2668,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2248
 msgid ""
-"The PAC must not be present and even if it is present no addtional checks "
+"The PAC must not be present and even if it is present no additional checks "
 "will be done."
 msgstr ""
 
@@ -2742,9 +2742,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2300
-msgid ""
-"Default: no_check (AD and IPA provider 'pac_present, check_upn, "
-"check_upn_dns_info_ex')"
+msgid "Default: no_check (AD and IPA provider 'check_upn, check_upn_dns_info_ex')"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>

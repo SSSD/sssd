@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-06-02 12:51+0200\n"
+"POT-Creation-Date: 2022-06-21 13:22+0200\n"
 "PO-Revision-Date: 2022-06-17 14:30+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
@@ -2003,8 +2003,8 @@ msgstr "오류 설명을 찾는 동안 예기치 않은 오류 발생"
 msgid "Permission denied. "
 msgstr "권한이 거부되었습니다. "
 
-#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:785
-#: src/sss_client/pam_sss.c:796
+#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:799
+#: src/sss_client/pam_sss.c:810
 msgid "Server message: "
 msgstr "서버 메시지: "
 
@@ -2049,57 +2049,61 @@ msgid ""
 msgstr ""
 "OTP 암호를 변경한 후 티켓을 받으려면 로그아웃한 후 다시 로그인해야 합니다"
 
-#: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
+#: src/sss_client/pam_sss.c:709
+msgid "PIN locked"
+msgstr ""
+
+#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "
 msgstr "암호 변경에 실패함. "
 
-#: src/sss_client/pam_sss.c:1724
+#: src/sss_client/pam_sss.c:1741
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
 msgstr "%1$s에 인증하고 ENTER를 누릅니다."
 
-#: src/sss_client/pam_sss.c:1727
+#: src/sss_client/pam_sss.c:1744
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
 msgstr "PIN %1$s(%2$s에서)으로 인증하고 ENTER를 누릅니다."
 
-#: src/sss_client/pam_sss.c:1942
+#: src/sss_client/pam_sss.c:1959
 msgid "Please (re)insert (different) Smartcard"
 msgstr "다른 스마트카드를 (다시)입력해 주세요"
 
-#: src/sss_client/pam_sss.c:2141
+#: src/sss_client/pam_sss.c:2158
 msgid "New Password: "
 msgstr "신규 암호: "
 
-#: src/sss_client/pam_sss.c:2142
+#: src/sss_client/pam_sss.c:2159
 msgid "Reenter new Password: "
 msgstr "신규 암호 재입력: "
 
-#: src/sss_client/pam_sss.c:2307 src/sss_client/pam_sss.c:2310
+#: src/sss_client/pam_sss.c:2324 src/sss_client/pam_sss.c:2327
 msgid "First Factor: "
 msgstr "첫 번째 요인: "
 
-#: src/sss_client/pam_sss.c:2308 src/sss_client/pam_sss.c:2483
+#: src/sss_client/pam_sss.c:2325 src/sss_client/pam_sss.c:2500
 msgid "Second Factor (optional): "
 msgstr "두 번째 요인(선택 사항): "
 
-#: src/sss_client/pam_sss.c:2311 src/sss_client/pam_sss.c:2486
+#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
 msgid "Second Factor: "
 msgstr "두 번째 요인: "
 
-#: src/sss_client/pam_sss.c:2330
+#: src/sss_client/pam_sss.c:2347
 msgid "Password: "
 msgstr "암호: "
 
-#: src/sss_client/pam_sss.c:2482 src/sss_client/pam_sss.c:2485
+#: src/sss_client/pam_sss.c:2499 src/sss_client/pam_sss.c:2502
 msgid "First Factor (Current Password): "
 msgstr "첫 번째 요인 (현재 암호): "
 
-#: src/sss_client/pam_sss.c:2489
+#: src/sss_client/pam_sss.c:2506
 msgid "Current Password: "
 msgstr "현재 암호: "
 
-#: src/sss_client/pam_sss.c:2846
+#: src/sss_client/pam_sss.c:2863
 msgid "Password expired. Change your password now."
 msgstr "암호가 만료되었습니다. 지금 암호를 변경하십시오."
 
