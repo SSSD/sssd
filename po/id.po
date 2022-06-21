@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-06-02 12:51+0200\n"
+"POT-Creation-Date: 2022-06-21 13:22+0200\n"
 "PO-Revision-Date: 2014-12-14 11:46-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Indonesian (http://www.transifex.com/projects/p/sssd/language/"
@@ -1936,8 +1936,8 @@ msgstr ""
 msgid "Permission denied. "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:785
-#: src/sss_client/pam_sss.c:796
+#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:799
+#: src/sss_client/pam_sss.c:810
 msgid "Server message: "
 msgstr "Pesan server:"
 
@@ -1981,57 +1981,61 @@ msgid ""
 "acquire a ticket"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:782 src/sss_client/pam_sss.c:795
+#: src/sss_client/pam_sss.c:709
+msgid "PIN locked"
+msgstr ""
+
+#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "
 msgstr "Perubahan kata sandi gagal."
 
-#: src/sss_client/pam_sss.c:1724
+#: src/sss_client/pam_sss.c:1741
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:1727
+#: src/sss_client/pam_sss.c:1744
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:1942
+#: src/sss_client/pam_sss.c:1959
 msgid "Please (re)insert (different) Smartcard"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:2141
+#: src/sss_client/pam_sss.c:2158
 msgid "New Password: "
 msgstr "Kata Sandi Baru: "
 
-#: src/sss_client/pam_sss.c:2142
+#: src/sss_client/pam_sss.c:2159
 msgid "Reenter new Password: "
 msgstr "Masukkan lagi kata sandi baru:"
 
-#: src/sss_client/pam_sss.c:2307 src/sss_client/pam_sss.c:2310
+#: src/sss_client/pam_sss.c:2324 src/sss_client/pam_sss.c:2327
 msgid "First Factor: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:2308 src/sss_client/pam_sss.c:2483
+#: src/sss_client/pam_sss.c:2325 src/sss_client/pam_sss.c:2500
 msgid "Second Factor (optional): "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:2311 src/sss_client/pam_sss.c:2486
+#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
 msgid "Second Factor: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:2330
+#: src/sss_client/pam_sss.c:2347
 msgid "Password: "
 msgstr "Kata sandi:"
 
-#: src/sss_client/pam_sss.c:2482 src/sss_client/pam_sss.c:2485
+#: src/sss_client/pam_sss.c:2499 src/sss_client/pam_sss.c:2502
 msgid "First Factor (Current Password): "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:2489
+#: src/sss_client/pam_sss.c:2506
 msgid "Current Password: "
 msgstr "Kata sandi saat ini:"
 
-#: src/sss_client/pam_sss.c:2846
+#: src/sss_client/pam_sss.c:2863
 msgid "Password expired. Change your password now."
 msgstr ""
 
