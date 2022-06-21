@@ -282,6 +282,7 @@ class TestADParamsPorted:
         :customerscenario: False
         :bugzilla:
           https://bugzilla.redhat.com/show_bug.cgi?id=1091957
+          https://bugzilla.redhat.com/show_bug.cgi?id=2098615
         """
         adjoin(membersw='adcli')
         ad_realm = multihost.ad[0].domainname.upper()
@@ -316,7 +317,7 @@ class TestADParamsPorted:
         shortname = hostname_cmd.stdout_text.rstrip().upper()
 
         # Run getent passwd
-        multihost.client[0].run_command(
+        usr_cmd = multihost.client[0].run_command(
             f'getent passwd {ad_realm}\\\\{aduser}', raiseonerr=False)
         # Download /var/log/messages
         log_msg_str = multihost.client[0].get_file_contents(
@@ -330,6 +331,7 @@ class TestADParamsPorted:
         assert "No principal matching host/*@JUNK found in keytab." in log_str
         assert f"Selected realm: {ad_realm}" in log_str
         assert "segfault" not in log_msg_str, "Segfault present in the log!"
+        assert usr_cmd.returncode == 0, f"User {aduser} was not found."
 
     @staticmethod
     def test_0003_ad_parameters_junk_domain_invalid_keytab(
