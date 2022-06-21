@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-06-02 12:51+0200\n"
-"PO-Revision-Date: 2022-06-17 14:30+0000\n"
+"PO-Revision-Date: 2022-06-21 11:09+0000\n"
 "Last-Translator: Kemal Oktay Aktoğan <oktay@e.email>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/tr/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n>1);\n"
-"X-Generator: Weblate 4.12.2\n"
+"X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -828,11 +828,11 @@ msgstr "Görünüm kapsayıcıları için nesne sınıfı"
 
 #: src/config/SSSDConfig/sssdoptions.py:238
 msgid "Attribute with the name of the view"
-msgstr ""
+msgstr "Görünümün adıyla birlikte nitelik"
 
 #: src/config/SSSDConfig/sssdoptions.py:239
 msgid "Objectclass for override objects"
-msgstr ""
+msgstr "Geçersiz kılma nesneleri için nesne sınıfı"
 
 #: src/config/SSSDConfig/sssdoptions.py:240
 msgid "Attribute with the reference to the original object"
