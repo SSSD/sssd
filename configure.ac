@@ -217,6 +217,18 @@ m4_include([src/external/libjansson.m4])
 AS_IF([test x$with_oidc_child = xyes], [
     m4_include([src/external/libcurl.m4])
     m4_include([src/external/libjose.m4])
+
+    AS_IF([test x$found_libcurl != xyes], [
+           AC_MSG_ERROR([libcurl is required for building oidc_child,
+please install the libcurl devel package or
+use --with-oidc-child=no configure option.])
+   ])
+
+    AS_IF([test x$found_jose != xyes], [
+           AC_MSG_ERROR([libjose is required for building oidc_child,
+please install the libjose devel package or
+use --with-oidc-child=no configure option.])
+   ])
 ])
 
 AS_IF([test x$with_kcm = xyes], [
