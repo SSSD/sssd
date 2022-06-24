@@ -52,10 +52,9 @@
     } \
 } while(0)
 
-#define POPT_SERV_OPTION(NAME, VAR) {services[SERV_ ## NAME].name, \
-                                     '\0', POPT_BIT_SET, &VAR, \
-                                     services[SERV_ ## NAME].mask, \
-                                     _("Target the " #NAME " service"), NULL}
+#define POPT_SERV_OPTION(NAME, VAR, DESC) \
+            {services[SERV_ ## NAME].name, '\0', POPT_BIT_SET, &VAR, \
+             services[SERV_ ## NAME].mask, DESC, NULL}
 
 #define STARTS_WITH(s, p)     (strncmp((s), (p), strlen(p)) == 0)
 #define REMOVE_PREFIX(s, p)   (STARTS_WITH(s, p) ? (s) + strlen(p) : (s))
@@ -546,14 +545,14 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
     struct poptOption long_options[] = {
         {"domain", '\0', POPT_ARG_ARGV, &pc_domains,
             0, _("Target a specific domain"), NULL},
-        POPT_SERV_OPTION(SSSD, pc_services),
-        POPT_SERV_OPTION(NSS, pc_services),
-        POPT_SERV_OPTION(PAM, pc_services),
-        POPT_SERV_OPTION(SUDO, pc_services),
-        POPT_SERV_OPTION(AUTOFS, pc_services),
-        POPT_SERV_OPTION(SSH, pc_services),
-        POPT_SERV_OPTION(PAC, pc_services),
-        POPT_SERV_OPTION(IFP, pc_services),
+        POPT_SERV_OPTION(SSSD, pc_services, _("Target the SSSD service")),
+        POPT_SERV_OPTION(NSS, pc_services, _("Target the NSS service")),
+        POPT_SERV_OPTION(PAM, pc_services, _("Target the PAM service")),
+        POPT_SERV_OPTION(SUDO, pc_services, _("Target the SUDO service")),
+        POPT_SERV_OPTION(AUTOFS, pc_services, _("Target the AUTOFS service")),
+        POPT_SERV_OPTION(SSH, pc_services, _("Target the SSH service")),
+        POPT_SERV_OPTION(PAC, pc_services, _("Target the PAC service")),
+        POPT_SERV_OPTION(IFP, pc_services, _("Target the IFP service")),
         POPT_TABLEEND
     };
 
