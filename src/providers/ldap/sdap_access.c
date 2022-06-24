@@ -120,6 +120,38 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
                                            struct tevent_req *req);
 static void sdap_access_done(struct tevent_req *subreq);
 
+static const char *sdap_rule_to_string(enum ldap_access_rule rule)
+{
+    switch(rule) {
+    case LDAP_ACCESS_FILTER:
+        return LDAP_ACCESS_FILTER_NAME;
+    case LDAP_ACCESS_EXPIRE:
+        return LDAP_ACCESS_EXPIRE_NAME;
+    case LDAP_ACCESS_SERVICE:
+        return LDAP_ACCESS_SERVICE_NAME;
+    case LDAP_ACCESS_HOST:
+        return LDAP_ACCESS_HOST_NAME;
+    case LDAP_ACCESS_RHOST:
+        return LDAP_ACCESS_RHOST_NAME;
+    case LDAP_ACCESS_LOCKOUT:
+        return LDAP_ACCESS_LOCK_NAME;
+    case LDAP_ACCESS_EXPIRE_POLICY_REJECT:
+        return LDAP_ACCESS_EXPIRE_POLICY_REJECT_NAME;
+    case LDAP_ACCESS_EXPIRE_POLICY_WARN:
+        return LDAP_ACCESS_EXPIRE_POLICY_WARN_NAME;
+    case LDAP_ACCESS_EXPIRE_POLICY_RENEW:
+        return LDAP_ACCESS_EXPIRE_POLICY_RENEW_NAME;
+    case LDAP_ACCESS_PPOLICY:
+        return LDAP_ACCESS_PPOLICY_NAME;
+    case LDAP_ACCESS_LAST:
+        return "--last--";
+    case LDAP_ACCESS_EMPTY:
+        return "--empty--";
+    default:
+        return "???";
+    }
+}
+
 struct tevent_req *
 sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct tevent_context *ev,
@@ -129,6 +161,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct sdap_id_conn_ctx *conn,
                  struct pam_data *pd)
 {
+    int i;
     errno_t ret;
     struct sdap_access_req_ctx *state;
     struct tevent_req *req;
@@ -157,6 +190,12 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
               "No access rules defined, access denied.\n");
         ret = ERR_ACCESS_DENIED;
         goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Processing access rules\n");
+    for (i = 0; access_ctx->access_rule[i] != LDAP_ACCESS_EMPTY; i++) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Rule [%d] is \"%s\"\n", i,
+              sdap_rule_to_string(access_ctx->access_rule[i]));
     }
 
     /* Get original user DN, domain already points to the right (sub)domain */
