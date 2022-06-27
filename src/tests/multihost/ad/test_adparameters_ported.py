@@ -262,7 +262,7 @@ class TestADParamsPorted:
 
     @staticmethod
     def test_0002_ad_parameters_junk_domain(
-            multihost, adjoin, create_aduser_group):
+            multihost, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Set ad domain to junk
           and first entry in keytab is valid bz1091957
@@ -284,8 +284,16 @@ class TestADParamsPorted:
           https://bugzilla.redhat.com/show_bug.cgi?id=1091957
           https://bugzilla.redhat.com/show_bug.cgi?id=2098615
         """
-        adjoin(membersw='adcli')
+        hostname = multihost.client[0].run_command(
+            'hostname', raiseonerr=False).stdout_text.rstrip()
         ad_realm = multihost.ad[0].domainname.upper()
+        # Join AD manually to set the user-principal properly
+        joincmd = f"realm join --user=Administrator --user-principal=host/" \
+                  f"{hostname}@{ad_realm} {multihost.ad[0].domainname.lower()}"
+        multihost.client[0].run_command(
+            joincmd, stdin_text=multihost.ad[0].ssh_password,
+            raiseonerr=False)
+
         client = sssdTools(multihost.client[0], multihost.ad[0])
         # Backup the config because with broken config we can't leave ad
         client.backup_sssd_conf()
@@ -319,12 +327,16 @@ class TestADParamsPorted:
         # Run getent passwd
         usr_cmd = multihost.client[0].run_command(
             f'getent passwd {ad_realm}\\\\{aduser}', raiseonerr=False)
+
         # Download /var/log/messages
         log_msg_str = multihost.client[0].get_file_contents(
             '/var/log/messages').decode('utf-8')
         # Restore sssd.conf
         client.restore_sssd_conf()
         client.clear_sssd_cache()
+        multihost.client[0].run_command(
+            f"realm leave {ad_realm}", raiseonerr=False)
+
         # Evaluate test results
         assert f"No principal matching {shortname}$@JUNK found in keytab." in \
                log_str
