@@ -544,7 +544,7 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
     struct debuglevel_tool_ctx *ctx = NULL;
     struct poptOption long_options[] = {
         {"domain", '\0', POPT_ARG_ARGV, &pc_domains,
-            0, _("Target a specific domain"), NULL},
+            0, _("Target a specific domain"), _("domain")},
         POPT_SERV_OPTION(SSSD, pc_services, _("Target the SSSD service")),
         POPT_SERV_OPTION(NSS, pc_services, _("Target the NSS service")),
         POPT_SERV_OPTION(PAM, pc_services, _("Target the PAM service")),
