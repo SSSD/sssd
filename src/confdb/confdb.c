@@ -242,7 +242,7 @@ int confdb_get_param(struct confdb_ctx *cdb,
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
     struct ldb_dn *dn;
-    char *secdn;
+    char *secdn = NULL;
     const char *attrs[] = { attribute, NULL };
     char **vals;
     struct ldb_message_element *el;
