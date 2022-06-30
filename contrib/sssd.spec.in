@@ -313,7 +313,7 @@ Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: libipa_hbac%{?_isa} = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
-Recommends: bind-utils
+Requires: bind-utils
 Requires: sssd-common-pac = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
 
@@ -330,8 +330,8 @@ Requires: sssd-krb5-common = %{version}-%{release}
 Requires: sssd-common-pac = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
-Recommends: bind-utils
-Recommends: adcli
+Requires: bind-utils
+Requires: adcli
 Suggests: sssd-winbind-idmap = %{version}-%{release}
 
 %description ad
