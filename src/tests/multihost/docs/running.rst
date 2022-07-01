@@ -1,37 +1,34 @@
 Running the Tests
 =================
 
-* Running Tests
-
-
 Prerequisites
 -------------
 
-    * pytest-multihost-plugin: To execute tests with multiple tests,
-      pytest-multihost plugin is required.
-      Refer to Install section for installing the plugins.
+* pytest-multihost-plugin: To execute tests with multiple hosts,
+  the pytest-multihost plugin is required.
+  Refer to Install section for installing the plugins.
 
-    * sssd pytest framework: sssd pytest framework is mostly set of shared
-      functions that is used in test cases for common tasks like
-      authconfig/authselect, setting up DS, kerberos, ipa, etc.
-      sssd-testlib is the module provided by the framework.
+* sssd pytest framework: sssd pytest framework is mostly a set of shared
+  functions that is used in test cases for common tasks like
+  authconfig/authselect, setting up DS, kerberos, ipa, etc.
+  sssd-testlib is the module provided by the framework.
 
 
 Getting Started
 ----------------
-* Functional Tests mostly written for SSSD require multiple hosts. Each of the hosts take a particular role. Below are the predifined roles used:
+* Functional Tests mostly written for SSSD require multiple hosts. Each of the hosts take a particular role. Below are the predefined roles used:
 
-        * master: Node on which we have Direcory Server/Openldap Server/krb5 Server/IPA Server is running
-        * replica: Node on which is replica of Directory/Openldap Server/krb5 server
-        * client: Node on which sssd-client is configured
-        * ad: Node on which Microsoft Active Directory is running
-        * atomic: Atomic host Node
+  * master: Node on which we have Directory Server/Openldap Server/krb5 Server/IPA Server is running
+  * replica: Node on which is replica of Directory/Openldap Server/krb5 server
+  * client: Node on which sssd-client is configured
+  * ad: Node on which Microsoft Active Directory is running
+  * atomic: Atomic host Node
 
 
-config
-------
+Configuration
+-------------
 
- * To run multihosts tests using pytest, we have to define the infrastructure containing RHEL and Windows systems in a file. Check Example config file::
+* To run multihosts tests using pytest, we have to define the infrastructure containing RHEL and Windows systems in a YAML file. Check the following example::
 
     root_password: 'redhat'
     ad_admin_name: Administrator
@@ -45,9 +42,9 @@ config
     dirman_password: Secret.123
     dns_forwarder: 10.11.5.19
     domains:
-    - hosts:
-      name: domain.com
+    - name: domain.com
       type: sssd
+      hosts:
       - external_hostname: hostname.master.com
         ip: 10.0.189.241
         name: hostname1
@@ -56,9 +53,9 @@ config
         ip: 10.0.189.224
         name: hostname2
         role: client
-    - hosts:
-      name: domain-tbgr.com
+    - name: domain-tbgr.com
       type: ad
+      hosts:
       - external_hostname: hostname.ad.com
         host_type: windows
         ip: 10.0.189.34
@@ -69,7 +66,7 @@ config
 
 
 
-    **Brief description of the above lines:**
+**Brief description of the above lines:**
 
     **root_password** is the root password of the systems, it's better to have
     common password of the RHEL systems that you would like to connect.
@@ -102,25 +99,25 @@ config
     **domains** is a list of domains under which the hosts that will run the
     commands reside, Domains are way of classifying hosts.
 
-    **hosts(under Domains)** is a placeholder for list of hosts.
+      **name** is the name of the domain, can be any name
+      (resolvable/non-resolvable)
 
-    **name(Under Domains)** is the name of the domain, can be any name
-    (resolvable/non-resolvable)
+      **type** is the type of hosts, a string specifying the
+      type of the domain like sssd, ad or IPA.
 
-    **type(under Domains)** is the type of hosts, a string specifying the
-    type of the domain like sssd, ad or IPA.
+      **hosts** is a placeholder for the list of hosts.
 
-    **name(under hosts)**  is a hostname to which multihost needs to
-    connect, can be a short name in which case FQDN will be formed by
-    combining name and domain name specified under domains.
+        **name**  is a hostname to which multihost needs to
+        connect. Can be a short name in which case FQDN will be formed by
+        combining name and domain name specified under domains.
 
-    **ip(under hosts)** is the ipaddress of the system
+        **ip** is the IP address of the system.
 
-    **role(under hosts)** is the role that the host will be taking, like
-    client/master/slave/replica/ad/atomic
+        **role** is the role that the host will be taking, like
+        client/master/slave/replica/ad/atomic.
 
-    **external_hostname(under hosts)** hostname of the system to connect
-    remote system using openssh.
+        **external_hostname** hostname of the system to connect
+        remote system using openssh.
 
     **username** (optional) each host can have it's specific username to
     connect to, Example for connecting Windows systems we use username
@@ -136,7 +133,7 @@ Executing Tests
     $ py.test --multihost-config=<multihost-template> <test-suite-directory>
 
 * Before executing any tests, it's required to create a config file
-  as specified in `config` section.
+  as specified in `Configuration` section.
 
         * Only collect tests, do not execute::
 
