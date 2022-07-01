@@ -6,26 +6,31 @@ Setup Python Virtual Environment
 Fedora 35
 *********
 
-* On Fedora 35, Install below packages using **dnf**::
+* On Fedora 35, install below packages using **dnf**::
 
-    $ sudo dnf install python3-pip python3-virtualenv gcc git openldap-devel
-     python3-pyyaml python3-ldap python3-pytest-multihost
+    [user@host ~]$ sudo dnf install python3-pip python3-virtualenv openldap-devel
+    python3-pyyaml python3-ldap python3-pytest-multihost gcc git
 
 * Clone the upstream sssd using **git** tool::
 
-    $ git clone https://github.com/SSSD/sssd.git
+    [user@host ~]$ git clone https://github.com/SSSD/sssd.git
 
 * Default branch when sssd is cloned is the master branch::
 
-   $ [testuser@dhcp201-228 sssd]$ git branch
-   * master
+    [user@host ~]$ cd sssd
+    [user@host sssd]$ git branch
+    * master
 
 * Create a Isolated Python Environment::
 
-    $ [testuser@dhcp201-228 ~]$ virtualenv ~/sssd-env
+    [user@host sssd]$ virtualenv ~/sssd-env
 
 * Activate the Virtual environment::
 
-    $ [testuser@dhcp201-228 ~]$ source ~/sssd-env/bin/activate
-    $ (sssd-env) [testuser@dhcp201-228 ~]$
+    [user@host sssd]$ source ~/sssd-env/bin/activate
+    (sssd-env) [user@host sssd]$
+
+* Install a few more dependencies using **pip**::
+
+    (sssd-env) [user@host sssd]$ sudo pip install -r src/tests/multihost/requirements.txt
 
