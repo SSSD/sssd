@@ -16,7 +16,8 @@ Namespace hook
 
 * For SSSD QE we created subclasses of the config, domain and host functions to suite our needs and
   expanded them. This is available through
-  `qe_class.py <http://git.app.eng.bos.redhat.com/git/sssd-qe-tests.git/plain/python/sssd/testlib/common/qe_class.py>`_.
+  `qe_class.py <https://github.com/SSSD/sssd/blob/master/src/tests/multihost/sssd/testlib/common/qe_class.py>`_.
+  You may need to add *<your repo>/src/tests/multihost* to your `PYTHONPATH` environment variable.
 
 * qe_class.py also provides a global fixture called session_multihost which provides a session
   scope fixture. This fixture can read the YAML file and provide a global multihost fixture
