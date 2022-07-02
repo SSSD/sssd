@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-06-21 13:22+0200\n"
-"PO-Revision-Date: 2022-06-21 11:09+0000\n"
+"PO-Revision-Date: 2022-07-02 14:19+0000\n"
 "Last-Translator: Kemal Oktay Aktoğan <oktay@e.email>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/tr/>\n"
@@ -410,7 +410,7 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:117
 msgid "Whether to evaluate the time-based attributes in sudo rules"
 msgstr ""
-"Sudo kurallarında zamana dayalı özelliklerin değerlendirilip "
+"Sudo kurallarında zamana dayalı özniteliklerin değerlendirilip "
 "değerlendirilmeyeceği"
 
 #: src/config/SSSDConfig/sssdoptions.py:118
@@ -829,7 +829,7 @@ msgstr "Görünüm kapsayıcıları için nesne sınıfı"
 
 #: src/config/SSSDConfig/sssdoptions.py:238
 msgid "Attribute with the name of the view"
-msgstr "Görünümün adıyla birlikte nitelik"
+msgstr "Görünümün adıyla birlikte öznitelik"
 
 #: src/config/SSSDConfig/sssdoptions.py:239
 msgid "Objectclass for override objects"
@@ -837,19 +837,19 @@ msgstr "Geçersiz kılma nesneleri için nesne sınıfı"
 
 #: src/config/SSSDConfig/sssdoptions.py:240
 msgid "Attribute with the reference to the original object"
-msgstr ""
+msgstr "Asıl nesneye kıyasla öznitelik"
 
 #: src/config/SSSDConfig/sssdoptions.py:241
 msgid "Objectclass for user override objects"
-msgstr ""
+msgstr "Kullanıcı geçersiz kılma nesneleri için nesne sınıfı"
 
 #: src/config/SSSDConfig/sssdoptions.py:242
 msgid "Objectclass for group override objects"
-msgstr ""
+msgstr "Grup geçersiz kılma nesneleri için nesne sınıfı"
 
 #: src/config/SSSDConfig/sssdoptions.py:243
 msgid "Search base for Desktop Profile related objects"
-msgstr ""
+msgstr "Masaüstü Profili ile ilgili nesneler için arama tabanı"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
 msgid ""
@@ -864,156 +864,175 @@ msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
 msgstr ""
+"Son istek herhangi bir kural bulamadığı zaman, IPA sunucusuna karşı Masaüstü "
+"Profilleri kurallarının aranması arasındaki dakika cinsinden süre"
 
 #: src/config/SSSDConfig/sssdoptions.py:249
 msgid "Search base for SUBID ranges"
-msgstr ""
+msgstr "SUBID aralıkları için arama tabanı"
 
 #: src/config/SSSDConfig/sssdoptions.py:250
 msgid "The LDAP attribute that contains FQDN of the host."
-msgstr ""
+msgstr "Ana bilgisayarın FQDN'sini içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:251
 #: src/config/SSSDConfig/sssdoptions.py:274
 msgid "The object class of a host entry in LDAP."
-msgstr ""
+msgstr "LDAP'daki bir ana bilgisayar girdisinin nesne sınıfı."
 
 #: src/config/SSSDConfig/sssdoptions.py:252
 msgid "Use the given string as search base for host objects."
 msgstr ""
+"Ana bilgisayar nesneleri için arama tabanı olarak verilen dizeyi kullanın."
 
 #: src/config/SSSDConfig/sssdoptions.py:253
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr ""
+msgstr "Ana bilgisayarın SSH ortak anahtarlarını içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:254
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
-msgstr ""
+msgstr "Ağ grubunun NIS alan adını içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:255
 msgid "The LDAP attribute that contains the names of the netgroup's members."
-msgstr ""
+msgstr "Ağ grubunun üyelerinin adlarını içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:256
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
 msgstr ""
+"Ağ grubunun üyesi olan ana bilgisayarların ve ana bilgisayar gruplarının "
+"FQDN'lerini listeleyen LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:258
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
 msgstr ""
+"Ağ grubunun doğrudan üyeleri olan ana bilgisayarları ve ana bilgisayar "
+"gruplarını listeleyen LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:260
 msgid "The LDAP attribute that lists netgroup's memberships."
-msgstr ""
+msgstr "Ağ grubunun üyeliklerini listeleyen LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:261
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
 msgstr ""
+"Ağ grubunun doğrudan üyeleri olan sistem kullanıcıları ve grupları "
+"listeleyen LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:263
 msgid "The LDAP attribute that corresponds to the netgroup name."
-msgstr ""
+msgstr "Ağ grubu adına karşılık gelen LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:264
 msgid "The object class of a netgroup entry in LDAP."
-msgstr ""
+msgstr "LDAP'daki bir ağ grubu girdisinin nesne sınıfı."
 
 #: src/config/SSSDConfig/sssdoptions.py:265
 msgid ""
 "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
-msgstr ""
+msgstr "Bir LDAP ağ grubu nesnesinin UUID/GUID'sini içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:266
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr ""
+"Kullanıcı haritasının kullanım için etkinleştirilip etkinleştirilmediğini "
+"içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:268
 msgid "The LDAP attribute that contains host category such as 'all'."
-msgstr ""
+msgstr "\"all\" gibi ana bilgisayar sınıfını içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:269
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr ""
+"Bu kuralın eşleştiği tüm ana bilgisayarları/ana bilgisayar gruplarını içeren "
+"LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:271
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
-msgstr ""
+msgstr "Bu kuralın eşleştiği tüm kullanıcıları/grupları içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:273
 msgid "The LDAP attribute that contains the name of SELinux usermap."
-msgstr ""
+msgstr "SELinux kullanıcı haritasının adını içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:275
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
 msgstr ""
+"memberUser ve memberHost yerine eşleştirme için kullanılabilen HBAC "
+"kuralının DN'sini içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:277
 msgid "The LDAP attribute that contains SELinux user string itself."
-msgstr ""
+msgstr "SELinux kullanıcı dizesinin kendisini içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:278
 msgid "The LDAP attribute that contains user category such as 'all'."
-msgstr ""
+msgstr "\"all\" gibi kullanıcı sınıfını içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:279
 msgid "The LDAP attribute that contains unique ID of the user map."
-msgstr ""
+msgstr "Kullanıcı haritasının benzersiz kimliğini içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:280
 msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
 msgstr ""
+"Bu seçenek, SSSD'nin IPA sunucusunda çalıştığını ve güvenilir etki "
+"alanlarından kullanıcı ve grupların aramalarını farklı şekilde "
+"gerçekleştirmesi gerektiğini belirtir."
 
 #: src/config/SSSDConfig/sssdoptions.py:282
 msgid "Use the given string as search base for trusted domains."
 msgstr ""
+"Verilen dizeyi güvenilir etki alanları için arama tabanı olarak kullanın."
 
 #: src/config/SSSDConfig/sssdoptions.py:285
 msgid "Active Directory domain"
-msgstr ""
+msgstr "Active Directory etki alanı"
 
 #: src/config/SSSDConfig/sssdoptions.py:286
 msgid "Enabled Active Directory domains"
-msgstr ""
+msgstr "Etkinleştirilmiş Active Directory etki alanları"
 
 #: src/config/SSSDConfig/sssdoptions.py:287
 msgid "Active Directory server address"
-msgstr ""
+msgstr "Active Directory sunucu adresi"
 
 #: src/config/SSSDConfig/sssdoptions.py:288
 msgid "Active Directory backup server address"
-msgstr ""
+msgstr "Active Directory yedek sunucu adresi"
 
 #: src/config/SSSDConfig/sssdoptions.py:289
 msgid "Active Directory client hostname"
-msgstr ""
+msgstr "Active Directory istemci ana bilgisayar adı"
 
 #: src/config/SSSDConfig/sssdoptions.py:291
 #: src/config/SSSDConfig/sssdoptions.py:487
 msgid "LDAP filter to determine access privileges"
-msgstr ""
+msgstr "Erişim ayrıcalıklarını belirlemek için LDAP süzgeci"
 
 #: src/config/SSSDConfig/sssdoptions.py:292
 msgid "Whether to use the Global Catalog for lookups"
-msgstr ""
+msgstr "Aramalar için Genel Kataloğun kullanılıp kullanılmayacağı"
 
 #: src/config/SSSDConfig/sssdoptions.py:293
 msgid "Operation mode for GPO-based access control"
-msgstr ""
+msgstr "GPO tabanlı erişim kontrolü için çalışma kipi"
 
 #: src/config/SSSDConfig/sssdoptions.py:294
 msgid ""
@@ -1026,65 +1045,72 @@ msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
+"GPO (Deny)InteractiveLogonRight ilke ayarlarıyla eşleşen PAM hizmet adları"
 
 #: src/config/SSSDConfig/sssdoptions.py:297
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
+"GPO (Deny)RemoteInteractiveLogonRight ilke ayarlarıyla eşleşen PAM hizmet "
+"adları"
 
 #: src/config/SSSDConfig/sssdoptions.py:299
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
-msgstr ""
+msgstr "GPO (Deny)NetworkLogonRight ilke ayarlarıyla eşleşen PAM hizmet adları"
 
 #: src/config/SSSDConfig/sssdoptions.py:300
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
-msgstr ""
+msgstr "GPO (Deny)BatchLogonRight ilke ayarlarıyla eşleşen PAM hizmet adları"
 
 #: src/config/SSSDConfig/sssdoptions.py:301
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
-msgstr ""
+msgstr "GPO (Deny)ServiceLogonRight ilke ayarlarıyla eşleşen PAM hizmet adları"
 
 #: src/config/SSSDConfig/sssdoptions.py:302
 msgid "PAM service names for which GPO-based access is always granted"
-msgstr ""
+msgstr "GPO tabanlı erişimin her zaman verildiği PAM hizmet adları"
 
 #: src/config/SSSDConfig/sssdoptions.py:303
 msgid "PAM service names for which GPO-based access is always denied"
-msgstr ""
+msgstr "GPO tabanlı erişimin her zaman reddedildiği PAM hizmet adları"
 
 #: src/config/SSSDConfig/sssdoptions.py:304
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
 msgstr ""
+"Eşlenmemiş PAM hizmet adları için kullanmak üzere varsayılan oturum açma "
+"hakkı (veya izin verme/reddetme)"
 
 #: src/config/SSSDConfig/sssdoptions.py:305
 msgid "a particular site to be used by the client"
-msgstr ""
+msgstr "istemci tarafından kullanılacak hususi bir alan"
 
 #: src/config/SSSDConfig/sssdoptions.py:306
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
 msgstr ""
+"Makine hesabı parolasının yenilenmesinden önceki gün cinsinden azami zaman"
 
 #: src/config/SSSDConfig/sssdoptions.py:308
 msgid "Option for tuning the machine account renewal task"
-msgstr ""
+msgstr "Makine hesabı yenileme görevini ayarlama seçeneği"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid "Whether to update the machine account password in the Samba database"
 msgstr ""
+"Samba veritabanında makine hesabı parolasının güncellenip güncellenmeyeceği"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
-msgstr ""
+msgstr "LDAP ve Genel Katalog istekleri için LDAPS bağlantı noktasını kullanın"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "Do not filter domain local groups from other domains"
-msgstr ""
+msgstr "Diğer etki alanlarından etki alanı yerel gruplarını süzmeyin"
 
 #: src/config/SSSDConfig/sssdoptions.py:315
 #: src/config/SSSDConfig/sssdoptions.py:316
@@ -1093,268 +1119,276 @@ msgstr "Kerberos sunucu adresi"
 
 #: src/config/SSSDConfig/sssdoptions.py:317
 msgid "Kerberos backup server address"
-msgstr ""
+msgstr "Kerberos yedek sunucu adresi"
 
 #: src/config/SSSDConfig/sssdoptions.py:318
 msgid "Kerberos realm"
-msgstr ""
+msgstr "Kerberos bölgesi(realm)"
 
 #: src/config/SSSDConfig/sssdoptions.py:319
 msgid "Authentication timeout"
-msgstr ""
+msgstr "Kimlik doğrulama zaman aşımı"
 
 #: src/config/SSSDConfig/sssdoptions.py:320
 msgid "Whether to create kdcinfo files"
-msgstr ""
+msgstr "kdcinfo dosyalarının oluşturulup oluşturulmayacağı"
 
 #: src/config/SSSDConfig/sssdoptions.py:321
 msgid "Where to drop krb5 config snippets"
-msgstr ""
+msgstr "krb5 yapılandırma parçacıkları nereye bırakılır"
 
 #: src/config/SSSDConfig/sssdoptions.py:324
 msgid "Directory to store credential caches"
-msgstr ""
+msgstr "Kimlik bilgileri önbelleklerini depolamak için dizin"
 
 #: src/config/SSSDConfig/sssdoptions.py:325
 msgid "Location of the user's credential cache"
-msgstr ""
+msgstr "Kullanıcının kimlik bilgileri önbelleğinin konumu"
 
 #: src/config/SSSDConfig/sssdoptions.py:326
 msgid "Location of the keytab to validate credentials"
-msgstr ""
+msgstr "Kimlik bilgilerini doğrulamak için anahtarın(keytab) konumu"
 
 #: src/config/SSSDConfig/sssdoptions.py:327
 msgid "Enable credential validation"
-msgstr ""
+msgstr "Kimlik doğrulamasını etkinleştir"
 
 #: src/config/SSSDConfig/sssdoptions.py:328
 msgid "Store password if offline for later online authentication"
 msgstr ""
+"Çevrimdışıysa daha sonra çevrimiçi kimlik doğrulama için parolayı saklayın"
 
 #: src/config/SSSDConfig/sssdoptions.py:329
 msgid "Renewable lifetime of the TGT"
-msgstr ""
+msgstr "TGT'nin yenilenebilir ömrü"
 
 #: src/config/SSSDConfig/sssdoptions.py:330
 msgid "Lifetime of the TGT"
-msgstr ""
+msgstr "TGT'nin ömrü"
 
 #: src/config/SSSDConfig/sssdoptions.py:331
 msgid "Time between two checks for renewal"
-msgstr ""
+msgstr "Yenileme için iki denetim arasındaki süre"
 
 #: src/config/SSSDConfig/sssdoptions.py:332
 msgid "Enables FAST"
-msgstr ""
+msgstr "FAST'ı etkinleştirir"
 
 #: src/config/SSSDConfig/sssdoptions.py:333
 msgid "Selects the principal to use for FAST"
-msgstr ""
+msgstr "FAST için kullanım ilkesini seçin"
 
 #: src/config/SSSDConfig/sssdoptions.py:334
 msgid "Use anonymous PKINIT to request FAST credentials"
-msgstr ""
+msgstr "FAST kimlik bilgilerini istemek için anonim PKINIT kullanın"
 
 #: src/config/SSSDConfig/sssdoptions.py:335
 msgid "Enables principal canonicalization"
-msgstr ""
+msgstr "Temel kurallılaştırmayı etkinleştirir"
 
 #: src/config/SSSDConfig/sssdoptions.py:336
 msgid "Enables enterprise principals"
-msgstr ""
+msgstr "Kurumsal ilkeleri etkinleştirir"
 
 #: src/config/SSSDConfig/sssdoptions.py:337
 msgid "Enables using of subdomains realms for authentication"
-msgstr ""
+msgstr "Kimlik doğrulama için alt etki alanlarının kullanılmasını sağlar"
 
 #: src/config/SSSDConfig/sssdoptions.py:338
 msgid "A mapping from user names to Kerberos principal names"
-msgstr ""
+msgstr "Kullanıcı adlarından Kerberos asıl adlarına bir eşleme"
 
 #: src/config/SSSDConfig/sssdoptions.py:341
 #: src/config/SSSDConfig/sssdoptions.py:342
 msgid "Server where the change password service is running if not on the KDC"
-msgstr ""
+msgstr "KDC'de değilse parola değiştirme hizmetinin çalıştığı sunucu"
 
 #: src/config/SSSDConfig/sssdoptions.py:345
 msgid "ldap_uri, The URI of the LDAP server"
-msgstr ""
+msgstr "ldap_uri, LDAP sunucusunun URI'si"
 
 #: src/config/SSSDConfig/sssdoptions.py:346
 msgid "ldap_backup_uri, The URI of the LDAP server"
-msgstr ""
+msgstr "ldap_backup_uri, LDAP sunucusunun URI'si"
 
 #: src/config/SSSDConfig/sssdoptions.py:347
 msgid "The default base DN"
-msgstr ""
+msgstr "Varsayılan taban DN"
 
 #: src/config/SSSDConfig/sssdoptions.py:348
 msgid "The Schema Type in use on the LDAP server, rfc2307"
-msgstr ""
+msgstr "LDAP sunucusunda kullanılan Şema Türü, rfc2307"
 
 #: src/config/SSSDConfig/sssdoptions.py:349
 msgid "Mode used to change user password"
-msgstr ""
+msgstr "Kullanıcı parolasını değiştirmek için kullanılan kip"
 
 #: src/config/SSSDConfig/sssdoptions.py:350
 msgid "The default bind DN"
-msgstr ""
+msgstr "Varsayılan bağlama DN'si"
 
 #: src/config/SSSDConfig/sssdoptions.py:351
 msgid "The type of the authentication token of the default bind DN"
-msgstr ""
+msgstr "Varsayılan bağlama DN'sinin kimlik doğrulama belirtecinin türü"
 
 #: src/config/SSSDConfig/sssdoptions.py:352
 msgid "The authentication token of the default bind DN"
-msgstr ""
+msgstr "Varsayılan bağlama DN'sinin kimlik doğrulama belirteci"
 
 #: src/config/SSSDConfig/sssdoptions.py:353
 msgid "Length of time to attempt connection"
-msgstr ""
+msgstr "Bağlantı kurma süresi"
 
 #: src/config/SSSDConfig/sssdoptions.py:354
 msgid "Length of time to attempt synchronous LDAP operations"
-msgstr ""
+msgstr "Eşzamanlı LDAP işlemlerini deneme süresi"
 
 #: src/config/SSSDConfig/sssdoptions.py:355
 msgid "Length of time between attempts to reconnect while offline"
-msgstr ""
+msgstr "Çevrimdışıyken yeniden bağlanma girişimleri arasındaki süre"
 
 #: src/config/SSSDConfig/sssdoptions.py:356
 msgid "Use only the upper case for realm names"
-msgstr ""
+msgstr "Bölge(realm) adları için yalnızca büyük harf kullanın"
 
 #: src/config/SSSDConfig/sssdoptions.py:357
 msgid "File that contains CA certificates"
-msgstr ""
+msgstr "CA sertifikalarını içeren dosya"
 
 #: src/config/SSSDConfig/sssdoptions.py:358
 msgid "Path to CA certificate directory"
-msgstr ""
+msgstr "CA sertifika dizinine giden yol"
 
 #: src/config/SSSDConfig/sssdoptions.py:359
 msgid "File that contains the client certificate"
-msgstr ""
+msgstr "İstemci sertifikasını içeren dosya"
 
 #: src/config/SSSDConfig/sssdoptions.py:360
 msgid "File that contains the client key"
-msgstr ""
+msgstr "İstemci anahtarını içeren dosya"
 
 #: src/config/SSSDConfig/sssdoptions.py:361
 msgid "List of possible ciphers suites"
-msgstr ""
+msgstr "Olası şifre paketlerinin listesi"
 
 #: src/config/SSSDConfig/sssdoptions.py:362
 msgid "Require TLS certificate verification"
-msgstr ""
+msgstr "TLS sertifika doğrulaması iste"
 
 #: src/config/SSSDConfig/sssdoptions.py:363
 msgid "Specify the sasl mechanism to use"
-msgstr ""
+msgstr "Kullanılacak sasl mekanizmasını belirtin"
 
 #: src/config/SSSDConfig/sssdoptions.py:364
 msgid "Specify the sasl authorization id to use"
-msgstr ""
+msgstr "Kullanılacak sasl yetkilendirme kimliğini belirtin"
 
 #: src/config/SSSDConfig/sssdoptions.py:365
 msgid "Specify the sasl authorization realm to use"
-msgstr ""
+msgstr "Kullanılacak sasl yetkilendirme bölgesini(realm) belirtin"
 
 #: src/config/SSSDConfig/sssdoptions.py:366
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr ""
+msgstr "LDAP sasl yetkilendirmesi için asgari SSF'yi belirtin"
 
 #: src/config/SSSDConfig/sssdoptions.py:367
 msgid "Specify the maximal SSF for LDAP sasl authorization"
-msgstr ""
+msgstr "LDAP sasl yetkilendirmesi için azami SSF'yi belirtin"
 
 #: src/config/SSSDConfig/sssdoptions.py:368
 msgid "Kerberos service keytab"
-msgstr ""
+msgstr "Kerberos hizmet anahtarı(keytab)"
 
 #: src/config/SSSDConfig/sssdoptions.py:369
 msgid "Use Kerberos auth for LDAP connection"
-msgstr ""
+msgstr "LDAP bağlantısı için Kerberos yetkilendirmesini kullanın"
 
 #: src/config/SSSDConfig/sssdoptions.py:370
 msgid "Follow LDAP referrals"
-msgstr ""
+msgstr "LDAP yönlendirmelerini takip edin"
 
 #: src/config/SSSDConfig/sssdoptions.py:371
 msgid "Lifetime of TGT for LDAP connection"
-msgstr ""
+msgstr "LDAP bağlantısı için TGT'nin ömrü"
 
 #: src/config/SSSDConfig/sssdoptions.py:372
 msgid "How to dereference aliases"
-msgstr ""
+msgstr "Takma adlar nasıl kaldırılır"
 
 #: src/config/SSSDConfig/sssdoptions.py:373
 msgid "Service name for DNS service lookups"
-msgstr ""
+msgstr "DNS hizmeti aramaları için hizmet adı"
 
 #: src/config/SSSDConfig/sssdoptions.py:374
 msgid "The number of records to retrieve in a single LDAP query"
-msgstr ""
+msgstr "Tek bir LDAP sorgusunda alınacak kayıt sayısı"
 
 #: src/config/SSSDConfig/sssdoptions.py:375
+#, fuzzy
 msgid "The number of members that must be missing to trigger a full deref"
-msgstr ""
+msgstr "Tam bir içeriği tetiklemek için eksik olması gereken üye sayısı"
 
 #: src/config/SSSDConfig/sssdoptions.py:376
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "Okunamayan LDAP başvurularını yoksay"
 
 #: src/config/SSSDConfig/sssdoptions.py:377
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr ""
+"LDAP kitaplığının, SASL bağlaması sırasında ana bilgisayar adını standart "
+"hale getirmek için geriye doğru arama yapıp yapmayacağı"
 
 #: src/config/SSSDConfig/sssdoptions.py:379
 msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr ""
+"RFC2307 şemasını kullanan sunucular için yerel kullanıcıları LDAP grubunun "
+"üyeleri olarak tutmaya izin verir."
 
 #: src/config/SSSDConfig/sssdoptions.py:382
 msgid "entryUSN attribute"
-msgstr ""
+msgstr "entryUSN özniteliği"
 
 #: src/config/SSSDConfig/sssdoptions.py:383
 msgid "lastUSN attribute"
-msgstr ""
+msgstr "lastUSN özniteliği"
 
 #: src/config/SSSDConfig/sssdoptions.py:385
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr ""
+"LDAP sunucusuyla bağlantıyı kesmeden önce bağlantının ne kadar süreyle "
+"korunacağı"
 
 #: src/config/SSSDConfig/sssdoptions.py:388
 msgid "Disable the LDAP paging control"
-msgstr ""
+msgstr "LDAP sayfalama denetimini devre dışı bırakın"
 
 #: src/config/SSSDConfig/sssdoptions.py:389
 msgid "Disable Active Directory range retrieval"
-msgstr ""
+msgstr "Active Directory aralığı almayı devre dışı bırakın"
 
 #: src/config/SSSDConfig/sssdoptions.py:392
 msgid "Length of time to wait for a search request"
-msgstr ""
+msgstr "Arama isteğini bekleme süresi"
 
 #: src/config/SSSDConfig/sssdoptions.py:393
 msgid "Length of time to wait for a enumeration request"
-msgstr ""
+msgstr "Numaralandırma isteğini bekleme süresi"
 
 #: src/config/SSSDConfig/sssdoptions.py:394
 msgid "Length of time between enumeration updates"
-msgstr ""
+msgstr "Numaralandırma güncelleştirmeleri arasındaki süre"
 
 #: src/config/SSSDConfig/sssdoptions.py:395
 msgid "Length of time between cache cleanups"
-msgstr ""
+msgstr "Önbellek temizlemeleri arasındaki süre"
 
 #: src/config/SSSDConfig/sssdoptions.py:396
 msgid "Require TLS for ID lookups"
-msgstr ""
+msgstr "Kimlik aramaları için TLS iste"
 
 #: src/config/SSSDConfig/sssdoptions.py:397
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
