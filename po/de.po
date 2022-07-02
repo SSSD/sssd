@@ -8,13 +8,14 @@
 # sgallagh <sgallagh@redhat.com>, 2011
 # Ludek Janda <ljanda@redhat.com>, 2020. #zanata
 # Sumit Bose <sbose@redhat.com>, 2021.
+# Joachim Philipp <joachim.philipp@gmail.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-06-21 13:22+0200\n"
-"PO-Revision-Date: 2021-02-02 14:40+0000\n"
-"Last-Translator: Sumit Bose <sbose@redhat.com>\n"
+"PO-Revision-Date: 2022-07-01 09:40+0000\n"
+"Last-Translator: Joachim Philipp <joachim.philipp@gmail.com>\n"
 "Language-Team: German <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/de/>\n"
 "Language: de\n"
@@ -22,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.4.2\n"
+"X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -39,11 +40,11 @@ msgstr "Mikrosekunden in Zeitstempeln der Debug-Protokolle einschließen"
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Enable/disable debug backtrace"
-msgstr ""
+msgstr "Fehlerdiagnose Rückverfolgung ein-/ausschalten"
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Watchdog timeout before restarting service"
-msgstr ""
+msgstr "Timeout beim Watchdog vor Neustart des Dienstes"
 
 #: src/config/SSSDConfig/sssdoptions.py:26
 msgid "Command to start service"
@@ -65,11 +66,11 @@ msgstr "Untätige Zeit vor der automatischen Verbindungstrennung eines Clients "
 
 #: src/config/SSSDConfig/sssdoptions.py:30
 msgid "Idle time before automatic shutdown of the responder"
-msgstr ""
+msgstr "Inaktivitätszeit bis zum automatischen Herunterfahren des Responders"
 
 #: src/config/SSSDConfig/sssdoptions.py:31
 msgid "Always query all the caches before querying the Data Providers"
-msgstr ""
+msgstr "Immer alle Zwischenspeicher abfragen vor Abfrage der Datenprovider"
 
 #: src/config/SSSDConfig/sssdoptions.py:32
 msgid ""

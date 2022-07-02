@@ -9,13 +9,14 @@
 # Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022.
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 # Sundeep Anand <suanand@redhat.com>, 2021.
+# Transtats <suanand@redhat.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-06-21 13:22+0200\n"
-"PO-Revision-Date: 2022-01-05 12:23+0000\n"
-"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
+"PO-Revision-Date: 2022-06-24 20:18+0000\n"
+"Last-Translator: Transtats <suanand@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ja/>\n"
 "Language: ja\n"
@@ -23,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -164,7 +165,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:56
 msgid "Run PAC responder automatically for AD and IPA provider"
-msgstr ""
+msgstr "AD および IPA プロバイダーに対して PAC レスポンダーを自動的に実行する"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Enumeration cache timeout length (seconds)"
@@ -437,7 +438,7 @@ msgstr "PAC データが有効とされる期間"
 
 #: src/config/SSSDConfig/sssdoptions.py:137
 msgid "Validate the PAC"
-msgstr ""
+msgstr "PAC を検証する"
 
 #: src/config/SSSDConfig/sssdoptions.py:140
 msgid "List of user attributes the InfoPipe is allowed to publish"
@@ -1116,7 +1117,7 @@ msgstr "FAST に使用するプリンシパルを選択する"
 
 #: src/config/SSSDConfig/sssdoptions.py:334
 msgid "Use anonymous PKINIT to request FAST credentials"
-msgstr ""
+msgstr "匿名の PKINIT を使用して FAST の認証情報を要求する"
 
 #: src/config/SSSDConfig/sssdoptions.py:335
 msgid "Enables principal canonicalization"
@@ -1265,7 +1266,7 @@ msgstr "完全な参照解決を引き起こすために欠けている必要が
 
 #: src/config/SSSDConfig/sssdoptions.py:376
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "読むことのできない LDAP 参照を無視する"
 
 #: src/config/SSSDConfig/sssdoptions.py:377
 msgid ""
@@ -1947,7 +1948,7 @@ msgstr "次のように FAST ccache を作成するグループ"
 
 #: src/providers/krb5/krb5_child.c:3765
 msgid "Use anonymous PKINIT to request FAST armor ticket"
-msgstr ""
+msgstr "匿名の PKINIT を使用して FAST の armo チケットを要求する"
 
 #: src/providers/krb5/krb5_child.c:3767
 msgid "Kerberos realm to use"
@@ -1983,7 +1984,7 @@ msgstr "デバッグのロギングの冗長性を設定する"
 
 #: src/providers/krb5/krb5_child.c:3784
 msgid "Check PAC flags"
-msgstr ""
+msgstr "PAC フラグを確認する"
 
 #: src/providers/krb5/krb5_child.c:3826 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2082,7 +2083,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:709
 msgid "PIN locked"
-msgstr ""
+msgstr "PIN がロックされました"
 
 #: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "
@@ -2091,16 +2092,16 @@ msgstr "パスワードの変更に失敗しました。 "
 #: src/sss_client/pam_sss.c:1741
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
-msgstr ""
+msgstr "%1$s で認証し、ENTER を押します。"
 
 #: src/sss_client/pam_sss.c:1744
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
-msgstr ""
+msgstr "%2$s で PIN %1$s を使用して認証し、ENTER を押します。"
 
 #: src/sss_client/pam_sss.c:1959
 msgid "Please (re)insert (different) Smartcard"
-msgstr ""
+msgstr "(別の)スマートカードを挿入(し直)してください"
 
 #: src/sss_client/pam_sss.c:2158
 msgid "New Password: "
