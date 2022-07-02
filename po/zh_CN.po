@@ -8,13 +8,14 @@
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 # Charles Lee <lchopn@gmail.com>, 2020, 2021.
 # Sundeep Anand <suanand@redhat.com>, 2021.
+# Transtats <suanand@redhat.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-06-21 13:22+0200\n"
-"PO-Revision-Date: 2022-01-05 12:23+0000\n"
-"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
+"PO-Revision-Date: 2022-06-24 20:18+0000\n"
+"Last-Translator: Transtats <suanand@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_CN/>\n"
 "Language: zh_CN\n"
@@ -22,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -156,7 +157,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:56
 msgid "Run PAC responder automatically for AD and IPA provider"
-msgstr ""
+msgstr "为 AD 和 IPA 提供商自动运行 PAC 响应器"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Enumeration cache timeout length (seconds)"
@@ -355,7 +356,7 @@ msgstr "PKCS#11 URI，用于限制智能卡认证设备的选择"
 
 #: src/config/SSSDConfig/sssdoptions.py:110
 msgid "When shall the PAM responder force an initgroups request"
-msgstr "什么时候 PAM 响应者要强制发起 initgroups 请求？"
+msgstr "什么时候 PAM 响应者要强制发起 initgroups 请求"
 
 #: src/config/SSSDConfig/sssdoptions.py:111
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
@@ -422,7 +423,7 @@ msgstr "PAC 数据被视为有效的时间长度"
 
 #: src/config/SSSDConfig/sssdoptions.py:137
 msgid "Validate the PAC"
-msgstr ""
+msgstr "验证 PAC"
 
 #: src/config/SSSDConfig/sssdoptions.py:140
 msgid "List of user attributes the InfoPipe is allowed to publish"
@@ -563,11 +564,11 @@ msgstr "上次成功登录后保留缓存条目的时间（天）"
 msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
-msgstr "在尝试下一个服务器之前，SSSD 应该与一个 DNS 服务器联系多久（毫秒）？"
+msgstr "在尝试下一个服务器之前，SSSD 应该与一个 DNS 服务器联系多久（毫秒）"
 
 #: src/config/SSSDConfig/sssdoptions.py:181
 msgid "How long should keep trying to resolve single DNS query (seconds)"
-msgstr "尝试解析单个 DNS 查询需要多长时间（秒）？"
+msgstr "尝试解析单个 DNS 查询需要多长时间（秒）"
 
 #: src/config/SSSDConfig/sssdoptions.py:182
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
@@ -994,7 +995,7 @@ msgstr "用于调整机器帐户续订任务的选项"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid "Whether to update the machine account password in the Samba database"
-msgstr "是否要更新 Samba 数据库中的机器账户密码？"
+msgstr "是否要更新 Samba 数据库中的机器账户密码"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
@@ -1071,7 +1072,7 @@ msgstr "选择用于 FAST 的主体"
 
 #: src/config/SSSDConfig/sssdoptions.py:334
 msgid "Use anonymous PKINIT to request FAST credentials"
-msgstr ""
+msgstr "使用匿名 PKINIT 请求 FAST 凭证"
 
 #: src/config/SSSDConfig/sssdoptions.py:335
 msgid "Enables principal canonicalization"
@@ -1220,7 +1221,7 @@ msgstr "触发完全取消引用请最少需要缺少的成员数"
 
 #: src/config/SSSDConfig/sssdoptions.py:376
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "忽略不可读的 LDAP 引用"
 
 #: src/config/SSSDConfig/sssdoptions.py:377
 msgid ""
@@ -1891,7 +1892,7 @@ msgstr "组创建 FAST 缓存为"
 
 #: src/providers/krb5/krb5_child.c:3765
 msgid "Use anonymous PKINIT to request FAST armor ticket"
-msgstr ""
+msgstr "使用匿名 PKINIT 请求 FAST armor 票"
 
 #: src/providers/krb5/krb5_child.c:3767
 msgid "Kerberos realm to use"
@@ -1927,7 +1928,7 @@ msgstr "用于日志记录的 Tevent 链 ID"
 
 #: src/providers/krb5/krb5_child.c:3784
 msgid "Check PAC flags"
-msgstr ""
+msgstr "检查 PAC 标志"
 
 #: src/providers/krb5/krb5_child.c:3826 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2024,7 +2025,7 @@ msgstr "更改 OTP 密码后，您需要注销并重新登录以获得票证"
 
 #: src/sss_client/pam_sss.c:709
 msgid "PIN locked"
-msgstr ""
+msgstr "PIN 已锁定"
 
 #: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "
@@ -2033,16 +2034,16 @@ msgstr "更改密码失败。 "
 #: src/sss_client/pam_sss.c:1741
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
-msgstr ""
+msgstr "在 %1$s 处进行身份验证，然后按 ENTER 。"
 
 #: src/sss_client/pam_sss.c:1744
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
-msgstr ""
+msgstr "在 %2$s 处使用 PIN %1$s 进行身份验证，然后按 ENTER 。"
 
 #: src/sss_client/pam_sss.c:1959
 msgid "Please (re)insert (different) Smartcard"
-msgstr ""
+msgstr "请（重新）插入（不同的）智能卡"
 
 #: src/sss_client/pam_sss.c:2158
 msgid "New Password: "

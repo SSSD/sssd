@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-06-21 13:22+0200\n"
-"PO-Revision-Date: 2022-06-16 10:35+0000\n"
+"PO-Revision-Date: 2022-06-25 10:28+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pl/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.12.2\n"
+"X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2149,7 +2149,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:709
 msgid "PIN locked"
-msgstr ""
+msgstr "Zablokowano kod PIN"
 
 #: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "

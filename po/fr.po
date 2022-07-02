@@ -12,12 +12,13 @@
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 # Jean-Baptiste Holcroft <jean-baptiste@holcroft.fr>, 2020.
 # Sundeep Anand <suanand@redhat.com>, 2021.
+# Transtats <suanand@redhat.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-06-21 13:22+0200\n"
-"PO-Revision-Date: 2022-01-05 12:23+0000\n"
+"PO-Revision-Date: 2022-06-24 20:18+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
@@ -26,7 +27,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.10.1\n"
+"X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -174,7 +175,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:56
 msgid "Run PAC responder automatically for AD and IPA provider"
-msgstr ""
+msgstr "Exécution automatique du répondeur PAC pour le fournisseur AD et IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Enumeration cache timeout length (seconds)"
@@ -478,7 +479,7 @@ msgstr "Durée de validité des données du PAC"
 
 #: src/config/SSSDConfig/sssdoptions.py:137
 msgid "Validate the PAC"
-msgstr ""
+msgstr "Valider le PAC"
 
 #: src/config/SSSDConfig/sssdoptions.py:140
 msgid "List of user attributes the InfoPipe is allowed to publish"
@@ -1215,6 +1216,8 @@ msgstr "Sélectionne le principal à utiliser avec FAST"
 #: src/config/SSSDConfig/sssdoptions.py:334
 msgid "Use anonymous PKINIT to request FAST credentials"
 msgstr ""
+"Utilisez le PKINIT anonyme pour demander des informations d'identification "
+"FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:335
 msgid "Enables principal canonicalization"
@@ -1369,7 +1372,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:376
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "Ignorer les références LDAP illisibles"
 
 #: src/config/SSSDConfig/sssdoptions.py:377
 msgid ""
@@ -1377,7 +1380,7 @@ msgid ""
 "host name during a SASL bind"
 msgstr ""
 "Est-ce que la bibliothèque LDAP doit effectuer une requête pour canoniser le "
-"nom d'hôte pendant une connexion SASL ?"
+"nom d'hôte pendant une connexion SASL"
 
 #: src/config/SSSDConfig/sssdoptions.py:379
 msgid ""
@@ -2072,7 +2075,7 @@ msgstr "Le groupe à utiliser pour la création du ccache FAST"
 
 #: src/providers/krb5/krb5_child.c:3765
 msgid "Use anonymous PKINIT to request FAST armor ticket"
-msgstr ""
+msgstr "Utilisez le PKINIT anonyme pour obtenir un ticket FAST armor"
 
 #: src/providers/krb5/krb5_child.c:3767
 msgid "Kerberos realm to use"
@@ -2108,7 +2111,7 @@ msgstr "ID de chaîne Tevent utilisé à des fins de journalisation"
 
 #: src/providers/krb5/krb5_child.c:3784
 msgid "Check PAC flags"
-msgstr ""
+msgstr "Vérifier les indicateurs PAC"
 
 #: src/providers/krb5/krb5_child.c:3826 src/providers/ldap/ldap_child.c:663
 msgid "talloc_asprintf failed.\n"
@@ -2212,7 +2215,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:709
 msgid "PIN locked"
-msgstr ""
+msgstr "PIN verrouillé"
 
 #: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "
@@ -2221,16 +2224,16 @@ msgstr "Échec du changement de mot de passe. "
 #: src/sss_client/pam_sss.c:1741
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
-msgstr ""
+msgstr "Authentifiez-vous sur %1$s et appuyez sur ENTRÉE."
 
 #: src/sss_client/pam_sss.c:1744
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
-msgstr ""
+msgstr "Authentifiez-vous avec le PIN %1$s à %2$s et appuyez sur ENTRÉE."
 
 #: src/sss_client/pam_sss.c:1959
 msgid "Please (re)insert (different) Smartcard"
-msgstr ""
+msgstr "Veuillez (ré)insérer une carte à puce (différente)"
 
 #: src/sss_client/pam_sss.c:2158
 msgid "New Password: "
@@ -3054,7 +3057,7 @@ msgstr "Environnement PAM :\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:309
 msgid " - no env -\n"
-msgstr " - no env -\n"
+msgstr " - aucun env -\n"
 
 #: src/util/util.h:93
 msgid "The user ID to run the server as"

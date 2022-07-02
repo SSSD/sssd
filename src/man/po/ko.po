@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2022-06-18 15:34+0000\n"
+"PO-Revision-Date: 2022-06-24 20:18+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -4294,7 +4294,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3648
 msgid "subdomain_homedir (string)"
-msgstr ""
+msgstr "subdomain_homedir (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3659
@@ -7476,7 +7476,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:212
 msgid "<option>try_cert_auth</option>"
-msgstr ""
+msgstr "<option>try_cert_auth</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:216
@@ -7588,7 +7588,8 @@ msgstr ""
 msgid ""
 "Permission denied. The SSSD log files may contain additional information "
 "about the error."
-msgstr ""
+msgstr "권한이 거부되었습니다. SSSD 기록 파일은 오류에 대해 추가적인 정보가 포함 될 "
+"수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:305
@@ -7605,7 +7606,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:314
 msgid "PAM_AUTHTOK_ERR"
-msgstr ""
+msgstr "PAM_AUTHTOK_ERR"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:317
@@ -16360,7 +16361,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:68
 msgid "ldap_user_uid_number (string)"
-msgstr ""
+msgstr "ldap_user_uid_number (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:71
@@ -16375,7 +16376,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:81
 msgid "ldap_user_gid_number (string)"
-msgstr ""
+msgstr "ldap_user_gid_number (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:84
