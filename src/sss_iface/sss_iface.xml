@@ -193,11 +193,11 @@
             <arg name="domain" type="s" direction="in" />
             <arg name="groups" type="au" direction="in" />
         </method>
-        <method name="InvalidateAllUsers" key="True" />
-        <method name="InvalidateAllGroups" key="True" />
-        <method name="InvalidateAllInitgroups" key="True" />
-        <method name="InvalidateGroupById" key="True">
-            <arg name="gid" type="u" direction="in" key="1" />
-        </method>
+        <signal name="InvalidateAllUsers" />
+        <signal name="InvalidateAllGroups" />
+        <signal name="InvalidateAllInitgroups" />
+        <signal name="InvalidateGroupById">
+            <arg name="gid" type="u" key="1" />
+        </signal>
     </interface>
 </node>

@@ -177,8 +177,6 @@ void dp_sbus_reset_groups_ncache(struct data_provider *provider,
 
 void dp_sbus_reset_users_memcache(struct data_provider *provider)
 {
-    struct tevent_req *subreq;
-
     if (provider == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No provider pointer\n");
         return;
@@ -187,22 +185,12 @@ void dp_sbus_reset_users_memcache(struct data_provider *provider)
     DEBUG(SSSDBG_TRACE_FUNC,
           "Ordering NSS responder to invalidate the users\n");
 
-    subreq = sbus_call_nss_memcache_InvalidateAllUsers_send(provider,
-                 provider->sbus_conn, SSS_BUS_NSS, SSS_BUS_PATH);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
-        return;
-    }
-
-    tevent_req_set_callback(subreq, sbus_unwanted_reply, NULL);
-
+    sbus_emit_nss_memcache_InvalidateAllUsers(provider->sbus_conn, SSS_BUS_PATH);
     return;
 }
 
 void dp_sbus_reset_groups_memcache(struct data_provider *provider)
 {
-    struct tevent_req *subreq;
-
     if (provider == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No provider pointer\n");
         return;
@@ -211,22 +199,12 @@ void dp_sbus_reset_groups_memcache(struct data_provider *provider)
     DEBUG(SSSDBG_TRACE_FUNC,
           "Ordering NSS responder to invalidate the groups\n");
 
-    subreq = sbus_call_nss_memcache_InvalidateAllGroups_send(provider,
-                 provider->sbus_conn, SSS_BUS_NSS, SSS_BUS_PATH);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
-        return;
-    }
-
-    tevent_req_set_callback(subreq, sbus_unwanted_reply, NULL);
-
+    sbus_emit_nss_memcache_InvalidateAllGroups(provider->sbus_conn, SSS_BUS_PATH);
     return;
 }
 
 void dp_sbus_reset_initgr_memcache(struct data_provider *provider)
 {
-    struct tevent_req *subreq;
-
     if (provider == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No provider pointer\n");
         return;
@@ -235,23 +213,13 @@ void dp_sbus_reset_initgr_memcache(struct data_provider *provider)
     DEBUG(SSSDBG_TRACE_FUNC,
           "Ordering NSS responder to invalidate the initgroups\n");
 
-    subreq = sbus_call_nss_memcache_InvalidateAllInitgroups_send(provider,
-                 provider->sbus_conn, SSS_BUS_NSS, SSS_BUS_PATH);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
-        return;
-    }
-
-    tevent_req_set_callback(subreq, sbus_unwanted_reply, NULL);
-
+    sbus_emit_nss_memcache_InvalidateAllInitgroups(provider->sbus_conn, SSS_BUS_PATH);
     return;
 }
 
 void dp_sbus_invalidate_group_memcache(struct data_provider *provider,
                                        gid_t gid)
 {
-    struct tevent_req *subreq;
-
     if (provider == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No provider pointer\n");
         return;
@@ -261,15 +229,6 @@ void dp_sbus_invalidate_group_memcache(struct data_provider *provider,
           "Ordering NSS responder to invalidate the group %"PRIu32" \n",
           gid);
 
-    subreq = sbus_call_nss_memcache_InvalidateGroupById_send(provider,
-                 provider->sbus_conn, SSS_BUS_NSS, SSS_BUS_PATH,
-                 (uint32_t)gid);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
-        return;
-    }
-
-    tevent_req_set_callback(subreq, sbus_unwanted_reply, NULL);
-
+    sbus_emit_nss_memcache_InvalidateGroupById(provider->sbus_conn, SSS_BUS_PATH, (uint32_t)gid);
     return;
 }

@@ -703,94 +703,6 @@
         (methods), (signals), (properties)); \
 })
 
-/* Method: sssd.nss.MemoryCache.InvalidateAllGroups */
-#define SBUS_METHOD_SYNC_sssd_nss_MemoryCache_InvalidateAllGroups(handler, data) ({ \
-    SBUS_CHECK_SYNC((handler), (data)); \
-    sbus_method_sync("InvalidateAllGroups", \
-        &_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllGroups, \
-        NULL, \
-        _sbus_sss_invoke_in__out__send, \
-        _sbus_sss_key_, \
-        (handler), (data)); \
-})
-
-#define SBUS_METHOD_ASYNC_sssd_nss_MemoryCache_InvalidateAllGroups(handler_send, handler_recv, data) ({ \
-    SBUS_CHECK_SEND((handler_send), (data)); \
-    SBUS_CHECK_RECV((handler_recv)); \
-    sbus_method_async("InvalidateAllGroups", \
-        &_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllGroups, \
-        NULL, \
-        _sbus_sss_invoke_in__out__send, \
-        _sbus_sss_key_, \
-        (handler_send), (handler_recv), (data)); \
-})
-
-/* Method: sssd.nss.MemoryCache.InvalidateAllInitgroups */
-#define SBUS_METHOD_SYNC_sssd_nss_MemoryCache_InvalidateAllInitgroups(handler, data) ({ \
-    SBUS_CHECK_SYNC((handler), (data)); \
-    sbus_method_sync("InvalidateAllInitgroups", \
-        &_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllInitgroups, \
-        NULL, \
-        _sbus_sss_invoke_in__out__send, \
-        _sbus_sss_key_, \
-        (handler), (data)); \
-})
-
-#define SBUS_METHOD_ASYNC_sssd_nss_MemoryCache_InvalidateAllInitgroups(handler_send, handler_recv, data) ({ \
-    SBUS_CHECK_SEND((handler_send), (data)); \
-    SBUS_CHECK_RECV((handler_recv)); \
-    sbus_method_async("InvalidateAllInitgroups", \
-        &_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllInitgroups, \
-        NULL, \
-        _sbus_sss_invoke_in__out__send, \
-        _sbus_sss_key_, \
-        (handler_send), (handler_recv), (data)); \
-})
-
-/* Method: sssd.nss.MemoryCache.InvalidateAllUsers */
-#define SBUS_METHOD_SYNC_sssd_nss_MemoryCache_InvalidateAllUsers(handler, data) ({ \
-    SBUS_CHECK_SYNC((handler), (data)); \
-    sbus_method_sync("InvalidateAllUsers", \
-        &_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllUsers, \
-        NULL, \
-        _sbus_sss_invoke_in__out__send, \
-        _sbus_sss_key_, \
-        (handler), (data)); \
-})
-
-#define SBUS_METHOD_ASYNC_sssd_nss_MemoryCache_InvalidateAllUsers(handler_send, handler_recv, data) ({ \
-    SBUS_CHECK_SEND((handler_send), (data)); \
-    SBUS_CHECK_RECV((handler_recv)); \
-    sbus_method_async("InvalidateAllUsers", \
-        &_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllUsers, \
-        NULL, \
-        _sbus_sss_invoke_in__out__send, \
-        _sbus_sss_key_, \
-        (handler_send), (handler_recv), (data)); \
-})
-
-/* Method: sssd.nss.MemoryCache.InvalidateGroupById */
-#define SBUS_METHOD_SYNC_sssd_nss_MemoryCache_InvalidateGroupById(handler, data) ({ \
-    SBUS_CHECK_SYNC((handler), (data), uint32_t); \
-    sbus_method_sync("InvalidateGroupById", \
-        &_sbus_sss_args_sssd_nss_MemoryCache_InvalidateGroupById, \
-        NULL, \
-        _sbus_sss_invoke_in_u_out__send, \
-        _sbus_sss_key_u_0, \
-        (handler), (data)); \
-})
-
-#define SBUS_METHOD_ASYNC_sssd_nss_MemoryCache_InvalidateGroupById(handler_send, handler_recv, data) ({ \
-    SBUS_CHECK_SEND((handler_send), (data), uint32_t); \
-    SBUS_CHECK_RECV((handler_recv)); \
-    sbus_method_async("InvalidateGroupById", \
-        &_sbus_sss_args_sssd_nss_MemoryCache_InvalidateGroupById, \
-        NULL, \
-        _sbus_sss_invoke_in_u_out__send, \
-        _sbus_sss_key_u_0, \
-        (handler_send), (handler_recv), (data)); \
-})
-
 /* Method: sssd.nss.MemoryCache.UpdateInitgroups */
 #define SBUS_METHOD_SYNC_sssd_nss_MemoryCache_UpdateInitgroups(handler, data) ({ \
     SBUS_CHECK_SYNC((handler), (data), const char *, const char *, uint32_t *); \
@@ -810,6 +722,102 @@
         NULL, \
         _sbus_sss_invoke_in_ssau_out__send, \
         NULL, \
+        (handler_send), (handler_recv), (data)); \
+})
+
+/* Signal: sssd.nss.MemoryCache.InvalidateAllGroups */
+#define SBUS_SIGNAL_EMITS_sssd_nss_MemoryCache_InvalidateAllGroups() ({ \
+    sbus_signal("InvalidateAllGroups", \
+        _sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllGroups, \
+        NULL); \
+})
+
+#define SBUS_SIGNAL_SYNC_sssd_nss_MemoryCache_InvalidateAllGroups(path, handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data)); \
+    sbus_listener_sync("sssd.nss.MemoryCache", "InvalidateAllGroups", (path), \
+        _sbus_sss_invoke_in__out__send, \
+        NULL, \
+        (handler), (data)); \
+})
+
+#define SBUS_SIGNAL_ASYNC_sssd_nss_MemoryCache_InvalidateAllGroups(path, handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data)); \
+    SBUS_CHECK_RECV((handler_recv)); \
+    sbus_listener_async("sssd.nss.MemoryCache", "InvalidateAllGroups", (path), \
+        _sbus_sss_invoke_in__out__send, \
+        NULL, \
+        (handler_send), (handler_recv), (data)); \
+})
+
+/* Signal: sssd.nss.MemoryCache.InvalidateAllInitgroups */
+#define SBUS_SIGNAL_EMITS_sssd_nss_MemoryCache_InvalidateAllInitgroups() ({ \
+    sbus_signal("InvalidateAllInitgroups", \
+        _sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllInitgroups, \
+        NULL); \
+})
+
+#define SBUS_SIGNAL_SYNC_sssd_nss_MemoryCache_InvalidateAllInitgroups(path, handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data)); \
+    sbus_listener_sync("sssd.nss.MemoryCache", "InvalidateAllInitgroups", (path), \
+        _sbus_sss_invoke_in__out__send, \
+        NULL, \
+        (handler), (data)); \
+})
+
+#define SBUS_SIGNAL_ASYNC_sssd_nss_MemoryCache_InvalidateAllInitgroups(path, handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data)); \
+    SBUS_CHECK_RECV((handler_recv)); \
+    sbus_listener_async("sssd.nss.MemoryCache", "InvalidateAllInitgroups", (path), \
+        _sbus_sss_invoke_in__out__send, \
+        NULL, \
+        (handler_send), (handler_recv), (data)); \
+})
+
+/* Signal: sssd.nss.MemoryCache.InvalidateAllUsers */
+#define SBUS_SIGNAL_EMITS_sssd_nss_MemoryCache_InvalidateAllUsers() ({ \
+    sbus_signal("InvalidateAllUsers", \
+        _sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllUsers, \
+        NULL); \
+})
+
+#define SBUS_SIGNAL_SYNC_sssd_nss_MemoryCache_InvalidateAllUsers(path, handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data)); \
+    sbus_listener_sync("sssd.nss.MemoryCache", "InvalidateAllUsers", (path), \
+        _sbus_sss_invoke_in__out__send, \
+        NULL, \
+        (handler), (data)); \
+})
+
+#define SBUS_SIGNAL_ASYNC_sssd_nss_MemoryCache_InvalidateAllUsers(path, handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data)); \
+    SBUS_CHECK_RECV((handler_recv)); \
+    sbus_listener_async("sssd.nss.MemoryCache", "InvalidateAllUsers", (path), \
+        _sbus_sss_invoke_in__out__send, \
+        NULL, \
+        (handler_send), (handler_recv), (data)); \
+})
+
+/* Signal: sssd.nss.MemoryCache.InvalidateGroupById */
+#define SBUS_SIGNAL_EMITS_sssd_nss_MemoryCache_InvalidateGroupById() ({ \
+    sbus_signal("InvalidateGroupById", \
+        _sbus_sss_args_sssd_nss_MemoryCache_InvalidateGroupById, \
+        NULL); \
+})
+
+#define SBUS_SIGNAL_SYNC_sssd_nss_MemoryCache_InvalidateGroupById(path, handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data), uint32_t); \
+    sbus_listener_sync("sssd.nss.MemoryCache", "InvalidateGroupById", (path), \
+        _sbus_sss_invoke_in_u_out__send, \
+        _sbus_sss_key_u_0, \
+        (handler), (data)); \
+})
+
+#define SBUS_SIGNAL_ASYNC_sssd_nss_MemoryCache_InvalidateGroupById(path, handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data), uint32_t); \
+    SBUS_CHECK_RECV((handler_recv)); \
+    sbus_listener_async("sssd.nss.MemoryCache", "InvalidateGroupById", (path), \
+        _sbus_sss_invoke_in_u_out__send, \
+        _sbus_sss_key_u_0, \
         (handler_send), (handler_recv), (data)); \
 })
 

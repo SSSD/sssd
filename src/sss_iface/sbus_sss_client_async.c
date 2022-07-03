@@ -2325,79 +2325,6 @@ sbus_call_monitor_RegisterService_recv
 }
 
 struct tevent_req *
-sbus_call_nss_memcache_InvalidateAllGroups_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path)
-{
-    return sbus_method_in__out__send(mem_ctx, conn, _sbus_sss_key_,
-        busname, object_path, "sssd.nss.MemoryCache", "InvalidateAllGroups");
-}
-
-errno_t
-sbus_call_nss_memcache_InvalidateAllGroups_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in__out__recv(req);
-}
-
-struct tevent_req *
-sbus_call_nss_memcache_InvalidateAllInitgroups_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path)
-{
-    return sbus_method_in__out__send(mem_ctx, conn, _sbus_sss_key_,
-        busname, object_path, "sssd.nss.MemoryCache", "InvalidateAllInitgroups");
-}
-
-errno_t
-sbus_call_nss_memcache_InvalidateAllInitgroups_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in__out__recv(req);
-}
-
-struct tevent_req *
-sbus_call_nss_memcache_InvalidateAllUsers_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path)
-{
-    return sbus_method_in__out__send(mem_ctx, conn, _sbus_sss_key_,
-        busname, object_path, "sssd.nss.MemoryCache", "InvalidateAllUsers");
-}
-
-errno_t
-sbus_call_nss_memcache_InvalidateAllUsers_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in__out__recv(req);
-}
-
-struct tevent_req *
-sbus_call_nss_memcache_InvalidateGroupById_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path,
-     uint32_t arg_gid)
-{
-    return sbus_method_in_u_out__send(mem_ctx, conn, _sbus_sss_key_u_0,
-        busname, object_path, "sssd.nss.MemoryCache", "InvalidateGroupById", arg_gid);
-}
-
-errno_t
-sbus_call_nss_memcache_InvalidateGroupById_recv
-    (struct tevent_req *req)
-{
-    return sbus_method_in_u_out__recv(req);
-}
-
-struct tevent_req *
 sbus_call_nss_memcache_UpdateInitgroups_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
@@ -2560,4 +2487,67 @@ sbus_call_service_sysbusReconnect_recv
     (struct tevent_req *req)
 {
     return sbus_method_in__out__recv(req);
+}
+
+static void
+sbus_emit_signal_
+    (struct sbus_connection *conn,
+     const char *path,
+     const char *iface,
+     const char *signal_name)
+{
+    sbus_call_signal_send(conn, NULL, NULL, path, iface, signal_name, NULL);
+}
+
+static void
+sbus_emit_signal_u
+    (struct sbus_connection *conn,
+     const char *path,
+     const char *iface,
+     const char *signal_name,
+     uint32_t arg0)
+{
+    struct _sbus_sss_invoker_args_u args;
+
+    args.arg0 = arg0;
+
+    sbus_call_signal_send(conn, NULL, (sbus_invoker_writer_fn)_sbus_sss_invoker_write_u,
+                          path, iface, signal_name, &args);
+}
+
+void
+sbus_emit_nss_memcache_InvalidateAllGroups
+    (struct sbus_connection *conn,
+     const char *object_path)
+{
+    sbus_emit_signal_(conn, object_path,
+        "sssd.nss.MemoryCache", "InvalidateAllGroups");
+}
+
+void
+sbus_emit_nss_memcache_InvalidateAllInitgroups
+    (struct sbus_connection *conn,
+     const char *object_path)
+{
+    sbus_emit_signal_(conn, object_path,
+        "sssd.nss.MemoryCache", "InvalidateAllInitgroups");
+}
+
+void
+sbus_emit_nss_memcache_InvalidateAllUsers
+    (struct sbus_connection *conn,
+     const char *object_path)
+{
+    sbus_emit_signal_(conn, object_path,
+        "sssd.nss.MemoryCache", "InvalidateAllUsers");
+}
+
+void
+sbus_emit_nss_memcache_InvalidateGroupById
+    (struct sbus_connection *conn,
+     const char *object_path,
+     uint32_t arg_gid)
+{
+    sbus_emit_signal_u(conn, object_path,
+        "sssd.nss.MemoryCache", "InvalidateGroupById", arg_gid);
 }

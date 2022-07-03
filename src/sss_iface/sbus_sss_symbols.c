@@ -371,47 +371,6 @@ _sbus_sss_args_sssd_monitor_RegisterService = {
 };
 
 const struct sbus_method_arguments
-_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllGroups = {
-    .input = (const struct sbus_argument[]){
-        {NULL}
-    },
-    .output = (const struct sbus_argument[]){
-        {NULL}
-    }
-};
-
-const struct sbus_method_arguments
-_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllInitgroups = {
-    .input = (const struct sbus_argument[]){
-        {NULL}
-    },
-    .output = (const struct sbus_argument[]){
-        {NULL}
-    }
-};
-
-const struct sbus_method_arguments
-_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllUsers = {
-    .input = (const struct sbus_argument[]){
-        {NULL}
-    },
-    .output = (const struct sbus_argument[]){
-        {NULL}
-    }
-};
-
-const struct sbus_method_arguments
-_sbus_sss_args_sssd_nss_MemoryCache_InvalidateGroupById = {
-    .input = (const struct sbus_argument[]){
-        {.type = "u", .name = "gid"},
-        {NULL}
-    },
-    .output = (const struct sbus_argument[]){
-        {NULL}
-    }
-};
-
-const struct sbus_method_arguments
 _sbus_sss_args_sssd_nss_MemoryCache_UpdateInitgroups = {
     .input = (const struct sbus_argument[]){
         {.type = "s", .name = "user"},
@@ -422,6 +381,27 @@ _sbus_sss_args_sssd_nss_MemoryCache_UpdateInitgroups = {
     .output = (const struct sbus_argument[]){
         {NULL}
     }
+};
+
+const struct sbus_argument
+_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllGroups[] = {
+    {NULL}
+};
+
+const struct sbus_argument
+_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllInitgroups[] = {
+    {NULL}
+};
+
+const struct sbus_argument
+_sbus_sss_args_sssd_nss_MemoryCache_InvalidateAllUsers[] = {
+    {NULL}
+};
+
+const struct sbus_argument
+_sbus_sss_args_sssd_nss_MemoryCache_InvalidateGroupById[] = {
+    {.type = "u", .name = "gid"},
+    {NULL}
 };
 
 const struct sbus_method_arguments
