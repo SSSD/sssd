@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2022-06-21 13:28+0200\n"
+"POT-Creation-Date: 2022-07-04 12:01+0200\n"
 "PO-Revision-Date: 2021-12-03 22:16+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
 "Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
@@ -11670,6 +11670,13 @@ msgstr ""
 msgid ""
 "If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", client "
 "applications will not use the fast in-memory cache."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd.8.xml:244
+msgid ""
+"If the environment variable SSS_LOCKFREE is set to \"NO\", requests from "
+"multiple threads of a single application will be serialized."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
