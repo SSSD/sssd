@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-06-21 13:29+0200\n"
-"PO-Revision-Date: 2022-06-17 14:30+0000\n"
+"PO-Revision-Date: 2022-07-01 09:39+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-7/ko/>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.12.2\n"
+"X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1640,7 +1640,8 @@ msgstr "LDAP 암호 변경 서버의 DNS 서비스 이름"
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
-msgstr "암호 변경 후 ldap_user_shadow_last_change 속성을 업데이트할지 여부"
+msgstr ""
+"비밀번호 변경 후에 ldap_user_shadow_last_change 속성을 최신화 할지 여부"
 
 #: src/config/SSSDConfig/sssdoptions.py:499
 msgid "Base DN for sudo rules lookups"
@@ -2051,7 +2052,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:709
 msgid "PIN locked"
-msgstr ""
+msgstr "PIN 잠금"
 
 #: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "
@@ -2342,7 +2343,7 @@ msgstr "캐시 항목 생성 날짜"
 
 #: src/tools/sssctl/sssctl_cache.c:35
 msgid "Cache entry last update time"
-msgstr "캐시 항목 마지막 업데이트 시간"
+msgstr "캐쉬 항목 마지막 최신화 시간"
 
 #: src/tools/sssctl/sssctl_cache.c:36
 msgid "Cache entry expiration time"
