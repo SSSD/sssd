@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-06-21 13:22+0200\n"
+"POT-Creation-Date: 2022-07-04 11:59+0200\n"
 "PO-Revision-Date: 2014-12-14 11:46-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Norwegian Bokmål (http://www.transifex.com/projects/p/sssd/"
@@ -147,1647 +147,1671 @@ msgstr ""
 msgid "Run PAC responder automatically for AD and IPA provider"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:59
-msgid "Enumeration cache timeout length (seconds)"
+#: src/config/SSSDConfig/sssdoptions.py:57
+msgid "Enable or disable core dumps for all SSSD processes."
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:60
-msgid "Entry cache background update timeout length (seconds)"
+msgid "Enumeration cache timeout length (seconds)"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:61
-#: src/config/SSSDConfig/sssdoptions.py:123
-msgid "Negative cache timeout length (seconds)"
+msgid "Entry cache background update timeout length (seconds)"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:62
-msgid "Files negative cache timeout length (seconds)"
+#: src/config/SSSDConfig/sssdoptions.py:124
+msgid "Negative cache timeout length (seconds)"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:63
-msgid "Users that SSSD should explicitly ignore"
+msgid "Files negative cache timeout length (seconds)"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:64
-msgid "Groups that SSSD should explicitly ignore"
+msgid "Users that SSSD should explicitly ignore"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:65
-msgid "Should filtered users appear in groups"
+msgid "Groups that SSSD should explicitly ignore"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:66
-msgid "The value of the password field the NSS provider should return"
+msgid "Should filtered users appear in groups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:67
-msgid "Override homedir value from the identity provider with this value"
+msgid "The value of the password field the NSS provider should return"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:68
+msgid "Override homedir value from the identity provider with this value"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:69
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:69
+#: src/config/SSSDConfig/sssdoptions.py:70
 msgid "Override shell value from the identity provider with this value"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:70
+#: src/config/SSSDConfig/sssdoptions.py:71
 msgid "The list of shells users are allowed to log in with"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:71
+#: src/config/SSSDConfig/sssdoptions.py:72
 msgid ""
 "The list of shells that will be vetoed, and replaced with the fallback shell"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:72
+#: src/config/SSSDConfig/sssdoptions.py:73
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:73
+#: src/config/SSSDConfig/sssdoptions.py:74
 msgid "Shell to use if the provider does not list one"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:74
+#: src/config/SSSDConfig/sssdoptions.py:75
 msgid "How long will be in-memory cache records valid"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:76
+#: src/config/SSSDConfig/sssdoptions.py:77
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for passwd requests"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:78
+#: src/config/SSSDConfig/sssdoptions.py:79
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:80
+#: src/config/SSSDConfig/sssdoptions.py:81
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:81
+#: src/config/SSSDConfig/sssdoptions.py:82
 msgid ""
 "The value of this option will be used in the expansion of the "
 "override_homedir option if the template contains the format string %H."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:83
+#: src/config/SSSDConfig/sssdoptions.py:84
 msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:85
+#: src/config/SSSDConfig/sssdoptions.py:86
 msgid ""
 "The entry cache can be set to automatically update entries in the background "
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:90
+#: src/config/SSSDConfig/sssdoptions.py:91
 msgid "How long to allow cached logins between online logins (days)"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:91
+#: src/config/SSSDConfig/sssdoptions.py:92
 msgid "How many failed logins attempts are allowed when offline"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:93
+#: src/config/SSSDConfig/sssdoptions.py:94
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:94
+#: src/config/SSSDConfig/sssdoptions.py:95
 msgid "What kind of messages are displayed to the user during authentication"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:95
+#: src/config/SSSDConfig/sssdoptions.py:96
 msgid "Filter PAM responses sent to the pam_sss"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:96
+#: src/config/SSSDConfig/sssdoptions.py:97
 msgid "How many seconds to keep identity information cached for PAM requests"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:97
+#: src/config/SSSDConfig/sssdoptions.py:98
 msgid "How many days before password expiration a warning should be displayed"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:98
+#: src/config/SSSDConfig/sssdoptions.py:99
 msgid "List of trusted uids or user's name"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:99
+#: src/config/SSSDConfig/sssdoptions.py:100
 msgid "List of domains accessible even for untrusted users."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:100
+#: src/config/SSSDConfig/sssdoptions.py:101
 msgid "Message printed when user account is expired."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:101
+#: src/config/SSSDConfig/sssdoptions.py:102
 msgid "Message printed when user account is locked."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:102
+#: src/config/SSSDConfig/sssdoptions.py:103
 msgid "Allow certificate based/Smartcard authentication."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:103
+#: src/config/SSSDConfig/sssdoptions.py:104
 msgid "Path to certificate database with PKCS#11 modules."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:104
+#: src/config/SSSDConfig/sssdoptions.py:105
 msgid "Tune certificate verification for PAM authentication."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:105
+#: src/config/SSSDConfig/sssdoptions.py:106
 msgid "How many seconds will pam_sss wait for p11_child to finish"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:106
+#: src/config/SSSDConfig/sssdoptions.py:107
 msgid "Which PAM services are permitted to contact application domains"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:107
+#: src/config/SSSDConfig/sssdoptions.py:108
 msgid "Allowed services for using smartcards"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:108
+#: src/config/SSSDConfig/sssdoptions.py:109
 msgid "Additional timeout to wait for a card if requested"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:109
+#: src/config/SSSDConfig/sssdoptions.py:110
 msgid ""
 "PKCS#11 URI to restrict the selection of devices for Smartcard authentication"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:110
+#: src/config/SSSDConfig/sssdoptions.py:111
 msgid "When shall the PAM responder force an initgroups request"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:111
+#: src/config/SSSDConfig/sssdoptions.py:112
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:112
+#: src/config/SSSDConfig/sssdoptions.py:113
 msgid "Whether to match authenticated UPN with target user"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:113
+#: src/config/SSSDConfig/sssdoptions.py:114
 msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:117
+#: src/config/SSSDConfig/sssdoptions.py:118
 msgid "Whether to evaluate the time-based attributes in sudo rules"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:118
+#: src/config/SSSDConfig/sssdoptions.py:119
 msgid "If true, SSSD will switch back to lower-wins ordering logic"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:119
+#: src/config/SSSDConfig/sssdoptions.py:120
 msgid ""
 "Maximum number of rules that can be refreshed at once. If this is exceeded, "
 "full refresh is performed."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:126
+#: src/config/SSSDConfig/sssdoptions.py:127
 msgid "Whether to hash host names and addresses in the known_hosts file"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:127
+#: src/config/SSSDConfig/sssdoptions.py:128
 msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:129
+#: src/config/SSSDConfig/sssdoptions.py:130
 msgid "Path to storage of trusted CA certificates"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:130
+#: src/config/SSSDConfig/sssdoptions.py:131
 msgid "Allow to generate ssh-keys from certificates"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:131
+#: src/config/SSSDConfig/sssdoptions.py:132
 msgid ""
 "Use the following matching rules to filter the certificates for ssh-key "
 "generation"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:135
+#: src/config/SSSDConfig/sssdoptions.py:136
 msgid "List of UIDs or user names allowed to access the PAC responder"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:136
+#: src/config/SSSDConfig/sssdoptions.py:137
 msgid "How long the PAC data is considered valid"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:137
+#: src/config/SSSDConfig/sssdoptions.py:138
 msgid "Validate the PAC"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:140
+#: src/config/SSSDConfig/sssdoptions.py:141
 msgid "List of user attributes the InfoPipe is allowed to publish"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:143
+#: src/config/SSSDConfig/sssdoptions.py:144
 msgid ""
 "One of the following strings specifying the scope of session recording: none "
 "- No users are recorded. some - Users/groups specified by users and groups "
 "options are recorded. all - All users are recorded."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:146
+#: src/config/SSSDConfig/sssdoptions.py:147
 msgid ""
 "A comma-separated list of users which should have session recording enabled. "
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:148
+#: src/config/SSSDConfig/sssdoptions.py:149
 msgid ""
 "A comma-separated list of groups, members of which should have session "
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:151
+#: src/config/SSSDConfig/sssdoptions.py:152
 msgid ""
 "A comma-separated list of users to be excluded from recording, only when "
 "scope=all"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:152
+#: src/config/SSSDConfig/sssdoptions.py:153
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:156
+#: src/config/SSSDConfig/sssdoptions.py:157
 msgid "Identity provider"
 msgstr "Identitetstilbyder"
 
-#: src/config/SSSDConfig/sssdoptions.py:157
+#: src/config/SSSDConfig/sssdoptions.py:158
 msgid "Authentication provider"
 msgstr "Autentiseringstilbyder"
 
-#: src/config/SSSDConfig/sssdoptions.py:158
+#: src/config/SSSDConfig/sssdoptions.py:159
 msgid "Access control provider"
 msgstr "Tilgangskontrolltilbyder"
 
-#: src/config/SSSDConfig/sssdoptions.py:159
+#: src/config/SSSDConfig/sssdoptions.py:160
 msgid "Password change provider"
 msgstr "Passordbyttetilbyder"
 
-#: src/config/SSSDConfig/sssdoptions.py:160
+#: src/config/SSSDConfig/sssdoptions.py:161
 msgid "SUDO provider"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:161
+#: src/config/SSSDConfig/sssdoptions.py:162
 msgid "Autofs provider"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:162
+#: src/config/SSSDConfig/sssdoptions.py:163
 msgid "Host identity provider"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:163
+#: src/config/SSSDConfig/sssdoptions.py:164
 msgid "SELinux provider"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:164
+#: src/config/SSSDConfig/sssdoptions.py:165
 msgid "Session management provider"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:165
+#: src/config/SSSDConfig/sssdoptions.py:166
 msgid "Resolver provider"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:168
+#: src/config/SSSDConfig/sssdoptions.py:169
 msgid "Whether the domain is usable by the OS or by applications"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:169
+#: src/config/SSSDConfig/sssdoptions.py:170
 msgid "Enable or disable the domain"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:170
+#: src/config/SSSDConfig/sssdoptions.py:171
 msgid "Minimum user ID"
 msgstr "Minste bruker-ID"
 
-#: src/config/SSSDConfig/sssdoptions.py:171
+#: src/config/SSSDConfig/sssdoptions.py:172
 msgid "Maximum user ID"
 msgstr "Største bruker-ID"
 
-#: src/config/SSSDConfig/sssdoptions.py:172
+#: src/config/SSSDConfig/sssdoptions.py:173
 msgid "Enable enumerating all users/groups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:173
+#: src/config/SSSDConfig/sssdoptions.py:174
 msgid "Cache credentials for offline login"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:174
+#: src/config/SSSDConfig/sssdoptions.py:175
 msgid "Display users/groups in fully-qualified form"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:175
+#: src/config/SSSDConfig/sssdoptions.py:176
 msgid "Don't include group members in group lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:176
-#: src/config/SSSDConfig/sssdoptions.py:186
+#: src/config/SSSDConfig/sssdoptions.py:177
 #: src/config/SSSDConfig/sssdoptions.py:187
 #: src/config/SSSDConfig/sssdoptions.py:188
 #: src/config/SSSDConfig/sssdoptions.py:189
 #: src/config/SSSDConfig/sssdoptions.py:190
 #: src/config/SSSDConfig/sssdoptions.py:191
 #: src/config/SSSDConfig/sssdoptions.py:192
+#: src/config/SSSDConfig/sssdoptions.py:193
 msgid "Entry cache timeout length (seconds)"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:177
+#: src/config/SSSDConfig/sssdoptions.py:178
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:178
+#: src/config/SSSDConfig/sssdoptions.py:179
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:179
+#: src/config/SSSDConfig/sssdoptions.py:180
 msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:181
+#: src/config/SSSDConfig/sssdoptions.py:182
 msgid "How long should keep trying to resolve single DNS query (seconds)"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:182
+#: src/config/SSSDConfig/sssdoptions.py:183
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:183
+#: src/config/SSSDConfig/sssdoptions.py:184
 msgid "The domain part of service discovery DNS query"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:184
+#: src/config/SSSDConfig/sssdoptions.py:185
 msgid "Override GID value from the identity provider with this value"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:185
+#: src/config/SSSDConfig/sssdoptions.py:186
 msgid "Treat usernames as case sensitive"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:193
+#: src/config/SSSDConfig/sssdoptions.py:194
 msgid "How often should expired entries be refreshed in background"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:194
-msgid "Whether to automatically update the client's DNS entry"
-msgstr ""
-
 #: src/config/SSSDConfig/sssdoptions.py:195
-#: src/config/SSSDConfig/sssdoptions.py:225
-msgid "The TTL to apply to the client's DNS entry after updating it"
+msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:196
-#: src/config/SSSDConfig/sssdoptions.py:226
-msgid "The interface whose IP should be used for dynamic DNS updates"
+msgid "Whether to automatically update the client's DNS entry"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:197
-msgid "How often to periodically update the client's DNS entry"
+#: src/config/SSSDConfig/sssdoptions.py:229
+msgid "The TTL to apply to the client's DNS entry after updating it"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:198
-msgid "Whether the provider should explicitly update the PTR record as well"
+#: src/config/SSSDConfig/sssdoptions.py:230
+msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:199
-msgid "Whether the nsupdate utility should default to using TCP"
+msgid "How often to periodically update the client's DNS entry"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:200
-msgid "What kind of authentication should be used to perform the DNS update"
+msgid "Maximum period deviation when updating the client's DNS entry"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:201
-msgid "Override the DNS server used to perform the DNS update"
+msgid "Whether the provider should explicitly update the PTR record as well"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:202
-msgid "Control enumeration of trusted domains"
+msgid "Whether the nsupdate utility should default to using TCP"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:203
-msgid "How often should subdomains list be refreshed"
+msgid "What kind of authentication should be used to perform the DNS update"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:204
-msgid "List of options that should be inherited into a subdomain"
+msgid "Override the DNS server used to perform the DNS update"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:205
-msgid "Default subdomain homedir value"
+msgid "Control enumeration of trusted domains"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:206
-msgid "How long can cached credentials be used for cached authentication"
+msgid "How often should subdomains list be refreshed"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:207
-msgid "Whether to automatically create private groups for users"
+msgid "Maximum period deviation when refreshing the subdomain list"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:208
-msgid "Display a warning N days before the password expires."
+msgid "List of options that should be inherited into a subdomain"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:209
+msgid "Default subdomain homedir value"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:210
+msgid "How long can cached credentials be used for cached authentication"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:211
+msgid "Whether to automatically create private groups for users"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:212
+msgid "Display a warning N days before the password expires."
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:213
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:210
+#: src/config/SSSDConfig/sssdoptions.py:214
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:212
+#: src/config/SSSDConfig/sssdoptions.py:216
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:214
+#: src/config/SSSDConfig/sssdoptions.py:218
 msgid ""
 "If 2-Factor-Authentication (2FA) is used and credentials should be saved "
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:220
+#: src/config/SSSDConfig/sssdoptions.py:224
 msgid "IPA domain"
 msgstr "IPA-domene"
 
-#: src/config/SSSDConfig/sssdoptions.py:221
+#: src/config/SSSDConfig/sssdoptions.py:225
 msgid "IPA server address"
 msgstr "IPA-tjeneradresse"
 
-#: src/config/SSSDConfig/sssdoptions.py:222
+#: src/config/SSSDConfig/sssdoptions.py:226
 msgid "Address of backup IPA server"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:223
+#: src/config/SSSDConfig/sssdoptions.py:227
 msgid "IPA client hostname"
 msgstr "Vertsnavn for IPA-klient"
 
-#: src/config/SSSDConfig/sssdoptions.py:224
+#: src/config/SSSDConfig/sssdoptions.py:228
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:227
+#: src/config/SSSDConfig/sssdoptions.py:231
 msgid "Search base for HBAC related objects"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:228
+#: src/config/SSSDConfig/sssdoptions.py:232
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:229
+#: src/config/SSSDConfig/sssdoptions.py:233
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:231
+#: src/config/SSSDConfig/sssdoptions.py:235
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:232
+#: src/config/SSSDConfig/sssdoptions.py:236
 msgid "The automounter location this IPA client is using"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:233
+#: src/config/SSSDConfig/sssdoptions.py:237
 msgid "Search base for object containing info about IPA domain"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:234
+#: src/config/SSSDConfig/sssdoptions.py:238
 msgid "Search base for objects containing info about ID ranges"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:235
-#: src/config/SSSDConfig/sssdoptions.py:290
+#: src/config/SSSDConfig/sssdoptions.py:239
+#: src/config/SSSDConfig/sssdoptions.py:294
 msgid "Enable DNS sites - location based service discovery"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:236
+#: src/config/SSSDConfig/sssdoptions.py:240
 msgid "Search base for view containers"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:237
+#: src/config/SSSDConfig/sssdoptions.py:241
 msgid "Objectclass for view containers"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:238
+#: src/config/SSSDConfig/sssdoptions.py:242
 msgid "Attribute with the name of the view"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:239
+#: src/config/SSSDConfig/sssdoptions.py:243
 msgid "Objectclass for override objects"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:240
+#: src/config/SSSDConfig/sssdoptions.py:244
 msgid "Attribute with the reference to the original object"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:241
+#: src/config/SSSDConfig/sssdoptions.py:245
 msgid "Objectclass for user override objects"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:242
+#: src/config/SSSDConfig/sssdoptions.py:246
 msgid "Objectclass for group override objects"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:243
+#: src/config/SSSDConfig/sssdoptions.py:247
 msgid "Search base for Desktop Profile related objects"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:244
+#: src/config/SSSDConfig/sssdoptions.py:248
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:246
+#: src/config/SSSDConfig/sssdoptions.py:250
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:249
+#: src/config/SSSDConfig/sssdoptions.py:253
 msgid "Search base for SUBID ranges"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:250
+#: src/config/SSSDConfig/sssdoptions.py:254
 msgid "The LDAP attribute that contains FQDN of the host."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:251
-#: src/config/SSSDConfig/sssdoptions.py:274
+#: src/config/SSSDConfig/sssdoptions.py:255
+#: src/config/SSSDConfig/sssdoptions.py:278
 msgid "The object class of a host entry in LDAP."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:252
+#: src/config/SSSDConfig/sssdoptions.py:256
 msgid "Use the given string as search base for host objects."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:253
+#: src/config/SSSDConfig/sssdoptions.py:257
 msgid "The LDAP attribute that contains the host's SSH public keys."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:254
+#: src/config/SSSDConfig/sssdoptions.py:258
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:255
+#: src/config/SSSDConfig/sssdoptions.py:259
 msgid "The LDAP attribute that contains the names of the netgroup's members."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:256
+#: src/config/SSSDConfig/sssdoptions.py:260
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:258
+#: src/config/SSSDConfig/sssdoptions.py:262
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:260
+#: src/config/SSSDConfig/sssdoptions.py:264
 msgid "The LDAP attribute that lists netgroup's memberships."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:261
+#: src/config/SSSDConfig/sssdoptions.py:265
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:263
+#: src/config/SSSDConfig/sssdoptions.py:267
 msgid "The LDAP attribute that corresponds to the netgroup name."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:264
+#: src/config/SSSDConfig/sssdoptions.py:268
 msgid "The object class of a netgroup entry in LDAP."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:265
+#: src/config/SSSDConfig/sssdoptions.py:269
 msgid ""
 "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:266
+#: src/config/SSSDConfig/sssdoptions.py:270
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:268
+#: src/config/SSSDConfig/sssdoptions.py:272
 msgid "The LDAP attribute that contains host category such as 'all'."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:269
+#: src/config/SSSDConfig/sssdoptions.py:273
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:271
+#: src/config/SSSDConfig/sssdoptions.py:275
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:273
+#: src/config/SSSDConfig/sssdoptions.py:277
 msgid "The LDAP attribute that contains the name of SELinux usermap."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:275
+#: src/config/SSSDConfig/sssdoptions.py:279
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:277
+#: src/config/SSSDConfig/sssdoptions.py:281
 msgid "The LDAP attribute that contains SELinux user string itself."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:278
+#: src/config/SSSDConfig/sssdoptions.py:282
 msgid "The LDAP attribute that contains user category such as 'all'."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:279
+#: src/config/SSSDConfig/sssdoptions.py:283
 msgid "The LDAP attribute that contains unique ID of the user map."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:280
+#: src/config/SSSDConfig/sssdoptions.py:284
 msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:282
+#: src/config/SSSDConfig/sssdoptions.py:286
 msgid "Use the given string as search base for trusted domains."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:285
+#: src/config/SSSDConfig/sssdoptions.py:289
 msgid "Active Directory domain"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:286
+#: src/config/SSSDConfig/sssdoptions.py:290
 msgid "Enabled Active Directory domains"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:287
+#: src/config/SSSDConfig/sssdoptions.py:291
 msgid "Active Directory server address"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:288
+#: src/config/SSSDConfig/sssdoptions.py:292
 msgid "Active Directory backup server address"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:289
+#: src/config/SSSDConfig/sssdoptions.py:293
 msgid "Active Directory client hostname"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:291
-#: src/config/SSSDConfig/sssdoptions.py:487
+#: src/config/SSSDConfig/sssdoptions.py:295
+#: src/config/SSSDConfig/sssdoptions.py:493
 msgid "LDAP filter to determine access privileges"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:292
+#: src/config/SSSDConfig/sssdoptions.py:296
 msgid "Whether to use the Global Catalog for lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:293
+#: src/config/SSSDConfig/sssdoptions.py:297
 msgid "Operation mode for GPO-based access control"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:294
+#: src/config/SSSDConfig/sssdoptions.py:298
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:295
+#: src/config/SSSDConfig/sssdoptions.py:299
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:297
+#: src/config/SSSDConfig/sssdoptions.py:301
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:299
+#: src/config/SSSDConfig/sssdoptions.py:303
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:300
+#: src/config/SSSDConfig/sssdoptions.py:304
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:301
+#: src/config/SSSDConfig/sssdoptions.py:305
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:302
+#: src/config/SSSDConfig/sssdoptions.py:306
 msgid "PAM service names for which GPO-based access is always granted"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:303
+#: src/config/SSSDConfig/sssdoptions.py:307
 msgid "PAM service names for which GPO-based access is always denied"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:304
+#: src/config/SSSDConfig/sssdoptions.py:308
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:305
+#: src/config/SSSDConfig/sssdoptions.py:309
 msgid "a particular site to be used by the client"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:306
+#: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:308
+#: src/config/SSSDConfig/sssdoptions.py:312
 msgid "Option for tuning the machine account renewal task"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:309
+#: src/config/SSSDConfig/sssdoptions.py:313
 msgid "Whether to update the machine account password in the Samba database"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:311
+#: src/config/SSSDConfig/sssdoptions.py:315
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:312
+#: src/config/SSSDConfig/sssdoptions.py:316
 msgid "Do not filter domain local groups from other domains"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:315
-#: src/config/SSSDConfig/sssdoptions.py:316
+#: src/config/SSSDConfig/sssdoptions.py:319
+#: src/config/SSSDConfig/sssdoptions.py:320
 msgid "Kerberos server address"
 msgstr "Tjeneradresse for Kerberos"
 
-#: src/config/SSSDConfig/sssdoptions.py:317
+#: src/config/SSSDConfig/sssdoptions.py:321
 msgid "Kerberos backup server address"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:318
+#: src/config/SSSDConfig/sssdoptions.py:322
 msgid "Kerberos realm"
 msgstr "Kerberos-område"
 
-#: src/config/SSSDConfig/sssdoptions.py:319
+#: src/config/SSSDConfig/sssdoptions.py:323
 msgid "Authentication timeout"
 msgstr "Tidsavbrudd for autentisering"
 
-#: src/config/SSSDConfig/sssdoptions.py:320
+#: src/config/SSSDConfig/sssdoptions.py:324
 msgid "Whether to create kdcinfo files"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:321
+#: src/config/SSSDConfig/sssdoptions.py:325
 msgid "Where to drop krb5 config snippets"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:324
+#: src/config/SSSDConfig/sssdoptions.py:328
 msgid "Directory to store credential caches"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:325
+#: src/config/SSSDConfig/sssdoptions.py:329
 msgid "Location of the user's credential cache"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:326
+#: src/config/SSSDConfig/sssdoptions.py:330
 msgid "Location of the keytab to validate credentials"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:327
+#: src/config/SSSDConfig/sssdoptions.py:331
 msgid "Enable credential validation"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:328
+#: src/config/SSSDConfig/sssdoptions.py:332
 msgid "Store password if offline for later online authentication"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:329
+#: src/config/SSSDConfig/sssdoptions.py:333
 msgid "Renewable lifetime of the TGT"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:330
+#: src/config/SSSDConfig/sssdoptions.py:334
 msgid "Lifetime of the TGT"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:331
+#: src/config/SSSDConfig/sssdoptions.py:335
 msgid "Time between two checks for renewal"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:332
+#: src/config/SSSDConfig/sssdoptions.py:336
 msgid "Enables FAST"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:333
+#: src/config/SSSDConfig/sssdoptions.py:337
 msgid "Selects the principal to use for FAST"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:334
+#: src/config/SSSDConfig/sssdoptions.py:338
 msgid "Use anonymous PKINIT to request FAST credentials"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:335
+#: src/config/SSSDConfig/sssdoptions.py:339
 msgid "Enables principal canonicalization"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:336
+#: src/config/SSSDConfig/sssdoptions.py:340
 msgid "Enables enterprise principals"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:337
+#: src/config/SSSDConfig/sssdoptions.py:341
 msgid "Enables using of subdomains realms for authentication"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:338
+#: src/config/SSSDConfig/sssdoptions.py:342
 msgid "A mapping from user names to Kerberos principal names"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:341
-#: src/config/SSSDConfig/sssdoptions.py:342
+#: src/config/SSSDConfig/sssdoptions.py:345
+#: src/config/SSSDConfig/sssdoptions.py:346
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:345
+#: src/config/SSSDConfig/sssdoptions.py:349
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:346
+#: src/config/SSSDConfig/sssdoptions.py:350
 msgid "ldap_backup_uri, The URI of the LDAP server"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:347
+#: src/config/SSSDConfig/sssdoptions.py:351
 msgid "The default base DN"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:348
+#: src/config/SSSDConfig/sssdoptions.py:352
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:349
+#: src/config/SSSDConfig/sssdoptions.py:353
 msgid "Mode used to change user password"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:350
+#: src/config/SSSDConfig/sssdoptions.py:354
 msgid "The default bind DN"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:351
+#: src/config/SSSDConfig/sssdoptions.py:355
 msgid "The type of the authentication token of the default bind DN"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:352
+#: src/config/SSSDConfig/sssdoptions.py:356
 msgid "The authentication token of the default bind DN"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:353
+#: src/config/SSSDConfig/sssdoptions.py:357
 msgid "Length of time to attempt connection"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:354
+#: src/config/SSSDConfig/sssdoptions.py:358
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:355
+#: src/config/SSSDConfig/sssdoptions.py:359
 msgid "Length of time between attempts to reconnect while offline"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:356
+#: src/config/SSSDConfig/sssdoptions.py:360
 msgid "Use only the upper case for realm names"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:357
+#: src/config/SSSDConfig/sssdoptions.py:361
 msgid "File that contains CA certificates"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:358
+#: src/config/SSSDConfig/sssdoptions.py:362
 msgid "Path to CA certificate directory"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:359
+#: src/config/SSSDConfig/sssdoptions.py:363
 msgid "File that contains the client certificate"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:360
+#: src/config/SSSDConfig/sssdoptions.py:364
 msgid "File that contains the client key"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:361
+#: src/config/SSSDConfig/sssdoptions.py:365
 msgid "List of possible ciphers suites"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:362
+#: src/config/SSSDConfig/sssdoptions.py:366
 msgid "Require TLS certificate verification"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:363
+#: src/config/SSSDConfig/sssdoptions.py:367
 msgid "Specify the sasl mechanism to use"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:364
+#: src/config/SSSDConfig/sssdoptions.py:368
 msgid "Specify the sasl authorization id to use"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:365
+#: src/config/SSSDConfig/sssdoptions.py:369
 msgid "Specify the sasl authorization realm to use"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:366
+#: src/config/SSSDConfig/sssdoptions.py:370
 msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:367
+#: src/config/SSSDConfig/sssdoptions.py:371
 msgid "Specify the maximal SSF for LDAP sasl authorization"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:368
+#: src/config/SSSDConfig/sssdoptions.py:372
 msgid "Kerberos service keytab"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:369
+#: src/config/SSSDConfig/sssdoptions.py:373
 msgid "Use Kerberos auth for LDAP connection"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:370
+#: src/config/SSSDConfig/sssdoptions.py:374
 msgid "Follow LDAP referrals"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:371
+#: src/config/SSSDConfig/sssdoptions.py:375
 msgid "Lifetime of TGT for LDAP connection"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:372
+#: src/config/SSSDConfig/sssdoptions.py:376
 msgid "How to dereference aliases"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:373
+#: src/config/SSSDConfig/sssdoptions.py:377
 msgid "Service name for DNS service lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:374
+#: src/config/SSSDConfig/sssdoptions.py:378
 msgid "The number of records to retrieve in a single LDAP query"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:375
+#: src/config/SSSDConfig/sssdoptions.py:379
 msgid "The number of members that must be missing to trigger a full deref"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:376
+#: src/config/SSSDConfig/sssdoptions.py:380
 msgid "Ignore unreadable LDAP references"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:377
+#: src/config/SSSDConfig/sssdoptions.py:381
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:379
+#: src/config/SSSDConfig/sssdoptions.py:383
 msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:382
+#: src/config/SSSDConfig/sssdoptions.py:386
 msgid "entryUSN attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:383
+#: src/config/SSSDConfig/sssdoptions.py:387
 msgid "lastUSN attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:385
+#: src/config/SSSDConfig/sssdoptions.py:389
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:388
+#: src/config/SSSDConfig/sssdoptions.py:392
 msgid "Disable the LDAP paging control"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:389
+#: src/config/SSSDConfig/sssdoptions.py:393
 msgid "Disable Active Directory range retrieval"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:392
+#: src/config/SSSDConfig/sssdoptions.py:396
 msgid "Length of time to wait for a search request"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:393
+#: src/config/SSSDConfig/sssdoptions.py:397
 msgid "Length of time to wait for a enumeration request"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:394
+#: src/config/SSSDConfig/sssdoptions.py:398
 msgid "Length of time between enumeration updates"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:395
-msgid "Length of time between cache cleanups"
-msgstr ""
-
-#: src/config/SSSDConfig/sssdoptions.py:396
-msgid "Require TLS for ID lookups"
-msgstr ""
-
-#: src/config/SSSDConfig/sssdoptions.py:397
-msgid "Use ID-mapping of objectSID instead of pre-set IDs"
-msgstr ""
-
-#: src/config/SSSDConfig/sssdoptions.py:398
-msgid "Base DN for user lookups"
-msgstr ""
-
 #: src/config/SSSDConfig/sssdoptions.py:399
-msgid "Scope of user lookups"
+msgid "Maximum period deviation between enumeration updates"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:400
-msgid "Filter for user lookups"
+msgid "Length of time between cache cleanups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:401
-msgid "Objectclass for users"
+msgid "Maximum time deviation between cache cleanups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:402
-msgid "Username attribute"
+msgid "Require TLS for ID lookups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:403
-msgid "UID attribute"
+msgid "Use ID-mapping of objectSID instead of pre-set IDs"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:404
-msgid "Primary GID attribute"
+msgid "Base DN for user lookups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:405
-msgid "GECOS attribute"
+msgid "Scope of user lookups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:406
-msgid "Home directory attribute"
+msgid "Filter for user lookups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:407
-msgid "Shell attribute"
+msgid "Objectclass for users"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:408
-msgid "UUID attribute"
+msgid "Username attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:409
-#: src/config/SSSDConfig/sssdoptions.py:447
-msgid "objectSID attribute"
+msgid "UID attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:410
-msgid "Active Directory primary group attribute for ID-mapping"
+msgid "Primary GID attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:411
-msgid "User principal attribute (for Kerberos)"
+msgid "GECOS attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:412
-msgid "Full Name"
+msgid "Home directory attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:413
-msgid "memberOf attribute"
+msgid "Shell attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:414
-msgid "Modification time attribute"
+msgid "UUID attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:415
-msgid "shadowLastChange attribute"
+#: src/config/SSSDConfig/sssdoptions.py:453
+msgid "objectSID attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:416
-msgid "shadowMin attribute"
+msgid "Active Directory primary group attribute for ID-mapping"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:417
-msgid "shadowMax attribute"
+msgid "User principal attribute (for Kerberos)"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:418
-msgid "shadowWarning attribute"
+msgid "Full Name"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:419
-msgid "shadowInactive attribute"
+msgid "memberOf attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:420
-msgid "shadowExpire attribute"
+msgid "Modification time attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:421
-msgid "shadowFlag attribute"
+msgid "shadowLastChange attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:422
-msgid "Attribute listing authorized PAM services"
+msgid "shadowMin attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:423
-msgid "Attribute listing authorized server hosts"
+msgid "shadowMax attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:424
-msgid "Attribute listing authorized server rhosts"
+msgid "shadowWarning attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:425
-msgid "krbLastPwdChange attribute"
+msgid "shadowInactive attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:426
-msgid "krbPasswordExpiration attribute"
+msgid "shadowExpire attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:427
-msgid "Attribute indicating that server side password policies are active"
+msgid "shadowFlag attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:428
-msgid "accountExpires attribute of AD"
+msgid "Attribute listing authorized PAM services"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:429
-msgid "userAccountControl attribute of AD"
+msgid "Attribute listing authorized server hosts"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:430
-msgid "nsAccountLock attribute"
+msgid "Attribute listing authorized server rhosts"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:431
-msgid "loginDisabled attribute of NDS"
+msgid "krbLastPwdChange attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:432
-msgid "loginExpirationTime attribute of NDS"
+msgid "krbPasswordExpiration attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:433
-msgid "loginAllowedTimeMap attribute of NDS"
+msgid "Attribute indicating that server side password policies are active"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:434
-msgid "SSH public key attribute"
+msgid "accountExpires attribute of AD"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:435
-msgid "attribute listing allowed authentication types for a user"
+msgid "userAccountControl attribute of AD"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:436
-msgid "attribute containing the X509 certificate of the user"
+msgid "nsAccountLock attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:437
-msgid "attribute containing the email address of the user"
+msgid "loginDisabled attribute of NDS"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:438
-msgid "A list of extra attributes to download along with the user entry"
+msgid "loginExpirationTime attribute of NDS"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:439
+msgid "loginAllowedTimeMap attribute of NDS"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:440
-msgid "Base DN for group lookups"
+msgid "SSH public key attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:441
-msgid "Objectclass for groups"
+msgid "attribute listing allowed authentication types for a user"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:442
-msgid "Group name"
+msgid "attribute containing the X509 certificate of the user"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:443
-msgid "Group password"
+msgid "attribute containing the email address of the user"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:444
-msgid "GID attribute"
-msgstr ""
-
-#: src/config/SSSDConfig/sssdoptions.py:445
-msgid "Group member attribute"
+msgid "A list of extra attributes to download along with the user entry"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:446
-msgid "Group UUID attribute"
+msgid "Base DN for group lookups"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:447
+msgid "Objectclass for groups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:448
-msgid "Modification time attribute for groups"
+msgid "Group name"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:449
-msgid "Type of the group and other flags"
+msgid "Group password"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:450
-msgid "The LDAP group external member attribute"
+msgid "GID attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:451
-msgid "Maximum nesting level SSSD will follow"
+msgid "Group member attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:452
-msgid "Filter for group lookups"
+msgid "Group UUID attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:453
-msgid "Scope of group lookups"
+#: src/config/SSSDConfig/sssdoptions.py:454
+msgid "Modification time attribute for groups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:455
-msgid "Base DN for netgroup lookups"
+msgid "Type of the group and other flags"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:456
-msgid "Objectclass for netgroups"
+msgid "The LDAP group external member attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:457
-msgid "Netgroup name"
+msgid "Maximum nesting level SSSD will follow"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:458
-msgid "Netgroups members attribute"
+msgid "Filter for group lookups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:459
-msgid "Netgroup triple attribute"
+msgid "Scope of group lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:460
-msgid "Modification time attribute for netgroups"
+#: src/config/SSSDConfig/sssdoptions.py:461
+msgid "Base DN for netgroup lookups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:462
-msgid "Base DN for service lookups"
+msgid "Objectclass for netgroups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:463
-msgid "Objectclass for services"
+msgid "Netgroup name"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:464
-msgid "Service name attribute"
+msgid "Netgroups members attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:465
-msgid "Service port attribute"
+msgid "Netgroup triple attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:466
-msgid "Service protocol attribute"
+msgid "Modification time attribute for netgroups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:468
-msgid "Lower bound for ID-mapping"
+msgid "Base DN for service lookups"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:469
-msgid "Upper bound for ID-mapping"
+msgid "Objectclass for services"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:470
-msgid "Number of IDs for each slice when ID-mapping"
+msgid "Service name attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:471
-msgid "Use autorid-compatible algorithm for ID-mapping"
+msgid "Service port attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:472
-msgid "Name of the default domain for ID-mapping"
-msgstr ""
-
-#: src/config/SSSDConfig/sssdoptions.py:473
-msgid "SID of the default domain for ID-mapping"
+msgid "Service protocol attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:474
-msgid "Number of secondary slices"
+msgid "Lower bound for ID-mapping"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:475
+msgid "Upper bound for ID-mapping"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:476
-msgid "Whether to use Token-Groups"
+msgid "Number of IDs for each slice when ID-mapping"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:477
-msgid "Set lower boundary for allowed IDs from the LDAP server"
+msgid "Use autorid-compatible algorithm for ID-mapping"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:478
-msgid "Set upper boundary for allowed IDs from the LDAP server"
+msgid "Name of the default domain for ID-mapping"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:479
-msgid "DN for ppolicy queries"
+msgid "SID of the default domain for ID-mapping"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:480
-msgid "How many maximum entries to fetch during a wildcard request"
+msgid "Number of secondary slices"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:481
-msgid "Set libldap debug level"
+#: src/config/SSSDConfig/sssdoptions.py:482
+msgid "Whether to use Token-Groups"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:483
+msgid "Set lower boundary for allowed IDs from the LDAP server"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:484
+msgid "Set upper boundary for allowed IDs from the LDAP server"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:485
+msgid "DN for ppolicy queries"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:486
+msgid "How many maximum entries to fetch during a wildcard request"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:487
+msgid "Set libldap debug level"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:490
 msgid "Policy to evaluate the password expiration"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:488
+#: src/config/SSSDConfig/sssdoptions.py:494
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:489
+#: src/config/SSSDConfig/sssdoptions.py:495
 msgid "Which rules should be used to evaluate access control"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:492
+#: src/config/SSSDConfig/sssdoptions.py:498
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:493
+#: src/config/SSSDConfig/sssdoptions.py:499
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:494
+#: src/config/SSSDConfig/sssdoptions.py:500
 msgid "DNS service name for LDAP password change server"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:495
+#: src/config/SSSDConfig/sssdoptions.py:501
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:499
+#: src/config/SSSDConfig/sssdoptions.py:505
 msgid "Base DN for sudo rules lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:500
+#: src/config/SSSDConfig/sssdoptions.py:506
 msgid "Automatic full refresh period"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:501
+#: src/config/SSSDConfig/sssdoptions.py:507
 msgid "Automatic smart refresh period"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:502
+#: src/config/SSSDConfig/sssdoptions.py:508
 msgid "Smart and full refresh random offset"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:503
+#: src/config/SSSDConfig/sssdoptions.py:509
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:504
+#: src/config/SSSDConfig/sssdoptions.py:510
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:505
+#: src/config/SSSDConfig/sssdoptions.py:511
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:506
+#: src/config/SSSDConfig/sssdoptions.py:512
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:507
+#: src/config/SSSDConfig/sssdoptions.py:513
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:508
+#: src/config/SSSDConfig/sssdoptions.py:514
 msgid "Object class for sudo rules"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:509
+#: src/config/SSSDConfig/sssdoptions.py:515
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:510
+#: src/config/SSSDConfig/sssdoptions.py:516
 msgid "Sudo rule name"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:511
+#: src/config/SSSDConfig/sssdoptions.py:517
 msgid "Sudo rule command attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:512
+#: src/config/SSSDConfig/sssdoptions.py:518
 msgid "Sudo rule host attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:513
+#: src/config/SSSDConfig/sssdoptions.py:519
 msgid "Sudo rule user attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:514
+#: src/config/SSSDConfig/sssdoptions.py:520
 msgid "Sudo rule option attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:515
+#: src/config/SSSDConfig/sssdoptions.py:521
 msgid "Sudo rule runas attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:516
+#: src/config/SSSDConfig/sssdoptions.py:522
 msgid "Sudo rule runasuser attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:517
+#: src/config/SSSDConfig/sssdoptions.py:523
 msgid "Sudo rule runasgroup attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:518
+#: src/config/SSSDConfig/sssdoptions.py:524
 msgid "Sudo rule notbefore attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:519
+#: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Sudo rule notafter attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:520
+#: src/config/SSSDConfig/sssdoptions.py:526
 msgid "Sudo rule order attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:523
+#: src/config/SSSDConfig/sssdoptions.py:529
 msgid "Object class for automounter maps"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:524
+#: src/config/SSSDConfig/sssdoptions.py:530
 msgid "Automounter map name attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:525
+#: src/config/SSSDConfig/sssdoptions.py:531
 msgid "Object class for automounter map entries"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:526
+#: src/config/SSSDConfig/sssdoptions.py:532
 msgid "Automounter map entry key attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:527
+#: src/config/SSSDConfig/sssdoptions.py:533
 msgid "Automounter map entry value attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:528
+#: src/config/SSSDConfig/sssdoptions.py:534
 msgid "Base DN for automounter map lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:529
+#: src/config/SSSDConfig/sssdoptions.py:535
 msgid "The name of the automount master map in LDAP."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:532
+#: src/config/SSSDConfig/sssdoptions.py:538
 msgid "Base DN for IP hosts lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:533
+#: src/config/SSSDConfig/sssdoptions.py:539
 msgid "Object class for IP hosts"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:534
+#: src/config/SSSDConfig/sssdoptions.py:540
 msgid "IP host name attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:535
+#: src/config/SSSDConfig/sssdoptions.py:541
 msgid "IP host number (address) attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:536
+#: src/config/SSSDConfig/sssdoptions.py:542
 msgid "IP host entryUSN attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:537
+#: src/config/SSSDConfig/sssdoptions.py:543
 msgid "Base DN for IP networks lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:538
+#: src/config/SSSDConfig/sssdoptions.py:544
 msgid "Object class for IP networks"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:539
+#: src/config/SSSDConfig/sssdoptions.py:545
 msgid "IP network name attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:540
+#: src/config/SSSDConfig/sssdoptions.py:546
 msgid "IP network number (address) attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:541
+#: src/config/SSSDConfig/sssdoptions.py:547
 msgid "IP network entryUSN attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:544
+#: src/config/SSSDConfig/sssdoptions.py:550
 msgid "Comma separated list of allowed users"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:545
+#: src/config/SSSDConfig/sssdoptions.py:551
 msgid "Comma separated list of prohibited users"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:546
+#: src/config/SSSDConfig/sssdoptions.py:552
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:548
+#: src/config/SSSDConfig/sssdoptions.py:554
 msgid ""
 "Comma separated list of groups that are explicitly denied access. This "
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:552
+#: src/config/SSSDConfig/sssdoptions.py:558
 msgid "The number of preforked proxy children."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:555
+#: src/config/SSSDConfig/sssdoptions.py:561
 msgid "The name of the NSS library to use"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:556
+#: src/config/SSSDConfig/sssdoptions.py:562
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:557
+#: src/config/SSSDConfig/sssdoptions.py:563
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:560
+#: src/config/SSSDConfig/sssdoptions.py:566
 msgid "PAM stack to use"
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:563
+#: src/config/SSSDConfig/sssdoptions.py:569
 msgid "Path of passwd file sources."
 msgstr ""
 
-#: src/config/SSSDConfig/sssdoptions.py:564
+#: src/config/SSSDConfig/sssdoptions.py:570
 msgid "Path of group file sources."
 msgstr ""
 
@@ -1836,63 +1860,67 @@ msgstr ""
 msgid "SSSD is already running\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3758 src/providers/ldap/ldap_child.c:639
+#: src/providers/krb5/krb5_child.c:3760 src/providers/ldap/ldap_child.c:641
+msgid "Allow core dumps"
+msgstr ""
+
+#: src/providers/krb5/krb5_child.c:3762 src/providers/ldap/ldap_child.c:643
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3761
+#: src/providers/krb5/krb5_child.c:3765
 msgid "The user to create FAST ccache as"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3763
+#: src/providers/krb5/krb5_child.c:3767
 msgid "The group to create FAST ccache as"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3765
+#: src/providers/krb5/krb5_child.c:3769
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3767
+#: src/providers/krb5/krb5_child.c:3771
 msgid "Kerberos realm to use"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3769
+#: src/providers/krb5/krb5_child.c:3773
 msgid "Requested lifetime of the ticket"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3771
+#: src/providers/krb5/krb5_child.c:3775
 msgid "Requested renewable lifetime of the ticket"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3773
+#: src/providers/krb5/krb5_child.c:3777
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3776
+#: src/providers/krb5/krb5_child.c:3780
 msgid "Specifies the server principal to use for FAST"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3778
+#: src/providers/krb5/krb5_child.c:3782
 msgid "Requests canonicalization of the principal name"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3780
+#: src/providers/krb5/krb5_child.c:3784
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3782
+#: src/providers/krb5/krb5_child.c:3786
 msgid "Tevent chain ID used for logging purposes"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3784
+#: src/providers/krb5/krb5_child.c:3788
 msgid "Check PAC flags"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3826 src/providers/ldap/ldap_child.c:663
+#: src/providers/krb5/krb5_child.c:3832 src/providers/ldap/ldap_child.c:669
 msgid "talloc_asprintf failed.\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3836 src/providers/ldap/ldap_child.c:672
+#: src/providers/krb5/krb5_child.c:3842 src/providers/ldap/ldap_child.c:678
 msgid "set_debug_file_from_fd failed.\n"
 msgstr ""
 
@@ -1900,35 +1928,35 @@ msgstr ""
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
-#: src/sss_client/common.c:1088
+#: src/sss_client/common.c:1073
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:1091
+#: src/sss_client/common.c:1076
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:1094
+#: src/sss_client/common.c:1079
 msgid "Unexpected format of the server credential message."
 msgstr ""
 
-#: src/sss_client/common.c:1097
+#: src/sss_client/common.c:1082
 msgid "SSSD is not run by root."
 msgstr ""
 
-#: src/sss_client/common.c:1100
+#: src/sss_client/common.c:1085
 msgid "SSSD socket does not exist."
 msgstr ""
 
-#: src/sss_client/common.c:1103
+#: src/sss_client/common.c:1088
 msgid "Cannot get stat of SSSD socket."
 msgstr ""
 
-#: src/sss_client/common.c:1108
+#: src/sss_client/common.c:1093
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: src/sss_client/common.c:1114
+#: src/sss_client/common.c:1099
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 
@@ -2520,67 +2548,100 @@ msgstr ""
 msgid "\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:58
-msgid "Target the "
-msgstr ""
-
-#: src/tools/sssctl/sssctl_logs.c:215
+#: src/tools/sssctl/sssctl_logs.c:214
 msgid "SSSD is not running.\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:232
+#: src/tools/sssctl/sssctl_logs.c:231
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:236
+#: src/tools/sssctl/sssctl_logs.c:235
 #, c-format
 msgid "%1$-25s Unknown domain\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:238
+#: src/tools/sssctl/sssctl_logs.c:237
 #, c-format
 msgid "%1$-25s Unreachable service\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:453
+#: src/tools/sssctl/sssctl_logs.c:452
 msgid "Delete log files instead of truncating"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:464
+#: src/tools/sssctl/sssctl_logs.c:463
 msgid "Deleting log files...\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:467
+#: src/tools/sssctl/sssctl_logs.c:466
 msgid "Unable to remove log files\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:484
+#: src/tools/sssctl/sssctl_logs.c:483
 msgid "Truncating log files...\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:488
+#: src/tools/sssctl/sssctl_logs.c:487
 msgid "Unable to truncate log files\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:523
+#: src/tools/sssctl/sssctl_logs.c:522
 #, c-format
 msgid "Archiving log files into %s...\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:527
+#: src/tools/sssctl/sssctl_logs.c:526
 msgid "Unable to archive log files\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:548
+#: src/tools/sssctl/sssctl_logs.c:547
 msgid "Target a specific domain"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:570
+#: src/tools/sssctl/sssctl_logs.c:547
+#, fuzzy
+msgid "domain"
+msgstr "IPA-domene"
+
+#: src/tools/sssctl/sssctl_logs.c:548
+msgid "Target the SSSD service"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:549
+msgid "Target the NSS service"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:550
+msgid "Target the PAM service"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:551
+msgid "Target the SUDO service"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:552
+msgid "Target the AUTOFS service"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:553
+msgid "Target the SSH service"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:554
+msgid "Target the PAC service"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:555
+msgid "Target the IFP service"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_logs.c:569
 msgid "Specify debug level you want to set"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_logs.c:617
+#: src/tools/sssctl/sssctl_logs.c:616
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
 
