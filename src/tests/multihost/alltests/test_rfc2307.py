@@ -1,107 +1,118 @@
-""" Automation of rfc2307
+""" Automation of proxy provider suite
 
-:requirement: rfc2307
+:requirement: IDM-SSSD-REQ : Proxy Provider
 :casecomponent: sssd
 :subsystemteam: sst_idm_sssd
 :upstream: yes
 """
 from __future__ import print_function
+import time
+import os
+import re
 import pytest
-from sssd.testlib.common.libkrb5 import krb5srv
 from sssd.testlib.common.utils import sssdTools, LdapOperations
-from constants import ds_suffix, ds_rootdn, ds_rootpw
-from sssd.testlib.common.exceptions import SSHLoginException, LdapException
-from sssd.testlib.common.expect import pexpect_ssh
+from constants import ds_suffix, ds_instance_name
 
 
-def usr_grp(multihost, obj_info, type):
+def check_sorted(test_list):
     """
-    Add an object, user or group, in the ldap-server
-        :param dict obj_info: an object(user/group) details
-        :param str type: Either 'user' or 'group'
-        :return: None
-        :exception: LdapException
+    Will check if list is in ascending order
     """
-    ldap_uri = f'ldap://{multihost.master[0].sys_hostname}'
-    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
-    krb = krb5srv(multihost.master[0], 'EXAMPLE.TEST')
-    if type == 'user':
-        usr = obj_info.get('uid')
-        try:
-            if ldap_inst.posix_user("ou=People", ds_suffix, obj_info):
-                krb.add_principal(usr, 'user', 'Secret123')
-        except LdapException:
-            print(f"Unable to add ldap User {obj_info}")
-    if type == 'group':
-        try:
-            ldap_inst.posix_group("ou=Groups", ds_suffix, obj_info,
-                                  memberUid=obj_info.get('memberUid'))
-        except LdapException:
-            print(f"Unable to add ldap group {obj_info}")
+    flag = 0
+    i = 1
+    while i < len(test_list):
+        if test_list[i] < test_list[i - 1]:
+            flag = 1
+        i += 1
+
+    if not flag:
+        return True
 
 
-@pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
-@pytest.mark.rfc2307
-class Testrfc2307(object):
-    """
-    This is test case class for ldap rfc2307
+def execute_cmd(multihost, command):
+    """ Execute command on client """
+    cmd = multihost.client[0].run_command(command)
+    return cmd
 
-        :setup:
-          1. Configure SSSD to authenticate against directory server
-          2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
+
+@pytest.fixture(scope='class')
+def ldap_objects_sssd_client(multihost, request):
     """
-    @pytest.mark.tier2
-    def test_0001_bz1362023(self, multihost, backupsssdconf):
+        Create required users for this test script
+        Configure /etc/pam_ldap.conf
+        Restore
+    """
+    execute_cmd(multihost, "> /etc/pam_ldap.conf")
+    execute_cmd(multihost, "echo 'base {ds_suffix}' "
+                           "> /etc/pam_ldap.conf")
+    execute_cmd(multihost, "echo 'pam_password md5' "
+                           ">> /etc/pam_ldap.conf")
+    execute_cmd(multihost, f"echo 'host {multihost.master[0].ip}' "
+                           f">> /etc/pam_ldap.conf")
+    execute_cmd(multihost, "echo 'tls_cacertfile "
+                           "/etc/openldap/certs/cacert.asc'"
+                           " >> /etc/pam_ldap.conf")
+
+    execute_cmd(multihost, 'systemctl restart nslcd')
+
+    def restoresssdconf():
+        """ Restore sssd.conf """
+        execute_cmd(multihost, "rm -vf /etc/pam_ldap.conf")
+
+    request.addfinalizer(restoresssdconf)
+
+
+@pytest.mark.usefixtures('setupds',
+                         'default_sssd',
+                         'sssdproxyldap',
+                         'install_nslcd',
+                         'ldap_objects_sssd_client')
+@pytest.mark.tier1_3
+class TestProxyMisc(object):
+    """
+    This is test case class for proxy provider suite
+    """
+    def test_lookup_user_group_netgroup(self, multihost, backupsssdconf):
         """
-        :title: IDM-SSSD-TC: rfc2307: user with spaces at beginning
-        :id: 6923436c-d4e4-4a0d-a8f3-1e94ecb1dee3
-        :description: user with a white space at the beginning in it's name
-         should be able to log in
-        :bugzilla:
-          https://bugzilla.redhat.com/show_bug.cgi?id=1067476
-          https://bugzilla.redhat.com/show_bug.cgi?id=1065534
+        :title: avoid interlocking among threads that use
+          `libsss_nss_idmap` API (or other sss_client libs)
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1978119
+        :id: 836759ee-fc19-11ec-b57d-845cf3eff344
+        :customerscenario: true
         :steps:
-          1. Create user with a white space at beginning in their name
-          2. Restart SSSD with cleared cache
-          3. Fetch user information using 'id'
-          4. Confirm user is able to log in via ssh
-          5. A normal user information is fetched
-          6. Confirm a user information is not fetched if a space is added
-             as it's first character
+            1. Configure sssd with proxy
+            2. Create multiple tread from single process
+            3. Check that requests are not being handled serially
         :expectedresults:
-          1. Should succeed
-          2. Should succeed
-          3. Should succeed
-          4. Should succeed
-          5. Should succeed
-          6. Should succeed
-          """
-        usr = ' tuser'
-        usr_info = {'cn': usr, 'uid': usr,
-                    'uidNumber': '34583100',
-                    'gidNumber': '34564100'}
-        usr_grp(multihost, usr_info, 'user')
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+        """
         tools = sssdTools(multihost.client[0])
+        sssd_params = {'domains': ds_instance_name}
+        tools.sssd_conf('sssd', sssd_params)
         domain_name = tools.get_domain_section_name()
+        domain_params = {'debug_level': '9',
+                         'id_provider': 'proxy',
+                         'proxy_lib_name': 'ldap',
+                         'proxy_pam_target': 'sssdproxyldap',
+                         'case_sensitive': 'true',
+                         'use_fully_qualified_names': 'False' }
+        tools.sssd_conf('domain/' + domain_name, domain_params)
+        services = {'debug_level': '9'}
+        tools.sssd_conf('nss', services)
         tools.clear_sssd_cache()
-        user = f'\\ tuser@{domain_name}'
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login()
-        except SSHLoginException:
-            pytest.fail(f'{user} failed to login')
-        else:
-            id_cmd = f'id {user}'
-            (_, ret) = client.command(id_cmd)
-            assert ret == '0'
-            client.logout()
-        user = f'tuser@{domain_name}'
-        cmd = multihost.client[0].run_command(f'id {user}', raiseonerr=False)
-        assert cmd.returncode != 0
-        user = f'foo1@{domain_name}'
-        cmd = multihost.client[0].run_command(f'id {user}', raiseonerr=False)
-        assert cmd.returncode == 0
-        user = f'\\ foo1@{domain_name}'
-        cmd = multihost.client[0].run_command(f'id {user}', raiseonerr=False)
-        assert cmd.returncode != 0
+        client = multihost.client[0]
+        client.run_command("yum install -y gcc")
+        file_location = '/script/thread.c'
+        client.transport.put_file(os.path.dirname(os.path.abspath(__file__))
+                                  + file_location,
+                                  '/tmp/thread.c')
+        execute_cmd(multihost, "gcc /tmp/thread.c -o /tmp/thread")
+        execute_cmd(multihost, ">/var/log/sssd/sssd_nss.log")
+        execute_cmd(multihost, "cd /tmp/; ./thread")
+        time.sleep(2)
+        cmd = execute_cmd(multihost, "grep 'Looking up' "
+                                     "/var/log/sssd/sssd_nss.log").stdout_text
+        crs = [int(i.split('#')[1]) for i in re.findall('CR #[0-9]+', cmd)]
+        assert not check_sorted(crs)
