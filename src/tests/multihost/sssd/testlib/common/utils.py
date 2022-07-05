@@ -85,7 +85,7 @@ class sssdTools(object):
                'tdb-tools libkcapi-hmaccalc'
         sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
                     'libsss_autofs libsss_simpleifp sssd-kcm sssd-dbus'
-        extra_pkg = ' nss-pam-ldapd'
+        extra_pkg = ' nss-pam-ldapd krb5-pkinit'
         distro = self.multihost.distro
         if '8.' in distro:
             pkgs = pkgs + extra_pkg
