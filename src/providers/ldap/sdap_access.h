@@ -27,6 +27,7 @@
 
 #include "providers/backend.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_id_op.h"
 
 /* Attributes in sysdb, used for caching last values of lockout or filter
  * access control checks.
