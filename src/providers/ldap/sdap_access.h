@@ -99,4 +99,9 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct pam_data *pd);
 errno_t sdap_access_recv(struct tevent_req *req);
 
+/* Set the access rules based on ldap_access_order */
+errno_t sdap_set_access_rules(TALLOC_CTX *mem_ctx,
+                              struct sdap_access_ctx *access_ctx,
+                              struct sdap_options *opts);
+
 #endif /* SDAP_ACCESS_H_ */
