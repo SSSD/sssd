@@ -101,7 +101,8 @@ static void sdap_id_conn_data_idle_handler(struct tevent_context *ev,
                                            struct timeval current_time,
                                            void *pvt);
 static int sdap_id_conn_data_start_idle_timer(struct sdap_id_conn_data *conn_data);
-static void sdap_id_conn_data_stop_idle_timer(struct sdap_id_conn_data *conn_data);
+static void sdap_id_conn_data_not_idle(struct sdap_id_conn_data *conn_data);
+static void sdap_id_conn_data_idle(struct sdap_id_conn_data *conn_data);
 
 static void sdap_id_op_hook_conn_data(struct sdap_id_op *op, struct sdap_id_conn_data *conn_data);
 static int sdap_id_op_destroy(void *pvt);
@@ -311,6 +312,18 @@ static void sdap_id_conn_data_expire_handler(struct tevent_context *ev,
     }
 }
 
+/* We could simply cancel the idle timer at the beginning of every operation
+ * then reschedule it at the end of every operation.  However, to reduce the
+ * overhead associated with canceling and rescheduling the timer, we instead
+ * update conn_data->sh->idle_time at the beginning and end of each operation,
+ * then have the timer handler check idle_time and reschedule the timer as
+ * needed.
+ *
+ * Note that sdap_id_conn_data_not_idle() and/or sdap_id_conn_data_idle() may be
+ * called before sdap_id_conn_data_start_idle_timer() is called for a particular
+ * connection.
+ */
+
 /* Start idle timer for connection if needed */
 static int sdap_id_conn_data_start_idle_timer(struct sdap_id_conn_data *conn_data)
 {
@@ -325,6 +338,7 @@ static int sdap_id_conn_data_start_idle_timer(struct sdap_id_conn_data *conn_dat
 
     idle_timeout = dp_opt_get_int(conn_data->conn_cache->id_conn->id_ctx->opts->basic,
                                   SDAP_IDLE_TIMEOUT);
+    conn_data->sh->idle_timeout = idle_timeout;
     DEBUG(SSSDBG_CONF_SETTINGS, "idle timeout is %d\n", idle_timeout);
     if (idle_timeout <= 0) {
         return EOK;
@@ -357,23 +371,59 @@ static void sdap_id_conn_data_idle_handler(struct tevent_context *ev,
                                                           struct sdap_id_conn_data);
     struct sdap_id_conn_cache *conn_cache = conn_data->conn_cache;
 
-    if (conn_cache->cached_connection == conn_data) {
+    time_t now;
+    time_t idle_time;
+    int idle_timeout;
+    struct timeval tv;
+
+    if (conn_cache->cached_connection != conn_data) {
+        DEBUG(SSSDBG_TRACE_ALL, "Abandoning idle timer for released connection\n");
+        return;
+    }
+
+    now = time(NULL);
+    idle_time = conn_data->sh->idle_time;
+    idle_timeout = conn_data->sh->idle_timeout;
+
+    if (idle_time != 0 && idle_time + idle_timeout <= now) {
         DEBUG(SSSDBG_TRACE_ALL,
               "Connection has reached idle timeout, releasing it\n");
         conn_cache->cached_connection = NULL;
         sdap_id_release_conn_data(conn_data);
+        return;
+    }
+
+    memset(&tv, 0, sizeof(tv));
+    tv.tv_sec = (idle_time == 0 ? now : idle_time) + idle_timeout;
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Rescheduling connection idle timer to run at %ld\n", tv.tv_sec);
+
+    conn_data->idle_timer =
+              tevent_add_timer(conn_data->conn_cache->id_conn->id_ctx->be->ev,
+                               conn_data, tv,
+                               sdap_id_conn_data_idle_handler,
+                               conn_data);
+    if (!conn_data->idle_timer) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sdap_id_conn_data_idle_handler() failed to reschedule connection idle timer");
     }
 }
 
-/* Stop idle timer for connection if needed */
-static void sdap_id_conn_data_stop_idle_timer(struct sdap_id_conn_data *conn_data)
+/* Mark connection as not idle */
+static void sdap_id_conn_data_not_idle(struct sdap_id_conn_data *conn_data)
 {
-    if (conn_data->idle_timer) {
-        talloc_zfree(conn_data->idle_timer);
-        DEBUG(SSSDBG_TRACE_ALL, "Stopped connection idle timer\n");
-    }
-    if (conn_data->sh && conn_data->sh->idle_time) {
+    if (conn_data && conn_data->sh) {
+        DEBUG(SSSDBG_TRACE_ALL, "Marking connection as not idle\n");
         conn_data->sh->idle_time = 0;
+    }
+}
+
+/* Mark connection as idle */
+static void sdap_id_conn_data_idle(struct sdap_id_conn_data *conn_data)
+{
+    if (conn_data && conn_data->sh) {
+        DEBUG(SSSDBG_TRACE_ALL, "Marking connection as idle\n");
+        conn_data->sh->idle_time = time(NULL);
     }
 }
 
@@ -399,12 +449,14 @@ struct sdap_id_op *sdap_id_op_create(TALLOC_CTX *memctx, struct sdap_id_conn_cac
 /* Attach/detach connection to sdap_id_op */
 static void sdap_id_op_hook_conn_data(struct sdap_id_op *op, struct sdap_id_conn_data *conn_data)
 {
+    struct sdap_id_conn_data *current;
+
     if (!op) {
         DEBUG(SSSDBG_FATAL_FAILURE, "NULL op passed!!!\n");
         return;
     }
 
-    struct sdap_id_conn_data *current = op->conn_data;
+    current = op->conn_data;
     if (conn_data == current) {
         return;
     }
@@ -416,18 +468,13 @@ static void sdap_id_op_hook_conn_data(struct sdap_id_op *op, struct sdap_id_conn
     op->conn_data = conn_data;
 
     if (conn_data) {
-        sdap_id_conn_data_stop_idle_timer(conn_data);
+        sdap_id_conn_data_not_idle(conn_data);
         DLIST_ADD_END(conn_data->ops, op, struct sdap_id_op*);
     }
 
     if (current && !current->ops) {
         if (current == current->conn_cache->cached_connection) {
-            int ret = sdap_id_conn_data_start_idle_timer(current);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      "sdap_id_conn_data_start_idle_timer() failed [%d]: %s",
-                      ret, sss_strerror(ret));
-            }
+            sdap_id_conn_data_idle(current);
         } else {
             sdap_id_release_conn_data(current);
         }
@@ -642,6 +689,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
     struct tevent_req *reinit_req = NULL;
     bool reinit = false;
     int ret;
+    int ret_nonfatal;
 
     ret = sdap_cli_connect_recv(subreq, conn_data, &can_retry,
                                 &conn_data->sh, &srv_opts);
@@ -698,14 +746,17 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
                 reinit = true;
             }
         }
-        ret = sdap_id_conn_data_set_expire_timer(conn_data);
-        if (ret != EOK) {
+        ret_nonfatal = sdap_id_conn_data_set_expire_timer(conn_data);
+        if (ret_nonfatal != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "sdap_id_conn_data_set_expire_timer() failed [%d]: %s",
-                  ret, sss_strerror(ret));
-            /* Avoid causing the whole backend to be marked as offline because
-             * this operation failed. */
-            ret = EOK;
+                  ret_nonfatal, sss_strerror(ret_nonfatal));
+        }
+        ret_nonfatal = sdap_id_conn_data_start_idle_timer(conn_data);
+        if (ret_nonfatal != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "sdap_id_conn_data_start_idle_timer() failed [%d]: %s",
+                  ret_nonfatal, sss_strerror(ret_nonfatal));
         }
         sdap_steal_server_opts(conn_cache->id_conn->id_ctx, &srv_opts);
     }
