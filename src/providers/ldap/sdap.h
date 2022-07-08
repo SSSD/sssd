@@ -63,6 +63,8 @@ struct sdap_handle {
     bool connected;
     /* Authentication ticket expiration time (if any) */
     time_t expire_time;
+    /* Time when the connection became idle (if any) */
+    time_t idle_time;
     ber_int_t page_size;
     bool disable_deref;
 
@@ -214,6 +216,7 @@ enum sdap_basic_opt {
     SDAP_SASL_CANONICALIZE,
     SDAP_EXPIRE_TIMEOUT,
     SDAP_EXPIRE_OFFSET,
+    SDAP_IDLE_TIMEOUT,
     SDAP_DISABLE_PAGING,
     SDAP_IDMAP_LOWER,
     SDAP_IDMAP_UPPER,
