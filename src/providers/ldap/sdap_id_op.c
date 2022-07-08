@@ -72,6 +72,8 @@ struct sdap_id_conn_data {
     struct tevent_req *connect_req;
     /* timer for connection expiration */
     struct tevent_timer *expire_timer;
+    /* timer for idle connection expiration */
+    struct tevent_timer *idle_timer;
     /* number of running connection notifies */
     int notify_lock;
     /* list of operations using connect */
@@ -94,6 +96,12 @@ static void sdap_id_conn_data_expire_handler(struct tevent_context *ev,
                                              struct timeval current_time,
                                              void *pvt);
 static int sdap_id_conn_data_set_expire_timer(struct sdap_id_conn_data *conn_data);
+static void sdap_id_conn_data_idle_handler(struct tevent_context *ev,
+                                           struct tevent_timer *te,
+                                           struct timeval current_time,
+                                           void *pvt);
+static int sdap_id_conn_data_start_idle_timer(struct sdap_id_conn_data *conn_data);
+static void sdap_id_conn_data_stop_idle_timer(struct sdap_id_conn_data *conn_data);
 
 static void sdap_id_op_hook_conn_data(struct sdap_id_op *op, struct sdap_id_conn_data *conn_data);
 static int sdap_id_op_destroy(void *pvt);
@@ -252,6 +260,8 @@ static int sdap_id_conn_data_set_expire_timer(struct sdap_id_conn_data *conn_dat
     int timeout;
     struct timeval tv;
 
+    talloc_zfree(conn_data->expire_timer);
+
     memset(&tv, 0, sizeof(tv));
 
     tv.tv_sec = conn_data->sh->expire_time;
@@ -266,10 +276,10 @@ static int sdap_id_conn_data_set_expire_timer(struct sdap_id_conn_data *conn_dat
     }
 
     if (tv.tv_sec <= time(NULL)) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Not starting expire timer because connection is already expired\n");
         return EOK;
     }
-
-    talloc_zfree(conn_data->expire_timer);
 
     conn_data->expire_timer =
               tevent_add_timer(conn_data->conn_cache->id_conn->id_ctx->be->ev,
@@ -293,13 +303,77 @@ static void sdap_id_conn_data_expire_handler(struct tevent_context *ev,
                                                           struct sdap_id_conn_data);
     struct sdap_id_conn_cache *conn_cache = conn_data->conn_cache;
 
+    if (conn_cache->cached_connection == conn_data) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Connection is about to expire, releasing it\n");
+        conn_cache->cached_connection = NULL;
+        sdap_id_release_conn_data(conn_data);
+    }
+}
+
+/* Start idle timer for connection if needed */
+static int sdap_id_conn_data_start_idle_timer(struct sdap_id_conn_data *conn_data)
+{
+    time_t now;
+    int idle_timeout;
+    struct timeval tv;
+
+    now = time(NULL);
+    conn_data->sh->idle_time = now;
+
+    talloc_zfree(conn_data->idle_timer);
+
+    idle_timeout = dp_opt_get_int(conn_data->conn_cache->id_conn->id_ctx->opts->basic,
+                                  SDAP_IDLE_TIMEOUT);
+    DEBUG(SSSDBG_CONF_SETTINGS, "idle timeout is %d\n", idle_timeout);
+    if (idle_timeout <= 0) {
+        return EOK;
+    }
+
+    memset(&tv, 0, sizeof(tv));
+    tv.tv_sec = now + idle_timeout;
     DEBUG(SSSDBG_TRACE_ALL,
-          "Connection is about to expire, releasing it\n");
+          "Scheduling connection idle timer to run at %ld\n", tv.tv_sec);
+
+    conn_data->idle_timer =
+              tevent_add_timer(conn_data->conn_cache->id_conn->id_ctx->be->ev,
+                               conn_data, tv,
+                               sdap_id_conn_data_idle_handler,
+                               conn_data);
+    if (!conn_data->idle_timer) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
+/* Handler for idle connection expiration timer */
+static void sdap_id_conn_data_idle_handler(struct tevent_context *ev,
+                                           struct tevent_timer *te,
+                                           struct timeval current_time,
+                                           void *pvt)
+{
+    struct sdap_id_conn_data *conn_data = talloc_get_type(pvt,
+                                                          struct sdap_id_conn_data);
+    struct sdap_id_conn_cache *conn_cache = conn_data->conn_cache;
 
     if (conn_cache->cached_connection == conn_data) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Connection has reached idle timeout, releasing it\n");
         conn_cache->cached_connection = NULL;
-
         sdap_id_release_conn_data(conn_data);
+    }
+}
+
+/* Stop idle timer for connection if needed */
+static void sdap_id_conn_data_stop_idle_timer(struct sdap_id_conn_data *conn_data)
+{
+    if (conn_data->idle_timer) {
+        talloc_zfree(conn_data->idle_timer);
+        DEBUG(SSSDBG_TRACE_ALL, "Stopped connection idle timer\n");
+    }
+    if (conn_data->sh && conn_data->sh->idle_time) {
+        conn_data->sh->idle_time = 0;
     }
 }
 
@@ -342,11 +416,21 @@ static void sdap_id_op_hook_conn_data(struct sdap_id_op *op, struct sdap_id_conn
     op->conn_data = conn_data;
 
     if (conn_data) {
+        sdap_id_conn_data_stop_idle_timer(conn_data);
         DLIST_ADD_END(conn_data->ops, op, struct sdap_id_op*);
     }
 
-    if (current) {
-        sdap_id_release_conn_data(current);
+    if (current && !current->ops) {
+        if (current == current->conn_cache->cached_connection) {
+            int ret = sdap_id_conn_data_start_idle_timer(current);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "sdap_id_conn_data_start_idle_timer() failed [%d]: %s",
+                      ret, sss_strerror(ret));
+            }
+        } else {
+            sdap_id_release_conn_data(current);
+        }
     }
 }
 
