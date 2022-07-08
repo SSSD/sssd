@@ -39,7 +39,7 @@ class TestKrbLdapConnectionTimeout(object):
         :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
          Test if connection expires for the default value of ldap connection
          timeout that is 900 seconds(15 minutes) after that it should release
-         the connention
+         the connection
         :id: 53ba0b29-f5fc-4daa-8730-04a8aec91829
         """
         domain_params = {'ldap_connection_expire_timeout': None}
@@ -90,7 +90,7 @@ class TestKrbLdapConnectionTimeout(object):
          is value out of range of integer
         :id: a3773739-41c7-4379-82d0-721d6993633c
         :expectedresults: SSSD sevice must fail to restart
-         successfully after entring that value in configuration
+         successfully after entering that value in configuration
         """
 
         multihost.client[0].log.info(
@@ -169,8 +169,8 @@ class TestKrbLdapConnectionTimeout(object):
 
     def test_0005_timeout0(self, multihost):
         """
-        :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:Test for
-         value of ldap connection timeout 0.
+        :title: IDM-SSSD-TC: krb_provider: krb_ldap_connection:
+         Test for value of ldap connection timeout 0.
         :id: 39af02aa-0860-4189-afc9-3ead42fd5fc1
         :expectedresults: It should have to release
          the connection instantly after establishing
@@ -205,7 +205,7 @@ class TestKrbLdapConnectionTimeout(object):
               ticked expires.
               2. Lookup a user and get the port number and sleep for the
               timeout period.
-              3. Lookup another user and get the the port number.
+              3. Lookup another user and get the port number.
               4. Compare the 2 port numbers.
         """
         sssdTools(multihost.client[0]).delete_sssd_domain_log(

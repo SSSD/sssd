@@ -682,9 +682,9 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Old USN: %lu, New USN: %lu\n", current_srv_opts->last_usn, srv_opts->last_usn);
 
-            if (strcmp(srv_opts->server_id, current_srv_opts->server_id) == 0 &&
-                srv_opts->supports_usn &&
-                current_srv_opts->last_usn > srv_opts->last_usn) {
+            if (strcmp(srv_opts->server_id, current_srv_opts->server_id) == 0
+                    && srv_opts->supports_usn
+                    && current_srv_opts->last_usn > srv_opts->last_usn) {
                 DEBUG(SSSDBG_FUNC_DATA, "Server was probably re-initialized\n");
 
                 current_srv_opts->max_user_value = 0;
@@ -823,9 +823,9 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
         conn_data->notify_lock--;
     }
 
-    if ((ret == EOK) &&
-        conn_data->sh->connected &&
-        !be_is_offline(conn_cache->id_conn->id_ctx->be)) {
+    if ((ret == EOK)
+            && conn_data->sh->connected
+            && !be_is_offline(conn_cache->id_conn->id_ctx->be)) {
         DEBUG(SSSDBG_TRACE_ALL,
               "caching successful connection after %d notifies\n", notify_count);
         conn_cache->cached_connection = conn_data;
