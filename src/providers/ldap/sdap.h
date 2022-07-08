@@ -65,6 +65,8 @@ struct sdap_handle {
     time_t expire_time;
     /* Time when the connection became idle (if any) */
     time_t idle_time;
+    /* Configured idle timeout */
+    int idle_timeout;
     ber_int_t page_size;
     bool disable_deref;
 
