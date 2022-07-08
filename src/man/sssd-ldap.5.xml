@@ -552,6 +552,25 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_connection_idle_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies a timeout (in seconds) that an idle
+                            connection to an LDAP server will be maintained.
+                            If the connection is idle for more than this time
+                            then the connection will be closed.
+                        </para>
+                        <para>
+                            You can disable this timeout by setting the value to
+                            0.
+                        </para>
+                        <para>
+                            Default: 900 (15 minutes)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_page_size (integer)</term>
                     <listitem>
                         <para>
