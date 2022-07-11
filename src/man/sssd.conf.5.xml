@@ -3725,6 +3725,9 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             ldap_purge_cache_timeout
                         </para>
                         <para>
+                            ldap_connection_idle_timeout
+                        </para>
+                        <para>
                             ldap_use_tokengroups
                         </para>
                         <para>
