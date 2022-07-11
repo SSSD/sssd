@@ -565,6 +565,11 @@
                             0.
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: 900 (15 minutes)
                         </para>
                     </listitem>
