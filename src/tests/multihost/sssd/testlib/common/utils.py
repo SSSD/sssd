@@ -1721,7 +1721,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                   f"-OtherAttributes @{{\"nisMapName\"=\"auto.direct\" ; " \
                   f"\"nisMapEntry\"=\"{nismapentry}\"}}'"
         add = self.ad_host.run_command(add_map, raiseonerr=False)
-        ret = 'Success' if add.returncode == 0 else 'Failure'
+        ret = 'Success' if add.returncode == 0 else 'Failed to add an ADObject'
         return ret
 
     def delete_map(self, name):
@@ -1730,7 +1730,8 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                   f"Remove-ADObject -Confirm:$False -Identity " \
                   f"\"CN={name},cn=auto.direct,ou=automount,{self.ad_basedn}\"'"
         del_cmd = self.ad_host.run_command(del_map, raiseonerr=False)
-        ret = 'Success' if del_cmd.returncode == 0 else 'Failure'
+        ret = 'Success' if del_cmd.returncode == 0 else 'Failed to ' \
+                                                        'delete an ADObject'
         return ret
 
     def expire_account(self, user):
