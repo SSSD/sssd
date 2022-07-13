@@ -3612,7 +3612,7 @@ sdap_handle_id_collision_for_incomplete_groups(struct data_provider *dp,
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Due to an id collision, the new group with gid [\"%"PRIu32"\"] "
               "will not be added as the old group (with the same gid) could "
-              "not be removed from the sysdb!",
+              "not be removed from the sysdb!\n",
               gid);
         return ret;
     }
