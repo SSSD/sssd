@@ -10,10 +10,9 @@ SSSD QE PyTest provides a framework `sssd.testlib` which contains shared functio
 System Services Security Daemon.
 
 
-Contents:
-
 .. toctree::
    :maxdepth: 3
+   :caption: Contents:
 
    Install
    running
