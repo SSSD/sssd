@@ -1875,9 +1875,9 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
         :Return tuple of int: computed uid/gid of the object
         """
         # Get domain sid
-        domain_sid = "-".join(object_sid.split("-")[0:7])
+        domain_sid = "-".join(object_sid.split("-")[0:-1])
         # Get rid
-        rid = int(object_sid.split("-")[7])
+        rid = int(object_sid.split("-")[-1])
         number_hash = mmh3.hash(domain_sid, seed=0xdeadbeef) & 0xffffffff
         slice_max = (range_max - range_min) // range_size
         slice_val = number_hash % slice_max
