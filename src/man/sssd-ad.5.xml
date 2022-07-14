@@ -109,6 +109,21 @@ ldap_id_mapping = False
             case-insensitive in the AD provider for compatibility with Active
             Directory's LDAP implementation.
         </para>
+        <para>
+            SSSD only resolves Active Directory Security Groups. For more
+            information about AD group types see:
+            <ulink
+            url="https://docs.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-groups">
+            Active Directory security groups</ulink>
+        </para>
+        <para>
+            SSSD filters out Domain Local groups from remote domains in the AD
+            forest. By default they are filtered out e.g. when following a
+            nested group hierarchy in remote domains because they are not valid
+            in the local domain. This is done to be in agreement with Active
+            Directory's group-membership assignment which can be seen in
+            the PAC of the Kerberos ticket of a user issued by Active Directory.
+        </para>
     </refsect1>
 
     <refsect1 id='configuration-options'>
