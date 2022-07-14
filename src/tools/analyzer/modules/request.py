@@ -243,8 +243,8 @@ class RequestAnalyzer:
         be_results = False
         component = source.Component.NSS
         resp = "nss"
-        pattern = [rf'REQ_TRACE.*\[CID #{cid}\\]']
-        pattern.append(rf"\[CID#{cid}\\]")
+        pattern = [rf'REQ_TRACE.*\[CID #{cid}\]']
+        pattern.append(rf"\[CID#{cid}\]")
 
         if args.pam:
             component = source.Component.PAM
