@@ -43,7 +43,18 @@ def fixture_prepare_users(session_multihost, request):
     # Set user primary group
     upg = f"powershell.exe -inputformat none -noprofile " \
           f"'Set-ADUserPrimaryGroup {ad_user_1} \'{ad_group_1}\''"
-    session_multihost.ad[0].run_command(upg, raiseonerr=False)
+    res = session_multihost.ad[0].run_command(upg, raiseonerr=False)
+    # Windows 2012R2 does not know Set-ADUserPrimaryGroup
+    # This is a crude re-implementation
+    if "'Set-ADUserPrimaryGroup' is not recognized" in res.stderr_text:
+        info_cmd = f"powershell.exe -inputformat none -noprofile '" \
+                   f"write-host $(Get-ADGroup -Identity {ad_group_1}).SID'"
+        cmd = session_multihost.ad[0].run_command(info_cmd, raiseonerr=False)
+        group_id = cmd.stdout_text.strip().split('-')[-1]
+        pgp_cmd = f"powershell.exe -inputformat none -noprofile Set-ADUser " \
+                  f"-Identity {ad_user_1} -Replace @{{'primaryGroupID' = " \
+                  f"'{group_id}'}}"
+        session_multihost.ad[0].run_command(pgp_cmd, raiseonerr=False)
 
     # Setup posix user 2
     ad_user_2 = 'testuser2%d' % uid
@@ -149,7 +160,8 @@ class TestADSchema:
         assert ad_info['uidnumber_'] == ldb_info['uidNumber']
         assert ad_info['gidnumber_'] == ldb_info['gidNumber']
         assert ad_info['gecos'] == ldb_info['gecos']
-        assert ldb_info['originalMemberOf'] in ad_info['MemberOf']
+        assert ldb_info['originalMemberOf'].replace(" ", "") \
+               in ad_info['MemberOf'].replace(" ", "")
         assert ad_info['userAccountControl'] == \
             ldb_info['adUserAccountControl']
         assert ad_info['objectSid'] == ldb_info['objectSIDString']
@@ -222,12 +234,19 @@ class TestADSchema:
         # Evaluate test results
         assert group_info['Name'] in getent_groupinfo['name']
         assert group_info['gidnumber_'] == getent_groupinfo['gid']
-        assert getent_groupinfo['users'].split("@")[0] in group_info['member']
-
         assert group_info['Name'] in group_ldb_info['name']
         assert group_info['gidnumber_'] == group_ldb_info['gidNumber']
         assert group_info['objectSid'] == group_ldb_info['objectSIDString']
-        assert group_ldb_info['orig_member'] in group_info['member']
+
+        # Windows 2012 has a different format is different
+        if 'member' in group_info:
+            assert getent_groupinfo['users'].split("@")[0] in \
+                   group_info['member']
+            assert group_ldb_info['orig_member'] in group_info['member']
+        elif 'members' in group_info:
+            assert getent_groupinfo['users'].split("@")[0] in \
+                   group_info['members']
+            assert group_ldb_info['orig_member'] in group_info['members']
 
     @staticmethod
     @pytest.mark.tier1_3
@@ -305,7 +324,8 @@ class TestADSchema:
         assert ad_info['gecos'] == ldb_info['gecos']
         assert ad_info['unixHomeDirectory'] == ldb_info['homeDirectory']
         assert ad_info['accountExpires'] == ldb_info['adAccountExpires']
-        assert ldb_info['originalMemberOf'] in ad_info['MemberOf']
+        assert ldb_info['originalMemberOf'].replace(" ", "") in \
+               ad_info['MemberOf'].replace(" ", "")
         assert ad_info['userAccountControl'] == \
             ldb_info['adUserAccountControl']
         assert ad_info['objectSid'] == ldb_info['objectSIDString']
@@ -371,10 +391,16 @@ class TestADSchema:
         # Evaluate test results
         assert group_info['Name'] in getent_groupinfo['name']
         assert group_info['gidNumber'] == getent_groupinfo['gid']
-        assert getent_groupinfo['users'].split("@")[0] in group_info['member']
-
         assert group_info['Name'] in group_ldb_info['name']
         assert group_info['gidNumber'] == group_ldb_info['gidNumber']
         assert group_info['objectSid'] == group_ldb_info['objectSIDString']
-        assert group_ldb_info['orig_member'] in group_info['member']
         assert group_info['uSNChanged'] == group_ldb_info['entryUSN']
+        # Windows 2012 has a different format is different
+        if 'member' in group_info:
+            assert getent_groupinfo['users'].split("@")[0] in \
+                   group_info['member']
+            assert group_ldb_info['orig_member'] in group_info['member']
+        elif 'members' in group_info:
+            assert getent_groupinfo['users'].split("@")[0] in \
+                   group_info['members']
+            assert group_ldb_info['orig_member'] in group_info['members']
