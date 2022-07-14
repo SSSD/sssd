@@ -723,10 +723,16 @@ class sssdTools(object):
             f'"{entity}"*',
             raiseonerr=False)
         ldb_info = {}
-        for line in cmd.stdout_text.split('\n'):
+        lines = cmd.stdout_text.split('\n')
+        for idx, line in enumerate(lines):
             if ':' in line:
                 parts = line.split(':')
-                ldb_info[parts[0].strip()] = parts[1].strip()
+                item_name = parts[0].strip()
+                ldb_info[item_name] = parts[1].strip()
+                # Handle line continuation
+                if idx + 1 < len(lines):
+                    if ":" not in lines[idx + 1]:
+                        ldb_info[item_name] += lines[idx + 1].strip()
         return ldb_info
 
     def get_getent_passwd(self, user):
@@ -1837,10 +1843,16 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                    f"Get-ADUser -Identity {user} -Properties *'"
         cmd = self.ad_host.run_command(info_cmd, raiseonerr=False)
         user_info = {}
-        for line in cmd.stdout_text.split('\n'):
+        lines = cmd.stdout_text.split('\n')
+        for idx, line in enumerate(lines):
             if ':' in line:
                 parts = line.split(':')
-                user_info[parts[0].strip()] = parts[1].strip()
+                item_name = parts[0].strip()
+                user_info[item_name] = parts[1].strip()
+                # Handle line continuation
+                if idx + 1 < len(lines):
+                    if ":" not in lines[idx + 1]:
+                        user_info[item_name] += lines[idx + 1].strip()
         return user_info
 
     def get_group_info(self, group):
@@ -1853,10 +1865,16 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                    f"Get-ADGroup -Identity {group} -Properties *'"
         cmd = self.ad_host.run_command(info_cmd, raiseonerr=False)
         group_info = {}
-        for line in cmd.stdout_text.split('\n'):
+        lines = cmd.stdout_text.split('\n')
+        for idx, line in enumerate(lines):
             if ':' in line:
                 parts = line.split(':')
-                group_info[parts[0].strip()] = parts[1].strip()
+                item_name = parts[0].strip()
+                group_info[item_name] = parts[1].strip()
+                # Handle line continuation
+                if idx + 1 < len(lines):
+                    if ":" not in lines[idx + 1]:
+                        group_info[item_name] += lines[idx + 1].strip()
         return group_info
 
     @staticmethod
