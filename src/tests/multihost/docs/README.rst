@@ -14,6 +14,7 @@ System Services Security Daemon.
 - `Examples of testing KCM <kcm.rst>`__
 - `sssd test library doc <sssd-testlib.rst>`__
 - `pytest multihost plugin doc <MultihostPlugin.rst>`__
+- `Doctrings for Test Cases <docstrings.rst>`__
 
 
 Additional Information

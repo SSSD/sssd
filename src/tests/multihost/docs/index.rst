@@ -23,6 +23,7 @@ System Services Security Daemon.
    kcm
    sssd-testlib
    MultihostPlugin
+   docstrings
 
 
 
