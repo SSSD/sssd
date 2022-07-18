@@ -1109,6 +1109,9 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     errno_t ret;
 
+    /* Always reset the responder idle timer on any activity */
+    rctx->last_request_time = time(NULL);
+
     req = tevent_req_create(mem_ctx, &state, struct cache_req_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
