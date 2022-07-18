@@ -35,6 +35,7 @@ struct sss_dp_callback {
     struct sss_dp_callback *prev;
     struct sss_dp_callback *next;
 
+    struct resp_ctx *rctx;
     struct tevent_req *req;
     struct sss_dp_req *sdp_req;
 };
@@ -58,9 +59,14 @@ static int sss_dp_callback_destructor(void *ptr)
     struct sss_dp_callback *cb =
             talloc_get_type(ptr, struct sss_dp_callback);
 
+    /* `sdp_req` might be already freed if responder is being shut down */
+    if (cb->rctx->shutting_down) {
+        return 0;
+    }
+
     DLIST_REMOVE(cb->sdp_req->cb_list, cb);
 
-    return EOK;
+    return 0;
 }
 
 static int sss_dp_req_destructor(void *ptr)
@@ -396,6 +402,7 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
         goto fail;
     }
 
+    cb->rctx = rctx;
     cb->req = nreq;
     cb->sdp_req = sdp_req;
 
