@@ -7,8 +7,7 @@
 """
 from __future__ import print_function
 import pytest
-import paramiko
-from sssd.testlib.common.utils import sssdTools, SSHClient
+from sssd.testlib.common.utils import sssdTools
 
 
 def execute_cmd(multihost, command):
@@ -27,7 +26,9 @@ class TestProxy(object):
     """
     This is test case class for ldap proxy suite
     """
-    def test_proxy_lookup(self, multihost, backupsssdconf):
+    @staticmethod
+    @pytest.mark.usefixtures('backupsssdconf')
+    def test_proxy_lookup(multihost):
         """
         :title: Proxy lookup and kerberos auth
         :id: 5c4c55b8-0cac-47d0-aa23-d057b790e18e
@@ -40,17 +41,16 @@ class TestProxy(object):
         """
         # proxy lookup and kerberos auth
         tools = sssdTools(multihost.client[0])
-        client_e = multihost.client[0].ip
         tools.clear_sssd_cache()
-        ssh1 = SSHClient(client_e, username="foo2@example1",
-                         password="Secret123")
-        ssh1.close()
+        ssh1 = tools.auth_from_client("foo2@example1", 'Secret123') == 3
+        assert ssh1, "Ssh failed instead of passing!"
         assert "home/foo2:/bin/bash" in execute_cmd(multihost,
                                                     "getent -s "
                                                     "ldap passwd "
                                                     "foo2").stdout_text
 
-    def test_expired_password(self, multihost):
+    @staticmethod
+    def test_expired_password(multihost):
         """
         :title: Change expired password
         :id: 60de31d3-82e8-4f35-999d-5f9f15e0caed
@@ -72,7 +72,8 @@ class TestProxy(object):
                                         "'addprinc -pw Secret123 "
                                         "foo2@example1'")
 
-    def test_server_access(self, multihost):
+    @staticmethod
+    def test_server_access(multihost):
         """
         :title: Proxy server access
         :id: 5fe5839b-fbfb-48be-87de-18c1b0de209c
@@ -88,24 +89,23 @@ class TestProxy(object):
           4. Should succeed
         """
         tools = sssdTools(multihost.client[0])
-        client_e = multihost.client[0].ip
         tools.clear_sssd_cache()
-        ssh1 = SSHClient(client_e, username="foo2@example1",
-                         password="Secret123")
-        ssh1.close()
+        ssh0 = tools.auth_from_client("foo2@example1", 'Secret123') == 3
         # block_server_access
         execute_cmd(multihost, "systemctl start firewalld")
         execute_cmd(multihost, f"firewall-cmd --direct "
                                f"--add-rule ipv4 filter "
                                f"OUTPUT 0 -d {multihost.master[0].ip} "
                                f"-j DROP")
-        with pytest.raises(paramiko.ssh_exception.AuthenticationException):
-            SSHClient(client_e, username="foo2@example1",
-                      password="Secret123")
+
+        ssh1 = tools.auth_from_client("foo2@example1", 'Secret123') == 3
+
         # unblock_server_access
         execute_cmd(multihost, "firewall-cmd  --reload")
         execute_cmd(multihost, "systemctl stop firewalld")
         tools.clear_sssd_cache()
-        ssh1 = SSHClient(client_e, username="foo2@example1",
-                         password="Secret123")
-        ssh1.close()
+        ssh2 = tools.auth_from_client("foo2@example1", 'Secret123') == 3
+
+        assert ssh0, "Ssh failed instead of passing!"
+        assert not ssh1, "Ssh passed instead of failing!"
+        assert ssh2, "Ssh failed instead of passing!"

@@ -2,17 +2,16 @@
 
 from __future__ import print_function
 import subprocess
-import pytest
 import random
 import os
 import posixpath
-from subprocess import CalledProcessError
+import pexpect
+import pytest
 from sssd.testlib.common.qe_class import session_multihost
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import ADOperations
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
-from sssd.testlib.common.utils import SSHClient
 
 
 def pytest_configure():
@@ -232,15 +231,25 @@ def subid_generate(session_multihost, request):
     """
     user = "admin"
     test_password = "Secret123"
-    ssh1 = SSHClient(session_multihost.client[0].ip,
-                     username=user, password=test_password)
-    (result, result1, exit_status) = ssh1.execute_cmd('kinit',
-                                                      stdin=test_password)
-    assert exit_status == 0
-    (result, result1, exit_status) = ssh1.exec_command(f"ipa "
-                                                       f" subid-generate"
-                                                       f"  --owner={user}")
-    ssh1.close()
+
+    p_ssh = pexpect.pxssh.pxssh(
+        options={"StrictHostKeyChecking": "no",
+                 "UserKnownHostsFile": "/dev/null"}
+    )
+    p_ssh.force_password = True
+    try:
+        p_ssh.login(session_multihost.client[0].ip, user, test_password)
+        p_ssh.sendline('kinit')
+        p_ssh.expect('Password for .*:', timeout=10)
+        p_ssh.sendline(test_password)
+        p_ssh.prompt(timeout=5)
+        p_ssh.sendline(f'ipa subid-generate --owner={user}; echo "retcode:$?"')
+        p_ssh.prompt(timeout=5)
+        subid_gen_out = str(p_ssh.before)
+        p_ssh.logout()
+    except pexpect.pxssh.ExceptionPxssh:
+        pytest.fail("Failed to login via ssh.")
+    assert "retcode:0" in subid_gen_out, "Generating subid range failed."
 
 
 @pytest.fixture(scope='class')
@@ -322,7 +331,7 @@ def disable_allow_all_hbac(session_multihost, request):
     disable_allow_all = 'ipa hbacrule-disable allow_all'
     try:
         session_multihost.master[0].run_command(disable_allow_all)
-    except CalledProcessError:
+    except subprocess.CalledProcessError:
         pytest.fail("Failed to disable allow_all rule")
 
     def allow_all_hbac():
@@ -330,7 +339,7 @@ def disable_allow_all_hbac(session_multihost, request):
         allow_all = 'ipa hbacrule-enable allow_all'
         try:
             session_multihost.master[0].run_command(allow_all)
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             pytest.fail("Failed to enable allow_all rule")
 
     request.addfinalizer(allow_all_hbac)

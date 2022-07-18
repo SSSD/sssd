@@ -49,7 +49,7 @@ def package_install(session_multihost):
 @pytest.fixture(scope="session")
 def run_authselect(session_multihost):
     """ Run authconfig to configure Kerberos and SSSD auth on remote host """
-    authselect_cmd = 'authselect select sssd --force'
+    authselect_cmd = 'authselect select sssd with-mkhomedir --force'
     session_multihost.master[0].run_command(authselect_cmd)
 
 
@@ -172,6 +172,34 @@ def enable_kcm(session_multihost, request):
         stop_kcm = 'systemctl stop sssd-kcm'
         session_multihost.master[0].run_command(stop_kcm)
     request.addfinalizer(disable_kcm)
+
+
+@pytest.fixture(scope='session')
+def enable_oddjob(session_multihost, request):
+    """Enables and starts oddjob service"""
+    check_enabled = session_multihost.master[0].run_command(
+        'systemctl is-enabled oddjobd.service', raiseonerr=False)
+    enabled = "enabled" in check_enabled.stdout_text
+    check_active = session_multihost.master[0].run_command(
+        'systemctl is-active oddjobd.service', raiseonerr=False)
+    active = "inactive" not in check_active.stdout_text
+    if not enabled:
+        session_multihost.master[0].run_command(
+            'systemctl enable oddjobd.service', raiseonerr=False)
+    if not active:
+        session_multihost.master[0].run_command(
+            'systemctl start oddjobd.service', raiseonerr=False)
+
+    def revert_odjob():
+        """Reverts changes to oddjob service."""
+        if not enabled:
+            session_multihost.master[0].run_command(
+                'systemctl disable oddjobd.service', raiseonerr=False)
+        if not active:
+            session_multihost.master[0].run_command(
+                'systemctl stop oddjobd.service', raiseonerr=False)
+
+    request.addfinalizer(revert_odjob)
 
 
 @pytest.fixture
@@ -418,7 +446,8 @@ def setup_session(request, session_multihost,
                   run_authselect,
                   setup_ldap,
                   setup_kerberos,
-                  create_posix_usersgroups):
+                  create_posix_usersgroups,
+                  enable_oddjob):
     """ Run all session scoped fixtures """
     # pylint: disable=unused-argument
     _pytest_fixture = [package_install, run_authselect,

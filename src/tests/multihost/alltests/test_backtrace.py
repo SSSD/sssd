@@ -56,18 +56,20 @@ class TestPoorManBacktrace(object):
           1. Modify sssd.conf with a typo in the ldap_uri
           2. Remove debug_level from domain section
           3. Start sssd
-          4. Lookup any user
-          5. Check logs generate a backtrace
-          6. Lookup same user again
-          7. Check logs dont have repeated backtrace
+          4. Truncate domain logs
+          5. Lookup any user
+          6. Check logs generate a backtrace
+          7. Lookup same user again
+          8. Check logs dont have repeated backtrace
         :expectedresults:
           1. Bad url successfully added in sssd.conf
           2. debug_level not set in sssd.conf
           3. Should succeed
-          4. Should fail as expected
-          5. Should succeed
-          6. Should fail as expected
-          7. Should have string 'skipping repetitive backtrace'
+          4. Should succeed
+          5. Should fail as expected
+          6. Should succeed
+          7. Should fail as expected
+          8. Should have string 'skipping repetitive backtrace'
         """
         bad_url(multihost)
         tools = sssdTools(multihost.client[0])
@@ -76,6 +78,13 @@ class TestPoorManBacktrace(object):
         tools.sssd_conf(section, domain_params, action='delete')
         tools.clear_sssd_cache()
         logfile = f'/var/log/sssd/sssd_{ds_instance_name}.log'
+        log_str = multihost.client[0].get_file_contents(logfile). \
+            decode('utf-8')
+        print(f'\n{logfile}\n+===++++++===+\n{log_str}\n')
+        time.sleep(2)
+        # Truncate logs to generate fresh backtrace on user lookup and compare
+        # with the logs generated with the second lookup for same error
+        multihost.client[0].run_command('sssctl logs-remove')
         cmd = f'getent passwd fakeuser@{ds_instance_name}'
         multihost.client[0].run_command(cmd, raiseonerr=False)
         time.sleep(2)
@@ -85,18 +94,20 @@ class TestPoorManBacktrace(object):
         pattern2 = re.compile(fr'{msg2}')
         log_str1 = multihost.client[0].get_file_contents(logfile). \
             decode('utf-8')
-        multihost.client[0].run_command(f'> {logfile}')
+        print(f'\n{logfile}\n+===++++++===+\n{log_str1}\n')
+        multihost.client[0].run_command('sssctl logs-remove')
         multihost.client[0].run_command(cmd, raiseonerr=False)
         time.sleep(2)
         log_str2 = multihost.client[0].get_file_contents(logfile). \
             decode('utf-8')
+        print(f'\n{logfile}\n+===++++++===+\n{log_str2}\n')
         # Check the backtrace is dumped first time and no backtrace is skipped
         assert pattern.search(log_str1) and not pattern2.search(log_str1)
         # Check there is no new backtrace with the same issue and repeative
         # backtrace is skipped
         assert pattern2.search(log_str2) and not pattern.search(log_str2)
 
-    def test_0001_bz1949149(self, multihost, backupsssdconf):
+    def test_0002_bz1949149(self, multihost, backupsssdconf):
         """
         :title: backtrace is disabled if debug level >= 9
         :id: 50f2d501-3296-4229-86a0-b81844381637
@@ -137,7 +148,7 @@ class TestPoorManBacktrace(object):
             find = re.compile(r'BACKTRACE DUMP ENDS HERE')
             assert not find.search(log_str)
 
-    def test_0002_bz1949149(self, multihost, backupsssdconf):
+    def test_0003_bz1949149(self, multihost, backupsssdconf):
         """
         :title: set debug_backtrace_enabled false
         :id: b8084e03-5e21-45ee-a463-65ab537fa110
@@ -177,7 +188,7 @@ class TestPoorManBacktrace(object):
             find = re.compile(r'BACKTRACE DUMP ENDS HERE')
             assert not find.search(log_str)
 
-    def test_0003_bz1949149(self, multihost, backupsssdconf):
+    def test_0004_bz1949149(self, multihost, backupsssdconf):
         """
         :title: backtrace level is 0 with debug level set to 0
         :id: 4376d596-a613-447c-8f85-e3f3fbc05728
@@ -221,7 +232,7 @@ class TestPoorManBacktrace(object):
                     log_level = log_lines[index - 1]
                     assert find2.search(log_level)
 
-    def test_0004_bz1949149(self, multihost, backupsssdconf):
+    def test_0005_bz1949149(self, multihost, backupsssdconf):
         """
         :title: backtrace level is 1 with debug level set to 1
         :id: 8a8adcdd-63bc-4a64-83cd-5c7b76fe745a

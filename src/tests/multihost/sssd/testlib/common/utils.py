@@ -9,20 +9,17 @@ import re
 import subprocess
 import array
 import random
-import socket
 import shlex
 try:
     import ConfigParser
 except ImportError:
     import configparser as ConfigParser
-from subprocess import CalledProcessError
 try:
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
 import ldap
 import ldif
-import paramiko
 import pytest
 import pymmh3 as mmh3
 from ldap import modlist
@@ -31,9 +28,6 @@ from .exceptions import PkiLibException
 from .exceptions import LdapException
 from .exceptions import SSSDException
 from .paths import SSSD_DEFAULT_CONF
-
-PARAMIKO_VERSION = (int(paramiko.__version__.split('.')[0]),
-                    int(paramiko.__version__.split('.')[1]))
 
 GETENT_PASSWD_ITEMS = (
     'name', 'password', 'uid', 'gid', 'gecos', 'home', 'shell')
@@ -85,7 +79,7 @@ class sssdTools(object):
                'tdb-tools libkcapi-hmaccalc'
         sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
                     'libsss_autofs libsss_simpleifp sssd-kcm sssd-dbus'
-        extra_pkg = ' nss-pam-ldapd'
+        extra_pkg = ' nss-pam-ldapd krb5-pkinit'
         distro = self.multihost.distro
         if '8.' in distro:
             pkgs = pkgs + extra_pkg
@@ -602,18 +596,20 @@ class sssdTools(object):
         if user successfully login then return status is 3
         if not then return status is 10
         """
+        shortname = username.split("@")[0]
         expect_script = 'spawn ssh -o NumberOfPasswordPrompts=1 ' \
                         '-o StrictHostKeyChecking=no '\
                         '-o UserKnownHostsFile=/dev/null ' \
                         '-l ' + username + ' localhost whoami' + '\n'
         expect_script += 'expect "*assword: "\n'
-        expect_script += 'send "' + password + '\r"\n'
+        expect_script += 'send "' + password + '\\r"\n'
         expect_script += 'sleep 30 \n'
         expect_script += 'expect {\n'
         expect_script += '\ttimeout { set result_code 0 }\n'
+        expect_script += '\t"Permission denied " { exit 10 }\n'
         expect_script += '\t"' + username + '" { set result_code 3 }\n'
-        expect_script += '\teof {}\n'
-        expect_script += '\t"Permission denied " { set result_code 10 }\n'
+        expect_script += '\t"' + shortname + '" { set result_code 3 }\n'
+        expect_script += '\teof { set result_code 10 }\n'
         expect_script += '}\n'
         expect_script += 'exit $result_code\n'
         print(expect_script)
@@ -1725,7 +1721,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"Set-ADAccountExpiration -identity"
                 f" \"{user}\" -DateTime \"12/18/2011\"'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1741,7 +1737,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"Set-ADAccountExpiration -identity"
                 f" \"{user}\" -DateTime \"10/05/2036\"'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1756,7 +1752,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"powershell -inputformat none -noprofile '"
                 f"Disable-ADAccount -identity \"{user}\"'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1771,7 +1767,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"powershell -inputformat none -noprofile '"
                 f"Enable-ADAccount -identity \"{user}\"'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1786,7 +1782,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"powershell -inputformat none -noprofile 'Set-ADUser"
                 f" -identity \"{user}\" -Replace @{{pwdLastSet=0}}'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1801,7 +1797,7 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                 f"powershell -inputformat none -noprofile 'Set-ADUser"
                 f" -identity \"{user}\" -Replace @{{pwdLastSet=-1}}'"
             )
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
         return True
 
@@ -1862,63 +1858,3 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
         uid = range_size * slice_val + rid + range_min
         gid = range_size * slice_val + range_min + primary_group
         return uid, gid
-
-
-class SSHClient(paramiko.SSHClient):
-    """ This class Inherits paramiko.SSHClient and implements
-    client.exec_commands channel.exec_command """
-
-    def __init__(self, hostname=None, port=None, username=None, password=None):
-        """ Initialize connection to Remote Host using Paramiko SSHClient.
-        Can be initialized with hostname, port, username and password.
-        """
-        self.hostname = hostname
-        self.username = username
-        self.password = password
-
-        if port is None:
-            self.port = 22
-        else:
-            self.port = port
-
-        paramiko.SSHClient.__init__(self)
-        self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        try:
-            self.connect(self.hostname, port=self.port,
-                         username=self.username,
-                         password=self.password,
-                         timeout=30, allow_agent=False, look_for_keys=False)
-        except (paramiko.AuthenticationException,
-                paramiko.SSHException,
-                socket.error):
-            raise
-
-    def execute_cmd(self, args, stdin=None):
-        """ This Function executes commands using SSHClient.exec_commands().
-        :param str args: actual command to run
-        :param str stdin: stdin for the command
-        :Return tuple: stdin stdout stderr
-        :Exception: paramiko.SSHException
-        """
-        if PARAMIKO_VERSION >= (1, 15, 0):
-            try:
-                std_in, std_out, std_err = self.exec_command(args, timeout=30)
-            except paramiko.SSHException:
-                raise
-            else:
-                if stdin:
-                    std_in.write("%s\n" % (stdin))
-                    std_in.flush()
-                exit_status = std_out.channel.recv_exit_status()
-                return std_out, std_err, exit_status
-        else:
-            try:
-                std_in, std_out, std_err = self.exec_command(args)
-            except paramiko.SSHException:
-                raise
-            else:
-                if stdin:
-                    std_in.write("%s\n" % (stdin))
-                    std_in.flush()
-                exit_status = std_out.channel.recv_exit_status()
-                return std_out, std_err, exit_status

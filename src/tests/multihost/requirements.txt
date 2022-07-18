@@ -1,4 +1,4 @@
-paramiko
+pexpect
 pytest
 pytest_multihost
 python-ldap

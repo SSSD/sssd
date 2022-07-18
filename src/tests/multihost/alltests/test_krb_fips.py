@@ -10,10 +10,11 @@ import time
 import re
 import pytest
 import ldap
+from pexpect import pxssh
 from constants import ds_suffix, krb_realm
 from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.utils import sssdTools, \
-    LdapOperations, SSHClient
+from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.utils import LdapOperations
 from sssd.testlib.common.exceptions import SSHLoginException
 from sssd.testlib.common.libkrb5 import krb5srv
 
@@ -23,8 +24,9 @@ from sssd.testlib.common.libkrb5 import krb5srv
 class Testkrbfips(object):
     """ Testing fips """
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_krb_ptr_hash_crash_1792331(self, multihost):
+    def test_krb_ptr_hash_crash_1792331(multihost):
         """
         :title: sssd_be crashes when krb5_realm and krb5_server
          is omitted and auth_provider is krb5
@@ -59,7 +61,8 @@ class Testkrbfips(object):
             assert check2.search(cmd.stderr_text)
         multihost.client[0].service_sssd('restart')
 
-    def test_fips_login(self, multihost):
+    @staticmethod
+    def test_fips_login(multihost):
         """
         :title: Verify kerberos user can login successfully in fips mode
         :id: 0ec0efc9-85dd-4a66-9802-65f3b122b7da
@@ -76,8 +79,9 @@ class Testkrbfips(object):
         else:
             client.logout()
 
+    @staticmethod
     @pytest.mark.tier1_2
-    def test_kcm_not_store_tgt(self, multihost, backupsssdconf):
+    def test_kcm_not_store_tgt(multihost, backupsssdconf):
         """
         :title: sssd-kcm does not store TGT with ssh
          login using GSSAPI
@@ -95,24 +99,34 @@ class Testkrbfips(object):
         multihost.client[0].service_sssd('restart')
         multihost.client[0].run_command("systemctl "
                                         "restart sssd-kcm")
-        ssh = SSHClient(multihost.client[0].sys_hostname,
-                        username='foo3', password='Secret123')
-        (_, _, exit_status) = ssh.execute_cmd('kdestroy')
-        assert exit_status == 0
-        (_, _, exit_status) = ssh.execute_cmd('kinit foo3',
-                                              stdin='Secret123')
-        assert exit_status == 0
-        ssh_k_cmd = 'ssh -oStrictHostKeyChecking=no -K -l foo3 ' \
-                    + multihost.client[0].sys_hostname + ' klist'
-        (stdout, _, exit_status) = ssh.execute_cmd(ssh_k_cmd)
-        ssh.close()
-        assert exit_status == 0
-        for line in stdout.readlines():
-            if 'KCM:14583103' in line:
-                has_cache = True
-        assert has_cache is True
 
-    def test_child_logs_after_receiving_hup(self, multihost):
+        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
+                          "UserKnownHostsFile": "/dev/null"})
+        ssh.force_password = True
+        try:
+            ssh.login(multihost.client[0].sys_hostname, 'foo3', 'Secret123')
+            ssh.sendline('kdestroy -A -q')
+            ssh.prompt(timeout=5)
+            ssh.sendline('kinit foo3')
+            ssh.expect('Password for .*:', timeout=10)
+            ssh.sendline('Secret123')
+            ssh.prompt(timeout=5)
+            ssh.sendline('klist')
+            ssh.prompt(timeout=5)
+            klist = str(ssh.before)
+            ssh.sendline(f'ssh -v -o StrictHostKeyChecking=no -K -l foo3 '
+                         f'{multihost.client[0].sys_hostname} klist')
+            ssh.prompt(timeout=30)
+            ssh_output = str(ssh.before)
+            ssh.logout()
+        except pxssh.ExceptionPxssh:
+            pytest.fail("Ssh login failed.")
+
+        assert 'KCM:14583103' in klist, "kinit did not work!"
+        assert 'KCM:14583103' in ssh_output, "Ticket not forwarded!"
+
+    @staticmethod
+    def test_child_logs_after_receiving_hup(multihost):
         """
         :title: sssd fails to release file descriptor on child
          logs after receiving hup
@@ -160,8 +174,9 @@ class Testkrbfips(object):
                 status = 'FAIL'
         assert status == 'PASS'
 
+    @staticmethod
     @pytest.mark.tier1
-    def test_sssd_not_check_gss_spengo(self, multihost, backupsssdconf):
+    def test_sssd_not_check_gss_spengo(multihost, backupsssdconf):
         """
         :title: krb5/fips: sssd does not properly check GSS-SPNEGO
         :id: 8ba5427e-8abe-44b9-adaa-878d2418b189
@@ -189,13 +204,10 @@ class Testkrbfips(object):
         ps_grep = "grep GSS /var/log/sssd/*.log"
         cmd = multihost.client[0].run_command(ps_grep)
         err_msg = "SPNEGO cannot find mechanisms to negotiate"
-        if err_msg in cmd.stdout_text:
-            status = "FAIL"
-        else:
-            status = "PASS"
-        assert status == "PASS"
+        assert err_msg not in cmd.stdout_text
 
-    def test_fips_as_req(self, multihost):
+    @staticmethod
+    def test_fips_as_req(multihost):
         """
         :title: krb5/fips: verify sssd accepts only elisted fips approved types
         :id: c5ab16d5-8636-4f50-992b-aa0f05e1a9e5
@@ -234,7 +246,8 @@ class Testkrbfips(object):
         rm_pcap_file = 'rm -f %s' % pcapfile
         multihost.client[0].run_command(rm_pcap_file)
 
-    def test_fips_as_rep(self, multihost):
+    @staticmethod
+    def test_fips_as_rep(multihost):
         """
         :title: krb5/fips: verify sssd accepts only elisted fips approved types
         :id: f8452ecd-e13c-4485-83d3-83e25d7d544a
@@ -242,9 +255,9 @@ class Testkrbfips(object):
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
         user = 'foo3@%s' % domain_name
-        ldap_host = multihost.master[0].sys_hostname
         pcapfile = '/tmp/krb1.pcap'
-        tcpdump_cmd = 'tcpdump -s0 host %s -w %s' % (ldap_host, pcapfile)
+        tcpdump_cmd = f'tcpdump -s0 host {multihost.master[0].sys_hostname}' \
+                      f' -w {pcapfile}'
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
         pkill = 'pkill tcpdump'
         client = pexpect_ssh(multihost.client[0].sys_hostname, user,
@@ -256,7 +269,7 @@ class Testkrbfips(object):
             print("SSH Login failed")
             tshark_cmd = "tshark -r %s -V -2 -R"\
                          " 'kerberos.msg_type == 11'" % pcapfile
-            cmd = multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
+            multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
             pytest.fail("%s failed to login" % user)
         else:
             time.sleep(5)
@@ -279,7 +292,8 @@ class Testkrbfips(object):
         rm_pcap_file = 'rm -f %s' % pcapfile
         multihost.client[0].run_command(rm_pcap_file)
 
-    def test_login_fips_weak_crypto(self, multihost):
+    @staticmethod
+    def test_login_fips_weak_crypto(multihost):
         """
         :title: krb5/fips: verify login fails when weak crypto is presented
         :id: cdd2ef0d-4921-40b3-b61e-0b271b2d5e00
@@ -333,7 +347,8 @@ class Testkrbfips(object):
         rm_pcap_file = 'rm -f %s' % pcapfile
         multihost.client[0].run_command(rm_pcap_file)
 
-    def test_ldap_gssapi(self, multihost):
+    @staticmethod
+    def test_ldap_gssapi(multihost):
         """
         :title: krb5/fips: verify sssd is able to create gssapi connection
          with fips approved etype.
@@ -358,16 +373,17 @@ class Testkrbfips(object):
             pytest.fail("%s failed to login" % user)
         else:
             ldapsearch = 'ldapsearch -Y GSSAPI -H ldap://%s' % ldap_host
-            (_, ret) = client.command(ldapsearch)
+            client.command(ldapsearch)
             client.logout()
             multihost.client[0].run_command(pkill)
             tshark_cmd = "tshark -r %s -V -2 -R"\
                          " 'kerberos.msg_type == 13'" % pcapfile
-            cmd = multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
+            multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
         rm_pcap_file = 'rm -f %s' % pcapfile
         multihost.client[0].run_command(rm_pcap_file)
 
-    def test_tgs_nonfips(self, multihost):
+    @staticmethod
+    def test_tgs_nonfips(multihost):
         """
         :title: krb5/fips: Verify sssd fails to create gssapi connection
          with weak etypes

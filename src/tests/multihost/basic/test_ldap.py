@@ -6,50 +6,12 @@
 :upstream: yes
 """
 
-import re
-from sssd.testlib.common.utils import SSHClient
 import pytest
-import textwrap
-import paramiko
+from sssd.testlib.common.utils import sssdTools
 try:
     import ConfigParser
 except ImportError:
     import configparser as ConfigParser
-
-UNINDENT_RE = re.compile("^ +", re.MULTILINE)
-
-
-def expect_chpass_script(current_pass, new_pass):
-    return textwrap.dedent("""\
-    set timeout 15
-    spawn passwd
-    expect "Changing password for user puser."
-    expect "Current Password:"
-    send "{current_pass}\r"
-    expect "New password:"
-    send "{new_pass}\r"
-    expect "Retype new password:"
-    send "{new_pass}\r"
-    expect "passwd: all authentication tokens updated successfully"
-    expect EOF
-    """).format(**locals())
-
-
-def run_expect_script(multihost, ssh_conn, expect_string):
-    expect_file = '/tmp/expect_multihost'
-    try:
-        multihost.master[0].run_command('rm -f ' + expect_file)
-        multihost.master[0].put_file_contents(expect_file, expect_string)
-        ssh_conn.execute_cmd('expect -f ' + expect_file)
-    except Exception as err:
-        raise err
-    finally:
-        multihost.master[0].run_command('rm -f ' + expect_file)
-
-
-def chpass(multihost, ssh_conn, current_pass, new_pass):
-    script = expect_chpass_script(current_pass, new_pass)
-    run_expect_script(multihost, ssh_conn, script)
 
 
 @pytest.fixture
@@ -110,41 +72,38 @@ def set_ldap_pwmodify_mode_ldap_modify(session_multihost, request):
 class TestLDAPChpass(object):
     """ Test changing LDAP password """
 
-    def _change_test_reset_password(self, multihost):
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo1', password='Secret123')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("Authentication Failed as user %s" % ('foo1'))
-
-        chpass(multihost, ssh, 'Secret123', 'Secret1234')
-        ssh.close()
+    @staticmethod
+    def _change_test_reset_password(multihost):
+        user = 'foo1'
+        client = sssdTools(multihost.master[0])
+        ssh0 = client.auth_from_client(user, 'Secret123') == 3
+        assert ssh0, f"Authentication Failed as user {user}"
+        client.change_user_password(
+            user, 'Secret123', 'Secret123', 'Secret1234', 'Secret1234')
 
         # Try logging in with the new password
-        try:
-            ssh = SSHClient(multihost.master[0].sys_hostname,
-                            username='foo1', password='Secret1234')
-        except paramiko.ssh_exception.AuthenticationException:
-            pytest.fail("Authentication Failed as user %s" % ('foo1'))
+        ssh1 = client.auth_from_client(user, 'Secret1234') == 3
+        assert ssh1, f"Authentication Failed as {user} with the new password."
 
         # Clean up and change the password back
-        chpass(multihost, ssh, 'Secret1234', 'Secret123')
-        ssh.close()
+        client.change_user_password(
+            user, 'Secret1234', 'Secret1234', 'Secret123', 'Secret123')
 
-    def test_ldap_chpass_extop(self, multihost):
+    @staticmethod
+    def test_ldap_chpass_extop(multihost):
         """
         :title: chpass: Test password change using the default extended
          operation
         :id: 4b3ab9a6-d26f-484d-994f-8bc74c31b9dd
         """
-        self._change_test_reset_password(multihost)
+        TestLDAPChpass._change_test_reset_password(multihost)
 
-    def test_ldap_chpass_modify(self,
-                                multihost,
-                                set_ldap_auth_provider,
-                                set_ldap_pwmodify_mode_ldap_modify):
+    @staticmethod
+    @pytest.mark.usefixtures("set_ldap_auth_provider",
+                             "set_ldap_pwmodify_mode_ldap_modify")
+    def test_ldap_chpass_modify(multihost):
         """
         :title: chpass: Test password change using LDAP modify
         :id: 554c989d-f99b-4722-925b-5be54a33af89
         """
-        self._change_test_reset_password(multihost)
+        TestLDAPChpass._change_test_reset_password(multihost)
