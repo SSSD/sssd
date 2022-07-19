@@ -94,7 +94,7 @@ static errno_t
 sysbus_init(TALLOC_CTX *mem_ctx,
             struct tevent_context *ev,
             const char *dbus_name,
-            void *pvt,
+            struct ifp_ctx *ifp_ctx,
             struct sysbus_ctx **sysbus)
 {
     DBusError dbus_error;
@@ -138,20 +138,21 @@ sysbus_init(TALLOC_CTX *mem_ctx,
     /* Integrate with tevent loop */
     ret = sbus_init_connection(system_bus, ev, conn,
                                SBUS_CONN_TYPE_SYSBUS,
-                               NULL, NULL, &system_bus->conn);
+                               &ifp_ctx->rctx->last_request_time,
+                               NULL, &system_bus->conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not integrate D-BUS into mainloop.\n");
         goto fail;
     }
 
-    ret = ifp_register_sbus_interface(system_bus->conn, pvt);
+    ret = ifp_register_sbus_interface(system_bus->conn, ifp_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not register interfaces\n");
         goto fail;
     }
 
-    ifp_register_nodes(pvt, system_bus->conn);
+    ifp_register_nodes(ifp_ctx, system_bus->conn);
 
     *sysbus = system_bus;
     return EOK;
