@@ -55,7 +55,7 @@ class TestSssdNss(object):
         client.transport.put_file(os.path.dirname(os.path.abspath(__file__))
                                   + file_location,
                                   '/tmp/thread.c')
-        execute_cmd(multihost, "gcc /tmp/thread.c -o /tmp/thread")
+        execute_cmd(multihost, "gcc -lpthread /tmp/thread.c -o /tmp/thread")
         execute_cmd(multihost, ">/var/log/sssd/sssd_nss.log")
         execute_cmd(multihost, "chmod 755 /tmp/thread")
         execute_cmd(multihost, "cd /tmp/; ./thread")
