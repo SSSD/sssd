@@ -5,11 +5,8 @@
 :upstream: yes
 """
 import pytest
-import time
 import re
-import random
 import pexpect
-import tempfile
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.expect import pexpect_ssh
 from sssd.testlib.common.utils import ADOperations
@@ -23,8 +20,8 @@ class TestAccessControl(object):
     """ Test cases for BZ: 1268902
 
     :setup:
-      1. Join to AD using realm command.
-      2. Add the user using adcli user add.
+        1. Join to AD using realm command.
+        2. Add the user using adcli user add.
     """
     @staticmethod
     def test_001_simple_allow_user_to_user1(multihost, create_aduser_group, backupsssdconf):
@@ -33,13 +30,13 @@ class TestAccessControl(object):
         :description: Allow only one ADuser to log in with simple_allow_user option
         :id: 31b37c8e-2ea4-45d3-90a6-b0be9deb1599
         :steps:
-        1. Set 'simple_allow_users' to a AD-user
-        2. Restart SSSD
-        3. Log in with Allowed AD-user
+            1. Set 'simple_allow_users' to a AD-user
+            2. Restart SSSD
+            3. Log in with Allowed AD-user
         :expectedresults:
-        1. Option should be correctly set
-        2. SSSD should start correctly
-        3. Allowed ADuser should be able to log in
+            1. Option should be correctly set
+            2. SSSD should start correctly
+            3. Allowed ADuser should be able to log in
         """
         tools = sssdTools(multihost.client[0])
         (aduser, _) = create_aduser_group
@@ -69,11 +66,11 @@ class TestAccessControl(object):
         :description: sssd_be is logging in the authentications in /var/log/messages
         :id: 82dd0c1a-cf62-4e15-978f-2a6e6c4c007c
         :steps:
-        1. Clear /var/log/messages
-        2. AD-user log in multiple times vi ssh
+            1. Clear /var/log/messages
+            2. AD-user log in multiple times vi ssh
         :expectedresults:
-        1. /var/log/messages should be empty
-        2. /var/log/messages should not have logs related sssd_be
+            1. /var/log/messages should be empty
+            2. /var/log/messages should not have logs related sssd_be
         """
         (aduser, _) = create_aduser_group
         tools = sssdTools(multihost.client[0])
@@ -105,11 +102,11 @@ class TestAccessControl(object):
         :description: Setting simple_allow_user to '$' to deny all user log in
         :id: 3317cb9f-fa25-40b4-835b-d8c5da9cda5b
         :steps:
-        1. Set simple_allow_user to $ symbol in sssd.conf and restart sssd
-        2. Log in as AD user
+            1. Set simple_allow_user to $ symbol in sssd.conf and restart sssd
+            2. Log in as AD user
         :expectedresults:
-        2. Changes should reflected in restarted sssd
-        2. Any AD-User log in should be denied
+            1. Changes should reflected in restarted sssd
+            2. Any AD-User log in should be denied
         """
         tools = sssdTools(multihost.client[0])
         (aduser, _) = create_aduser_group
@@ -142,11 +139,11 @@ class TestAccessControl(object):
         :id: fdde80ab-1364-4953-893e-62f7c3377ff8
         :description: Setting simple_allow_user to an invalid user, with this sssd would deny log in of all users
         :steps:
-        1. Set simple_allow_user to non existing user in sssd.conf and restart sssd
-        2. Log in as AD user
+            1. Set simple_allow_user to non existing user in sssd.conf and restart sssd
+            2. Log in as AD user
         :expectedresults:
-        2. Changes should reflected in restarted sssd
-        2. User log in should be denied
+            1. Changes should reflected in restarted sssd
+            2. User log in should be denied
         """
         tools = sssdTools(multihost.client[0])
         (aduser, _) = create_aduser_group
@@ -177,11 +174,11 @@ class TestAccessControl(object):
         :id: 8a068411-4ac7-4b15-b21e-210f3473d164
         :description: Setting simple_deny_user to an AD-user, with this sssd would deny log in of that user only
         :steps:
-        1. Set simple_deny_user to a user in sssd.conf and restart sssd
-        2. Log in as AD user
+            1. Set simple_deny_user to a user in sssd.conf and restart sssd
+            2. Log in as AD user
         :expectedresults:
-        2. Changes should reflected in restarted sssd
-        2. User log in should be denied
+            1. Changes should reflected in restarted sssd
+            2. User log in should be denied
         """
         tools = sssdTools(multihost.client[0])
         (aduser, _) = create_aduser_group
@@ -212,13 +209,13 @@ class TestAccessControl(object):
         :id: 76aea575-420b-4276-b0c6-383a4a8499a0
         :description: Setting simple_deny_user to an invalid user would allow all users to log in
         :steps:
-        1. Set 'simple_deny_users' to an invalid AD-user
-        2. Restart SSSD
-        3. Log in with any AD-user
+            1. Set 'simple_deny_users' to an invalid AD-user
+            2. Restart SSSD
+            3. Log in with any AD-user
         :expectedresults:
-        1. Option should be correctly set
-        2. SSSD should start correctly
-        3. Any ADuser should be able to log in
+            1. Option should be correctly set
+            2. SSSD should start correctly
+            3. Any ADuser should be able to log in
         """
         tools = sssdTools(multihost.client[0])
         (aduser, _) = create_aduser_group
@@ -251,19 +248,19 @@ class TestAccessControl(object):
         :description: Set simple_allow_groups to a top-level nested group. This top-level group will have one group
          as it's member. The member-group has one AD-user as group-member. The AD-user from group should be able to log in.
         :Steps:
-        1. Create two groups.
-        2. Add one group as a member of other group.
-        3. Create an AD user and add that user as member of a member group
-        4. Set 'simple_allow_groups' to a top level nested group
-        5. Restart SSSD
-        6. Log in with Allowed AD-user
+            1. Create two groups.
+            2. Add one group as a member of other group.
+            3. Create an AD user and add that user as member of a member group
+            4. Set 'simple_allow_groups' to a top level nested group
+            5. Restart SSSD
+            6. Log in with Allowed AD-user
         :expectedresults:
-        1. Option should be correctly set
-        2. SSSD should start correctly
-        3. Should succeed
-        4. Should succeed
-        5. Should succeed
-        6. Should succeed
+            1. Option should be correctly set
+            2. SSSD should start correctly
+            3. Should succeed
+            4. Should succeed
+            5. Should succeed
+            6. Should succeed
         """
         (l1_grp, l2_grp, aduser) = create_nested_group
         tools = sssdTools(multihost.client[0], multihost.ad[0])
@@ -341,11 +338,11 @@ class TestAccessControl(object):
         :description: Set simple_allow_groups to a invalid group in sssd.conf.
          This should deny log in of any valid AD-user
         :steps:
-         1.Set simple_allow_group to the non-existing group
-         2.Log in as any AD-user
+            1.Set simple_allow_group to the non-existing group
+            2.Log in as any AD-user
         :expectedresults:
-         1. SSSD should restart correctly
-         2. Log in should be denied
+            1. SSSD should restart correctly
+            2. Log in should be denied
         """
         tools = sssdTools(multihost.client[0])
         (aduser, _) = create_aduser_group
@@ -377,11 +374,11 @@ class TestAccessControl(object):
         :description: Set simple_deny_groups to a invalid group in sssd.conf.
          This should allow log in of any valid AD-user
         :steps:
-         1.Set simple_deny_group to the non-existing group
-         2.Log in as any AD-user
+            1.Set simple_deny_group to the non-existing group
+            2.Log in as any AD-user
         :expectedresults:
-         1. SSSD should restart correctly
-         2. Log in should be successful
+            1. SSSD should restart correctly
+            2. Log in should be successful
         """
         tools = sssdTools(multihost.client[0])
         (aduser, _) = create_aduser_group
@@ -411,11 +408,11 @@ class TestAccessControl(object):
         :id: 747a8268-69b9-4387-bce4-61e7facd03ad
         :description: Set access_provider to permit This should allow log in of any valid AD-user
         :steps:
-         1.Set  access_provider to permit in sssd.conf
-         2.Log in as any AD-user
+            1.Set  access_provider to permit in sssd.conf
+            2.Log in as any AD-user
         :expectedresults:
-         1. SSSD should restart correctly
-         2. Log in should be successful
+            1. SSSD should restart correctly
+            2. Log in should be successful
         """
         tools = sssdTools(multihost.client[0])
         (aduser, adgrp) = create_aduser_group
@@ -444,11 +441,11 @@ class TestAccessControl(object):
         :id: 36f82023-3029-4fe4-82b1-7390f01bb5d6
         :description: Set access_provider to deny This should allow log in of any valid AD-user
         :steps:
-         1.Set  access_provider to deny in sssd.conf
-         2.Log in as any AD-user
+            1.Set  access_provider to deny in sssd.conf
+            2.Log in as any AD-user
         :expectedresults:
-         1. SSSD should restart correctly
-         2. Log in should be denied
+            1. SSSD should restart correctly
+            2. Log in should be denied
         """
         (aduser, _) = create_aduser_group
         tools = sssdTools(multihost.client[0], multihost.ad[0])
@@ -478,11 +475,11 @@ class TestAccessControl(object):
          sssd should ignore invalid group argument. SSSD should allow member-users from valid group
          to log in
         :steps:
-         1. Define simple_allow_group with one valid group and one invalid group
-         2. Log in from that valid-groups's member-user
+            1. Define simple_allow_group with one valid group and one invalid group
+            2. Log in from that valid-groups's member-user
         :expectedresults:
-         1. SSSD should restart correctly
-         2. Log in should be allowed
+            1. SSSD should restart correctly
+            2. Log in should be allowed
         """
         (aduser, adgroup) = create_aduser_group
         tools = sssdTools(multihost.client[0], multihost.ad[0])
