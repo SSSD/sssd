@@ -260,6 +260,7 @@ AS_IF([test x$with_kcm = xyes], [
 ])
 
 m4_include([src/external/libunistring.m4])
+m4_include([src/external/libfido2.m4])
 UNICODE_LIBS=$UNISTRING_LIBS
 AC_SUBST(UNICODE_LIBS)
 
