@@ -400,7 +400,7 @@ static void responder_idle_handler(struct tevent_context *ev,
         goto end;
     }
 
-    if ((now - rctx->last_request_time) > rctx->idle_timeout) {
+    if ((now - rctx->last_request_time) >= rctx->idle_timeout) {
         /* This responder is idle. Terminate it */
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "Terminating idle responder [%p]\n", rctx);
