@@ -88,6 +88,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
         DEPS_LIST+=(
             http-parser-devel
+            libfido2-devel
         )
     fi
 
@@ -118,6 +119,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libcollection-dev
         libdbus-1-dev
         libdhash-dev
+        libfido2-dev
         libglib2.0-dev
         libini-config-dev
         libkeyutils-dev
