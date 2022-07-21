@@ -1693,14 +1693,14 @@ errno_t responder_setup_idle_timeout_config(struct resp_ctx *rctx)
     if (rctx->idle_timeout == 0) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "Responder idle timeout won't be set up as the "
-              "responder_idle_timeout is set to 0");
+              "responder_idle_timeout is set to 0\n");
     } else {
         /* Ensure that the responder timeout is at least sixty seconds */
         if (rctx->idle_timeout < 60) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "responder_idle_timeout is set to a value lower than "
-                  "the minimum allowed (60s).\n"
-                  "The minimum allowed value will be used.");
+                  "the minimum allowed (60s). "
+                  "The minimum allowed value will be used.\n");
 
             rctx->idle_timeout = 60;
         }
