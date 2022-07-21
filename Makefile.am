@@ -1766,12 +1766,10 @@ sssd_kcm_CFLAGS = \
     $(KRB5_CFLAGS) \
     $(UUID_CFLAGS) \
     $(CURL_CFLAGS) \
-    $(JANSSON_CFLAGS) \
     $(NULL)
 sssd_kcm_LDADD = \
     $(LIBADD_DL) \
     $(KRB5_LIBS) \
-    $(JANSSON_LIBS) \
     $(SSSD_LIBS) \
     $(UUID_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
@@ -3796,7 +3794,6 @@ test_kcm_marshalling_CFLAGS = \
     $(UUID_CFLAGS) \
     $(NULL)
 test_kcm_marshalling_LDADD = \
-    $(JANSSON_LIBS) \
     $(UUID_LIBS) \
     $(KRB5_LIBS) \
     $(CMOCKA_LIBS) \
@@ -3859,7 +3856,6 @@ test_kcm_renewals_LDFLAGS = \
 test_kcm_renewals_LDADD = \
 	$(LIBADD_DL) \
 	$(UUID_LIBS) \
-	$(JANSSON_LIBS) \
 	$(KRB5_LIBS) \
 	$(CARES_LIBS) \
 	$(CMOCKA_LIBS) \
