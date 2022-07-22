@@ -39,7 +39,7 @@ static errno_t commence_upgrade(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
     struct upgrade_ctx *ctx;
     int ret;
 
-    DEBUG(SSSDBG_CRIT_FAILURE, "UPGRADING DB TO VERSION %s\n", new_ver);
+    DEBUG(SSSDBG_IMPORTANT_INFO, "UPGRADING DB TO VERSION %s\n", new_ver);
 
     ctx = talloc(mem_ctx, struct upgrade_ctx);
     if (!ctx) {
@@ -363,7 +363,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
     /* == V2->V3 UPGRADE == */
 
-    DEBUG(SSSDBG_FATAL_FAILURE,
+    DEBUG(SSSDBG_IMPORTANT_INFO,
           "UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_3);
 
     /* ldb uses posix locks,
