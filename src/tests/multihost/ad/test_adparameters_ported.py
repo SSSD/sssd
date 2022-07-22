@@ -3632,3 +3632,66 @@ class TestADParamsPorted:
         assert f"Initiating TCP connection to stream {multihost.ad[0].ip}:88" \
                not in log_str
         assert kinit_cmd.returncode == 0, "kinit failed."
+
+    @staticmethod
+    def test_0044_ad_parameters_filter_group(
+            multihost, adjoin, create_plain_aduser_group):
+        """
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: filter_groups
+         doesn't filter GID from id output
+        :id: 57a34316-e4b7-4abf-903c-5948cb93dd5a
+        :setup:
+         1. Configure sssd with id mapping True
+         2. Create AD user and group.
+         3. Get adgroup (mapped) gid
+        :steps:
+          1. Configure sssd to filter adgroup and restart sssd
+          2. Run id command for aduser.
+        :expectedresults:
+          1. SSSD starts properly
+          2. The gid of the ad group is not present in the id output.
+        :customerscenario: True
+        """
+        adjoin(membersw='adcli')
+        ad_realm = multihost.ad[0].domainname.upper()
+        # Create AD user and group
+        (aduser, adgroup) = create_plain_aduser_group
+        # Configure sssd with idmapping true
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        client.backup_sssd_conf()
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {
+            'ldap_id_mapping': 'True',
+            'ad_domain': multihost.ad[0].domainname,
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True',
+            'cache_credentials': 'True',
+            'krb5_store_password_if_offline': 'True',
+        }
+        client.sssd_conf(dom_section, sssd_params)
+        client.clear_sssd_cache()
+
+        # Get adgroup info including gid
+        try:
+            getent_groupinfo = client.get_getent_group(f"{adgroup}@{ad_realm}")
+        except IndexError:
+            getent_groupinfo = {}
+
+        # Configure filter for adgroup and restart sssd
+        client.sssd_conf(
+            dom_section, {'filter_groups': f'{adgroup}@{ad_realm}'}
+        )
+        client.clear_sssd_cache()
+
+        id_cmd = multihost.client[0].run_command(
+            f'id {aduser}@{ad_realm}',
+            raiseonerr=False
+        )
+        # Teardown
+        client.restore_sssd_conf()
+        client.clear_sssd_cache()
+        # Evaluate test results
+        assert getent_groupinfo, f"Could not find group {adgroup}!"
+        assert id_cmd.returncode == 0, f"User {aduser} was not found!"
+        assert getent_groupinfo['gid'] not in id_cmd.stdout_text,\
+            f"{adgroup} gid was not filtered!"
