@@ -1317,10 +1317,7 @@ class TestADParamsPorted:
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
         time.sleep(15)
-        # Download sssd log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
+
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
             f'getent passwd {aduser}', raiseonerr=False)
@@ -1329,10 +1326,13 @@ class TestADParamsPorted:
             f'getent group {adgroup}', raiseonerr=False)
         # Run su
         su_result = client.su_success(aduser)
+        # Download sssd log
+        log_str = multihost.client[0].get_file_contents(
+            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
+            decode('utf-8')
         # Reset new hostname
         multihost.client[0].run_command(
             f'hostname {old_hostname}', raiseonerr=False)
-
         # Evaluate test results
         assert f"Option ad_hostname has value {old_hostname}" in log_str
         assert f"Setting ad_hostname to [{old_hostname}]" not in log_str
@@ -3537,8 +3537,8 @@ class TestADParamsPorted:
         assert kinit_cmd.returncode == 0, "kinit failed."
 
     @staticmethod
-    @pytest.mark.tier1_2
-    def test_0043_ad_parameters_homedir_override_lowercase(
+    @pytest.mark.tier2
+    def test_0044_ad_parameters_homedir_override_lowercase(
             multihost, adjoin, create_aduser_group):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: override homedir
@@ -3591,7 +3591,7 @@ class TestADParamsPorted:
 
     @staticmethod
     @pytest.mark.tier2
-    def test_0044_ad_parameters_upn_mismatch_check(
+    def test_0045_ad_parameters_upn_mismatch_check(
             multihost, adjoin, create_aduser_group):
         """ UPN check cannot be disabled explicitly but requires krb5_validate
 
@@ -3640,7 +3640,6 @@ class TestADParamsPorted:
         # Configure sssd
         multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'debug_level': '9',
@@ -3674,7 +3673,7 @@ class TestADParamsPorted:
 
     @staticmethod
     @pytest.mark.tier2
-    def test_0045_ad_parameters_upn_empty_skip_check(
+    def test_0046_ad_parameters_upn_empty_skip_check(
             multihost, adjoin, create_aduser_group):
         """ UPN check in pac is skipped when upn is empty be default
 
@@ -3764,3 +3763,63 @@ class TestADParamsPorted:
         assert "UPN is missing but PAC UPN check required, PAC validation" \
                " failed. However, 'check_upn_allow_missing' is set and" \
                " the error is ignored." in log_str
+
+    @staticmethod
+    @pytest.mark.tier1_2
+    def test_0047_ad_parameters_filter_group(
+            multihost, adjoin, create_plain_aduser_group):
+        """
+        :title: Filtered group GID in not present in id output
+        :id: 57a34316-e4b7-4abf-903c-5948cb93dd5a
+        :setup:
+         1. Configure sssd with id mapping True
+         2. Create AD user and group.
+         3. Get adgroup (mapped) gid
+        :steps:
+          1. Configure sssd to filter adgroup and restart sssd
+          2. Run id command for aduser.
+        :expectedresults:
+          1. SSSD starts properly
+          2. The gid of the ad group is not present in the id output.
+        :customerscenario: True
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1913839
+        """
+        adjoin(membersw='adcli')
+        ad_realm = multihost.ad[0].domainname.upper()
+        # Create AD user and group
+        (aduser, adgroup) = create_plain_aduser_group
+        # Configure sssd with idmapping true
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {
+            'ldap_id_mapping': 'True',
+            'ad_domain': multihost.ad[0].domainname,
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True',
+            'cache_credentials': 'True',
+            'krb5_store_password_if_offline': 'True',
+        }
+        client.sssd_conf(dom_section, sssd_params)
+        client.clear_sssd_cache()
+
+        # Get adgroup info including gid
+        try:
+            getent_groupinfo = client.get_getent_group(f"{adgroup}@{ad_realm}")
+        except IndexError:
+            getent_groupinfo = {}
+
+        # Configure filter for adgroup and restart sssd
+        client.sssd_conf(
+            dom_section, {'filter_groups': f'{adgroup}@{ad_realm}'}
+        )
+        client.clear_sssd_cache()
+
+        id_cmd = multihost.client[0].run_command(
+            f'id {aduser}@{ad_realm}',
+            raiseonerr=False
+        )
+        # Evaluate test results
+        assert getent_groupinfo, f"Could not find group {adgroup}!"
+        assert id_cmd.returncode == 0, f"User {aduser} was not found!"
+        assert getent_groupinfo['gid'] not in id_cmd.stdout_text,\
+            f"{adgroup} gid was not filtered!"
