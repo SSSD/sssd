@@ -747,7 +747,7 @@ static int check_domain_ranges(struct sss_domain_info *domains)
             id_max = MIN((dom->id_max ? dom->id_max : UINT32_MAX),
                          (other->id_max ? other->id_max : UINT32_MAX));
             if (id_min <= id_max) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
+                DEBUG(SSSDBG_IMPORTANT_INFO,
                       "Domains '%s' and '%s' overlap in range %u - %u\n",
                       dom->name, other->name, id_min, id_max);
             }
