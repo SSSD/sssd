@@ -587,7 +587,7 @@ static int user_info_expire_warn(pam_handle_t *pamh,
     int ret;
     uint32_t expire;
     char user_msg[256];
-    const char* unit="second(s)";
+    const char* unit=_("second(s)");
 
     if (buflen != 2* sizeof(uint32_t)) {
         D(("User info response data has the wrong size"));
@@ -596,13 +596,13 @@ static int user_info_expire_warn(pam_handle_t *pamh,
     memcpy(&expire, buf + sizeof(uint32_t), sizeof(uint32_t));
     if (expire >= DAYSEC) {
         expire /= DAYSEC;
-        unit = "day(s)";
+        unit = _("day(s)");
     } else if (expire >= HOURSEC) {
         expire /= HOURSEC;
-        unit = "hour(s)";
+        unit = _("hour(s)");
     } else if (expire >= MINSEC) {
         expire /= MINSEC;
-        unit = "minute(s)";
+        unit = _("minute(s)");
     }
 
     ret = snprintf(user_msg, sizeof(user_msg),
