@@ -52,6 +52,7 @@
 
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)
+#define _n(SINGULAR, PLURAL, VALUE) dngettext(PACKAGE, SINGULAR, PLURAL, VALUE)
 
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
 #define FD_DESTRUCTOR "pam_sss:fd_destructor"
@@ -587,26 +588,35 @@ static int user_info_expire_warn(pam_handle_t *pamh,
     int ret;
     uint32_t expire;
     char user_msg[256];
-    const char* unit="second(s)";
+    const char* unit;
 
     if (buflen != 2* sizeof(uint32_t)) {
         D(("User info response data has the wrong size"));
         return PAM_BUF_ERR;
     }
     memcpy(&expire, buf + sizeof(uint32_t), sizeof(uint32_t));
-    if (expire >= DAYSEC) {
-        expire /= DAYSEC;
-        unit = "day(s)";
-    } else if (expire >= HOURSEC) {
-        expire /= HOURSEC;
-        unit = "hour(s)";
-    } else if (expire >= MINSEC) {
-        expire /= MINSEC;
-        unit = "minute(s)";
+    /* expire == 0 indicates the password expired */
+    if (expire != 0) {
+        if (expire >= DAYSEC) {
+            expire /= DAYSEC;
+            unit = _n("day", "days", expire);
+        } else if (expire >= HOURSEC) {
+            expire /= HOURSEC;
+            unit = _n("hour", "hours", expire);
+        } else if (expire >= MINSEC) {
+            expire /= MINSEC;
+            unit = _n("minute", "minutes", expire);
+        } else {
+            unit = _n("second", "seconds", expire);
+        }
+
+        ret = snprintf(user_msg, sizeof(user_msg),
+                       _("Your password will expire in %1$d %2$s."), expire, unit);
+    } else {
+        ret = snprintf(user_msg, sizeof(user_msg),
+                       _("Your password has expired."));
     }
 
-    ret = snprintf(user_msg, sizeof(user_msg),
-                   _("Your password will expire in %1$d %2$s."), expire, unit);
     if (ret < 0 || ret >= sizeof(user_msg)) {
         D(("snprintf failed."));
         return PAM_SYSTEM_ERR;
