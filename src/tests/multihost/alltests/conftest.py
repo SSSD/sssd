@@ -1121,6 +1121,13 @@ def netgroups(session_multihost):
         nisNetgroupTriple = "(,foo%d, %s)" % (idx, krb_realm)
         netgroup_dn = 'cn=netgroup_%d,ou=Netgroups,%s' % (idx, ds_suffix)
         ldap_inst.create_netgroup(netgroup_dn, nisNetgroupTriple)
+    nisNetgroupTriple = "(Host1.example.com,User1,example.com)"
+    netgroup_dn = 'cn=NetGroup_CS1,ou=Netgroups,%s' % (ds_suffix)
+    ldap_inst.create_netgroup(netgroup_dn, nisNetgroupTriple)
+    user = "cn=NetGroup_CS1,ou=Netgroups,dc=example,dc=test"
+    add_member = [(ldap.MOD_ADD, 'cn',
+                   "NetGroup_CS1_Alias".encode('utf-8'))]
+    ldap_inst.modify_ldap(user, add_member)
 
 
 @pytest.fixture(scope='class')
