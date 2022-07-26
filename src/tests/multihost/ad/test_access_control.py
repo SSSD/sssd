@@ -9,7 +9,6 @@ import re
 import pexpect
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.utils import ADOperations
 from sssd.testlib.common.exceptions import SSHLoginException
 
 
@@ -33,10 +32,12 @@ class TestAccessControl(object):
             1. Set 'simple_allow_users' to a AD-user
             2. Restart SSSD
             3. Log in with Allowed AD-user
+            4. After login, execute 'id' command
         :expectedresults:
             1. Option should be correctly set
             2. SSSD should start correctly
             3. Allowed ADuser should be able to log in
+            4. 'id' command should return user-information
         """
         tools = sssdTools(multihost.client[0])
         (aduser, _) = create_aduser_group
@@ -116,7 +117,6 @@ class TestAccessControl(object):
                        'simple_allow_users': '$'}
         tools.sssd_conf(dom_section, sssd_params, action='add')
         tools.clear_sssd_cache()
-        sssd_filec = multihost.client[0].get_file_contents('/etc/sssd/sssd.conf').decode('utf-8')
         client_hostname = multihost.client[0].sys_hostname
         client = pexpect_ssh(client_hostname, f'{aduser}@{domain_name}', 'Secret123', debug=False)
         try:
@@ -246,7 +246,8 @@ class TestAccessControl(object):
         :title: Set simple allow groups to the top-level nested group
         :id: ae19a604-1ce4-4a03-b1a6-4023aa71961f
         :description: Set simple_allow_groups to a top-level nested group. This top-level group will have one group
-         as it's member. The member-group has one AD-user as group-member. The AD-user from group should be able to log in.
+         as it's member. The member-group has one AD-user as group-member. The AD-user from group should
+         be able to log in.
         :Steps:
             1. Create two groups.
             2. Add one group as a member of other group.
@@ -262,7 +263,9 @@ class TestAccessControl(object):
             5. Should succeed
             6. Should succeed
         """
-        (l1_grp, l2_grp, aduser) = create_nested_group
+        run_id = create_nested_group
+        aduser = f'testuser-{run_id}'
+        l1_grp = f'testgrp-l1-{run_id}'
         tools = sssdTools(multihost.client[0], multihost.ad[0])
         domain_name = tools.get_domain_section_name()
         dom_section = f'domain/{domain_name}'
@@ -270,15 +273,14 @@ class TestAccessControl(object):
                        'simple_allow_groups': f'{l1_grp}@{domain_name}'}
         tools.sssd_conf(dom_section, sssd_params, action='add')
         tools.clear_sssd_cache()
-        cmd = multihost.client[0].run_command(f'id {aduser}@{domain_name}', raiseonerr=False)
         client_hostname = multihost.client[0].sys_hostname
         client1 = pexpect_ssh(client_hostname, f'{aduser}@{domain_name}', 'Secret123', debug=False)
         try:
             client1.login()
         except SSHLoginException:
             pytest.fail(f'{aduser} failed to login')
-        except pexpect.EOF:
-            log_str = multihost.client[0].get_file_contents('/var/log/secure').decode('utf-8')
+        except pexpect.EOF as err:
+            pytest.fail(f'{aduser} access is denied by sssd  to login with error: {err}')
         else:
             (stdout1, _) = client1.command(f'id {aduser}@{domain_name}')
             client1.logout()
@@ -290,7 +292,8 @@ class TestAccessControl(object):
         :title: Set simple deny groups to the top-level nested group
         :id: 2befaf3c-509d-4421-9276-a8328a9d48ec
         :description: Set simple_deny_groups to a top-level nested group. This top-level group will have one group
-         as it's member. The member-group has one AD-user as group-member. The AD-user from group should be able to log in.
+         as it's member. The member-group has one AD-user as group-member. The AD-user from group should be
+         able to log in.
         :Steps:
         1. Create two groups.
         2. Add one group as a member of other group.
@@ -306,7 +309,9 @@ class TestAccessControl(object):
         5. Should succeed
         6. Log in should deny
         """
-        (l1_grp, l2_grp, aduser) = create_nested_group
+        run_id = create_nested_group
+        aduser = f'testuser-{run_id}'
+        l1_grp = f'testgrp-l1-{run_id}'
         tools = sssdTools(multihost.client[0], multihost.ad[0])
         domain_name = tools.get_domain_section_name()
         dom_section = f'domain/{domain_name}'
@@ -314,8 +319,7 @@ class TestAccessControl(object):
                        'simple_deny_groups': f'{l1_grp}@{domain_name}'}
         tools.sssd_conf(dom_section, sssd_params, action='add')
         tools.clear_sssd_cache()
-        cmd = multihost.client[0].run_command(f'id {aduser}@{domain_name}', raiseonerr=False)
-        cmd1 = cmd.stdout_text
+        multihost.client[0].run_command(f'id {aduser}@{domain_name}', raiseonerr=False)
         client_hostname = multihost.client[0].sys_hostname
         client1 = pexpect_ssh(client_hostname, f'{aduser}@{domain_name}', 'Secret123', debug=False)
         try:
@@ -428,7 +432,7 @@ class TestAccessControl(object):
         except SSHLoginException:
             pytest.fail(f'{aduser} failed to login')
         except pexpect.EOF as err:
-            pytest.fail(f'{aduser} access is denied by sssd  to login with error: {err}')
+            pytest.fail(f'{aduser} access is denied by sssd to login with error: {err}')
         else:
             (stdout, _) = client.command(f'id {aduser}@{domain_name}')
             client.logout()
@@ -495,8 +499,8 @@ class TestAccessControl(object):
             client.login()
         except SSHLoginException:
             pytest.fail(f'{aduser} failed to login')
-        except pexpect.EOF:
-            log_str = multihost.client[0].get_file_contents('/var/log/secure').decode('utf-8')
+        except pexpect.EOF as err:
+            pytest.fail(f'{aduser} access is denied by sssd  to login with error: {err}')
         else:
             (stdout, _) = client.command(f'id {aduser}@{domain_name}')
             client.logout()

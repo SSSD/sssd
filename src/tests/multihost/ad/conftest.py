@@ -139,10 +139,11 @@ def create_nested_group(session_multihost, create_aduser_group, request):
         l2_grp is a level-2 group and is a member of l1_grp group
         ad_user is a user-member of a 2nd-level l2_grp group
     """
-    ad_user = f'testuser-{random.randint(999, 999999)}'
-    ad_group = f'testgroup-{random.randint(999, 999999)}'
-    l1_grp = f'testgrp-{random.randint(999, 999999)}'
-    l2_grp = f'testgrp-{random.randint(999, 999999)}'
+    run_id = random.randint(999, 999999)
+    ad_user = f'testuser-{run_id}'
+    ad_group = f'testgroup-{run_id}'
+    l1_grp = f'testgrp-l1-{run_id}'
+    l2_grp = f'testgrp-l1-{run_id}'
     ad_op = ADOperations(session_multihost.ad[0])
     ad_op.create_ad_unix_group(l1_grp)
     ad_op.create_ad_unix_group(l2_grp)
@@ -158,7 +159,7 @@ def create_nested_group(session_multihost, create_aduser_group, request):
         ad_op.delete_ad_user_group(l2_grp)
 
     request.addfinalizer(remove_ad_user_group)
-    return (l1_grp, l2_grp, ad_user)
+    return (run_id)
 
 
 @pytest.fixture(scope="function")
