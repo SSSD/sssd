@@ -488,3 +488,48 @@ class TestProxyMisc(object):
                                         "queuing request' "
                                         "/var/log/sssd/sssd_example1.log")
         assert result.stdout_text == '1\n'
+
+    @staticmethod
+    def test_netgroup(multihost, backupsssdconf):
+        """
+        :title: Lookup alias and original netgroups
+        :id: b35a6a2e-0ce5-11ed-b2dc-845cf3eff344
+        :steps:
+          1. Check alias and original netgroups.
+          2. Check if returning non-existant netgroups.
+          3. Check while case sensitive is false lookup netgroups.
+        :expectedresults:
+          1. Should succeed
+          2. Should not succeed
+          3. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
+        domain_name = tools.get_domain_section_name()
+        domain_params = {'debug_level': '0xFFF0',
+                         'id_provider': 'proxy',
+                         'proxy_lib_name': 'ldap',
+                         'proxy_pam_target': 'sssdproxyldap'}
+        tools.sssd_conf('domain/' + domain_name, domain_params)
+        tools.clear_sssd_cache()
+        # Lookup alias and original netgroups
+        execute_cmd(multihost, "getent netgroup NetGroup_CS1 | "
+                               "grep NetGroup_CS1 | grep Host1.example.com")
+        execute_cmd(multihost, "getent netgroup NetGroup_CS1_Alias | "
+                               "grep NetGroup_CS1 | grep User1")
+        # Bug 804103 was the issue about returning non-existant netgroups
+        # The bug is in nss-ldap and sssd just shows whatever nss-ldap returns.
+        for non_exist in ["getent netgroup nonexistantnetgroup",
+                          "getent netgroup netgroup_cs1"]:
+            with pytest.raises(subprocess.CalledProcessError):
+                execute_cmd(multihost, non_exist)
+        # case sensitive is false lookup netgroups
+        execute_cmd(multihost, 'echo "ignorecase yes" >> /etc/nslcd.conf')
+        execute_cmd(multihost, "systemctl restart nslcd")
+        domain_params = {'case_sensitive': 'false'}
+        tools.sssd_conf('domain/' + domain_name, domain_params)
+        tools.clear_sssd_cache()
+        for arg in ["getent netgroup NetGroup_CS1 | grep NetGroup_CS1 | grep Host1.example.com",
+                    "getent netgroup netgroup_cs1 | grep netgroup_cs1 | grep Host1.example.com",
+                    "getent netgroup NetGroup_CS1_Alias | grep NetGroup_CS1_Alias | grep User1",
+                    "getent netgroup netgroup_cs1_alias | grep netgroup_cs1_alias | grep User1"]:
+            execute_cmd(multihost, arg)
