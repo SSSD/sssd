@@ -31,6 +31,7 @@
 #include "responder/common/negcache.h"
 #include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
+#include "responder/pam/pamsrv_passkey.h"
 #include "responder/pam/pam_helpers.h"
 #include "responder/common/cache_req/cache_req.h"
 
@@ -81,7 +82,6 @@ const char *pam_initgroup_enum_to_string(enum pam_initgroups_scheme scheme)
     return "(NULL)";
 }
 
-
 static errno_t
 pam_null_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                           const char *username);
@@ -90,7 +90,7 @@ pam_get_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                          const char *name,
                                          uint64_t *_value);
 
-static void pam_reply(struct pam_auth_req *preq);
+void pam_reply(struct pam_auth_req *preq);
 
 static errno_t check_cert(TALLOC_CTX *mctx,
                           struct tevent_context *ev,
@@ -98,7 +98,7 @@ static errno_t check_cert(TALLOC_CTX *mctx,
                           struct pam_auth_req *preq,
                           struct pam_data *pd);
 
-static int pam_check_user_done(struct pam_auth_req *preq, int ret);
+int pam_check_user_done(struct pam_auth_req *preq, int ret);
 
 static errno_t pack_user_info_msg(TALLOC_CTX *mem_ctx,
                                   const char *user_error_message,
@@ -858,7 +858,7 @@ done:
     return ret;
 }
 
-static void pam_reply(struct pam_auth_req *preq)
+void pam_reply(struct pam_auth_req *preq)
 {
     struct cli_ctx *cctx;
     struct cli_protocol *prctx;
@@ -1243,7 +1243,7 @@ static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
 
 static void pam_forwarder_cb(struct tevent_req *req);
 static void pam_forwarder_cert_cb(struct tevent_req *req);
-static int pam_check_user_search(struct pam_auth_req *preq);
+int pam_check_user_search(struct pam_auth_req *preq);
 
 
 /* TODO: we should probably return some sort of cookie that is set in the
@@ -1478,6 +1478,7 @@ static errno_t check_cert(TALLOC_CTX *mctx,
     return EAGAIN;
 }
 
+
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 {
     struct pam_auth_req *preq;
@@ -1542,6 +1543,12 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
               sss_authtok_get_type(pd->authtok),
               sss_authtok_type_to_str(sss_authtok_get_type(pd->authtok)));
         ret = ERR_NO_CREDS;
+        goto done;
+    }
+
+    if (may_do_passkey_auth(pctx, pd)) {
+        /* Preauth and Auth */
+        ret = check_passkey(cctx, cctx->ev, pctx, preq, pd);
         goto done;
     }
 
@@ -1966,7 +1973,7 @@ static void pam_check_user_search_done(struct pam_auth_req *preq, int ret,
 
 /* lookup the user uid from the cache first,
  * then we'll refresh initgroups if needed */
-static int pam_check_user_search(struct pam_auth_req *preq)
+int pam_check_user_search(struct pam_auth_req *preq)
 {
     struct tevent_req *dpreq;
     struct cache_req_data *data;
@@ -2161,7 +2168,7 @@ static void pam_check_user_search_done(struct pam_auth_req *preq, int ret,
     }
 }
 
-static int pam_check_user_done(struct pam_auth_req *preq, int ret)
+int pam_check_user_done(struct pam_auth_req *preq, int ret)
 {
     switch (ret) {
     case EOK:
