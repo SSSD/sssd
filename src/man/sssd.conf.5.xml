@@ -719,6 +719,41 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry condition="build_passkey">
+                        <term>passkey_verification (string)</term>
+                        <listitem>
+                            <para>
+                                With this parameter the passkey verification
+                                can be tuned with a comma separated list of
+                                options. Supported options are:
+                                <variablelist>
+                                <varlistentry>
+                                    <term>user_verification (boolean)</term>
+                                    <listitem>
+                                        <para> Enable or disable the user
+                                        verification (i.e. PIN, fingerprint)
+                                        during authentication.
+                                        </para>
+                                        <para>
+                                        The default is that the key settings
+                                        decide what to do. In the IPA case,
+                                        this will be overwritten by IPA
+                                        passkey configuration.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>debug_libfido2</term>
+                                    <listitem>
+                                        <para> Enable libfido2 debug
+                                        messages, this option is disabled
+                                        by default.</para>
+                                    </listitem>
+                                </varlistentry>
+                                </variablelist>
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>
@@ -1632,6 +1667,17 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry condition="build_passkey">
+                    <term>pam_passkey_auth (bool)</term>
+                    <listitem>
+                        <para>
+                            Enable passkey device based authentication.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
                 <varlistentry>
                     <term>pam_cert_auth (bool)</term>
                     <listitem>
@@ -1698,6 +1744,18 @@ pam_cert_verification = partial_chain
                         </para>
                         <para>
                             Default: 10
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry condition="build_passkey">
+                    <term>passkey_child_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds will the PAM responder
+                            wait for passkey_child to finish.
+                        </para>
+                        <para>
+                            Default: 15
                         </para>
                     </listitem>
                 </varlistentry>
@@ -4344,6 +4402,50 @@ ldap_user_extra_attrs = phone:telephoneNumber
                     If the second factor is optional and it should be possible
                     to log in either only with the password or with both factors
                     two-step prompting has to be used.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+                <variablelist>
+            <varlistentry condition="build_passkey">
+                <term>[prompting/passkey]</term>
+                <listitem>
+                    <para>to configure passkey authentication prompting,
+                    allowed options are:
+                    <variablelist>
+                    <varlistentry>
+                        <term>interactive</term>
+                        <listitem>
+                            <para>boolean value, if True prompt a message and wait
+                                  before testing the presence of a passkey device.
+                                  Recommended if your device doesn’t have a
+                                  tactile trigger.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>interactive_prompt</term>
+                        <listitem>
+                            <para>to change the message of the interactive prompt.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>touch</term>
+                        <listitem>
+                            <para>boolean value, if True prompt a message to
+                                  remind the user to touch the device.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>touch_prompt</term>
+                        <listitem>
+                            <para>to change the message of the touch prompt.
+                            </para>
+                        </listitem>
+                        </varlistentry>
+                    </variablelist>
                     </para>
                 </listitem>
             </varlistentry>
