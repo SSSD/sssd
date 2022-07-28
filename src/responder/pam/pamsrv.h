@@ -71,6 +71,7 @@ struct pam_ctx {
     /* List of authentication indicators associated with a PAM service */
     char **gssapi_indicators_map;
     bool gssapi_check_upn;
+    bool passkey_auth;
 };
 
 struct pam_auth_req {
@@ -93,6 +94,7 @@ struct pam_auth_req {
     struct cert_auth_info *current_cert;
     bool cert_auth_local;
 
+    struct passkey_auth_data *passkey_data;
     uint32_t client_id_num;
 };
 
@@ -100,6 +102,10 @@ struct sss_cmd_table *get_pam_cmds(void);
 
 errno_t
 pam_dp_send_req(struct pam_auth_req *preq);
+
+int pam_check_user_search(struct pam_auth_req *preq);
+int pam_check_user_done(struct pam_auth_req *preq, int ret);
+void pam_reply(struct pam_auth_req *preq);
 
 errno_t p11_child_init(struct pam_ctx *pctx);
 

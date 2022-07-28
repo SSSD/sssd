@@ -49,6 +49,7 @@
 #define NO_DOMAINS_ARE_PUBLIC "none"
 #define DEFAULT_ALLOWED_UIDS ALL_UIDS_ALLOWED
 #define DEFAULT_PAM_CERT_AUTH false
+#define DEFAULT_PAM_PASSKEY_AUTH false
 #define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/sssd/pki/sssd_auth_ca_db.pem"
 #define DEFAULT_PAM_INITGROUPS_SCHEME "no_session"
 
@@ -307,7 +308,21 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 
     }
 
-    if (pctx->cert_auth || pctx->num_prompting_config_sections != 0) {
+    /* Check if passkey authentication is enabled */
+    ret = confdb_get_bool(pctx->rctx->cdb,
+                          CONFDB_PAM_CONF_ENTRY,
+                          CONFDB_PAM_PASSKEY_AUTH,
+                          DEFAULT_PAM_PASSKEY_AUTH,
+                          &pctx->passkey_auth);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to check if passkey authentication is " \
+                                    "enabled.\n");
+        goto done;
+    }
+
+    if (pctx->cert_auth
+        || pctx->passkey_auth
+        || pctx->num_prompting_config_sections != 0) {
         ret = create_preauth_indicator();
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,

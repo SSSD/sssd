@@ -797,6 +797,10 @@ errno_t create_preauth_indicator(void);
 #define P11_CHILD_PATH SSSD_LIBEXEC_PATH"/p11_child"
 #define P11_CHILD_TIMEOUT_DEFAULT 10
 #define P11_WAIT_FOR_CARD_TIMEOUT_DEFAULT 60
+#define PASSKEY_CHILD_TIMEOUT_DEFAULT 15
+#define PASSKEY_CHILD_LOG_FILE "passkey_child"
+#define PASSKEY_CHILD_PATH SSSD_LIBEXEC_PATH"/passkey_child"
+
 #endif  /* SSSD_LIBEXEC_PATH */
 
 #ifndef N_ELEMENTS
