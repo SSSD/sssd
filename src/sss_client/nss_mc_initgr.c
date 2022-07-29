@@ -32,7 +32,12 @@
 #include "nss_mc.h"
 #include "shared/safealign.h"
 
+#if HAVE_PTHREAD
+static pthread_mutex_t initgr_mc_ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
+static struct sss_cli_mc_ctx initgr_mc_ctx = SSS_CLI_MC_CTX_INITIALIZER(&initgr_mc_ctx_mutex);
+#else
 static struct sss_cli_mc_ctx initgr_mc_ctx = SSS_CLI_MC_CTX_INITIALIZER;
+#endif
 
 static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
                                        long int *start, long int *size,
