@@ -30,7 +30,12 @@
 #include "util/mmap_cache.h"
 #include "idmap/sss_nss_idmap.h"
 
+#if HAVE_PTHREAD
+static pthread_mutex_t sid_mc_ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
+static struct sss_cli_mc_ctx sid_mc_ctx = SSS_CLI_MC_CTX_INITIALIZER(&sid_mc_ctx_mutex);
+#else
 static struct sss_cli_mc_ctx sid_mc_ctx = SSS_CLI_MC_CTX_INITIALIZER;
+#endif
 
 static errno_t mc_get_sid_by_typed_id(uint32_t id, enum sss_id_type object_type,
                                       char **sid, uint32_t *type,
