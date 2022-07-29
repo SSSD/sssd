@@ -58,14 +58,14 @@ do { \
 static void sss_mt_lock(struct sss_cli_mc_ctx *ctx)
 {
 #if HAVE_PTHREAD
-    pthread_mutex_lock(&ctx->mutex);
+    pthread_mutex_lock(ctx->mutex);
 #endif
 }
 
 static void sss_mt_unlock(struct sss_cli_mc_ctx *ctx)
 {
 #if HAVE_PTHREAD
-    pthread_mutex_unlock(&ctx->mutex);
+    pthread_mutex_unlock(ctx->mutex);
 #endif
 }
 
@@ -131,6 +131,9 @@ errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
 static void sss_nss_mc_destroy_ctx(struct sss_cli_mc_ctx *ctx)
 {
     uint32_t active_threads = ctx->active_threads;
+#if HAVE_PTHREAD
+    pthread_mutex_t *mutex = ctx->mutex;
+#endif
 
     if ((ctx->mmap_base != NULL) && (ctx->mmap_size != 0)) {
         munmap(ctx->mmap_base, ctx->mmap_size);
@@ -143,6 +146,9 @@ static void sss_nss_mc_destroy_ctx(struct sss_cli_mc_ctx *ctx)
 
     /* restore count of active threads */
     ctx->active_threads = active_threads;
+#if HAVE_PTHREAD
+    ctx->mutex = mutex;
+#endif
 }
 
 static errno_t sss_nss_mc_init_ctx(const char *name,

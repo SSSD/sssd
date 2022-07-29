@@ -48,7 +48,7 @@ enum sss_mc_state {
 struct sss_cli_mc_ctx {
     enum sss_mc_state initialized;
 #if HAVE_PTHREAD
-    pthread_mutex_t mutex;
+    pthread_mutex_t *mutex;
 #endif
     int fd;
 
@@ -67,7 +67,7 @@ struct sss_cli_mc_ctx {
 };
 
 #if HAVE_PTHREAD
-#define SSS_CLI_MC_CTX_INITIALIZER {UNINITIALIZED, PTHREAD_MUTEX_INITIALIZER, 1, 0, NULL, 0, NULL, 0, NULL, 0, 0}
+#define SSS_CLI_MC_CTX_INITIALIZER(mtx) {UNINITIALIZED, (mtx), 1, 0, NULL, 0, NULL, 0, NULL, 0, 0}
 #else
 #define SSS_CLI_MC_CTX_INITIALIZER {UNINITIALIZED, 1, 0, NULL, 0, NULL, 0, NULL, 0, 0}
 #endif
