@@ -324,6 +324,7 @@ static int pam_test_setup_no_verification(void **state)
     };
 
     struct sss_test_conf_param pam_params[] = {
+        { CONFDB_PAM_P11_URI, "pkcs11:manufacturer=SoftHSM%20project" },
         { "p11_child_timeout", "30" },
         { NULL, NULL }, /* Sentinel */
     };
