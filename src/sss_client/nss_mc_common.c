@@ -140,7 +140,9 @@ static void sss_nss_mc_destroy_ctx(struct sss_cli_mc_ctx *ctx)
     }
     memset(ctx, 0, sizeof(struct sss_cli_mc_ctx));
     ctx->fd = -1;
-
+#if HAVE_PTHREAD
+    pthread_mutex_init(&ctx->mutex, NULL);
+#endif
     /* restore count of active threads */
     ctx->active_threads = active_threads;
 }
