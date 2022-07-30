@@ -4,12 +4,13 @@
 # Ludek Janda <ljanda@redhat.com>, 2021.
 # simmon <simmon@nplob.com>, 2021.
 # seo hojin <jinswhat@naver.com>, 2021.
+# 김인수 <simmon@nplob.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-07-04 12:02+0200\n"
-"PO-Revision-Date: 2022-07-01 09:39+0000\n"
+"PO-Revision-Date: 2022-07-18 15:19+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-7/ko/>\n"
@@ -1048,7 +1049,7 @@ msgstr "krb5 구성 스니펫을 드롭할 위치"
 
 #: src/config/SSSDConfig/sssdoptions.py:324
 msgid "Directory to store credential caches"
-msgstr "인증 정보 캐시를 저장할 디렉터리"
+msgstr "인증 정보 캐쉬를 저장 할 디렉토리"
 
 #: src/config/SSSDConfig/sssdoptions.py:325
 msgid "Location of the user's credential cache"
@@ -2394,9 +2395,9 @@ msgid ""
 "where the main config file is located. For example if the config is set to "
 "\"/my/path/sssd.conf\", the snippet dir \"/my/path/conf.d\" is used)"
 msgstr ""
-"기본이 아닌 스니펫 디렉터리를 지정합니다(기본값은 기본 설정 파일이 있는 동일"
-"한 위치를 검색하는 것입니다. 예를 들어 구성이 \"/my/path/sssd.conf\"로 설정"
-"된 경우 스니펫 디렉토리 \"/my/path/conf.d\"가 사용됨)"
+"기본이 아닌 스니펫 디렉토리를 지정합니다(기본값은 기본 설정 파일이 있는 "
+"동일한 위치를 검색하는 것입니다. 예를 들어 구성이 \"/my/path/sssd.conf\"로 "
+"설정된 경우 스니펫 디렉토리 \"/my/path/conf.d\"가 사용됨)"
 
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format
