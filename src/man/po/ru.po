@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-07-04 11:58+0200\n"
-"PO-Revision-Date: 2022-06-22 19:18+0000\n"
+"PO-Revision-Date: 2022-07-12 12:18+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ru/>\n"
@@ -17,8 +17,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.13\n"
 
 #. type: Content of: <reference><title>
@@ -1106,10 +1106,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:711
-#, fuzzy
-#| msgid "ad_gpo_ignore_unreadable (boolean)"
 msgid "core_dumpable (boolean)"
-msgstr "ad_gpo_ignore_unreadable (логическое значение)"
+msgstr "core_dumpable (логическое значение)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:714
@@ -1118,6 +1116,10 @@ msgid ""
 "forbids core dumps for all SSSD processes to avoid leaking plain text "
 "passwords. See man page prctl:PR_SET_DUMPABLE for details."
 msgstr ""
+"Этот параметр можно использовать для общей защиты системы: установка "
+"значения «false» запрещает создание дампов памяти для всех процессов SSSD, "
+"чтобы избежать утечки паролей в открытом виде. Дополнительные сведения "
+"доступны на справочной странице prctl:PR_SET_DUMPABLE."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:208
@@ -14767,16 +14769,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.8.xml:244
-#, fuzzy
-#| msgid ""
-#| "If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", client "
-#| "applications will not use the fast in-memory cache."
 msgid ""
 "If the environment variable SSS_LOCKFREE is set to \"NO\", requests from "
 "multiple threads of a single application will be serialized."
 msgstr ""
-"Если переменная среды SSS_NSS_USE_MEMCACHE установлена в значение «NO», "
-"клиентские приложения не будут использовать быстрый кэш в памяти."
+"Если переменная среды SSS_LOCKFREE установлена в значение «NO», "
+"одновременные запросы от нескольких потоков одного приложения будут "
+"преобразованы в последовательность запросов."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_obfuscate.8.xml:10 sss_obfuscate.8.xml:15
@@ -17998,9 +17997,10 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> manual page."
 msgstr ""
-"Подробные сведения о синтаксисе доступны в разделе <quote>ФОРМАТ ФАЙЛА</"
-"quote> справочной страницы <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
+"Настройки службы KCM выполняются с помощью <quote>kcm</quote>. Подробные "
+"сведения о синтаксисе доступны в разделе <quote>ФОРМАТ ФАЙЛА</quote> "
+"справочной страницы <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:223
@@ -21636,13 +21636,12 @@ msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: include/override_homedir.xml:44
-#, fuzzy
-#| msgid "The original home directory retrieved from the identity provider."
 msgid ""
 "The original home directory retrieved from the identity provider, but in "
 "lower case."
 msgstr ""
-"Исходный домашний каталог, полученный от поставщика данных идентификации."
+"Исходный домашний каталог, полученный от поставщика данных идентификации, но "
+"в нижнем регистре."
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><term>
 #: include/override_homedir.xml:49

@@ -14,7 +14,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-07-04 11:59+0200\n"
-"PO-Revision-Date: 2022-05-18 08:18+0000\n"
+"PO-Revision-Date: 2022-07-30 09:19+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/sv/>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.12.2\n"
+"X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -167,11 +167,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:56
 msgid "Run PAC responder automatically for AD and IPA provider"
-msgstr ""
+msgstr "Kör PAC-svararen automatiskt för AD- och IPA-leverantörer"
 
 #: src/config/SSSDConfig/sssdoptions.py:57
 msgid "Enable or disable core dumps for all SSSD processes."
-msgstr ""
+msgstr "Aktivera eller avaktivera kärndumpar för alla SSSD-processer."
 
 #: src/config/SSSDConfig/sssdoptions.py:60
 msgid "Enumeration cache timeout length (seconds)"
@@ -454,7 +454,7 @@ msgstr "Hur länge PAC-data betraktas som giltiga"
 
 #: src/config/SSSDConfig/sssdoptions.py:138
 msgid "Validate the PAC"
-msgstr ""
+msgstr "Validera PAC:en"
 
 #: src/config/SSSDConfig/sssdoptions.py:141
 msgid "List of user attributes the InfoPipe is allowed to publish"
@@ -637,6 +637,7 @@ msgstr "Hur ofta utgångna poster skall förnyas i bakgrunden"
 #: src/config/SSSDConfig/sssdoptions.py:195
 msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr ""
+"Maximal intervallavvikelse vid uppdatering av utgångna poster i bakgrunden"
 
 #: src/config/SSSDConfig/sssdoptions.py:196
 msgid "Whether to automatically update the client's DNS entry"
@@ -657,9 +658,8 @@ msgid "How often to periodically update the client's DNS entry"
 msgstr "Hur ofta klienternas DNS-poster periodiskt skall uppdateras"
 
 #: src/config/SSSDConfig/sssdoptions.py:200
-#, fuzzy
 msgid "Maximum period deviation when updating the client's DNS entry"
-msgstr "Hur ofta klienternas DNS-poster periodiskt skall uppdateras"
+msgstr "Maximal intervallavvikelse vid uppdatering av klientens DNS-post"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 msgid "Whether the provider should explicitly update the PTR record as well"
@@ -689,7 +689,7 @@ msgstr "Hur ofta skall listan över underdomäner uppdateras"
 
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid "Maximum period deviation when refreshing the subdomain list"
-msgstr ""
+msgstr "Maximal intervallavvikelse fid uppdatering av subdomänlistan"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "List of options that should be inherited into a subdomain"
@@ -1366,18 +1366,16 @@ msgid "Length of time between enumeration updates"
 msgstr "Tidslängd mellan uppräkningsuppdateringar"
 
 #: src/config/SSSDConfig/sssdoptions.py:399
-#, fuzzy
 msgid "Maximum period deviation between enumeration updates"
-msgstr "Tidslängd mellan uppräkningsuppdateringar"
+msgstr "Maximal intervallavvikelse mellan uppräkningsuppdateringar"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Length of time between cache cleanups"
 msgstr "Tidslängd mellan cache-tömningar"
 
 #: src/config/SSSDConfig/sssdoptions.py:401
-#, fuzzy
 msgid "Maximum time deviation between cache cleanups"
-msgstr "Tidslängd mellan cache-tömningar"
+msgstr "Maximal tidsavvikelse mellan cache-rensningar"
 
 #: src/config/SSSDConfig/sssdoptions.py:402
 msgid "Require TLS for ID lookups"
@@ -2001,7 +1999,7 @@ msgstr "SSSD kör redan\n"
 
 #: src/providers/krb5/krb5_child.c:3760 src/providers/ldap/ldap_child.c:641
 msgid "Allow core dumps"
-msgstr ""
+msgstr "Tillåt kärndumpar"
 
 #: src/providers/krb5/krb5_child.c:3762 src/providers/ldap/ldap_child.c:643
 msgid "An open file descriptor for the debug logs"
@@ -2053,7 +2051,7 @@ msgstr "Tevent-kedje-ID använt för loggningssyfte"
 
 #: src/providers/krb5/krb5_child.c:3788
 msgid "Check PAC flags"
-msgstr ""
+msgstr "Kontrollera PAC-flaggor"
 
 #: src/providers/krb5/krb5_child.c:3832 src/providers/ldap/ldap_child.c:669
 msgid "talloc_asprintf failed.\n"
@@ -2152,7 +2150,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:709
 msgid "PIN locked"
-msgstr ""
+msgstr "PIN-låst"
 
 #: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "
@@ -2703,24 +2701,23 @@ msgid "\n"
 msgstr "\n"
 
 #: src/tools/sssctl/sssctl_logs.c:214
-#, fuzzy
 msgid "SSSD is not running.\n"
-msgstr "SSSD kör redan\n"
+msgstr "SSSD kör inte.\n"
 
 #: src/tools/sssctl/sssctl_logs.c:231
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
-msgstr ""
+msgstr "%1$-25s %2$#.4x\n"
 
 #: src/tools/sssctl/sssctl_logs.c:235
 #, c-format
 msgid "%1$-25s Unknown domain\n"
-msgstr ""
+msgstr "%1$-25s Okänd domän\n"
 
 #: src/tools/sssctl/sssctl_logs.c:237
 #, c-format
 msgid "%1$-25s Unreachable service\n"
-msgstr ""
+msgstr "%1$-25s Onåbar tjänst\n"
 
 #: src/tools/sssctl/sssctl_logs.c:452
 msgid "Delete log files instead of truncating"
@@ -2753,45 +2750,43 @@ msgstr "Kan inte arkivera loggfiler\n"
 
 #: src/tools/sssctl/sssctl_logs.c:547
 msgid "Target a specific domain"
-msgstr ""
+msgstr "Sikta på en specifik domän"
 
 #: src/tools/sssctl/sssctl_logs.c:547
-#, fuzzy
 msgid "domain"
-msgstr "IPA-domän"
+msgstr "domän"
 
 #: src/tools/sssctl/sssctl_logs.c:548
 msgid "Target the SSSD service"
-msgstr ""
+msgstr "Sikta på SSSD-tjänsten"
 
 #: src/tools/sssctl/sssctl_logs.c:549
 msgid "Target the NSS service"
-msgstr ""
+msgstr "Sikta på NSS-tjänsten"
 
 #: src/tools/sssctl/sssctl_logs.c:550
-#, fuzzy
 msgid "Target the PAM service"
-msgstr "Attribut för listning av auktoriserade PAM-tjänster"
+msgstr "Sikta på PAM-tjänsten"
 
 #: src/tools/sssctl/sssctl_logs.c:551
 msgid "Target the SUDO service"
-msgstr ""
+msgstr "Sikta på SUDO-tjänsten"
 
 #: src/tools/sssctl/sssctl_logs.c:552
 msgid "Target the AUTOFS service"
-msgstr ""
+msgstr "Sikta på AUTOFS-tjänsten"
 
 #: src/tools/sssctl/sssctl_logs.c:553
 msgid "Target the SSH service"
-msgstr ""
+msgstr "Sikta på SSH-tjänsten"
 
 #: src/tools/sssctl/sssctl_logs.c:554
 msgid "Target the PAC service"
-msgstr ""
+msgstr "Sikta på PAC-tjänsten"
 
 #: src/tools/sssctl/sssctl_logs.c:555
 msgid "Target the IFP service"
-msgstr ""
+msgstr "Sikta på IFP-tjänsten"
 
 #: src/tools/sssctl/sssctl_logs.c:569
 msgid "Specify debug level you want to set"

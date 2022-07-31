@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-07-04 11:58+0200\n"
-"PO-Revision-Date: 2022-06-22 19:18+0000\n"
+"PO-Revision-Date: 2022-07-08 09:19+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/uk/>\n"
@@ -24,8 +24,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.13\n"
 
 #. type: Content of: <reference><title>
@@ -1114,10 +1114,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:711
-#, fuzzy
-#| msgid "ad_gpo_ignore_unreadable (boolean)"
 msgid "core_dumpable (boolean)"
-msgstr "ad_gpo_ignore_unreadable (булеве значення)"
+msgstr "core_dumpable (булеве значення)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:714
@@ -1126,6 +1124,11 @@ msgid ""
 "forbids core dumps for all SSSD processes to avoid leaking plain text "
 "passwords. See man page prctl:PR_SET_DUMPABLE for details."
 msgstr ""
+"Цим параметром можна скористатися для загального забезпечення стійкості "
+"системи: встановлення значення «false» забороняє дампи ядра для усіх "
+"процесів SSSD з метою уникнення витоку паролів у форматі нешифрованого "
+"тексту. Див. сторінку підручника щодо prctl:PR_SET_DUMPABLE, щоб дізнатися "
+"більше."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:208
@@ -14783,16 +14786,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.8.xml:244
-#, fuzzy
-#| msgid ""
-#| "If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", client "
-#| "applications will not use the fast in-memory cache."
 msgid ""
 "If the environment variable SSS_LOCKFREE is set to \"NO\", requests from "
 "multiple threads of a single application will be serialized."
 msgstr ""
-"Якщо для змінної середовища SSS_NSS_USE_MEMCACHE встановлено значення «NO», "
-"клієнтські програми не використовуватимуть fast у кеші у пам’яті."
+"Якщо для змінної середовища SSS_LOCKFREE встановлено значення «NO», "
+"одночасні запити від декількох потоків обробки однієї програми буде "
+"перетворено у послідовність запитів."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_obfuscate.8.xml:10 sss_obfuscate.8.xml:15
@@ -21670,12 +21670,12 @@ msgstr "Початкова домашня тека, отримана від сл
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: include/override_homedir.xml:44
-#, fuzzy
-#| msgid "The original home directory retrieved from the identity provider."
 msgid ""
 "The original home directory retrieved from the identity provider, but in "
 "lower case."
-msgstr "Початкова домашня тека, отримана від служби профілів."
+msgstr ""
+"Початкова домашня тека, отримана від служби профілів, але літерами нижнього "
+"регістру."
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><term>
 #: include/override_homedir.xml:49
