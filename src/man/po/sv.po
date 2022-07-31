@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-07-04 11:58+0200\n"
-"PO-Revision-Date: 2022-05-18 08:18+0000\n"
+"PO-Revision-Date: 2022-07-31 21:19+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.12.2\n"
+"X-Generator: Weblate 4.13\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -1063,10 +1063,8 @@ msgstr "Standard: inte satt"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:697
-#, fuzzy
-#| msgid "ad_gpo_implicit_deny (boolean)"
 msgid "implicit_pac_responder (boolean)"
-msgstr "ad_gpo_implicit_deny (boolean)"
+msgstr "implicit_pac_responder (boolean)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:700
@@ -1075,13 +1073,14 @@ msgid ""
 "evaluate and check the PAC. If it has to be disabled set this option to "
 "'false'."
 msgstr ""
+"PAC-respondenten aktiveras automatiskt för IPA- och AD-leverantörerna för "
+"att utvärdera och kontrollera PAC:en. Om den måste avaktiveras sätt detta "
+"alternativ till ”false”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:711
-#, fuzzy
-#| msgid "ad_gpo_ignore_unreadable (boolean)"
 msgid "core_dumpable (boolean)"
-msgstr "ad_gpo_ignore_unreadable (boolean)"
+msgstr "core_dumpable (boolean)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:714
@@ -1090,6 +1089,9 @@ msgid ""
 "forbids core dumps for all SSSD processes to avoid leaking plain text "
 "passwords. See man page prctl:PR_SET_DUMPABLE for details."
 msgstr ""
+"Detta alternativ kan användas för allmän förstärkning: att sätta det till "
+"”false” förbjuder kärndumpar för alla SSSD-processer för att undvika att "
+"klartextlösenord läcker. Se manualsidan prctl:PR_SET_DUMPABLE för detaljer."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:208
@@ -2898,7 +2900,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1976
 msgid "idp -- pre-authentication using external identity provider."
-msgstr ""
+msgstr "idp — förautentisering med extern identitetsleverantör."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1986
@@ -3252,15 +3254,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2251
-#, fuzzy
-#| msgid "ldap_schema (string)"
 msgid "pac_check (string)"
-msgstr "ldap_schema (sträng)"
+msgstr "pac_check (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2261
 msgid "no_check"
-msgstr ""
+msgstr "no_check"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2263
@@ -3268,13 +3268,13 @@ msgid ""
 "The PAC must not be present and even if it is present no additional checks "
 "will be done."
 msgstr ""
+"PAC:en får inte finnas och även om den finns kommer inga ytterligare "
+"kontroller att göras."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2269
-#, fuzzy
-#| msgid "present"
 msgid "pac_present"
-msgstr "finns"
+msgstr "pac_present"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2271
@@ -3283,13 +3283,14 @@ msgid ""
 "the help of the user's TGT. If the PAC is not available the authentication "
 "will fail."
 msgstr ""
+"PAC:en måste finnas i tjänstebiljetten som SSSD kommer begära med hjälp av "
+"användarens TGT. Om PAC:en inte är tillgänglig kommer autentiseringen att "
+"misslyckas."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2279
-#, fuzzy
-#| msgid "pam_gssapi_check_upn"
 msgid "check_upn"
-msgstr "pam_gssapi_check_upn"
+msgstr "check_upn"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2281
@@ -3297,21 +3298,23 @@ msgid ""
 "If the PAC is present check if the user principal name (UPN) information is "
 "consistent."
 msgstr ""
+"Om PAC:en finns kontrollera om informationen om användarens huvudmannanamn "
+"(UPN) är konsistent."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2287
 msgid "upn_dns_info_present"
-msgstr ""
+msgstr "upn_dns_info_present"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2289
 msgid "The PAC must contain the UPN-DNS-INFO buffer, implies 'check_upn'."
-msgstr ""
+msgstr "PAC:en måste innehålla bufferten UPN-DNS-INFO, implicerar ”check_upn”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2294
 msgid "check_upn_dns_info_ex"
-msgstr ""
+msgstr "check_upn_dns_info_ex"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2296
@@ -3319,11 +3322,13 @@ msgid ""
 "If the PAC is present and the extension to the UPN-DNS-INFO buffer is "
 "available check if the information in the extension is consistent."
 msgstr ""
+"Om PAC:en finns och utökningen till bufferten UPN-DNS-INFO är tillgänglig "
+"kontrollera om informationen i utökningen är konsistent."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2303
 msgid "upn_dns_info_ex_present"
-msgstr ""
+msgstr "upn_dns_info_ex_present"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2305
@@ -3331,6 +3336,8 @@ msgid ""
 "The PAC must contain the extension of the UPN-DNS-INFO buffer, implies "
 "'check_upn_dns_info_ex', 'upn_dns_info_present' and 'check_upn'."
 msgstr ""
+"PAC:en måste innehålla utökningen av bufferten UPN-DNS-INFO, implicerar "
+"”check_upn_dns_info_ex”, ”upn_dns_info_present” och ”check_upn”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2254
@@ -3340,12 +3347,18 @@ msgid ""
 "options can be used alone or in a comma-separated list: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 msgstr ""
+"Tillämpa ytterligare kontroller av PAC:en för Kerberos-biljetten vilka är "
+"tillgänglig i domänen Active Direcktory och FreeIPA, om konfigurerade. "
+"Följande alternativ kan användas ensamma eller i en kommaseparerad lista: "
+"<placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2315
 msgid ""
 "Default: no_check (AD and IPA provider 'check_upn, check_upn_dns_info_ex')"
 msgstr ""
+"Standard: no_check (AD- och IPA-leverantörerna ”check_upn, "
+"check_upn_dns_info_ex”)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:2324
@@ -14465,16 +14478,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.8.xml:244
-#, fuzzy
-#| msgid ""
-#| "If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", client "
-#| "applications will not use the fast in-memory cache."
 msgid ""
 "If the environment variable SSS_LOCKFREE is set to \"NO\", requests from "
 "multiple threads of a single application will be serialized."
 msgstr ""
-"Om miljövariabeln SSS_NSS_USE_MEMCACHE är satt till ”NO” kommer "
-"klientprogram inte använda den snabba cachen i minnet."
+"Om miljövariabeln SSS_LOCKFREE är satt till ”NO” kommer begäranden från "
+"multipla trådar i ett enskilt program att seriaaliseras."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_obfuscate.8.xml:10 sss_obfuscate.8.xml:15
@@ -19807,17 +19816,13 @@ msgstr "Standard: ipNetworkNumber"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd_krb5_localauth_plugin.8.xml:10 sssd_krb5_localauth_plugin.8.xml:15
-#, fuzzy
-#| msgid "sssd_krb5_locator_plugin"
 msgid "sssd_krb5_localauth_plugin"
-msgstr "sssd_krb5_locator_plugin"
+msgstr "sssd_krb5_localauth_plugin"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd_krb5_localauth_plugin.8.xml:16
-#, fuzzy
-#| msgid "Kerberos locator plugin"
 msgid "Kerberos local authorization plugin"
-msgstr "Kerberos lokaliseringsinsticksmodul"
+msgstr "Kerberos lokala auktoriseringsinsticksmodul"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:22
@@ -19827,6 +19832,11 @@ msgid ""
 "Kerberos principal or to check if a given local name and a given Kerberos "
 "principal relate to each other."
 msgstr ""
+"Kerberos lokala auktoriseringsinsticksmodul "
+"<command>sssd_krb5_localauth_plugin</command> används av libkrb5 för att "
+"antingen hitta det lokala namnet för en given Kerberoshuvudman eller för att "
+"kontrollera om ett givet lokalt namn och en given Kerberoshuvudman relaterar "
+"till varandra."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:29
@@ -19836,6 +19846,10 @@ msgid ""
 "information SSSD can easily handle the mappings mentioned above even if the "
 "local name and the Kerberos principal differ considerably."
 msgstr ""
+"SSSD hanterar de lokala namnen för användare från fjärrkällor och kan även "
+"läsa från Kerberos användarhuvudmannanamn från fjärrkällor. Med denna "
+"information kan SSSD enkelt hantera avbildningarna nämnda ovan även om det "
+"lokala namnet och Kerberoshuvudmannen skiljer avsevärt."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:36
@@ -19847,13 +19861,17 @@ msgid ""
 "principal to get the local name which would lead to wrong mappings in this "
 "case."
 msgstr ""
+"Dessutom kan SSSD med informationen som lästs från fjärrkällor hjälpa till "
+"att förhindra oväntade eller oönskade avbildningar ifall användardelen av "
+"Kerberoshuvudmannen oavsiktligt motsvarar ett lokalt namn på en annan "
+"användare. Som standard kan libkrb5 bara plocka bort delen rike från "
+"Kerberoshuvudmannen för att få det lokala namnet vilket skulle leda till "
+"felaktiga avbildningar i detta fall."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd_krb5_localauth_plugin.8.xml:46
-#, fuzzy
-#| msgid "CONFIGURATION FILE"
 msgid "CONFIGURATION"
-msgstr "KONFIGURATIONSFIL"
+msgstr "KONFIGURATION"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd_krb5_localauth_plugin.8.xml:56
@@ -19864,6 +19882,10 @@ msgid ""
 "  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
 " }\n"
 msgstr ""
+"[plugins]\n"
+" localauth = {\n"
+"  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
+" }\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:48
@@ -19876,6 +19898,13 @@ msgid ""
 "Kerberos configuration snippet directory. If this directory is included in "
 "the local Kerberos configuration the plugin will be enabled automatically."
 msgstr ""
+"Kerberos lokala auktoriseringsinsticksmodul måste aktiveras explicit i "
+"Kerberoskonfigurationen, se <citerefentry> <refentrytitle>krb5.conf</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>. SSSD kommer "
+"automatiskt skapa en konfigurationssnutt med innehållet som t.ex. "
+"<placeholder type=\"programlisting\" id=\"0\"/> i SSSD:s publika katalog med "
+"Kerberoskonfigurationssnuttar. Om denna katalog är inkluderad i den lokala "
+"Kerberoskonfigurationen kommer insticksmodulen automatiskt aktiveras."
 
 #. type: Content of: <variablelist><varlistentry><term>
 #: include/autofs_attributes.xml:3
@@ -21214,13 +21243,12 @@ msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: include/override_homedir.xml:44
-#, fuzzy
-#| msgid "The original home directory retrieved from the identity provider."
 msgid ""
 "The original home directory retrieved from the identity provider, but in "
 "lower case."
 msgstr ""
-"Den ursprungliga hemkatalogen som hämtades från identitetsleverantören."
+"Den ursprungliga hemkatalogen som hämtades från identitetsleverantören, men "
+"i gemener."
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><term>
 #: include/override_homedir.xml:49
