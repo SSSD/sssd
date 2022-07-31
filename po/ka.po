@@ -7,13 +7,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-07-04 11:59+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Automatically generated\n"
-"Language-Team: none\n"
+"PO-Revision-Date: 2022-07-27 10:19+0000\n"
+"Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
+"Language-Team: Georgian <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-master/ka/>\n"
 "Language: ka\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -482,15 +485,15 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:170
 msgid "Enable or disable the domain"
-msgstr ""
+msgstr "დომენის ჩართვა ან გამორთვა"
 
 #: src/config/SSSDConfig/sssdoptions.py:171
 msgid "Minimum user ID"
-msgstr ""
+msgstr "მომხმარებლის მინიმალური ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:172
 msgid "Maximum user ID"
-msgstr ""
+msgstr "მომხმარებლის მაქსიმალური ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:173
 msgid "Enable enumerating all users/groups"
@@ -658,11 +661,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:224
 msgid "IPA domain"
-msgstr ""
+msgstr "IPA დომენი"
 
 #: src/config/SSSDConfig/sssdoptions.py:225
 msgid "IPA server address"
-msgstr ""
+msgstr "IPA სერვერის მისამართი"
 
 #: src/config/SSSDConfig/sssdoptions.py:226
 msgid "Address of backup IPA server"
@@ -875,7 +878,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:289
 msgid "Active Directory domain"
-msgstr ""
+msgstr "Active Directory-ის დომენი"
 
 #: src/config/SSSDConfig/sssdoptions.py:290
 msgid "Enabled Active Directory domains"
@@ -988,7 +991,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:322
 msgid "Kerberos realm"
-msgstr ""
+msgstr "kerberos-ის რეალმი"
 
 #: src/config/SSSDConfig/sssdoptions.py:323
 msgid "Authentication timeout"
@@ -1209,11 +1212,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:386
 msgid "entryUSN attribute"
-msgstr ""
+msgstr "entryUSN ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:387
 msgid "lastUSN attribute"
-msgstr ""
+msgstr "lastUSN ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:389
 msgid "How long to retain a connection to the LDAP server before disconnecting"
@@ -1277,19 +1280,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:408
 msgid "Username attribute"
-msgstr ""
+msgstr "მომხმარებლის სახელის ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:409
 msgid "UID attribute"
-msgstr ""
+msgstr "UID ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:410
 msgid "Primary GID attribute"
-msgstr ""
+msgstr "პირველადი GID ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:411
 msgid "GECOS attribute"
-msgstr ""
+msgstr "GECOS ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:412
 msgid "Home directory attribute"
@@ -1297,11 +1300,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:413
 msgid "Shell attribute"
-msgstr ""
+msgstr "Shell ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:414
 msgid "UUID attribute"
-msgstr ""
+msgstr "UUID ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:415
 #: src/config/SSSDConfig/sssdoptions.py:453
@@ -1318,7 +1321,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:418
 msgid "Full Name"
-msgstr ""
+msgstr "სრული სახელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:419
 msgid "memberOf attribute"
@@ -1326,35 +1329,35 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:420
 msgid "Modification time attribute"
-msgstr ""
+msgstr "მოდიფიკაციის დროის ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:421
 msgid "shadowLastChange attribute"
-msgstr ""
+msgstr "shadowLastChange ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:422
 msgid "shadowMin attribute"
-msgstr ""
+msgstr "shadowMin ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:423
 msgid "shadowMax attribute"
-msgstr ""
+msgstr "shadowMax ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:424
 msgid "shadowWarning attribute"
-msgstr ""
+msgstr "shadowWarning ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:425
 msgid "shadowInactive attribute"
-msgstr ""
+msgstr "shadowInactive ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:426
 msgid "shadowExpire attribute"
-msgstr ""
+msgstr "shadowExpire ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:427
 msgid "shadowFlag attribute"
-msgstr ""
+msgstr "shadowFlag ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:428
 msgid "Attribute listing authorized PAM services"
@@ -1370,11 +1373,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:431
 msgid "krbLastPwdChange attribute"
-msgstr ""
+msgstr "krbLastPwdChange attribute"
 
 #: src/config/SSSDConfig/sssdoptions.py:432
 msgid "krbPasswordExpiration attribute"
-msgstr ""
+msgstr "krbPasswordExpiration attribute"
 
 #: src/config/SSSDConfig/sssdoptions.py:433
 msgid "Attribute indicating that server side password policies are active"
@@ -1390,7 +1393,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:436
 msgid "nsAccountLock attribute"
-msgstr ""
+msgstr "nsAccountLock ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:437
 msgid "loginDisabled attribute of NDS"
@@ -1434,11 +1437,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:448
 msgid "Group name"
-msgstr ""
+msgstr "ჯგუფის სახელი"
 
 #: src/config/SSSDConfig/sssdoptions.py:449
 msgid "Group password"
-msgstr ""
+msgstr "ჯგუფის პაროლი"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "GID attribute"
@@ -1446,11 +1449,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:451
 msgid "Group member attribute"
-msgstr ""
+msgstr "ჯგუფის წევრის ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:452
 msgid "Group UUID attribute"
-msgstr ""
+msgstr "ჯგუფი UUID ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:454
 msgid "Modification time attribute for groups"
@@ -1510,7 +1513,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:470
 msgid "Service name attribute"
-msgstr ""
+msgstr "სერვისის სახელის ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:471
 msgid "Service port attribute"
@@ -1957,7 +1960,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:68
 msgid "Permission denied. "
-msgstr ""
+msgstr "წვდომა აკრძალულია. "
 
 #: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:799
 #: src/sss_client/pam_sss.c:810
@@ -1966,7 +1969,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:303
 msgid "Passwords do not match"
-msgstr ""
+msgstr "პაროლები არ ემთხვევა"
 
 #: src/sss_client/pam_sss.c:491
 msgid "Password reset by root is not supported."
@@ -2028,7 +2031,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:2158
 msgid "New Password: "
-msgstr ""
+msgstr "ახალი პაროლი: "
 
 #: src/sss_client/pam_sss.c:2159
 msgid "Reenter new Password: "
@@ -2048,7 +2051,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:2347
 msgid "Password: "
-msgstr ""
+msgstr "პაროლი: "
 
 #: src/sss_client/pam_sss.c:2499 src/sss_client/pam_sss.c:2502
 msgid "First Factor (Current Password): "
@@ -2229,15 +2232,15 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl.c:35
 msgid "yes"
-msgstr ""
+msgstr "დიახ"
 
 #: src/tools/sssctl/sssctl.c:37
 msgid "no"
-msgstr ""
+msgstr "არა"
 
 #: src/tools/sssctl/sssctl.c:39
 msgid "error"
-msgstr ""
+msgstr "შეცდომა"
 
 #: src/tools/sssctl/sssctl.c:42
 msgid "Invalid result."
@@ -2285,7 +2288,7 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:33
 msgid "Name"
-msgstr ""
+msgstr "სახელი"
 
 #: src/tools/sssctl/sssctl_cache.c:34
 msgid "Cache entry creation date"
@@ -2348,7 +2351,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format
 msgid "Failed to open %s\n"
-msgstr ""
+msgstr "%s-ის გახსნის შეცდომა\n"
 
 #: src/tools/sssctl/sssctl_config.c:123
 #, c-format
@@ -2397,7 +2400,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_data.c:88
 #, c-format
 msgid "Unable to create backup directory [%d]: %s"
-msgstr ""
+msgstr "მარქაფის საქაღალდის შექმნის შეცდომა [%d]:%s"
 
 #: src/tools/sssctl/sssctl_data.c:94
 msgid "SSSD backup of local data already exists, override?"
@@ -2475,11 +2478,11 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_domains.c:167
 msgid "Online"
-msgstr ""
+msgstr "ონლაინ"
 
 #: src/tools/sssctl/sssctl_domains.c:167
 msgid "Offline"
-msgstr ""
+msgstr "გათიშული"
 
 #: src/tools/sssctl/sssctl_domains.c:167
 #, c-format
@@ -2496,7 +2499,7 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_domains.c:230
 msgid "not connected"
-msgstr ""
+msgstr "არაა დაკავშირებული"
 
 #: src/tools/sssctl/sssctl_domains.c:267
 msgid "No servers discovered.\n"
@@ -2529,7 +2532,7 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_domains.c:355
 msgid "Out of memory!\n"
-msgstr ""
+msgstr "არასაკმარისი მეხსიერება!\n"
 
 #: src/tools/sssctl/sssctl_domains.c:375 src/tools/sssctl/sssctl_domains.c:385
 msgid "Unable to get online status\n"
@@ -2597,7 +2600,7 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_logs.c:547
 msgid "domain"
-msgstr ""
+msgstr "დომენი"
 
 #: src/tools/sssctl/sssctl_logs.c:548
 msgid "Target the SSSD service"
@@ -2819,7 +2822,7 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_user_checks.c:298
 msgid "unknown action\n"
-msgstr ""
+msgstr "უცნობი ქმედება\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:301
 msgid "PAM Environment:\n"

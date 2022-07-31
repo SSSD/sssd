@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-07-04 11:59+0200\n"
-"PO-Revision-Date: 2022-06-25 10:28+0000\n"
+"PO-Revision-Date: 2022-07-09 09:17+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pl/>\n"
@@ -179,7 +179,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:57
 msgid "Enable or disable core dumps for all SSSD processes."
-msgstr ""
+msgstr "Włącza lub wyłącza zrzuty core dla wszystkich procesów SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:60
 msgid "Enumeration cache timeout length (seconds)"
@@ -654,7 +654,7 @@ msgstr "Jak często odświeżać w tle wygasłe wpisy"
 
 #: src/config/SSSDConfig/sssdoptions.py:195
 msgid "Maximum period deviation when refreshing expired entries in background"
-msgstr ""
+msgstr "Maksymalny okres odchylenia podczas odświeżania wygasłych wpisów w tle"
 
 #: src/config/SSSDConfig/sssdoptions.py:196
 msgid "Whether to automatically update the client's DNS entry"
@@ -676,9 +676,8 @@ msgid "How often to periodically update the client's DNS entry"
 msgstr "Jak często okresowo aktualizować wpis DNS klienta"
 
 #: src/config/SSSDConfig/sssdoptions.py:200
-#, fuzzy
 msgid "Maximum period deviation when updating the client's DNS entry"
-msgstr "Jak często okresowo aktualizować wpis DNS klienta"
+msgstr "Maksymalny okres odchylenia podczas aktualizowania wpisu DNS klienta"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 msgid "Whether the provider should explicitly update the PTR record as well"
@@ -708,7 +707,7 @@ msgstr "Jak często odświeżać listę poddomen"
 
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid "Maximum period deviation when refreshing the subdomain list"
-msgstr ""
+msgstr "Maksymalny okres odchylenia podczas odświeżania listy poddomen"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "List of options that should be inherited into a subdomain"
@@ -1394,18 +1393,16 @@ msgid "Length of time between enumeration updates"
 msgstr "Czas między aktualizacjami wyliczania"
 
 #: src/config/SSSDConfig/sssdoptions.py:399
-#, fuzzy
 msgid "Maximum period deviation between enumeration updates"
-msgstr "Czas między aktualizacjami wyliczania"
+msgstr "Maksymalny okres odchylenia między aktualizacjami wyliczania"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Length of time between cache cleanups"
 msgstr "Czas między czyszczeniem pamięci podręcznej"
 
 #: src/config/SSSDConfig/sssdoptions.py:401
-#, fuzzy
 msgid "Maximum time deviation between cache cleanups"
-msgstr "Czas między czyszczeniem pamięci podręcznej"
+msgstr "Maksymalny okres odchylenia między czyszczeniem pamięci podręcznej"
 
 #: src/config/SSSDConfig/sssdoptions.py:402
 msgid "Require TLS for ID lookups"
@@ -2029,7 +2026,7 @@ msgstr "Usługa SSSD jest już uruchomiona\n"
 
 #: src/providers/krb5/krb5_child.c:3760 src/providers/ldap/ldap_child.c:641
 msgid "Allow core dumps"
-msgstr ""
+msgstr "Zezwala na zrzuty core"
 
 #: src/providers/krb5/krb5_child.c:3762 src/providers/ldap/ldap_child.c:643
 msgid "An open file descriptor for the debug logs"
@@ -2787,49 +2784,40 @@ msgid "Target a specific domain"
 msgstr "Działa na podanej domenie"
 
 #: src/tools/sssctl/sssctl_logs.c:547
-#, fuzzy
 msgid "domain"
-msgstr "Domena IPA"
+msgstr "domena"
 
 #: src/tools/sssctl/sssctl_logs.c:548
-#, fuzzy
 msgid "Target the SSSD service"
-msgstr "Działa na usłudze "
+msgstr "Działa na usłudze SSSD"
 
 #: src/tools/sssctl/sssctl_logs.c:549
-#, fuzzy
 msgid "Target the NSS service"
-msgstr "Działa na usłudze "
+msgstr "Działa na usłudze NSS"
 
 #: src/tools/sssctl/sssctl_logs.c:550
-#, fuzzy
 msgid "Target the PAM service"
-msgstr "Działa na usłudze "
+msgstr "Działa na usłudze PAM"
 
 #: src/tools/sssctl/sssctl_logs.c:551
-#, fuzzy
 msgid "Target the SUDO service"
-msgstr "Działa na usłudze "
+msgstr "Działa na usłudze sudo"
 
 #: src/tools/sssctl/sssctl_logs.c:552
-#, fuzzy
 msgid "Target the AUTOFS service"
-msgstr "Działa na usłudze "
+msgstr "Działa na usłudze Autofs"
 
 #: src/tools/sssctl/sssctl_logs.c:553
-#, fuzzy
 msgid "Target the SSH service"
-msgstr "Działa na usłudze "
+msgstr "Działa na usłudze SSH"
 
 #: src/tools/sssctl/sssctl_logs.c:554
-#, fuzzy
 msgid "Target the PAC service"
-msgstr "Działa na usłudze "
+msgstr "Działa na usłudze PAC"
 
 #: src/tools/sssctl/sssctl_logs.c:555
-#, fuzzy
 msgid "Target the IFP service"
-msgstr "Działa na usłudze "
+msgstr "Działa na usłudze IFP"
 
 #: src/tools/sssctl/sssctl_logs.c:569
 msgid "Specify debug level you want to set"
