@@ -171,7 +171,9 @@ hybrid_domain_retry_data(TALLOC_CTX *mem_ctx,
                                           input_name);
     }
 
-    cache_req_data_set_hybrid_lookup(hybrid_data, true);
+    if (hybrid_data != NULL) {
+        cache_req_data_set_hybrid_lookup(hybrid_data, true);
+    }
 
     return hybrid_data;
 }
