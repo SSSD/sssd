@@ -97,6 +97,30 @@ sssctl_prompt(const char *message,
     return SSSCTL_PROMPT_ERROR;
 }
 
+errno_t sssctl_wrap_command(const char *command,
+                            struct sss_cmdline *cmdline,
+                            struct sss_tool_ctx *tool_ctx,
+                            void *pvt)
+{
+    errno_t ret;
+
+    const char **args = talloc_array_size(tool_ctx,
+                                          sizeof(char *),
+                                          cmdline->argc + 2);
+    if (!args) {
+        return ENOMEM;
+    }
+    memcpy(&args[1], cmdline->argv, sizeof(char *) * cmdline->argc);
+    args[0] = command;
+    args[cmdline->argc + 1] = NULL;
+
+    ret = sssctl_run_command(args);
+
+    talloc_free(args);
+
+    return ret;
+}
+
 errno_t sssctl_run_command(const char *const argv[])
 {
     int ret;
@@ -305,6 +329,10 @@ int main(int argc, const char **argv)
         SSS_TOOL_DELIMITER("Certificate related tools:"),
         SSS_TOOL_COMMAND("cert-show", "Print information about the certificate", 0, sssctl_cert_show),
         SSS_TOOL_COMMAND("cert-map", "Show users mapped to the certificate", 0, sssctl_cert_map),
+#ifdef BUILD_PASSKEY
+        SSS_TOOL_DELIMITER("Passkey related tools:"),
+        SSS_TOOL_COMMAND("passkey-exec", "Perform passkey related operations", 0, sssctl_passkey_exec),
+#endif
         SSS_TOOL_LAST
     };
 
