@@ -47,6 +47,10 @@ enum sssctl_prompt_result
 sssctl_prompt(const char *message,
               enum sssctl_prompt_result defval);
 
+errno_t sssctl_wrap_command(const char *command,
+                            struct sss_cmdline *cmdline,
+                            struct sss_tool_ctx *tool_ctx,
+                            void *pvt);
 errno_t sssctl_run_command(const char *const argv[]); /* argv[0] - command */
 bool sssctl_start_sssd(bool force);
 bool sssctl_stop_sssd(bool force);
@@ -135,4 +139,9 @@ errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
 errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
                         struct sss_tool_ctx *tool_ctx,
                         void *pvt);
+#ifdef BUILD_PASSKEY
+errno_t sssctl_passkey_exec(struct sss_cmdline *cmdline,
+                            struct sss_tool_ctx *tool_ctx,
+                            void *pvt);
+#endif /* BUILD_PASSKEY */
 #endif /* _SSSCTL_H_ */

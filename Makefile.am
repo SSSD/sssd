@@ -1919,6 +1919,9 @@ sssctl_SOURCES = \
     src/tools/sssctl/sssctl_cert.c \
     $(SSSD_TOOLS_OBJ) \
     $(NULL)
+if BUILD_PASSKEY
+    sssctl_SOURCES += src/tools/sssctl/sssctl_passkey.c
+endif
 sssctl_LDADD = \
     $(TOOLS_LIBS) \
     $(INI_CONFIG_LIBS) \
