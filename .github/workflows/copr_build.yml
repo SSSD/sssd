@@ -68,7 +68,7 @@ jobs:
       id: chroots
       uses: next-actions/copr/filter-chroots@master
       with:
-        coprcfg: ${{ secrets.COPR_SECRETS }}
+        coprcfg: ${{ steps.copr.outputs.coprcfg }}
         filter: "fedora-.+-x86_64|centos-stream-.*-x86_64"
         exclude: "fedora-eln-.+"
 
