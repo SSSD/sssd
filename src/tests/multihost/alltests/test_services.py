@@ -212,7 +212,7 @@ class TestServices(object):
         """
         # port bash to pytest
         tools = sssdTools(multihost.client[0])
-        sssd_params = {'debug_level': '9'}
+        sssd_params = {'debug_level': '9', 'enable_files_domain': 'true'}
         tools.sssd_conf('sssd', sssd_params)
         multihost.client[0].run_command('echo "PIZZA=YUMMY" > /etc/sysconfig/sssd', raiseonerr=False)
         multihost.client[0].service_sssd('restart')
@@ -276,8 +276,9 @@ class TestServices(object):
                                 "adding string in /etc/krb5.conf"
         random_file2 = 'random' + ''.join(
             random.choice(string.ascii_lowercase) for i in range(5))
+        # Dont remove the extra space in bellow line. Its needed for this test
         cmd_with_sp = '{ echo "includedir /var/lib/sss/pubconf/krb5.include' \
-                      '.d/"; cat /etc/krb5.conf; } > ' \
+                      '.d/  "; cat /etc/krb5.conf; } > ' \
                       f'/tmp/{random_file2}'
         multihost.client[0].run_command(cmd_with_sp, raiseonerr=False)
         copy_radom2 = f'mv -f /tmp/{random_file2} /etc/krb5.conf'
