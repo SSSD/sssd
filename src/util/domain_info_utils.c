@@ -706,6 +706,14 @@ static errno_t sss_write_krb5_snippet_common(const char *file_name,
         goto done;
     }
 
+    ret = chmod(tmp_file, 0644);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "chmod failed [%d][%s].\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
     ret = rename(tmp_file, file_name);
     if (ret == -1) {
         ret = errno;
@@ -714,14 +722,6 @@ static errno_t sss_write_krb5_snippet_common(const char *file_name,
         goto done;
     }
     tmp_file = NULL;
-
-    ret = chmod(file_name, 0644);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "chmod failed [%d][%s].\n", ret, sss_strerror(ret));
-        goto done;
-    }
 
 done:
     if (tmp_file != NULL) {
