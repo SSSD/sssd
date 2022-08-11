@@ -484,37 +484,31 @@ class sssdTools(object):
 
     def remove_sss_cache(self, cache_path):
         """ Remove the sssd cache
-            :param str cache_path/log_path: The relative path of cache/log
-            :return bool: True if deletion
+            :param str cache_path: The relative path of cache/log
+            :return bool: True if deletion succeeded
         """
-        cmd = self.multihost.run_command(['ls', cache_path], raiseonerr=False)
-        if cmd.returncode == 0:
-            db_list = cmd.stdout_text.split()
-            # for index in range(len(db_list)):
-            for index in enumerate(db_list):
-                # sss_db = db_list[index]
-                sss_db = index[1]
-                relative_path = '{}/{}'.format(cache_path, sss_db)
-                rm_file = self.multihost.run_command(['rm', '-f',
-                                                      relative_path],
-                                                     raiseonerr=False)
-                if rm_file.returncode != 0:
-                    print("Error: %s", cmd.stderr_text)
-                else:
-                    print("Successfully deleted %s" % (relative_path))
-        else:
-            print('%s path not found' % cache_path)
+        rm_cmd = self.multihost.run_command(
+            f'rm -f {cache_path}/*', raiseonerr=False)
+        if rm_cmd.returncode != 0:
+            print("Error: %s", rm_cmd.stderr_text)
+            return False
+        print("Successfully deleted.")
         return True
 
     def clear_sssd_cache(self, start=True):
-        """ Stop sssd, clear sssd cache/logs and start sssd """
+        """ Stop sssd, clear sssd cache/logs and start sssd
+            :param bool start: Shall the sssd be started afterward
+        """
         self.multihost.service_sssd('stop')
-        self.remove_sss_cache('/var/lib/sss/db')
-        self.remove_sss_cache('/var/lib/sss/mc')
-        self.remove_sss_cache('/var/log/sssd')
+        rm_cmd = self.multihost.run_command(
+            'rm -f /var/lib/sss/{db,mc}/* /var/log/sssd/*', raiseonerr=False)
+        if rm_cmd.returncode != 0:
+            print("Error: %s", rm_cmd.stderr_text)
+        else:
+            print("Successfully deleted.")
         if start:
             self.multihost.service_sssd('start')
-            time.sleep(10)
+            time.sleep(5)
 
     def domain_from_suffix(self, suffix):
         """ Domain name from the suffix
