@@ -3,6 +3,7 @@
 :casecomponent: sssd
 :subsystemteam: sst_idm_sssd
 :upstream: yes
+:status: approved
 """
 from __future__ import print_function
 import pytest

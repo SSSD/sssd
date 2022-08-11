@@ -4,6 +4,7 @@
 :casecomponent: sssd
 :subsystemteam: sst_idm_sssd
 :upstream: yes
+:status: approved
 """
 
 from utils_config import set_param, remove_section

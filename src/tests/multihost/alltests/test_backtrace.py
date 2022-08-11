@@ -4,6 +4,7 @@
 :casecomponent: sssd
 :subsystemteam: sst_idm_sssd
 :upstream: yes
+:status: approved
 :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1949149
 """
 
