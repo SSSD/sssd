@@ -4,6 +4,7 @@
 :casecomponent: sssd
 :subsystemteam: sst_idm_sssd
 :upstream: yes
+:status: approved
 """
 
 import pytest

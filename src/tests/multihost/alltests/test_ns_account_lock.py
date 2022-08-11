@@ -2,6 +2,7 @@
 
 :subsystemteam: sst_idm_sssd
 :upstream: yes
+:status: approved
 :requirement: ns_account_lock
 :casecomponent: sssd
 """
