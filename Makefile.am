@@ -804,7 +804,9 @@ libsss_ldap_la_SOURCES = \
     src/providers/ldap/ldap_init.c \
     src/providers/ldap/ldap_common.c \
     src/providers/ldap/sdap_async.c \
-    src/providers/ldap/sdap_async_accounts.c \
+    src/providers/ldap/sdap_async_users.c \
+    src/providers/ldap/sdap_async_groups.c \
+    src/providers/ldap/sdap_async_initgroups.c \
     src/providers/ldap/sdap_async_connection.c \
     src/providers/ldap/sdap_async_netgroups.c \
     src/providers/ldap/sdap_child_helpers.c \
@@ -901,7 +903,9 @@ libsss_ipa_la_SOURCES = \
     src/providers/ldap/ldap_auth.c \
     src/providers/ldap/ldap_common.c \
     src/providers/ldap/sdap_async.c \
-    src/providers/ldap/sdap_async_accounts.c \
+    src/providers/ldap/sdap_async_users.c \
+    src/providers/ldap/sdap_async_groups.c \
+    src/providers/ldap/sdap_async_initgroups.c \
     src/providers/ldap/sdap_async_connection.c \
     src/providers/ldap/sdap_async_netgroups.c \
     src/providers/ldap/sdap_child_helpers.c \
