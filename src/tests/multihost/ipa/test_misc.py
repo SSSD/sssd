@@ -557,6 +557,10 @@ class Testipabz(object):
           5. Successfully get a ccache file with the FAST armor ticket
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1859751
         """
+        # skipping test for RHEL8.x as a bug BZ1859751 only valid for RHEL9
+        if '8.' in multihost.client[0].distro:
+            pytest.skip("Skipping test for RHEL8.x as automation of a bug BZ1859751 only valid for RHEL9")
+
         sssd_client = sssdTools(multihost.client[0])
         domain_name = f'domain/{sssd_client.get_domain_section_name()}'
         add_anony_pkinit = {'krb5_fast_use_anonymous_pkinit': 'True'}
@@ -597,6 +601,10 @@ class Testipabz(object):
         :bugzilla:
         https://bugzilla.redhat.com/show_bug.cgi?id=1859751
         """
+        # skipping test for RHEL8.x as a bug BZ1859751 only valid for RHEL9
+        if '8.' in multihost.client[0].distro:
+            pytest.skip("Skipping test for RHEL8.x as automation of a bug BZ1859751 only valid for RHEL9")
+
         sssd_client = sssdTools(multihost.client[0])
         domain_section = sssd_client.get_domain_section_name()
         domain_name = f'domain/{domain_section}'
