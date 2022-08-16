@@ -44,7 +44,9 @@ enum sss_mc_state {
     RECYCLED,
 };
 
-/* common stuff */
+/* In the case this structure is extended, don't forget to update
+ * `SSS_CLI_MC_CTX_INITIALIZER` and `sss_nss_mc_destroy_ctx()`.
+ */
 struct sss_cli_mc_ctx {
     enum sss_mc_state initialized;
 #if HAVE_PTHREAD
