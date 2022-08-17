@@ -45,7 +45,7 @@ def create_temp_dir():
 
 
 def striplist(the_list):
-    return([x.strip() for x in the_list])
+    return ([x.strip() for x in the_list])
 
 
 class SSSDConfigTestValid(unittest.TestCase):

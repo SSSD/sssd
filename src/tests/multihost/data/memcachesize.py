@@ -77,7 +77,7 @@ class LookupPerf(object):
                 timestamp = now.strftime("%H:%M:%S:%f")[:-3]
                 print("j = %d, %s, %s" % (j, ug_name, timestamp))
                 if self.find_nss(strace_file, ug_name, i):
-                    return(i)
+                    return (i)
             k1 = int(i / 5)
             k2 = int((2 * i) / 5)
             k3 = int((3 * i) / 5)

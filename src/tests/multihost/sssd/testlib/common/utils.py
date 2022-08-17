@@ -564,7 +564,7 @@ class sssdTools(object):
         if cmd.returncode != 0:
             raise SSSDException("Error: %s", cmd.stderr_text)
         else:
-            return(True, cmd.stdout_text)
+            return (True, cmd.stdout_text)
 
     def su_success(self, username, password='Secret123', with_password=True):
         """Helper function for testing su access
