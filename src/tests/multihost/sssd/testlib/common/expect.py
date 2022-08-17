@@ -75,7 +75,7 @@ class pexpect_ssh(object):
         if raiseonerr:
             if (int(returncode)) != 0:
                 raise OSException('Command failed with err: %s' % (output_str))
-        return(output_str, returncode)
+        return (output_str, returncode)
 
     def logout(self):
         """ Logout of ssh session """
