@@ -378,8 +378,14 @@ errno_t get_token(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        sleep(dc_ctx->interval);
         waiting_time += dc_ctx->interval;
+        if (waiting_time >= dc_ctx->expires_in) {
+            /* Next sleep will end after the request is expired on the
+             * server side, so we can just error out now. */
+            ret = ETIMEDOUT;
+            break;
+        }
+        sleep(dc_ctx->interval);
     } while (waiting_time < dc_ctx->expires_in);
 
     if (ret != EOK) {
