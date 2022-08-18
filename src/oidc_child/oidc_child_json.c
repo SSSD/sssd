@@ -413,6 +413,12 @@ errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
         if (strcmp(json_string_value(tmp), "authorization_pending") == 0) {
             json_decref(result);
             return EAGAIN;
+        } else if (strcmp(json_string_value(tmp), "slow_down") == 0) {
+            /* RFC 8628: "... the interval MUST be increased by 5 seconds for"
+             *           "this and all subsequent requests." */
+            dc_ctx->interval += 5;
+            json_decref(result);
+            return EAGAIN;
         } else {
             *error_description = get_json_string(dc_ctx, result,
                                                  "error_description");
