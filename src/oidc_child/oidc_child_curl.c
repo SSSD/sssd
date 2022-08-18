@@ -428,7 +428,7 @@ done:
 #define DEFAULT_SCOPE "user"
 
 errno_t get_devicecode(struct devicecode_ctx *dc_ctx,
-                       const char *client_id)
+                       const char *client_id, const char *client_secret)
 {
     int ret;
 
@@ -441,6 +441,16 @@ errno_t get_devicecode(struct devicecode_ctx *dc_ctx,
     if (post_data == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate memory for POST data.\n");
         return ENOMEM;
+    }
+
+    if (client_secret != NULL) {
+        post_data = talloc_asprintf_append(post_data, "&client_secret=%s",
+                                           client_secret);
+        if (post_data == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add client secret to POST data.\n");
+            return ENOMEM;
+        }
     }
 
     clean_http_data(dc_ctx);
