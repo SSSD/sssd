@@ -73,7 +73,7 @@ errno_t get_openid_configuration(struct devicecode_ctx *dc_ctx,
 errno_t get_jwks(struct devicecode_ctx *dc_ctx);
 
 errno_t get_devicecode(struct devicecode_ctx *dc_ctx,
-                       const char *client_id);
+                       const char *client_id, const char *client_secret);
 
 errno_t get_token(TALLOC_CTX *mem_ctx,
                   struct devicecode_ctx *dc_ctx, const char *client_id,
