@@ -119,9 +119,9 @@ static errno_t set_endpoints(struct devicecode_ctx *dc_ctx,
     }
 
     if (scope != NULL && *scope != '\0') {
-        dc_ctx->scope = talloc_strdup(dc_ctx, scope);
+        dc_ctx->scope = url_encode_string(dc_ctx, scope);
         if (dc_ctx->scope == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy scopes.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to encode and copy scopes.\n");
             ret = ENOMEM;
             goto done;
         }

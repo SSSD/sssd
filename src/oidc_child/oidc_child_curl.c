@@ -26,6 +26,41 @@
 #include <curl/curl.h>
 #include "oidc_child/oidc_child_util.h"
 
+char *url_encode_string(TALLOC_CTX *mem_ctx, const char *inp)
+{
+    CURL *curl_ctx = NULL;
+    char *tmp;
+    char *out = NULL;
+
+    if (inp == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Empty input.\n");
+        return NULL;
+    }
+
+    curl_ctx = curl_easy_init();
+    if (curl_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize curl.\n");
+        return NULL;
+    }
+
+    tmp = curl_easy_escape(curl_ctx, inp, 0);
+    if (tmp == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "curl_easy_escape failed for [%s].\n", inp);
+        goto done;
+    }
+
+    out = talloc_strdup(mem_ctx, tmp);
+    curl_free(tmp);
+    if (out == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "talloc_strdup failed.\n");
+        goto done;
+    }
+
+done:
+    curl_easy_cleanup(curl_ctx);
+    return (out);
+}
+
 /* The curl write_callback will always append the received data. To start a
  * new string call clean_http_data() before the curl request.*/
 void clean_http_data(struct devicecode_ctx *dc_ctx)
