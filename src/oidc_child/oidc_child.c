@@ -454,7 +454,7 @@ int main(int argc, const char *argv[])
     }
 
     if (opts.get_device_code) {
-        ret = get_devicecode(dc_ctx, opts.client_id);
+        ret = get_devicecode(dc_ctx, opts.client_id, opts.client_secret);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to get device code.\n");
             goto done;
