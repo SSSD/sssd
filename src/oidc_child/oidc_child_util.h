@@ -61,6 +61,8 @@ struct devicecode_ctx {
 };
 
 /* oidc_child_curl.c */
+char *url_encode_string(TALLOC_CTX *mem_ctx, const char *inp);
+
 errno_t init_curl(void *p);
 
 void clean_http_data(struct devicecode_ctx *dc_ctx);
