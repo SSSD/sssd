@@ -14,7 +14,6 @@ class RequestAnalyzer:
     """
     module_parser = None
     consumed_logs = []
-    done = ""
     list_opts = [
         Option('--verbose', 'Verbose output', bool, '-v'),
         Option('--pam', 'Filter only PAM requests', bool),
@@ -149,58 +148,74 @@ class RequestAnalyzer:
                 print(line)
         return found_results
 
-    def print_formatted(self, line, verbose):
+    def print_formatted_verbose(self, source, patterns):
+        """
+        Parse line and print formatted verbose list_requests output
+
+        Args:
+            source (Reader): source Reader object
+            patterns (list): List of regex patterns to use for
+                matching lines
+        """
+        # Get CID number, and print the basic line first
+        for line in self.matched_line(source, patterns):
+            cid = self.print_formatted(line)
+
+            # Loop through each line with this CID number to extract and
+            # print the verbose data needed
+            verbose_patterns = ["(cache_req_send|cache_req_process_input|"
+                                "cache_req_search_send)"]
+            for cidline in self.matched_line(source, verbose_patterns):
+                plugin = ""
+                name = ""
+                id = ""
+
+                # skip any lines not pertaining to this CID
+                if f"CID#{cid}]" not in cidline:
+                    continue
+                if "refreshed" in cidline:
+                    continue
+                # CR Plugin name
+                if re.search("cache_req_send", cidline):
+                    plugin = cidline.split('\'')[1]
+                # CR Input name
+                elif re.search("cache_req_process_input", cidline):
+                    name = cidline.rsplit('[')[-1]
+                # CR Input id
+                elif re.search("cache_req_search_send", cidline):
+                    id = cidline.rsplit()[-1]
+
+                if plugin:
+                    print("   - " + plugin)
+                if name:
+                    print("       - " + name[:-2])
+                if (id and ("UID" in cidline or "GID" in cidline)):
+                    print("       - " + id)
+
+    def print_formatted(self, line):
         """
         Parse line and print formatted list_requests output
 
         Args:
             line (str): line to parse
-            verbose (bool): If true, enable verbose output
+        Returns:
+            Client ID from printed line, 0 otherwise
         """
-        plugin = ""
-        name = ""
-        id = ""
-
         # exclude backtrace logs
         if line.startswith('   *  '):
-            return
-        fields = line.split("[")
-        cr_field = fields[3][7:]
-        cr = cr_field.split(":")[0][4:]
+            return 0
         if "refreshed" in line:
-            return
-        # CR Plugin name
-        if re.search("cache_req_send", line):
-            plugin = line.split('\'')[1]
-        # CR Input name
-        elif re.search("cache_req_process_input", line):
-            name = line.rsplit('[')[-1]
-        # CR Input id
-        elif re.search("cache_req_search_send", line):
-            id = line.rsplit()[-1]
-        # CID and client process name
-        else:
-            ts = line.split(")")[0]
-            ts = ts[1:]
-            fields = line.split("[")
-            cid = fields[3][4:-9]
-            cmd = fields[4][4:-1]
-            uid = fields[5][4:-1]
-            if not uid.isnumeric():
-                uid = fields[6][4:-1]
-            print(f'{ts}: [uid {uid}] CID #{cid}: {cmd}')
-
-        if verbose:
-            if plugin:
-                print("   - " + plugin)
-            if name:
-                if cr not in self.done:
-                    print("       - " + name[:-2])
-                    self.done = cr
-            if id:
-                if cr not in self.done:
-                    print("       - " + id)
-                    self.done = cr
+            return 0
+        ts = line.split(")")[0]
+        ts = ts[1:]
+        fields = line.split("[")
+        cid = fields[3][4:-9]
+        cmd = fields[4][4:-1]
+        uid = fields[5][4:-1]
+        if not uid.isnumeric():
+            uid = fields[6][4:-1]
+        print(f'{ts}: [uid {uid}] CID #{cid}: {cmd}')
+        return cid
 
     def list_requests(self, args):
         """
@@ -215,20 +230,21 @@ class RequestAnalyzer:
         # Log messages matching the following regex patterns contain
         # the useful info we need to produce list output
         patterns = [r'\[cmd']
-        patterns.append("(cache_req_send|cache_req_process_input|"
-                        "cache_req_search_send)")
         if args.pam:
             component = source.Component.PAM
             resp = "pam"
 
         logger.info(f"******** Listing {resp} client requests ********")
         source.set_component(component, False)
-        self.done = ""
-        for line in self.matched_line(source, patterns):
-            if type(source).__name__ == 'Journald':
-                print(line)
-            else:
-                self.print_formatted(line, args.verbose)
+
+        if args.verbose:
+            self.print_formatted_verbose(source, patterns)
+        else:
+            for line in self.matched_line(source, patterns):
+                if type(source).__name__ == 'Journald':
+                    print(line)
+                else:
+                    self.print_formatted(line)
 
     def track_request(self, args):
         """
