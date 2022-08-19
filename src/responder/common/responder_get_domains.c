@@ -19,6 +19,7 @@
 */
 
 #include "util/util.h"
+#include "util/sss_chain_id.h"
 #include "responder/common/responder.h"
 #include "providers/data_provider.h"
 #include "db/sysdb.h"
@@ -751,7 +752,7 @@ sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
                                                    be_conn->bus_name,
                                                    SSS_BUS_PATH, dp_flags,
                                                    entry_type, filter,
-                                                   rctx->client_id_num);
+                                                   sss_chain_id_get());
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;

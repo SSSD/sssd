@@ -165,13 +165,13 @@ struct cli_ctx {
 
     struct cli_creds *creds;
     char *cmd_line;
-    uint64_t old_chain_id;
 
     void *protocol_ctx;
     void *state_ctx;
 
     struct tevent_timer *idle;
     time_t last_request_time;
+    uint32_t client_id_num;
 };
 
 struct sss_cmd_table {
