@@ -302,7 +302,7 @@ sssdpac_internalize(krb5_context kcontext,
 static krb5_authdatatype sssdpac_ad_types[] = { KRB5_AUTHDATA_WIN2K_PAC, 0 };
 
 krb5plugin_authdata_client_ftable_v0 authdata_client_0 = {
-    ((void *)((uintptr_t)("sssd_sssdpac"))),
+    "sssd_sssdpac",
     sssdpac_ad_types,
     sssdpac_init,
     sssdpac_fini,
