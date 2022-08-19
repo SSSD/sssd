@@ -87,8 +87,6 @@ static void client_close_fn(struct tevent_context *ev,
               "Failed to close fd [%d]: [%s]\n",
                ctx->cfd, strerror(ret));
     }
-    /* Restore the original chain id  */
-    sss_chain_id_set(ctx->old_chain_id);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Terminated client [%p][%d]\n",
@@ -532,7 +530,6 @@ static void accept_fd_handler(struct tevent_context *ev,
     int fd = accept_ctx->is_private ? rctx->priv_lfd : rctx->lfd;
 
     rctx->client_id_num++;
-
     if (accept_ctx->is_private) {
         ret = stat(rctx->priv_sock_name, &stat_buf);
         if (ret == -1) {
@@ -562,6 +559,8 @@ static void accept_fd_handler(struct tevent_context *ev,
     }
 
     talloc_set_destructor(cctx, cli_ctx_destructor);
+
+    cctx->client_id_num = rctx->client_id_num;
 
     len = sizeof(cctx->addr);
     cctx->cfd = accept(fd, (struct sockaddr *)&cctx->addr, &len);
@@ -651,7 +650,7 @@ static void accept_fd_handler(struct tevent_context *ev,
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "[CID#%u] Client [cmd %s][uid %u][%p][%d] connected%s!\n",
-          rctx->client_id_num, cctx->cmd_line, cli_creds_get_uid(cctx->creds),
+          cctx->client_id_num, cctx->cmd_line, cli_creds_get_uid(cctx->creds),
           cctx, cctx->cfd, accept_ctx->is_private ? " to privileged pipe" : "");
 
     return;
@@ -1096,6 +1095,7 @@ void sss_client_fd_handler(void *ptr,
                            uint16_t flags)
 {
     errno_t ret;
+    uint64_t old_chain_id;
     struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
 
     /* Always reset the responder idle timer on any activity */
@@ -1111,7 +1111,7 @@ void sss_client_fd_handler(void *ptr,
     }
 
     /* Set the chain id */
-    cctx->old_chain_id = sss_chain_id_set(cctx->rctx->client_id_num);
+    old_chain_id = sss_chain_id_set(cctx->client_id_num);
 
     if (flags & TEVENT_FD_READ) {
         recv_fn(cctx);
@@ -1122,6 +1122,8 @@ void sss_client_fd_handler(void *ptr,
         send_fn(cctx);
         return;
     }
+    /* Restore the original chain id  */
+    sss_chain_id_set(old_chain_id);
 }
 
 int sss_connection_setup(struct cli_ctx *cctx)

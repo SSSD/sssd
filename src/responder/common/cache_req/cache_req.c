@@ -24,6 +24,7 @@
 #include <errno.h>
 
 #include "util/util.h"
+#include "util/sss_chain_id.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req_private.h"
 #include "responder/common/cache_req/cache_req_plugin.h"
@@ -1124,8 +1125,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
     }
     state->first_iteration = true;
 
-    SSS_REQ_TRACE_CID_CR(SSSDBG_TRACE_FUNC, cr, "New request [CID #%u] '%s'\n",
-                         rctx->client_id_num, cr->reqname);
+    SSS_REQ_TRACE_CID_CR(SSSDBG_TRACE_FUNC, cr, "New request [CID #%lu] '%s'\n",
+                         sss_chain_id_get(), cr->reqname);
 
     ret = cache_req_is_well_known_object(state, cr, &result);
     if (ret == EOK) {

@@ -24,6 +24,7 @@
 #include "db/sysdb.h"
 #include "db/sysdb_autofs.h"
 #include "util/util.h"
+#include "util/sss_chain_id.h"
 #include "providers/data_provider.h"
 #include "responder/common/cache_req/cache_req_plugin.h"
 
@@ -114,7 +115,7 @@ cache_req_autofs_map_entries_dp_send(TALLOC_CTX *mem_ctx,
     return sbus_call_dp_autofs_Enumerate_send(mem_ctx, be_conn->conn,
                                               be_conn->bus_name, SSS_BUS_PATH,
                                               0, data->name.name,
-                                              cr->rctx->client_id_num);
+                                              sss_chain_id_get());
 }
 
 bool

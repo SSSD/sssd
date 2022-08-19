@@ -23,6 +23,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include "util/util.h"
+#include "util/sss_chain_id.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
 #include "providers/data_provider.h"
@@ -276,7 +277,7 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     subreq = sbus_call_dp_dp_getAccountInfo_send(state, be_conn->conn,
                  be_conn->bus_name, SSS_BUS_PATH, dp_flags,
                  entry_type, filter, dom->name, extra,
-                 rctx->client_id_num);
+                 sss_chain_id_get());
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
@@ -406,7 +407,7 @@ sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
                                                   SSS_BUS_PATH,
                                                   dp_flags, entry_type,
                                                   filter_type, filter_value,
-                                                  rctx->client_id_num);
+                                                  sss_chain_id_get());
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
