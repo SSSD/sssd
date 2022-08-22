@@ -1645,20 +1645,18 @@ ad_user_conn_list(TALLOC_CTX *mem_ctx,
 }
 
 errno_t ad_inherit_opts_if_needed(struct dp_option *parent_opts,
-                                  struct dp_option *suddom_opts,
+                                  struct dp_option *subdom_opts,
                                   struct confdb_ctx *cdb,
                                   const char *subdom_conf_path,
                                   int opt_id)
 {
     int ret;
-    const char *parent_val = NULL;
-    char *dummy = NULL;
-    char *option_list[2] = { NULL, NULL };
     bool is_default = true;
+    char *dummy = NULL;
 
     switch (parent_opts[opt_id].type) {
     case DP_OPT_STRING:
-        parent_val = dp_opt_get_cstring(parent_opts, opt_id);
+        is_default = (dp_opt_get_cstring(parent_opts, opt_id) == NULL);
         break;
     case DP_OPT_BOOL:
         /* For booleans it is hard to say if the option is set or not since
@@ -1667,13 +1665,13 @@ errno_t ad_inherit_opts_if_needed(struct dp_option *parent_opts,
          * case the sub-domain option would either be the default as well or
          * manully set and in both cases we do not have to change it. */
         is_default = (parent_opts[opt_id].val.boolean
-                                == parent_opts[opt_id].def_val.boolean);
+                          == parent_opts[opt_id].def_val.boolean);
         break;
     default:
         DEBUG(SSSDBG_TRACE_FUNC, "Unsupported type, skipping.\n");
     }
 
-    if (parent_val != NULL || !is_default) {
+    if (!is_default) {
         ret = confdb_get_string(cdb, NULL, subdom_conf_path,
                                 parent_opts[opt_id].opt_name, NULL, &dummy);
         if (ret != EOK) {
@@ -1684,10 +1682,9 @@ errno_t ad_inherit_opts_if_needed(struct dp_option *parent_opts,
         if (dummy == NULL) {
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "Option [%s] is set in parent domain but not set for "
-                  "sub-domain trying to set it to [%s].\n",
-                  parent_opts[opt_id].opt_name, parent_val);
-            option_list[0] = discard_const(parent_opts[opt_id].opt_name);
-            dp_option_inherit(option_list, opt_id, parent_opts, suddom_opts);
+                  "sub-domain, inheriting it from parent.\n",
+                  parent_opts[opt_id].opt_name);
+            dp_option_inherit(opt_id, parent_opts, subdom_opts);
         }
     }
 

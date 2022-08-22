@@ -200,8 +200,12 @@ struct dp_option {
 
 #define DP_OPTION_TERMINATOR { NULL, 0, NULL_STRING, NULL_STRING }
 
-void dp_option_inherit(char **inherit_opt_list,
-                       int option,
+void dp_option_inherit_match(char **inherit_opt_list,
+                             int option,
+                             struct dp_option *parent_opts,
+                             struct dp_option *subdom_opts);
+
+void dp_option_inherit(int option,
                        struct dp_option *parent_opts,
                        struct dp_option *subdom_opts);
 
