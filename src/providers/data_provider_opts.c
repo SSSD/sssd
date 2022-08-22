@@ -22,12 +22,11 @@
 #include "data_provider.h"
 
 /* =Copy-Option-From-Subdomain-If-Allowed================================= */
-void dp_option_inherit(char **inherit_opt_list,
-                       int option,
-                       struct dp_option *parent_opts,
-                       struct dp_option *subdom_opts)
+void dp_option_inherit_match(char **inherit_opt_list,
+                             int option,
+                             struct dp_option *parent_opts,
+                             struct dp_option *subdom_opts)
 {
-    errno_t ret;
     bool inherit_option;
 
     inherit_option = string_in_list(parent_opts[option].opt_name,
@@ -39,8 +38,17 @@ void dp_option_inherit(char **inherit_opt_list,
         return;
     }
 
+    dp_option_inherit(option, parent_opts, subdom_opts);
+}
+
+void dp_option_inherit(int option,
+                       struct dp_option *parent_opts,
+                       struct dp_option *subdom_opts)
+{
+    errno_t ret;
+
     DEBUG(SSSDBG_CONF_SETTINGS,
-          "Will inherit option %s\n", parent_opts[option].opt_name);
+          "Inheriting option %s\n", parent_opts[option].opt_name);
     switch (parent_opts[option].type) {
     case DP_OPT_NUMBER:
         ret = dp_opt_set_int(subdom_opts,

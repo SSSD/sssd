@@ -423,33 +423,33 @@ void opt_test_inherit(void **state)
     assert_int_equal(ret, EOK);
     assert_defaults(opts);
 
-    dp_option_inherit(NULL, OPT_STRING_NODEFAULT,
-                      opts, opts_copy);
+    dp_option_inherit_match(NULL, OPT_STRING_NODEFAULT,
+                            opts, opts_copy);
     s = dp_opt_get_string(opts_copy, OPT_STRING_NODEFAULT);
     assert_null(s);
 
     /* string */
     assert_nondefault_string_empty(opts_copy);
     set_nondefault_string(opts);
-    dp_option_inherit(discard_const(sd_inherit_match),
-                      OPT_STRING_NODEFAULT,
-                      opts, opts_copy);
+    dp_option_inherit_match(discard_const(sd_inherit_match),
+                            OPT_STRING_NODEFAULT,
+                            opts, opts_copy);
     check_nondefault_string(opts_copy);
 
     /* blob */
     assert_nondefault_blob_empty(opts_copy);
     set_nondefault_blob(opts);
-    dp_option_inherit(discard_const(sd_inherit_match),
-                      OPT_BLOB_NODEFAULT,
-                      opts, opts_copy);
+    dp_option_inherit_match(discard_const(sd_inherit_match),
+                            OPT_BLOB_NODEFAULT,
+                            opts, opts_copy);
     check_nondefault_blob(opts_copy);
 
     /* number */
     assert_nondefault_int_notset(opts_copy);
     set_nondefault_int(opts);
-    dp_option_inherit(discard_const(sd_inherit_match),
-                      OPT_INT_NODEFAULT,
-                      opts, opts_copy);
+    dp_option_inherit_match(discard_const(sd_inherit_match),
+                            OPT_INT_NODEFAULT,
+                            opts, opts_copy);
     assert_nondefault_int_set(opts_copy);
 
     /* bool */
@@ -458,9 +458,9 @@ void opt_test_inherit(void **state)
     ret = dp_opt_set_bool(opts, OPT_BOOL_TRUE, false);
     assert_int_equal(ret, EOK);
 
-    dp_option_inherit(discard_const(sd_inherit_match),
-                      OPT_BOOL_TRUE,
-                      opts, opts_copy);
+    dp_option_inherit_match(discard_const(sd_inherit_match),
+                            OPT_BOOL_TRUE,
+                            opts, opts_copy);
 
     assert_false(dp_opt_get_bool(opts_copy, OPT_BOOL_TRUE));
 }
