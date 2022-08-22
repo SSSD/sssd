@@ -278,10 +278,10 @@ static void sdap_inherit_basic_options(char **inherit_opt_list,
     int i;
 
     for (i = 0; inherit_options[i] != SDAP_OPTS_BASIC; i++) {
-        dp_option_inherit(inherit_opt_list,
-                          inherit_options[i],
-                          parent_opts,
-                          subdom_opts);
+        dp_option_inherit_match(inherit_opt_list,
+                                inherit_options[i],
+                                parent_opts,
+                                subdom_opts);
     }
 }
 
