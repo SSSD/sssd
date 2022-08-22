@@ -269,10 +269,21 @@ static void sdap_inherit_basic_options(char **inherit_opt_list,
                                        struct dp_option *subdom_opts)
 {
     int inherit_options[] = {
+        SDAP_SEARCH_TIMEOUT,
+        SDAP_NETWORK_TIMEOUT,
+        SDAP_OPT_TIMEOUT,
+        SDAP_OFFLINE_TIMEOUT,
+        SDAP_ENUM_REFRESH_TIMEOUT,
+        SDAP_ENUM_REFRESH_OFFSET,
         SDAP_PURGE_CACHE_TIMEOUT,
+        SDAP_PURGE_CACHE_OFFSET,
+        SDAP_KRB5_KEYTAB,
+        SDAP_KRB5_TICKET_LIFETIME,
+        SDAP_ENUM_SEARCH_TIMEOUT,
+        SDAP_EXPIRE_TIMEOUT,
+        SDAP_EXPIRE_OFFSET,
         SDAP_IDLE_TIMEOUT,
         SDAP_AD_USE_TOKENGROUPS,
-        SDAP_KRB5_KEYTAB,
         SDAP_OPTS_BASIC     /* sentinel */
     };
     int i;

@@ -3004,6 +3004,11 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             containing many members.
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: FALSE
                         </para>
                     </listitem>
@@ -3687,10 +3692,44 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             Currently the following options can be inherited:
                         </para>
                         <para>
-                            ignore_group_members
+                            ldap_search_timeout
+                        </para>
+                        <para>
+                            ldap_network_timeout
+                        </para>
+                        <para>
+                            ldap_opt_timeout
+                        </para>
+                        <para>
+                            ldap_offline_timeout
+                        </para>
+                        <para>
+                            ldap_enumeration_refresh_timeout
+                        </para>
+                        <para>
+                            ldap_enumeration_refresh_offset
                         </para>
                         <para>
                             ldap_purge_cache_timeout
+                        </para>
+                        <para>
+                            ldap_purge_cache_offset
+                        </para>
+                        <para>
+                            ldap_krb5_keytab (the value of krb5_keytab will be
+                            used if ldap_krb5_keytab is not set explicitly)
+                        </para>
+                        <para>
+                            ldap_krb5_ticket_lifetime
+                        </para>
+                        <para>
+                            ldap_enumeration_search_timeout
+                        </para>
+                        <para>
+                            ldap_connection_expire_timeout
+                        </para>
+                        <para>
+                            ldap_connection_expire_offset
                         </para>
                         <para>
                             ldap_connection_idle_timeout
@@ -3702,8 +3741,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             ldap_user_principal
                         </para>
                         <para>
-                            ldap_krb5_keytab (the value of krb5_keytab will be
-                            used if ldap_krb5_keytab is not set explicitly)
+                            ignore_group_members
                         </para>
                         <para>
                             auto_private_groups
