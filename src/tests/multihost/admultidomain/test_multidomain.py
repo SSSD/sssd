@@ -153,4 +153,3 @@ class TestADMultiDomain(object):
         multihost_list.sort()
 
         assert domain_list == multihost_list
-
