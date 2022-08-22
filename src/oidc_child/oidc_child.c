@@ -34,7 +34,7 @@
 #include "util/atomic_io.h"
 
 #define IN_BUF_SIZE 4096
-static errno_t read_device_code_from_stdin(struct devicecode_ctx *dc_ctx)
+static errno_t read_from_stdin(TALLOC_CTX *mem_ctx, char **out)
 {
     uint8_t buf[IN_BUF_SIZE];
     ssize_t len;
@@ -56,7 +56,7 @@ static errno_t read_device_code_from_stdin(struct devicecode_ctx *dc_ctx)
         return EINVAL;
     }
 
-    str = talloc_strndup(dc_ctx, (char *) buf, len);
+    str = talloc_strndup(mem_ctx, (char *) buf, len);
     sss_erase_mem_securely(buf, IN_BUF_SIZE);
     if (str == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strndup failed.\n");
@@ -65,17 +65,68 @@ static errno_t read_device_code_from_stdin(struct devicecode_ctx *dc_ctx)
     talloc_set_destructor((void *) str, sss_erase_talloc_mem_securely);
 
     if (strlen(str) != len) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Input contains additional data, "
-              "only JSON encoded device code expected.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Input contains additional data.\n");
         talloc_free(str);
         return EINVAL;
     }
 
+    *out = str;
+
+    return EOK;
+}
+
+static errno_t read_device_code_from_stdin(struct devicecode_ctx *dc_ctx,
+                                           const char **out)
+{
+    char *str;
+    errno_t ret;
+    char *sep;
+
+    ret = read_from_stdin(dc_ctx, &str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "read_from_stdin failed.\n");
+        return ret;
+    }
+
+    if (out != NULL) {
+        /* expect the client secret in the first line */
+        sep = strchr(str, '\n');
+        if (sep == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Format error, expecting client secret and JSON data.\n");
+            talloc_free(str);
+            return EINVAL;
+        }
+        *sep = '\0';
+        *out = str;
+        sep++;
+    } else {
+        sep = str;
+    }
+
     clean_http_data(dc_ctx);
-    dc_ctx->http_data = str;
+    dc_ctx->http_data = talloc_strdup(dc_ctx, sep);
 
     DEBUG(SSSDBG_TRACE_ALL, "JSON device code: [%s].\n", dc_ctx->http_data);
+
+    return EOK;
+}
+
+static errno_t read_client_secret_from_stdin(struct devicecode_ctx *dc_ctx,
+                                             const char **out)
+{
+    char *str;
+    errno_t ret;
+
+    ret = read_from_stdin(dc_ctx, &str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "read_from_stdin failed.\n");
+        return ret;
+    }
+
+    *out = str;
+
+    DEBUG(SSSDBG_TRACE_ALL, "Client secret: [%s].\n", *out);
 
     return EOK;
 }
@@ -210,6 +261,7 @@ struct cli_opts {
     const char *jwks_uri;
     const char *scope;
     const char *client_secret;
+    bool client_secret_stdin;
     const char *ca_db;
     const char *user_identifier_attr;
     bool libcurl_debug;
@@ -253,6 +305,8 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
         {"client-id", 0, POPT_ARG_STRING, &opts->client_id, 0, _("Client ID"), NULL},
         {"client-secret", 0, POPT_ARG_STRING, &opts->client_secret, 0,
                 _("Client secret (if needed)"), NULL},
+        {"client-secret-stdin", 0, POPT_ARG_NONE, NULL, 's',
+                _("Read client secret from standard input"), NULL},
         {"ca-db", 0, POPT_ARG_STRING, &opts->ca_db, 0,
                 _("Path to PEM file with CA certificates"), NULL},
         {"libcurl-debug", 0, POPT_ARG_NONE, NULL, 'c',
@@ -279,6 +333,9 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
             break;
         case 'c':
             opts->libcurl_debug = true;
+            break;
+        case 's':
+            opts->client_secret_stdin = true;
             break;
         default:
             fprintf(stderr, "\nInvalid option %s: %s\n\n",
@@ -321,6 +378,12 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
 
     if (opts->client_id == NULL) {
         fprintf(stderr, "\n--client-id must be given.\n\n");
+        goto done;
+    }
+
+    if (opts->client_secret != NULL && opts->client_secret_stdin) {
+        fprintf(stderr, "\n--client-secret and --client-secret-stdin are "
+                        "mutually exclusive.\n\n");
         goto done;
     }
 
@@ -454,6 +517,15 @@ int main(int argc, const char *argv[])
     }
 
     if (opts.get_device_code) {
+        if (opts.client_secret_stdin) {
+            ret = read_client_secret_from_stdin(dc_ctx, &opts.client_secret);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to read client secret from stdin.\n");
+                goto done;
+            }
+        }
+
         ret = get_devicecode(dc_ctx, opts.client_id, opts.client_secret);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to get device code.\n");
@@ -463,7 +535,10 @@ int main(int argc, const char *argv[])
 
     if (opts.get_access_token) {
         if (dc_ctx->device_code == NULL) {
-            ret = read_device_code_from_stdin(dc_ctx);
+            ret = read_device_code_from_stdin(dc_ctx,
+                                              opts.client_secret_stdin
+                                                           ? &opts.client_secret
+                                                           : NULL);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "Failed to read device code from stdin.\n");
