@@ -665,11 +665,13 @@ static int add_services_startup_timeout(struct mt_ctx *ctx)
     struct tevent_timer *to;
     struct timeval tv;
 
-    /* `monitor_service_init()` allows 10 secs for any connected sbus client
-        to proceed with registration.
-        It makes sense to allow overall provider startup timeout
-        to be slightly greater. */
-    tv = tevent_timeval_current_ofs(10, 100000); /* 10.1 sec */
+    /*
+     * `monitor_service_init()` allows sbus_timeout secs for any connected
+     * sbus client to proceed with registration. It makes sense to allow
+     * overall provider startup timeout to be slightly greater
+     * (sbus_timeout + 100 milliseconds)
+     */
+    tv = tevent_timeval_current_ofs(ctx->service_id_timeout / 1000, 100000);
     to = tevent_add_timer(ctx->ev, ctx, tv, services_startup_timeout, ctx);
     if (!to) {
         DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
@@ -2226,8 +2228,8 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
     /* Allow access from the SSSD user */
     sbus_allow_uid(conn, &ctx->uid);
 
-    /* 10 seconds should be plenty */
-    tv = tevent_timeval_current_ofs(10, 0);
+    /* Wait up to sbus_timeout seconds */
+    tv = tevent_timeval_current_ofs(ctx->service_id_timeout / 1000, 0);
 
     mini->timeout = tevent_add_timer(ctx->ev, mini, tv, init_timeout, mini);
     if (!mini->timeout) {
