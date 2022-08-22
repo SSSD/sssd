@@ -161,7 +161,7 @@ class TestADSchema:
         assert ad_info['gidnumber_'] == ldb_info['gidNumber']
         assert ad_info['gecos'] == ldb_info['gecos']
         assert ldb_info['originalMemberOf'].replace(" ", "") \
-               in ad_info['MemberOf'].replace(" ", "")
+            in ad_info['MemberOf'].replace(" ", "")
         assert ad_info['userAccountControl'] == \
             ldb_info['adUserAccountControl']
         assert ad_info['objectSid'] == ldb_info['objectSIDString']
@@ -325,7 +325,7 @@ class TestADSchema:
         assert ad_info['unixHomeDirectory'] == ldb_info['homeDirectory']
         assert ad_info['accountExpires'] == ldb_info['adAccountExpires']
         assert ldb_info['originalMemberOf'].replace(" ", "") in \
-               ad_info['MemberOf'].replace(" ", "")
+            ad_info['MemberOf'].replace(" ", "")
         assert ad_info['userAccountControl'] == \
             ldb_info['adUserAccountControl']
         assert ad_info['objectSid'] == ldb_info['objectSIDString']
