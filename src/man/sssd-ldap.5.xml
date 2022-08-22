@@ -323,6 +323,11 @@
                             records.
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: 300
                         </para>
                     </listitem>
@@ -345,6 +350,11 @@
                             the server and can't be disabled. By default,
                             the cleanup task will run every 3 hours with
                             enumeration enabled.
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: 0 (disabled)
@@ -393,6 +403,11 @@
                           This options enables or disables use of Token-Groups
                           attribute when performing initgroup for users from
                           Active Directory Server 2008 and later.
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: True for AD and IPA otherwise False.
@@ -450,6 +465,11 @@
                             lookup types.
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: 6
                         </para>
                     </listitem>
@@ -464,6 +484,11 @@
                             are allowed to run before they are cancelled and
                             cached results are returned (and offline mode is
                             entered)
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: 60
@@ -492,6 +517,11 @@
                             returns in case of no activity.
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: 6
                         </para>
                     </listitem>
@@ -508,6 +538,11 @@
                             bind, the timeout of an LDAP bind operation,
                             password change extended operation and the
                             StartTLS operation.
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: 8
@@ -544,6 +579,11 @@
                             <emphasis>ldap_connection_expire_offset</emphasis>
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: 900 (15 minutes)
                         </para>
                     </listitem>
@@ -556,6 +596,11 @@
                             Random offset between 0 and configured value
                             is added to
                             <emphasis>ldap_connection_expire_timeout</emphasis>.
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: 0
@@ -1003,6 +1048,11 @@ host/*
                             SASL/GSSAPI/GSS-SPNEGO.
                         </para>
                         <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
+                        </para>
+                        <para>
                             Default: System keytab, normally <filename>/etc/krb5.keytab</filename>
                         </para>
                     </listitem>
@@ -1029,6 +1079,11 @@ host/*
                         <para>
                             Specifies the lifetime in seconds of the TGT if
                             GSSAPI or GSS-SPNEGO is used.
+                        </para>
+                        <para>
+                            This option can be also set per subdomain or
+                            inherited via
+                            <emphasis>subdomain_inherit</emphasis>.
                         </para>
                         <para>
                             Default: 86400 (24 hours)
