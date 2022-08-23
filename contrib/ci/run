@@ -144,9 +144,7 @@ function build_debug()
     declare -r valgrind_test_pattern+="*/double_semicolon_test)"
     export CFLAGS="$DEBUG_CFLAGS"
     declare test_dir
-    declare test_dir_distcheck
     declare intgcheck_configure_args
-    declare distcheck_configure_args
     declare status
 
     test_dir=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
@@ -183,17 +181,6 @@ function build_debug()
                                         $intgcheck_configure_args"
         fi
 
-        test_dir_distcheck=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
-        # Single thread due to https://fedorahosted.org/sssd/ticket/2354
-        status=0
-        printf -v distcheck_configure_args " %q" \
-                    "${CONFIGURE_ARG_LIST[@]}" \
-                    "--with-test-dir=$test_dir_distcheck"
-        stage make-distcheck    make distcheck \
-                                    AUX_DISTCHECK_CONFIGURE_FLAGS=" \
-                                        $distcheck_configure_args" ||
-                status=$?
-        mv "$test_dir_distcheck" ci-test-dir-distcheck
         ((status == 0))
     fi
 
