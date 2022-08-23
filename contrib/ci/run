@@ -154,9 +154,6 @@ function build_debug()
                                 "${CONFIGURE_ARG_LIST[@]}" \
                                 --with-test-dir="$test_dir"
 
-    # Not building "tests" due to https://fedorahosted.org/sssd/ticket/2350
-    stage make-tests        make -j $CPU_NUM check LOG_COMPILER=true
-
     status=0
     CK_FORK=no \
     DEBUGINFOD_URLS="" \
