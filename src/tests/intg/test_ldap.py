@@ -1860,15 +1860,9 @@ def test_rename_incomplete_group_same_dn(ldap_conn, rename_setup_with_name):
 
 def test_rename_incomplete_group_rdn_changed(ldap_conn, rename_setup_cleanup):
     """
-    Test that if a group's name attribute changes, and the DN changes with
-    the RDN. Then adding the second group will fail because we can't tell if
-    there are two duplicate groups in LDAP when saving the group or if the
-    group was renamed.
-
-    Please note that with many directories (AD, IPA), the code can rely on
-    other heuristics (SID, UUID) to find out the group is in fact the same.
-
-    Regression test for https://github.com/SSSD/sssd/issues/4315
+    If a group is renamed and also some attributes changed and gid remains the
+    same then existing group in the cache is overridden with the new attributes
+    and name.
     """
     pvt_dn = 'cn=user1_private,ou=Groups,' + ldap_conn.ds_inst.base_dn
     group1_dn = 'cn=group1,ou=Groups,' + ldap_conn.ds_inst.base_dn
@@ -1890,7 +1884,7 @@ def test_rename_incomplete_group_rdn_changed(ldap_conn, rename_setup_cleanup):
 
     # The initgroups succeeds, but because saving the new group fails,
     # SSSD will revert to the cache contents and return what's in the cache
-    assert sorted(grp_list) == sorted(["user2_private", "group1"])
+    assert sorted(grp_list) == sorted(["user2_private", "new_group1"])
 
 
 @pytest.fixture
