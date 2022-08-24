@@ -160,11 +160,14 @@ class RequestAnalyzer:
         # Get CID number, and print the basic line first
         for line in self.matched_line(source, patterns):
             cid = self.print_formatted(line)
+            id_done = []
+            cr_done = []
+            second_pass = False
 
             # Loop through each line with this CID number to extract and
             # print the verbose data needed
             verbose_patterns = ["(cache_req_send|cache_req_process_input|"
-                                "cache_req_search_send)"]
+                                "cache_req_search_send|accept_fd_handler)"]
             for cidline in self.matched_line(source, verbose_patterns):
                 plugin = ""
                 name = ""
@@ -173,11 +176,24 @@ class RequestAnalyzer:
                 # skip any lines not pertaining to this CID
                 if f"CID#{cid}]" not in cidline:
                     continue
-                if "refreshed" in cidline:
+                if "refreshed" in cidline or "Returning" in cidline:
                     continue
+                # avoid broken output when CID logs overlap (responder
+                # is restarted)
+                if "accept_fd_handler" in cidline:
+                    if second_pass:
+                        break
+                    second_pass = True
+
+                # CR number
+                fields = cidline.split("[")
+                cr_field = fields[3][7:]
+                cr = cr_field.split(":")[0][4:]
+
                 # CR Plugin name
                 if re.search("cache_req_send", cidline):
                     plugin = cidline.split('\'')[1]
+                    id_done.clear()
                 # CR Input name
                 elif re.search("cache_req_process_input", cidline):
                     name = cidline.rsplit('[')[-1]
@@ -188,9 +204,14 @@ class RequestAnalyzer:
                 if plugin:
                     print("   - " + plugin)
                 if name:
-                    print("       - " + name[:-2])
+                    # Avoid duplicate CID output with the same CR #
+                    if cr not in cr_done:
+                        print("       - " + name[:-2])
+                        cr_done.append(cr)
                 if (id and ("UID" in cidline or "GID" in cidline)):
-                    print("       - " + id)
+                    if id not in id_done:
+                        print("       - " + id)
+                        id_done.append(id)
 
     def print_formatted(self, line):
         """
@@ -259,8 +280,7 @@ class RequestAnalyzer:
         be_results = False
         component = source.Component.NSS
         resp = "nss"
-        pattern = [rf'REQ_TRACE.*\[CID #{cid}\]']
-        pattern.append(rf"\[CID#{cid}\]")
+        pattern = [rf"\[CID#{cid}\]"]
 
         if args.pam:
             component = source.Component.PAM
