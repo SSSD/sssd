@@ -90,6 +90,7 @@ class TestSssctlAnalyze(object):
          from different location or logs from other host
         :id: d297b394-3502-4ade-a5a5-5fb4c4333645
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1294670
+                   https://github.com/SSSD/sssd/issues/6298
         :steps:
           1. Configure sssd to authenticate against directory server
           2. Enable debug_level to 9 in the 'nss', 'pam' and domain section
@@ -97,7 +98,8 @@ class TestSssctlAnalyze(object):
           4. Fetch user as well as  information using 'id' and 'groups' tools
           5. Log in as user via ssh
           6. Copy sssd logs to a different location
-          7. Confirm --logdir allows analyze to parse logs from that location
+          7. Stop sssd and remove conf, logs and cache
+          8. Confirm --logdir allows analyze to parse logs from that location
         :expectedresults:
           1. Should succeed
           2. Should succeed
@@ -105,7 +107,8 @@ class TestSssctlAnalyze(object):
           4. Should succeed
           5. Should succeed
           6. Should succeed
-          7. Should succeed
+          7. No sssd running or configured
+          8. Should succeed
         """
         tools = sssdTools(multihost.client[0])
         dm_sec = ['nss', 'pam']
@@ -126,8 +129,13 @@ class TestSssctlAnalyze(object):
             pytest.fail(f'{user} failed to login')
         else:
             client.logout()
-        cp_cmd = 'cp -r /var/log/sssd/ /tmp/'
+        cp_cmd = 'cp -r /var/log/sssd /tmp/'
         multihost.client[0].run_command(cp_cmd, raiseonerr=False)
+        multihost.client[0].service_sssd('stop')
+        cp_cmd = 'rm -f /etc/sssd/sssd.conf'
+        multihost.client[0].run_command(cp_cmd, raiseonerr=False)
+        tools.remove_sss_cache('/var/log/sssd/')
+        tools.remove_sss_cache('/var/lib/sss/db/')
         ss_op = 'show 1 --pam'
         log_dir = '--logdir /tmp/sssd/'
         _, stdout = analyze(multihost, ss_op, log_dir)
@@ -137,7 +145,8 @@ class TestSssctlAnalyze(object):
             assert pam_auth in stdout
         for act_op in ['list', 'list -v']:
             _, stdout = analyze(multihost, act_op, log_dir)
-            assert all(ptn in stdout for ptn in ['id', 'ssh'])
+            assert 'id' in stdout
+            assert 'sshd' or 'auditd' in stdout
 
     def test_analyze_pam_logs(self, multihost, backupsssdconf):
         """
