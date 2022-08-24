@@ -139,8 +139,8 @@ class TestSssctlAnalyze(object):
         ss_op = 'show 1 --pam'
         log_dir = '--logdir /tmp/sssd/'
         _, stdout = analyze(multihost, ss_op, log_dir)
-        pam_cmds = ['SSS_PAM_AUTHENTICATE', 'SSS_PAM_AUTHENTICATE',
-                    'SSS_PAM_ACCT_MGMT', 'SSS_PAM_SETCRED']
+        pam_cmds = ['SSS_PAM_AUTHENTICATE', 'SSS_PAM_ACCT_MGMT',
+                    'SSS_PAM_SETCRED']
         for pam_auth in pam_cmds:
             assert pam_auth in stdout
         for act_op in ['list', 'list -v']:
@@ -190,8 +190,8 @@ class TestSssctlAnalyze(object):
             client.logout()
         _, stdout = analyze(multihost, 'show 1 --pam')
         assert 'CID #1' in stdout
-        pam_cmds = ['SSS_PAM_AUTHENTICATE', 'SSS_PAM_AUTHENTICATE',
-                    'SSS_PAM_ACCT_MGMT', 'SSS_PAM_SETCRED']
+        pam_cmds = ['SSS_PAM_AUTHENTICATE', 'SSS_PAM_ACCT_MGMT',
+                    'SSS_PAM_SETCRED']
         for pam_auth in pam_cmds:
             assert pam_auth in stdout
 
