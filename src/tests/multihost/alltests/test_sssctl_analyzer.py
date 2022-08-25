@@ -31,7 +31,7 @@ def analyze(multihost, req_arg, op_arg=None):
 
 @pytest.mark.usefixtures('setup_sssd_krb', 'create_posix_usersgroups')
 @pytest.mark.analyze
-@pytest.mark.tier1_2
+@pytest.mark.tier1_4
 class TestSssctlAnalyze(object):
     """ sssctl analyze test suite """
     def test_analyze_list(self, multihost, backupsssdconf):
