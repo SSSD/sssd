@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdatomic.h>
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -1129,26 +1128,22 @@ errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len)
 }
 
 #if HAVE_PTHREAD
+static bool sss_lock_free = true;
+static pthread_once_t sss_lock_mode_initialized = PTHREAD_ONCE_INIT;
+
+static void init_lock_mode(void)
+{
+    const char *env = getenv("SSS_LOCKFREE");
+
+    if ((env != NULL) && (strcasecmp(env, "NO") == 0)) {
+        sss_lock_free = false;
+    }
+}
+
 bool sss_is_lockfree_mode(void)
 {
-    const char *env = NULL;
-    enum {
-        MODE_UNDEF,
-        MODE_LOCKING,
-        MODE_LOCKFREE
-    };
-    static atomic_int mode = MODE_UNDEF;
-
-    if (mode == MODE_UNDEF) {
-        env = getenv("SSS_LOCKFREE");
-        if ((env != NULL) && (strcasecmp(env, "NO") == 0)) {
-            mode = MODE_LOCKING;
-        } else {
-            mode = MODE_LOCKFREE;
-        }
-    }
-
-    return (mode == MODE_LOCKFREE);
+    pthread_once(&sss_lock_mode_initialized, init_lock_mode);
+    return sss_lock_free;
 }
 
 struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
