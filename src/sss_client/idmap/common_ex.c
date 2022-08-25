@@ -28,7 +28,9 @@
 #include "common_private.h"
 
 extern struct sss_mutex sss_nss_mtx;
+#ifdef HAVE_PTHREAD_EXT
 bool sss_is_lockfree_mode(void);
+#endif
 
 #define SEC_FROM_MSEC(ms) ((ms) / 1000)
 #define NSEC_FROM_MSEC(ms) (((ms) % 1000) * 1000 * 1000)
@@ -51,9 +53,11 @@ static int sss_mt_timedlock(struct sss_mutex *m, const struct timespec *endtime)
 {
     int ret;
 
+#ifdef HAVE_PTHREAD_EXT
     if (sss_is_lockfree_mode()) {
         return 0;
     }
+#endif
 
     ret = pthread_mutex_timedlock(&m->mtx, endtime);
     if (ret != 0) {
