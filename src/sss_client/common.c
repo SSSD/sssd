@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdatomic.h>
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -62,8 +61,15 @@
 
 /* common functions */
 
+#ifdef HAVE_PTHREAD_EXT
+static pthread_key_t sss_sd_key;
+static pthread_once_t sss_sd_key_initialized = PTHREAD_ONCE_INIT;
 static __thread int sss_cli_sd = -1; /* the sss client socket descriptor */
 static __thread struct stat sss_cli_sb; /* the sss client stat buffer */
+#else
+static int sss_cli_sd = -1; /* the sss client socket descriptor */
+static struct stat sss_cli_sb; /* the sss client stat buffer */
+#endif
 
 #if HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR
 __attribute__((destructor))
@@ -75,6 +81,18 @@ void sss_cli_close_socket(void)
         sss_cli_sd = -1;
     }
 }
+
+#ifdef HAVE_PTHREAD_EXT
+static void sss_at_thread_exit(void *v)
+{
+    sss_cli_close_socket();
+}
+
+static void init_sd_key(void)
+{
+    pthread_key_create(&sss_sd_key, sss_at_thread_exit);
+}
+#endif
 
 /* Requests:
  *
@@ -552,6 +570,16 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
         *errnop = errno;
         return -1;
     }
+
+#ifdef HAVE_PTHREAD_EXT
+    pthread_once(&sss_sd_key_initialized, init_sd_key); /* once for all threads */
+
+    /* It actually doesn't matter what value to set for a key.
+     * The only important thing: key must be non-NULL to ensure
+     * destructor is executed at thread exit.
+     */
+    pthread_setspecific(sss_sd_key, &sss_cli_sd);
+#endif
 
     /* set as non-blocking, close on exec, and make sure standard
      * descriptors are not used */
@@ -1129,41 +1157,38 @@ errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len)
 }
 
 #if HAVE_PTHREAD
-bool sss_is_lockfree_mode(void)
+
+#ifdef HAVE_PTHREAD_EXT
+static bool sss_lock_free = true;
+static pthread_once_t sss_lock_mode_initialized = PTHREAD_ONCE_INIT;
+
+static void init_lock_mode(void)
 {
-    const char *env = NULL;
-    enum {
-        MODE_UNDEF,
-        MODE_LOCKING,
-        MODE_LOCKFREE
-    };
-    static atomic_int mode = MODE_UNDEF;
+    const char *env = getenv("SSS_LOCKFREE");
 
-    if (mode == MODE_UNDEF) {
-        env = getenv("SSS_LOCKFREE");
-        if ((env != NULL) && (strcasecmp(env, "NO") == 0)) {
-            mode = MODE_LOCKING;
-        } else {
-            mode = MODE_LOCKFREE;
-        }
+    if ((env != NULL) && (strcasecmp(env, "NO") == 0)) {
+        sss_lock_free = false;
     }
-
-    return (mode == MODE_LOCKFREE);
 }
 
+bool sss_is_lockfree_mode(void)
+{
+    pthread_once(&sss_lock_mode_initialized, init_lock_mode);
+    return sss_lock_free;
+}
+#endif
+
 struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
-
 static struct sss_mutex sss_pam_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
-
-static struct sss_mutex sss_nss_mc_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
-
 static struct sss_mutex sss_pac_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
 static void sss_mt_lock(struct sss_mutex *m)
 {
+#ifdef HAVE_PTHREAD_EXT
     if (sss_is_lockfree_mode()) {
         return;
     }
+#endif
 
     pthread_mutex_lock(&m->mtx);
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &m->old_cancel_state);
@@ -1171,9 +1196,11 @@ static void sss_mt_lock(struct sss_mutex *m)
 
 static void sss_mt_unlock(struct sss_mutex *m)
 {
+#ifdef HAVE_PTHREAD_EXT
     if (sss_is_lockfree_mode()) {
         return;
     }
+#endif
 
     pthread_setcancelstate(m->old_cancel_state, NULL);
     pthread_mutex_unlock(&m->mtx);
@@ -1189,7 +1216,7 @@ void sss_nss_unlock(void)
     sss_mt_unlock(&sss_nss_mtx);
 }
 
-/* NSS mutex wrappers */
+/* PAM mutex wrappers */
 void sss_pam_lock(void)
 {
     sss_mt_lock(&sss_pam_mtx);
@@ -1197,16 +1224,6 @@ void sss_pam_lock(void)
 void sss_pam_unlock(void)
 {
     sss_mt_unlock(&sss_pam_mtx);
-}
-
-/* NSS mutex wrappers */
-void sss_nss_mc_lock(void)
-{
-    sss_mt_lock(&sss_nss_mc_mtx);
-}
-void sss_nss_mc_unlock(void)
-{
-    sss_mt_unlock(&sss_nss_mc_mtx);
 }
 
 /* PAC mutex wrappers */

@@ -51,18 +51,39 @@ AC_CHECK_TYPES([errno_t], [], [], [[#include <errno.h>]])
 m4_include([src/build_macros.m4])
 BUILD_WITH_SHARED_BUILD_DIR
 
-AC_COMPILE_IFELSE(
+
+SAVE_LIBS=$LIBS
+LIBS=
+AC_LINK_IFELSE(
     [AC_LANG_PROGRAM([[#include <pthread.h>]],
         [[pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-          (void) m; /* unused */
+          pthread_mutex_lock(&m);
+          pthread_mutex_unlock(&m);
         ]])],
     [AC_DEFINE([HAVE_PTHREAD], [1], [Pthread mutexes available.])
      HAVE_PTHREAD=1
     ],
-    [AC_MSG_WARN([Pthread library not found! Clients will not be thread safe...])])
-
-
+    [AC_MSG_WARN([Pthread mutex support not found! Clients will not be thread safe...])])
+LIBS=$SAVE_LIBS
 AM_CONDITIONAL([HAVE_PTHREAD], [test x"$HAVE_PTHREAD" != "x"])
+
+
+SAVE_LIBS=$LIBS
+LIBS=
+AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM([[#include <pthread.h>]],
+        [[static pthread_key_t k;
+          static pthread_once_t f = PTHREAD_ONCE_INIT;
+          pthread_once(&f, NULL);
+          pthread_key_create(&k, NULL);
+        ]])],
+    [AC_DEFINE([HAVE_PTHREAD_EXT], [1], [Extended pthread functionality is available.])
+     HAVE_PTHREAD_EXT=1
+    ],
+    [AC_MSG_WARN([Extended pthread functionality is not available. Lock-free client feature will not be built.])])
+LIBS=$SAVE_LIBS
+AM_CONDITIONAL([BUILD_LOCKFREE_CLIENT], [test x"$HAVE_PTHREAD_EXT" != "x"])
+
 
 # Check library for the timer_create function
 SAVE_LIBS=$LIBS
