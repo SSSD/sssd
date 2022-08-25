@@ -557,6 +557,7 @@ class Testipabz(object):
           5. Successfully get a ccache file with the FAST armor ticket
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1859751
         """
+        multihost.client[0].run_command('yum install krb5-pkinit -y')
         sssd_client = sssdTools(multihost.client[0])
         domain_name = f'domain/{sssd_client.get_domain_section_name()}'
         add_anony_pkinit = {'krb5_fast_use_anonymous_pkinit': 'True'}
