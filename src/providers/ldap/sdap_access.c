@@ -1242,34 +1242,11 @@ done:
     return ret;
 }
 
-static errno_t sdap_access_host(struct ldb_message *user_entry)
+static errno_t sdap_access_host_comp(struct ldb_message_element *el, char *hostname)
 {
-    errno_t ret;
-    struct ldb_message_element *el;
+    errno_t ret = ENOENT;
     unsigned int i;
     char *host;
-    char hostname[HOST_NAME_MAX + 1];
-
-    el = ldb_msg_find_element(user_entry, SYSDB_AUTHORIZED_HOST);
-    if (!el || el->num_values == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing hosts. Access denied\n");
-        return ERR_ACCESS_DENIED;
-    }
-
-    if (gethostname(hostname, sizeof(hostname)) == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to get system hostname. Access denied\n");
-        return ERR_ACCESS_DENIED;
-    }
-    hostname[HOST_NAME_MAX] = '\0';
-
-    /* FIXME: PADL's pam_ldap also calls gethostbyname() on the hostname
-     *        in some attempt to get aliases and/or FQDN for the machine.
-     *        Not sure this is a good idea, but we might want to add it in
-     *        order to be compatible...
-     */
-
-    ret = ENOENT;
 
     for (i = 0; i < el->num_values; i++) {
         host = (char *)el->values[i].data;
@@ -1296,6 +1273,47 @@ static errno_t sdap_access_host(struct ldb_message *user_entry)
             ret = EOK;
         }
     }
+    return ret;
+}
+
+static errno_t sdap_access_host(struct ldb_message *user_entry)
+{
+    errno_t ret;
+    struct ldb_message_element *el;
+    char hostname[HOST_NAME_MAX + 1];
+    struct addrinfo *res = NULL;
+    struct addrinfo hints;
+
+    el = ldb_msg_find_element(user_entry, SYSDB_AUTHORIZED_HOST);
+    if (!el || el->num_values == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing hosts. Access denied\n");
+        return ERR_ACCESS_DENIED;
+    }
+
+    if (gethostname(hostname, sizeof(hostname)) == -1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to get system hostname. Access denied\n");
+        return ERR_ACCESS_DENIED;
+    }
+    hostname[HOST_NAME_MAX] = '\0';
+
+    /* Canonicalize the hostname */
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_CANONNAME;
+    ret = getaddrinfo(hostname, NULL, &hints, &res);
+    if (ret != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to canonicalize hostname\n");
+        freeaddrinfo(res);
+        res = NULL;
+    }
+
+    ret = sdap_access_host_comp(el, hostname);
+    if (ret == ENOENT && res != NULL && res->ai_canonname != NULL) {
+        ret = sdap_access_host_comp(el, res->ai_canonname);
+    }
+    freeaddrinfo(res);
 
     if (ret == ENOENT) {
         DEBUG(SSSDBG_CONF_SETTINGS, "No matching host rule found\n");
