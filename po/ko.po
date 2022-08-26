@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-07-04 11:59+0200\n"
+"POT-Creation-Date: 2022-08-26 21:53+0200\n"
 "PO-Revision-Date: 2022-07-18 15:18+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
@@ -1997,35 +1997,35 @@ msgstr "set_debug_file_from_fd가 실패했습니다.\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "정보 공급자의 도메인 (필수)"
 
-#: src/sss_client/common.c:1073
+#: src/sss_client/common.c:1101
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "권한 있는 소켓에 잘못된 소유권 또는 권한이 있습니다."
 
-#: src/sss_client/common.c:1076
+#: src/sss_client/common.c:1104
 msgid "Public socket has wrong ownership or permissions."
 msgstr "공용 소켓에 잘못된 소유권 또는 권한이 있습니다."
 
-#: src/sss_client/common.c:1079
+#: src/sss_client/common.c:1107
 msgid "Unexpected format of the server credential message."
 msgstr "서버 인증 정보 메시지의 예기치 않은 형식입니다."
 
-#: src/sss_client/common.c:1082
+#: src/sss_client/common.c:1110
 msgid "SSSD is not run by root."
 msgstr "SSSD는 루트에 의해 실행되지 않습니다."
 
-#: src/sss_client/common.c:1085
+#: src/sss_client/common.c:1113
 msgid "SSSD socket does not exist."
 msgstr "SSSD 소켓이 존재하지 않습니다."
 
-#: src/sss_client/common.c:1088
+#: src/sss_client/common.c:1116
 msgid "Cannot get stat of SSSD socket."
 msgstr "SSSD 소켓 통계를 가져올 수 없습니다."
 
-#: src/sss_client/common.c:1093
+#: src/sss_client/common.c:1121
 msgid "An error occurred, but no description can be found."
 msgstr "오류가 발생했지만 설명을 찾을 수 없습니다."
 
-#: src/sss_client/common.c:1099
+#: src/sss_client/common.c:1127
 msgid "Unexpected error while looking for an error description"
 msgstr "오류 설명을 찾는 동안 예기치 않은 오류 발생"
 
@@ -2423,9 +2423,9 @@ msgid ""
 "where the main config file is located. For example if the config is set to "
 "\"/my/path/sssd.conf\", the snippet dir \"/my/path/conf.d\" is used)"
 msgstr ""
-"기본이 아닌 스니펫 디렉토리를 지정합니다(기본값은 기본 설정 파일이 있는 "
-"동일한 위치를 검색하는 것입니다. 예를 들어 구성이 \"/my/path/sssd.conf\"로 "
-"설정된 경우 스니펫 디렉토리 \"/my/path/conf.d\"가 사용됨)"
+"기본이 아닌 스니펫 디렉토리를 지정합니다(기본값은 기본 설정 파일이 있는 동일"
+"한 위치를 검색하는 것입니다. 예를 들어 구성이 \"/my/path/sssd.conf\"로 설정"
+"된 경우 스니펫 디렉토리 \"/my/path/conf.d\"가 사용됨)"
 
 #: src/tools/sssctl/sssctl_config.c:118
 #, c-format

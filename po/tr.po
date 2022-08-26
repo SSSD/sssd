@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-07-04 11:59+0200\n"
+"POT-Creation-Date: 2022-08-26 21:53+0200\n"
 "PO-Revision-Date: 2022-07-22 07:19+0000\n"
 "Last-Translator: Kemal Oktay Aktoğan <oktay@e.email>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
@@ -2107,36 +2107,36 @@ msgstr "set_debug_file_from_fd başarısız oldu.\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "Bilgi sağlayıcısının etki alanı (zorunlu)"
 
-#: src/sss_client/common.c:1073
+#: src/sss_client/common.c:1101
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 "Ayrıcalıklı yuva(privileged socket) yanlış sahiplik veya izinlere sahip."
 
-#: src/sss_client/common.c:1076
+#: src/sss_client/common.c:1104
 msgid "Public socket has wrong ownership or permissions."
 msgstr "Ortak yuva(public socket) yanlış sahiplik veya izinlere sahip."
 
-#: src/sss_client/common.c:1079
+#: src/sss_client/common.c:1107
 msgid "Unexpected format of the server credential message."
 msgstr "Sunucu kimlik bilgisi iletisinin beklenmeyen biçimi."
 
-#: src/sss_client/common.c:1082
+#: src/sss_client/common.c:1110
 msgid "SSSD is not run by root."
 msgstr "SSSD yetkili kullanıcı(root) tarafından çalıştırılmaz."
 
-#: src/sss_client/common.c:1085
+#: src/sss_client/common.c:1113
 msgid "SSSD socket does not exist."
 msgstr "SSSD yuvası(socket) mevcut değil."
 
-#: src/sss_client/common.c:1088
+#: src/sss_client/common.c:1116
 msgid "Cannot get stat of SSSD socket."
 msgstr "SSSD yuvasının(socket) istatistiği alınamıyor."
 
-#: src/sss_client/common.c:1093
+#: src/sss_client/common.c:1121
 msgid "An error occurred, but no description can be found."
 msgstr "Bir hata oluştu, ancak açıklama bulunamadı."
 
-#: src/sss_client/common.c:1099
+#: src/sss_client/common.c:1127
 msgid "Unexpected error while looking for an error description"
 msgstr "Hata açıklaması aranırken beklenmeyen hata"
 
@@ -2556,8 +2556,8 @@ msgstr "%1$s dosyası yok.\n"
 msgid ""
 "File ownership and permissions check failed. Expected root:root and 0600.\n"
 msgstr ""
-"Dosya sahipliği ve izin denetimi başarısız oldu. Beklenen root:root ve 0600."
-"\n"
+"Dosya sahipliği ve izin denetimi başarısız oldu. Beklenen root:root ve "
+"0600.\n"
 
 #: src/tools/sssctl/sssctl_config.c:133
 #, c-format
