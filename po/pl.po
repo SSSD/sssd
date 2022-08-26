@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-07-04 11:59+0200\n"
+"POT-Creation-Date: 2022-08-26 21:53+0200\n"
 "PO-Revision-Date: 2022-07-09 09:17+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
@@ -2092,35 +2092,35 @@ msgstr "set_debug_file_from_fd się nie powiodło.\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domena dostawcy informacji (wymagane)"
 
-#: src/sss_client/common.c:1073
+#: src/sss_client/common.c:1101
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "Uprawnione gniazdo ma błędnego właściciela lub uprawnienia."
 
-#: src/sss_client/common.c:1076
+#: src/sss_client/common.c:1104
 msgid "Public socket has wrong ownership or permissions."
 msgstr "Publiczne gniazdo ma błędnego właściciela lub uprawnienia."
 
-#: src/sss_client/common.c:1079
+#: src/sss_client/common.c:1107
 msgid "Unexpected format of the server credential message."
 msgstr "Nieoczekiwany format komunikatu uwierzytelniającego serwera."
 
-#: src/sss_client/common.c:1082
+#: src/sss_client/common.c:1110
 msgid "SSSD is not run by root."
 msgstr "SSSD nie zostało uruchomione w trybie roota."
 
-#: src/sss_client/common.c:1085
+#: src/sss_client/common.c:1113
 msgid "SSSD socket does not exist."
 msgstr "Gniazdo SSSD nie istnieje."
 
-#: src/sss_client/common.c:1088
+#: src/sss_client/common.c:1116
 msgid "Cannot get stat of SSSD socket."
 msgstr "Nie można wykonać „stat” na gnieździe SSSD."
 
-#: src/sss_client/common.c:1093
+#: src/sss_client/common.c:1121
 msgid "An error occurred, but no description can be found."
 msgstr "Wystąpił błąd, ale nie odnaleziono jego opisu."
 
-#: src/sss_client/common.c:1099
+#: src/sss_client/common.c:1127
 msgid "Unexpected error while looking for an error description"
 msgstr "Nieoczekiwany błąd podczas wyszukiwania opisu błędu"
 

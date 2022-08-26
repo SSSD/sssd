@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-07-04 11:59+0200\n"
+"POT-Creation-Date: 2022-08-26 21:53+0200\n"
 "PO-Revision-Date: 2022-07-12 12:18+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
@@ -21,8 +21,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
@@ -2134,37 +2134,37 @@ msgstr "Ошибка set_debug_file_from_fd.\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен поставщика информации (обязательный)"
 
-#: src/sss_client/common.c:1073
+#: src/sss_client/common.c:1101
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 "Для привилегированного сокета установлен неверный владелец или права доступа."
 
-#: src/sss_client/common.c:1076
+#: src/sss_client/common.c:1104
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 "Для общедоступного сокета установлен неверный владелец или права доступа."
 
-#: src/sss_client/common.c:1079
+#: src/sss_client/common.c:1107
 msgid "Unexpected format of the server credential message."
 msgstr "Некорректный формат сообщения об учётных данных сервера."
 
-#: src/sss_client/common.c:1082
+#: src/sss_client/common.c:1110
 msgid "SSSD is not run by root."
 msgstr "Запуск SSSD выполнен не от имени пользователя root."
 
-#: src/sss_client/common.c:1085
+#: src/sss_client/common.c:1113
 msgid "SSSD socket does not exist."
 msgstr "Сокет SSSD не существует."
 
-#: src/sss_client/common.c:1088
+#: src/sss_client/common.c:1116
 msgid "Cannot get stat of SSSD socket."
 msgstr "Не удалось получить статистику сокета SSSD."
 
-#: src/sss_client/common.c:1093
+#: src/sss_client/common.c:1121
 msgid "An error occurred, but no description can be found."
 msgstr "Произошла ошибка, но не удалось найти её описание."
 
-#: src/sss_client/common.c:1099
+#: src/sss_client/common.c:1127
 msgid "Unexpected error while looking for an error description"
 msgstr "Непредвиденная ошибка при поиске описания ошибки"
 
