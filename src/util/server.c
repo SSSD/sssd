@@ -420,7 +420,7 @@ errno_t server_common_rotate_logs(struct confdb_ctx *confdb,
     }
 
     if (debug_level != old_debug_level) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
+        DEBUG(SSSDBG_IMPORTANT_INFO,
               "Debug level changed to %#.4x\n", debug_level);
         debug_level = debug_convert_old_level(debug_level);
     }
