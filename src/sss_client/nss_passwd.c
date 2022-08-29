@@ -19,6 +19,8 @@
 
 /* PASSWD database NSS interface */
 
+#include "config.h"
+
 #include <nss.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -30,7 +32,11 @@
 #include "nss_mc.h"
 #include "nss_common.h"
 
-static struct sss_nss_getpwent_data {
+static
+#ifdef HAVE_PTHREAD_EXT
+__thread
+#endif
+struct sss_nss_getpwent_data {
     size_t len;
     size_t ptr;
     uint8_t *data;

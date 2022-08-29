@@ -20,6 +20,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include <nss.h>
 #include <netdb.h>
 #include <resolv.h>
@@ -33,7 +35,11 @@
 #include <string.h>
 #include "sss_cli.h"
 
-static struct sss_nss_getnetent_data {
+static
+#ifdef HAVE_PTHREAD_EXT
+__thread
+#endif
+struct sss_nss_getnetent_data {
     size_t len;
     size_t ptr;
     uint8_t *data;
