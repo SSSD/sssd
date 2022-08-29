@@ -594,6 +594,10 @@ class TestBugzillaAutomation(object):
           1. User information should be returned correctly
           2. Logs should show that port 636 was used to contact AD
         """
+        winver = multihost.ad[0].run_command(
+            "systeminfo", raiseonerr=False).stdout_text
+        if "Microsoft Windows Server 2012" in winver:
+            pytest.skip("Test not valid on windows 2012R2.")
         adjoin(membersw='adcli')
         (aduser, adgroup) = create_aduser_group
         client = sssdTools(multihost.client[0], multihost.ad[0])
