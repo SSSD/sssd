@@ -1121,11 +1121,64 @@ void test_well_known_sid_to_name(void **state)
     ret = well_known_sid_to_name("S-1-0-0-", &dom, &name);
     assert_int_equal(ret, EINVAL);
 
+    ret = well_known_sid_to_name("S-1-3", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-3-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-3-4", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "CREATOR AUTHORITY");
+    assert_string_equal(name, "OWNER RIGHTS");
+
+    ret = well_known_sid_to_name("S-1-16", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-16-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-16-8192", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "MANDATORY LABEL AUTHORITY");
+    assert_string_equal(name, "MEDIUM");
+
+    ret = well_known_sid_to_name("S-1-18", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-18-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-18-1", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "AUTHENTICATION AUTHORITY");
+    assert_string_equal(name, "AUTHENTICATION ASSERTION");
+
     ret = well_known_sid_to_name("S-1-5", &dom, &name);
     assert_int_equal(ret, EINVAL);
 
     ret = well_known_sid_to_name("S-1-5-", &dom, &name);
     assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5-7", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5-7-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5-7-8-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-5-7-8", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "NT AUTHORITY");
+    assert_string_equal(name, "LOGON ID");
 
     ret = well_known_sid_to_name("S-1-5-6", &dom, &name);
     assert_int_equal(ret, EOK);
@@ -1158,6 +1211,33 @@ void test_well_known_sid_to_name(void **state)
     ret = well_known_sid_to_name("S-1-5-32-551-", &dom, &name);
     assert_int_equal(ret, EINVAL);
 
+    ret = well_known_sid_to_name("S-1-5-64", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-64-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-64-10", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "NT AUTHORITY");
+    assert_string_equal(name, "NTLM AUTHENTICATION");
+
+    ret = well_known_sid_to_name("S-1-5-64-10-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-65", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-65-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-65-1", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "NT AUTHORITY");
+    assert_string_equal(name, "THIS ORGANIZATION CERTIFICATE");
+
+    ret = well_known_sid_to_name("S-1-5-65-1-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
 }
 
 void test_name_to_well_known_sid(void **state)
@@ -1194,6 +1274,26 @@ void test_name_to_well_known_sid(void **state)
     ret = name_to_well_known_sid("NT AUTHORITY", "DIALUP", &sid);
     assert_int_equal(ret, EOK);
     assert_string_equal(sid, "S-1-5-1");
+
+    ret = name_to_well_known_sid("NT AUTHORITY", "NTLM AUTHENTICATION", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-5-64-10");
+
+    ret = name_to_well_known_sid("NT AUTHORITY", "THIS ORGANIZATION CERTIFICATE", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-5-65-1");
+
+    ret = name_to_well_known_sid("NT AUTHORITY", "LOGON ID", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-5-5-0-0");
+
+    ret = name_to_well_known_sid("MANDATORY LABEL AUTHORITY", "MEDIUM", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-16-8192");
+
+    ret = name_to_well_known_sid("AUTHENTICATION AUTHORITY", "KEY_TRUST_IDENTITY", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-18-4");
 }
 
 #define TEST_SANITIZE_INPUT "TestUser@Test.Domain"
