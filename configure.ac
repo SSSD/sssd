@@ -186,6 +186,7 @@ WITH_SUDO_LIB_PATH
 WITH_AUTOFS
 WITH_SUBID
 WITH_SUBID_LIB_PATH
+WITH_FIDO2
 WITH_SSH
 WITH_IFP
 WITH_SYSLOG
@@ -260,7 +261,14 @@ AS_IF([test x$with_kcm = xyes], [
 ])
 
 m4_include([src/external/libunistring.m4])
-m4_include([src/external/libfido2.m4])
+AS_IF([test x$with_fido2 = xyes], [
+    m4_include([src/external/libfido2.m4])
+])
+if test x"$found_fido2" = xyes; then
+    AC_DEFINE(BUILD_FIDO2, 1, [whether to build with FIDO2 support])
+fi
+AM_CONDITIONAL([BUILD_FIDO2], [test x"$found_fido2" = xyes])
+
 UNICODE_LIBS=$UNISTRING_LIBS
 AC_SUBST(UNICODE_LIBS)
 
