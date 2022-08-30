@@ -81,6 +81,12 @@ if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[5-9]* ||
     )
 fi
 
+if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
+    CONFIGURE_ARG_LIST+=(
+        "--with-fido2"
+    )
+fi
+
 declare -r -a CONFIGURE_ARG_LIST
 
 fi # _CONFIGURE_SH

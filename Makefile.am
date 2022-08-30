@@ -188,7 +188,9 @@ if BUILD_SEMANAGE
 sssdlibexec_PROGRAMS += selinux_child
 endif
 sssdlibexec_PROGRAMS += p11_child
+if BUILD_FIDO2
 sssdlibexec_PROGRAMS += fido2_child
+endif # BUILD_FIDO2
 if BUILD_OIDC_CHILD
 sssdlibexec_PROGRAMS += oidc_child
 endif
@@ -299,7 +301,6 @@ if HAVE_CMOCKA
         test_sssd_krb5_locator_plugin \
         test_confdb \
         test_krb5_idp_plugin \
-        test_fido2 \
         $(NULL)
 
 
@@ -325,6 +326,10 @@ endif   # BUILD_KCM
 if BUILD_KCM_RENEWAL
 non_interactive_cmocka_based_tests += test_kcm_renewals
 endif # BUILD_KCM_RENEWAL
+
+if BUILD_FIDO2
+non_interactive_cmocka_based_tests += test_fido2
+endif # BUILD_FIDO2
 
 
 if BUILD_SAMBA
@@ -3783,6 +3788,7 @@ test_sssd_krb5_locator_plugin_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
+if BUILD_FIDO2
 test_fido2_SOURCES = \
     src/fido2_child/fido2_child_common.c \
     src/fido2_child/fido2_child_credentials.c \
@@ -3817,6 +3823,7 @@ test_fido2_LDADD = \
     $(FIDO2_LIBS) \
     libsss_test_common.la \
     $(NULL)
+endif # BUILD_FIDO2
 
 if BUILD_KCM
 test_kcm_marshalling_SOURCES = \
@@ -4715,6 +4722,7 @@ p11_child_LDADD += \
     $(SSL_LIBS) \
     $(NULL)
 
+if BUILD_FIDO2
 fido2_child_SOURCES = \
     src/fido2_child/fido2_child.c \
     src/fido2_child/fido2_child_common.c \
@@ -4735,6 +4743,7 @@ fido2_child_LDADD = \
     $(FIDO2_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
+endif # BUILD_FIDO2
 
 if BUILD_OIDC_CHILD
 oidc_child_SOURCES = \
