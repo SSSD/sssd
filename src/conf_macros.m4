@@ -670,6 +670,17 @@ AC_DEFUN([WITH_SUBID_LIB_PATH],
     AC_SUBST(subidlibpath)
   ])
 
+AC_DEFUN([WITH_FIDO2],
+  [ AC_ARG_WITH([fido2],
+                [AC_HELP_STRING([--with-fido2],
+                                [Whether to build with FIDO2 support [no]]
+                               )
+                ],
+                [with_fido2=$withval],
+                with_fido2=no
+               )
+  ])
+
 AC_DEFUN([WITH_SSH],
   [ AC_ARG_WITH([ssh],
                 [AC_HELP_STRING([--with-ssh],

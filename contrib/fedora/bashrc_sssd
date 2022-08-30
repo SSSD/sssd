@@ -51,6 +51,7 @@ fedconfig()
         --with-test-dir=/dev/shm \
         --enable-all-experimental-features \
         --cache-file=/tmp/fedconfig.cache \
+        --with-fido2 \
         ${SSSD_NO_MANPAGES-} \
         "$@"
 }
