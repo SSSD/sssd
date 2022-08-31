@@ -8,19 +8,14 @@ Supported host distros are Fedora 20 and later, RHEL 6.5 and later, and Debian
 Testing.
 
 The tests are executed by running `contrib/ci/run` from the source tree root.
-It accepts options to choose from three test sets: "essential", "moderate" and
-"rigorous" (-e/-m/-r), with the essential set selected by default.
+It accepts options to choose from two test sets: "essential", "moderate"
+(-e/-m), with the essential set selected by default.
 
 Essential tests include building everything and running the built-in test
 suite under Valgrind, completing in under 5 minutes.
 
 Moderate tests include essential tests, plus a distcheck target build. They
 complete in about 15 minutes.
-
-Rigorous tests include moderate tests, plus a pass with Clang static analyzer
-over the whole build and test execution with code coverage collection and
-verification, completing in 30 minutes. Static analyzer failures are ignored
-for now.
 
 Use `contrib/ci/clean` to remove test results from the source tree.
 

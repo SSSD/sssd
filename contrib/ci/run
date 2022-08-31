@@ -34,23 +34,16 @@ export LC_ALL=C
 . misc.sh
 
 declare -r DEBUG_CFLAGS="-g3 -O2"
-declare -r COVERAGE_CFLAGS="-g3 -O0 --coverage"
 declare -r ARCH=`uname -m`
 declare -r CPU_NUM=`getconf _NPROCESSORS_ONLN`
 declare -r TITLE_WIDTH=24
 declare -r RESULT_WIDTH=18
-
-# Minimum percentage of code lines covered by tests
-declare -r COVERAGE_MIN_LINES=15
-# Minimum percentage of code functions covered by tests
-declare -r COVERAGE_MIN_FUNCS=0
 
 declare BASE_PFX=""
 declare DEPS=true
 declare DEPS_ONLY=false
 declare BASE_DIR=`pwd`
 declare MODERATE=false
-declare RIGOROUS=false
 
 # Additional valgrind flags
 declare VALGRIND_FLAGS=""
@@ -73,8 +66,6 @@ Options:
     -d, --deps-only     Only install dependencies, don't run tests.
     -e, --essential     Run the essential subset of tests.
     -m, --moderate      Run the moderate subset of tests.
-    -r, --rigorous,
-    -f, --full          Run the rigorous (full) set of tests.
 
 Default options: --essential
 EOF
@@ -187,69 +178,6 @@ function build_debug()
     unset CFLAGS
 }
 
-# Run coverage build checks.
-function build_coverage()
-{
-    declare -r coverage_report_dir="ci-report-coverage"
-    declare extra_CFLAGS=""
-    declare test_dir
-    declare status
-
-    if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ||
-          "$DISTRO_BRANCH" == -redhat-centos-6.*- ]]; then
-        # enable optimisation to avoid bug in gcc < 4.6.0
-        # gcc commit 7959b7e646b493f48a2ea7228fbf1c43f84bedea
-        # git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@162384
-        #             138bc75d-0d04-0410-961f-82ee72b054a4
-        extra_CFLAGS=" -O1"
-    fi
-
-    export CFLAGS="$COVERAGE_CFLAGS $extra_CFLAGS"
-
-    test_dir=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
-    stage configure         "$BASE_DIR/configure" \
-                                "${CONFIGURE_ARG_LIST[@]}" \
-                                --with-test-dir="$test_dir"
-
-    # Build everything, including tests
-    # Not building "tests" due to https://fedorahosted.org/sssd/ticket/2350
-    stage make-tests        make -j $CPU_NUM check LOG_COMPILER=true
-
-    stage lcov-pre          lcov --capture --initial --directory . \
-                                 --base-directory "$BASE_DIR" \
-                                 --output-file ci-base.info
-    # Run tests
-    status=$?
-    stage make-check        make -j $CPU_NUM check || status=$?
-    mv "$test_dir" ci-test-dir
-    ((status == 0))
-
-    stage lcov-post         lcov --capture --directory . \
-                                 --base-directory "$BASE_DIR" \
-                                 --output-file ci-check.info
-    stage lcov-merge        lcov --add-tracefile ci-base.info \
-                                 --add-tracefile ci-check.info \
-                                 --output-file ci-dirty.info
-    stage lcov-clean        lcov --remove ci-dirty.info \
-                                 "/usr/*" "src/tests/*" "/tmp/*" \
-                                 "*dtrace-temp.c" \
-                                 --output-file ci.info
-    stage genhtml           eval 'genhtml --output-directory \
-                                          "$coverage_report_dir" \
-                                          --title "sssd" --show-details \
-                                          --legend --prefix "$BASE_DIR" \
-                                          ci.info |& tee ci-genhtml.out'
-    printf "%-$((TITLE_WIDTH + RESULT_WIDTH))s%s\n" \
-            "coverage report:" \
-            "`disppath \"\$coverage_report_dir/index.html\"`"
-
-    stage lcov-check        eval 'lcov_check "$COVERAGE_MIN_LINES" \
-                                             "$COVERAGE_MIN_FUNCS" \
-                                    < ci-genhtml.out'
-
-    unset CFLAGS
-}
-
 # Run a build inside a sub-directory.
 # Args: id cmd [arg...]
 function run_build()
@@ -273,7 +201,7 @@ declare args_expr
 args_expr=`getopt --name \`basename "\$0"\` \
                   --options hp:dnemrf \
                   --longoptions help,prefix:,no-deps,deps-only \
-                  --longoptions essential,moderate,rigorous,full \
+                  --longoptions essential,moderate \
                   -- "$@"`
 eval set -- "$args_expr"
 
@@ -288,11 +216,9 @@ while true; do
         -n|--no-deps)
             DEPS=false;     shift;;
         -e|--essential)
-            MODERATE=false; RIGOROUS=false; shift;;
+            MODERATE=false; shift;;
         -m|--moderate)
-            MODERATE=true;  RIGOROUS=false; shift;;
-        -r|--rigorous|-f|--full)
-            MODERATE=true;  RIGOROUS=true;  shift;;
+            MODERATE=true; shift;;
         --)
             shift;          break;;
         *)
@@ -322,9 +248,6 @@ fi
 
 stage autoreconf    autoreconf --install --force
 run_build debug     build_debug
-if "$RIGOROUS"; then
-    run_build coverage  build_coverage
-fi
 unset V
 trap - EXIT
 echo SUCCESS
