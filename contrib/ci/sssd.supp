@@ -134,6 +134,7 @@
    fun:malloc
    ...
    fun:poptGetNextOpt
+   ...
    fun:main
 }
 
@@ -255,4 +256,17 @@
    fun:_dl_catch_error
    fun:_dlerror_run
    fun:dlopen@@GLIBC_2.34
+}
+
+# sssd debug initialization leak
+{
+   sss_debug_backtrace_init-malloc
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:sss_debug_backtrace_init
+   ...
+   fun:test_parse_*_args
+   ...
+   fun:main
 }

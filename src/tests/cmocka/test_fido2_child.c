@@ -577,6 +577,16 @@ void test_register_key_integration(void **state)
     assert_int_equal(ret, EOK);
 }
 
+static void test_parse_supp_valgrind_args(void)
+{
+    /*
+     * The objective of this function is to filter the unit-test functions
+     * that trigger a valgrind memory leak and suppress them to avoid false
+     * positives.
+     */
+    DEBUG_CLI_INIT(debug_level);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -623,7 +633,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
-    DEBUG_CLI_INIT(debug_level);
+    test_parse_supp_valgrind_args();
 
     /* Even though normally the tests should clean up after themselves
      * they might not after a failed run. Remove the old DB to be sure */
