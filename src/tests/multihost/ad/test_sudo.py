@@ -6,7 +6,7 @@
 :upstream: yes
 :status: approved
 """
-import time
+
 import re
 import pytest
 from sssd.testlib.common.utils import sssdTools
@@ -25,15 +25,12 @@ class TestSudo(object):
     def class_setup(cls, multihost):
         """ Set sudo provider to AD """
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        services = {'services': 'nss, pam, sudo'}
-        domain_name = client.get_domain_section_name()
-        domain_section = 'domain/%s' % (domain_name)
-        client.sssd_conf('sssd', services)
+        client.sssd_conf('sssd', {'services': 'nss, pam, sudo'})
         params = {
             'use_fully_qualified_names': 'False',
             'sudo_provider': 'ad',
             'debug_level': '9'}
-        client.sssd_conf(domain_section, params)
+        client.sssd_conf(f'domain/{client.get_domain_section_name()}', params)
         enable_sssd = 'authselect select sssd with-sudo with-mkhomedir --force'
         multihost.client[0].run_command(enable_sssd, raiseonerr=False)
         client.clear_sssd_cache()
@@ -45,6 +42,9 @@ class TestSudo(object):
         :title: IDM-SSSD-TC: ad_provider: ad_sudo: ignore case
          on case insenstive Domain
         :id: 6cc67f37-808a-4b2c-a2cc-e4e4812388f4
+        :bugzilla:
+          https://bugzilla.redhat.com/show_bug.cgi?id=1622109
+          https://bugzilla.redhat.com/show_bug.cgi?id=1519287
         :customerscenario: True
         :steps:
           1. Add sudo rules containing upper and lower case user names
@@ -53,14 +53,12 @@ class TestSudo(object):
           1. Should succeed
           2. Verify the the user when logged in with upper
              and lower case can fetch the sudo rules from AD
-        :description: Note: This test case also cover BZ-1622109 and BZ-bz1519287
-         Sudo rules used in the fixture contains multiple sudoUser attributes added.
+        :description: Sudo rules used in the fixture contain
+          multiple sudoUser attributes.
         """
-        multihost.client[0].service_sssd('restart')
         realm = multihost.ad[0].realm
         adusers = ['sudo_idmuser1', 'SUDO_IDMUSER1', 'sudo_idmuser2',
-                   'sudo_idmuser3@%s' % (realm), 'sudo_idmuser3',
-                   'SUDO_IDMUSER3']
+                   f'sudo_idmuser3@{realm}', 'sudo_idmuser3', 'SUDO_IDMUSER3']
         failed = []
         for user in adusers:
             cmd = multihost.client[0].run_command(
@@ -78,6 +76,7 @@ class TestSudo(object):
         :title: IDM-SSSD-TC: ad_provider: ad_sudo: AD managed sudo groups
          will not work with sssd
         :id: 56616411-d56a-4e3f-b732-a39a4fae8bbc
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1372440
         :steps:
           1. Add sudo rules with sudoUser attribute set to group names
              (%sudo_idmgroup1 which has member sudo_idmuser1)
@@ -90,7 +89,6 @@ class TestSudo(object):
           3. Should succeed
           4. Should succeed
         """
-        multihost.client[0].service_sssd('restart')
         user = 'sudo_idmuser1'
 
         # Test ssh login
@@ -135,13 +133,10 @@ class TestSudo(object):
              the required command as sudo
         """
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        domain_name = multihost.ad[0].domainname
+        domain_sect = f'domain/{multihost.ad[0].domainname}'
         user = 'sudo_user1'
-        domain_section = f'domain/{domain_name}'
-        params = {'ldap_id_mapping': 'false'}
-        client.sssd_conf(domain_section, params)
-        multihost.client[0].service_sssd('restart')
-        time.sleep(5)
+        client.sssd_conf(domain_sect, {'ldap_id_mapping': 'false'})
+        client.clear_sssd_cache()
 
         # Test ssh login
         client = sssdTools(multihost.client[0], multihost.ad[0])
@@ -154,9 +149,9 @@ class TestSudo(object):
         test_result = test_result and '(root) NOPASSWD: /usr/bin/head' in\
             cmd.stdout_text
 
-        params = {'ldap_id_mapping': 'false'}
-        client.sssd_conf(domain_section, params, action='delete')
-
+        client.sssd_conf(
+            domain_sect, {'ldap_id_mapping': 'false'}, action='delete')
+        client.clear_sssd_cache()
         assert ssh_result, f"Ssh failed for user: {user}."
         assert test_result, f"Rules missing for user: {user}."
 
@@ -217,10 +212,8 @@ class TestSudo(object):
     def class_teardown(cls, multihost):
         """ Remove sudo provider from Domain section """
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        domain_name = client.get_domain_section_name()
-        domain_section = 'domain/%s' % (domain_name)
-        services = {'services': 'nss, pam'}
-        client.sssd_conf('sssd', services)
+        domain_section = f'domain/{client.get_domain_section_name()}'
+        client.sssd_conf('sssd', {'services': 'nss, pam'})
         params = {
             'use_fully_qualified_names': 'False',
             'sudo_provider': 'ad',
