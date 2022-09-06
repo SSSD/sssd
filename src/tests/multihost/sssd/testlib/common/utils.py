@@ -1734,6 +1734,117 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
                                                         'delete an ADObject'
         return ret
 
+    def add_sudo_ou(self, verbose=True, raiseonerr=True):
+        """ Add SudoOU in Active Directory Server
+        parm bool verbose: Log command output
+        parm bool raiseonerr: Raise exception on command failure
+        return bool: Returns true if operation succeeded
+        """
+        add_ou = f"powershell.exe -inputformat none -noprofile '" \
+                 f"New-ADOrganizationalUnit  -Name \"Sudoers\" " \
+                 f"-Path \"{self.ad_basedn}\" -Confirm:$False " \
+                 f"-ProtectedFromAccidentalDeletion $false'"
+        cmd = self.ad_host.run_command(
+            add_ou, log_stdout=verbose, raiseonerr=raiseonerr)
+        return cmd.returncode == 0
+
+    def del_sudo_ou(self, verbose=False, raiseonerr=False):
+        """ Delete SudoOU in Active Directory Server
+        parm bool verbose: Log command output
+        parm bool raiseonerr: Raise exception on command failure
+        return bool: Returns true if operation succeeded
+        """
+        sudo_ou = f'ou=Sudoers,{self.ad_basedn}'
+        remove_sudo = f"powershell.exe -inputformat none -noprofile " \
+                      f"'(Remove-ADOrganizationalUnit -Recursive " \
+                      f"-Identity \"{sudo_ou}\" -Confirm:$false)'"
+        cmd = self.ad_host.run_command(
+            remove_sudo, log_stdout=verbose, raiseonerr=raiseonerr)
+        return cmd.returncode == 0
+
+    def add_sudo_rule(self, ruledn, host, command, users=[], options=[],
+                      runas=None, runasuser=None, runasgroup=None,
+                      notbefore=None, notafter=None, order=None,
+                      verbose=True, raiseonerr=True):
+        """ Add Sudo rules in Active Directory Server
+        parm str ruledn: sudo rule DN
+        param str host: Host on which sudo command should run
+        param str command: Command to run with sudo
+        param str/list users: list of Posix user name
+        param str/list options: options like requiretty, authenticate
+        param str runas: sudoRunAs parameter of sudo rule
+        param str runasuser: sudoRunAsUser parameter of sudo rule
+        param str runasgroup: sudoRunAsGroup parameter of sudo rule
+        param str notbefore: sudoNotBefore parameter of sudo rule
+        param str notafter: sudoNotAfter parameter of sudo rule
+        param str order: sudoOrder parameter of sudo rule
+        parm bool verbose: Log command output
+        parm bool raiseonerr: Raise exception on command failure
+        return bool: Returns true if operation succeeded
+        """
+        rulename = ruledn.split(',')[0].split('=')[1]
+        rulepath = ",".join(ruledn.split(',')[1:])
+
+        def _wrap_in_quotes(items):
+            """Wraps the items in double quotes and concatenates
+            them with commas if needed.
+            param list/str items: item(s) to be wrapped in quotes
+            return: str
+            """
+            if type(items) == str:
+                return f'"{items}"'
+            if type(items) == list:
+                items = [f'"{x}"' for x in items]
+                return ','.join(items)
+            raise ValueError(f"Incorrect parameter type {type(items)}!")
+
+        opt_str = ""
+        if options:
+            opt_str = f"\"sudoOption\"={_wrap_in_quotes(options)};"
+        if runas:
+            opt_str += f"\"sudoRunAs\"=\"{runas}\";"
+        if runasuser:
+            opt_str += f"\"sudoRunAsUser\"=\"{runasuser}\";"
+        if runasgroup:
+            opt_str += f"\"sudoRunAsGroup\"=\"{runasgroup}\";"
+        if notbefore:
+            opt_str += f"\"sudoNotBefore\"=\"{notbefore}\";"
+        if notafter:
+            opt_str += f"\"sudoNotAfter\"=\"{notafter}\";"
+        if order:
+            opt_str += f"\"sudoOrder\"=\"{order}\";"
+        if users:
+            opt_str += f"\"sudoUser\"={_wrap_in_quotes(users)};"
+
+        add_rule = f"powershell.exe -inputformat none -noprofile '" \
+                   f"New-ADObject -Name \"{rulename}\" -Path \"" \
+                   f"{rulepath}\" -Type \"sudoRule\" " \
+                   f"-OtherAttributes @{{\"objectClass\"=\"sudoRole\";" \
+                   f"\"sudoHost\"=\"{host}\";" \
+                   f"\"sudoCommand\"=\"{command}\";{opt_str} }}'"
+        add = self.ad_host.run_command(
+            add_rule, log_stdout=verbose, raiseonerr=raiseonerr)
+        if verbose:
+            # Search for the rule and display it in the log
+            show_rule = f"powershell.exe -inputformat none -noprofile '" \
+                        f"Get-ADObject -Identity \"{ruledn}\" -Properties *'"
+            self.ad_host.run_command(show_rule, raiseonerr=False)
+        return add.returncode == 0
+
+    def del_sudo_rule(self, ruledn, verbose=True, raiseonerr=False):
+        """ Delete Sudo rule from Active Directory Server
+        parm str ruledn: sudo rule DN
+        parm bool verbose: Log command output
+        parm bool raiseonerr: Raise exception on command failure
+        return bool: Returns true if operation succeeded
+        """
+        del_rule = f"powershell.exe -inputformat none -noprofile '" \
+                   f"Remove-ADObject -Identity \"{ruledn}\" " \
+                   f" -Confirm:$False '"
+        del_cmd = self.ad_host.run_command(
+            del_rule, log_stdout=verbose, raiseonerr=raiseonerr)
+        return del_cmd.returncode == 0
+
     def expire_account(self, user):
         """ Expire User account
 

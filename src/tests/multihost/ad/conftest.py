@@ -5,14 +5,12 @@ import random
 import subprocess
 import time
 import pytest
-import ldap
 import os
 import posixpath
 from sssd.testlib.common.qe_class import session_multihost
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 from sssd.testlib.common.exceptions import SSSDException
 from sssd.testlib.common.utils import ADOperations
-from sssd.testlib.common.exceptions import LdapException
 from sssd.testlib.common.samba import sambaTools
 from sssd.testlib.common.utils import sssdTools
 
@@ -498,79 +496,44 @@ def create_ad_sudousers(session_multihost, request):
 def sudorules(session_multihost, request):
     """ Create AD Sudo rules """
     basedn = session_multihost.ad[0].domain_basedn_entry
-    ad_password = session_multihost.ad[0].ssh_password
     realm = session_multihost.ad[0].realm
     winad = ADOperations(session_multihost.ad[0])
-    win_ldap = winad.ad_conn()
-    ad_ip = session_multihost.ad[0].ip
-    sudo_ou = 'ou=Sudoers,%s' % basedn
-    remove_sudo = "powershell.exe -inputformat none -noprofile "\
-                  "'(Remove-ADOrganizationalUnit -Identity \"%s\" "\
-                  "-Recursive -Confirm:$false)'" % (sudo_ou)
-    session_multihost.ad[0].run_command(remove_sudo, raiseonerr=False)
-    def_command = '/usr/bin/less'
-    win_ldap.org_unit('Sudoers', basedn)
+    sudo_ou = f'ou=Sudoers,{basedn}'
+    sudo_options = ["!requiretty", "!authenticate"]
+
+    # Delete and recreate sudo OU to make sure that there are no leftovers
+    winad.del_sudo_ou(verbose=False, raiseonerr=False)
+    winad.add_sudo_ou()
+
     for item in ['user', 'group']:
         for idx in range(1, 10):
-            rule_dn = 'cn=less_%s_rule%d,%s' % (item, idx, sudo_ou)
-            sudo_identity = 'sudo_idm%s%d@%s' % (item, idx, realm)
-            sudo_options = ["!requiretty", "!authenticate"]
-            try:
-                win_ldap.add_sudo_rule(rule_dn, 'ALL',
-                                       def_command, sudo_identity,
-                                       sudo_options)
-            except LdapException:
-                pytest.fail("Failed to add sudo rule %s" % rule_dn)
+            rule_dn = f'cn=less_{item}_rule{idx},{sudo_ou}'
+            sudo_identity = [f'sudo_idm{item}{idx}@{realm}']
             if item == 'user':
-                user = 'sudo_idmuser%d' % idx
-                extra_sudo_user = [(ldap.MOD_ADD, 'sudoUser',
-                                    user.encode('utf-8'))]
-                (ret, _) = win_ldap.modify_ldap(rule_dn, extra_sudo_user)
-                assert ret == 'Success'
-    cmd = "ldapsearch -x -LLL -b '%s' -D cn=Administrator"\
-          ",cn=Users,%s -w %s -H ldap://%s" % (sudo_ou, basedn,
-                                               ad_password, ad_ip)
-    session_multihost.client[0].run_command(cmd, raiseonerr=False)
-    sudo_cmd = '/usr/bin/head'
-    rule_dn = 'cn=%%head_nonposix_rule,%s' % (sudo_ou)
-    sudo_identity = '%%sudo_groupx@%s' % (realm)
-    sudo_options = ["!requiretty", "!authenticate"]
-    try:
-        win_ldap.add_sudo_rule(rule_dn, 'ALL',
-                               sudo_cmd, sudo_identity,
-                               sudo_options)
-    except LdapException:
-        pytest.fail("Failed to add sudo rule %s" % rule_dn)
-    user = '%sudo_groupx'
-    extra_sudo_user = [(ldap.MOD_ADD, 'sudoUser',
-                        user.encode('utf-8'))]
-    (ret, _) = win_ldap.modify_ldap(rule_dn, extra_sudo_user)
-    assert ret == 'Success'
-    rule1_dn = 'cn=head_rule1,%s' % (sudo_ou)
-    sudo_identity = 'sudo_usera'
-    sudo_options = ["!requiretty", "!authenticate"]
-    win_ldap.add_sudo_rule(rule1_dn, 'ALL', sudo_cmd,
-                           sudo_identity, sudo_options)
-    user1 = 'sudo_idmuser1'
-    extra_sudo_user = [(ldap.MOD_ADD, 'sudoRunAs',
-                        user1.encode('utf-8'))]
-    (ret, _) = win_ldap.modify_ldap(rule1_dn, extra_sudo_user)
-    assert ret == 'Success'
+                sudo_identity.append(f'sudo_idmuser{idx}')
+            res = winad.add_sudo_rule(
+                rule_dn, 'ALL', '/usr/bin/less', sudo_identity, sudo_options)
+            if not res:
+                pytest.fail(f"Failed to add sudo rule {rule_dn}")
 
-    def delete_sudorule():
-        """ Delete sudo rule """
-        (ret, _) = win_ldap.del_dn(rule1_dn)
-        assert ret == 'Success'
-        for item in ['user', 'group']:
-            for idx in range(1, 10):
-                rule_dn = 'cn=less_%s_rule%d,%s' % (item, idx, sudo_ou)
-                (ret, _) = win_ldap.del_dn(rule_dn)
-                assert ret == 'Success'
-        rule_dn = 'cn=%%head_nonposix_rule,%s' % (sudo_ou)
-        (ret, _) = win_ldap.del_dn(rule_dn)
-        assert ret == 'Success'
-        session_multihost.ad[0].run_command(remove_sudo)
-    request.addfinalizer(delete_sudorule)
+    rule_dn = f'cn=%%head_nonposix_rule,{sudo_ou}'
+    sudo_identity = [f'%%sudo_groupx@{realm}', '%sudo_groupx']
+    res = winad.add_sudo_rule(rule_dn, 'ALL', '/usr/bin/head',
+                              sudo_identity, sudo_options)
+    if not res:
+        pytest.fail(f"Failed to add sudo rule {rule_dn}")
+
+    rule_dn = f'cn=head_rule1,{sudo_ou}'
+    sudo_options = ["!requiretty", "!authenticate"]
+    res = winad.add_sudo_rule(rule_dn, 'ALL', '/usr/bin/head', 'sudo_usera',
+                              sudo_options, runas='sudo_idmuser1')
+    if not res:
+        pytest.fail(f"Failed to add sudo rule {rule_dn}")
+
+    def delete_ad_sudorules():
+        """ Delete sudo OU with all of the sudo rules."""
+        winad.del_sudo_ou(verbose=False, raiseonerr=False)
+    request.addfinalizer(delete_ad_sudorules)
 
 
 @pytest.fixture(scope="class")
