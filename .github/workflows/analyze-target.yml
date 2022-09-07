@@ -81,3 +81,13 @@ jobs:
         name: covscan
         path: |
           ./logs/*.err
+
+  result:
+    name: All tests are successful
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: [cppcheck, covscan]
+    steps:
+      - name: Fail on failure
+        if: ${{ needs.cppcheck.result != 'success' || needs.covscan.result != 'success' }}
+        run: exit 1

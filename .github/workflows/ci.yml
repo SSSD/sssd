@@ -244,3 +244,13 @@ jobs:
           multihost-build.log
           multihost-install.log
           multihost-pytest.log
+
+  result:
+    name: All tests are successful
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: [build, intgcheck, multihost]
+    steps:
+      - name: Fail on failure
+        if: ${{ needs.build.result != 'success' || needs.intgcheck.result != 'success' || needs.multihost.result != 'success' }}
+        run: exit 1
