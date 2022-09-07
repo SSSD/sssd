@@ -136,3 +136,13 @@ jobs:
         chroots: ${{ matrix.chroot }}
         project: ${{ env.COPR_PROJECT }}
         account: ${{ env.COPR_ACCOUNT }}
+
+  result:
+    name: All copr builds are successful
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Fail on failure
+        if: ${{ needs.build.result != 'success' }}
+        run: exit 1
