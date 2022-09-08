@@ -28,10 +28,11 @@
 #include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req.h"
 
+#define FILES_ID_PROVIDER "files"
+#define LDAP_ID_PROVIDER "ldap"
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_responder_cache_req_conf.ldb"
 #define TEST_DOM_NAME "responder_cache_req_test"
-#define TEST_ID_PROVIDER "ldap"
 
 #define TEST_USER_PREFIX "test*"
 #define TEST_NO_USER_PREFIX "nosuchuser*"
@@ -44,20 +45,25 @@ struct test_user {
     uid_t uid;
     gid_t gid;
 } users[] = {{"test-user1", "upn1@upndomain.com",
-              "S-1-5-21-3623811015-3361044348-30300820-1001", 1001, 1001},
+              "S-1-5-21-3623811015-3361044348-30300820-1001", 3001, 3001},
              {"test-user2", "upn2@upndomain.com",
-              "S-1-5-21-3623811015-3361044348-30300820-1002", 1002, 1002}};
+              "S-1-5-21-3623811015-3361044348-30300820-1002", 3002, 3002}};
 
 struct test_group {
     const char *short_name;
     const char *sid;
     gid_t gid;
-} groups[] = {{"test-group1", "S-1-5-21-3623811015-3361044348-30300820-2001",  2001},
-              {"test-group2", "S-1-5-21-3623811015-3361044348-30300820-2002", 2002}};
+} groups[] = {{"test-group1", "S-1-5-21-3623811015-3361044348-30300820-2001", 4001},
+              {"test-group2", "S-1-5-21-3623811015-3361044348-30300820-2002", 4002}};
 
 #define new_single_domain_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, \
                                     test_single_domain_setup, \
+                                    test_single_domain_teardown)
+
+#define new_files_domain_test(test) \
+    cmocka_unit_test_setup_teardown(test_ ## test, \
+                                    test_files_domain_setup, \
                                     test_single_domain_teardown)
 
 #define new_single_domain_id_limit_test(test) \
@@ -566,7 +572,8 @@ __wrap_sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
 }
 
 static int test_single_domain_setup_common(void **state,
-                                           struct sss_test_conf_param *params)
+                                           struct sss_test_conf_param *params,
+                                           const char *id_provider)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     errno_t ret;
@@ -580,7 +587,7 @@ static int test_single_domain_setup_common(void **state,
     *state = test_ctx;
 
     test_ctx->tctx = create_dom_test_ctx(test_ctx, TESTS_PATH, TEST_CONF_DB,
-                                         TEST_DOM_NAME, TEST_ID_PROVIDER, params);
+                                         TEST_DOM_NAME, id_provider, params);
     assert_non_null(test_ctx->tctx);
 
     test_ctx->rctx = mock_rctx(test_ctx, test_ctx->tctx->ev,
@@ -595,9 +602,14 @@ static int test_single_domain_setup_common(void **state,
     return 0;
 }
 
+int test_files_domain_setup(void **state)
+{
+    return test_single_domain_setup_common(state, NULL, FILES_ID_PROVIDER);
+}
+
 int test_single_domain_setup(void **state)
 {
-    return test_single_domain_setup_common(state, NULL);
+    return test_single_domain_setup_common(state, NULL, LDAP_ID_PROVIDER);
 }
 
 int test_single_domain_teardown(void **state)
@@ -622,7 +634,7 @@ int test_single_domain_id_limits_setup(void **state)
         { "max_id", "10000" },
         { NULL, NULL },             /* Sentinel */
     };
-    return test_single_domain_setup_common(state, params);
+    return test_single_domain_setup_common(state, params, LDAP_ID_PROVIDER);
 }
 
 static int test_multi_domain_setup(void **state)
@@ -640,7 +652,7 @@ static int test_multi_domain_setup(void **state)
 
     test_ctx->tctx = create_multidom_test_ctx(test_ctx, TESTS_PATH,
                                               TEST_CONF_DB, domains,
-                                              TEST_ID_PROVIDER, NULL);
+                                              LDAP_ID_PROVIDER, NULL);
     assert_non_null(test_ctx->tctx);
 
     test_ctx->rctx = mock_rctx(test_ctx, test_ctx->tctx->ev,
@@ -713,7 +725,7 @@ int test_subdomain_setup(void **state)
     *state = test_ctx;
 
     test_ctx->tctx = create_dom_test_ctx(test_ctx, TESTS_PATH, TEST_CONF_DB,
-                                         TEST_DOM_NAME, TEST_ID_PROVIDER, NULL);
+                                         TEST_DOM_NAME, LDAP_ID_PROVIDER, NULL);
     assert_non_null(test_ctx->tctx);
 
     test_ctx->rctx = mock_rctx(test_ctx, test_ctx->tctx->ev,
@@ -2595,6 +2607,48 @@ void test_users_by_filter_filter_old(void **state)
                              users[0].short_name);
 }
 
+/* This test uses a "files" provider */
+void test_users_by_filter_filter_files(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->create_user1 = false;
+    test_ctx->create_user2 = false;
+
+    /* This user was updated in distant past but will still be reported */
+    prepare_user(test_ctx->tctx->dom, &users[0], 1000, 1);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters only go to DP when /etc/passwd and /etc/group were modified */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+    mock_parse_inp(TEST_USER_PREFIX, NULL, ERR_OK);
+
+    req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
+                                        test_ctx->tctx->dom->name,
+                                        TEST_USER_PREFIX);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+
+    assert_msg_has_shortname(test_ctx,
+                             test_ctx->result->msgs[0],
+                             users[0].short_name);
+}
 void test_users_by_filter_notfound(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
@@ -4380,6 +4434,7 @@ int main(int argc, const char *argv[])
         new_single_domain_test(groups_by_recent_filter_valid),
 
         new_single_domain_test(users_by_filter_filter_old),
+        new_files_domain_test(users_by_filter_filter_files),
         new_single_domain_test(users_by_filter_notfound),
         new_multi_domain_test(users_by_filter_multiple_domains_valid),
         new_multi_domain_test(users_by_filter_multiple_domains_notfound),
