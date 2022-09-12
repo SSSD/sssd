@@ -3,10 +3,11 @@
 :requirement: dyndns
 :casecomponent: sssd
 :subsystemteam: sst_idm_sssd
-:upstream: no
+:upstream: yes
 """
 
 import pytest
+import re
 import time
 import random
 from sssd.testlib.common.utils import sssdTools
@@ -18,14 +19,48 @@ def change_client_hostname(session_multihost, request):
     cmd = session_multihost.client[0].run_command('hostname', raiseonerr=False)
     old_hostname = cmd.stdout_text.rstrip()
     ad_domain = session_multihost.ad[0].domainname
-    new_hostname = "client" + str(random.randrange(99))
-    new_hostname = new_hostname + "." + ad_domain
+    ad_ip = session_multihost.ad[0].ip
+    new_hostname = "client" + str(random.randrange(99)) + "." + ad_domain
+    session_multihost.client[0].run_command(f'echo \"{new_hostname}\" > /etc/hostname')
     session_multihost.client[0].run_command(f'hostname {new_hostname}', raiseonerr=False)
+    session_multihost.client[0].run_command('cp -rf /etc/resolv.conf /etc/resolv.conf.bak', raiseonerr=False)
+    session_multihost.client[0].run_command(f'echo nameserver "{ad_ip}" > /etc/resolv.conf', raiseonerr=False)
 
     def restore_hostname():
         """ Restore hostname """
         session_multihost.client[0].run_command(f'hostname {old_hostname}', raiseonerr=False)
+        session_multihost.client[0].run_command(f'echo \"{old_hostname}\" > /etc/hostname')
+        session_multihost.client[0].run_command('mv /etc/resolv.conf.bak /etc/resolv.conf', raiseonerr=False)
+
     request.addfinalizer(restore_hostname)
+
+
+@pytest.fixture(scope="class")
+def remove_dns_forwarders(session_multihost, request):
+    """ Removes the DNS forwarders in AD """
+    get_forwarders = "powershell.exe -inputformat none -noprofile " \
+                     "'Get-DnsServerForwarder -Verbose | Out-String -stream | Select-String -Pattern reordered'"
+    cmd_get_forwarders = session_multihost.ad[0].run_command(get_forwarders, raiseonerr=False)
+    forwarders_output = cmd_get_forwarders.stdout_text.strip()
+    forwarders_output = re.sub(r'.*{', '', forwarders_output)
+    forwarders_output = re.sub(r'.*:', '', forwarders_output)
+    forwarders_output = re.sub(r'}', '', forwarders_output)
+    forwarders_output = re.sub(r' ', '', forwarders_output)
+    forwarders = forwarders_output.split(',')
+
+    for x in forwarders:
+        del_forward = f"powershell.exe -inputformat none -noprofile " \
+                      f"'Remove-DnsServerForwarder -IPAddress \"{x}\" -PassThru -Force'"
+        session_multihost.ad[0].run_command(del_forward, raiseonerr=False)
+
+    def restore_dns_forwarders():
+        """ Restore DNS forwarders """
+        for y in forwarders:
+            add_forward = f"powershell.exe -inputformat none -noprofile " \
+                          f"'Add-DnsServerForwarder -IPAddress \"{y}\" -PassThru -Force'"
+            session_multihost.ad[0].run_command(add_forward, raiseonerr=False)
+
+    request.addfinalizer(restore_dns_forwarders)
 
 
 @pytest.fixture(scope="function")
@@ -36,8 +71,8 @@ def extra_network(session_multihost, request):
     network_zone = str(network_list[2] + '.' + network_list[1] + '.' + network_list[0])
     cmd_zoneadd = f"dnscmd.exe /zoneadd {network_zone}.in-addr.arpa /primary"
     cmd_zoneconfig = f"dnscmd.exe /config {network_zone}.in-addr.arpa /allowupdate 1"
-    session_multihost.ad[0].run_command(cmd_zoneadd)
-    session_multihost.ad[0].run_command(cmd_zoneconfig)
+    session_multihost.ad[0].run_command(cmd_zoneadd, raiseonerr=False)
+    session_multihost.ad[0].run_command(cmd_zoneconfig, raiseonerr=False)
 
     def remove_extra_network():
         """ Delete reverse zone"""
@@ -49,45 +84,29 @@ def extra_network(session_multihost, request):
 @pytest.fixture(scope="function")
 def extra_interface(session_multihost, request):
     """ Create extra interface """
-    dummy_interface = 'ibm' + str(random.randrange(99))
-    dummy_ip = '192.168.1.' + str(random.randrange(2, 255))
-    session_multihost.client[0].run_command('ip link add ' + dummy_interface + ' type dummy', raiseonerr=False)
-    session_multihost.client[0].run_command('ip addr add ' + dummy_ip + ' dev ' + dummy_interface, raiseonerr=False)
+    extra_interface = 'ibm' + str(random.randrange(99))
+    extra_ip = '192.168.1.' + str(random.randrange(2, 255))
+    session_multihost.client[0].run_command('ip link add ' + extra_interface + ' type dummy', raiseonerr=False)
+    session_multihost.client[0].run_command('ip addr add ' + extra_ip + ' dev ' + extra_interface, raiseonerr=False)
 
     def remove_interface():
         """ Delete interface """
-        session_multihost.client[0].run_commnd('ip addr flush dev ' + dummy_interface, raiseonerr=False)
-        session_multihost.client[0].run_command('ip link del ' + dummy_interface, raiseonerr=False)
+        session_multihost.client[0].run_command('ip addr flush dev ' + extra_interface, raiseonerr=False)
+        session_multihost.client[0].run_command('ip link del ' + extra_interface, raiseonerr=False)
 
     request.addfinalizer(remove_interface)
-    return dummy_interface, dummy_ip
+    return extra_interface, extra_ip
 
 
-@pytest.fixture(scope="function")
-def getptr(session_multihost, request):
-    """ Get network and ptr record """
-    ip = str(session_multihost.client[0].ip)
-    net_list = ip.split(".")
-    network = str(net_list[2] + '.' + net_list[1] + '.' + net_list[0])
-    ptr = str(net_list[3])
-
-    def removeptr():
-        """ Delete PTR record from DNS """
-        cmd_delete_ptr = f"dnscmd.exe /recorddelete {network}.in-addr.arpa {ptr}. PTR /f"
-        session_multihost.ad[0].run_command(cmd_delete_ptr, raiseonerr=False)
-    request.addfinalizer(removeptr)
-
-    return ip, network, ptr
-
-
-@pytest.mark.usefixtures("change_client_hostname")
+@pytest.mark.usefixtures("remove_dns_forwarders", "change_client_hostname")
 @pytest.mark.dyndns
 @pytest.mark.tier1_3
 class TestDynDns(object):
 
-    def test_0001_verify_with_default_setting(multihost, adjoin, getptr):
+    @staticmethod
+    def test_0001_verify_with_default_setting(multihost, adjoin):
         """
-        :title: IDM-SSSD-TC: ad_provider: dyndns: default settings
+        :title: IDM-SSSD-TC: ad_provider: dyndns: verify with default settings
         :id: 183cc040-0b8c-47af-8b19-8bcb72c3f001
         :steps:
           1. Join client to AD domain
@@ -102,14 +121,16 @@ class TestDynDns(object):
         client = sssdTools(multihost.client[0], multihost.ad[0])
         hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
         hostname = hostname_cmd.stdout_text.rstrip()
-        (ip, network, ptr) = getptr
+        ip = multihost.client[0].ip
+
         client.clear_sssd_cache()
         multihost.client[0].run_command("cat /etc/sssd/sssd.conf", raiseonerr=False)
         cmd_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
         assert cmd_lookup.returncode == 0
         cmd_lookup_ptr = multihost.client[0].run_command(f"nslookup {ip}", raiseonerr=False)
-        assert cmd_lookup_ptr.returncode == 0
+        assert ip not in cmd_lookup_ptr.stdout_text
 
+    @staticmethod
     def test_0002_verify_when_dyndns_update_set_to_false(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: verify when dyndns update set to false
@@ -128,21 +149,32 @@ class TestDynDns(object):
         domain = multihost.ad[0].domainname
         hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
         hostname = hostname_cmd.stdout_text.rstrip()
-        ip = str(multihost.client[0].ip)
+        short_hostname = hostname.split(".")[0]
+        ip = multihost.client[0].ip
+        net_list = ip.split(".")
+        network = str(net_list[2] + '.' + net_list[1] + '.' + net_list[0])
+        ptr = str(net_list[3])
 
         domain_section = 'domain/{}'.format(domain)
         sssd_params = {'dyndns_update': 'false'}
         client.sssd_conf(domain_section, sssd_params)
+        cmd_delete_a = f"dnscmd.exe /recorddelete {domain} {short_hostname} A /f ;" \
+                       f"dnscmd.exe /recorddelete {domain} {short_hostname} AAAA /f"
+        cmd_delete_ptr = f"dnscmd.exe /recorddelete {network}.in-addr.arpa {ptr}. PTR /f"
+        multihost.ad[0].run_command(cmd_delete_a, raiseonerr=False)
+        multihost.ad[0].run_command(cmd_delete_ptr, raiseonerr=False)
+        multihost.ad[0].run_command('dnscmd.exe /clearcache')
         client.clear_sssd_cache()
 
-        cmd_forward_lookup = multihost.client[0].run_command([f"nslookup {hostname}"], raiseonerr=False)
-        assert cmd_forward_lookup.returncode != 0
-        cmd_ptr_lookup = multihost.client[0].run_command([f"nslookup {ip}"], raiseonerr=False)
-        assert cmd_ptr_lookup.returncode != 0
+        cmd_forward_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
+        assert ip not in cmd_forward_lookup.stdout_text
+        cmd_ptr_lookup = multihost.client[0].run_command(f"nslookup {ip}", raiseonerr=False)
+        assert hostname not in cmd_ptr_lookup.stdout_text
 
-    def test_0003_verify_with_dyndns_ttl_functionality(multihost, adjoin, getptr):
+    @staticmethod
+    def test_0003_verify_with_dyndns_ttl_functionality(multihost, adjoin):
         """
-        :title: IDM-SSSD-TC: ad_provider: dyndns: Verify with dyndns ttl functionality
+        :title: IDM-SSSD-TC: ad_provider: dyndns: verify with dyndns ttl functionality
         :id: ffb8ee9b-2a82-4917-82b0-d87fd066a24c
         :steps:
           1. Join client to AD domain
@@ -156,16 +188,15 @@ class TestDynDns(object):
           4. IP resolves with 9200 ttl
         """
         adjoin(membersw='adcli')
-        ttl = '9600'
         client = sssdTools(multihost.client[0], multihost.ad[0])
         domain = multihost.ad[0].domainname
         hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
         hostname = hostname_cmd.stdout_text.rstrip()
-        (ip, network, ptr) = getptr
+        ip = multihost.client[0].ip
         cmd_change_hostname = 'hostname ' + hostname
         multihost.client[0].run_command(cmd_change_hostname)
         domain_section = 'domain/{}'.format(domain)
-        sssd_params = {'dyndns_ttl': ttl}
+        sssd_params = {'dyndns_ttl': '9200'}
         client.sssd_conf(domain_section, sssd_params)
         client.clear_sssd_cache()
 
@@ -173,42 +204,43 @@ class TestDynDns(object):
         cmd_ptr_lookup = multihost.client[0].run_command(f"nslookup {ip}")
         assert cmd_ptr_lookup.returncode == 0
 
+    @staticmethod
     def test_0004_check_dyndns_iface_with_existing_interfaces(
-            multihost, adjoin, extra_network, extra_interface, getptr):
+            multihost, adjoin, extra_network, extra_interface):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: check dyndns iface with existing interface
         :id: 166ee0a0-6f19-4be0-b5db-7373dde82862
         :steps:
           1. Join client to AD domain
-          2. Create dummy interface
-          3. Perform DNS lookup for hostname on dummy interface
-          4. Perform DNS lookup for IP on dummy interface
+          2. Create extra interface
+          3. Perform DNS lookup for hostname on extra interface
+          4. Perform DNS lookup for IP on extra interface
         :expectedresults:
           1. Client joins domain
           2. Should succeed
-          3. Hostname resolves correctly on dummy interface
-          4. IP resolves correctly on dummy interface
+          3. Hostname resolves correctly on extra interface
+          4. IP resolves correctly on extra interface
         """
-        (dummy_interface, dummy_ip) = extra_interface
+        (extra_interface, extra_ip) = extra_interface
         client = sssdTools(multihost.client[0], multihost.ad[0])
         domain = multihost.ad[0].domainname
         hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
         hostname = hostname_cmd.stdout_text.rstrip()
-
         adjoin(membersw='adcli')
         domain_section = 'domain/{}'.format(domain)
-        sssd_params = {'dyndns_iface': dummy_interface}
+        sssd_params = {'dyndns_iface': extra_interface}
         client.sssd_conf(domain_section, sssd_params)
         client.clear_sssd_cache()
 
         cmd_lkup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
         assert cmd_lkup.returncode == 0
-        cmd_dumb_lkup = multihost.client[0].run_command(f"nslookup {dummy_ip}", raiseonerr=False)
+        cmd_dumb_lkup = multihost.client[0].run_command(f"nslookup {extra_ip}", raiseonerr=False)
         assert cmd_dumb_lkup.returncode == 0
 
-    def test_0005_check_dyndns_iface_with_non_existing_interfaces(multihost, adjoin, getptr):
+    @staticmethod
+    def test_0005_check_dyndns_iface_with_non_existing_interfaces(multihost, adjoin):
         """
-        :title: IDM-SSSD-TC: ad_provider: dyndns: check dyndns iface with non-existing interface
+        :title: IDM-SSSD-TC: ad_provider: dyndns: check dyndns iface with non-existing interfaces
         :id: 412f684a-5a68-472d-86b1-93019bb53e6f
         :steps:
           1. Join client to AD domain
@@ -223,55 +255,60 @@ class TestDynDns(object):
         client = sssdTools(multihost.client[0], multihost.ad[0])
         hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
         hostname = hostname_cmd.stdout_text.rstrip()
-        host = hostname.split(".")[0]
+        short_hostname = hostname.split(".")[0]
         domain = multihost.ad[0].domainname
-        (ip, network, ptr) = getptr
+        ip = multihost.client[0].ip
+        net_list = ip.split(".")
+        network = str(net_list[2] + '.' + net_list[1] + '.' + net_list[0])
+        ptr = str(net_list[3])
 
-        cmd_delete_a = f"dnscmd.exe /recorddelete {domain} {host} A /f"
+        cmd_delete_a = f"dnscmd.exe /recorddelete {domain} {short_hostname} A /f ;" \
+                       f"dnscmd.exe /recorddelete {domain} {short_hostname} AAAA /f"
         cmd_delete_ptr = f"dnscmd.exe /recorddelete {network}.in-addr.arpa {ptr}. PTR /f"
         multihost.ad[0].run_command(cmd_delete_a, raiseonerr=False)
         multihost.ad[0].run_command(cmd_delete_ptr, raiseonerr=False)
+        multihost.ad[0].run_command('dnscmd.exe /clearcache')
 
         domain_section = 'domain/{}'.format(domain)
         sssd_params = {'dyndns_iface': 'non_existent'}
         client.sssd_conf(domain_section, sssd_params)
         client.clear_sssd_cache()
 
-        cmd_forward_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
-        assert multihost.client[0].hostname != hostname
-        assert domain not in cmd_forward_lookup.stdout_text
+        cmd_forward_lookup = multihost.client[0].run_command(f"nslookup {hostname} ", raiseonerr=False)
+        cmd_ptr_lookup = multihost.client[0].run_command(f"nslookup {ip} ", raiseonerr=False)
+        assert ip not in cmd_forward_lookup.stdout_text
+        assert hostname not in cmd_ptr_lookup.stdout_text
 
+    @staticmethod
     def test_0006_check_with_dyndns_refresh_interval(multihost, adjoin, extra_network, extra_interface):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: check with dyndns refresh interval
         :id: 54765188-b21f-4ba1-890b-953eec9b696d
         :steps:
           1. Join client to AD domain
-          2. Create dummy interface and assign IP
+          2. Create extra interface and assign IP
           3. Set refresh interval and dyndns iface in sssd.conf
-          4. Perform DNS lookup for hostname on dummy interface
-          5. Perform DNS lookup for IP on dummy interface
-          6. Change IP on dummy interface
-          7. Wait for SSSD to update the IP, refresh interval + update timeout
-          8. Perform DNS lookup for hostname on dummy interface
-          9. Perform DNS lookup for IP on dummy interface
+          4. Perform DNS lookup for hostname on extra interface
+          5. Perform DNS lookup for IP on extra interface
+          6. Change IP on extra interface
+          7. Let SSSD update DNS
+          8. Perform DNS lookup for hostname on extra interface
+          9. Perform DNS lookup for IP on extra interface
         :expectedresults:
           1. Client joins domain
           2. Should succeed
           3. Should succeed
-          4. Hostname resolves correctly on dummy interface
-          5. IP resolves correctly on dummy interface
-          6. New IP address is assigned for dummy interface
-          7. Wait for some time
-          8. Hostname resolves correctly on dummy interface with new IP
-          9. IP resolves correctly on dummy interface with new hostname
+          4. Hostname resolves correctly on extra interface
+          5. IP resolves correctly on extra interface
+          6. New IP address is assigned for extra interface
+          7. SSSD updates DNS
+          8. Hostname resolves correctly on extra interface with new IP
+          9. IP resolves correctly on extra interface with new hostname
         """
-        (dummy_interface, dummy_ip) = extra_interface
-        dummy_ip_after_refresh = '192.168.1.' + str(random.randrange(2, 255))
-        while dummy_ip == dummy_ip_after_refresh:
-            dummy_ip_after_refresh = '192.168.1.' + str(random.randrange(2, 255))
-        update_timeout = 20
-        refresh_interval = 61
+        (extra_interface, extra_ip) = extra_interface
+        extra_ip_after_refresh = '192.168.1.' + str(random.randrange(2, 255))
+        while extra_ip == extra_ip_after_refresh:
+            extra_ip_after_refresh = '192.168.1.' + str(random.randrange(2, 255))
         client = sssdTools(multihost.client[0], multihost.ad[0])
         hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
         hostname = hostname_cmd.stdout_text.rstrip()
@@ -279,34 +316,313 @@ class TestDynDns(object):
 
         adjoin(membersw='adcli')
         domain_section = 'domain/{}'.format(domain)
-        sssd_params = {
-            'dyndns_iface': dummy_interface,
-            'dyndns_refresh_interval': refresh_interval}
+        sssd_params = {'dyndns_refresh_interval': '81', 'dyndns_iface': extra_interface}
         client.sssd_conf(domain_section, sssd_params)
         client.clear_sssd_cache()
 
-        time.sleep(update_timeout)
         cmd_lkup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
-        cmd_ptr_lkup = multihost.client[0].run_command(f"nslookup {dummy_ip}", raiseonerr=False)
+        cmd_ptr_lkup = multihost.client[0].run_command(f"nslookup {extra_ip}", raiseonerr=False)
         assert cmd_lkup.returncode == 0
         assert cmd_ptr_lkup.returncode == 0
-        multihost.client[0].run_command('ip addr flush dev ' + dummy_interface)
-        multihost.client[0].run_command('ip addr add ' + dummy_ip_after_refresh + ' dev ' + dummy_interface)
 
-        time.sleep(update_timeout)
-        cmd_forward_lookup = multihost.client[0].run_command(f"nslookup {hostname}")
-        cmd_ptr_lookup = multihost.client[0].run_command(f"nslookup {dummy_ip}")
-        assert cmd_forward_lookup.returncode == 0
-        assert cmd_ptr_lookup.returncode == 0
-        multihost.client[0].run_command('ip addr flush dev ' + dummy_interface)
-        multihost.client[0].run_command('ip addr add ' + dummy_ip_after_refresh + ' dev ' + dummy_interface)
+        multihost.client[0].run_command('ip addr flush dev ' + extra_interface)
+        multihost.client[0].run_command('ip addr change ' + extra_ip_after_refresh + ' dev ' + extra_interface)
+        time.sleep(90)
 
-        time.sleep(refresh_interval)
-        cmd_forward_lookup = multihost.client[0].run_command(f"nslookup {hostname}")
-        cmd_ptr_lookup = multihost.client[0].run_command(f"nslookup {dummy_ip_after_refresh}")
+        cmd_forward_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
+        cmd_ptr_lookup = multihost.client[0].run_command(f"nslookup {extra_ip_after_refresh}", raiseonerr=False)
         assert cmd_forward_lookup.returncode == 0
         assert cmd_ptr_lookup.returncode == 0
 
-    @classmethod
-    def class_teardown(cls, multihost):
-        """ Removing zone files """
+    @staticmethod
+    def test_0007_set_dyndns_update_ptr_false_ptr_records_are_absent(multihost, adjoin):
+        """
+        :title: IDM-SSSD-TC: ad_provider: dyndns: set dyndns update ptr false ptr records are absent
+        Will test parameter dyndns_update_ptr = false when no records exists
+        NOTE: dyndns_refresh_interval lowest value is 60 seconds, with a 21 second timeout so the value is 81
+        :id: e7bac85a-0504-4487-b26e-129a99121810
+        :steps:
+        1. Join client to AD domain with extra interface
+        2. Delete both A and PTR records
+        3. Set dyndns_update_ptr = false in sssd.conf
+        4. Start SSSD
+        5. Use nslookup to check the host and IP
+        :expectedresults:
+        1. Client joins domain
+        2. Host records are removed from the DNS server
+        3. SSSD is configured
+        4. SSSD is started
+        5. Host record can be resolved and the PTR record cannot
+        """
+        adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
+        hostname = hostname_cmd.stdout_text.rstrip()
+        short_hostname = hostname.split(".")[0]
+        domain = multihost.ad[0].domainname
+        ip = multihost.client[0].ip
+        net_list = ip.split(".")
+        network = str(net_list[2] + '.' + net_list[1] + '.' + net_list[0])
+        ptr = str(net_list[3])
+
+        domain_section = 'domain/{}'.format(domain)
+        sssd_params = {'dyndns_refresh_interval': '81', 'dyndns_update_ptr': 'false'}
+        client.sssd_conf(domain_section, sssd_params)
+        cmd_delete_a = f"dnscmd.exe /recorddelete {domain} {short_hostname} A /f ;" \
+                       f"dnscmd.exe /recorddelete {domain} {short_hostname} AAAA /f"
+        cmd_delete_ptr = f"dnscmd.exe /recorddelete {network}.in-addr.arpa {ptr} PTR /f"
+        multihost.ad[0].run_command(cmd_delete_a, raiseonerr=False)
+        multihost.ad[0].run_command(cmd_delete_ptr, raiseonerr=False)
+        multihost.ad[0].run_command('dnscmd.exe /clearcache')
+        client.clear_sssd_cache()
+
+        cmd_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
+        assert cmd_lookup.returncode == 0
+        cmd_forward_lookup = multihost.client[0].run_command(f"nslookup {ip}", raiseonerr=False)
+        assert hostname not in cmd_forward_lookup.stdout_text
+
+    @staticmethod
+    def test_0008_set_dyndns_update_ptr_to_false_ptr_records_are_present(
+            multihost, adjoin, extra_interface, extra_network):
+        """
+        :title: IDM-SSSD-TC: ad_provider: dyndns: set dyndns update ptr to false ptr records are present
+        Will test parameter dyndns_update_ptr = false when records exits
+        NOTE: dyndns_refresh_interval lowest value is 60 seconds, with a 21 second timeout so the value is 81
+        :id: 7c96e4d2-b1da-4391-9a7c-ff632667b1bc
+        :steps:
+        1. Join client to AD domain with extra interface
+        2. Delete both A and PTR records
+        3. Start SSSD
+        4. Use nslookup to check the host and IP
+        5. Set dyndns_update_ptr = false and dyndns_refresh_interval = 81 in sssd.conf
+        6. Update IP on extra interface and start SSSD
+        7. Use nslookup to check the host and IP
+        :expectedresults:
+        1. Client joins domain
+        2. Host records are removed from the DNS server
+        3. SSSD is started
+        4. Host and IP is resolvable
+        5. SSSD is stopped and sssd.conf has been updated
+        6. IP on dummy has been changed
+        7. Host and IP is resolvable but the PTR record is the old IP
+        """
+        adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
+        hostname = hostname_cmd.stdout_text.rstrip()
+        short_hostname = hostname.split(".")[0]
+        domain = multihost.ad[0].domainname
+        (extra_int, extra_ip) = extra_interface
+        net_list = extra_ip.split(".")
+        network = str(net_list[2] + '.' + net_list[1] + '.' + net_list[0])
+        ptr = str(net_list[3])
+        new_ptr = random.randrange(2, 255)
+        while ptr == new_ptr:
+            new_ptr = str(random.randrange(2, 255))
+        new_ip = f'{network}.{new_ptr}'
+
+        domain_section = 'domain/{}'.format(domain)
+        sssd_params = {'dyndns_refresh_interval': '81', 'dyndns_update': 'true', 'dyndns_iface': extra_int}
+        client.sssd_conf(domain_section, sssd_params)
+        client.clear_sssd_cache()
+
+        cmd_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
+        assert cmd_lookup.returncode == 0
+        cmd_lookup_ptr = multihost.client[0].run_command(f"nslookup {extra_ip}", raiseonerr=False)
+        assert cmd_lookup_ptr.returncode == 0
+
+        cmd_delete_a = f"dnscmd.exe /recorddelete {domain} {short_hostname} A /f ;" \
+                       f"dnscmd.exe /recorddelete {domain} {short_hostname} AAAA /f"
+        multihost.ad[0].run_command(cmd_delete_a, raiseonerr=False)
+        multihost.ad[0].run_command('dnscmd.exe /clearcache')
+        domain_section = 'domain/{}'.format(domain)
+        sssd_params = {'dyndns_update_ptr': 'false'}
+        client.sssd_conf(domain_section, sssd_params)
+        multihost.client[0].run_command(f'ip add del {new_ip}/24 dev {extra_int}', raiseonerr=False)
+        client.clear_sssd_cache()
+
+        cmd_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
+        assert cmd_lookup.returncode == 0
+        cmd_forward_lookup = multihost.client[0].run_command(f"nslookup {extra_ip}", raiseonerr=False)
+        assert cmd_forward_lookup.returncode == 0
+
+    @staticmethod
+    def test_0009_check_with_dyndns_force_tcp(multihost, adjoin):
+        """
+        :title: IDM-SSSD-TC: ad_provider: dyndns: check with dyndns force tcp
+        Test SSSD to use TCP for dynamic DNS. Blocking all TCP traffic will test that no other protocols will
+        be used to update DNS
+        :id: 0de1b45c-cecb-451f-b625-823761f255b2
+        :steps:
+        1. Join client to AD domain
+        2. Set ldap_purge_cache_timeout = 0, krb5_auth_timeout = 12, dyndns_force_tcp = true
+        3. Update firewall to block TCP traffic on port 53
+        4. Start SSSD
+        5. Check DNS records
+        6. Unblock traffic
+        7. Check DNS records again
+        :expectedresults:
+        1. Client joins domain
+        2. Configure SSSD
+        3. Traffic is being blocked and dyndns is only using tcp
+        4. SSSD starts
+        5.  No A or PTR records exists
+        6. Traffic is flowing
+        7. DNS records are now updating properly
+        """
+        adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
+        hostname = hostname_cmd.stdout_text.rstrip()
+        short_hostname = hostname.split(".")[0]
+        domain = multihost.ad[0].domainname
+        ip = multihost.client[0].ip
+        net_list = ip.split(".")
+        network = str(net_list[2] + '.' + net_list[1] + '.' + net_list[0])
+        ptr = str(net_list[3])
+
+        domain_section = 'domain/{}'.format(domain)
+        sssd_params = {'ldap_purge_cache_timeout': '0', 'krb5_auth_timeout': '12', 'dyndns_force_tcp': 'true'}
+        client.sssd_conf(domain_section, sssd_params)
+
+        cmd_delete_a = f"dnscmd.exe /recorddelete {domain} {short_hostname} A /f ;" \
+                       f"dnscmd.exe /recorddelete {domain} {short_hostname} AAAA /f"
+        cmd_delete_ptr = f"dnscmd.exe /recorddelete {network}.in-addr.arpa {ptr} PTR /f"
+        multihost.ad[0].run_command(cmd_delete_a, raiseonerr=False)
+        multihost.ad[0].run_command(cmd_delete_ptr, raiseonerr=False)
+        multihost.ad[0].run_command('dnscmd.exe /clearcache')
+        multihost.client[0].run_command('which iptables || yum install -y iptables', raiseonerr=False)
+        multihost.client[0].run_command(f'iptables -A INPUT -p tcp --dport 53 -s {multihost.ad[0].ip} -j DROP; '
+                                        f'iptables -A OUTPUT -p tcp --dport 53 -d {multihost.ad[0].ip} -j DROP')
+        client.clear_sssd_cache()
+
+        cmd_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
+        assert ip not in cmd_lookup.stdout_text
+        cmd_forward_lookup = multihost.client[0].run_command(f"nslookup {ip}", raiseonerr=False)
+        assert domain not in cmd_forward_lookup.stdout_text
+
+        multihost.client[0].run_command('iptables -F', raiseonerr=False)
+        client.clear_sssd_cache()
+
+        cmd_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
+        assert cmd_lookup.returncode == 0
+        cmd_lookup_ptr = multihost.client[0].run_command(f"nslookup {ip}", raiseonerr=False)
+        assert cmd_lookup_ptr.returncode == 0
+
+    @staticmethod
+    def test_0010_check_with_combination_of_addresses(
+            multihost, adjoin, extra_interface, extra_network):
+        """
+        :title: IDM-SSSD-TC: ad_provider: dyndns: check with combination of addresses
+        Check DynDNS when the client has several interfaces, testing that the right interface updates DNS.
+        NOTE: The original test includes IPV6, however CI does not support IPV6, so this is done with just IPV4
+        :id: fc7e3b4d-5cd3-4206-b16d-d90c96acca14
+        :steps:
+        1. Join client to AD domain
+        2. Add extra interface and network
+        3. Configure SSSD with dyndns_iface = extra_interface
+        4. Start SSSD
+        5. Check DNS records
+        :expectedresults:
+        1. Client joins domain
+        2. Extra interface exists on client machine
+        3. SSSD is configured
+        4. SSSD starts
+        5. DNS server will update with only the A and PTR records from the extra interface
+        """
+        adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
+        hostname = hostname_cmd.stdout_text.rstrip()
+        short_hostname = hostname.split(".")[0]
+        domain = multihost.ad[0].domainname
+        (extra_int, extra_ip) = extra_interface
+        net_list = extra_ip.split(".")
+        network = str(net_list[2] + '.' + net_list[1] + '.' + net_list[0])
+        ptr = str(net_list[3])
+        print(extra_interface)
+
+        domain_section = 'domain/{}'.format(domain)
+        sssd_params = {'dyndns_iface': f'{extra_int}'}
+        client.sssd_conf(domain_section, sssd_params)
+        cmd_delete_a = f"dnscmd.exe /recorddelete {domain} {short_hostname} A /f ;" \
+                       f"dnscmd.exe /recorddelete {domain} {short_hostname} AAAA /f"
+        cmd_delete_ptr = f"dnscmd.exe /recorddelete {network}.in-addr.arpa {ptr} PTR /f"
+        multihost.ad[0].run_command(cmd_delete_a, raiseonerr=False)
+        multihost.ad[0].run_command(cmd_delete_ptr, raiseonerr=False)
+        multihost.ad[0].run_command('dnscmd.exe /clearcache')
+        client.clear_sssd_cache()
+        time.sleep(15)
+
+        cmd_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
+        assert cmd_lookup.returncode == 0
+        cmd_lookup_ptr = multihost.client[0].run_command(f"nslookup {extra_ip}", raiseonerr=False)
+        assert cmd_lookup_ptr.returncode == 0
+
+    @staticmethod
+    def test_0011_verify_use_after_free_in_dyndns_code_bz1132361(multihost, adjoin):
+        """
+        :title: IDM-SSSD-TC: ad_provider: dyndns: verify use after free in dyndns code bz1132361
+        bz1132361 is an OOM error that is recreated by
+        setting TALLOC_FREE_FILL
+        :id: 72d5e4ad-fdb9-4278-860f-57ff563a20d7
+        :steps:
+        1. Join client to AD domain
+        2. Add extra interface
+        3. Set TALLOC_FREE_FILL=253 in /etc/sysconfig/sssd
+        4. Start SSSD
+        :expectedresults:
+        1. Client joins domain
+        2. Extra interface is created
+        3. Configuration files updated
+        4. SSSD starts and does not segfault
+        """
+        adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+
+        multihost.client[0].run_command('echo "TALLOC_FREE_FILL=253" >> /etc/sysconfig/sssd')
+        client.clear_sssd_cache()
+
+        ps_cmd = multihost.client[0].run_command('ps aux | grep sssd')
+        assert 'sssd_be' in ps_cmd.stdout_text
+        assert 'sssd_nss' in ps_cmd.stdout_text
+        assert 'sssd_pam' in ps_cmd.stdout_text
+        assert 'sssd_pac' in ps_cmd.stdout_text
+
+        multihost.client[0].run_command('sed -i "/TALLOC_FREE_FILL/d" /etc/sysconfig/sssd')
+
+    @staticmethod
+    def test_0012_set_dyndns_update_ptr_when_dyndns_server_equals_ad_server(multihost, adjoin):
+        """
+        :title: IDM-SSSD-TC: ad_provider: dyndns: set dyndns update ptr when dyndns server equals ad server
+        Testing parameter ad_server = $AD_SERVER
+        :id: afa91b9b-4943-423a-a2e2-54f6c6204107
+        :steps:
+        1. Join client to AD domain
+        2. Configure SSSD to contain dyndns_server = AD_SERVER
+        3. Start SSSD
+        4. Check DNS records
+        :expectedresults:
+        1. Client joins domain
+        2. SSSD is configured
+        3. SSSD is started
+        4. Both A and PTR records are found
+        """
+        adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        hostname_cmd = multihost.client[0].run_command('hostname', raiseonerr=False)
+        hostname = hostname_cmd.stdout_text.rstrip()
+        domain = multihost.ad[0].domainname
+        adserver = multihost.ad[0].hostname
+        ip = multihost.client[0].ip
+
+        domain_section = 'domain/{}'.format(domain)
+        sssd_params = {'dyndns_server': f'{adserver}'}
+        client.sssd_conf(domain_section, sssd_params)
+        client.clear_sssd_cache()
+
+        cmd_lookup = multihost.client[0].run_command(f"nslookup {hostname}", raiseonerr=False)
+        assert cmd_lookup.returncode == 0
+        cmd_lookup_ptr = multihost.client[0].run_command(f"nslookup {ip}", raiseonerr=False)
+        assert cmd_lookup_ptr.returncode == 0
+
