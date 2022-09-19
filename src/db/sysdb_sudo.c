@@ -76,9 +76,18 @@ static errno_t sysdb_sudo_convert_time(const char *str, time_t *unix_time)
     for (format = formats; *format != NULL; format++) {
         /* strptime() may leave some fields uninitialized */
         memset(&tm, 0, sizeof(struct tm));
+        /* Let underlying implementation figure out DST */
+        tm.tm_isdst = -1;
         tret = strptime(str, *format, &tm);
         if (tret != NULL && *tret == '\0') {
-            *unix_time = mktime(&tm);
+            /* Convert broken-down time to local time */
+            if (tm.tm_gmtoff == 0) {
+                *unix_time = timegm(&tm);
+            } else {
+                long offset = tm.tm_gmtoff;
+                tm.tm_gmtoff = 0;
+                *unix_time = timegm(&tm) - offset;
+            }
             return EOK;
         }
     }
