@@ -496,7 +496,7 @@ errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
                           struct sss_tool_ctx *tool_ctx,
                           void *pvt)
 {
-    const char *file;
+    const char *file = NULL;
     errno_t ret;
     glob_t globbuf;
 
@@ -506,14 +506,14 @@ errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
                            &file, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
+        goto done;
     }
 
     globbuf.gl_offs = 3;
     ret = glob(LOG_PATH"/*.log", GLOB_ERR|GLOB_DOOFFS, NULL, &globbuf);
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to expand log files list\n");
-        return ret;
+        goto done;
     }
     globbuf.gl_pathv[0] = discard_const_p(char, "tar");
     globbuf.gl_pathv[1] = discard_const_p(char, "-czf");
@@ -524,10 +524,13 @@ errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
     globfree(&globbuf);
     if (ret != EOK) {
         ERROR("Unable to archive log files\n");
-        return ret;
+        goto done;
     }
 
-    return EOK;
+done:
+    free(discard_const(file));
+
+    return ret;
 }
 
 errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
@@ -561,7 +564,8 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not allocate memory for tools context\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto fini;
     }
 
     ret = sss_tool_popt_ex(cmdline, long_options, SSS_TOOL_OPT_OPTIONAL, NULL,
@@ -604,7 +608,8 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
 
 fini:
     talloc_free(ctx);
-    /* debug_as_string is not allocated but points to the command line. */
+    free(discard_const(debug_as_string));
+
     return ret;
 }
 

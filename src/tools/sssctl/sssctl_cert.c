@@ -58,13 +58,14 @@ errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
                            SSS_TOOL_OPT_REQUIRED, &cert_b64, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
+        goto done;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     der_cert = sss_base64_decode(tmp_ctx, cert_b64, &der_size);
@@ -85,6 +86,7 @@ errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
 
 done:
     talloc_free(tmp_ctx);
+    free(discard_const(cert_b64));
 
     return ret;
 }
@@ -115,13 +117,14 @@ errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
                            SSS_TOOL_OPT_REQUIRED, &cert_b64, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
+        goto done;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     cert_pem = talloc_asprintf(tmp_ctx, "%s%s\n%s",
@@ -165,8 +168,8 @@ errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
 
     ret = EOK;
 done:
-
     talloc_free(tmp_ctx);
+    free(discard_const(cert_b64));
 
     return ret;
 }
