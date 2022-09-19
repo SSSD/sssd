@@ -117,6 +117,9 @@ AC_CHECK_FUNCS([ utimensat \
 
 AC_CHECK_FUNCS([ explicit_bzero ])
 
+# Check for the timegm() function (not part of POSIX / Open Group specs)
+AC_CHECK_FUNC([timegm], [], [AC_MSG_ERROR([timegm() function not found])])
+
 #Check for endian headers
 AC_CHECK_HEADERS([endian.h sys/endian.h byteswap.h])
 
