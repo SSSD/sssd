@@ -241,7 +241,7 @@ errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
                            SSS_TOOL_OPT_REQUIRED, &user, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
+        goto done;
     }
 
     PRINT("user: %s\naction: %s\nservice: %s\n\n", user, action, service);
@@ -261,7 +261,8 @@ errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
     ret = pam_start(service, user, &conv, &pamh);
     if (ret != PAM_SUCCESS) {
         ERROR("pam_start failed: %s\n", pam_strerror(pamh, ret));
-        return 1;
+        ret = EPERM;
+        goto done;
     }
 
     if ( strncmp(action, "auth", 4)== 0 ) {
@@ -311,6 +312,10 @@ errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
     free(pam_env);
 
     pam_end(pamh, ret);
+    ret = EOK;
 
-    return 0;
+done:
+    free(discard_const(user));
+
+    return ret;
 }

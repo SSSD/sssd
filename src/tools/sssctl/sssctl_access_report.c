@@ -396,21 +396,27 @@ errno_t sssctl_access_report(struct sss_cmdline *cmdline,
                            SSS_TOOL_OPT_REQUIRED, &domname, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
+        goto done;
     }
 
     dom = find_domain_by_name(tool_ctx->domains, domname, true);
     if (dom == NULL) {
         ERROR("Cannot find domain %1$s\n", domname);
-        return ERR_DOMAIN_NOT_FOUND;
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
     }
 
     reporter = get_report_fn(dom->provider);
     if (reporter == NULL) {
         ERROR("Access report not implemented for domains of type %1$s\n",
               dom->provider);
-        return ret;
+        goto done;
     }
 
-    return reporter(tool_ctx, dom);
+    ret = reporter(tool_ctx, dom);
+
+done:
+    free(discard_const(domname));
+
+    return ret;
 }

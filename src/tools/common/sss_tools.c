@@ -402,6 +402,11 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
     bool opt_set;
     int ret;
 
+    /* Set output parameter _fopt to NULL value if present. */
+    if (_fopt != NULL) {
+        *_fopt = NULL;
+    }
+
     /* Create help option string. We always need to append command name since
      * we use POPT_CONTEXT_KEEP_FIRST. */
     if (fopt_name == NULL) {
@@ -464,7 +469,14 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
             goto done;
         }
 
-        *_fopt = fopt;
+        if (fopt != NULL) {
+            *_fopt = strdup(fopt);
+            if (*_fopt == NULL) {
+                ERROR("Out of memory!");
+                ret = ENOMEM;
+                goto done;
+            }
+        }
     } else if (_fopt == NULL && fopt != NULL) {
         /* Unexpected free argument. */
         ERROR("Unexpected parameter: %s\n\n", fopt);
@@ -495,6 +507,11 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
 done:
     poptFreeContext(pc);
     talloc_free(help);
+    if (ret != EOK && _fopt != NULL) {
+        free(discard_const(*_fopt));
+        *_fopt = NULL;
+    }
+
     return ret;
 }
 

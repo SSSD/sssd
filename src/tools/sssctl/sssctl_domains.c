@@ -313,7 +313,7 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
                              struct sss_tool_ctx *tool_ctx,
                              void *pvt)
 {
-    TALLOC_CTX *tmp_ctx;
+    TALLOC_CTX *tmp_ctx = NULL;
     struct sssctl_domain_status_opts opts = {0};
     struct sbus_sync_connection *conn;
     const char *path;
@@ -334,7 +334,7 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
                            SSS_TOOL_OPT_REQUIRED, &opts.domain, &opt_set);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
-        return ret;
+        goto done;
     }
 
     if (opt_set == false) {
@@ -347,7 +347,8 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     path = sbus_opath_compose(tmp_ctx, IFP_PATH_DOMAINS, opts.domain);
@@ -401,6 +402,7 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
 
 done:
     talloc_free(tmp_ctx);
-    return ret;
+    free(discard_const(opts.domain));
 
+    return ret;
 }
