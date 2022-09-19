@@ -62,11 +62,12 @@ static errno_t parse_cmdline(struct sss_cmdline *cmdline,
                              struct sss_domain_info **_domain)
 {
     enum sss_tool_opt require;
-    const char *input_name;
+    const char *input_name = NULL;
     const char *orig_name;
     struct sss_domain_info *domain;
     errno_t ret;
 
+    *_input_name = NULL;
     require = options == NULL ? SSS_TOOL_OPT_OPTIONAL : SSS_TOOL_OPT_REQUIRED;
 
     ret = sss_tool_popt_ex(cmdline, options, require,
@@ -81,6 +82,7 @@ static errno_t parse_cmdline(struct sss_cmdline *cmdline,
                               &orig_name, &domain);
     if (ret != EOK) {
         ERROR("Unable to parse name %s.\n", input_name);
+        free(discard_const(input_name));
         return ret;
     }
 
@@ -1416,20 +1418,25 @@ static int override_user_add(struct sss_cmdline *cmdline,
     ret = parse_cmdline_user_add(cmdline, tool_ctx, &user);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
-        return ret;
+        goto done;
     }
 
     ret = get_user_domain_msg(tool_ctx, &user);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
     ret = override_user(tool_ctx, &user);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    free(discard_const(user.input_name));
+
+    return ret;
 }
 
 static int override_user_del(struct sss_cmdline *cmdline,
@@ -1442,21 +1449,26 @@ static int override_user_del(struct sss_cmdline *cmdline,
     ret = parse_cmdline_user_del(cmdline, tool_ctx, &user);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
-        return ret;
+        goto done;
     }
 
     ret = get_user_domain_msg(tool_ctx, &user);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
     ret = override_object_del(user.domain, SYSDB_MEMBER_USER, user.sysdb_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to delete override object.\n");
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    free(discard_const(user.input_name));
+
+    return ret;
 }
 
 static int override_user_find(struct sss_cmdline *cmdline,
@@ -1555,6 +1567,8 @@ static int override_user_show(struct sss_cmdline *cmdline,
 
 done:
     talloc_free(tmp_ctx);
+    free(discard_const(input.input_name));
+
     return ret;
 }
 
@@ -1564,7 +1578,7 @@ static int override_user_import(struct sss_cmdline *cmdline,
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_colondb *db;
-    const char *filename;
+    const char *filename = NULL;
     struct override_user obj = {0};
     int linenum = 1;
     errno_t ret;
@@ -1636,6 +1650,8 @@ static int override_user_import(struct sss_cmdline *cmdline,
 
 done:
     talloc_free(tmp_ctx);
+    free(discard_const(filename));
+
     return ret;
 }
 
@@ -1643,22 +1659,27 @@ static int override_user_export(struct sss_cmdline *cmdline,
                                 struct sss_tool_ctx *tool_ctx,
                                 void *pvt)
 {
-    const char *filename;
+    const char *filename = NULL;
     errno_t ret;
 
     ret = parse_cmdline_export(cmdline, &filename);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
-        return ret;
+        goto done;
     }
 
     ret = user_export(filename, tool_ctx->domains, true, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to export users\n");
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    free(discard_const(filename));
+
+    return ret;
 }
 
 static int override_group_add(struct sss_cmdline *cmdline,
@@ -1671,20 +1692,25 @@ static int override_group_add(struct sss_cmdline *cmdline,
     ret = parse_cmdline_group_add(cmdline, tool_ctx, &group);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
-        return ret;
+        goto done;
     }
 
     ret = get_group_domain_msg(tool_ctx, &group);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
     ret = override_group(tool_ctx, &group);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    free(discard_const(group.input_name));
+
+    return ret;
 }
 
 static int override_group_del(struct sss_cmdline *cmdline,
@@ -1697,22 +1723,27 @@ static int override_group_del(struct sss_cmdline *cmdline,
     ret = parse_cmdline_group_del(cmdline, tool_ctx, &group);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
-        return ret;
+        goto done;
     }
 
     ret = get_group_domain_msg(tool_ctx, &group);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
     ret = override_object_del(group.domain, SYSDB_MEMBER_GROUP,
                               group.sysdb_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to delete override object.\n");
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    free(discard_const(group.input_name));
+
+    return ret;
 }
 
 static int override_group_find(struct sss_cmdline *cmdline,
@@ -1811,6 +1842,8 @@ static int override_group_show(struct sss_cmdline *cmdline,
 
 done:
     talloc_free(tmp_ctx);
+    free(discard_const(input.input_name));
+
     return ret;
 }
 
@@ -1820,7 +1853,7 @@ static int override_group_import(struct sss_cmdline *cmdline,
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_colondb *db;
-    const char *filename;
+    const char *filename = NULL;
     struct override_group obj = {0};
     int linenum = 1;
     errno_t ret;
@@ -1887,6 +1920,8 @@ static int override_group_import(struct sss_cmdline *cmdline,
 
 done:
     talloc_free(tmp_ctx);
+    free(discard_const(filename));
+
     return ret;
 }
 
@@ -1894,22 +1929,27 @@ static int override_group_export(struct sss_cmdline *cmdline,
                                  struct sss_tool_ctx *tool_ctx,
                                  void *pvt)
 {
-    const char *filename;
+    const char *filename = NULL;
     errno_t ret;
 
     ret = parse_cmdline_export(cmdline, &filename);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
-        return ret;
+        goto done;
     }
 
     ret = group_export(filename, tool_ctx->domains, true, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to export groups\n");
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    free(discard_const(filename));
+
+    return ret;
 }
 
 int main(int argc, const char **argv)
