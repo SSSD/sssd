@@ -26,7 +26,16 @@
                 keytab entry as the last entry or the only entry in the keytab file.
             </para>
             <para>
-                Default: false
+                Default: false (IPA and AD provider: true)
+            </para>
+            <para>
+                Please note that the ticket validation is the first step when
+		checking the PAC (see 'pac_check' in the
+                <citerefentry>
+                    <refentrytitle>sssd.conf</refentrytitle>
+                    <manvolnum>5</manvolnum>
+                </citerefentry> manual page for details). If ticket
+                validation is disabled the PAC checks will be skipped as well.
             </para>
         </listitem>
     </varlistentry>
