@@ -602,19 +602,7 @@ errno_t sssctl_analyze(struct sss_cmdline *cmdline,
 #endif
     errno_t ret;
 
-    const char **args = talloc_array_size(tool_ctx,
-                                          sizeof(char *),
-                                          cmdline->argc + 2);
-    if (!args) {
-        return ENOMEM;
-    }
-    memcpy(&args[1], cmdline->argv, sizeof(char *) * cmdline->argc);
-    args[0] = SSS_ANALYZE;
-    args[cmdline->argc + 1] = NULL;
-
-    ret = sssctl_run_command(args);
-
-    talloc_free(args);
+    ret = sssctl_wrap_command(SSS_ANALYZE, cmdline, tool_ctx, pvt);
 
     return ret;
 }
