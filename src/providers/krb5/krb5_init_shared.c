@@ -77,6 +77,16 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
         goto done;
     }
 
+    if (krb5_auth_ctx->check_pac_flags != 0
+            && !dp_opt_get_bool(krb5_auth_ctx->opts, KRB5_VALIDATE)) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "PAC check is requested but krb5_validate is set to false. "
+              "PAC checks will be skipped.\n");
+        sss_log(SSS_LOG_WARNING,
+                "PAC check is requested but krb5_validate is set to false. "
+                "PAC checks will be skipped.");
+    }
+
     ret = parse_krb5_map_user(krb5_auth_ctx,
                               dp_opt_get_cstring(krb5_auth_ctx->opts,
                                                  KRB5_MAP_USER),
