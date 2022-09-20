@@ -2253,9 +2253,16 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         <para>
                             Apply additional checks on the PAC of the Kerberos
                             ticket which is available in Active Directory and
-                            FreeIPA domains, if configured. The following
-                            options can be used alone or in a comma-separated
-                            list:
+                            FreeIPA domains, if configured. Please note that
+			    Kerberos ticket validation must be enabled to be
+                            able to check the PAC, i.e. the krb5_validate option
+                            must be set to 'True' which is the default for the
+                            IPA and AD provider. If krb5_validate is set to
+                            'False' the PAC checks will be skipped.
+			</para>
+                        <para>
+			    The following options can be used alone or in a
+			    comma-separated list:
                             <variablelist>
                             <varlistentry>
                                 <term>no_check</term>

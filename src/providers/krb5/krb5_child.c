@@ -3872,11 +3872,10 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    /* To be able to read the PAC we have to request a service ticket where we
-     * have a key to decrypt it, this is the same step we use for validating
-     * the ticket. */
-    if (cli_opts.check_pac_flags != 0) {
-        kr->validate = true;
+    if (cli_opts.check_pac_flags != 0 && !kr->validate) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "PAC check is requested but krb5_validate is set to false. "
+              "PAC checks will be skipped.\n");
     }
 
     kerr = privileged_krb5_setup(kr, offline);
