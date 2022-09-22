@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    Helper child to commmunicate with FIDO2 devices
+    Helper child to commmunicate with passkey devices
 
     Authors:
         Iker Pedrosa <ipedrosa@redhat.com>
@@ -25,7 +25,7 @@
 #include "util/debug.h"
 #include "util/util.h"
 
-#include "fido2_child.h"
+#include "passkey_child.h"
 
 errno_t
 list_devices(fido_dev_info_t *dev_list, size_t *dev_number)

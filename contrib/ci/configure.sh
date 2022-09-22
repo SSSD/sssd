@@ -83,7 +83,7 @@ fi
 
 if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
     CONFIGURE_ARG_LIST+=(
-        "--with-fido2"
+        "--with-passkey"
     )
 fi
 
