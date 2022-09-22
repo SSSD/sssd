@@ -188,9 +188,9 @@ if BUILD_SEMANAGE
 sssdlibexec_PROGRAMS += selinux_child
 endif
 sssdlibexec_PROGRAMS += p11_child
-if BUILD_FIDO2
-sssdlibexec_PROGRAMS += fido2_child
-endif # BUILD_FIDO2
+if BUILD_PASSKEY
+sssdlibexec_PROGRAMS += passkey_child
+endif # BUILD_PASSKEY
 if BUILD_OIDC_CHILD
 sssdlibexec_PROGRAMS += oidc_child
 endif
@@ -327,9 +327,9 @@ if BUILD_KCM_RENEWAL
 non_interactive_cmocka_based_tests += test_kcm_renewals
 endif # BUILD_KCM_RENEWAL
 
-if BUILD_FIDO2
-non_interactive_cmocka_based_tests += test_fido2
-endif # BUILD_FIDO2
+if BUILD_PASSKEY
+non_interactive_cmocka_based_tests += test_passkey
+endif # BUILD_PASSKEY
 
 
 if BUILD_SAMBA
@@ -916,7 +916,7 @@ dist_noinst_HEADERS = \
     src/shared/safealign.h \
     src/p11_child/p11_child.h \
     src/oidc_child/oidc_child_util.h \
-    src/fido2_child/fido2_child.h \
+    src/passkey_child/passkey_child.h \
     $(NULL)
 
 
@@ -3788,17 +3788,17 @@ test_sssd_krb5_locator_plugin_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
-if BUILD_FIDO2
-test_fido2_SOURCES = \
-    src/fido2_child/fido2_child_common.c \
-    src/fido2_child/fido2_child_credentials.c \
-    src/fido2_child/fido2_child_devices.c \
-    src/tests/cmocka/test_fido2_child.c \
+if BUILD_PASSKEY
+test_passkey_SOURCES = \
+    src/passkey_child/passkey_child_common.c \
+    src/passkey_child/passkey_child_credentials.c \
+    src/passkey_child/passkey_child_devices.c \
+    src/tests/cmocka/test_passkey_child.c \
     $(NULL)
-test_fido2_CFLAGS = \
+test_passkey_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
-test_fido2_LDFLAGS = \
+test_passkey_LDFLAGS = \
     -Wl,-wrap,tcgetattr \
     -Wl,-wrap,tcsetattr \
     -Wl,-wrap,getline \
@@ -3815,15 +3815,15 @@ test_fido2_LDFLAGS = \
     -Wl,-wrap,fido_cred_id_len \
     -Wl,-wrap,fido_cred_pubkey_ptr \
     -Wl,-wrap,fido_cred_pubkey_len
-test_fido2_LDADD = \
+test_passkey_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(LIBADD_DL) \
-    $(FIDO2_LIBS) \
+    $(PASSKEY_LIBS) \
     libsss_test_common.la \
     $(NULL)
-endif # BUILD_FIDO2
+endif # BUILD_PASSKEY
 
 if BUILD_KCM
 test_kcm_marshalling_SOURCES = \
@@ -4722,28 +4722,28 @@ p11_child_LDADD += \
     $(SSL_LIBS) \
     $(NULL)
 
-if BUILD_FIDO2
-fido2_child_SOURCES = \
-    src/fido2_child/fido2_child.c \
-    src/fido2_child/fido2_child_common.c \
-    src/fido2_child/fido2_child_credentials.c \
-    src/fido2_child/fido2_child_devices.c \
+if BUILD_PASSKEY
+passkey_child_SOURCES = \
+    src/passkey_child/passkey_child.c \
+    src/passkey_child/passkey_child_common.c \
+    src/passkey_child/passkey_child_credentials.c \
+    src/passkey_child/passkey_child_devices.c \
     $(NULL)
 
-fido2_child_CFLAGS = \
+passkey_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS)
 
-fido2_child_LDADD = \
+passkey_child_LDADD = \
     libsss_crypt.la \
     libsss_debug.la \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
     $(POPT_LIBS) \
-    $(FIDO2_LIBS) \
+    $(PASSKEY_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
-endif # BUILD_FIDO2
+endif # BUILD_PASSKEY
 
 if BUILD_OIDC_CHILD
 oidc_child_SOURCES = \

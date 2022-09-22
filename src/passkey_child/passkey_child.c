@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    Helper child to commmunicate with FIDO2 devices
+    Helper child to commmunicate with passkey devices
 
     Authors:
         Iker Pedrosa <ipedrosa@redhat.com>
@@ -28,12 +28,12 @@
 #include "util/debug.h"
 #include "util/util.h"
 
-#include "fido2_child.h"
+#include "passkey_child.h"
 
 int main(int argc, const char *argv[])
 {
     TALLOC_CTX *main_ctx = NULL;
-    struct fido2_data data;
+    struct passkey_data data;
     int init_flags = 0;
     errno_t ret = EOK;
 
@@ -43,7 +43,7 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "fido2_child started.\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "passkey_child started.\n");
 
     main_ctx = talloc_new(NULL);
     if (main_ctx == NULL) {

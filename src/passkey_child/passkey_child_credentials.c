@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    Helper child to commmunicate with FIDO2 devices
+    Helper child to commmunicate with passkey devices
 
     Authors:
         Iker Pedrosa <ipedrosa@redhat.com>
@@ -29,10 +29,10 @@
 #include "util/debug.h"
 #include "util/util.h"
 
-#include "fido2_child.h"
+#include "passkey_child.h"
 
 errno_t
-prepare_credentials(struct fido2_data *data, fido_dev_t *dev,
+prepare_credentials(struct passkey_data *data, fido_dev_t *dev,
                     fido_cred_t *cred)
 {
     unsigned char userid[32];
@@ -182,7 +182,7 @@ done:
 }
 
 errno_t
-generate_credentials(struct fido2_data *data, fido_dev_t *dev,
+generate_credentials(struct passkey_data *data, fido_dev_t *dev,
                      fido_cred_t *cred)
 {
     char *pin = NULL;
@@ -258,7 +258,7 @@ done:
 }
 
 errno_t
-print_credentials(const struct fido2_data *data, const fido_cred_t *const cred)
+print_credentials(const struct passkey_data *data, const fido_cred_t *const cred)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const unsigned char *cred_id = NULL;
@@ -317,7 +317,7 @@ print_credentials(const struct fido2_data *data, const fido_cred_t *const cred)
         goto done;
     }
 
-    printf("FIDO2:%s,%s\n", b64_cred_id, b64_public_key);
+    printf("passkey:%s,%s\n", b64_cred_id, b64_public_key);
     ret = EOK;
 
 done:
