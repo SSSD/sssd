@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    Unit test helper child to commmunicate with FIDO2 devices
+    Unit test helper child to commmunicate with passkey devices
 
     Authors:
         Iker Pedrosa <ipedrosa@redhat.com>
@@ -28,14 +28,14 @@
 
 #include "tests/cmocka/common_mock.h"
 
-#include "fido2_child/fido2_child.h"
+#include "passkey_child/passkey_child.h"
 
 #define TEST_PATH "/test/path"
 
 
 struct test_state {
     fido_cred_t *cred;
-    struct fido2_data data;
+    struct passkey_data data;
     fido_dev_info_t *dev_list;
     size_t dev_number;
     fido_dev_t *dev;
@@ -262,12 +262,12 @@ __wrap_fido_cred_pubkey_len(fido_cred_t *cred)
  **********************/
 void test_parse_required_args(void **state)
 {
-    struct fido2_data data;
+    struct passkey_data data;
     int argc = 0;
     const char *argv[19] = { NULL };
     errno_t ret;
 
-    argv[argc++] = "fido2_child";
+    argv[argc++] = "passkey_child";
     argv[argc++] = "--register";
     argv[argc++] = "--username=user";
     argv[argc++] = "--domain=test.com";
@@ -289,12 +289,12 @@ void test_parse_required_args(void **state)
 
 void test_parse_all_args(void **state)
 {
-    struct fido2_data data;
+    struct passkey_data data;
     int argc = 0;
     const char *argv[19] = { NULL };
     errno_t ret;
 
-    argv[argc++] = "fido2_child";
+    argv[argc++] = "passkey_child";
     argv[argc++] = "--authenticate";
     argv[argc++] = "--username=user";
     argv[argc++] = "--domain=test.com";
@@ -548,7 +548,7 @@ void test_verify_credentials_error(void **state)
 
 void test_register_key_integration(void **state)
 {
-    struct fido2_data data;
+    struct passkey_data data;
     const char *credentialId = "credentialId";
     const char *userKey = "userKey";
     errno_t ret;

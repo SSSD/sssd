@@ -670,14 +670,14 @@ AC_DEFUN([WITH_SUBID_LIB_PATH],
     AC_SUBST(subidlibpath)
   ])
 
-AC_DEFUN([WITH_FIDO2],
-  [ AC_ARG_WITH([fido2],
-                [AC_HELP_STRING([--with-fido2],
-                                [Whether to build with FIDO2 support [no]]
+AC_DEFUN([WITH_PASSKEY],
+  [ AC_ARG_WITH([passkey],
+                [AC_HELP_STRING([--with-passkey],
+                                [Whether to build with passkey support [no]]
                                )
                 ],
-                [with_fido2=$withval],
-                with_fido2=no
+                [with_passkey=$withval],
+                with_passkey=no
                )
   ])
 

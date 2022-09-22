@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    Helper child to commmunicate with FIDO2 devices
+    Helper child to commmunicate with passkey devices
 
     Authors:
         Iker Pedrosa <ipedrosa@redhat.com>
@@ -29,7 +29,7 @@
 #include "util/debug.h"
 #include "util/util.h"
 
-#include "fido2_child.h"
+#include "passkey_child.h"
 
 errno_t
 cose_str_to_int(const char *type, int *out)
@@ -49,7 +49,7 @@ cose_str_to_int(const char *type, int *out)
 }
 
 errno_t
-parse_arguments(int argc, const char *argv[], struct fido2_data *data)
+parse_arguments(int argc, const char *argv[], struct passkey_data *data)
 {
     int opt;
     int dumpable = 1;
@@ -79,9 +79,9 @@ parse_arguments(int argc, const char *argv[], struct fido2_data *data)
          _("An open file descriptor for the debug logs"), NULL},
         SSSD_LOGGER_OPTS
         {"register", 0, POPT_ARG_NONE, NULL, 'r',
-         _("Register a FIDO2 key for a user"), NULL },
+         _("Register a passkey for a user"), NULL },
         {"authenticate", 0, POPT_ARG_NONE, NULL, 'a',
-         _("Authenticate a user with a FIDO2 key"), NULL },
+         _("Authenticate a user with a passkey"), NULL },
         {"username", 0, POPT_ARG_STRING, &data->shortname, 0,
          _("Shortname"), NULL },
         {"domain", 0, POPT_ARG_STRING, &data->domain, 0,
@@ -167,7 +167,7 @@ parse_arguments(int argc, const char *argv[], struct fido2_data *data)
         }
     }
 
-    debug_prg_name = talloc_asprintf(NULL, "fido2_child[%d]", getpid());
+    debug_prg_name = talloc_asprintf(NULL, "passkey_child[%d]", getpid());
     if (debug_prg_name == NULL) {
         ERROR("talloc_asprintf failed.\n");
         ret = ENOMEM;
@@ -192,7 +192,7 @@ done:
 }
 
 errno_t
-check_arguments(const struct fido2_data *data)
+check_arguments(const struct passkey_data *data)
 {
     errno_t ret = EOK;
 
@@ -234,7 +234,7 @@ done:
 }
 
 errno_t
-register_key(struct fido2_data *data)
+register_key(struct passkey_data *data)
 {
     fido_cred_t *cred = NULL;
     fido_dev_t *dev = NULL;
