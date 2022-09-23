@@ -25,9 +25,12 @@
 #include <popt.h>
 #include <sys/prctl.h>
 #include <fido/param.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
 
 #include "util/debug.h"
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
 
 #include "passkey_child.h"
 
@@ -110,8 +113,8 @@ parse_arguments(int argc, const char *argv[], struct passkey_data *data)
         case 'r':
             if (data->action != ACTION_NONE
                 && data->action != ACTION_REGISTER) {
-                fprintf(stderr, "\n--register and --authenticate are mutually exclusive " \
-                                "and should be used only once.\n\n");
+                fprintf(stderr, "\nActions are mutually exclusive and should" \
+                                " be used only once.\n\n");
                 poptPrintUsage(pc, stderr, 0);
                 ret = EINVAL;
                 goto done;
@@ -121,8 +124,8 @@ parse_arguments(int argc, const char *argv[], struct passkey_data *data)
         case 'a':
             if (data->action != ACTION_NONE
                 && data->action != ACTION_AUTHENTICATE) {
-                fprintf(stderr, "\n--register and --authenticate are mutually exclusive " \
-                                "and should be used only once.\n\n");
+                fprintf(stderr, "\nActions are mutually exclusive and should" \
+                                " be used only once.\n\n");
                 poptPrintUsage(pc, stderr, 0);
                 ret = EINVAL;
                 goto done;
@@ -316,6 +319,71 @@ done:
         fido_dev_close(dev);
     }
     fido_dev_free(&dev);
+
+    return ret;
+}
+
+errno_t
+public_key_to_base64(TALLOC_CTX *mem_ctx, const struct passkey_data *data,
+                     const unsigned char *public_key, size_t pk_len,
+                     char **_pem_key)
+{
+    EVP_PKEY *evp_pkey = NULL;
+    unsigned char *pub = NULL;
+    char *pem_key = NULL;
+    unsigned long err;
+    errno_t ret;
+
+    if (_pem_key == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    switch (data->type) {
+    case COSE_ES256:
+        ret = es256_pubkey_to_evp_pkey(mem_ctx, public_key, pk_len, &evp_pkey);
+        break;
+    case COSE_RS256:
+        ret = rs256_pubkey_to_evp_pkey(mem_ctx, public_key, pk_len, &evp_pkey);
+        break;
+    case COSE_EDDSA:
+        ret = eddsa_pubkey_to_evp_pkey(mem_ctx, public_key, pk_len, &evp_pkey);
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid key type.\n");
+        ret = EINVAL;
+        break;
+    }
+
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = i2d_PUBKEY(evp_pkey, &pub);
+    if (ret < 1) {
+        err = ERR_get_error();
+        DEBUG(SSSDBG_OP_FAILURE, "i2d_PUBKEY failed [%lu][%s].\n",
+              err, ERR_error_string(err, NULL));
+        ret = EIO;
+        goto done;
+    }
+
+    pem_key = sss_base64_encode(mem_ctx, pub, ret);
+    if (pem_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_base64_encode failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_pem_key = pem_key;
+    ret = EOK;
+
+done:
+    free(pub);
+
+    if (evp_pkey != NULL) {
+        EVP_PKEY_free(evp_pkey);
+    }
 
     return ret;
 }

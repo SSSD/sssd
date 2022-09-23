@@ -25,6 +25,10 @@
 #include <termios.h>
 #include <stdio.h>
 
+#include <fido/es256.h>
+#include <fido/rs256.h>
+#include <fido/eddsa.h>
+
 #include "util/crypto/sss_crypto.h"
 #include "util/debug.h"
 #include "util/util.h"
@@ -258,13 +262,14 @@ done:
 }
 
 errno_t
-print_credentials(const struct passkey_data *data, const fido_cred_t *const cred)
+print_credentials(const struct passkey_data *data,
+                  const fido_cred_t *const cred)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const unsigned char *cred_id = NULL;
     const unsigned char *public_key = NULL;
     const char *b64_cred_id = NULL;
-    const char *b64_public_key = NULL;
+    char *pem_key = NULL;
     size_t cred_id_len;
     size_t user_key_len;
     errno_t ret;
@@ -310,18 +315,134 @@ print_credentials(const struct passkey_data *data, const fido_cred_t *const cred
         goto done;
     }
 
-    b64_public_key = sss_base64_encode(tmp_ctx, public_key, user_key_len);
-    if (b64_public_key == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "failed to encode public key.\n");
-        ret = ENOMEM;
+    ret = public_key_to_base64(tmp_ctx, data, public_key, user_key_len,
+                               &pem_key);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "failed to format public key to b64 [%d]: %s.\n",
+              ret, fido_strerr(ret));
         goto done;
     }
 
-    printf("passkey:%s,%s\n", b64_cred_id, b64_public_key);
+    printf("passkey:%s,%s\n", b64_cred_id, pem_key);
     ret = EOK;
 
 done:
     talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+int
+es256_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *es256_key,
+                         size_t es256_key_len, EVP_PKEY **_evp_pkey)
+{
+    EVP_PKEY *evp_pkey = NULL;
+    es256_pk_t *public_key = NULL;
+    errno_t ret;
+
+    public_key = es256_pk_new();
+    if (public_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "es256_pk_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = es256_pk_from_ptr(public_key, es256_key, es256_key_len);
+    if (ret != FIDO_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "es256_pk_from_ptr failed [%d]: %s.\n",
+              ret, fido_strerr(ret));
+        goto done;
+    }
+
+    evp_pkey = es256_pk_to_EVP_PKEY(public_key);
+    if (evp_pkey == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "es256_pk_to_EVP_PKEY failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_evp_pkey = evp_pkey;
+    ret = EOK;
+
+done:
+    es256_pk_free(&public_key);
+
+    return ret;
+}
+
+int
+rs256_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *rs256_key,
+                         size_t rs256_key_len, EVP_PKEY **_evp_pkey)
+{
+    EVP_PKEY *evp_pkey = NULL;
+    rs256_pk_t *public_key = NULL;
+    errno_t ret;
+
+    public_key = rs256_pk_new();
+    if (public_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "rs256_pk_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = rs256_pk_from_ptr(public_key, rs256_key, rs256_key_len);
+    if (ret != FIDO_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "rs256_pk_from_ptr failed [%d]: %s.\n",
+              ret, fido_strerr(ret));
+        goto done;
+    }
+
+    evp_pkey = rs256_pk_to_EVP_PKEY(public_key);
+    if (evp_pkey == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "rs256_pk_to_EVP_PKEY failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_evp_pkey = evp_pkey;
+    ret = EOK;
+
+done:
+    rs256_pk_free(&public_key);
+
+    return ret;
+}
+
+int
+eddsa_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *eddsa_key,
+                         size_t eddsa_key_len, EVP_PKEY **_evp_pkey)
+{
+    EVP_PKEY *evp_pkey = NULL;
+    eddsa_pk_t *public_key = NULL;
+    errno_t ret;
+
+    public_key = eddsa_pk_new();
+    if (public_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "eddsa_pk_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = eddsa_pk_from_ptr(public_key, eddsa_key, eddsa_key_len);
+    if (ret != FIDO_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "eddsa_pk_from_ptr failed [%d]: %s.\n",
+              ret, fido_strerr(ret));
+        goto done;
+    }
+
+    evp_pkey = eddsa_pk_to_EVP_PKEY(public_key);
+    if (evp_pkey == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "eddsa_pk_to_EVP_PKEY failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_evp_pkey = evp_pkey;
+    ret = EOK;
+
+done:
+    eddsa_pk_free(&public_key);
 
     return ret;
 }
