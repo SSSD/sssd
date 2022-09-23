@@ -181,6 +181,7 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:56
 msgid "Run PAC responder automatically for AD and IPA provider"
 msgstr ""
+"Ejecutar el contestador PAC automáticamente para los proveedores AD e IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Enumeration cache timeout length (seconds)"
@@ -477,7 +478,7 @@ msgstr "Longitud de datos PAC considerados válidos"
 
 #: src/config/SSSDConfig/sssdoptions.py:137
 msgid "Validate the PAC"
-msgstr ""
+msgstr "Validar el PAC"
 
 #: src/config/SSSDConfig/sssdoptions.py:140
 msgid "List of user attributes the InfoPipe is allowed to publish"
@@ -1214,7 +1215,7 @@ msgstr "Selecciona el principal para su uso por FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:334
 msgid "Use anonymous PKINIT to request FAST credentials"
-msgstr ""
+msgstr "Usar PKINIT anónimo para peticiciones de credenciales FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:335
 msgid "Enables principal canonicalization"
@@ -1367,7 +1368,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:376
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "Ignorar las referencias LDAP no legibles"
 
 #: src/config/SSSDConfig/sssdoptions.py:377
 msgid ""
