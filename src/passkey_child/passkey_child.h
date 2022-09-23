@@ -183,4 +183,62 @@ errno_t
 print_credentials(const struct passkey_data *data,
                   const fido_cred_t *const cred);
 
+/**
+ * @brief Format libfido2's es256 data structure to EVP_PKEY
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] es256_key Public key pointer
+ * @param[in] es256_key_len Public key length
+ * @param[out] _evp_pkey Pointer to public key structure
+ *
+ * @return 0 if the key was formatted properly, error code otherwise.
+ */
+int
+es256_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *es256_key,
+                         size_t es256_key_len, EVP_PKEY **_evp_pkey);
+
+/**
+ * @brief Format libfido2's rs256 data structure to EVP_PKEY
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] rs256_key Public key pointer
+ * @param[in] rs256_key_len Public key length
+ * @param[out] _evp_pkey Pointer to public key structure
+ *
+ * @return 0 if the key was formatted properly, error code otherwise.
+ */
+int
+rs256_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *rs256_key,
+                         size_t rs256_key_len, EVP_PKEY **_evp_pkey);
+
+/**
+ * @brief Format libfido2's eddsa data structure to EVP_PKEY
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] eddsa_key Public key pointer
+ * @param[in] eddsa_key_len Public key length
+ * @param[out] _evp_pkey Pointer to public key structure
+ *
+ * @return 0 if the key was formatted properly, error code otherwise.
+ */
+int
+eddsa_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *eddsa_key,
+                         size_t eddsa_key_len, EVP_PKEY **_evp_pkey);
+
+/**
+ * @brief Format the public key to base64
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] data passkey data
+ * @param[in] public_key Public key
+ * @param[in] pk_len Public key length
+ * @param[out] _pem_key Public key in PEM format
+ *
+ * @return 0 if the key was formatted properly, error code otherwise.
+ */
+errno_t
+public_key_to_base64(TALLOC_CTX *mem_ctx, const struct passkey_data *data,
+                     const unsigned char *public_key, size_t pk_len,
+                     char **_pem_key);
+
 #endif /* __PASSKEY_CHILD_H__ */
