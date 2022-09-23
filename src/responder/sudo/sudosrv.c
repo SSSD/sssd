@@ -141,8 +141,8 @@ int main(int argc, const char *argv[])
     struct main_context *main_ctx;
     int ret;
     int pipe_fd = -1;
-    uid_t uid;
-    gid_t gid;
+    uid_t uid = 0;
+    gid_t gid = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP

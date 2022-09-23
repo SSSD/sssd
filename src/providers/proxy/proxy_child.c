@@ -483,8 +483,8 @@ int main(int argc, const char *argv[])
     long id = 0;
     long chain_id;
     char *pam_target = NULL;
-    uid_t uid;
-    gid_t gid;
+    uid_t uid = 0;
+    gid_t gid = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
