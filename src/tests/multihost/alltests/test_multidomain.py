@@ -285,6 +285,9 @@ class TestMultiDomain(object):
         :id: 50cc738c-d522-426f-a2cb-6e2ee37db86b
         """
         multidomain_sssd(domains='local_ldap')
+        domain_params = {'enable_files_domain': 'true'}
+        tools = sssdTools(multihost.client[0])
+        tools.sssd_conf('sssd', domain_params, action='update')
         ret = multihost.client[0].service_sssd('start')
         assert ret == 0
         for idx in range(10):
@@ -571,6 +574,8 @@ class TestMultiDomain(object):
         """
         multidomain_sssd(domains='ldap_ldap')
         tools = sssdTools(multihost.client[0])
+        domain_params = {'enable_files_domain': 'true'}
+        tools.sssd_conf('sssd', domain_params, action='update')
         domain_params = {'domains': ''}
         tools = sssdTools(multihost.client[0])
         tools.sssd_conf('sssd', domain_params, action='update')
@@ -611,6 +616,8 @@ class TestMultiDomain(object):
         """
         multidomain_sssd(domains='ldap_ldap')
         tools = sssdTools(multihost.client[0])
+        domain_params = {'enable_files_domain': 'true'}
+        tools.sssd_conf('sssd', domain_params, action='update')
         domain_params = {'domains': ''}
         tools = sssdTools(multihost.client[0])
         tools.sssd_conf('sssd', domain_params, action='update')
