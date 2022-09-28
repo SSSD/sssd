@@ -3796,12 +3796,14 @@ test_passkey_SOURCES = \
     src/passkey_child/passkey_child_common.c \
     src/passkey_child/passkey_child_credentials.c \
     src/passkey_child/passkey_child_devices.c \
+    src/passkey_child/passkey_child_assert.c \
     src/tests/cmocka/test_passkey_child.c \
     $(NULL)
 test_passkey_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 test_passkey_LDFLAGS = \
+    -Wl,-wrap,sleep \
     -Wl,-wrap,tcgetattr \
     -Wl,-wrap,tcsetattr \
     -Wl,-wrap,getline \
@@ -3817,7 +3819,14 @@ test_passkey_LDFLAGS = \
     -Wl,-wrap,fido_cred_id_ptr \
     -Wl,-wrap,fido_cred_id_len \
     -Wl,-wrap,fido_cred_pubkey_ptr \
-    -Wl,-wrap,fido_cred_pubkey_len
+    -Wl,-wrap,fido_cred_pubkey_len \
+    -Wl,-wrap,fido_assert_set_rp \
+    -Wl,-wrap,fido_assert_allow_cred \
+    -Wl,-wrap,fido_assert_set_uv \
+    -Wl,-wrap,fido_assert_set_clientdata_hash \
+    -Wl,-wrap,fido_dev_get_assert \
+    -Wl,-wrap,fido_dev_is_fido2 \
+    -Wl,-wrap,fido_assert_verify
 test_passkey_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
@@ -4731,6 +4740,7 @@ passkey_child_SOURCES = \
     src/passkey_child/passkey_child_common.c \
     src/passkey_child/passkey_child_credentials.c \
     src/passkey_child/passkey_child_devices.c \
+    src/passkey_child/passkey_child_assert.c \
     $(NULL)
 
 passkey_child_CFLAGS = \
