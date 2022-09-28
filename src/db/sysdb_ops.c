@@ -19,6 +19,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdbool.h>
+
 #include "util/util.h"
 #include "db/sysdb_private.h"
 #include "db/sysdb_services.h"
@@ -35,15 +37,17 @@
 #define SSS_SYSDB_BOTH_CACHE (SSS_SYSDB_CACHE | SSS_SYSDB_TS_CACHE)
 
 /*
- * The wrapper around ldb_modify that uses LDB_CONTROL_PERMISSIVE_MODIFY_OID
- * so that on adds entries that already exist are skipped and similarly
- * entries that are missing are ignored on deletes
+ * The wrapper around ldb_modify that optionally uses
+ * LDB_CONTROL_PERMISSIVE_MODIFY_OID so that on adds entries that already
+ * exist are skipped and similarly entries that are missing are ignored
+ * on deletes.
  *
  * Please note this function returns LDB error codes, not sysdb error
  * codes on purpose, see usage in callers!
  */
-int sss_ldb_modify_permissive(struct ldb_context *ldb,
-                              struct ldb_message *msg)
+int sss_ldb_modify(struct ldb_context *ldb,
+                   struct ldb_message *msg,
+                   bool permissive)
 {
     struct ldb_request *req;
     int ret;
@@ -59,11 +63,13 @@ int sss_ldb_modify_permissive(struct ldb_context *ldb,
 
     if (ret != LDB_SUCCESS) return ret;
 
-    ret = ldb_request_add_control(req, LDB_CONTROL_PERMISSIVE_MODIFY_OID,
-                                  false, NULL);
-    if (ret != LDB_SUCCESS) {
-        talloc_free(req);
-        return ret;
+    if (permissive) {
+        ret = ldb_request_add_control(req, LDB_CONTROL_PERMISSIVE_MODIFY_OID,
+                                      false, NULL);
+        if (ret != LDB_SUCCESS) {
+            talloc_free(req);
+            return ret;
+        }
     }
 
     ret = ldb_transaction_start(ldb);
@@ -112,6 +118,12 @@ done:
      * codes on purpose, see usage in callers!
      */
     return ret;
+}
+
+int sss_ldb_modify_permissive(struct ldb_context *ldb,
+                              struct ldb_message *msg)
+{
+    return sss_ldb_modify(ldb, msg, true);
 }
 
 #define ERROR_OUT(v, r, l) do { v = r; goto l; } while(0)
@@ -5623,5 +5635,171 @@ int sysdb_invalidate_cache_entry(struct sss_domain_info *domain,
 
 done:
     talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+/* === Operation On Indexes ================================== */
+errno_t sysdb_ldb_list_indexes(TALLOC_CTX *mem_ctx,
+                               struct ldb_context *ldb,
+                               const char *attribute,
+                               const char ***_indexes)
+{
+    errno_t ret;
+    int j;
+    int i;
+    int ldb_ret;
+    unsigned int length;
+    unsigned int attr_length = (attribute == NULL ? 0 : strlen(attribute));
+    char *data;
+    struct ldb_dn *dn;
+    struct ldb_result *res;
+    struct ldb_message_element *el;
+    const char *attrs[] = { SYSDB_IDXATTR, NULL };
+    const char **indexes = NULL;
+
+    dn = ldb_dn_new(mem_ctx, ldb, SYSDB_INDEXES);
+    if (dn == NULL) {
+        ERROR_OUT(ret, EIO, done);
+    }
+
+    ldb_ret = ldb_search(ldb, mem_ctx, &res, dn, LDB_SCOPE_BASE, attrs, NULL);
+    if (ldb_ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_search() failed: %i\n", ldb_ret);
+        ERROR_OUT(ret, EIO, done);
+    }
+    if (res->count != 1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_search() returned %u messages. Expected 1.\n", res->count);
+        ERROR_OUT(ret, EIO, done);
+    }
+    if (res->msgs[0]->num_elements != 1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_search() returned %u elements. Expected 1.\n",
+              res->msgs[0]->num_elements);
+        ERROR_OUT(ret, EIO, done);
+    }
+
+    el = res->msgs[0]->elements;
+    j = 0;
+    indexes = talloc_zero_array(mem_ctx, const char *, 1);
+    if (indexes == NULL) ERROR_OUT(ret, ENOMEM, done);
+
+    for (i = 0; i < el->num_values; i++) {
+        data = (char *) el->values[i].data;
+        length = (int) el->values[i].length;
+        if (attr_length == 0 ||
+            (attr_length == length && strncmp(attribute, data, length) == 0)) {
+            indexes = talloc_realloc(mem_ctx, indexes, const char *, j + 2);
+            if (indexes == NULL) ERROR_OUT(ret, ENOMEM, done);
+
+            indexes[j] = talloc_asprintf(indexes, "%*s", length, data);
+            if (indexes[j] == NULL) ERROR_OUT(ret, ENOMEM, done);
+
+            indexes[++j] = NULL;
+        }
+    }
+
+    *_indexes = indexes;
+    ret = EOK;
+
+done:
+    talloc_free(dn);
+    if (ret != EOK) {
+        talloc_free(indexes);
+    }
+
+    return ret;
+}
+
+errno_t sysdb_ldb_mod_index(TALLOC_CTX *mem_ctx,
+                            enum sysdb_index_actions action,
+                            struct ldb_context *ldb,
+                            const char *attribute)
+{
+    errno_t ret;
+    int ldb_ret;
+    struct ldb_message *msg;
+
+    msg = ldb_msg_new(mem_ctx);
+    if (msg == NULL) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    msg->dn = ldb_dn_new(msg, ldb, SYSDB_INDEXES);
+    if (msg->dn == NULL) {
+        ERROR_OUT(ret, EIO, done);
+    }
+
+    if (action == SYSDB_IDX_CREATE) {
+        ldb_ret = sysdb_add_string(msg, SYSDB_IDXATTR, attribute);
+    } else if (action == SYSDB_IDX_DELETE) {
+        ldb_ret = sysdb_delete_string(msg, SYSDB_IDXATTR, attribute);
+    } else {
+        ERROR_OUT(ret, EINVAL, done);
+    }
+    if (ldb_ret != LDB_SUCCESS) {
+        ERROR_OUT(ret, EIO, done);
+    }
+
+    ldb_ret = sss_ldb_modify(ldb, msg, false);
+    if (ldb_ret != LDB_SUCCESS) {
+        switch (ldb_ret) {
+        case LDB_ERR_NO_SUCH_ATTRIBUTE:
+            ret = ENOENT;
+            break;
+        case LDB_ERR_ATTRIBUTE_OR_VALUE_EXISTS:
+            ret = EEXIST;
+            break;
+        default:
+            ret = EIO;
+        }
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(msg);
+
+    return ret;
+}
+
+errno_t sysdb_manage_index(TALLOC_CTX *mem_ctx, enum sysdb_index_actions action,
+                           const char *name, const char *attribute,
+                           const char ***_indexes)
+{
+    errno_t ret;
+    struct ldb_context *ldb = NULL;
+
+    ret = sysdb_ldb_connect(mem_ctx, name, LDB_FLG_DONT_CREATE_DB, &ldb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect() failed.\n");
+        goto done;
+    }
+
+    switch (action) {
+    case SYSDB_IDX_CREATE:
+    case SYSDB_IDX_DELETE:
+        ret = sysdb_ldb_mod_index(ldb, action, ldb, attribute);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_mod_index() failed.\n");
+            goto done;
+        }
+        break;
+    case SYSDB_IDX_LIST:
+        ret = sysdb_ldb_list_indexes(mem_ctx, ldb, attribute, _indexes);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_list_indexes() failed.\n");
+            goto done;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown action: %i\n", action);
+        goto done;
+    }
+
+done:
+    talloc_free(ldb);
+
     return ret;
 }

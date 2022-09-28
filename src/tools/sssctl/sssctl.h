@@ -84,6 +84,10 @@ errno_t sssctl_cache_expire(struct sss_cmdline *cmdline,
                             struct sss_tool_ctx *tool_ctx,
                             void *pvt);
 
+errno_t sssctl_cache_index(struct sss_cmdline *cmdline,
+                            struct sss_tool_ctx *tool_ctx,
+                            void *pvt);
+
 errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt);

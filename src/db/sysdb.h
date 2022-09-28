@@ -31,6 +31,9 @@
 #define CACHE_TIMESTAMPS_FILE "timestamps_%s.ldb"
 #define LOCAL_SYSDB_FILE "sssd.ldb"
 
+#define SYSDB_INDEXES "@INDEXLIST"
+#define SYSDB_IDXATTR "@IDXATTR"
+
 #define SYSDB_BASE "cn=sysdb"
 #define SYSDB_DOM_BASE "cn=%s,cn=sysdb"
 #define SYSDB_USERS_CONTAINER "cn=users"
@@ -371,6 +374,12 @@ enum sysdb_member_type {
     SYSDB_MEMBER_SERVICE,
     SYSDB_MEMBER_HOST,
     SYSDB_MEMBER_IP_NETWORK,
+};
+
+enum sysdb_index_actions {
+    SYSDB_IDX_CREATE,
+    SYSDB_IDX_DELETE,
+    SYSDB_IDX_LIST
 };
 
 /* These attributes are stored in the timestamp cache */
