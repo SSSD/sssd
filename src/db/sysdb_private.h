@@ -144,7 +144,15 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
                           const char *filename,
                           int flags,
                           struct ldb_context **_ldb);
-
+errno_t sysdb_ldb_mod_index(TALLOC_CTX *mem_ctx,
+                            enum sysdb_index_actions action,
+                            struct ldb_context *ldb,
+                            const char *attribute);
+errno_t sysdb_manage_index(TALLOC_CTX *mem_ctx,
+                           enum sysdb_index_actions action,
+                           const char *name,
+                           const char *attribute,
+                           const char ***indexes);
 struct sysdb_dom_upgrade_ctx {
     struct sss_names_ctx *names; /* upgrade to 0.18 needs to parse names */
 };

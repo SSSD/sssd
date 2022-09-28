@@ -595,3 +595,25 @@ done:
 
     return ret;
 }
+
+errno_t sss_tool_connect_to_confdb(TALLOC_CTX *ctx, struct confdb_ctx **cdb_ctx)
+{
+    int ret;
+    char *confdb_path = NULL;
+
+    confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
+    if (confdb_path == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not allocate memory for confdb path\n");
+        return ENOMEM;
+    }
+
+    ret = confdb_init(ctx, cdb_ctx, confdb_path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not initialize connection to the confdb\n");
+    }
+
+    talloc_free(confdb_path);
+    return ret;
+}

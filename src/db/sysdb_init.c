@@ -157,23 +157,32 @@ int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
                       char **_ldb_file,
                       char **_ts_file)
 {
-    char *ldb_file;
-    char *ts_file;
+    char *ldb_file = NULL;
+    char *ts_file = NULL;
 
-    ldb_file = talloc_asprintf(mem_ctx, "%s/"CACHE_SYSDB_FILE,
-                               base_path, name);
-    if (!ldb_file) {
-        return ENOMEM;
+    if (_ldb_file != NULL) {
+        ldb_file = talloc_asprintf(mem_ctx, "%s/"CACHE_SYSDB_FILE,
+                                   base_path, name);
+        if (!ldb_file) {
+            return ENOMEM;
+        }
     }
-    ts_file = talloc_asprintf(mem_ctx, "%s/"CACHE_TIMESTAMPS_FILE,
-                              base_path, name);
-    if (!ts_file) {
-        talloc_free(ldb_file);
-        return ENOMEM;
+    if (_ts_file != NULL) {
+        ts_file = talloc_asprintf(mem_ctx, "%s/"CACHE_TIMESTAMPS_FILE,
+                                  base_path, name);
+        if (!ts_file) {
+            talloc_free(ldb_file);
+            return ENOMEM;
+        }
     }
 
-    *_ldb_file = ldb_file;
-    *_ts_file = ts_file;
+    if (_ldb_file != NULL) {
+        *_ldb_file = ldb_file;
+    }
+    if (_ts_file != NULL) {
+        *_ts_file = ts_file;
+    }
+
     return EOK;
 }
 
