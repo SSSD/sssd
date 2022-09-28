@@ -37,21 +37,21 @@ int main(int argc, const char *argv[])
     int init_flags = 0;
     errno_t ret = EOK;
 
-    ret = parse_arguments(argc, argv, &data);
+    main_ctx = talloc_new(NULL);
+    if (main_ctx == NULL) {
+        ERROR("talloc_new() failed.\n");
+        talloc_free(discard_const(debug_prg_name));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = parse_arguments(main_ctx, argc, argv, &data);
     if (ret != EOK) {
         ERROR("Error parsing argument(s).\n");
         goto done;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "passkey_child started.\n");
-
-    main_ctx = talloc_new(NULL);
-    if (main_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
-        talloc_free(discard_const(debug_prg_name));
-        ret = ENOMEM;
-        goto done;
-    }
     talloc_steal(main_ctx, debug_prg_name);
 
     ret = check_arguments(&data);
@@ -70,7 +70,14 @@ int main(int argc, const char *argv[])
             goto done;
         }
     } else if (data.action == ACTION_AUTHENTICATE) {
-        ERROR("This action isn't implemented yet.\n");
+        ret = authenticate(&data);
+        if (ret == EOK) {
+            printf("Authentication success.\n");
+            goto done;
+        } else {
+            ERROR("Authentication error.\n");
+            goto done;
+        }
     }
 
 done:
