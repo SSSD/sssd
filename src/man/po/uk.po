@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-08-26 21:52+0200\n"
-"PO-Revision-Date: 2022-07-08 09:19+0000\n"
+"PO-Revision-Date: 2022-09-04 11:19+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/uk/>\n"
@@ -24,9 +24,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.13\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.14\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -5245,10 +5245,8 @@ msgstr "ldap_purge_cache_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3728
-#, fuzzy
-#| msgid "ldap_connection_expire_timeout (integer)"
 msgid "ldap_connection_idle_timeout"
-msgstr "ldap_connection_expire_timeout (ціле значення)"
+msgstr "ldap_connection_idle_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3731 sssd-ldap.5.xml:390
@@ -7006,6 +7004,13 @@ msgid ""
 "be closed immediately and will never be reused if "
 "<emphasis>ldap_connection_expire_timeout &lt;= ldap_opt_timout</emphasis>"
 msgstr ""
+"Якщо з'єднання є бездіяльним (жодна дія у ньому не виконується активно) "
+"протягом <emphasis>ldap_opt_timeout</emphasis> секунд завершення строку дії, "
+"його буде передчасно розірвано, щоб новий запит не міг потребувати, щоб "
+"з'єднання лишалося відкритим після завершення його строку дії. Неявним "
+"чином, це означає, що з'єднання завжди розриватимуться негайно і не "
+"використовуватимуться повторно, якщо "
+"<emphasis>ldap_connection_expire_timeout &lt;= ldap_opt_timout</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:542
@@ -7037,36 +7042,24 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:567
-#, fuzzy
-#| msgid "ldap_connection_expire_timeout (integer)"
 msgid "ldap_connection_idle_timeout (integer)"
-msgstr "ldap_connection_expire_timeout (ціле значення)"
+msgstr "ldap_connection_idle_timeout (ціле значення)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:570
-#, fuzzy
-#| msgid ""
-#| "Specifies a timeout (in seconds) that a connection to an LDAP server will "
-#| "be maintained. After this time, the connection will be re-established. If "
-#| "used in parallel with SASL/GSSAPI, the sooner of the two values (this "
-#| "value vs. the TGT lifetime)  will be used."
 msgid ""
 "Specifies a timeout (in seconds) that an idle connection to an LDAP server "
 "will be maintained.  If the connection is idle for more than this time then "
 "the connection will be closed."
 msgstr ""
 "Визначає час очікування (у секундах), протягом якого підтримуватиметься "
-"з’єднання з сервером LDAP. По завершенню цього часу буде зроблено спробу "
-"повторно встановити з’єднання. У разі використання паралельно до SASL/GSSAPI "
-"буде використано перше за часом значення (це значення або значення строку "
-"дії TGT)."
+"бездіяльне з’єднання з сервером LDAP. Якщо з'єднання лишатиметься "
+"бездіяльним понад цей час, з'єднання буде розірвано."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:576
-#, fuzzy
-#| msgid "You can disable this offset by setting the value to 0."
 msgid "You can disable this timeout by setting the value to 0."
-msgstr "Ви можете вимкнути цей зсув, встановивши значення 0."
+msgstr "Ви можете вимкнути цей час очікування, встановивши значення 0."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:591
@@ -7802,11 +7795,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1138
-#, fuzzy
-#| msgid ""
-#| "<emphasis>shadow</emphasis> - Use <citerefentry><refentrytitle>shadow</"
-#| "refentrytitle> <manvolnum>5</manvolnum></citerefentry> style attributes "
-#| "to evaluate if the password has expired."
 msgid ""
 "<emphasis>shadow</emphasis> - Use <citerefentry><refentrytitle>shadow</"
 "refentrytitle> <manvolnum>5</manvolnum></citerefentry> style attributes to "
@@ -7814,8 +7802,9 @@ msgid ""
 "\"ldap_chpass_update_last_change\" as well."
 msgstr ""
 "<emphasis>shadow</emphasis> — використовувати атрибути у стилі "
-"<citerefentry><refentrytitle>shadow</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> для визначення того, чи чинним є пароль."
+"<citerefentry><refentrytitle>shadow</refentrytitle> "
+"<manvolnum>5</manvolnum></citerefentry> для визначення того, чи чинним є "
+"пароль."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1146
@@ -7937,6 +7926,10 @@ msgid ""
 "shadowLastChange LDAP attribute automatically after a password change or if "
 "SSSD has to update it."
 msgstr ""
+"Рекомендуємо встановити цей параметр явним чином, якщо використано "
+"\"ldap_pwd_policy = shadow\", щоб дати SSSD знати, оновлюватиме LDAP атрибут "
+"shadowLastChange автоматично після зміни пароля чи SSSD має зробити це "
+"окремо."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1244

@@ -12,14 +12,14 @@
 # sgallagh <sgallagh@redhat.com>, 2011
 # sgallagh <sgallagh@redhat.com>, 2011
 # vareli <ehespinosa@ya.com>, 2013
-# Emilio Herrera <ehespinosa57@gmail.com>, 2018. #zanata, 2021.
-# Emilio Herrera <ehespinosa57@gmail.com>, 2019. #zanata, 2021.
+# Emilio Herrera <ehespinosa57@gmail.com>, 2018. #zanata, 2021, 2022.
+# Emilio Herrera <ehespinosa57@gmail.com>, 2019. #zanata, 2021, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-08-26 21:53+0200\n"
-"PO-Revision-Date: 2021-12-02 13:16+0000\n"
+"PO-Revision-Date: 2022-09-11 10:19+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.9.1\n"
+"X-Generator: Weblate 4.14\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -181,6 +181,7 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:56
 msgid "Run PAC responder automatically for AD and IPA provider"
 msgstr ""
+"Ejecutar el contestador PAC automáticamente para los proveedores AD e IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:57
 msgid "Enable or disable core dumps for all SSSD processes."
@@ -481,7 +482,7 @@ msgstr "Longitud de datos PAC considerados válidos"
 
 #: src/config/SSSDConfig/sssdoptions.py:138
 msgid "Validate the PAC"
-msgstr ""
+msgstr "Validar el PAC"
 
 #: src/config/SSSDConfig/sssdoptions.py:141
 msgid "List of user attributes the InfoPipe is allowed to publish"
@@ -1232,7 +1233,7 @@ msgstr "Selecciona el principal para su uso por FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:338
 msgid "Use anonymous PKINIT to request FAST credentials"
-msgstr ""
+msgstr "Usar PKINIT anónimo para peticiciones de credenciales FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:339
 msgid "Enables principal canonicalization"
@@ -1385,7 +1386,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:380
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "Ignorar las referencias LDAP no legibles"
 
 #: src/config/SSSDConfig/sssdoptions.py:381
 msgid ""
