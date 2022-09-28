@@ -1579,6 +1579,28 @@
         (handler_send), (handler_recv), (data)); \
 })
 
+/* Method: org.freedesktop.sssd.infopipe.Users.ListByAttr */
+#define SBUS_METHOD_SYNC_org_freedesktop_sssd_infopipe_Users_ListByAttr(handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data), const char *, const char *, uint32_t, const char ***); \
+    sbus_method_sync("ListByAttr", \
+        &_sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_ListByAttr, \
+        NULL, \
+        _sbus_ifp_invoke_in_ssu_out_ao_send, \
+        _sbus_ifp_key_ssu_0_1_2, \
+        (handler), (data)); \
+})
+
+#define SBUS_METHOD_ASYNC_org_freedesktop_sssd_infopipe_Users_ListByAttr(handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data), const char *, const char *, uint32_t); \
+    SBUS_CHECK_RECV((handler_recv), const char ***); \
+    sbus_method_async("ListByAttr", \
+        &_sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_ListByAttr, \
+        NULL, \
+        _sbus_ifp_invoke_in_ssu_out_ao_send, \
+        _sbus_ifp_key_ssu_0_1_2, \
+        (handler_send), (handler_recv), (data)); \
+})
+
 /* Method: org.freedesktop.sssd.infopipe.Users.ListByCertificate */
 #define SBUS_METHOD_SYNC_org_freedesktop_sssd_infopipe_Users_ListByCertificate(handler, data) ({ \
     SBUS_CHECK_SYNC((handler), (data), const char *, uint32_t, const char ***); \

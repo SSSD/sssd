@@ -83,10 +83,12 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     data->svc.name = &data->name;
 
     switch (type) {
+    case CACHE_REQ_USER_BY_FILTER:
+        data->name.attr = input->name.attr;
+        /* Fallthrough */
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_GROUP_BY_NAME:
-    case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
@@ -294,6 +296,20 @@ cache_req_data_name_attrs(TALLOC_CTX *mem_ctx,
 
     input.name.input = name;
     input.attrs = attrs;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_attr(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    const char *attr,
+                    const char *filter)
+{
+    struct cache_req_data input = {0};
+
+    input.name.input = filter;
+    input.name.attr = attr;
 
     return cache_req_data_create(mem_ctx, type, &input);
 }

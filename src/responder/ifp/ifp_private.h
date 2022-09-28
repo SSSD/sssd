@@ -104,6 +104,7 @@ bool ifp_is_user_attr_allowed(struct ifp_ctx *ifp_ctx, const char *attr);
 
 /* Used for list calls */
 struct ifp_list_ctx {
+    const char *attr;
     const char *filter;
     uint32_t limit;
 
@@ -117,6 +118,7 @@ struct ifp_list_ctx {
 
 struct ifp_list_ctx *ifp_list_ctx_new(TALLOC_CTX *mem_ctx,
                                       struct ifp_ctx *ctx,
+                                      const char *attr,
                                       const char *filter,
                                       uint32_t limit);
 
