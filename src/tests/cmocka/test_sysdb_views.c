@@ -31,6 +31,7 @@
 
 #include "tests/cmocka/common_mock.h"
 #include "providers/ipa/ipa_id.h"
+#include "db/sysdb.h"
 #include "db/sysdb_private.h" /* for sysdb->ldb member */
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
@@ -723,37 +724,49 @@ static void test_sysdb_enumpwent_filter(void **state)
     struct ldb_result *res;
     char *addtl_filter;
 
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "a*", 0, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_UIDNUM, "1234",
+                                 0, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
     assert_user_attrs(res->msgs[0], test_ctx->domain, "alice", false);
 
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "b*", 0, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "a*",
+                                 0, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_user_attrs(res->msgs[0], test_ctx->domain, "alice", false);
+
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "b*",
+                                 0, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 2);
     order_ldb_res_msgs(res);
     assert_user_attrs(res->msgs[0], test_ctx->domain, "barney", false);
     assert_user_attrs(res->msgs[1], test_ctx->domain, "bob", false);
 
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "c*", 0, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "c*",
+                                 0, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 0);
 
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "*", 0, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "*",
+                                 0, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, N_ELEMENTS(users)-1);
 
     /* Test searching based on time as well */
     addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
                                    SYSDB_LAST_UPDATE, 1233);
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "a*", addtl_filter, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "a*",
+                                 addtl_filter, &res);
     talloc_free(addtl_filter);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 0);
 
     addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
                                    SYSDB_LAST_UPDATE, 1234);
-    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "a*", addtl_filter, &res);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, SYSDB_NAME, "a*",
+                                 addtl_filter, &res);
     talloc_free(addtl_filter);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
@@ -769,13 +782,19 @@ static void test_sysdb_enumpwent_filter_views(void **state)
     char *addtl_filter;
 
     ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
-                                            "a*", NULL, &res);
+                                            SYSDB_UIDNUM, "1234", NULL, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
     assert_user_attrs(res->msgs[0], test_ctx->domain, "alice", true);
 
     ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
-                                            "b*", NULL, &res);
+                                            SYSDB_NAME, "a*", NULL, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_user_attrs(res->msgs[0], test_ctx->domain, "alice", true);
+
+    ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
+                                            SYSDB_NAME, "b*", NULL, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 2);
     order_ldb_res_msgs(res);
@@ -785,19 +804,19 @@ static void test_sysdb_enumpwent_filter_views(void **state)
     addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
                                    SYSDB_LAST_UPDATE, 1235);
     ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
-                                            "b*", addtl_filter, &res);
+                                            SYSDB_NAME, "b*", addtl_filter, &res);
     talloc_free(addtl_filter);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
     assert_user_attrs(res->msgs[0], test_ctx->domain, "bob", true);
 
-    ret = sysdb_enumpwent_filter_with_views(test_ctx,
-                                            test_ctx->domain, "c*", NULL, &res);
+    ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
+                                            SYSDB_NAME, "c*", NULL, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 0);
 
-    ret = sysdb_enumpwent_filter_with_views(test_ctx,
-                                            test_ctx->domain, "*", NULL, &res);
+    ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
+                                            SYSDB_NAME, "*", NULL, &res);
     check_enumpwent(ret, test_ctx->domain, res, true);
 }
 

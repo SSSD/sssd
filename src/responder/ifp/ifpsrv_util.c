@@ -289,6 +289,7 @@ static uint32_t ifp_list_limit(struct ifp_ctx *ctx, uint32_t limit)
 
 struct ifp_list_ctx *ifp_list_ctx_new(TALLOC_CTX *mem_ctx,
                                       struct ifp_ctx *ctx,
+                                      const char *attr,
                                       const char *filter,
                                       uint32_t limit)
 {
@@ -302,6 +303,7 @@ struct ifp_list_ctx *ifp_list_ctx_new(TALLOC_CTX *mem_ctx,
     list_ctx->limit = ifp_list_limit(ctx, limit);
     list_ctx->ctx = ctx;
     list_ctx->dom = ctx->rctx->domains;
+    list_ctx->attr = attr;
     list_ctx->filter = filter;
     list_ctx->paths_max = 1;
     list_ctx->paths = talloc_zero_array(list_ctx, const char *,

@@ -61,13 +61,14 @@ struct cache_req {
 };
 
 /**
- * Structure to hold the input strings that
- * should be parsed into name and domain parts.
+ * Structure to hold the information the user passed as parameter
+ * and some strings after processing this information.
  */
 struct cache_req_parsed_name {
     const char *input;  /* Original input. */
     const char *name;   /* Parsed name or UPN. */
     const char *lookup; /* Converted per domain rules. */
+    const char *attr;   /* Attribute name when looking for an attribute */
 };
 
 /**

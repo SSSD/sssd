@@ -372,6 +372,20 @@ _sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_FindByValidCertificate = {
 };
 
 const struct sbus_method_arguments
+_sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_ListByAttr = {
+    .input = (const struct sbus_argument[]){
+        {.type = "s", .name = "attribute"},
+        {.type = "s", .name = "attr_filter"},
+        {.type = "u", .name = "limit"},
+        {NULL}
+    },
+    .output = (const struct sbus_argument[]){
+        {.type = "ao", .name = "result"},
+        {NULL}
+    }
+};
+
+const struct sbus_method_arguments
 _sbus_ifp_args_org_freedesktop_sssd_infopipe_Users_ListByCertificate = {
     .input = (const struct sbus_argument[]){
         {.type = "s", .name = "pem_cert"},

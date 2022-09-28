@@ -100,6 +100,12 @@ enum cache_req_behavior {
 struct cache_req_data;
 
 struct cache_req_data *
+cache_req_data_attr(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    const char *attr,
+                    const char *filter);
+
+struct cache_req_data *
 cache_req_data_name(TALLOC_CTX *mem_ctx,
                     enum cache_req_type type,
                     const char *name);
@@ -367,6 +373,7 @@ cache_req_user_by_filter_send(TALLOC_CTX *mem_ctx,
                               struct resp_ctx *rctx,
                               enum cache_req_dom_type req_dom_type,
                               const char *domain,
+                              const char *attr,
                               const char *filter);
 
 #define cache_req_user_by_filter_recv(mem_ctx, req, _result) \
