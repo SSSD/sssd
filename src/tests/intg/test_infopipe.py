@@ -649,6 +649,16 @@ def get_user_property(dbus_system_bus, username, prop_name):
                           prop_name)
 
 
+def get_user_by_attr(dbus_system_bus, attribute, filter):
+    users_obj = dbus_system_bus.get_object('org.freedesktop.sssd.infopipe',
+                                           '/org/freedesktop/sssd/infopipe/Users')
+
+    users_iface = dbus.Interface(users_obj,
+                                 "org.freedesktop.sssd.infopipe.Users")
+
+    return users_iface.ListByAttr(attribute, filter, 0)
+
+
 def test_get_extra_attributes_empty(dbus_system_bus,
                                     ldap_conn,
                                     sanity_rfc2307):
@@ -792,3 +802,23 @@ def test_find_by_valid_certificate(dbus_system_bus,
     except dbus.exceptions.DBusException as ex:
         assert str(ex) == \
             "sbus.Error.NoCA: Certificate authority file not found"
+
+
+def test_list_by_attr(dbus_system_bus, ldap_conn, sanity_rfc2307):
+    users = get_user_by_attr(dbus_system_bus, "extraName", "user2")
+    # Condition not met because of https://github.com/SSSD/sssd/issues/6360
+    # assert len(users) == 1
+    assert users[0] == '/org/freedesktop/sssd/infopipe/Users/LDAP/1002'
+
+    users = get_user_by_attr(dbus_system_bus, "extraName", "user*")
+    # Condition not met because of https://github.com/SSSD/sssd/issues/6360
+    # assert len(users) == 3
+    assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1001' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1002' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1003' in users
+
+    users = get_user_by_attr(dbus_system_bus, "extraName", "nouser*")
+    assert len(users) == 0
+
+    users = get_user_by_attr(dbus_system_bus, "noattr", "*")
+    assert len(users) == 0

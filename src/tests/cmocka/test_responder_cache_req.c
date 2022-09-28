@@ -2484,6 +2484,7 @@ void test_user_by_recent_filter_valid(void **state)
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
+                                        NULL,
                                         TEST_USER_PREFIX);
     assert_non_null(req);
 
@@ -2528,6 +2529,7 @@ void test_users_by_recent_filter_valid(void **state)
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
+                                        NULL,
                                         TEST_USER_PREFIX);
     assert_non_null(req);
 
@@ -2591,6 +2593,7 @@ void test_users_by_filter_filter_old(void **state)
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
+                                        NULL,
                                         TEST_USER_PREFIX);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
@@ -2634,6 +2637,7 @@ void test_users_by_filter_filter_files(void **state)
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
+                                        NULL,
                                         TEST_USER_PREFIX);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
@@ -2670,6 +2674,7 @@ void test_users_by_filter_notfound(void **state)
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
+                                        NULL,
                                         TEST_NO_USER_PREFIX);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
@@ -2749,6 +2754,7 @@ static void test_users_by_filter_multiple_domains_valid(void **state)
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
+                                        NULL,
                                         TEST_USER_PREFIX);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
@@ -2796,6 +2802,7 @@ void test_users_by_filter_multiple_domains_notfound(void **state)
                                         test_ctx->rctx,
                                         CACHE_REQ_POSIX_DOM,
                                         domain->name,
+                                        NULL,
                                         TEST_NO_USER_PREFIX);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);

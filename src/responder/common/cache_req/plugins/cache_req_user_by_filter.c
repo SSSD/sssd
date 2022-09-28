@@ -84,14 +84,17 @@ cache_req_user_by_filter_lookup(TALLOC_CTX *mem_ctx,
                                 struct ldb_result **_result)
 {
     char *recent_filter;
+    const char *attr = (data->name.attr == NULL ? SYSDB_NAME : data->name.attr);
     errno_t ret;
 
     /* The "files" provider updates the record if /etc/passwd or /etc/group
      * is touched. It does not perform any per-request update.
      * Therefore the last update flag is not updated if no file was touched
      * and we cannot use this optimization.
+     * Neither it is possible to use it when asking for a non-"name" attribute
+     * as it could not be present in the timestamp cache.
      */
-    if (is_files_provider(domain)) {
+    if (is_files_provider(domain) || data->name.attr != NULL) {
         recent_filter = NULL;
     } else {
         recent_filter = talloc_asprintf(mem_ctx, "(%s>=%lu)", SYSDB_LAST_UPDATE,
@@ -101,7 +104,8 @@ cache_req_user_by_filter_lookup(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = sysdb_enumpwent_filter_with_views(mem_ctx, domain, data->name.lookup,
+    ret = sysdb_enumpwent_filter_with_views(mem_ctx, domain,
+                                            attr, data->name.lookup,
                                             recent_filter, _result);
     talloc_free(recent_filter);
 
@@ -155,11 +159,12 @@ cache_req_user_by_filter_send(TALLOC_CTX *mem_ctx,
                               struct resp_ctx *rctx,
                               enum cache_req_dom_type req_dom_type,
                               const char *domain,
+                              const char *attr,
                               const char *filter)
 {
     struct cache_req_data *data;
 
-    data = cache_req_data_name(mem_ctx, CACHE_REQ_USER_BY_FILTER, filter);
+    data = cache_req_data_attr(mem_ctx, CACHE_REQ_USER_BY_FILTER, attr, filter);
     if (data == NULL) {
         return NULL;
     }

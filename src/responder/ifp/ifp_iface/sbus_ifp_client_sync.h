@@ -285,6 +285,17 @@ sbus_call_ifp_users_FindByValidCertificate
      const char ** _arg_result);
 
 errno_t
+sbus_call_ifp_users_ListByAttr
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_sync_connection *conn,
+     const char *busname,
+     const char *object_path,
+     const char * arg_attribute,
+     const char * arg_attr_filter,
+     uint32_t arg_limit,
+     const char *** _arg_result);
+
+errno_t
 sbus_call_ifp_users_ListByCertificate
     (TALLOC_CTX *mem_ctx,
      struct sbus_sync_connection *conn,

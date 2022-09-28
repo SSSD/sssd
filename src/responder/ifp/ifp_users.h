@@ -102,7 +102,7 @@ ifp_users_list_by_name_send(TALLOC_CTX *mem_ctx,
                             uint32_t limit);
 
 errno_t
-ifp_users_list_by_name_recv(TALLOC_CTX *mem_ctx,
+ifp_users_list_by_attr_recv(TALLOC_CTX *mem_ctx,
                             struct tevent_req *req,
                             const char ***_paths);
 
@@ -238,4 +238,17 @@ ifp_cache_object_remove_user(TALLOC_CTX *mem_ctx,
                              struct ifp_ctx *ctx,
                              bool *_result);
 
+struct tevent_req *
+ifp_users_list_by_attr_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *attr,
+                            const char *filter,
+                            uint32_t limit);
+
+errno_t
+ifp_users_list_by_attr_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            const char ***_paths);
 #endif /* IFP_USERS_H_ */

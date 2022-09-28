@@ -186,6 +186,12 @@
             <arg name="pem_cert" type="s" direction="in" />
             <arg name="result" type="o" direction="out" />
         </method>
+        <method name="ListByAttr">
+            <arg name="attribute" type="s" direction="in" key="1" />
+            <arg name="attr_filter" type="s" direction="in" key="2" />
+            <arg name="limit" type="u" direction="in" key="3" />
+            <arg name="result" type="ao" direction="out" />
+        </method>
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Users.User">

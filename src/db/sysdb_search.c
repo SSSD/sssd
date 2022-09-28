@@ -527,7 +527,8 @@ done:
 
 static char *enum_filter(TALLOC_CTX *mem_ctx,
                          const char *base_filter,
-                         const char *name_filter,
+                         const char *attr,
+                         const char *attr_filter,
                          const char *addtl_filter)
 {
     char *filter;
@@ -538,14 +539,14 @@ static char *enum_filter(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (name_filter == NULL && addtl_filter == NULL) {
+    if ((attr == NULL || attr_filter == NULL) && addtl_filter == NULL) {
         filter = talloc_strdup(tmp_ctx, base_filter);
     } else {
         filter = talloc_asprintf(tmp_ctx, "(&%s", base_filter);
 
-        if (filter != NULL && name_filter != NULL) {
+        if (filter != NULL && attr != NULL && attr_filter != NULL) {
             filter = talloc_asprintf_append(filter, "(%s=%s)",
-                                            SYSDB_NAME, name_filter);
+                                            attr, attr_filter);
         }
 
         if (filter != NULL && addtl_filter != NULL) {
@@ -793,8 +794,12 @@ static errno_t sysdb_enum_dn_filter(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    dn_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|", SYSDB_NAME,
-                                name_filter);
+    if (name_filter == NULL) {
+        dn_filter = talloc_asprintf(tmp_ctx, "(|");
+    } else {
+        dn_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|", SYSDB_NAME,
+                                    name_filter);
+    }
     if (dn_filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -812,7 +817,7 @@ static errno_t sysdb_enum_dn_filter(TALLOC_CTX *mem_ctx,
         }
     }
 
-    dn_filter = talloc_asprintf_append(dn_filter, "))");
+    dn_filter = talloc_asprintf_append(dn_filter, (name_filter == NULL ? ")" : "))"));
     if (dn_filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -828,7 +833,8 @@ done:
 
 int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
-                           const char *name_filter,
+                           const char *attr,
+                           const char *attr_filter,
                            const char *addtl_filter,
                            struct ldb_result **_res)
 {
@@ -840,7 +846,7 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     struct ldb_result ts_res;
-    struct ldb_result *ts_cache_res;
+    struct ldb_result *ts_cache_res = NULL;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -854,38 +860,46 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ts_filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
-                            NULL, addtl_filter);
-    if (ts_filter == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp cache with [%s]\n", ts_filter);
+    /* Do not look for the user's attribute in the timestamp db as it could
+     * not be present. Only look for the name. */
+    if (attr == NULL || strcmp(attr, SYSDB_NAME) == 0) {
+        ts_filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
+                                NULL, NULL, addtl_filter);
+        if (ts_filter == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp cache with [%s]\n",
+              ts_filter);
 
-    ret = sysdb_search_ts_users(tmp_ctx, domain, ts_filter,
-                                sysdb_ts_cache_attrs,
-                                &ts_res);
-    if (ret == ERR_NO_TS) {
-        ret = ENOENT;
-    }
+        ret = sysdb_search_ts_users(tmp_ctx, domain, ts_filter,
+                                    sysdb_ts_cache_attrs,
+                                    &ts_res);
+        if (ret == ERR_NO_TS) {
+            ret = ENOENT;
+        }
 
-    if (ret != EOK && ret != ENOENT) {
-        goto done;
-    }
+        if (ret != EOK && ret != ENOENT) {
+            goto done;
+        }
 
-    ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, name_filter, &dn_filter);
-    if (ret != EOK) {
-        goto done;
-    }
+        ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, attr_filter, &dn_filter);
+        if (ret != EOK) {
+            goto done;
+        }
 
-    ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
-                                  dn_filter, &ts_cache_res);
-    if (ret != EOK && ret != ENOENT) {
-        goto done;
+        DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp entries with [%s]\n",
+              dn_filter);
+
+        ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
+                                      dn_filter, &ts_cache_res);
+        if (ret != EOK && ret != ENOENT) {
+            goto done;
+        }
     }
 
     filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
-                         name_filter, addtl_filter);
+                         attr, attr_filter, addtl_filter);
     if (filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -907,10 +921,12 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
         ret = EOK;
     }
 
-    res = sss_merge_ldb_results(res, ts_cache_res);
-    if (res == NULL) {
-        ret = ENOMEM;
-        goto done;
+    if (ts_cache_res != NULL) {
+        res = sss_merge_ldb_results(res, ts_cache_res);
+        if (res == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     *_res = talloc_steal(mem_ctx, res);
@@ -924,12 +940,13 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sss_domain_info *domain,
                     struct ldb_result **_res)
 {
-    return sysdb_enumpwent_filter(mem_ctx, domain, NULL, 0, _res);
+    return sysdb_enumpwent_filter(mem_ctx, domain, NULL, NULL, NULL, _res);
 }
 
 int sysdb_enumpwent_filter_with_views(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *domain,
-                                      const char *name_filter,
+                                      const char *attr,
+                                      const char *attr_filter,
                                       const char *addtl_filter,
                                       struct ldb_result **_res)
 {
@@ -944,7 +961,8 @@ int sysdb_enumpwent_filter_with_views(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_enumpwent_filter(tmp_ctx, domain, name_filter, addtl_filter, &res);
+    ret = sysdb_enumpwent_filter(tmp_ctx, domain, attr, attr_filter,
+                                 addtl_filter, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_enumpwent failed.\n");
         goto done;
@@ -974,7 +992,7 @@ int sysdb_enumpwent_with_views(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,
                                struct ldb_result **_res)
 {
-    return sysdb_enumpwent_filter_with_views(mem_ctx, domain, NULL, NULL, _res);
+    return sysdb_enumpwent_filter_with_views(mem_ctx, domain, NULL, NULL, NULL, _res);
 }
 
 /* groups */
@@ -1459,7 +1477,7 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
     }
 
     ts_filter = enum_filter(tmp_ctx, base_filter,
-                            NULL, addtl_filter);
+                            NULL, NULL, addtl_filter);
     if (ts_filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1489,7 +1507,7 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
     }
 
     filter = enum_filter(tmp_ctx, base_filter,
-                         name_filter, addtl_filter);
+                         SYSDB_NAME, name_filter, addtl_filter);
     if (filter == NULL) {
         ret = ENOMEM;
         goto done;

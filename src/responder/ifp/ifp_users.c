@@ -439,7 +439,7 @@ ifp_users_list_by_cert_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ifp_ctx = ctx;
-    state->list_ctx = ifp_list_ctx_new(state, ctx, state->derb64, limit);
+    state->list_ctx = ifp_list_ctx_new(state, ctx, NULL, state->derb64, limit);
     if (state->list_ctx == NULL) {
         ret = ENOMEM;
         goto done;
@@ -600,7 +600,7 @@ ifp_users_find_by_name_and_cert_send(TALLOC_CTX *mem_ctx,
 
         /* FIXME: if unlimted searches with limit=0 will work please replace
          * 100 with 0. */
-        state->list_ctx = ifp_list_ctx_new(state, ctx, state->derb64, 100);
+        state->list_ctx = ifp_list_ctx_new(state, ctx, NULL, state->derb64, 100);
         if (state->list_ctx == NULL) {
             ret = ENOMEM;
             goto done;
@@ -805,40 +805,41 @@ ifp_users_find_by_name_and_cert_recv(TALLOC_CTX *mem_ctx,
     return ENOENT;
 }
 
-struct ifp_users_list_by_name_state {
+struct ifp_users_list_by_attr_state {
     struct ifp_ctx *ifp_ctx;
     struct ifp_list_ctx *list_ctx;
 };
 
-static errno_t ifp_users_list_by_name_step(struct tevent_req *req);
-static void ifp_users_list_by_name_done(struct tevent_req *subreq);
+static errno_t ifp_users_list_by_attr_step(struct tevent_req *req);
+static void ifp_users_list_by_attr_done(struct tevent_req *subreq);
 
 struct tevent_req *
-ifp_users_list_by_name_send(TALLOC_CTX *mem_ctx,
+ifp_users_list_by_attr_send(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct sbus_request *sbus_req,
                             struct ifp_ctx *ctx,
+                            const char *attr,
                             const char *filter,
                             uint32_t limit)
 {
-    struct ifp_users_list_by_name_state *state;
+    struct ifp_users_list_by_attr_state *state;
     struct tevent_req *req;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct ifp_users_list_by_name_state);
+    req = tevent_req_create(mem_ctx, &state, struct ifp_users_list_by_attr_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
     }
 
     state->ifp_ctx = ctx;
-    state->list_ctx = ifp_list_ctx_new(state, ctx, filter, limit);
+    state->list_ctx = ifp_list_ctx_new(state, ctx, attr, filter, limit);
     if (state->list_ctx == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = ifp_users_list_by_name_step(req);
+    ret = ifp_users_list_by_attr_step(req);
 
 done:
     if (ret == EOK) {
@@ -853,12 +854,12 @@ done:
 }
 
 static errno_t
-ifp_users_list_by_name_step(struct tevent_req *req)
+ifp_users_list_by_attr_step(struct tevent_req *req)
 {
-    struct ifp_users_list_by_name_state *state;
+    struct ifp_users_list_by_attr_state *state;
     struct tevent_req *subreq;
 
-    state = tevent_req_data(req, struct ifp_users_list_by_name_state);
+    state = tevent_req_data(req, struct ifp_users_list_by_attr_state);
 
     if (state->list_ctx->dom == NULL) {
         return EOK;
@@ -869,13 +870,14 @@ ifp_users_list_by_name_step(struct tevent_req *req)
                                             state->ifp_ctx->rctx,
                                             CACHE_REQ_ANY_DOM,
                                             state->list_ctx->dom->name,
+                                            state->list_ctx->attr,
                                             state->list_ctx->filter);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         return ENOMEM;
     }
 
-    tevent_req_set_callback(subreq, ifp_users_list_by_name_done, req);
+    tevent_req_set_callback(subreq, ifp_users_list_by_attr_done, req);
 
     state->list_ctx->dom = get_next_domain(state->list_ctx->dom,
                                            SSS_GND_DESCEND);
@@ -883,15 +885,15 @@ ifp_users_list_by_name_step(struct tevent_req *req)
     return EAGAIN;
 }
 
-static void ifp_users_list_by_name_done(struct tevent_req *subreq)
+static void ifp_users_list_by_attr_done(struct tevent_req *subreq)
 {
-    struct ifp_users_list_by_name_state *state;
+    struct ifp_users_list_by_attr_state *state;
     struct cache_req_result *result;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct ifp_users_list_by_name_state);
+    state = tevent_req_data(req, struct ifp_users_list_by_attr_state);
 
     ret = cache_req_user_by_name_recv(state, subreq, &result);
     talloc_zfree(subreq);
@@ -910,7 +912,7 @@ static void ifp_users_list_by_name_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = ifp_users_list_by_name_step(req);
+    ret = ifp_users_list_by_attr_step(req);
     if (ret == EOK) {
         tevent_req_done(req);
     } else if (ret != EAGAIN) {
@@ -919,12 +921,12 @@ static void ifp_users_list_by_name_done(struct tevent_req *subreq)
 }
 
 errno_t
-ifp_users_list_by_name_recv(TALLOC_CTX *mem_ctx,
+ifp_users_list_by_attr_recv(TALLOC_CTX *mem_ctx,
                             struct tevent_req *req,
                             const char ***_paths)
 {
-    struct ifp_users_list_by_name_state *state;
-    state = tevent_req_data(req, struct ifp_users_list_by_name_state);
+    struct ifp_users_list_by_attr_state *state;
+    state = tevent_req_data(req, struct ifp_users_list_by_attr_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -959,7 +961,7 @@ ifp_users_list_by_domain_and_name_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->list_ctx = ifp_list_ctx_new(state, ctx, filter, limit);
+    state->list_ctx = ifp_list_ctx_new(state, ctx, NULL, filter, limit);
     if (state->list_ctx == NULL) {
         ret = ENOMEM;
         goto done;
@@ -967,7 +969,7 @@ ifp_users_list_by_domain_and_name_send(TALLOC_CTX *mem_ctx,
 
     subreq = cache_req_user_by_filter_send(state->list_ctx, ctx->rctx->ev,
                                             ctx->rctx, CACHE_REQ_ANY_DOM,
-                                            domain, filter);
+                                            domain, NULL, filter);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;
@@ -2023,4 +2025,16 @@ ifp_cache_object_remove_user(TALLOC_CTX *mem_ctx,
     }
 
     return ret;
+}
+
+struct tevent_req *
+ifp_users_list_by_name_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *filter,
+                            uint32_t limit)
+{
+    return ifp_users_list_by_attr_send(mem_ctx, ev, sbus_req, ctx, NULL,
+                                       filter, limit);
 }

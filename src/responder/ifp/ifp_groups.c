@@ -322,7 +322,7 @@ ifp_groups_list_by_name_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ifp_ctx = ctx;
-    state->list_ctx = ifp_list_ctx_new(state, ctx, filter, limit);
+    state->list_ctx = ifp_list_ctx_new(state, ctx, NULL, filter, limit);
     if (state->list_ctx == NULL) {
         ret = ENOMEM;
         goto done;
@@ -449,7 +449,7 @@ ifp_groups_list_by_domain_and_name_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->list_ctx = ifp_list_ctx_new(state, ctx, filter, limit);
+    state->list_ctx = ifp_list_ctx_new(state, ctx, NULL, filter, limit);
     if (state->list_ctx == NULL) {
         ret = ENOMEM;
         goto done;
