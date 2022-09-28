@@ -23,6 +23,9 @@
 
 #include "util/util.h"
 #include "db/sysdb.h"
+#include "db/sysdb_private.h"
+#include "confdb/confdb.h"
+#include "confdb/confdb_private.h"
 #include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
 
@@ -309,5 +312,227 @@ errno_t sssctl_cache_expire(struct sss_cmdline *cmdline,
     ret = sssctl_run_command(args);
 
     talloc_free(args);
+    return ret;
+}
+
+errno_t get_confdb_domains(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
+                           char ***_domains)
+{
+    int ret;
+    int domain_count = 0;
+    int i;
+    struct sss_domain_info *domain = NULL;
+    struct sss_domain_info *domain_list = NULL;
+    char **domains;
+
+    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    /* get domains */
+    ret = confdb_get_domains(confdb, &domain_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain list\n");
+        goto done;
+    }
+
+    for (domain = domain_list;
+         domain;
+         domain = get_next_domain(domain, 0)) {
+        domain_count++;
+    }
+
+    /* allocate output space */
+    domains = talloc_array(tmp_ctx, char *, domain_count + 1);
+    if (domains == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not allocate memory for domains\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (domain = domain_list, i = 0;
+         domain != NULL;
+         domain = get_next_domain(domain, 0), i++) {
+        domains[i] = talloc_asprintf(domains, "%s", domain->name);
+        if (domains[i] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    /* add NULL to the end */
+    domains[i] = NULL;
+
+    *_domains = talloc_steal(ctx, domains);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t sssctl_cache_index_action(enum sysdb_index_actions action,
+                                         const char **domains,
+                                         const char *attr)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct confdb_ctx *confdb = NULL;
+    char *cache;
+    const char **domain;
+    const char **index;
+    const char **indexes = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate the context\n");
+        return ENOMEM;
+    }
+
+    if (domains == NULL) {
+        /* If the user selected no domain, act on all of them */
+        ret = sss_tool_connect_to_confdb(tmp_ctx, &confdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Could not connect to configuration database.\n");
+            goto done;
+        }
+
+        ret = get_confdb_domains(tmp_ctx, confdb, discard_const(&domains));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not list all the domains.\n");
+            goto done;
+        }
+    }
+
+    for (domain = domains; *domain != NULL; domain++) {
+        if (action == SYSDB_IDX_CREATE) {
+            PRINT("Creating cache index for domain %1$s\n", *domain);
+        } else if (action == SYSDB_IDX_DELETE) {
+            PRINT("Deleting cache index for domain %1$s\n", *domain);
+        } else if (action == SYSDB_IDX_LIST) {
+            PRINT("Indexes for domain %1$s:\n", *domain);
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid action: %i\n", action);
+            ret = EINVAL;
+            goto done;
+        }
+
+        ret = sysdb_get_db_file(tmp_ctx, NULL, *domain, DB_PATH, &cache, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to get the cache db name\n");
+            goto done;
+        }
+
+        ret = sysdb_manage_index(tmp_ctx, action, cache, attr, &indexes);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        if (action == SYSDB_IDX_LIST) {
+            for (index = indexes; *index != NULL; index++) {
+                PRINT("  Attribute: %1$s\n", *index);
+            }
+            talloc_zfree(indexes);
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t sssctl_cache_index(struct sss_cmdline *cmdline,
+                                  struct sss_tool_ctx *tool_ctx,
+                                  void *pvt)
+{
+    const char *attr = NULL;
+    const char *action_str = NULL;
+    const char **domains = NULL;
+    const char **p;
+    enum sysdb_index_actions action;
+    errno_t ret;
+
+    /* Parse command line. */
+    struct poptOption options[] = {
+        { "domain", 'd', POPT_ARG_ARGV, &domains,
+            0, _("Target a specific domain"), _("domain") },
+        { "attribute", 'a', POPT_ARG_STRING, &attr,
+            0, _("Attribute to index"), _("attribute") },
+        POPT_TABLEEND
+    };
+
+    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL, NULL, NULL,
+                           "ACTION", "create | delete | list",
+                           SSS_TOOL_OPT_REQUIRED, &action_str, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
+        goto done;
+    }
+
+    if (action_str == NULL) {
+        ERROR("Action not provided\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (strcmp(action_str, "list") == 0) {
+        action = SYSDB_IDX_LIST;
+    } else {
+        if (strcmp(action_str, "create") == 0) {
+            action = SYSDB_IDX_CREATE;
+        } else if (strcmp(action_str, "delete") == 0) {
+            action = SYSDB_IDX_DELETE;
+        } else {
+            ERROR("Unknown action: %1$s\nValid actions are "
+                           "\"%2$s\", \"%3$s and \"%4$s\"\n",
+                  action_str, "create", "delete", "list");
+            ret = EINVAL;
+            goto done;
+        }
+
+        if (attr == NULL) {
+            ERROR("Attribute (-a) not provided\n");
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    ret = sssctl_cache_index_action(action, domains, attr);
+    if (ret == ENOENT) {
+        ERROR("Attribute %1$s not indexed.\n", attr);
+        goto done;
+    } if (ret == EEXIST) {
+        ERROR("Attribute %1$s already indexed.\n", attr);
+        goto done;
+    } else if (ret != EOK) {
+        ERROR("Index operation failed: %1$s\n", sss_strerror(ret));
+        goto done;
+    }
+
+    if (action != SYSDB_IDX_LIST) {
+        PRINT("Don't forget to also update the indexes on the remote providers.\n");
+    }
+
+    ret = EOK;
+
+done:
+    free(discard_const(action_str));
+    free(discard_const(attr));
+    if (domains != NULL) {
+        for (p = domains; *p != NULL; p++) {
+            free(discard_const(*p));
+        }
+        free(discard_const(domains));
+    }
+
     return ret;
 }

@@ -34,6 +34,7 @@
 #include <glob.h>
 
 #include "util/util.h"
+#include "tools/common/sss_tools.h"
 #include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
 #include "tools/tools_util.h"
@@ -257,28 +258,6 @@ static errno_t sssctl_do_debug_level(enum debug_level_action action,
 
 fini:
     talloc_free(tmp_ctx);
-    return ret;
-}
-
-errno_t connect_to_confdb(TALLOC_CTX *ctx, struct confdb_ctx **cdb_ctx)
-{
-    int ret;
-    char *confdb_path = NULL;
-
-    confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
-    if (confdb_path == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not allocate memory for confdb path\n");
-        return ENOMEM;
-    }
-
-    ret = confdb_init(ctx, cdb_ctx, confdb_path);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not initialize connection to the confdb\n");
-    }
-
-    talloc_free(confdb_path);
     return ret;
 }
 
@@ -588,7 +567,7 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
     targets = get_targets(ctx, pc_services, pc_domains);
     CHECK(targets == NULL, fini, "Could not allocate memory.");
 
-    ret = connect_to_confdb(ctx, &ctx->confdb);
+    ret = sss_tool_connect_to_confdb(ctx, &ctx->confdb);
     CHECK(ret != EOK, fini, "Could not connect to configuration database.");
 
     ret = get_confdb_sections(ctx, ctx->confdb, &ctx->sections);
