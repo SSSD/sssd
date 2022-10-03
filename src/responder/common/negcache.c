@@ -477,12 +477,17 @@ int sss_ncache_check_gid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
     return ret;
 }
 
-int sss_ncache_check_sid(struct sss_nc_ctx *ctx, const char *sid)
+int sss_ncache_check_sid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                         const char *sid)
 {
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
+    if (dom != NULL) {
+        str = talloc_asprintf(ctx, "%s/%s/%s", NC_SID_PREFIX, dom->name, sid);
+    } else {
+        str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
+    }
     if (!str) return ENOMEM;
 
     ret = sss_ncache_check_str(ctx, str);
@@ -669,12 +674,17 @@ int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent,
     return ret;
 }
 
-int sss_ncache_set_sid(struct sss_nc_ctx *ctx, bool permanent, const char *sid)
+int sss_ncache_set_sid(struct sss_nc_ctx *ctx, bool permanent,
+                       struct sss_domain_info *dom, const char *sid)
 {
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
+    if (dom != NULL) {
+        str = talloc_asprintf(ctx, "%s/%s/%s", NC_SID_PREFIX, dom->name, sid);
+    } else {
+        str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
+    }
     if (!str) return ENOMEM;
 
     ret = sss_ncache_set_str(ctx, str, permanent, false);

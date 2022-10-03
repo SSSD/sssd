@@ -265,22 +265,22 @@ static void test_sss_ncache_sid(void **state)
     ts = talloc_get_type_abort(*state, struct test_state);
 
     /*test when sid in not present in database */
-    ret = sss_ncache_check_sid(ts->ctx, sid);
+    ret = sss_ncache_check_sid(ts->ctx, NULL, sid);
     assert_int_equal(ret, ENOENT);
 
     /* test when sid is present in database */
     permanent = true;
-    ret = sss_ncache_set_sid(ts->ctx, permanent, sid);
+    ret = sss_ncache_set_sid(ts->ctx, permanent, NULL, sid);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_sid(ts->ctx, sid);
+    ret = sss_ncache_check_sid(ts->ctx, NULL, sid);
     assert_int_equal(ret, EEXIST);
 
     permanent = false;
-    ret = sss_ncache_set_sid(ts->ctx, permanent, sid);
+    ret = sss_ncache_set_sid(ts->ctx, permanent, NULL, sid);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_sid(ts->ctx, sid);
+    ret = sss_ncache_check_sid(ts->ctx, NULL, sid);
     assert_int_equal(ret, EEXIST);
 }
 
