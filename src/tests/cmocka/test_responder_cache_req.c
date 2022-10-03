@@ -3138,7 +3138,7 @@ void test_object_by_sid_user_ncache(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    ret = sss_ncache_set_sid(test_ctx->ncache, false, users[0].sid);
+    ret = sss_ncache_set_sid(test_ctx->ncache, false, test_ctx->tctx->dom, users[0].sid);
     assert_int_equal(ret, EOK);
 
     /* Test. */
@@ -3294,7 +3294,7 @@ void test_object_by_sid_group_ncache(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    ret = sss_ncache_set_sid(test_ctx->ncache, false, groups[0].sid);
+    ret = sss_ncache_set_sid(test_ctx->ncache, false, test_ctx->tctx->dom, groups[0].sid);
     assert_int_equal(ret, EOK);
 
     /* Test. */
