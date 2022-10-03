@@ -203,13 +203,15 @@ int __wrap_sss_ncache_check_uid(struct sss_nc_ctx *ctx,
     return ret;
 }
 
-int __real_sss_ncache_check_sid(struct sss_nc_ctx *ctx, const char *sid);
+int __real_sss_ncache_check_sid(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom, const char *sid);
 
-int __wrap_sss_ncache_check_sid(struct sss_nc_ctx *ctx, const char *sid)
+int __wrap_sss_ncache_check_sid(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom, const char *sid)
 {
     int ret;
 
-    ret = __real_sss_ncache_check_sid(ctx, sid);
+    ret = __real_sss_ncache_check_sid(ctx, dom, sid);
     if (ret == EEXIST) {
         sss_nss_test_ctx->ncache_hits++;
     }

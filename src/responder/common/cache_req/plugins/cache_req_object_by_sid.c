@@ -68,14 +68,22 @@ cache_req_object_by_sid_ncache_check(struct sss_nc_ctx *ncache,
                                      struct sss_domain_info *domain,
                                      struct cache_req_data *data)
 {
-    return sss_ncache_check_sid(ncache, data->sid);
+    return sss_ncache_check_sid(ncache, domain, data->sid);
 }
 
 static errno_t
 cache_req_object_by_sid_global_ncache_add(struct sss_nc_ctx *ncache,
                                           struct cache_req_data *data)
 {
-    return sss_ncache_set_sid(ncache, false, data->sid);
+    return sss_ncache_set_sid(ncache, false, NULL, data->sid);
+}
+
+static errno_t
+cache_req_object_by_sid_ncache_add(struct sss_nc_ctx *ncache,
+                                   struct sss_domain_info *domain,
+                                   struct cache_req_data *data)
+{
+    return sss_ncache_set_sid(ncache, false, domain, data->sid);
 }
 
 static errno_t
@@ -119,7 +127,7 @@ const struct cache_req_plugin cache_req_object_by_sid = {
     .create_debug_name_fn = cache_req_object_by_sid_create_debug_name,
     .global_ncache_add_fn = cache_req_object_by_sid_global_ncache_add,
     .ncache_check_fn = cache_req_object_by_sid_ncache_check,
-    .ncache_add_fn = NULL,
+    .ncache_add_fn = cache_req_object_by_sid_ncache_add,
     .ncache_filter_fn = NULL,
     .lookup_fn = cache_req_object_by_sid_lookup,
     .dp_send_fn = cache_req_object_by_sid_dp_send,
