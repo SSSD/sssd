@@ -94,8 +94,8 @@ class Testrfc2307(object):
             pytest.fail(f'{user} failed to login')
         else:
             id_cmd = f'id {user}'
-            (_, ret) = client.command(id_cmd)
-            assert ret == '0'
+            cmd = client.command(id_cmd)
+            assert 'uid=34583100' in cmd[0]
             client.logout()
         user = f'tuser@{domain_name}'
         cmd = multihost.client[0].run_command(f'id {user}', raiseonerr=False)
