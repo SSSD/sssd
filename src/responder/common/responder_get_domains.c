@@ -697,7 +697,8 @@ sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *dom,
                                bool fast_reply,
                                enum sss_dp_acct_type type,
-                               uint32_t opt_id)
+                               uint32_t opt_id,
+                               const char *opt_str)
 {
     struct sss_dp_get_account_domain_state *state;
     struct tevent_req *subreq;
@@ -733,13 +734,26 @@ sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
     case SSS_DP_USER_AND_GROUP:
         entry_type = BE_REQ_USER_AND_GROUP;
         break;
+    case SSS_DP_SECID:
+        entry_type = BE_REQ_BY_SECID;
+        break;
     default:
         DEBUG(SSSDBG_OP_FAILURE,
               "Unsupported lookup type %X for this request\n", type);
         return NULL;
     }
 
-    filter = talloc_asprintf(state, "idnumber=%u", opt_id);
+    if (type == SSS_DP_SECID) {
+        if (opt_str == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "BUG: SID search called without SID parameter!\n");
+            ret = EINVAL;
+            goto done;
+        }
+        filter = talloc_asprintf(state, DP_SEC_ID"=%s", opt_str);
+    } else {
+        filter = talloc_asprintf(state, "idnumber=%u", opt_id);
+    }
     if (filter == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         ret = ENOMEM;

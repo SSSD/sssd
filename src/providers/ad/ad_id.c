@@ -1160,6 +1160,7 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     errno_t ret;
     bool use_id_mapping;
+    struct sss_domain_info *domain;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ad_get_account_domain_state);
@@ -1186,6 +1187,23 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
         if (state->entry_type == BE_REQ_USER_AND_GROUP) {
             state->entry_type = BE_REQ_GROUP;
         }
+    }
+
+    /* SID lookup does not require communication with backend */
+    if (state->entry_type == BE_REQ_BY_SECID) {
+        domain = find_domain_by_sid(params->domain, data->filter_value);
+        if (domain == NULL) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "SID %s does not fit into any domain\n", data->filter_value);
+            dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_NOT_FOUND, NULL);
+        } else {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "SID %s fits into domain %s\n", data->filter_value, domain->name);
+            dp_reply_std_set(&state->reply, DP_ERR_DECIDE, EOK, domain->name);
+        }
+        tevent_req_done(req);
+        tevent_req_post(req, params->ev);
+        return req;
     }
 
     /* The get-account-domain request only works with GC */
