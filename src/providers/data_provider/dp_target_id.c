@@ -914,6 +914,7 @@ check_and_parse_acct_domain_filter(struct dp_get_acct_domain_data *data,
         size_t lenght;
         uint32_t type;
     } types[] = {FILTER_TYPE("idnumber", BE_FILTER_IDNUM),
+                 FILTER_TYPE(DP_SEC_ID, BE_FILTER_SECID),
                  {0, 0, 0}};
     int i;
 

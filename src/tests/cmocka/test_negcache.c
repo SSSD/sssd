@@ -1256,10 +1256,11 @@ static void test_sss_ncache_reset(void **state)
     assert_int_equal(ret, ENOENT);
 }
 
-static void test_sss_ncache_locate_uid_gid(void **state)
+static void test_sss_ncache_locate_uid_gid_sid(void **state)
 {
     uid_t uid;
     gid_t gid;
+    const char *sid = "S-1-3-0-9999-9999-99";
     int ret;
     struct test_state *ts;
     struct sss_domain_info *dom;
@@ -1282,20 +1283,28 @@ static void test_sss_ncache_locate_uid_gid(void **state)
     assert_int_equal(ret, ENOENT);
     ret = sss_ncache_check_locate_uid(ts->ctx, dom, uid);
     assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_locate_sid(ts->ctx, dom, sid);
+    assert_int_equal(ret, ENOENT);
 
     ret = sss_ncache_set_locate_gid(ts->ctx, dom, gid);
     assert_int_equal(ret, EOK);
     ret = sss_ncache_set_locate_uid(ts->ctx, dom, uid);
+    assert_int_equal(ret, EOK);
+    ret = sss_ncache_set_locate_sid(ts->ctx, dom, sid);
     assert_int_equal(ret, EOK);
 
     ret = sss_ncache_check_locate_gid(ts->ctx, dom, gid);
     assert_int_equal(ret, EEXIST);
     ret = sss_ncache_check_locate_uid(ts->ctx, dom, uid);
     assert_int_equal(ret, EEXIST);
+    ret = sss_ncache_check_locate_sid(ts->ctx, dom, sid);
+    assert_int_equal(ret, EEXIST);
 
     ret = sss_ncache_check_locate_gid(ts->ctx, dom2, gid);
     assert_int_equal(ret, ENOENT);
     ret = sss_ncache_check_locate_uid(ts->ctx, dom2, uid);
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_locate_sid(ts->ctx, dom2, sid);
     assert_int_equal(ret, ENOENT);
 }
 
@@ -1357,7 +1366,7 @@ int main(void)
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_reset,
                                         setup, teardown),
-        cmocka_unit_test_setup_teardown(test_sss_ncache_locate_uid_gid,
+        cmocka_unit_test_setup_teardown(test_sss_ncache_locate_uid_gid_sid,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_domain_locate_type,
                                         setup, teardown),

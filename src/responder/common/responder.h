@@ -336,9 +336,10 @@ errno_t sss_dp_get_domains_recv(struct tevent_req *req);
  * @param   domain      The SSSD domain we're querying. The response can
  *                      be either NULL or come from any of domain's subdomains
  *                      or domain itself
- * @param   type        Either SSS_DP_USER or SSS_DP_GROUP, other types
- *                      are not supported at the moment
+ * @param   type        Either SSS_DP_USER, SSS_DP_GROUP or SSS_DP_SECID, other
+ *                      types  are not supported at the moment
  * @param   opt_id      The ID number we're trying to locate
+ * @param   opt_str     The SID number we're trying to locate
  *
  * @return  A tevent request or NULL if allocating the request fails.
  */
@@ -347,7 +348,8 @@ struct tevent_req *sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
                                                   struct sss_domain_info *domain,
                                                   bool fast_reply,
                                                   enum sss_dp_acct_type type,
-                                                  uint32_t opt_id);
+                                                  uint32_t opt_id,
+                                                  const char *opt_str);
 
 /* Receive a getAccountDomain request result
  *

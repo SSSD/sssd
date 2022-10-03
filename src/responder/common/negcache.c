@@ -861,6 +861,60 @@ int sss_ncache_check_locate_uid(struct sss_nc_ctx *ctx,
     return ret;
 }
 
+static char *locate_sid_str(struct sss_nc_ctx *ctx,
+                            struct sss_domain_info *dom,
+                            const char *sid)
+{
+    return talloc_asprintf(ctx,
+                           "%s/%s/%s/%s",
+                           NC_DOMAIN_ACCT_LOCATE_PREFIX,
+                           NC_SID_PREFIX,
+                           dom->name,
+                           sid);
+}
+
+int sss_ncache_check_locate_sid(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom,
+                                const char *sid)
+{
+    char *str;
+    int ret;
+
+    if (dom == NULL) {
+        return EINVAL;
+    }
+
+    str = locate_sid_str(ctx, dom, sid);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_ncache_check_str(ctx, str);
+    talloc_free(str);
+    return ret;
+}
+
+int sss_ncache_set_locate_sid(struct sss_nc_ctx *ctx,
+                              struct sss_domain_info *dom,
+                              const char *sid)
+{
+    char *str;
+    int ret;
+
+    if (dom == NULL) {
+        return EINVAL;
+    }
+
+    str = locate_sid_str(ctx, dom, sid);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_ncache_set_str(ctx, str, false, false);
+    talloc_free(str);
+    return ret;
+}
+
 static int delete_permanent(struct tdb_context *tdb,
                             TDB_DATA key, TDB_DATA data, void *state)
 {
