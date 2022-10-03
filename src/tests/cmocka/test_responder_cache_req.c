@@ -3203,6 +3203,7 @@ void test_object_by_sid_user_multiple_domains_found(void **state)
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, users[0].sid, attrs, 0, ERR_OK);
@@ -3220,6 +3221,7 @@ void test_object_by_sid_user_multiple_domains_notfound(void **state)
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, users[0].sid, attrs, 0, ENOENT);
@@ -3359,6 +3361,7 @@ void test_object_by_sid_group_multiple_domains_found(void **state)
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, groups[0].sid, attrs, 0, ERR_OK);
@@ -3376,6 +3379,7 @@ void test_object_by_sid_group_multiple_domains_notfound(void **state)
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, groups[0].sid, attrs, 0, ENOENT);

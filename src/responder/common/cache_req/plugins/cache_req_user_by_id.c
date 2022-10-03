@@ -190,7 +190,8 @@ cache_req_user_by_id_get_domain_send(TALLOC_CTX *mem_ctx,
                                           domain,
                                           true, /* fast_reply */
                                           SSS_DP_USER,
-                                          data->id);
+                                          data->id,
+                                          NULL);
 }
 
 const struct cache_req_plugin cache_req_user_by_id = {

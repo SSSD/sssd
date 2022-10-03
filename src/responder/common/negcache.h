@@ -146,6 +146,12 @@ int sss_ncache_check_locate_uid(struct sss_nc_ctx *ctx,
 int sss_ncache_set_locate_uid(struct sss_nc_ctx *ctx,
                               struct sss_domain_info *dom,
                               uid_t uid);
+int sss_ncache_check_locate_sid(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom,
+                                const char *sid);
+int sss_ncache_set_locate_sid(struct sss_nc_ctx *ctx,
+                              struct sss_domain_info *dom,
+                              const char *sid);
 
 int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx);
 /* sss_ncache_reset_[users/groups] skips permanent entries */
