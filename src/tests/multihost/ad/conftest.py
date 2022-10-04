@@ -131,6 +131,36 @@ def create_aduser_group(session_multihost, request):
 
 
 @pytest.fixture(scope="function")
+def create_nested_group(session_multihost, create_aduser_group, request):
+    """ create nested AD group
+        l1_grp is a top-level group
+        l2_grp is a level-2 group and is a member of l1_grp group
+        ad_user is a user-member of a 2nd-level l2_grp group
+    """
+    run_id = random.randint(999, 999999)
+    ad_user = f'testuser-{run_id}'
+    ad_group = f'testgroup-{run_id}'
+    l1_grp = f'testgrp-l1-{run_id}'
+    l2_grp = f'testgrp-l1-{run_id}'
+    ad_op = ADOperations(session_multihost.ad[0])
+    ad_op.create_ad_unix_group(l1_grp)
+    ad_op.create_ad_unix_group(l2_grp)
+    ad_op.create_ad_unix_user_group(ad_user, ad_group)
+    ad_op.add_user_member_of_group(l1_grp, l2_grp)
+    ad_op.add_user_member_of_group(l2_grp, ad_user)
+
+    def remove_ad_user_group():
+        """ Remove windows AD user and group """
+        ad_op.delete_ad_user_group(ad_user)
+        ad_op.delete_ad_user_group(ad_group)
+        ad_op.delete_ad_user_group(l1_grp)
+        ad_op.delete_ad_user_group(l2_grp)
+
+    request.addfinalizer(remove_ad_user_group)
+    return (run_id)
+
+
+@pytest.fixture(scope="function")
 def create_domain_local_group(session_multihost, request):
     """ Add user in domain local AD group"""
     ad_client = sssdTools(session_multihost.client[0], session_multihost.ad[0])
