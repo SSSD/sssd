@@ -25,7 +25,8 @@ runs:
     shell: bash
     run: |
       pushd '${{ inputs.working-directory }}'
-      version="${{ inputs.version }}"
+      echo "HELLO"
+      version="echo ${{ inputs.version }} | sed 's/-/_/g'"
       release="${{ inputs.release }}"
       name="sssd-$version"
       tar -cvzf "$name.tar.gz" --transform "s,^,$name/," *

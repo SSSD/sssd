@@ -47,11 +47,11 @@ jobs:
         path: pr
 
     - name: Build source rpm - ${{ github.base_ref }}
-      id: target
-      uses: ./target/.github/actions/build-sssd-srpm
+      id: pr
+      uses: ./pr/.github/actions/build-sssd-srpm
       with:
-        working-directory: target
-        version: ${{ github.base_ref }}
+        working-directory: pr
+        version: pr${{ github.event.pull_request.number }}
 
     - name: Build source rpm - pr${{ github.event.pull_request.number }}
       id: pr
