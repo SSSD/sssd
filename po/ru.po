@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-08-26 21:53+0200\n"
+"POT-Creation-Date: 2022-10-07 12:50+0200\n"
 "PO-Revision-Date: 2022-07-12 12:18+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
@@ -21,8 +21,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.13\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
@@ -2544,19 +2544,19 @@ msgstr "Укажите имя."
 msgid "Unable to parse name %s.\n"
 msgstr "Не удалось разобрать имя %s.\n"
 
-#: src/tools/sssctl/sssctl_cache.c:602 src/tools/sssctl/sssctl_cache.c:649
+#: src/tools/sssctl/sssctl_cache.c:605 src/tools/sssctl/sssctl_cache.c:652
 msgid "Search by SID"
 msgstr "Поиск по SID"
 
-#: src/tools/sssctl/sssctl_cache.c:603
+#: src/tools/sssctl/sssctl_cache.c:606
 msgid "Search by user ID"
 msgstr "Поиск по ID пользователя"
 
-#: src/tools/sssctl/sssctl_cache.c:612
+#: src/tools/sssctl/sssctl_cache.c:615
 msgid "Initgroups expiration time"
 msgstr "Время истечения срока действия групп инициализации"
 
-#: src/tools/sssctl/sssctl_cache.c:650
+#: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by group ID"
 msgstr "Поиск по ID группы"
 
@@ -2624,83 +2624,156 @@ msgstr "Сообщения, созданные при объединении к�
 msgid "Used configuration snippet files: %zu\n"
 msgstr "Использованных файлов фрагментов конфигурации: %zu\n"
 
-#: src/tools/sssctl/sssctl_data.c:88
+#: src/tools/sssctl/sssctl_data.c:91
 #, c-format
 msgid "Unable to create backup directory [%d]: %s"
 msgstr "Не удалось создать резервный каталог [%d]: %s"
 
-#: src/tools/sssctl/sssctl_data.c:94
+#: src/tools/sssctl/sssctl_data.c:97
 msgid "SSSD backup of local data already exists, override?"
 msgstr "Резервная копия локальных данных SSSD уже существует. Перезаписать?"
 
-#: src/tools/sssctl/sssctl_data.c:110
+#: src/tools/sssctl/sssctl_data.c:113
 msgid "Unable to export user overrides\n"
 msgstr "Не удалось экспортировать переопределения пользователей\n"
 
-#: src/tools/sssctl/sssctl_data.c:117
+#: src/tools/sssctl/sssctl_data.c:120
 msgid "Unable to export group overrides\n"
 msgstr "Не удалось экспортировать переопределения групп\n"
 
-#: src/tools/sssctl/sssctl_data.c:133 src/tools/sssctl/sssctl_data.c:216
+#: src/tools/sssctl/sssctl_data.c:136 src/tools/sssctl/sssctl_data.c:219
 msgid "Override existing backup"
 msgstr "Переопределить существующую резервную копию"
 
-#: src/tools/sssctl/sssctl_data.c:163
+#: src/tools/sssctl/sssctl_data.c:166
 msgid "Unable to import user overrides\n"
 msgstr "Не удалось импортировать переопределения пользователей\n"
 
-#: src/tools/sssctl/sssctl_data.c:172
+#: src/tools/sssctl/sssctl_data.c:175
 msgid "Unable to import group overrides\n"
 msgstr "Не удалось импортировать переопределения групп\n"
 
-#: src/tools/sssctl/sssctl_data.c:193 src/tools/sssctl/sssctl_domains.c:82
+#: src/tools/sssctl/sssctl_data.c:196 src/tools/sssctl/sssctl_domains.c:82
 #: src/tools/sssctl/sssctl_domains.c:328
 msgid "Start SSSD if it is not running"
 msgstr "Запустить SSSD, если запуск не был выполнен"
 
-#: src/tools/sssctl/sssctl_data.c:194
+#: src/tools/sssctl/sssctl_data.c:197
 msgid "Restart SSSD after data import"
 msgstr "Перезапустить SSSD после импорта данных"
 
-#: src/tools/sssctl/sssctl_data.c:217
+#: src/tools/sssctl/sssctl_data.c:220
 msgid "Create clean cache files and import local data"
 msgstr "Создать пустые файлы кэша и импортировать локальные данные"
 
-#: src/tools/sssctl/sssctl_data.c:218
+#: src/tools/sssctl/sssctl_data.c:221
 msgid "Stop SSSD before removing the cache"
 msgstr "Остановить SSSD перед удалением кэша"
 
-#: src/tools/sssctl/sssctl_data.c:219
+#: src/tools/sssctl/sssctl_data.c:222
 msgid "Start SSSD when the cache is removed"
 msgstr "Запустить SSSD после удаления кэша"
 
-#: src/tools/sssctl/sssctl_data.c:234
+#: src/tools/sssctl/sssctl_data.c:237
 msgid "Creating backup of local data...\n"
 msgstr "Создание резервной копии локальных данных...\n"
 
-#: src/tools/sssctl/sssctl_data.c:237
+#: src/tools/sssctl/sssctl_data.c:240
 msgid "Unable to create backup of local data, can not remove the cache.\n"
 msgstr ""
 "Не удалось создать резервную копию локальных данных, невозможно удалить "
 "кэш.\n"
 
-#: src/tools/sssctl/sssctl_data.c:242
+#: src/tools/sssctl/sssctl_data.c:245
 msgid "Removing cache files...\n"
 msgstr "Удаление файлов кэша...\n"
 
-#: src/tools/sssctl/sssctl_data.c:245
+#: src/tools/sssctl/sssctl_data.c:248
 msgid "Unable to remove cache files\n"
 msgstr "Не удалось удалить файлы кэша\n"
 
-#: src/tools/sssctl/sssctl_data.c:250
+#: src/tools/sssctl/sssctl_data.c:253
 msgid "Restoring local data...\n"
 msgstr "Восстановление локальных данных...\n"
+
+#: src/tools/sssctl/sssctl_data.c:415
+#, c-format
+msgid "Creating cache index for domain %1$s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:417
+#, c-format
+msgid "Deleting cache index for domain %1$s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:419
+#, c-format
+msgid "Indexes for domain %1$s:\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:439
+#, c-format
+msgid "  Attribute: %1$s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
+msgid "Target a specific domain"
+msgstr "Направить на определенный домен"
+
+#: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
+msgid "domain"
+msgstr "домен"
+
+#: src/tools/sssctl/sssctl_data.c:469
+msgid "Attribute to index"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:469
+#, fuzzy
+msgid "attribute"
+msgstr "Атрибут UID"
+
+#: src/tools/sssctl/sssctl_data.c:482
+#, fuzzy
+msgid "Action not provided\n"
+msgstr "Поставщик данных для проверки подлинности"
+
+#: src/tools/sssctl/sssctl_data.c:495
+#, c-format
+msgid ""
+"Unknown action: %1$s\n"
+"Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:503
+msgid "Attribute (-a) not provided\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:511
+#, c-format
+msgid "Attribute %1$s not indexed.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:514
+#, c-format
+msgid "Attribute %1$s already indexed.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:517
+#, fuzzy, c-format
+msgid "Index operation failed: %1$s\n"
+msgstr ""
+"Ошибка команды, которую следовало выполнить после удаления записи: %1$s\n"
+
+#: src/tools/sssctl/sssctl_data.c:522
+msgid "Don't forget to also update the indexes on the remote providers.\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"
 msgstr "Показать список доменов, включая основные и доверенные"
 
-#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:367
+#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:368
 #: src/tools/sssctl/sssctl_user_checks.c:95
 msgid "Unable to connect to system bus!\n"
 msgstr "Не удалось подключиться к системной шине!\n"
@@ -2759,115 +2832,107 @@ msgstr "Показать список обнаруженных серверов"
 msgid "Specify domain name."
 msgstr "Укажите имя домена."
 
-#: src/tools/sssctl/sssctl_domains.c:355
+#: src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
 msgstr "Недостаточно памяти!\n"
 
-#: src/tools/sssctl/sssctl_domains.c:375 src/tools/sssctl/sssctl_domains.c:385
+#: src/tools/sssctl/sssctl_domains.c:376 src/tools/sssctl/sssctl_domains.c:386
 msgid "Unable to get online status\n"
 msgstr "Не удалось получить состояние подключения\n"
 
-#: src/tools/sssctl/sssctl_domains.c:395
+#: src/tools/sssctl/sssctl_domains.c:396
 msgid "Unable to get server list\n"
 msgstr "Не удалось получить список серверов\n"
 
-#: src/tools/sssctl/sssctl_logs.c:50
+#: src/tools/sssctl/sssctl_logs.c:51
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sssctl/sssctl_logs.c:214
+#: src/tools/sssctl/sssctl_logs.c:215
 msgid "SSSD is not running.\n"
 msgstr "SSSD не запущен.\n"
 
-#: src/tools/sssctl/sssctl_logs.c:231
+#: src/tools/sssctl/sssctl_logs.c:232
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
 msgstr "%1$-25s %2$#.4x\n"
 
-#: src/tools/sssctl/sssctl_logs.c:235
+#: src/tools/sssctl/sssctl_logs.c:236
 #, c-format
 msgid "%1$-25s Unknown domain\n"
 msgstr "%1$-25s Неизвестный домен\n"
 
-#: src/tools/sssctl/sssctl_logs.c:237
+#: src/tools/sssctl/sssctl_logs.c:238
 #, c-format
 msgid "%1$-25s Unreachable service\n"
 msgstr "%1$-25s Недоступная служба\n"
 
-#: src/tools/sssctl/sssctl_logs.c:452
+#: src/tools/sssctl/sssctl_logs.c:431
 msgid "Delete log files instead of truncating"
 msgstr "Удалить файлы журнала вместо усечения"
 
-#: src/tools/sssctl/sssctl_logs.c:463
+#: src/tools/sssctl/sssctl_logs.c:442
 msgid "Deleting log files...\n"
 msgstr "Удаление файлов журнала...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:466
+#: src/tools/sssctl/sssctl_logs.c:445
 msgid "Unable to remove log files\n"
 msgstr "Не удалось удалить файлы журнала\n"
 
-#: src/tools/sssctl/sssctl_logs.c:483
+#: src/tools/sssctl/sssctl_logs.c:462
 msgid "Truncating log files...\n"
 msgstr "Усечение файлов журнала...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:487
+#: src/tools/sssctl/sssctl_logs.c:466
 msgid "Unable to truncate log files\n"
 msgstr "Не удалось усечь файлы журнала\n"
 
-#: src/tools/sssctl/sssctl_logs.c:522
+#: src/tools/sssctl/sssctl_logs.c:501
 #, c-format
 msgid "Archiving log files into %s...\n"
 msgstr "Архивация файлов журнала в %s...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:526
+#: src/tools/sssctl/sssctl_logs.c:505
 msgid "Unable to archive log files\n"
 msgstr "Не удалось архивировать файлы журнала\n"
 
-#: src/tools/sssctl/sssctl_logs.c:547
-msgid "Target a specific domain"
-msgstr "Направить на определенный домен"
-
-#: src/tools/sssctl/sssctl_logs.c:547
-msgid "domain"
-msgstr "домен"
-
-#: src/tools/sssctl/sssctl_logs.c:548
+#: src/tools/sssctl/sssctl_logs.c:530
 msgid "Target the SSSD service"
 msgstr "Направить на службу SSSD"
 
-#: src/tools/sssctl/sssctl_logs.c:549
+#: src/tools/sssctl/sssctl_logs.c:531
 msgid "Target the NSS service"
 msgstr "Направить на службу NSS"
 
-#: src/tools/sssctl/sssctl_logs.c:550
+#: src/tools/sssctl/sssctl_logs.c:532
 msgid "Target the PAM service"
 msgstr "Направить на службу PAM"
 
-#: src/tools/sssctl/sssctl_logs.c:551
+#: src/tools/sssctl/sssctl_logs.c:533
 msgid "Target the SUDO service"
 msgstr "Направить на службу SUDO"
 
-#: src/tools/sssctl/sssctl_logs.c:552
+#: src/tools/sssctl/sssctl_logs.c:534
 msgid "Target the AUTOFS service"
 msgstr "Направить на службу AUTOFS"
 
-#: src/tools/sssctl/sssctl_logs.c:553
+#: src/tools/sssctl/sssctl_logs.c:535
 msgid "Target the SSH service"
 msgstr "Направить на службу SSH"
 
-#: src/tools/sssctl/sssctl_logs.c:554
+#: src/tools/sssctl/sssctl_logs.c:536
 msgid "Target the PAC service"
 msgstr "Направить на службу PAC"
 
-#: src/tools/sssctl/sssctl_logs.c:555
+#: src/tools/sssctl/sssctl_logs.c:537
 msgid "Target the IFP service"
 msgstr "Направить на службу IFP"
 
-#: src/tools/sssctl/sssctl_logs.c:569
+#: src/tools/sssctl/sssctl_logs.c:552
 msgid "Specify debug level you want to set"
 msgstr "Укажите уровень отладки, который следует установить"
 
-#: src/tools/sssctl/sssctl_logs.c:616
+#: src/tools/sssctl/sssctl_logs.c:600
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
 "ОШИБКА: Отсутствует поддержка идентификатора цепочки Tevent, анализатор "
@@ -2974,7 +3039,7 @@ msgstr "Не удалось найти пользователя InfoPipe с по
 msgid "pam_start failed: %s\n"
 msgstr "Ошибка pam_start: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:268
+#: src/tools/sssctl/sssctl_user_checks.c:269
 msgid ""
 "testing pam_authenticate\n"
 "\n"
@@ -2982,12 +3047,12 @@ msgstr ""
 "проверка pam_authenticate\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:272
+#: src/tools/sssctl/sssctl_user_checks.c:273
 #, c-format
 msgid "pam_get_item failed: %s\n"
 msgstr "Ошибка pam_get_item: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:275
+#: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
 msgid ""
 "pam_authenticate for user [%s]: %s\n"
@@ -2996,7 +3061,7 @@ msgstr ""
 "pam_authenticate для пользователя [%s]: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:278
+#: src/tools/sssctl/sssctl_user_checks.c:279
 msgid ""
 "testing pam_chauthtok\n"
 "\n"
@@ -3004,7 +3069,7 @@ msgstr ""
 "проверка pam_chauthtok\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:280
+#: src/tools/sssctl/sssctl_user_checks.c:281
 #, c-format
 msgid ""
 "pam_chauthtok: %s\n"
@@ -3013,7 +3078,7 @@ msgstr ""
 "pam_chauthtok: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:282
+#: src/tools/sssctl/sssctl_user_checks.c:283
 msgid ""
 "testing pam_acct_mgmt\n"
 "\n"
@@ -3021,7 +3086,7 @@ msgstr ""
 "проверка pam_acct_mgmt\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:284
+#: src/tools/sssctl/sssctl_user_checks.c:285
 #, c-format
 msgid ""
 "pam_acct_mgmt: %s\n"
@@ -3030,7 +3095,7 @@ msgstr ""
 "pam_acct_mgmt: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:286
+#: src/tools/sssctl/sssctl_user_checks.c:287
 msgid ""
 "testing pam_setcred\n"
 "\n"
@@ -3038,7 +3103,7 @@ msgstr ""
 "проверка pam_setcred\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:288
+#: src/tools/sssctl/sssctl_user_checks.c:289
 #, c-format
 msgid ""
 "pam_setcred: [%s]\n"
@@ -3047,7 +3112,7 @@ msgstr ""
 "pam_setcred: [%s]\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:290
+#: src/tools/sssctl/sssctl_user_checks.c:291
 msgid ""
 "testing pam_open_session\n"
 "\n"
@@ -3055,7 +3120,7 @@ msgstr ""
 "проверка pam_open_session\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:292
+#: src/tools/sssctl/sssctl_user_checks.c:293
 #, c-format
 msgid ""
 "pam_open_session: %s\n"
@@ -3064,7 +3129,7 @@ msgstr ""
 "pam_open_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:294
+#: src/tools/sssctl/sssctl_user_checks.c:295
 msgid ""
 "testing pam_close_session\n"
 "\n"
@@ -3072,7 +3137,7 @@ msgstr ""
 "проверка pam_close_session\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:296
+#: src/tools/sssctl/sssctl_user_checks.c:297
 #, c-format
 msgid ""
 "pam_close_session: %s\n"
@@ -3081,15 +3146,15 @@ msgstr ""
 "pam_close_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:298
+#: src/tools/sssctl/sssctl_user_checks.c:299
 msgid "unknown action\n"
 msgstr "неизвестное действие\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:301
+#: src/tools/sssctl/sssctl_user_checks.c:302
 msgid "PAM Environment:\n"
 msgstr "Среда PAM:\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:309
+#: src/tools/sssctl/sssctl_user_checks.c:310
 msgid " - no env -\n"
 msgstr " - нет среды -\n"
 
@@ -3457,10 +3522,6 @@ msgstr "Сообщает о том, что ответчик активирова
 
 #~ msgid "Error while checking if the user was logged in\n"
 #~ msgstr "Ошибка при проверке факта входа пользователя в систему\n"
-
-#~ msgid "The post-delete command failed: %1$s\n"
-#~ msgstr ""
-#~ "Ошибка команды, которую следовало выполнить после удаления записи: %1$s\n"
 
 #~ msgid "Not removing home dir - not owned by user\n"
 #~ msgstr ""
