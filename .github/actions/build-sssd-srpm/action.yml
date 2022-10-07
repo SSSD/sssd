@@ -21,24 +21,31 @@ outputs:
 runs:
   using: 'composite'
   steps:
+  # '-' is an illegal character for RPM version tag
+  - name: Sanitize version
+    id: sanitize
+    shell: bash
+    run: |
+      version="$(echo ${{ inputs.version }} | sed 's/-/_/g')"
+      echo "::set-output name=version::$version"
+
   - name: Generate tarball and spec file
     shell: bash
     run: |
       pushd '${{ inputs.working-directory }}'
-      version="${{ inputs.version }}"
       release="${{ inputs.release }}"
-      name="sssd-$version"
+      name="sssd-${{ steps.sanitize.outputs.version }}"
       tar -cvzf "$name.tar.gz" --transform "s,^,$name/," *
 
       cp contrib/sssd.spec.in ./sssd.spec
 
       sed -iE "s/@PACKAGE_NAME@/sssd/g" ./sssd.spec
-      sed -iE "s/@PACKAGE_VERSION@/$version/g" ./sssd.spec
+      sed -iE "s/@PACKAGE_VERSION@/${{ steps.sanitize.outputs.version }}/g" ./sssd.spec
       sed -iE "s/@PRERELEASE_VERSION@/$release/g" ./sssd.spec
       popd
   - name: Build source rpm
     id: srpm
     uses: next-actions/build-srpm@master
     with:
-      tarball: ${{ inputs.working-directory }}/sssd-${{ inputs.version }}.tar.gz
+      tarball: ${{ inputs.working-directory }}/sssd-${{ steps.sanitize.outputs.version }}.tar.gz
       specfile: ${{ inputs.working-directory }}/sssd.spec
