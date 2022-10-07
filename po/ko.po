@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-08-26 21:53+0200\n"
+"POT-Creation-Date: 2022-10-07 12:50+0200\n"
 "PO-Revision-Date: 2022-09-23 11:19+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
@@ -2401,19 +2401,19 @@ msgstr "이름을 지정합니다."
 msgid "Unable to parse name %s.\n"
 msgstr "%s 이름을 구문 분석할 수 없습니다.\n"
 
-#: src/tools/sssctl/sssctl_cache.c:602 src/tools/sssctl/sssctl_cache.c:649
+#: src/tools/sssctl/sssctl_cache.c:605 src/tools/sssctl/sssctl_cache.c:652
 msgid "Search by SID"
 msgstr "SID로 검색"
 
-#: src/tools/sssctl/sssctl_cache.c:603
+#: src/tools/sssctl/sssctl_cache.c:606
 msgid "Search by user ID"
 msgstr "사용자 ID로 검색"
 
-#: src/tools/sssctl/sssctl_cache.c:612
+#: src/tools/sssctl/sssctl_cache.c:615
 msgid "Initgroups expiration time"
 msgstr "Initgroups 만료 시간"
 
-#: src/tools/sssctl/sssctl_cache.c:650
+#: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by group ID"
 msgstr "그룹 ID로 검색"
 
@@ -2477,81 +2477,153 @@ msgstr "구성 병합 중에 생성된 메시지: %zu\n"
 msgid "Used configuration snippet files: %zu\n"
 msgstr "사용된 구성 스니펫 파일: %zu\n"
 
-#: src/tools/sssctl/sssctl_data.c:88
+#: src/tools/sssctl/sssctl_data.c:91
 #, c-format
 msgid "Unable to create backup directory [%d]: %s"
 msgstr "백업 디렉토리를 만들 수 없습니다 [%d]: %s"
 
-#: src/tools/sssctl/sssctl_data.c:94
+#: src/tools/sssctl/sssctl_data.c:97
 msgid "SSSD backup of local data already exists, override?"
 msgstr "로컬 데이터의 SSSD 백업이 이미 존재합니다. 덮어쓰시겠습니까?"
 
-#: src/tools/sssctl/sssctl_data.c:110
+#: src/tools/sssctl/sssctl_data.c:113
 msgid "Unable to export user overrides\n"
 msgstr "사용자 덮어쓰기를 내보낼 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_data.c:117
+#: src/tools/sssctl/sssctl_data.c:120
 msgid "Unable to export group overrides\n"
 msgstr "그룹 덮어쓰기를 내보낼 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_data.c:133 src/tools/sssctl/sssctl_data.c:216
+#: src/tools/sssctl/sssctl_data.c:136 src/tools/sssctl/sssctl_data.c:219
 msgid "Override existing backup"
 msgstr "기존 백업 덮어쓰기"
 
-#: src/tools/sssctl/sssctl_data.c:163
+#: src/tools/sssctl/sssctl_data.c:166
 msgid "Unable to import user overrides\n"
 msgstr "사용자 덮어쓰기를 가져올 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_data.c:172
+#: src/tools/sssctl/sssctl_data.c:175
 msgid "Unable to import group overrides\n"
 msgstr "그룹 덮어쓰기를 가져올 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_data.c:193 src/tools/sssctl/sssctl_domains.c:82
+#: src/tools/sssctl/sssctl_data.c:196 src/tools/sssctl/sssctl_domains.c:82
 #: src/tools/sssctl/sssctl_domains.c:328
 msgid "Start SSSD if it is not running"
 msgstr "SSSD가 실행 중이 아닌 경우 시작"
 
-#: src/tools/sssctl/sssctl_data.c:194
+#: src/tools/sssctl/sssctl_data.c:197
 msgid "Restart SSSD after data import"
 msgstr "데이터 가져 오기 후 SSSD 재시작"
 
-#: src/tools/sssctl/sssctl_data.c:217
+#: src/tools/sssctl/sssctl_data.c:220
 msgid "Create clean cache files and import local data"
 msgstr "정리된 캐시 파일을 만들고 로컬 데이터 가져 오기"
 
-#: src/tools/sssctl/sssctl_data.c:218
+#: src/tools/sssctl/sssctl_data.c:221
 msgid "Stop SSSD before removing the cache"
 msgstr "캐시를 제거하기 전에 SSSD 중지"
 
-#: src/tools/sssctl/sssctl_data.c:219
+#: src/tools/sssctl/sssctl_data.c:222
 msgid "Start SSSD when the cache is removed"
 msgstr "캐시가 제거되면 SSSD 시작"
 
-#: src/tools/sssctl/sssctl_data.c:234
+#: src/tools/sssctl/sssctl_data.c:237
 msgid "Creating backup of local data...\n"
 msgstr "로컬 데이터의 백업 생성 중...\n"
 
-#: src/tools/sssctl/sssctl_data.c:237
+#: src/tools/sssctl/sssctl_data.c:240
 msgid "Unable to create backup of local data, can not remove the cache.\n"
 msgstr "로컬 데이터의 백업을 생성 할 수 없으며, 캐쉬를 제거 할 수 없습니다.\n"
 
-#: src/tools/sssctl/sssctl_data.c:242
+#: src/tools/sssctl/sssctl_data.c:245
 msgid "Removing cache files...\n"
 msgstr "캐시 파일 제거 중...\n"
 
-#: src/tools/sssctl/sssctl_data.c:245
+#: src/tools/sssctl/sssctl_data.c:248
 msgid "Unable to remove cache files\n"
 msgstr "캐쉬 파일을 제거 할 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_data.c:250
+#: src/tools/sssctl/sssctl_data.c:253
 msgid "Restoring local data...\n"
 msgstr "로컬 데이터 복원 중...\n"
+
+#: src/tools/sssctl/sssctl_data.c:415
+#, c-format
+msgid "Creating cache index for domain %1$s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:417
+#, c-format
+msgid "Deleting cache index for domain %1$s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:419
+#, c-format
+msgid "Indexes for domain %1$s:\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:439
+#, c-format
+msgid "  Attribute: %1$s\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
+msgid "Target a specific domain"
+msgstr "대상 지정 도메인"
+
+#: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
+msgid "domain"
+msgstr "도메인"
+
+#: src/tools/sssctl/sssctl_data.c:469
+msgid "Attribute to index"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:469
+#, fuzzy
+msgid "attribute"
+msgstr "UID 속성"
+
+#: src/tools/sssctl/sssctl_data.c:482
+#, fuzzy
+msgid "Action not provided\n"
+msgstr "인증 공급자"
+
+#: src/tools/sssctl/sssctl_data.c:495
+#, c-format
+msgid ""
+"Unknown action: %1$s\n"
+"Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:503
+msgid "Attribute (-a) not provided\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:511
+#, c-format
+msgid "Attribute %1$s not indexed.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:514
+#, c-format
+msgid "Attribute %1$s already indexed.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_data.c:517
+#, fuzzy, c-format
+msgid "Index operation failed: %1$s\n"
+msgstr "pam_get_item에 실패: %s\n"
+
+#: src/tools/sssctl/sssctl_data.c:522
+msgid "Don't forget to also update the indexes on the remote providers.\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"
 msgstr "메인 또는 신뢰할 수 있는 도메인 유형을 포함한 도메인 목록 표시"
 
-#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:367
+#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:368
 #: src/tools/sssctl/sssctl_user_checks.c:95
 msgid "Unable to connect to system bus!\n"
 msgstr "시스템 버스에 연결할 수 없습니다!\n"
@@ -2610,115 +2682,107 @@ msgstr "검색된 서버 목록 표시"
 msgid "Specify domain name."
 msgstr "도메인 이름을 지정합니다."
 
-#: src/tools/sssctl/sssctl_domains.c:355
+#: src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
 msgstr "메모리 부족!\n"
 
-#: src/tools/sssctl/sssctl_domains.c:375 src/tools/sssctl/sssctl_domains.c:385
+#: src/tools/sssctl/sssctl_domains.c:376 src/tools/sssctl/sssctl_domains.c:386
 msgid "Unable to get online status\n"
 msgstr "온라인 상태를 얻는 데 실패\n"
 
-#: src/tools/sssctl/sssctl_domains.c:395
+#: src/tools/sssctl/sssctl_domains.c:396
 msgid "Unable to get server list\n"
 msgstr "서버 목록을 가져올 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_logs.c:50
+#: src/tools/sssctl/sssctl_logs.c:51
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sssctl/sssctl_logs.c:214
+#: src/tools/sssctl/sssctl_logs.c:215
 msgid "SSSD is not running.\n"
 msgstr "SSSD가 실행 중이 아닙니다.\n"
 
-#: src/tools/sssctl/sssctl_logs.c:231
+#: src/tools/sssctl/sssctl_logs.c:232
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
 msgstr "%1$-25s %2$#.4x\n"
 
-#: src/tools/sssctl/sssctl_logs.c:235
+#: src/tools/sssctl/sssctl_logs.c:236
 #, c-format
 msgid "%1$-25s Unknown domain\n"
 msgstr "%1$-25s 알려지지 않은 도메인\n"
 
-#: src/tools/sssctl/sssctl_logs.c:237
+#: src/tools/sssctl/sssctl_logs.c:238
 #, c-format
 msgid "%1$-25s Unreachable service\n"
 msgstr "%1$-25s 접근 할 수 없는 서비스\n"
 
-#: src/tools/sssctl/sssctl_logs.c:452
+#: src/tools/sssctl/sssctl_logs.c:431
 msgid "Delete log files instead of truncating"
 msgstr "자르는 대신 로그 파일 삭제"
 
-#: src/tools/sssctl/sssctl_logs.c:463
+#: src/tools/sssctl/sssctl_logs.c:442
 msgid "Deleting log files...\n"
 msgstr "로그 파일 삭제 중...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:466
+#: src/tools/sssctl/sssctl_logs.c:445
 msgid "Unable to remove log files\n"
 msgstr "로그 파일을 제거 할 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_logs.c:483
+#: src/tools/sssctl/sssctl_logs.c:462
 msgid "Truncating log files...\n"
 msgstr "로그 파일 자르는 중...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:487
+#: src/tools/sssctl/sssctl_logs.c:466
 msgid "Unable to truncate log files\n"
 msgstr "로그 파일을 자를 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_logs.c:522
+#: src/tools/sssctl/sssctl_logs.c:501
 #, c-format
 msgid "Archiving log files into %s...\n"
 msgstr "%s에 로그 파일 보관 중...\n"
 
-#: src/tools/sssctl/sssctl_logs.c:526
+#: src/tools/sssctl/sssctl_logs.c:505
 msgid "Unable to archive log files\n"
 msgstr "로그 파일을 보관할 수 없습니다\n"
 
-#: src/tools/sssctl/sssctl_logs.c:547
-msgid "Target a specific domain"
-msgstr "대상 지정 도메인"
-
-#: src/tools/sssctl/sssctl_logs.c:547
-msgid "domain"
-msgstr "도메인"
-
-#: src/tools/sssctl/sssctl_logs.c:548
+#: src/tools/sssctl/sssctl_logs.c:530
 msgid "Target the SSSD service"
 msgstr "대상 SSSD 서비스"
 
-#: src/tools/sssctl/sssctl_logs.c:549
+#: src/tools/sssctl/sssctl_logs.c:531
 msgid "Target the NSS service"
 msgstr "대상 NSS 서비스"
 
-#: src/tools/sssctl/sssctl_logs.c:550
+#: src/tools/sssctl/sssctl_logs.c:532
 msgid "Target the PAM service"
 msgstr "대상 PAM 서비스"
 
-#: src/tools/sssctl/sssctl_logs.c:551
+#: src/tools/sssctl/sssctl_logs.c:533
 msgid "Target the SUDO service"
 msgstr "대상 SUDO 서비스"
 
-#: src/tools/sssctl/sssctl_logs.c:552
+#: src/tools/sssctl/sssctl_logs.c:534
 msgid "Target the AUTOFS service"
 msgstr "대상 AUTOFS 서비스"
 
-#: src/tools/sssctl/sssctl_logs.c:553
+#: src/tools/sssctl/sssctl_logs.c:535
 msgid "Target the SSH service"
 msgstr "대상 SSH 서비스"
 
-#: src/tools/sssctl/sssctl_logs.c:554
+#: src/tools/sssctl/sssctl_logs.c:536
 msgid "Target the PAC service"
 msgstr "대상 PAC 서비스"
 
-#: src/tools/sssctl/sssctl_logs.c:555
+#: src/tools/sssctl/sssctl_logs.c:537
 msgid "Target the IFP service"
 msgstr "대상 IFP 서비스"
 
-#: src/tools/sssctl/sssctl_logs.c:569
+#: src/tools/sssctl/sssctl_logs.c:552
 msgid "Specify debug level you want to set"
 msgstr "설정할 디버그 수준 지정"
 
-#: src/tools/sssctl/sssctl_logs.c:616
+#: src/tools/sssctl/sssctl_logs.c:600
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
 "오류: T이벤트 체인 ID 지원이 누락되었으며, 로그 분석이 지원되지 않습니다.\n"
@@ -2824,7 +2888,7 @@ msgstr "[%s]을(를) 사용한 InfoPipe 사용자 검색에 실패했습니다.\
 msgid "pam_start failed: %s\n"
 msgstr "pam_start에 실패: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:268
+#: src/tools/sssctl/sssctl_user_checks.c:269
 msgid ""
 "testing pam_authenticate\n"
 "\n"
@@ -2832,12 +2896,12 @@ msgstr ""
 "pam_authenticate 테스트\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:272
+#: src/tools/sssctl/sssctl_user_checks.c:273
 #, c-format
 msgid "pam_get_item failed: %s\n"
 msgstr "pam_get_item에 실패: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:275
+#: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
 msgid ""
 "pam_authenticate for user [%s]: %s\n"
@@ -2846,7 +2910,7 @@ msgstr ""
 "[%s] 사용자에 대한 pam_authenticate: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:278
+#: src/tools/sssctl/sssctl_user_checks.c:279
 msgid ""
 "testing pam_chauthtok\n"
 "\n"
@@ -2854,7 +2918,7 @@ msgstr ""
 "pam_chauthtok 테스트\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:280
+#: src/tools/sssctl/sssctl_user_checks.c:281
 #, c-format
 msgid ""
 "pam_chauthtok: %s\n"
@@ -2863,7 +2927,7 @@ msgstr ""
 "pam_chauthtok: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:282
+#: src/tools/sssctl/sssctl_user_checks.c:283
 msgid ""
 "testing pam_acct_mgmt\n"
 "\n"
@@ -2871,7 +2935,7 @@ msgstr ""
 "pam_acct_mgmt 테스트\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:284
+#: src/tools/sssctl/sssctl_user_checks.c:285
 #, c-format
 msgid ""
 "pam_acct_mgmt: %s\n"
@@ -2880,7 +2944,7 @@ msgstr ""
 "pam_acct_mgmt: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:286
+#: src/tools/sssctl/sssctl_user_checks.c:287
 msgid ""
 "testing pam_setcred\n"
 "\n"
@@ -2888,7 +2952,7 @@ msgstr ""
 "pam_setcred 테스트\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:288
+#: src/tools/sssctl/sssctl_user_checks.c:289
 #, c-format
 msgid ""
 "pam_setcred: [%s]\n"
@@ -2897,7 +2961,7 @@ msgstr ""
 "pam_setcred: [%s]\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:290
+#: src/tools/sssctl/sssctl_user_checks.c:291
 msgid ""
 "testing pam_open_session\n"
 "\n"
@@ -2905,7 +2969,7 @@ msgstr ""
 "pam_open_session 테스트\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:292
+#: src/tools/sssctl/sssctl_user_checks.c:293
 #, c-format
 msgid ""
 "pam_open_session: %s\n"
@@ -2914,7 +2978,7 @@ msgstr ""
 "pam_open_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:294
+#: src/tools/sssctl/sssctl_user_checks.c:295
 msgid ""
 "testing pam_close_session\n"
 "\n"
@@ -2922,7 +2986,7 @@ msgstr ""
 "pam_close_session 테스트\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:296
+#: src/tools/sssctl/sssctl_user_checks.c:297
 #, c-format
 msgid ""
 "pam_close_session: %s\n"
@@ -2931,15 +2995,15 @@ msgstr ""
 "pam_close_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:298
+#: src/tools/sssctl/sssctl_user_checks.c:299
 msgid "unknown action\n"
 msgstr "알 수 없는 동작\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:301
+#: src/tools/sssctl/sssctl_user_checks.c:302
 msgid "PAM Environment:\n"
 msgstr "PAM 환경:\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:309
+#: src/tools/sssctl/sssctl_user_checks.c:310
 msgid " - no env -\n"
 msgstr " - no env -\n"
 
