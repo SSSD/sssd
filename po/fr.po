@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-08-26 22:13+0200\n"
+"POT-Creation-Date: 2022-10-07 12:53+0200\n"
 "PO-Revision-Date: 2022-06-24 20:18+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
@@ -2028,7 +2028,7 @@ msgid "Disable netlink interface"
 msgstr "Désactiver l'interface netlink"
 
 #: src/monitor/monitor.c:2356 src/tools/sssctl/sssctl_config.c:77
-#: src/tools/sssctl/sssctl_logs.c:331
+#: src/tools/sssctl/sssctl_logs.c:334
 msgid "Specify a non-default config file"
 msgstr "Définir un fichier de configuration différent de celui par défaut"
 
@@ -2539,19 +2539,19 @@ msgstr "Indiquez le nom."
 msgid "Unable to parse name %s.\n"
 msgstr "Impossible d'analyser le nom %s.\n"
 
-#: src/tools/sssctl/sssctl_cache.c:602 src/tools/sssctl/sssctl_cache.c:649
+#: src/tools/sssctl/sssctl_cache.c:605 src/tools/sssctl/sssctl_cache.c:652
 msgid "Search by SID"
 msgstr "Recherche par SID"
 
-#: src/tools/sssctl/sssctl_cache.c:603
+#: src/tools/sssctl/sssctl_cache.c:606
 msgid "Search by user ID"
 msgstr "Recherche par ID utilisateur"
 
-#: src/tools/sssctl/sssctl_cache.c:612
+#: src/tools/sssctl/sssctl_cache.c:615
 msgid "Initgroups expiration time"
 msgstr "Délai d'expiration des initgroups"
 
-#: src/tools/sssctl/sssctl_cache.c:650
+#: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by group ID"
 msgstr "Recherche par ID de groupe"
 
@@ -2697,7 +2697,7 @@ msgstr ""
 "Afficher la liste des domaines, y compris le type de domaine principal ou de "
 "confiance"
 
-#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:367
+#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:368
 #: src/tools/sssctl/sssctl_user_checks.c:95
 msgid "Unable to connect to system bus!\n"
 msgstr "Impossible de se connecter au bus système !\n"
@@ -2756,15 +2756,15 @@ msgstr "Afficher la liste des serveurs découverts"
 msgid "Specify domain name."
 msgstr "Indiquer le nom de domaine."
 
-#: src/tools/sssctl/sssctl_domains.c:355
+#: src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
 msgstr "Plus de mémoire disponible !\n"
 
-#: src/tools/sssctl/sssctl_domains.c:375 src/tools/sssctl/sssctl_domains.c:385
+#: src/tools/sssctl/sssctl_domains.c:376 src/tools/sssctl/sssctl_domains.c:386
 msgid "Unable to get online status\n"
 msgstr "Impossible d'obtenir le statut en ligne\n"
 
-#: src/tools/sssctl/sssctl_domains.c:395
+#: src/tools/sssctl/sssctl_domains.c:396
 msgid "Unable to get server list\n"
 msgstr "Impossible d'obtenir la liste des serveurs\n"
 
@@ -2801,11 +2801,11 @@ msgstr "Archivage des fichiers journaux dans %s...\n"
 msgid "Unable to archive log files\n"
 msgstr "Impossible d'archiver les fichiers journaux\n"
 
-#: src/tools/sssctl/sssctl_logs.c:337
+#: src/tools/sssctl/sssctl_logs.c:340
 msgid "Specify debug level you want to set"
 msgstr "Spécifiez le niveau de débogage que vous souhaitez définir"
 
-#: src/tools/sssctl/sssctl_logs.c:398
+#: src/tools/sssctl/sssctl_logs.c:403
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
 "ERREUR : Prise en charge de l’ID de chaîne Tevent manquante, l’analyseur de "
@@ -2912,7 +2912,7 @@ msgstr "La recherche de l'utilisateur InfoPipe avec [%s] a échoué.\n"
 msgid "pam_start failed: %s\n"
 msgstr "pam_start a échoué : %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:268
+#: src/tools/sssctl/sssctl_user_checks.c:269
 msgid ""
 "testing pam_authenticate\n"
 "\n"
@@ -2920,12 +2920,12 @@ msgstr ""
 "test de pam_authenticate\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:272
+#: src/tools/sssctl/sssctl_user_checks.c:273
 #, c-format
 msgid "pam_get_item failed: %s\n"
 msgstr "pam_get_item a échoué : %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:275
+#: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
 msgid ""
 "pam_authenticate for user [%s]: %s\n"
@@ -2934,7 +2934,7 @@ msgstr ""
 "pam_authenticate pour l'utilisateur [%s] : %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:278
+#: src/tools/sssctl/sssctl_user_checks.c:279
 msgid ""
 "testing pam_chauthtok\n"
 "\n"
@@ -2942,7 +2942,7 @@ msgstr ""
 "test pam_chauthtok\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:280
+#: src/tools/sssctl/sssctl_user_checks.c:281
 #, c-format
 msgid ""
 "pam_chauthtok: %s\n"
@@ -2951,7 +2951,7 @@ msgstr ""
 "pam_chauthtok : %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:282
+#: src/tools/sssctl/sssctl_user_checks.c:283
 msgid ""
 "testing pam_acct_mgmt\n"
 "\n"
@@ -2959,7 +2959,7 @@ msgstr ""
 "test de pam_acct_mgmt\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:284
+#: src/tools/sssctl/sssctl_user_checks.c:285
 #, c-format
 msgid ""
 "pam_acct_mgmt: %s\n"
@@ -2968,7 +2968,7 @@ msgstr ""
 "pam_acct_mgmt : %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:286
+#: src/tools/sssctl/sssctl_user_checks.c:287
 msgid ""
 "testing pam_setcred\n"
 "\n"
@@ -2976,7 +2976,7 @@ msgstr ""
 "test de pam_setcred\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:288
+#: src/tools/sssctl/sssctl_user_checks.c:289
 #, c-format
 msgid ""
 "pam_setcred: [%s]\n"
@@ -2985,7 +2985,7 @@ msgstr ""
 "pam_setcred : [%s]\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:290
+#: src/tools/sssctl/sssctl_user_checks.c:291
 msgid ""
 "testing pam_open_session\n"
 "\n"
@@ -2993,7 +2993,7 @@ msgstr ""
 "test pam_open_session\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:292
+#: src/tools/sssctl/sssctl_user_checks.c:293
 #, c-format
 msgid ""
 "pam_open_session: %s\n"
@@ -3002,7 +3002,7 @@ msgstr ""
 "pam_open_session : %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:294
+#: src/tools/sssctl/sssctl_user_checks.c:295
 msgid ""
 "testing pam_close_session\n"
 "\n"
@@ -3010,7 +3010,7 @@ msgstr ""
 "test pam_close_session\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:296
+#: src/tools/sssctl/sssctl_user_checks.c:297
 #, c-format
 msgid ""
 "pam_close_session: %s\n"
@@ -3019,15 +3019,15 @@ msgstr ""
 "pam_close_session : %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:298
+#: src/tools/sssctl/sssctl_user_checks.c:299
 msgid "unknown action\n"
 msgstr "action inconnue\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:301
+#: src/tools/sssctl/sssctl_user_checks.c:302
 msgid "PAM Environment:\n"
 msgstr "Environnement PAM :\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:309
+#: src/tools/sssctl/sssctl_user_checks.c:310
 msgid " - no env -\n"
 msgstr " - aucun env -\n"
 

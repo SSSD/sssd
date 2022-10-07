@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-08-26 22:13+0200\n"
+"POT-Creation-Date: 2022-10-07 12:53+0200\n"
 "PO-Revision-Date: 2022-05-20 09:18+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
 "Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
@@ -1950,7 +1950,7 @@ msgid "Disable netlink interface"
 msgstr "Vypnout netlink rozhraní"
 
 #: src/monitor/monitor.c:2356 src/tools/sssctl/sssctl_config.c:77
-#: src/tools/sssctl/sssctl_logs.c:331
+#: src/tools/sssctl/sssctl_logs.c:334
 msgid "Specify a non-default config file"
 msgstr "Zadat nevýchozí soubor s nastaveními"
 
@@ -2463,19 +2463,19 @@ msgstr "Zadejte jméno."
 msgid "Unable to parse name %s.\n"
 msgstr "Nedaří se zpracovat název %s.\n"
 
-#: src/tools/sssctl/sssctl_cache.c:602 src/tools/sssctl/sssctl_cache.c:649
+#: src/tools/sssctl/sssctl_cache.c:605 src/tools/sssctl/sssctl_cache.c:652
 msgid "Search by SID"
 msgstr "Hledat podle SID identifikátoru"
 
-#: src/tools/sssctl/sssctl_cache.c:603
+#: src/tools/sssctl/sssctl_cache.c:606
 msgid "Search by user ID"
 msgstr "Hledat podle identif. uživatele"
 
-#: src/tools/sssctl/sssctl_cache.c:612
+#: src/tools/sssctl/sssctl_cache.c:615
 msgid "Initgroups expiration time"
 msgstr "Okamžik skončení platnosti initgroups"
 
-#: src/tools/sssctl/sssctl_cache.c:650
+#: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by group ID"
 msgstr "Hledat podle identif. skupiny"
 
@@ -2617,7 +2617,7 @@ msgstr "Obnovování místních dat…\n"
 msgid "Show domain list including primary or trusted domain type"
 msgstr "Zobrazit seznam domén včetně typu hlavní nebo důvěryhodná doména"
 
-#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:367
+#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:368
 #: src/tools/sssctl/sssctl_user_checks.c:95
 msgid "Unable to connect to system bus!\n"
 msgstr "Nedaří se připojit ke sběrnici systému!\n"
@@ -2678,15 +2678,15 @@ msgstr "Zadejte název domény."
 
 # auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId:
 # po/ipa
-#: src/tools/sssctl/sssctl_domains.c:355
+#: src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
 msgstr "Nedostatek paměti!\n"
 
-#: src/tools/sssctl/sssctl_domains.c:375 src/tools/sssctl/sssctl_domains.c:385
+#: src/tools/sssctl/sssctl_domains.c:376 src/tools/sssctl/sssctl_domains.c:386
 msgid "Unable to get online status\n"
 msgstr "Nedaří se zjistit stav online\n"
 
-#: src/tools/sssctl/sssctl_domains.c:395
+#: src/tools/sssctl/sssctl_domains.c:396
 msgid "Unable to get server list\n"
 msgstr "Nedaří se získat seznam serverů\n"
 
@@ -2723,11 +2723,11 @@ msgstr "Archivují se soubory se záznamem událostí do %s…\n"
 msgid "Unable to archive log files\n"
 msgstr "Nedaří se archivovat soubory se záznamem událostí\n"
 
-#: src/tools/sssctl/sssctl_logs.c:337
+#: src/tools/sssctl/sssctl_logs.c:340
 msgid "Specify debug level you want to set"
 msgstr "Zadejte stupeň podrobností ladících informací, který chcete nastavit"
 
-#: src/tools/sssctl/sssctl_logs.c:398
+#: src/tools/sssctl/sssctl_logs.c:403
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
 "Chyba: chybí podpora pro identifikátor tevent řetězce, analýza záznamu "
@@ -2834,7 +2834,7 @@ msgstr "InfoPipe vyhledání uživatele s [%s] se nezdařilo.\n"
 msgid "pam_start failed: %s\n"
 msgstr "pam_start se nezdařilo: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:268
+#: src/tools/sssctl/sssctl_user_checks.c:269
 msgid ""
 "testing pam_authenticate\n"
 "\n"
@@ -2842,12 +2842,12 @@ msgstr ""
 "zkoušení pam_authenticate\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:272
+#: src/tools/sssctl/sssctl_user_checks.c:273
 #, c-format
 msgid "pam_get_item failed: %s\n"
 msgstr "pam_get_item se nezdařilo: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:275
+#: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
 msgid ""
 "pam_authenticate for user [%s]: %s\n"
@@ -2856,7 +2856,7 @@ msgstr ""
 "pam_authenticate pro uživatele [%s]: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:278
+#: src/tools/sssctl/sssctl_user_checks.c:279
 msgid ""
 "testing pam_chauthtok\n"
 "\n"
@@ -2864,7 +2864,7 @@ msgstr ""
 "zkoušení pam_chauthtok\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:280
+#: src/tools/sssctl/sssctl_user_checks.c:281
 #, c-format
 msgid ""
 "pam_chauthtok: %s\n"
@@ -2873,7 +2873,7 @@ msgstr ""
 "pam_chauthtok: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:282
+#: src/tools/sssctl/sssctl_user_checks.c:283
 msgid ""
 "testing pam_acct_mgmt\n"
 "\n"
@@ -2881,7 +2881,7 @@ msgstr ""
 "zkoušení pam_acct_mgmt\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:284
+#: src/tools/sssctl/sssctl_user_checks.c:285
 #, c-format
 msgid ""
 "pam_acct_mgmt: %s\n"
@@ -2890,7 +2890,7 @@ msgstr ""
 "pam_acct_mgmt: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:286
+#: src/tools/sssctl/sssctl_user_checks.c:287
 msgid ""
 "testing pam_setcred\n"
 "\n"
@@ -2898,7 +2898,7 @@ msgstr ""
 "zkoušení pam_setcred\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:288
+#: src/tools/sssctl/sssctl_user_checks.c:289
 #, c-format
 msgid ""
 "pam_setcred: [%s]\n"
@@ -2907,7 +2907,7 @@ msgstr ""
 "pam_setcred: [%s]\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:290
+#: src/tools/sssctl/sssctl_user_checks.c:291
 msgid ""
 "testing pam_open_session\n"
 "\n"
@@ -2915,7 +2915,7 @@ msgstr ""
 "zkoušení pam_open_session\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:292
+#: src/tools/sssctl/sssctl_user_checks.c:293
 #, c-format
 msgid ""
 "pam_open_session: %s\n"
@@ -2924,7 +2924,7 @@ msgstr ""
 "pam_open_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:294
+#: src/tools/sssctl/sssctl_user_checks.c:295
 msgid ""
 "testing pam_close_session\n"
 "\n"
@@ -2932,7 +2932,7 @@ msgstr ""
 "zkoušení pam_close_session\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:296
+#: src/tools/sssctl/sssctl_user_checks.c:297
 #, c-format
 msgid ""
 "pam_close_session: %s\n"
@@ -2941,15 +2941,15 @@ msgstr ""
 "pam_close_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:298
+#: src/tools/sssctl/sssctl_user_checks.c:299
 msgid "unknown action\n"
 msgstr "neznámá akce\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:301
+#: src/tools/sssctl/sssctl_user_checks.c:302
 msgid "PAM Environment:\n"
 msgstr "PAM prostředí:\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:309
+#: src/tools/sssctl/sssctl_user_checks.c:310
 msgid " - no env -\n"
 msgstr " - žádné prostředí -\n"
 

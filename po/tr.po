@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-08-26 22:13+0200\n"
+"POT-Creation-Date: 2022-10-07 12:53+0200\n"
 "PO-Revision-Date: 2022-07-22 07:19+0000\n"
 "Last-Translator: Kemal Oktay Aktoğan <oktay@e.email>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
@@ -1981,7 +1981,7 @@ msgid "Disable netlink interface"
 msgstr "netlink arayüzünü devre dışı bırak"
 
 #: src/monitor/monitor.c:2356 src/tools/sssctl/sssctl_config.c:77
-#: src/tools/sssctl/sssctl_logs.c:331
+#: src/tools/sssctl/sssctl_logs.c:334
 msgid "Specify a non-default config file"
 msgstr "Varsayılan olmayan bir yapılandırma dosyası belirtin"
 
@@ -2486,19 +2486,19 @@ msgstr "Adı belirtin."
 msgid "Unable to parse name %s.\n"
 msgstr "%s adı ayrıştırılamıyor.\n"
 
-#: src/tools/sssctl/sssctl_cache.c:602 src/tools/sssctl/sssctl_cache.c:649
+#: src/tools/sssctl/sssctl_cache.c:605 src/tools/sssctl/sssctl_cache.c:652
 msgid "Search by SID"
 msgstr "SID'ye göre ara"
 
-#: src/tools/sssctl/sssctl_cache.c:603
+#: src/tools/sssctl/sssctl_cache.c:606
 msgid "Search by user ID"
 msgstr "Kullanıcı kimliğine göre ara"
 
-#: src/tools/sssctl/sssctl_cache.c:612
+#: src/tools/sssctl/sssctl_cache.c:615
 msgid "Initgroups expiration time"
 msgstr "Başlangıç grupları sona erme süresi"
 
-#: src/tools/sssctl/sssctl_cache.c:650
+#: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by group ID"
 msgstr "Grup kimliğine göre ara"
 
@@ -2642,7 +2642,7 @@ msgstr ""
 "Birincil veya güvenilen etki alanı türü de dahil olmak üzere etki alanı "
 "listesini göster"
 
-#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:367
+#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:368
 #: src/tools/sssctl/sssctl_user_checks.c:95
 msgid "Unable to connect to system bus!\n"
 msgstr "Sistem veriyoluna bağlanılamıyor!\n"
@@ -2701,15 +2701,15 @@ msgstr "Keşfedilen sunucuların listesini göster"
 msgid "Specify domain name."
 msgstr "Etki alanı adını belirtin."
 
-#: src/tools/sssctl/sssctl_domains.c:355
+#: src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
 msgstr "Yetersiz bellek!\n"
 
-#: src/tools/sssctl/sssctl_domains.c:375 src/tools/sssctl/sssctl_domains.c:385
+#: src/tools/sssctl/sssctl_domains.c:376 src/tools/sssctl/sssctl_domains.c:386
 msgid "Unable to get online status\n"
 msgstr "Çevrimiçi durum alınamıyor\n"
 
-#: src/tools/sssctl/sssctl_domains.c:395
+#: src/tools/sssctl/sssctl_domains.c:396
 msgid "Unable to get server list\n"
 msgstr "Sunucu listesi alınamıyor\n"
 
@@ -2746,11 +2746,11 @@ msgstr "Günlük dosyaları %s içine arşivleniyor...\n"
 msgid "Unable to archive log files\n"
 msgstr "Günlük dosyaları arşivlenemiyor\n"
 
-#: src/tools/sssctl/sssctl_logs.c:337
+#: src/tools/sssctl/sssctl_logs.c:340
 msgid "Specify debug level you want to set"
 msgstr "Ayarlamak istediğiniz hata ayıklama düzeyini belirtin"
 
-#: src/tools/sssctl/sssctl_logs.c:398
+#: src/tools/sssctl/sssctl_logs.c:403
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
 "HATA: Olay zinciri kimliği desteği eksik, günlük çözümleyicisi "
@@ -2857,7 +2857,7 @@ msgstr "[%s] ile InfoPipe Kullanıcı araması başarısız oldu.\n"
 msgid "pam_start failed: %s\n"
 msgstr "pam_start başarısız oldu: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:268
+#: src/tools/sssctl/sssctl_user_checks.c:269
 msgid ""
 "testing pam_authenticate\n"
 "\n"
@@ -2865,12 +2865,12 @@ msgstr ""
 "pam_authenticate deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:272
+#: src/tools/sssctl/sssctl_user_checks.c:273
 #, c-format
 msgid "pam_get_item failed: %s\n"
 msgstr "pam_get_item başarısız oldu: %s\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:275
+#: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
 msgid ""
 "pam_authenticate for user [%s]: %s\n"
@@ -2879,7 +2879,7 @@ msgstr ""
 "[%s] kullanıcısı için pam_authenticate: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:278
+#: src/tools/sssctl/sssctl_user_checks.c:279
 msgid ""
 "testing pam_chauthtok\n"
 "\n"
@@ -2887,7 +2887,7 @@ msgstr ""
 "pam_chauthtok deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:280
+#: src/tools/sssctl/sssctl_user_checks.c:281
 #, c-format
 msgid ""
 "pam_chauthtok: %s\n"
@@ -2896,7 +2896,7 @@ msgstr ""
 "pam_chauthtok: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:282
+#: src/tools/sssctl/sssctl_user_checks.c:283
 msgid ""
 "testing pam_acct_mgmt\n"
 "\n"
@@ -2904,7 +2904,7 @@ msgstr ""
 "pam_acct_mgmt deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:284
+#: src/tools/sssctl/sssctl_user_checks.c:285
 #, c-format
 msgid ""
 "pam_acct_mgmt: %s\n"
@@ -2913,7 +2913,7 @@ msgstr ""
 "pam_acct_mgmt: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:286
+#: src/tools/sssctl/sssctl_user_checks.c:287
 msgid ""
 "testing pam_setcred\n"
 "\n"
@@ -2921,7 +2921,7 @@ msgstr ""
 "pam_setcred deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:288
+#: src/tools/sssctl/sssctl_user_checks.c:289
 #, c-format
 msgid ""
 "pam_setcred: [%s]\n"
@@ -2930,7 +2930,7 @@ msgstr ""
 "pam_setcred: [%s]\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:290
+#: src/tools/sssctl/sssctl_user_checks.c:291
 msgid ""
 "testing pam_open_session\n"
 "\n"
@@ -2938,7 +2938,7 @@ msgstr ""
 "pam_open_session deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:292
+#: src/tools/sssctl/sssctl_user_checks.c:293
 #, c-format
 msgid ""
 "pam_open_session: %s\n"
@@ -2947,7 +2947,7 @@ msgstr ""
 "pam_open_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:294
+#: src/tools/sssctl/sssctl_user_checks.c:295
 msgid ""
 "testing pam_close_session\n"
 "\n"
@@ -2955,7 +2955,7 @@ msgstr ""
 "pam_close_session deneniyor\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:296
+#: src/tools/sssctl/sssctl_user_checks.c:297
 #, c-format
 msgid ""
 "pam_close_session: %s\n"
@@ -2964,15 +2964,15 @@ msgstr ""
 "pam_close_session: %s\n"
 "\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:298
+#: src/tools/sssctl/sssctl_user_checks.c:299
 msgid "unknown action\n"
 msgstr "bilinmeyen eylem\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:301
+#: src/tools/sssctl/sssctl_user_checks.c:302
 msgid "PAM Environment:\n"
 msgstr "PAM Ortamı:\n"
 
-#: src/tools/sssctl/sssctl_user_checks.c:309
+#: src/tools/sssctl/sssctl_user_checks.c:310
 msgid " - no env -\n"
 msgstr " - ortam yok -\n"
 
