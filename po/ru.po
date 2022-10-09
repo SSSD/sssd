@@ -13,17 +13,17 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-10-07 12:50+0200\n"
-"PO-Revision-Date: 2022-07-12 12:18+0000\n"
+"PO-Revision-Date: 2022-10-11 11:19+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
-"sssd-master/ru/>\n"
+"sssd-2-8/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.13\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.14.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2699,22 +2699,22 @@ msgstr "Восстановление локальных данных...\n"
 #: src/tools/sssctl/sssctl_data.c:415
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
-msgstr ""
+msgstr "Создание индекса кэша для домена %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:417
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
-msgstr ""
+msgstr "Удаление индекса кэша для домена %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:419
 #, c-format
 msgid "Indexes for domain %1$s:\n"
-msgstr ""
+msgstr "Индексы для домена %1$s:\n"
 
 #: src/tools/sssctl/sssctl_data.c:439
 #, c-format
 msgid "  Attribute: %1$s\n"
-msgstr ""
+msgstr "  Атрибут: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
 msgid "Target a specific domain"
@@ -2726,17 +2726,15 @@ msgstr "домен"
 
 #: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute to index"
-msgstr ""
+msgstr "Атрибут для индекса"
 
 #: src/tools/sssctl/sssctl_data.c:469
-#, fuzzy
 msgid "attribute"
-msgstr "Атрибут UID"
+msgstr "атрибут"
 
 #: src/tools/sssctl/sssctl_data.c:482
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "Поставщик данных для проверки подлинности"
+msgstr "Действие не предусмотрено\n"
 
 #: src/tools/sssctl/sssctl_data.c:495
 #, c-format
@@ -2744,30 +2742,31 @@ msgid ""
 "Unknown action: %1$s\n"
 "Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
 msgstr ""
+"Неизвестное действие: %1$s\n"
+"Допустимые действия «%2$s», «%3$s» и «%4$s»\n"
 
 #: src/tools/sssctl/sssctl_data.c:503
 msgid "Attribute (-a) not provided\n"
-msgstr ""
+msgstr "Атрибут (-ы) не задан\n"
 
 #: src/tools/sssctl/sssctl_data.c:511
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
-msgstr ""
+msgstr "Атрибут %1$s не проиндексирован.\n"
 
 #: src/tools/sssctl/sssctl_data.c:514
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
-msgstr ""
+msgstr "Атрибут %1$s уже проиндексирован.\n"
 
 #: src/tools/sssctl/sssctl_data.c:517
-#, fuzzy, c-format
+#, c-format
 msgid "Index operation failed: %1$s\n"
-msgstr ""
-"Ошибка команды, которую следовало выполнить после удаления записи: %1$s\n"
+msgstr "Ошибка операции с индексом: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:522
 msgid "Don't forget to also update the indexes on the remote providers.\n"
-msgstr ""
+msgstr "Не забудьте также обновить индексы на удаленных поставщиках данных.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"
