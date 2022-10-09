@@ -11,10 +11,10 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-10-07 12:50+0200\n"
-"PO-Revision-Date: 2022-09-23 11:19+0000\n"
+"PO-Revision-Date: 2022-10-11 11:19+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
-"sssd-master/ko/>\n"
+"sssd-2-8/ko/>\n"
 "Language: ko\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2550,22 +2550,22 @@ msgstr "로컬 데이터 복원 중...\n"
 #: src/tools/sssctl/sssctl_data.c:415
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
-msgstr ""
+msgstr "도메인 %1$s를 위해 캐쉬 색인을 생성하기\n"
 
 #: src/tools/sssctl/sssctl_data.c:417
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
-msgstr ""
+msgstr "도메인 %1$s를 위해 캐쉬 색인을 삭제하기\n"
 
 #: src/tools/sssctl/sssctl_data.c:419
 #, c-format
 msgid "Indexes for domain %1$s:\n"
-msgstr ""
+msgstr "도메인 %1$s을 위한 색인:\n"
 
 #: src/tools/sssctl/sssctl_data.c:439
 #, c-format
 msgid "  Attribute: %1$s\n"
-msgstr ""
+msgstr "  속성: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
 msgid "Target a specific domain"
@@ -2577,17 +2577,15 @@ msgstr "도메인"
 
 #: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute to index"
-msgstr ""
+msgstr "색인 할 속성"
 
 #: src/tools/sssctl/sssctl_data.c:469
-#, fuzzy
 msgid "attribute"
-msgstr "UID 속성"
+msgstr "속성"
 
 #: src/tools/sssctl/sssctl_data.c:482
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "인증 공급자"
+msgstr "동작이 제공되지 않음\n"
 
 #: src/tools/sssctl/sssctl_data.c:495
 #, c-format
@@ -2595,29 +2593,31 @@ msgid ""
 "Unknown action: %1$s\n"
 "Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
 msgstr ""
+"알지 못하는 동작: %1$s\n"
+"유효한 동작은 \"%2$s\", \"%3$s 및 \"%4$s\"입니다\n"
 
 #: src/tools/sssctl/sssctl_data.c:503
 msgid "Attribute (-a) not provided\n"
-msgstr ""
+msgstr "속성이 제공되지 않음\n"
 
 #: src/tools/sssctl/sssctl_data.c:511
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
-msgstr ""
+msgstr "속성 %1$s가 색인되지 않았습니다.\n"
 
 #: src/tools/sssctl/sssctl_data.c:514
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
-msgstr ""
+msgstr "속성 %1$s가 이미 색인되었습니다.\n"
 
 #: src/tools/sssctl/sssctl_data.c:517
-#, fuzzy, c-format
+#, c-format
 msgid "Index operation failed: %1$s\n"
-msgstr "pam_get_item에 실패: %s\n"
+msgstr "색인 동작이 실패함: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:522
 msgid "Don't forget to also update the indexes on the remote providers.\n"
-msgstr ""
+msgstr "원격 공급자에서도 색인을 최신화하는 것을 잊지 마세요.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"
@@ -2827,7 +2827,7 @@ msgstr " - 사용자 ID: %d\n"
 #: src/tools/sssctl/sssctl_user_checks.c:197
 #, c-format
 msgid " - group id: %d\n"
-msgstr " - group id: %d\n"
+msgstr " - 그룹 id: %d\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:198
 #, c-format
@@ -3005,7 +3005,7 @@ msgstr "PAM 환경:\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:310
 msgid " - no env -\n"
-msgstr " - no env -\n"
+msgstr " -환경이 없음 -\n"
 
 #: src/util/util.h:93
 msgid "The user ID to run the server as"
