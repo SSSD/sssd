@@ -1980,48 +1980,49 @@ msgstr "Ścieżka źródeł pliku „passwd”."
 msgid "Path of group file sources."
 msgstr "Ścieżka źródeł pliku „group”."
 
-#: src/monitor/monitor.c:2361
+#: src/monitor/monitor.c:2361 src/monitor/monitor.c:2360
 msgid "Become a daemon (default)"
 msgstr "Uruchamia jako usługa (domyślnie)"
 
-#: src/monitor/monitor.c:2363
+#: src/monitor/monitor.c:2363 src/monitor/monitor.c:2362
 msgid "Run interactive (not a daemon)"
 msgstr "Uruchamia interaktywnie (nie jako usługa)"
 
-#: src/monitor/monitor.c:2366
+#: src/monitor/monitor.c:2366 src/monitor/monitor.c:2365
 msgid "Disable netlink interface"
 msgstr "Wyłącza interfejs netlink"
 
 #: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2367
 msgid "Specify a non-default config file"
 msgstr "Podaje niedomyślny plik konfiguracji"
 
-#: src/monitor/monitor.c:2370
+#: src/monitor/monitor.c:2370 src/monitor/monitor.c:2369
 msgid "Refresh the configuration database, then exit"
 msgstr "Odświeża bazę danych konfiguracji, a następnie kończy działanie"
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2373 src/monitor/monitor.c:2372
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "Podobne do --genconf, ale odświeża tylko podaną sekcję"
 
-#: src/monitor/monitor.c:2376
+#: src/monitor/monitor.c:2376 src/monitor/monitor.c:2375
 msgid "Print version number and exit"
 msgstr "Wyświetla numer wersji i kończy działanie"
 
-#: src/monitor/monitor.c:2414
+#: src/monitor/monitor.c:2414 src/monitor/monitor.c:2413
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "Opcja -i|--interactive nie jest dozwolona z opcją -D|--daemon\n"
 
-#: src/monitor/monitor.c:2420
+#: src/monitor/monitor.c:2420 src/monitor/monitor.c:2419
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "Opcja -g jest niezgodna z opcją -D lub -i\n"
 
-#: src/monitor/monitor.c:2433
+#: src/monitor/monitor.c:2433 src/monitor/monitor.c:2432
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "Uruchamianie jako %<PRIu64>, musi być rootem\n"
 
-#: src/monitor/monitor.c:2515
+#: src/monitor/monitor.c:2515 src/monitor/monitor.c:2514
 msgid "SSSD is already running\n"
 msgstr "Usługa SSSD jest już uruchomiona\n"
 
