@@ -21,8 +21,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
@@ -2020,49 +2020,50 @@ msgstr "Путь к исходному тексту файла passwd."
 msgid "Path of group file sources."
 msgstr "Путь к исходному тексту файла group."
 
-#: src/monitor/monitor.c:2361
+#: src/monitor/monitor.c:2361 src/monitor/monitor.c:2360
 msgid "Become a daemon (default)"
 msgstr "Запускаться в качестве службы (по умолчанию)"
 
-#: src/monitor/monitor.c:2363
+#: src/monitor/monitor.c:2363 src/monitor/monitor.c:2362
 msgid "Run interactive (not a daemon)"
 msgstr "Запускаться интерактивно (не службой)"
 
-#: src/monitor/monitor.c:2366
+#: src/monitor/monitor.c:2366 src/monitor/monitor.c:2365
 msgid "Disable netlink interface"
 msgstr "Отключить интерфейс netlink"
 
 #: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2367
 msgid "Specify a non-default config file"
 msgstr "Указать нестандартный файл конфигурации"
 
-#: src/monitor/monitor.c:2370
+#: src/monitor/monitor.c:2370 src/monitor/monitor.c:2369
 msgid "Refresh the configuration database, then exit"
 msgstr "Обновить базу данных конфигурации и выйти"
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2373 src/monitor/monitor.c:2372
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr ""
 "Аналогично --genconf, но выполняется обновление только указанного раздела"
 
-#: src/monitor/monitor.c:2376
+#: src/monitor/monitor.c:2376 src/monitor/monitor.c:2375
 msgid "Print version number and exit"
 msgstr "Вывести номер версии и выйти"
 
-#: src/monitor/monitor.c:2414
+#: src/monitor/monitor.c:2414 src/monitor/monitor.c:2413
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "Параметр -i|--interactive нельзя использовать вместе с -D|--daemon\n"
 
-#: src/monitor/monitor.c:2420
+#: src/monitor/monitor.c:2420 src/monitor/monitor.c:2419
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "Параметр -g несовместим с -D или -i\n"
 
-#: src/monitor/monitor.c:2433
+#: src/monitor/monitor.c:2433 src/monitor/monitor.c:2432
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "Запущено от %<PRIu64>, а должно быть от имени пользователя root\n"
 
-#: src/monitor/monitor.c:2515
+#: src/monitor/monitor.c:2515 src/monitor/monitor.c:2514
 msgid "SSSD is already running\n"
 msgstr "SSSD уже выполняется\n"
 
