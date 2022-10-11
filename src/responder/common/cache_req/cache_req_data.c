@@ -84,7 +84,15 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
 
     switch (type) {
     case CACHE_REQ_USER_BY_FILTER:
-        data->name.attr = input->name.attr;
+        if (input->name.attr == NULL) {
+            data->name.attr = NULL;
+        } else {
+            data->name.attr = talloc_strdup(data, input->name.attr);
+            if (data->name.attr == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
         /* Fallthrough */
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
