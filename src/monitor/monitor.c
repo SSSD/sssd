@@ -777,12 +777,13 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
         return ENOMEM;
     }
 
-    ret = confdb_get_string_as_list(cdb, tmp_ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
-                                    &domain_names);
+    ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domain_names);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "No domains configured!\n");
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error retrieving domains list [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
