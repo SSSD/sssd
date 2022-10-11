@@ -165,7 +165,7 @@ int main(int argc, const char *argv[])
     }
 
     ret = init_context(argc, argv, &tctx);
-    if (ret == ENOENT) {
+    if (ret == ERR_NO_DOMAIN_ENABLED) {
         /* nothing to invalidate; no reason to fail */
         ret = EOK;
         goto done;
@@ -909,7 +909,7 @@ static errno_t init_context(int argc, const char *argv[],
     }
 
     ret = init_domains(ctx, values.domain);
-    if (ret == ENOENT && values.domain == NULL) {
+    if (ret == ERR_NO_DOMAIN_ENABLED && values.domain == NULL) {
         /* Nothing to invalidate; do not log confusing messages. */
         goto fini;
     } else if (ret != EOK) {
