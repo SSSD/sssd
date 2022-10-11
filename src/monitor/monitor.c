@@ -2566,7 +2566,7 @@ int main(int argc, const char *argv[])
                  "SSSD couldn't load the configuration database.\n");
             sss_log(SSS_LOG_CRIT,
                    "SSSD couldn't load the configuration database [%d]: %s.\n",
-                    ret, strerror(ret));
+                    ret, sss_strerror(ret));
             break;
         }
         return 4;
