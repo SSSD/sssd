@@ -45,9 +45,6 @@
 /* SSSD domain name that is used for the auto-configured files domain */
 #define IMPLICIT_FILES_DOMAIN_NAME "implicit_files"
 
-
-static int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
-                                          TALLOC_CTX *ctx, char ***_result);
 static int confdb_get_domain_enabled(struct confdb_ctx *cdb,
                                      const char *domain, bool *_enabled);
 
@@ -2675,16 +2672,8 @@ done:
     return ret;
 }
 
-/**
- * Retrieve the list of enabled domains considering the explicit list
- * and the 'enabled' attribute.
- * @param cdb The database configuration context.
- * @param ctx The memory context.
- * @param result Output variable where the list of domains will be stored.
- * @return 0 if the list was retrieved properly, another value on error.
- */
-static int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
-                                          TALLOC_CTX *ctx, char ***_result)
+int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
+                                   TALLOC_CTX *ctx, char ***_result)
 {
     int ret;
     char **domlist = NULL;

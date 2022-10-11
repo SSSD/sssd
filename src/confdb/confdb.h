@@ -497,6 +497,17 @@ int confdb_get_domain(struct confdb_ctx *cdb,
 int confdb_get_domains(struct confdb_ctx *cdb,
                        struct sss_domain_info **domains);
 
+/**
+ * Retrieve the list of enabled domains considering the explicit list
+ * and the 'enabled' attribute.
+ * @param cdb The database configuration context.
+ * @param ctx The memory context.
+ * @param result Output variable where the list of domains will be stored.
+ * @return 0 if the list was retrieved properly, ENOENT if no domain is enabled, another value on error.
+ */
+int confdb_get_enabled_domain_list(struct confdb_ctx *cdb,
+                                   TALLOC_CTX *ctx, char ***_result);
+
 int confdb_expand_app_domains(struct confdb_ctx *cdb);
 
 /**
