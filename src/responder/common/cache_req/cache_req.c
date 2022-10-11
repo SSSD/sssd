@@ -1312,8 +1312,10 @@ static void cache_req_input_parsed(struct tevent_req *subreq)
         return;
     }
 
-    state->domain_name = domain;
-    ret = cache_req_select_domains(req, domain,
+    if (state->domain_name == NULL) {
+        state->domain_name = domain;
+    }
+    ret = cache_req_select_domains(req, state->domain_name,
                                    state->cr->data->requested_domains);
     if (ret != EAGAIN) {
         tevent_req_error(req, ret);
