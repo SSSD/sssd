@@ -806,16 +806,18 @@ def test_find_by_valid_certificate(dbus_system_bus,
 
 def test_list_by_attr(dbus_system_bus, ldap_conn, sanity_rfc2307):
     users = get_user_by_attr(dbus_system_bus, "extraName", "user2")
-    # Condition not met because of https://github.com/SSSD/sssd/issues/6360
-    # assert len(users) == 1
-    assert users[0] == '/org/freedesktop/sssd/infopipe/Users/LDAP/1002'
+    assert len(users) == 2
+    assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1002' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/app/user2_40app' in users
 
     users = get_user_by_attr(dbus_system_bus, "extraName", "user*")
-    # Condition not met because of https://github.com/SSSD/sssd/issues/6360
-    # assert len(users) == 3
+    assert len(users) == 6
     assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1001' in users
     assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1002' in users
     assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1003' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/app/user1_40app' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/app/user2_40app' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/app/user3_40app' in users
 
     users = get_user_by_attr(dbus_system_bus, "extraName", "nouser*")
     assert len(users) == 0
