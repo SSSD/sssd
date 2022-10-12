@@ -1796,11 +1796,10 @@ int confdb_get_domains(struct confdb_ctx *cdb,
 
     ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domlist);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured, fatal error!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "No domains configured, fatal error!\n");
         ret = ERR_NO_DOMAIN_ENABLED;
         goto done;
-    }
-    if (ret != EOK) {
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Fatal error retrieving domains list!\n");
         goto done;
     }
