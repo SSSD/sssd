@@ -232,7 +232,8 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
         goto done;
     }
 
-    DEBUG(result == LDAP_SUCCESS ? SSSDBG_TRACE_FUNC : SSSDBG_OP_FAILURE,
+    DEBUG(((result == LDAP_SUCCESS) || (result == LDAP_NO_SUCH_OBJECT)) ?
+              SSSDBG_TRACE_FUNC : SSSDBG_OP_FAILURE,
           "ldap_extended_operation result: %s(%d), %s.\n",
           sss_ldap_err2string(result), result, errmsg);
 
