@@ -148,36 +148,57 @@ class RequestAnalyzer:
                 print(line)
         return found_results
 
-    def print_formatted_verbose(self, source, patterns):
+    def print_formatted_verbose(self, source):
         """
-        Parse line and print formatted verbose list_requests output
+        Parse log file and print formatted verbose list_requests output
 
         Args:
             source (Reader): source Reader object
-            patterns (list): List of regex patterns to use for
-                matching lines
         """
-        # Get CID number, and print the basic line first
-        for line in self.matched_line(source, patterns):
-            cid = self.print_formatted(line)
+        data = {}
+        # collect cid log lines from single run through of parsing the log
+        # into dictionary # (cid, ts) -> logline_output
+        for line in source:
+            if "CID#" not in line:
+                continue
 
-            # Loop through each line with this CID number to extract and
-            # print the verbose data needed
-            verbose_patterns = ["(cache_req_send|cache_req_process_input|"
-                                "cache_req_search_send)"]
-            for cidline in self.matched_line(source, verbose_patterns):
+            # parse CID and ts from line, key is a tuple of (cid,ts)
+            fields = line.split("[")
+            # timestamp to the minute, cut off seconds, ms
+            ts = fields[0][:17]
+            result = re.search('CID#[0-9]*', fields[3])
+            cid = result.group(0)
+
+            # if mapping exists, append line to output. Otherwise create new mapping
+            if (cid, ts) in data.keys():
+                data[(cid, ts)] += line
+            else:
+                data[(cid, ts)] = line
+
+        # pretty print the data
+        for k, v in data.items():
+            cr_done = []
+            id_done = []
+            for cidline in v.splitlines():
                 plugin = ""
                 name = ""
                 id = ""
 
-                # skip any lines not pertaining to this CID
-                if f"CID#{cid}]" not in cidline:
-                    continue
-                if "refreshed" in cidline:
-                    continue
+                # CR number
+                fields = cidline.split("[")
+                cr_field = fields[3][7:]
+                cr = cr_field.split(":")[0][4:]
+                # Client connected, top-level info line
+                if re.search(r'\[cmd', cidline):
+                    self.print_formatted(cidline)
                 # CR Plugin name
                 if re.search("cache_req_send", cidline):
                     plugin = cidline.split('\'')[1]
+                    id_done.clear()
+                    # Extract CR number
+                    fields = cidline.split("[")
+                    cr_field = fields[3][7:]
+                    cr = cr_field.split(":")[0][4:]
                 # CR Input name
                 elif re.search("cache_req_process_input", cidline):
                     name = cidline.rsplit('[')[-1]
@@ -188,9 +209,14 @@ class RequestAnalyzer:
                 if plugin:
                     print("   - " + plugin)
                 if name:
-                    print("       - " + name[:-2])
+                    # Avoid duplicate output with the same CR #
+                    if cr not in cr_done:
+                        print("       - " + name[:-1])
+                        cr_done.append(cr)
                 if (id and ("UID" in cidline or "GID" in cidline)):
-                    print("       - " + id)
+                    if id not in id_done:
+                        print("       - " + id)
+                        id_done.append(id)
 
     def print_formatted(self, line):
         """
@@ -238,7 +264,7 @@ class RequestAnalyzer:
         source.set_component(component, False)
 
         if args.verbose:
-            self.print_formatted_verbose(source, patterns)
+            self.print_formatted_verbose(source)
         else:
             for line in self.matched_line(source, patterns):
                 if type(source).__name__ == 'Journald':
@@ -259,8 +285,7 @@ class RequestAnalyzer:
         be_results = False
         component = source.Component.NSS
         resp = "nss"
-        pattern = [rf'REQ_TRACE.*\[CID #{cid}\]']
-        pattern.append(rf"\[CID#{cid}\]")
+        pattern = [rf"\[CID#{cid}\]"]
 
         if args.pam:
             component = source.Component.PAM
