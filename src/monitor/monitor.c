@@ -2564,9 +2564,10 @@ int main(int argc, const char *argv[])
             break;
         default:
             DEBUG(SSSDBG_FATAL_FAILURE,
-                 "SSSD couldn't load the configuration database.\n");
+                 "SSSD couldn't load the configuration database [%d]: %s\n",
+                 ret, sss_strerror(ret));
             sss_log(SSS_LOG_CRIT,
-                   "SSSD couldn't load the configuration database [%d]: %s.\n",
+                   "SSSD couldn't load the configuration database [%d]: %s\n",
                     ret, sss_strerror(ret));
             break;
         }
