@@ -463,7 +463,6 @@ void test_parse_all_args(void **state)
     argv[argc++] = "--authenticate";
     argv[argc++] = "--username=user";
     argv[argc++] = "--domain=test.com";
-    argv[argc++] = "--pin=123456";
     argv[argc++] = "--public-key=publicKey";
     argv[argc++] = "--key-handle=keyHandle";
     argv[argc++] = "--type=rs256";
@@ -476,7 +475,6 @@ void test_parse_all_args(void **state)
     assert_int_equal(data.action, ACTION_AUTHENTICATE);
     assert_string_equal(data.shortname, "user");
     assert_string_equal(data.domain, "test.com");
-    assert_string_equal(data.pin, "123456");
     assert_string_equal(data.public_key_list[0], "publicKey");
     assert_string_equal(data.key_handle_list[0], "keyHandle");
     assert_int_equal(data.type, COSE_RS256);
@@ -639,6 +637,7 @@ void test_generate_credentials_user_verification(void **state)
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     errno_t ret;
 
+    ts->data.quiet = false;
     will_return(__wrap_fido_dev_has_pin, false);
     will_return(__wrap_fido_dev_make_cred, FIDO_OK);
 
@@ -654,6 +653,7 @@ void test_generate_credentials_pin(void **state)
     char *pin = malloc(test_len);
     errno_t ret;
 
+    ts->data.quiet = false;
     snprintf(pin, test_len, "%s\n", "1234");
     will_return(__wrap_fido_dev_has_pin, true);
     will_return(__wrap_tcgetattr, 0);
@@ -674,6 +674,7 @@ void test_generate_credentials_pin_error(void **state)
     char *expected_pin;
     errno_t ret;
 
+    ts->data.quiet = false;
     will_return(__wrap_fido_dev_has_pin, true);
     will_return(__wrap_tcgetattr, 0);
     will_return(__wrap_tcsetattr, 0);
@@ -767,6 +768,7 @@ void test_register_key_integration(void **state)
     data.domain = "test.com";
     data.type = COSE_ES256;
     data.user_verification = FIDO_OPT_FALSE;
+    data.quiet = false;
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, 1);
     will_return(__wrap_fido_dev_info_path, TEST_PATH);
@@ -1027,6 +1029,7 @@ void test_authenticate_integration(void **state)
     data.keys_size = 1;
     data.type = COSE_ES256;
     data.user_verification = FIDO_OPT_FALSE;
+    data.quiet = false;
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, dev_number);
     will_return(__wrap_fido_assert_set_rp, FIDO_OK);
