@@ -659,6 +659,16 @@ def get_user_by_attr(dbus_system_bus, attribute, filter):
     return users_iface.ListByAttr(attribute, filter, 0)
 
 
+def get_user_by_name(dbus_system_bus, filter):
+    users_obj = dbus_system_bus.get_object('org.freedesktop.sssd.infopipe',
+                                           '/org/freedesktop/sssd/infopipe/Users')
+
+    users_iface = dbus.Interface(users_obj,
+                                 "org.freedesktop.sssd.infopipe.Users")
+
+    return users_iface.ListByName(filter, 0)
+
+
 def test_get_extra_attributes_empty(dbus_system_bus,
                                     ldap_conn,
                                     sanity_rfc2307):
@@ -823,4 +833,23 @@ def test_list_by_attr(dbus_system_bus, ldap_conn, sanity_rfc2307):
     assert len(users) == 0
 
     users = get_user_by_attr(dbus_system_bus, "noattr", "*")
+    assert len(users) == 0
+
+
+def test_list_by_name(dbus_system_bus, ldap_conn, sanity_rfc2307):
+    users = get_user_by_name(dbus_system_bus, "user2")
+    assert len(users) == 2
+    assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1002' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/app/user2_40app' in users
+
+    users = get_user_by_name(dbus_system_bus, "user*")
+    assert len(users) == 6
+    assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1001' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1002' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/LDAP/1003' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/app/user1_40app' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/app/user2_40app' in users
+    assert '/org/freedesktop/sssd/infopipe/Users/app/user3_40app' in users
+
+    users = get_user_by_name(dbus_system_bus, "nouser*")
     assert len(users) == 0
