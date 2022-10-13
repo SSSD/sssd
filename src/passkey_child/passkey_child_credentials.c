@@ -35,6 +35,8 @@
 
 #include "passkey_child.h"
 
+#define IN_BUF_SIZE 512
+
 errno_t
 prepare_credentials(struct passkey_data *data, fido_dev_t *dev,
                     fido_cred_t *cred)
@@ -137,6 +139,47 @@ done:
     return ret;
 }
 
+errno_t
+passkey_recv_pin(TALLOC_CTX *mem_ctx, int fd, char **_pin)
+{
+    uint8_t buf[IN_BUF_SIZE];
+    ssize_t len;
+    errno_t ret;
+    char *str;
+
+    errno = 0;
+    len = sss_atomic_read_s(fd, buf, IN_BUF_SIZE);
+    if (len == -1) {
+        ret = errno;
+        ret = (ret == 0) ? EINVAL: ret;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "read failed [%d][%s].\n", ret, strerror(ret));
+        return ret;
+    }
+
+    if (len == 0 || *buf == '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing PIN.\n");
+        return EINVAL;
+    }
+
+    str = talloc_strdup(mem_ctx, (char *) buf);
+    if (str == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strndup failed.\n");
+        return ENOMEM;
+    }
+
+    if (strlen(str) != len) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Input contains additional data, only PIN expected.\n");
+        talloc_free(str);
+        return EINVAL;
+    }
+
+    *_pin = str;
+
+    return EOK;
+}
+
 ssize_t
 read_pin(char **pin)
 {
@@ -149,18 +192,20 @@ read_pin(char **pin)
     ret = tcgetattr(STDIN_FILENO, &old);
     if (ret != 0) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Unable get the parameters associated with stdin.\n");
+              "Unable to get the parameters associated with stdin [%d]: %s.\n",
+              errno, sss_strerror(errno));
         goto done;
     }
     new = old;
     new.c_lflag &= ~ECHO;
     ret = tcsetattr(STDIN_FILENO, TCSAFLUSH, &new);
     if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unable to turn echoing off.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to turn echoing off [%d]: %s.\n",
+              errno, sss_strerror(errno));
         goto done;
     }
 
-    ERROR("Enter PIN: ");
+    printf("Enter PIN: ");
     bytes_read = getline(&line_ptr, &line_len, stdin);
     if (bytes_read == -1) {
         DEBUG(SSSDBG_OP_FAILURE, "getline failed [%d]: %s.\n",
@@ -169,12 +214,13 @@ read_pin(char **pin)
         /* Remove the end of line '\n' character */
         line_ptr[--bytes_read] = '\0';
     }
-    ERROR("\n");
+    printf("\n");
 
     ret = tcsetattr(STDIN_FILENO, TCSAFLUSH, &old);
     if (ret != 0) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Unable to restore parameters associated with stdin.\n");
+              "Unable to restore parameters associated with stdin [%d]: %s.\n",
+              errno, sss_strerror(errno));
         goto done;
     }
 
@@ -189,26 +235,43 @@ errno_t
 generate_credentials(struct passkey_data *data, fido_dev_t *dev,
                      fido_cred_t *cred)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
     char *pin = NULL;
+    char *tmp_pin = NULL;
     bool has_pin;
     ssize_t pin_len = 0;
     errno_t ret;
 
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new() failed.\n");
+        return ENOMEM;
+    }
+
     has_pin = fido_dev_has_pin(dev);
     if (has_pin == true) {
-        pin_len = read_pin(&pin);
-        if (pin_len == -1) {
-            ret = ERR_INPUT_PARSE;
-            goto done;
+        if (data->quiet == true) {
+            ret = passkey_recv_pin(tmp_ctx, STDIN_FILENO, &pin);
+            if (ret != EOK) {
+                goto done;
+            }
+        } else {
+            pin_len = read_pin(&tmp_pin);
+            if (pin_len == -1) {
+                ret = ERR_INPUT_PARSE;
+                goto done;
+            }
+            pin = talloc_strdup(tmp_ctx, tmp_pin);
+            sss_erase_mem_securely(tmp_pin, pin_len);
+            free(tmp_pin);
         }
     }
 
-    ERROR("Please touch the device.\n");
+    if (data->quiet == false) {
+        printf("Please touch the device.\n");
+    }
     ret = fido_dev_make_cred(dev, cred, pin);
     sss_erase_mem_securely(pin, pin_len);
-    if (pin != NULL) {
-        free(pin);
-    }
 
     if (ret != FIDO_OK) {
         if (ret == FIDO_ERR_PIN_INVALID) {
@@ -229,6 +292,8 @@ generate_credentials(struct passkey_data *data, fido_dev_t *dev,
     }
 
 done:
+    talloc_free(tmp_ctx);
+
     return ret;
 }
 
