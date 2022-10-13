@@ -9,6 +9,7 @@
 import time
 import tempfile
 import pytest
+import re
 
 from sssd.testlib.common.utils import sssdTools
 
@@ -170,3 +171,60 @@ class TestADMisc:
         assert "[sdap_cli_auth_step] (0x1000): Invalid authtoken type" \
             not in log_str, "The configuration interferes."
         assert "Going offline" in log_str
+
+    @staticmethod
+    def test_0002_improved_use_negative_sid_for_sid_lookup(
+            multihost, adjoin, backupsssdconf):
+        """
+        :title: IDM-SSSD-TC: Multiple provider configuration interferes
+         with each other
+        :bugzilla:
+          https://bugzilla.redhat.com/show_bug.cgi?id=1766490
+        :id: fc07a12b-58de-49f4-93be-4fa2b8cdc6ee
+        :setup:
+          1. Configure sssd with AD.
+          2. Enable debug_level = 9 in the domain section
+          3. Transport a python program, to run a lookup using SID, on client
+        :steps:
+          1. Twice run lookup using sid of non-existing ADuser
+        :expectedresults:
+          1. domain log file should show that the SID of non-existing does
+             not exist in negative cache
+        """
+        client = sssdTools(multihost.client[0])
+        domain_name = client.get_domain_section_name()
+        multihost.client[0].service_sssd('stop')
+        domain_section = f'domain/{domain_name}'
+        sssd_params = {
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True'
+        }
+        client.sssd_conf(domain_section, sssd_params, action='add')
+        client.clear_sssd_cache()
+        multihost.client[0].run_command('dnf install python3-libsss_nss_idmap -y', raiseonerr=True)
+        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+            tfile.write('#!/usr/bin/python\n')
+            tfile.write('import pysss_nss_idmap as idmap\n')
+            tfile.write('import re\n')
+            tfile.write('\n')
+            tfile.write('def get_good_sid():\n')
+            tfile.write(f'    admin = idmap.getsidbyname("administrator@{domain_name}")\n')
+            tfile.write(f'    sid = admin["administrator@{domain_name}"]["sid"]\n')
+            tfile.write('    return sid\n')
+            tfile.write('\n')
+            tfile.write('def get_invalid_sid():\n')
+            tfile.write('    sid = get_good_sid()\n')
+            tfile.write('    i = sid.rindex("-")\n')
+            tfile.write('    l = len(sid[i:]) - 1 \n')
+            tfile.write('    return sid[:i] + "-" + ("9" * l)\n')
+            tfile.write('\n')
+            tfile.write('sid = get_invalid_sid()\n')
+            tfile.write('idmap.getnamebysid(sid)\n')
+            tfile.write('idmap.getnamebysid(sid)\n')
+            tfile.flush()
+            multihost.client[0].transport.put_file(tfile.name, '/tmp/sss_nss_idmap.py')
+        multihost.client[0].run_command('python3 /tmp/sss_nss_idmap.py', raiseonerr=True)
+        time.sleep(2)
+        log_str = multihost.client[0].get_file_contents(f'/var/log/sssd_{domain_name}.log').decode('utf-8')
+        patt = re.compile(r'999.*Does.not.exit.*negative.cache')
+        assert patt.search(log_str)
