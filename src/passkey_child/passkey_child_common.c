@@ -126,12 +126,12 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     data->action = ACTION_NONE;
     data->shortname = NULL;
     data->domain = NULL;
-    data->pin = NULL;
     data->public_key_list = NULL;
     data->key_handle_list = NULL;
     data->keys_size = 0;
     data->type = COSE_ES256;
     data->user_verification = FIDO_OPT_OMIT;
+    data->quiet = false;
     data->debug_libfido2 = false;
 
     struct poptOption long_options[] = {
@@ -150,8 +150,6 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("Shortname"), NULL },
         {"domain", 0, POPT_ARG_STRING, &data->domain, 0,
          _("Domain"), NULL},
-        {"pin", 0, POPT_ARG_STRING, &data->pin, 0,
-         _("Passkey PIN"), NULL},
         {"public-key", 0, POPT_ARG_STRING, &public_keys, 0,
          _("Public key"), NULL },
         {"key-handle", 0, POPT_ARG_STRING, &key_handles, 0,
@@ -160,6 +158,8 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("COSE type to use"), "es256|rs256|eddsa"},
         {"user-verification", 0, POPT_ARG_STRING, &user_verification, 0,
          _("Require user-verification"), "true|false"},
+        {"quiet", 0, POPT_ARG_NONE, NULL, 'q',
+         _("Supress prompts"), NULL},
         {"debug-libfido2", 0, POPT_ARG_NONE, NULL, 'd',
          _("Enable debug in libfido2 library"), NULL},
         SSSD_LOGGER_OPTS
@@ -194,6 +194,9 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
                 goto done;
             }
             data->action = ACTION_AUTHENTICATE;
+            break;
+        case 'q':
+            data->quiet = true;
             break;
         case 'd':
             data->debug_libfido2 = true;

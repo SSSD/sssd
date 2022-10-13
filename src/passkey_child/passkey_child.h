@@ -44,12 +44,12 @@ struct passkey_data {
     enum action_opt action;
     const char *shortname;
     const char *domain;
-    const char *pin;
     char **public_key_list;
     char **key_handle_list;
     int keys_size;
     int type;
     fido_opt_t user_verification;
+    bool quiet;
     bool debug_libfido2;
 };
 
@@ -164,6 +164,19 @@ select_from_multiple_devices(fido_dev_info_t *dev_list,
                              size_t dev_list_len,
                              fido_assert_t *assert,
                              fido_dev_t **_dev);
+
+/**
+ * @brief Receive PIN via stdin
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] fd File descriptor
+ * @param[out] pin Pin
+ *
+ * @return 0 if the authenticator data was received properly,
+ *         error code otherwise.
+ */
+errno_t
+passkey_recv_pin(TALLOC_CTX *mem_ctx, int fd, char **_pin);
 
 /**
  * @brief Disable echoing and read PIN from stdin

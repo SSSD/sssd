@@ -156,9 +156,17 @@ errno_t
 request_assert(struct passkey_data *data, fido_dev_t *dev,
                fido_assert_t *_assert)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *pin = NULL;
     bool has_pin;
     bool has_uv;
     errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new() failed.\n");
+        return ENOMEM;
+    }
 
     has_pin = fido_dev_has_pin(dev);
     has_uv = fido_dev_has_uv(dev);
@@ -179,14 +187,14 @@ request_assert(struct passkey_data *data, fido_dev_t *dev,
         }
     }
 
-    if (has_pin == true && data->user_verification != FIDO_OPT_FALSE
-        && data->pin == NULL) {
-        ret = ERR_INPUT_PARSE;
-        ERROR("PIN required.\n");
-        goto done;
+    if (has_pin == true && data->user_verification != FIDO_OPT_FALSE) {
+        ret = passkey_recv_pin(tmp_ctx, STDIN_FILENO, &pin);
+        if (ret != EOK) {
+            goto done;
+        }
     }
 
-    ret = fido_dev_get_assert(dev, _assert, data->pin);
+    ret = fido_dev_get_assert(dev, _assert, pin);
     if (ret != FIDO_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "fido_dev_get_assert failed [%d]: %s.\n",
               ret, fido_strerr(ret));
@@ -202,6 +210,11 @@ request_assert(struct passkey_data *data, fido_dev_t *dev,
     }
 
 done:
+    if (pin != NULL) {
+        sss_erase_mem_securely(pin, strlen(pin));
+    }
+    talloc_free(tmp_ctx);
+
     return ret;
 }
 
