@@ -14,6 +14,8 @@ from pexpect import pxssh
 import pytest
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.utils import ADOperations
+from sssd.testlib.common.exceptions import SSHLoginException
+from sssd.testlib.common.expect import pexpect_ssh
 
 
 @pytest.mark.usefixtures('setup_ipa_client')
@@ -528,3 +530,80 @@ class TestADTrust(object):
             "Group 2 id was not overridden."
         assert f"domain users@{domain}" in cmd.stdout_text, \
             "Group domain users is missing."
+
+    @staticmethod
+    def test_ad_user_ssh_ipa_client(multihost):
+        """
+        :title: Cannot SSH with AD user to ipa-client
+        :description: 'krb5_validate' and 'pac_check' settings conflicted
+          before the fix. By default 'krb5_validate = true' with id_providers
+          ipa and ad_provider. Setting it to false will enable login even if
+          the ticket validation does not work
+        :id: d4af4084-0ee2-4339-be66-ef117439f32d
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2128544
+                   https://bugzilla.redhat.com/show_bug.cgi?id=2128902
+        :steps:
+          1. Add an invalid entry keytab after taking a backup
+          2. ssh as AD user on the ipa client machine
+          3. Set 'krb5_validate = false', debug_level 9 in sssd.conf,
+             and restart sssd service
+          4. ssh as AD user on the ipa client machine
+          5. Check for log message on PAC check being skipped with
+             krb_validate set to false
+        :expectedresults:
+          1. Invalid entry is added at the end of the keytab
+          2. AD user ssh login fails
+          3. sssd restart successfully with 'krb5_validate = false'
+          4. AD user ssh login is successful with the setting
+          5. Log message about skipping pac_check is found
+        """
+        ad_domain_name = multihost.ad[0].domainname
+        client_hostip = multihost.client[0].ip
+        multihost.client[0].run_command('cp -f /etc/krb5.keytab '
+                                        '/etc/krb5.keytab.bak', raiseonerr=False)
+        ktutil_cmd = '(echo "rkt /etc/krb5.keytab"; sleep 1; echo "addent ' \
+                     '-password -p invalid@invaliddom -k 3 -e ' \
+                     'aes128-cts-hmac-sha1-96"; sleep 1; echo "pass00189";' \
+                     'sleep 1; echo "list"; sleep 1; echo ' \
+                     '"wkt /tmp/invalid.keytab"; sleep 1; echo "quit";) | ktutil'
+
+        multihost.client[0].run_command(ktutil_cmd, raiseonerr=False)
+        multihost.client[0].run_command('mv /tmp/invalid.keytab '
+                                        '/etc/krb5.keytab', raiseonerr=False)
+        multihost.client[0].run_command('restorecon /etc/krb5.keytab', raiseonerr=False)
+        multihost.client[0].run_command('klist -ekt /etc/krb5.keytab', raiseonerr=False)
+
+        client = pexpect_ssh(client_hostip, f'user1@{ad_domain_name}',
+                             'Secret123', debug=True)
+        with pytest.raises(Exception):
+            client.login(login_timeout=10, sync_multiplier=1,
+                         auto_prompt_reset=False)
+
+        tools = sssdTools(multihost.client[0])
+        domain_params = {'debug_level': '9', 'krb5_validate': 'false'}
+        ipaserver = sssdTools(multihost.master[0])
+        domain_name = ipaserver.get_domain_section_name()
+        tools.sssd_conf(f'domain/{domain_name}', domain_params)
+        tools.clear_sssd_cache()
+
+        client = pexpect_ssh(client_hostip, f'user1@{ad_domain_name}',
+                             'Secret123', debug=True)
+        try:
+            client.login(login_timeout=30, sync_multiplier=2,
+                         auto_prompt_reset=False)
+        except SSHLoginException:
+            pytest.fail("user failed to login")
+        else:
+            client.logout()
+
+        multihost.client[0].run_command('cp -f /etc/krb5.keytab.bak '
+                                        '/etc/krb5.keytab', raiseonerr=False)
+        multihost.client[0].run_command('restorecon /etc/krb5.keytab', raiseonerr=False)
+
+        log_str = 'PAC check is requested but krb5_validate is '\
+                  'set to false. PAC checks will be skipped'
+
+        multihost.client[0].run_command(f'grep -i "{log_str}" '
+                                        '/var/log/sssd/krb5_child.log')
+        multihost.client[0].run_command(f'grep -i "{log_str}" '
+                                        f'/var/log/sssd/sssd_{domain_name}.log')
