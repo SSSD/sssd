@@ -68,7 +68,7 @@ cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
 static struct cache_req_data *
 cache_req_data_create(TALLOC_CTX *mem_ctx,
                       enum cache_req_type type,
-                      struct cache_req_data *input)
+                      const struct cache_req_data *input)
 {
     struct cache_req_data *data;
     errno_t ret;
