@@ -1272,7 +1272,7 @@ static void cache_req_input_parsed(struct tevent_req *subreq)
     struct tevent_req *req;
     struct cache_req_state *state;
     char *name;
-    char *domain;
+    char *domain = NULL;
     bool maybe_upn;
     errno_t ret;
 
