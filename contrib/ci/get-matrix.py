@@ -10,6 +10,7 @@
 import json
 import requests
 import argparse
+import os
 
 
 def get_fedora_releases(type, exclude=[]):
@@ -59,4 +60,5 @@ if __name__ == "__main__":
     print(json.dumps(matrix, indent=2))
 
     if args.action:
-        print(f'::set-output name=matrix::{json.dumps(matrix)}')
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f'matrix={json.dumps(matrix)}')
