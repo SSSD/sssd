@@ -1,9 +1,9 @@
 name: "ci"
 on:
   push:
-    branches: [master, sssd-2-7]
+    branches: [master, sssd-2-7, sssd-2-8]
   pull_request:
-    branches: [master, sssd-2-7]
+    branches: [master, sssd-2-7, sssd-2-8]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
