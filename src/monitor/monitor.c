@@ -46,7 +46,7 @@
 #include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
 #include "monitor/monitor.h"
-#include "util/inotify.h"
+#include "util/file_watch.h"
 #include "sss_iface/sss_iface_async.h"
 
 #ifdef USE_KEYRING
@@ -122,33 +122,6 @@ struct mt_svc {
     struct sss_child_ctx *child_ctx;
 };
 
-typedef int (*monitor_reconf_fn)(struct config_file_ctx *file_ctx,
-                                 const char *filename);
-
-struct config_file_callback {
-    int wd;
-    monitor_reconf_fn fn;
-    char *filename;
-    time_t modified;
-    struct config_file_callback *next;
-    struct config_file_callback *prev;
-};
-
-struct config_file_ctx {
-    struct config_file_inotify_check {
-        struct snotify_ctx *snctx;
-    } inotify_check;
-
-    struct config_file_poll_check {
-        TALLOC_CTX *parent_ctx;
-        struct tevent_timer *timer;
-        struct config_file_callback *callbacks;
-    } poll_check;
-
-    monitor_reconf_fn fn;
-    struct mt_ctx *mt_ctx;
-};
-
 struct mt_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
@@ -157,7 +130,7 @@ struct mt_ctx {
     int num_services;
     int started_services;
     struct mt_svc *svc_list;
-    struct config_file_ctx *file_ctx;
+    struct file_watch_ctx *file_ctx;
     bool check_children;
     bool services_started;
     struct netlink_ctx *nlctx;
@@ -607,27 +580,26 @@ static int add_services_startup_timeout(struct mt_ctx *ctx)
 static void monitor_restart_service(struct mt_svc *svc);
 
 static int service_signal_dns_reload(struct mt_svc *svc);
-static int monitor_update_resolv(struct config_file_ctx *file_ctx,
-                                 const char *filename)
+static void monitor_update_resolv(const char *filename, void *arg)
 {
     int ret;
     struct mt_svc *cur_svc;
     struct mt_ctx *mt_ctx;
 
-    mt_ctx = file_ctx->mt_ctx;
+    mt_ctx = (struct mt_ctx *) arg;
 
-    DEBUG(SSSDBG_TRACE_LIBS, "Resolv.conf has been updated. Reloading.\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "%s has been updated. Reloading.\n", filename);
 
     ret = res_init();
     if (ret != 0) {
-        return EIO;
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to read %s.\n", filename);
+        return;
     }
 
     /* Signal all services to reload their DNS configuration */
     for (cur_svc = mt_ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
         service_signal_dns_reload(cur_svc);
     }
-    return EOK;
 }
 
 typedef struct tevent_req *
@@ -1636,240 +1608,11 @@ done:
     return ret;
 }
 
-static void poll_config_file(struct tevent_context *ev,
-                             struct tevent_timer *te,
-                             struct timeval t, void *ptr);
-static errno_t monitor_config_file_fallback(TALLOC_CTX *parent_ctx,
-                                            struct config_file_ctx *file_ctx,
-                                            const char *file);
-
-static errno_t create_poll_timer(struct config_file_ctx *file_ctx)
-{
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-    tv.tv_sec += CONFIG_FILE_POLL_INTERVAL;
-    tv.tv_usec = 0;
-
-    file_ctx->poll_check.timer = tevent_add_timer(file_ctx->mt_ctx->ev,
-                                                  file_ctx->poll_check.parent_ctx,
-                                                  tv,
-                                                  poll_config_file,
-                                                  file_ctx);
-    if (!file_ctx->poll_check.timer) {
-        talloc_free(file_ctx);
-        return EIO;
-    }
-
-    return EOK;
-}
-
-static void poll_config_file(struct tevent_context *ev,
-                             struct tevent_timer *te,
-                             struct timeval t, void *ptr)
-{
-    int ret, err;
-    struct stat file_stat;
-    struct config_file_ctx *file_ctx;
-    struct config_file_callback *cb;
-
-    file_ctx = talloc_get_type(ptr, struct config_file_ctx);
-
-    for (cb = file_ctx->poll_check.callbacks; cb; cb = cb->next) {
-        ret = stat(cb->filename, &file_stat);
-        if (ret < 0) {
-            err = errno;
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Could not stat file [%s]. Error [%d:%s]\n",
-                  cb->filename, err, strerror(err));
-            return;
-        }
-
-        if (file_stat.st_mtime != cb->modified) {
-            /* Parse the configuration file and signal the children */
-            /* Note: this will fire if the modification time changes into the past
-             * as well as the future.
-             */
-            DEBUG(SSSDBG_CRIT_FAILURE, "Config file changed\n");
-            cb->modified = file_stat.st_mtime;
-
-            /* Tell the monitor to signal the children */
-            cb->fn(file_ctx, cb->filename);
-        }
-    }
-
-    ret = create_poll_timer(file_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Error: Config file no longer monitored for changes!\n");
-    }
-}
-
-static int resolv_conf_inotify_cb(const char *filename,
-                                  uint32_t flags,
-                                  void *pvt)
-{
-    struct config_file_ctx *file_ctx;
-
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Received inotify notification for %s\n", filename);
-
-    file_ctx = talloc_get_type(pvt, struct config_file_ctx);
-    if (file_ctx == NULL) {
-        return EINVAL;
-    }
-
-    return file_ctx->fn(file_ctx, filename);
-}
-
-static int try_inotify(struct config_file_ctx *file_ctx,
-                       const char *filename)
-{
-#ifdef HAVE_INOTIFY
-    struct snotify_ctx *snctx;
-    /* We will queue the file for update in one second.
-     * This way, if there is a script writing to the file
-     * repeatedly, we won't be attempting to update multiple
-     * times.
-     */
-    struct timeval delay = { .tv_sec = 1, .tv_usec = 0 };
-
-    snctx = snotify_create(file_ctx, file_ctx->mt_ctx->ev, SNOTIFY_WATCH_DIR,
-                           filename, &delay,
-                           IN_DELETE_SELF | IN_CLOSE_WRITE | IN_MOVE_SELF | \
-                           IN_CREATE | IN_MOVED_TO | IN_IGNORED,
-                           resolv_conf_inotify_cb, file_ctx);
-    if (snctx == NULL) {
-        return EIO;
-    }
-
-    return EOK;
-#else
-    return EINVAL;
-#endif /* HAVE_INOTIFY */
-}
-
-static int monitor_config_file(TALLOC_CTX *mem_ctx,
-                               struct mt_ctx *ctx,
-                               monitor_reconf_fn fn,
-                               const char *file)
-{
-    int ret;
-    bool use_inotify;
-
-    if (!ctx->file_ctx) {
-        ctx->file_ctx = talloc_zero(mem_ctx, struct config_file_ctx);
-        if (!ctx->file_ctx) return ENOMEM;
-
-        ctx->file_ctx->mt_ctx = ctx;
-        ctx->file_ctx->fn = fn;
-    }
-
-    ret = confdb_get_bool(ctx->cdb,
-                          CONFDB_MONITOR_CONF_ENTRY,
-                          CONFDB_MONITOR_TRY_INOTIFY,
-                          true, &use_inotify);
-    if (ret != EOK) {
-        talloc_free(ctx->file_ctx);
-        return ret;
-    }
-
-    if (use_inotify) {
-        ret = try_inotify(ctx->file_ctx, file);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Falling back to polling\n");
-            use_inotify = false;
-        }
-    }
-
-    if (use_inotify == false) {
-        ret = monitor_config_file_fallback(mem_ctx, ctx->file_ctx, file);
-    }
-
-    return ret;
-}
-
-static errno_t monitor_config_file_fallback(TALLOC_CTX *parent_ctx,
-                                            struct config_file_ctx *file_ctx,
-                                            const char *file)
-{
-    struct config_file_callback *cb = NULL;
-    struct stat file_stat;
-    int ret, err;
-
-    ret = stat(file, &file_stat);
-    if (ret < 0) {
-        err = errno;
-        if (err == ENOENT) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "file [%s] is missing. Will try again later.\n", file);
-        } else {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Could not stat file [%s]. Error [%d:%s]\n",
-                  file, err, strerror(err));
-        }
-        return err;
-    }
-
-    file_ctx->poll_check.parent_ctx = parent_ctx;
-
-    cb = talloc_zero(file_ctx, struct config_file_callback);
-    if (!cb) {
-        talloc_free(file_ctx);
-        return ENOMEM;
-    }
-    cb->filename = talloc_strdup(cb, file);
-    if (!cb->filename) {
-        talloc_free(file_ctx);
-        return ENOMEM;
-    }
-    cb->fn = file_ctx->fn;
-    cb->modified = file_stat.st_mtime;
-
-    DLIST_ADD(file_ctx->poll_check.callbacks, cb);
-
-    if(!file_ctx->poll_check.timer) {
-        ret = create_poll_timer(file_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot create poll timer\n");
-            return ret;
-        }
-    }
-
-    return EOK;
-}
-
-#define MISSING_RESOLV_CONF_POLL_TIME 10
-
-static void missing_resolv_conf(struct tevent_context *ev,
-                                struct tevent_timer *te,
-                                struct timeval tv, void *data)
-{
-    int ret;
-    struct mt_ctx *ctx = talloc_get_type(data, struct mt_ctx);
-
-    ret = monitor_config_file(ctx, ctx, monitor_update_resolv, RESOLV_CONF_PATH);
-    if (ret == EOK) {
-        signal_res_init(ctx);
-    } else if (ret == ENOENT) {
-        tv = tevent_timeval_current_ofs(MISSING_RESOLV_CONF_POLL_TIME, 0);
-        te = tevent_add_timer(ctx->ev, ctx, tv, missing_resolv_conf, ctx);
-        if (te == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "tevent_add_timer failed. resolv.conf will be ignored.\n");
-        }
-    } else {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Monitor_config_file failed. resolv.conf will be ignored.\n");
-    }
-}
-
 static int monitor_config_files(struct mt_ctx *ctx)
 {
     int ret;
     bool monitor_resolv_conf;
-    struct timeval tv;
-    struct tevent_timer *te;
+    bool use_inotify;
 
     /* Watch for changes to the DNS resolv.conf */
     ret = confdb_get_bool(ctx->cdb,
@@ -1880,17 +1623,19 @@ static int monitor_config_files(struct mt_ctx *ctx)
         return ret;
     }
 
+    ret = confdb_get_bool(ctx->cdb,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_TRY_INOTIFY,
+                          true, &use_inotify);
+    if (ret != EOK) {
+        return ret;
+    }
+
     if (monitor_resolv_conf) {
-        ret = monitor_config_file(ctx, ctx, monitor_update_resolv,
-                                  RESOLV_CONF_PATH);
-        if (ret == ENOENT) {
-            tv = tevent_timeval_current_ofs(MISSING_RESOLV_CONF_POLL_TIME, 0);
-            te = tevent_add_timer(ctx->ev, ctx, tv, missing_resolv_conf, ctx);
-            if (te == NULL) {
-                DEBUG(SSSDBG_FATAL_FAILURE, "resolv.conf will be ignored\n");
-            }
-        } else if (ret != EOK) {
-            return ret;
+        ctx->file_ctx = fw_watch_file(ctx, ctx->ev, RESOLV_CONF_PATH,
+                                      use_inotify, monitor_update_resolv, ctx);
+        if (ctx->file_ctx == NULL) {
+            return ENOMEM;
         }
     } else {
         DEBUG(SSS_LOG_NOTICE, "%s monitoring is disabled\n", RESOLV_CONF_PATH);

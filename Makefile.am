@@ -715,6 +715,7 @@ dist_noinst_HEADERS = \
     src/util/sss_format.h \
     src/util/sss_pam_data.h \
     src/util/refcount.h \
+    src/util/file_watch.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
     src/util/mmap_cache.h \
@@ -1268,6 +1269,8 @@ libsss_util_la_SOURCES = \
     src/util/domain_info_utils.c \
     src/util/util_lock.c \
     src/util/util_errors.c \
+    src/util/inotify.c \
+    src/util/file_watch.c \
     src/util/find_uid.c \
     src/util/sss_ini.c \
     src/util/io.c \
@@ -1497,7 +1500,6 @@ sssd_SOURCES = \
     src/monitor/monitor_netlink.c \
     src/confdb/confdb_setup.c \
     src/util/nscd.c \
-    src/util/inotify.c \
     $(NULL)
 sssd_LDADD = \
     $(SSSD_LIBS) \

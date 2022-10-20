@@ -309,7 +309,6 @@
 #define CONFDB_PC_TYPE_CERT_AUTH "cert_auth"
 
 struct confdb_ctx;
-struct config_file_ctx;
 
 /** sssd domain state */
 enum sss_domain_state {
