@@ -27,7 +27,7 @@ runs:
     shell: bash
     run: |
       version="$(echo ${{ inputs.version }} | sed 's/-/_/g')"
-      echo "::set-output name=version::$version"
+      echo "version=$version" >> $GITHUB_OUTPUT
 
   - name: Generate tarball and spec file
     shell: bash
