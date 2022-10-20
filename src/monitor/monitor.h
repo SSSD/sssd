@@ -23,14 +23,11 @@
 #define _MONITOR_H_
 
 #define RESOLV_CONF_PATH "/etc/resolv.conf"
-#define CONFIG_FILE_POLL_INTERVAL 5 /* seconds */
 
 /* for detecting if NSCD is running */
 #ifndef NSCD_SOCKET_PATH
 #define NSCD_SOCKET_PATH "/var/run/nscd/socket"
 #endif
-
-struct config_file_ctx;
 
 struct mt_ctx;
 
