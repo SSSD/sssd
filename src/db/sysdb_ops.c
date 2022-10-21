@@ -1880,7 +1880,7 @@ int sysdb_add_user(struct sss_domain_info *domain,
         ret = sysdb_search_group_by_name(tmp_ctx, domain, name, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
+                DEBUG(SSSDBG_TRACE_FUNC,
                       "Group named %s already exists in an MPG domain\n",
                       name);
                 ret = EEXIST;
