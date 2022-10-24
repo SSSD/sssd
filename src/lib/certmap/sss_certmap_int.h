@@ -199,6 +199,10 @@ struct sss_cert_content {
 
     uint8_t *cert_der;
     size_t cert_der_size;
+
+    uint8_t *serial_number;
+    size_t serial_number_size;
+    const char *serial_number_dec_str;
 };
 
 int sss_cert_get_content(TALLOC_CTX *mem_ctx,
