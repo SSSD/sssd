@@ -136,11 +136,17 @@ struct priority_list {
     struct priority_list *next;
 };
 
+enum mapping_rule_version {
+    mapv_ldap = 0,
+    mapv_ldapu1
+};
+
 struct sss_certmap_ctx {
     struct priority_list *prio_list;
     sss_certmap_ext_debug *debug;
     void *debug_priv;
     struct ldap_mapping_rule *default_mapping_rule;
+    enum mapping_rule_version mapv;
     const char **digest_list;
 };
 
@@ -223,9 +229,19 @@ int parse_krb5_match_rule(struct sss_certmap_ctx *ctx,
                           const char *rule_start,
                           struct krb5_match_rule **match_rule);
 
+int check_hex_conversion(const char *inp, bool dec_allowed, bool *_dec,
+                         bool *_upper, bool *_colon, bool *_reverse);
+
+int check_digest_conversion(const char *inp, const char **digest_list,
+                            const char **_dgst, bool *_upper, bool *_colon,
+                            bool *_reverse);
+
 int parse_ldap_mapping_rule(struct sss_certmap_ctx *ctx,
                             const char *rule_start,
                             struct ldap_mapping_rule **mapping_rule);
+
+int check_attr_name_and_or_number(TALLOC_CTX *mem_ctx, const char *inp,
+                                  char **_attr_name, int32_t *_number);
 
 int get_short_name(TALLOC_CTX *mem_ctx, const char *full_name,
                    char delim, char **short_name);
@@ -239,6 +255,9 @@ int add_principal_to_san_list(TALLOC_CTX *mem_ctx, enum san_opt san_opt,
 
 int rdn_list_2_dn_str(TALLOC_CTX *mem_ctx, const char *conversion,
                       const char **rdn_list, char **result);
+
+int rdn_list_2_component(TALLOC_CTX *mem_ctx, const char *conversion,
+                         const char **rdn_list, char **result);
 
 int get_digest_list(TALLOC_CTX *mem_ctx, const char ***digest_list);
 

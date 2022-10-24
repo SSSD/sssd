@@ -28,8 +28,14 @@
 #include <talloc.h>
 
 #include "util/dlinklist.h"
+#include "util/strtonum.h"
 #include "lib/certmap/sss_certmap.h"
 #include "lib/certmap/sss_certmap_int.h"
+
+#define HEX_CONVERSION "hex_conversion"
+#define HEX_DEC_CONVERSION "hex_dec_conversion"
+#define READ_DIGESTS_FROM_CTX "read_digests_from_ctx"
+#define ATTR_NAME_AND_OR_NUMBER "attr_name_an_or_number"
 
 struct template_table {
     const char *name;
@@ -39,11 +45,16 @@ struct template_table {
 
 const char *empty[] = {NULL};
 const char *name_attr[] = {"short_name", NULL};
+const char *attr_name_and_or_number[] = { ATTR_NAME_AND_OR_NUMBER, NULL};
 const char *x500_conv[] = {"ad_x500",  "ad",  "ad_ldap",
                            "nss_x500", "nss", "nss_ldap", NULL};
 const char *bin_conv[] = {"bin", "base64", NULL};
+const char *hex_conv[] = {HEX_CONVERSION, NULL};
+const char *dec_hex_conv[] = {HEX_DEC_CONVERSION, NULL};
+const char *digest_conv[] = { READ_DIGESTS_FROM_CTX, NULL};
+const char *sid_rid_attr[] = {"rid", NULL};
 
-struct template_table template_table[] = {
+struct template_table template_table_base[] = {
     {"issuer_dn", empty, x500_conv},
     {"subject_dn", empty, x500_conv},
     {"cert", empty, bin_conv},
@@ -60,7 +71,226 @@ struct template_table template_table[] = {
     {"subject_principal", name_attr, empty},
     {NULL, NULL, NULL}};
 
+struct template_table template_table_u1[] = {
+    {"serial_number", empty, dec_hex_conv},
+    {"subject_key_id", empty, hex_conv},
+    {"cert", empty, digest_conv},
+    {"subject_dn_component", attr_name_and_or_number, empty},
+    {"issuer_dn_component", attr_name_and_or_number, empty},
+    {"sid", sid_rid_attr, empty},
+    {NULL, NULL, NULL}};
+
+int check_attr_name_and_or_number(TALLOC_CTX *mem_ctx, const char *inp,
+                                  char **_attr_name, int32_t *_number)
+{
+    int ret;
+    char *sep;
+    char *end;
+    char *endptr = NULL;
+    char *attr_name = NULL;
+    int32_t number = 0;
+
+    if (inp == NULL) {
+        attr_name = NULL;
+        number = 0;
+        ret = 0;
+        goto done;
+    }
+
+    sep = strchr(inp, '[');
+    if (sep == NULL) {
+        attr_name = talloc_strdup(mem_ctx, inp);
+        if (attr_name == NULL) {
+            return ENOMEM;
+        }
+        number = 0;
+    } else {
+        end = strchr(sep, ']');
+        if (end == NULL || end == (sep + 1) || *(end + 1) != '\0') {
+            return EINVAL;
+        }
+
+        number = strtoint32(sep+1, &endptr, 10);
+        if (errno !=0 || number == 0 || *endptr != ']') {
+            return EINVAL;
+        }
+
+        if (sep == inp) {
+            attr_name = NULL;
+        } else {
+            attr_name = talloc_strndup(mem_ctx, inp, sep - inp);
+            if (attr_name == NULL) {
+                return ENOMEM;
+            }
+        }
+
+    }
+
+    ret = 0;
+
+done:
+
+    if (ret == 0) {
+        if (_attr_name != NULL) {
+            *_attr_name = attr_name;
+        }
+        if (_number != NULL) {
+            *_number = number;
+        }
+    }
+    return ret;
+}
+
+int check_hex_conversion(const char *inp, bool dec_allowed, bool *_dec,
+                         bool *_upper, bool *_colon, bool *_reverse)
+{
+    int ret;
+    char *sep;
+    bool dec = false;
+    bool upper = false;
+    bool colon = false;
+    bool reverse = false;
+    char *c;
+
+    if (inp == NULL) {
+        ret = 0;
+        goto done;
+    }
+
+    sep = strchr(inp, '_');
+    /* We expect either 'hex' or 'dec' as full string or 'hex' before '_'*/
+    if ((sep == NULL && strlen(inp) != 3)
+            || (sep != NULL && (sep - inp) != 3)) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (strncasecmp(inp, "hex", 3) != 0) {
+        if (dec_allowed && sep == NULL && strncasecmp(inp, "dec", 3) == 0) {
+            dec = true;
+        } else {
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    if (sep != NULL) {
+        for (c = sep + 1; *c != '\0'; c++) {
+            switch(*c) {
+            case 'u':
+            case 'U':
+                upper = true;
+                break;
+            case 'c':
+            case 'C':
+                colon = true;
+                break;
+            case 'r':
+            case 'R':
+                reverse = true;
+                break;
+            default:
+                ret = EINVAL;
+                goto done;
+            }
+        }
+    }
+
+    ret = 0;
+done:
+    if (ret == 0) {
+        if (_dec != NULL) {
+            *_dec = dec;
+        }
+        if (_upper != NULL) {
+            *_upper = upper;
+        }
+        if (_colon != NULL) {
+            *_colon = colon;
+        }
+        if (_reverse != NULL) {
+            *_reverse = reverse;
+        }
+    }
+
+    return ret;
+}
+
+int check_digest_conversion(const char *inp, const char **digest_list,
+                            const char **_dgst, bool *_upper, bool *_colon,
+                            bool *_reverse)
+{
+    int ret;
+    char *sep;
+    size_t d;
+    int cmp;
+    bool upper = false;
+    bool colon = false;
+    bool reverse = false;
+    char *c;
+
+    sep = strchr(inp, '_');
+
+    for (d = 0; digest_list[d] != NULL; d++) {
+        if (sep == NULL) {
+            cmp = strcasecmp(digest_list[d], inp);
+        } else {
+            cmp = strncasecmp(digest_list[d], inp, (sep - inp -1));
+        }
+
+        if (cmp == 0) {
+            break;
+        }
+    }
+
+    if (digest_list[d] == NULL) {
+        return EINVAL;
+    }
+
+    if (sep != NULL) {
+        for (c = sep + 1; *c != '\0'; c++) {
+            switch(*c) {
+            case 'u':
+            case 'U':
+                upper = true;
+                break;
+            case 'c':
+            case 'C':
+                colon = true;
+                break;
+            case 'r':
+            case 'R':
+                reverse = true;
+                break;
+            default:
+                ret = EINVAL;
+                goto done;
+            }
+        }
+    }
+
+    ret = 0;
+done:
+    if (ret == 0) {
+        if (_dgst != NULL) {
+            *_dgst = digest_list[d];
+        }
+        if (_upper != NULL) {
+            *_upper = upper;
+        }
+        if (_colon != NULL) {
+            *_colon = colon;
+        }
+        if (_reverse != NULL) {
+            *_reverse = reverse;
+        }
+    }
+
+    return ret;
+}
+
 static int check_parsed_template(struct sss_certmap_ctx *ctx,
+                                 struct template_table *template_table,
                                  struct parsed_template *parsed)
 {
     size_t n;
@@ -82,6 +312,15 @@ static int check_parsed_template(struct sss_certmap_ctx *ctx,
                     break;
                 }
             }
+
+            if (!attr_name_valid && template_table[n].attr_name[0] != NULL
+                        && strcmp(template_table[n].attr_name[0],
+                                  ATTR_NAME_AND_OR_NUMBER) == 0) {
+                if (check_attr_name_and_or_number(ctx, parsed->attr_name, NULL,
+                                                  NULL) == 0) {
+                    attr_name_valid = true;
+                }
+            }
         } else {
             attr_name_valid = true;
         }
@@ -92,6 +331,32 @@ static int check_parsed_template(struct sss_certmap_ctx *ctx,
                            parsed->conversion) == 0) {
                     conversion_valid = true;
                     break;
+                }
+            }
+
+            if (!conversion_valid && template_table[n].conversion[0] != NULL
+                        && strcmp(template_table[n].conversion[0],
+                                  HEX_DEC_CONVERSION) == 0) {
+                if (check_hex_conversion(parsed->conversion, true,
+                                         NULL, NULL, NULL, NULL) == 0) {
+                    conversion_valid = true;
+                }
+            }
+            if (!conversion_valid && template_table[n].conversion[0] != NULL
+                        && strcmp(template_table[n].conversion[0],
+                                 HEX_CONVERSION) == 0) {
+                if (check_hex_conversion(parsed->conversion, false,
+                                         NULL, NULL, NULL, NULL) == 0) {
+                    conversion_valid = true;
+                }
+            }
+            if (!conversion_valid && template_table[n].conversion[0] != NULL
+                        && strcmp(template_table[n].conversion[0],
+                                  READ_DIGESTS_FROM_CTX) == 0) {
+                if (check_digest_conversion(parsed->conversion,
+                                            ctx->digest_list,
+                                            NULL, NULL, NULL, NULL) == 0) {
+                    conversion_valid = true;
                 }
             }
         } else {
@@ -122,6 +387,8 @@ static int parse_template(TALLOC_CTX *mem_ctx, struct sss_certmap_ctx *ctx,
         goto done;
     }
 
+    /* A '.' indicates that a specifier will follow which indicates which part
+     * of the value should be added. */
     dot = strchr(template, '.');
     if (dot != NULL) {
         p = strchr(dot + 1, '.');
@@ -138,6 +405,8 @@ static int parse_template(TALLOC_CTX *mem_ctx, struct sss_certmap_ctx *ctx,
         }
     }
 
+    /* A '!' indicates that a conversion specifier will follow which indicates
+     * how the output should be formatted. */
     excl = strchr(template, '!');
     if (excl != NULL) {
         p = strchr(excl + 1, '!');
@@ -189,10 +458,17 @@ static int parse_template(TALLOC_CTX *mem_ctx, struct sss_certmap_ctx *ctx,
         goto done;
     }
 
-    ret = check_parsed_template(ctx, parsed);
+    /* If the template cannot be found in the base table,
+     * check LDAPU1 as well. */
+    ret = check_parsed_template(ctx, template_table_base, parsed);
     if (ret != 0) {
-        CM_DEBUG(ctx, "Parse template invalid.");
-        goto done;
+        if (ctx->mapv == mapv_ldapu1) {
+            ret = check_parsed_template(ctx, template_table_u1, parsed);
+        }
+        if (ret != 0) {
+            CM_DEBUG(ctx, "Parse template [%s] invalid.", template);
+            goto done;
+        }
     }
 
     ret = 0;
