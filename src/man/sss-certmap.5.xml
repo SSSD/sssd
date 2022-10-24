@@ -35,6 +35,20 @@
             searched in the userCertificate attribute as DER encoded binary. If
             no domains are given only the local domain will be searched.
         </para>
+        <para>
+            To allow extensions or completely different style of rule the
+            <quote>mapping</quote> and <quote>matching rules</quote> can
+            contain a prefix separated with a ':' from the main part of the
+            rule. The prefix may only contain upper-case ASCII letters and
+            numbers. If the prefix is omitted the default type will be used
+            which is 'KRB5' for the matching rules and 'LDAP' for the mapping
+            rules.
+        </para>
+        <para>
+            The 'sssctl' utility provides the 'cert-eval-rule' command to check
+            if a given certificate matches a matching rules and how the output
+            of a mapping rule would look like.
+        </para>
     </refsect1>
 
     <refsect1 id='components'>
@@ -71,6 +85,12 @@
             a certain part of the certificate and a pattern which should be
             found for the rule to match. Multiple keyword pattern pairs can be
             either joined with '&amp;&amp;' (and) or '&#124;&#124;' (or).
+        </para>
+        <para>
+            Given the similarity to MIT Kerberos the type prefix for this rule
+            is 'KRB5'. But 'KRB5' will also be the default for <quote>matching
+            rules</quote> so that "&lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN" and
+            "KRB5:&lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN" are equivalent.
         </para>
         <para>
             The available options are:
@@ -382,6 +402,17 @@
             other hand it would be hard to break the mapping on purpose for a
             specific user.
         </para>
+	<para>
+            The default <quote>mapping rule</quote> type is 'LDAP' which can be
+            added as a prefix to a rule like e.g.
+            'LDAP:(userCertificate;binary={cert!bin})'. There is an extension
+            called 'LDAPU1' which offer more templates for more flexibility. To
+            allow older versions of this library to ignore the extension the
+            prefix 'LDAPU1' must be used when using the new templates in a
+            <quote>mapping rule</quote> otherwise the old version of this
+            library will fail with a parsing error. The new templates are
+            described in section <xref linkend="map_ldapu1"/>.
+        </para>
         <para>
             The templates to add certificate data to the search filter are based
             on Python-style formatting strings. They consist of a keyword in
@@ -604,6 +635,145 @@
                 </varlistentry>
             </variablelist>
         </para>
+    <refsect3 id='map_ldapu1'>
+        <title>LDAPU1 extension</title>
+        <para>
+            The following template are available when using the 'LDAPU1'
+            extension:
+        </para>
+        <para>
+            <variablelist>
+                <varlistentry>
+                    <term>{serial_number[!(dec|hex[_ucr])]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the serial number of the
+                        certificate. By default it will be printed as a
+			hexadecimal number with lower-case letters.
+                    </para>
+                    <para>
+                        With the formatting option '!dec' the number will be
+                        printed as decimal string. The hexadecimal output can
+                        be printed with upper-case letters ('!hex_u'), with a
+                        colon separating the hexadecimal bytes ('!hex_c') or
+                        with the hexadecimal bytes in reverse order ('!hex_r').
+                        The postfix letters can be combined so that e.g.
+                        '!hex_uc' will produce a colon-separated hexadecimal
+                        string with upper-case letters.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(serial={serial_number})
+                    </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>{subject_key_id[!hex[_ucr]]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the subject key id of the
+                        certificate. By default it will be printed as a
+			hexadecimal number with lower-case letters.
+                    </para>
+                    <para>
+                        The hexadecimal output can
+                        be printed with upper-case letters ('!hex_u'), with a
+                        colon separating the hexadecimal bytes ('!hex_c') or
+                        with the hexadecimal bytes in reverse order ('!hex_r').
+                        The postfix letters can be combined so that e.g.
+                        '!hex_uc' will produce a colon-separated hexadecimal
+                        string with upper-case letters.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(ski={subject_key_id})
+                    </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>{cert[!DIGEST[_ucr]]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the hexadecimal digest/hash of
+                        the certificate where DIGEST must be replaced with the
+                        name of a digest/hash function supported by OpenSSL,
+                        e.g. 'sha512'.
+                    </para>
+                    <para>
+                        The hexadecimal output can
+                        be printed with upper-case letters ('!sha512_u'), with a
+                        colon separating the hexadecimal bytes ('!sha512_c') or
+                        with the hexadecimal bytes in reverse order
+                        ('!sha512_r'). The postfix letters can be combined so
+                        that e.g. '!sha512_uc' will produce a colon-separated
+                        hexadecimal string with upper-case letters.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(dgst={cert!sha256})
+                    </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>{subject_dn_component[(.attr_name|[number]]}</term>
+                    <listitem>
+                    <para>
+                        This template will add an attribute value of a component
+                        of the subject DN, by default the value of the most
+                        specific component.
+                    </para>
+                    <para>
+                        A different component can it either selected by
+                        attribute name, e.g. {subject_dn_component.uid} or by
+                        position, e.g. {subject_dn_component.[2]} where
+                        positive numbers start counting from the most specific
+                        component and negative numbers start counting from the
+                        least specific component. Attribute name and the
+                        position can be combined as e.g.
+                        {subject_dn_component.uid[2]} which means that the name
+                        of the second component must be 'uid'.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(uid={subject_dn_component.uid})
+                    </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>{issuer_dn_component[(.attr_name|[number]]}</term>
+                    <listitem>
+                    <para>
+                        This template will add an attribute value of a component
+                        of the issuer DN, by default the value of the most
+                        specific component.
+                    </para>
+                    <para>
+                        See 'subject_dn_component' for details about the
+                        attribute name and position specifiers.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(domain={issuer_dn_component.[-2]}.{issuer_dn_component.dc[-1]})
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{sid[.rid]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the SID if the corresponding
+                        extension introduced by Microsoft with the OID
+                        1.3.6.1.4.1.311.25.2 is available. With the '.rid'
+                        selector only the last component, i.e. the RID, will be
+                        added.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(objectsid={sid})
+                    </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+    </refsect3>
     </refsect2>
     <refsect2 id='domains'>
         <title>DOMAIN LIST</title>
