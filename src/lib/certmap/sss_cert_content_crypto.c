@@ -778,6 +778,35 @@ done:
     return ret;
 }
 
+static int get_subject_key_id(TALLOC_CTX *mem_ctx, X509 *cert,
+                              uint8_t **subject_key_id,
+                              size_t *subject_key_id_size)
+{
+    const ASN1_OCTET_STRING *ski;
+    size_t size = 0;
+    uint8_t *buf;
+
+    ski = X509_get0_subject_key_id(cert);
+    if (ski != NULL) {
+        size = ASN1_STRING_length(ski);
+    }
+    if (size == 0) {
+        *subject_key_id_size = 0;
+        *subject_key_id = NULL;
+        return 0;
+    }
+
+    buf = talloc_memdup(mem_ctx, ASN1_STRING_get0_data(ski), size);
+    if (buf == NULL) {
+        return ENOMEM;
+    }
+
+    *subject_key_id = buf;
+    *subject_key_id_size = size;
+
+    return 0;
+}
+
 int sss_cert_get_content(TALLOC_CTX *mem_ctx,
                          const uint8_t *der_blob, size_t der_size,
                          struct sss_cert_content **content)
@@ -876,6 +905,12 @@ int sss_cert_get_content(TALLOC_CTX *mem_ctx,
     ret = get_serial_number(cont, cert, &(cont->serial_number),
                             &(cont->serial_number_size),
                             &(cont->serial_number_dec_str));
+    if (ret != 0) {
+        goto done;
+    }
+
+    ret = get_subject_key_id(cont, cert, &(cont->subject_key_id),
+                             &(cont->subject_key_id_size));
     if (ret != 0) {
         goto done;
     }
