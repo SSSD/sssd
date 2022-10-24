@@ -197,3 +197,85 @@ done:
 
     return ret;
 }
+
+int rdn_list_2_component(TALLOC_CTX *mem_ctx, const char *conversion,
+                         const char **rdn_list, char **result)
+{
+    int ret;
+    char *sep;
+    char *attr_name = NULL;
+    int32_t number = 0;
+    char *res = NULL;
+    size_t rdn_count;
+    size_t idx;
+    int i;
+
+    ret = check_attr_name_and_or_number(mem_ctx, conversion, &attr_name, &number);
+    if (ret != 0) {
+        return ret;
+    }
+
+    for (rdn_count = 0; rdn_list[rdn_count] != NULL; rdn_count++);
+
+    if (abs(number) > rdn_count || rdn_count == 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (number == 0 && attr_name != NULL) {
+        for (i = rdn_count-1; i >= 0; i--) {
+            sep = strchr(rdn_list[i], '=');
+            if (sep == NULL) {
+                ret = EINVAL;
+                goto done;
+            }
+            if (strlen(attr_name) == (sep - rdn_list[i])
+                    && strncasecmp(attr_name, rdn_list[i],
+                                   (sep - rdn_list[i])) == 0) {
+                res = talloc_strdup(mem_ctx, sep + 1);
+                break;
+            }
+        }
+    } else {
+        if (number == 0) {
+            idx = rdn_count - 1;
+        } else {
+            if (number > 0) {
+                idx = rdn_count - number;
+            } else {
+                idx = number * (-1) - 1;
+            }
+        }
+
+        sep = strchr(rdn_list[idx], '=');
+        if (sep == NULL) {
+            ret = EINVAL;
+            goto done;
+        }
+        if (attr_name != NULL) {
+            if (strlen(attr_name) != (sep - rdn_list[idx])
+                    || strncasecmp(attr_name, rdn_list[idx],
+                                   (sep - rdn_list[idx])) != 0) {
+                ret = EINVAL;
+                goto done;
+            }
+        }
+        res = talloc_strdup(mem_ctx, sep + 1);
+    }
+
+    if (res == NULL) {
+        ret = EIO;
+        goto done;
+    }
+
+    ret = 0;
+
+done:
+    talloc_free(attr_name);
+
+    if (ret == 0) {
+        *result = res;
+    }
+
+    return ret;
+}
