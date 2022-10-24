@@ -144,4 +144,8 @@ errno_t sssctl_passkey_exec(struct sss_cmdline *cmdline,
                             struct sss_tool_ctx *tool_ctx,
                             void *pvt);
 #endif /* BUILD_PASSKEY */
+
+errno_t sssctl_cert_eval_rule(struct sss_cmdline *cmdline,
+                              struct sss_tool_ctx *tool_ctx,
+                              void *pvt);
 #endif /* _SSSCTL_H_ */
