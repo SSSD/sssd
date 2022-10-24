@@ -2009,6 +2009,7 @@ libsss_certmap_la_LDFLAGS = \
 
 libsss_certmap_la_SOURCES += \
     src/lib/certmap/sss_cert_content_crypto.c \
+    src/lib/certmap/sss_cert_digest_crypto.c \
     src/util/crypto/libcrypto/crypto_base64.c \
     src/util/cert/libcrypto/cert.c \
     $(NULL)

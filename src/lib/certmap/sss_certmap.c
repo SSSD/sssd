@@ -984,6 +984,14 @@ int sss_certmap_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
+    ret = get_digest_list(*ctx, &((*ctx)->digest_list));
+    if (ret != 0) {
+        CM_DEBUG((*ctx), "Failed to get digest list.");
+        talloc_free(*ctx);
+        *ctx = NULL;
+        return ret;
+    }
+
     return EOK;
 }
 

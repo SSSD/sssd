@@ -141,6 +141,7 @@ struct sss_certmap_ctx {
     sss_certmap_ext_debug *debug;
     void *debug_priv;
     struct ldap_mapping_rule *default_mapping_rule;
+    const char **digest_list;
 };
 
 struct san_list {
@@ -238,6 +239,12 @@ int add_principal_to_san_list(TALLOC_CTX *mem_ctx, enum san_opt san_opt,
 
 int rdn_list_2_dn_str(TALLOC_CTX *mem_ctx, const char *conversion,
                       const char **rdn_list, char **result);
+
+int get_digest_list(TALLOC_CTX *mem_ctx, const char ***digest_list);
+
+int get_hash(TALLOC_CTX *mem_ctx, const uint8_t *blob, size_t blob_size,
+             const char *digest, bool upper, bool colon, bool reverse,
+             char **out);
 
 int bin_to_hex(TALLOC_CTX *mem_ctx, bool upper_case, bool colon_sep,
                bool reverse, uint8_t *buf, size_t len, char **out);
