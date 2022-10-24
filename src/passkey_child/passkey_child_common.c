@@ -87,7 +87,7 @@ parse_arguments(int argc, const char *argv[], struct passkey_data *data)
         {"domain", 0, POPT_ARG_STRING, &data->domain, 0,
          _("Domain"), NULL},
         {"public-key", 0, POPT_ARG_STRING, &data->public_key, 0,
-         _("Shortname"), NULL },
+         _("Public key"), NULL },
         {"key-handle", 0, POPT_ARG_STRING, &data->key_handle, 0,
          _("Key handle"), NULL},
         {"type", 0, POPT_ARG_STRING, &type, 0,
