@@ -203,6 +203,9 @@ struct sss_cert_content {
     uint8_t *serial_number;
     size_t serial_number_size;
     const char *serial_number_dec_str;
+
+    uint8_t *subject_key_id;
+    size_t subject_key_id_size;
 };
 
 int sss_cert_get_content(TALLOC_CTX *mem_ctx,
