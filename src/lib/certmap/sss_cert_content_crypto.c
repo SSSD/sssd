@@ -707,6 +707,77 @@ done:
     return ret;
 }
 
+static int get_serial_number(TALLOC_CTX *mem_ctx, X509 *cert,
+                             uint8_t **serial_number,
+                             size_t *serial_number_size,
+                             const char **serial_number_dec_str)
+{
+    const ASN1_INTEGER *serial;
+    BIGNUM *bn = NULL;
+    size_t size;
+    uint8_t *buf = NULL;
+    int ret;
+    char *tmp_str = NULL;
+
+    serial = X509_get0_serialNumber(cert);
+    bn = ASN1_INTEGER_to_BN(serial, NULL);
+    if (bn == NULL) {
+        *serial_number_size = 0;
+        *serial_number = NULL;
+        *serial_number_dec_str = NULL;
+        return 0;
+    }
+
+    /* The serial number MUST be a positive integer. */
+    if (BN_is_zero(bn) || BN_is_negative(bn)) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    size = BN_num_bytes(bn);
+    if (size == 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    tmp_str = BN_bn2dec(bn);
+    if (tmp_str == NULL) {
+        ret = EIO;
+        goto done;
+    }
+
+    buf = talloc_size(mem_ctx, size);
+    if (buf == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = BN_bn2bin(bn, buf);
+    if (ret != size) {
+        ret = EIO;
+        goto done;
+    }
+
+    *serial_number_dec_str = talloc_strdup(mem_ctx, tmp_str);
+    if (*serial_number_dec_str == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    *serial_number = buf;
+    *serial_number_size = size;
+
+    ret =  0;
+
+done:
+    if (ret != 0) {
+        talloc_free(buf);
+    }
+    BN_free(bn);
+    OPENSSL_free(tmp_str);
+
+    return ret;
+}
+
 int sss_cert_get_content(TALLOC_CTX *mem_ctx,
                          const uint8_t *der_blob, size_t der_size,
                          struct sss_cert_content **content)
@@ -798,6 +869,13 @@ int sss_cert_get_content(TALLOC_CTX *mem_ctx,
     }
 
     ret = get_san(cont, cert, &(cont->san_list));
+    if (ret != 0) {
+        goto done;
+    }
+
+    ret = get_serial_number(cont, cert, &(cont->serial_number),
+                            &(cont->serial_number_size),
+                            &(cont->serial_number_dec_str));
     if (ret != 0) {
         goto done;
     }
