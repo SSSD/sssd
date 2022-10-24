@@ -592,6 +592,7 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
             if (ret != 0) {
                 goto done;
             }
+            DLIST_ADD(list, item);
             break;
         case GEN_IPADD:
             ret = add_ip_to_san_list(mem_ctx,
