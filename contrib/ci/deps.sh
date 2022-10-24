@@ -178,6 +178,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         gnutls-bin
         softhsm2
         libp11-kit-dev
+        bc
         libunistring-dev
     )
 
