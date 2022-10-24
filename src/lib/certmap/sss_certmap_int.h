@@ -238,4 +238,7 @@ int add_principal_to_san_list(TALLOC_CTX *mem_ctx, enum san_opt san_opt,
 
 int rdn_list_2_dn_str(TALLOC_CTX *mem_ctx, const char *conversion,
                       const char **rdn_list, char **result);
+
+int bin_to_hex(TALLOC_CTX *mem_ctx, bool upper_case, bool colon_sep,
+               bool reverse, uint8_t *buf, size_t len, char **out);
 #endif /* __SSS_CERTMAP_INT_H__ */

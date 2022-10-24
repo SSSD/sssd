@@ -42,6 +42,58 @@ void sss_debug_fn(const char *file,
     return;
 }
 
+int bin_to_hex(TALLOC_CTX *mem_ctx, bool upper_case, bool colon_sep,
+               bool reverse, uint8_t *buf, size_t len, char **out)
+{
+    char *o;
+    size_t c;
+    const char *fmt = NULL;
+    size_t s;
+    size_t chop_end = 0;
+
+    if (len == 0 || buf == NULL) {
+        return EINVAL;
+    }
+
+    if (upper_case) {
+        if (colon_sep) {
+            fmt = "%02X:";
+            s = 3;
+            chop_end =1;
+        } else {
+            fmt = "%02X";
+            s = 2;
+        }
+    } else {
+        if (colon_sep) {
+            fmt = "%02x:";
+            s = 3;
+            chop_end =1;
+        } else {
+            fmt = "%02x";
+            s = 2;
+        }
+    }
+
+    o = talloc_size(mem_ctx, (len * s) + 1);
+    if (o == NULL) {
+        return ENOMEM;
+    }
+
+    for (c = 0; c < len; c++) {
+        if (reverse) {
+            snprintf(o+(c*s), s+1, fmt, buf[len -1 -c]);
+        } else {
+            snprintf(o+(c*s), s+1, fmt, buf[c]);
+        }
+    }
+    o[(len * s) - chop_end] = '\0';
+
+    *out = o;
+
+    return 0;
+}
+
 static int get_type_prefix(TALLOC_CTX *mem_ctx, const char *match_rule,
                            char **type, const char **rule_start)
 {
