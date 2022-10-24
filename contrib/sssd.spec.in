@@ -141,6 +141,7 @@ BuildRequires: samba-winbind
 BuildRequires: selinux-policy-targeted
 # required for p11_child smartcard tests
 BuildRequires: softhsm >= 2.1.0
+BuildRequires: bc
 BuildRequires: systemd-devel
 BuildRequires: systemtap-sdt-devel
 BuildRequires: uid_wrapper
