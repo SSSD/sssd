@@ -1994,6 +1994,7 @@ libsss_certmap_la_SOURCES = \
     src/lib/certmap/sss_certmap_ldap_mapping.c \
     src/lib/certmap/sss_cert_content_common.c \
     src/util/util_ext.c \
+    src/util/strtonum.c \
     src/util/cert/cert_common.c \
     $(NULL)
 libsss_certmap_la_CFLAGS = \
