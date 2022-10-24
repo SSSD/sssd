@@ -180,9 +180,17 @@ static int parse_mapping_rule(struct sss_certmap_ctx *ctx,
     }
 
     if (type == NULL || strcmp(type, "LDAP") == 0) {
+        ctx->mapv = mapv_ldap;
         ret = parse_ldap_mapping_rule(ctx, rule_start, parsed_mapping_rule);
         if (ret != EOK) {
             CM_DEBUG(ctx, "Failed to parse LDAP mapping rule.");
+            goto done;
+        }
+    } else if (strcmp(type, "LDAPU1") == 0) {
+        ctx->mapv = mapv_ldapu1;
+        ret = parse_ldap_mapping_rule(ctx, rule_start, parsed_mapping_rule);
+        if (ret != EOK) {
+            CM_DEBUG(ctx, "Failed to parse LDAPU1 mapping rule.");
             goto done;
         }
     } else {
@@ -328,6 +336,10 @@ static int expand_cert(struct sss_certmap_ctx *ctx,
 {
     int ret;
     char *tmp_str = NULL;
+    const char *dgst = NULL;
+    bool upper = false;
+    bool colon = false;
+    bool reverse = false;
 
     if (parsed_template->conversion == NULL
             || strcmp(parsed_template->conversion, "bin") == 0) {
@@ -345,9 +357,81 @@ static int expand_cert(struct sss_certmap_ctx *ctx,
             ret = ENOMEM;
             goto done;
         }
+    } else if (check_digest_conversion(parsed_template->conversion,
+                                       ctx->digest_list, &dgst,
+                                       &upper, &colon, &reverse) == 0) {
+        ret = get_hash(ctx, cert_content->cert_der, cert_content->cert_der_size,
+                       dgst, upper, colon, reverse, &tmp_str);
+        if (ret != 0) {
+            CM_DEBUG(ctx, "Failed to generate digest of certificate.");
+            goto done;
+        }
     } else {
         CM_DEBUG(ctx, "Unsupported conversion.");
         ret = EINVAL;
+        goto done;
+    }
+
+    ret = 0;
+
+done:
+    if (ret == 0) {
+        *expanded = tmp_str;
+    } else {
+        talloc_free(tmp_str);
+    }
+
+    return ret;
+}
+
+static int expand_bin_number_array(struct sss_certmap_ctx *ctx,
+                                   struct parsed_template *parsed_template,
+                                   uint8_t *bin_number,
+                                   size_t bin_number_size,
+                                   const char *bin_number_dec_str,
+                                   char **expanded)
+{
+    int ret;
+    char *tmp_str = NULL;
+    bool dec = false;
+    bool upper = false;
+    bool colon = false;
+    bool reverse = false;
+
+    if (bin_number == NULL || bin_number_size == 0) {
+        CM_DEBUG(ctx, "Missing data for conversion.");
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = check_hex_conversion(parsed_template->conversion, true,
+                               &dec, &upper, &colon, &reverse);
+    if (ret != 0) {
+        CM_DEBUG(ctx, "Unsupported conversion.");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (dec) {
+        if (bin_number_dec_str != NULL) {
+            tmp_str = talloc_strdup(ctx, bin_number_dec_str);
+            if (tmp_str == NULL) {
+                CM_DEBUG(ctx, "Failed to copy binary number string.");
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = 0;
+        } else {
+            CM_DEBUG(ctx, "Missing string for 'dec' conversion.");
+            ret = ENOENT;
+            goto done;
+        }
+    } else {
+        ret = bin_to_hex(ctx, upper, colon, reverse,
+                         bin_number, bin_number_size, &tmp_str);
+    }
+    if (ret != 0) {
+        CM_DEBUG(ctx, "%s conversion failed.", parsed_template->conversion);
         goto done;
     }
 
@@ -490,6 +574,34 @@ static int expand_san(struct sss_certmap_ctx *ctx,
     return ret;
 }
 
+static int expand_sid(struct sss_certmap_ctx *ctx, const char *attr_name,
+                      const char *sid, char **expanded)
+{
+    char *exp;
+    char *sep;
+
+    if (attr_name == NULL) {
+        exp = talloc_strdup(ctx, sid);
+    } else if (strcasecmp(attr_name, "rid") == 0) {
+        sep = strrchr(sid, '-');
+        if (sep == NULL || sep[1] == '\0') {
+            CM_DEBUG(ctx, "Unsupported SID string [%s].", sid);
+            return EINVAL;
+        }
+        exp = talloc_strdup(ctx, sep+1);
+    } else {
+        CM_DEBUG(ctx, "Unsupported attribute name [%s].", attr_name);
+        return EINVAL;
+    }
+
+    if (exp == NULL) {
+        return ENOMEM;
+    }
+
+    *expanded = exp;
+    return 0;
+}
+
 static int expand_template(struct sss_certmap_ctx *ctx,
                            struct parsed_template *parsed_template,
                            struct sss_cert_content *cert_content,
@@ -506,12 +618,32 @@ static int expand_template(struct sss_certmap_ctx *ctx,
     } else if (strcmp("subject_dn", parsed_template->name) == 0) {
         ret = rdn_list_2_dn_str(ctx, parsed_template->conversion,
                                 cert_content->subject_rdn_list, &exp);
+    } else if (strcmp("subject_key_id", parsed_template->name) == 0) {
+        ret = expand_bin_number_array(ctx, parsed_template,
+                                      cert_content->subject_key_id,
+                                      cert_content->subject_key_id_size,
+                                      NULL, &exp);
+    } else if (strcmp("issuer_dn_component", parsed_template->name) == 0) {
+        ret = rdn_list_2_component(ctx, parsed_template->attr_name,
+                                   cert_content->issuer_rdn_list, &exp);
+    } else if (strcmp("subject_dn_component", parsed_template->name) == 0) {
+        ret = rdn_list_2_component(ctx, parsed_template->attr_name,
+                                   cert_content->subject_rdn_list, &exp);
     } else if (strncmp("subject_", parsed_template->name, 8) == 0) {
         ret = expand_san(ctx, parsed_template, cert_content->san_list, &exp);
     } else if (strcmp("cert", parsed_template->name) == 0) {
         /* cert blob is already sanitized */
         sanitize = false;
         ret = expand_cert(ctx, parsed_template, cert_content, &exp);
+    } else if (strcmp("serial_number", parsed_template->name) == 0) {
+        ret = expand_bin_number_array(ctx, parsed_template,
+                                      cert_content->serial_number,
+                                      cert_content->serial_number_size,
+                                      cert_content->serial_number_dec_str,
+                                      &exp);
+    } else if (strcmp("sid", parsed_template->name) == 0) {
+        ret = expand_sid(ctx, parsed_template->attr_name,
+                         cert_content->sid_ext, &exp);
     } else {
         CM_DEBUG(ctx, "Unsupported template name.");
         ret = EINVAL;
@@ -1046,6 +1178,7 @@ static int sss_cert_dump_content(TALLOC_CTX *mem_ctx,
     struct sss_certmap_ctx *ctx = NULL;
     char *expanded = NULL;
     int ret;
+    int ret2;
     char *b64 = NULL;
     const char *eku_str = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -1106,9 +1239,9 @@ static int sss_cert_dump_content(TALLOC_CTX *mem_ctx,
     }
 
     if (c->serial_number_size != 0) {
-        ret = bin_to_hex(out, false, true, false, c->serial_number,
+        ret2 = bin_to_hex(out, false, true, false, c->serial_number,
                          c->serial_number_size, &hex);
-        if (ret == 0) {
+        if (ret2 == 0) {
             out = talloc_asprintf_append(out, "Serial Number: %s (%s)\n", hex,
                                          c->serial_number_dec_str);
             talloc_free(hex);
@@ -1122,9 +1255,9 @@ static int sss_cert_dump_content(TALLOC_CTX *mem_ctx,
     if (out == NULL) goto done;
 
     if (c->subject_key_id_size != 0) {
-        ret = bin_to_hex(out, false, true, false, c->subject_key_id,
+        ret2 = bin_to_hex(out, false, true, false, c->subject_key_id,
                          c->subject_key_id_size, &hex);
-        if (ret == 0) {
+        if (ret2 == 0) {
             out = talloc_asprintf_append(out, "Subject Key ID: %s\n", hex);
             talloc_free(hex);
         } else {
