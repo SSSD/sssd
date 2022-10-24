@@ -206,6 +206,8 @@ struct sss_cert_content {
 
     uint8_t *subject_key_id;
     size_t subject_key_id_size;
+
+    const char *sid_ext;
 };
 
 int sss_cert_get_content(TALLOC_CTX *mem_ctx,
