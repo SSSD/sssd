@@ -1049,6 +1049,7 @@ static int sss_cert_dump_content(TALLOC_CTX *mem_ctx,
     char *b64 = NULL;
     const char *eku_str = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
+    char *hex = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1103,6 +1104,42 @@ static int sss_cert_dump_content(TALLOC_CTX *mem_ctx,
                                           eku_str == NULL ? "" : ")");
         if (out == NULL) goto done;
     }
+
+    if (c->serial_number_size != 0) {
+        ret = bin_to_hex(out, false, true, false, c->serial_number,
+                         c->serial_number_size, &hex);
+        if (ret == 0) {
+            out = talloc_asprintf_append(out, "Serial Number: %s (%s)\n", hex,
+                                         c->serial_number_dec_str);
+            talloc_free(hex);
+        } else {
+            out = talloc_asprintf_append(out,
+                                    "Serial Number: -- conversion failed --\n");
+        }
+    } else {
+        out = talloc_asprintf_append(out, "Serial Number: -- missing --\n");
+    }
+    if (out == NULL) goto done;
+
+    if (c->subject_key_id_size != 0) {
+        ret = bin_to_hex(out, false, true, false, c->subject_key_id,
+                         c->subject_key_id_size, &hex);
+        if (ret == 0) {
+            out = talloc_asprintf_append(out, "Subject Key ID: %s\n", hex);
+            talloc_free(hex);
+        } else {
+            out = talloc_asprintf_append(out,
+                                   "Subject Key ID: -- conversion failed --\n");
+        }
+    } else {
+        out = talloc_asprintf_append(out, "Subject Key ID: -- missing --\n");
+    }
+    if (out == NULL) goto done;
+
+    out = talloc_asprintf_append(out, "SID: %s\n", c->sid_ext == NULL
+                                                 ? "SID extension not available"
+                                                 : c->sid_ext);
+    if (out == NULL) goto done;
 
     DLIST_FOR_EACH(s, c->san_list) {
         out = talloc_asprintf_append(out, "SAN type: %s\n",
