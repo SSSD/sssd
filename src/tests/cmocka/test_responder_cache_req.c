@@ -36,6 +36,7 @@
 
 #define TEST_USER_PREFIX "test*"
 #define TEST_NO_USER_PREFIX "nosuchuser*"
+#define TEST_GROUP_PREFIX "test-group*"
 #define TEST_NO_GROUP_PREFIX "nosuchgroup*"
 
 struct test_user {
@@ -2964,6 +2965,44 @@ void test_groups_by_filter_notfound(void **state)
     assert_true(check_leaks_pop(req_mem_ctx));
 }
 
+void test_groups_by_filter_files(void **state)
+{
+    struct cache_req_test_ctx *test_ctx;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->create_group1 = true;
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+    mock_parse_inp(TEST_GROUP_PREFIX, NULL, ERR_OK);
+
+    req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
+                                        test_ctx->tctx->dom->name,
+                                        TEST_GROUP_PREFIX);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+
+    assert_msg_has_shortname(test_ctx,
+                             test_ctx->result->msgs[0],
+                             groups[0].short_name);
+}
+
 /*
  * Given two groups are present
  * When the groups are searched by filtering domains
@@ -4449,6 +4488,7 @@ int main(int argc, const char *argv[])
         new_single_domain_test(users_by_filter_notfound),
         new_multi_domain_test(users_by_filter_multiple_domains_valid),
         new_multi_domain_test(users_by_filter_multiple_domains_notfound),
+        new_files_domain_test(groups_by_filter_files),
         new_single_domain_test(groups_by_filter_notfound),
         new_multi_domain_test(groups_by_filter_multiple_domains_valid),
         new_multi_domain_test(groups_by_filter_multiple_domains_notfound),

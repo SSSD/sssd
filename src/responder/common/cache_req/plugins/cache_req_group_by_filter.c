@@ -86,10 +86,19 @@ cache_req_group_by_filter_lookup(TALLOC_CTX *mem_ctx,
     char *recent_filter;
     errno_t ret;
 
-    recent_filter = talloc_asprintf(mem_ctx, "(%s>=%lu)", SYSDB_LAST_UPDATE,
-                                    cr->req_start);
-    if (recent_filter == NULL) {
-        return ENOMEM;
+    /* The "files" provider updates the record if /etc/passwd or /etc/group
+     * is touched. It does not perform any per-request update.
+     * Therefore the last update flag is not updated if no file was touched
+     * and we cannot use this optimization.
+     */
+    if (is_files_provider(domain)) {
+        recent_filter = NULL;
+    } else {
+        recent_filter = talloc_asprintf(mem_ctx, "(%s>=%lu)", SYSDB_LAST_UPDATE,
+                                        cr->req_start);
+        if (recent_filter == NULL) {
+            return ENOMEM;
+        }
     }
 
     ret = sysdb_enumgrent_filter_with_views(mem_ctx, domain, data->name.lookup,
