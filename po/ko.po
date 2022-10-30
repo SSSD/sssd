@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-10-07 12:50+0200\n"
-"PO-Revision-Date: 2022-10-11 11:19+0000\n"
+"PO-Revision-Date: 2022-10-31 04:19+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-8/ko/>\n"
@@ -2304,7 +2304,7 @@ msgstr "사용 가능한 도메인을 열 수 없습니다\n"
 #: src/tools/tools_util.h:36
 #, c-format
 msgid "%1$s must be run as root\n"
-msgstr "%1$s은/는 root로 실행해야 합니다\n"
+msgstr "%1$s는 root로 실행해야 합니다\n"
 
 #: src/tools/sssctl/sssctl.c:35
 msgid "yes"
