@@ -222,6 +222,7 @@ if HAVE_CHECK
         krb5-utils-tests \
         check_file-tests \
         files-tests \
+        file_watch-tests \
         refcount-tests \
         fail_over-tests \
         find_uid-tests \
@@ -2241,6 +2242,19 @@ resolv_tests_LDADD = \
     $(CHECK_LIBS) \
     $(CARES_LIBS) \
     libsss_debug.la \
+    libsss_test_common.la
+
+file_watch_tests_SOURCES = \
+    src/tests/file_watch-tests.c \
+    $(NULL)
+file_watch_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+file_watch_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    $(INOTIFY_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 refcount_tests_SOURCES = \
