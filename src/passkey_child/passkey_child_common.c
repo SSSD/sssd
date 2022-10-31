@@ -28,11 +28,21 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 
+#include <openssl/err.h>
+#include <openssl/pem.h>
+
+#include "util/crypto/sss_crypto.h"
 #include "util/debug.h"
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
 
 #include "passkey_child.h"
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000
+#define get_id(x)   EVP_PKEY_get_base_id((x))
+#else
+#define get_id(x)   EVP_PKEY_base_id((x))
+#endif /* OPENSSL_VERSION_NUMBER */
 
 errno_t
 cose_str_to_int(const char *type, int *out)
@@ -118,7 +128,6 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     data->domain = NULL;
     data->pin = NULL;
     data->public_key_list = NULL;
-    data->public_key = NULL;
     data->key_handle_list = NULL;
     data->keys_size = 0;
     data->type = COSE_ES256;
@@ -435,11 +444,75 @@ done:
 }
 
 errno_t
+public_key_to_libfido2(const char *pem_public_key, struct pk_data_t *_pk_data)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const unsigned char *public_key = NULL;
+    size_t pk_len;
+    const EVP_PKEY *evp_pkey = NULL;
+    int base_id;
+    unsigned long err;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    public_key = sss_base64_decode(tmp_ctx, pem_public_key, &pk_len);
+    if (public_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to decode public key.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    evp_pkey = d2i_PUBKEY(NULL, &public_key, pk_len);
+    if (evp_pkey == NULL) {
+        err = ERR_get_error();
+        DEBUG(SSSDBG_OP_FAILURE, "d2i_pubkey failed [%lu][%s].\n",
+              err, ERR_error_string(err, NULL));
+        ret = EIO;
+        goto done;
+    }
+
+    base_id = get_id(evp_pkey);
+    if (base_id == EVP_PKEY_EC) {
+        _pk_data->type = COSE_ES256;
+        ret = evp_pkey_to_es256_pubkey(evp_pkey, _pk_data);
+    } else if (base_id == EVP_PKEY_RSA) {
+        _pk_data->type = COSE_RS256;
+        ret = evp_pkey_to_rs256_pubkey(evp_pkey, _pk_data);
+    } else if (base_id == EVP_PKEY_ED25519) {
+        _pk_data->type = COSE_EDDSA;
+        ret = evp_pkey_to_eddsa_pubkey(evp_pkey, _pk_data);
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unrecognized key type.\n");
+        ret = EINVAL;
+    }
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (evp_pkey != NULL) {
+        EVP_PKEY_free(discard_const(evp_pkey));
+    }
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
 authenticate(struct passkey_data *data)
 {
     fido_assert_t *assert = NULL;
     fido_dev_info_t *dev_list = NULL;
     fido_dev_t *dev = NULL;
+    struct pk_data_t pk_data;
     size_t dev_list_len = 0;
     int count = 0;
     errno_t ret;
@@ -517,7 +590,7 @@ authenticate(struct passkey_data *data)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Decoding public key.\n");
-    ret = decode_public_key(data->public_key_list[count], data);
+    ret = public_key_to_libfido2(data->public_key_list[count], &pk_data);
     if (ret != FIDO_OK) {
         goto done;
     }
@@ -529,7 +602,7 @@ authenticate(struct passkey_data *data)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Verifying assert.\n");
-    ret = verify_assert(data, assert);
+    ret = verify_assert(&pk_data, assert);
     if (ret != FIDO_OK) {
         goto done;
     }
@@ -537,7 +610,7 @@ authenticate(struct passkey_data *data)
     ret = FIDO_OK;
 
 done:
-    reset_public_key(data);
+    reset_public_key(&pk_data);
     if (dev != NULL) {
         fido_dev_close(dev);
     }
