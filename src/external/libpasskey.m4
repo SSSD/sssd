@@ -7,7 +7,7 @@ SSS_AC_EXPAND_LIB_DIR()
 AS_IF([test x"$found_passkey" = xyes],
     [AC_CHECK_HEADER([fido.h],
         [AC_CHECK_LIB([fido2],
-                      [fido_dev_has_uv],
+                      [es256_pk_from_EVP_PKEY],
                       [found_passkey=yes] [PASSKEY_LIBS="-lfido2"],
                       [found_passkey=no])],
         [found_passkey=no]

@@ -46,12 +46,16 @@ struct passkey_data {
     const char *domain;
     const char *pin;
     char **public_key_list;
-    void *public_key;
     char **key_handle_list;
     int keys_size;
     int type;
     fido_opt_t user_verification;
     bool debug_libfido2;
+};
+
+struct pk_data_t {
+    void *public_key;
+    int type;
 };
 
 /**
@@ -323,25 +327,61 @@ prepare_assert(const struct passkey_data *data, int index,
 /**
  * @brief Reset and free public key
  *
- * @param[out] data passkey data
+ * @param[out] _pk_data Public key data
  *
  * @return 0 if the public key was reset properly,
  *         error code otherwise.
  */
 errno_t
-reset_public_key(struct passkey_data *_data);
+reset_public_key(struct pk_data_t *_pk_data);
 
 /**
- * @brief Decode b64 public key and store it in the data structure
+ * @brief Format EVP_PKEY to libfido2's es256 data structure
  *
- * @param[in] b64_public_key Public key in b64
- * @param[out] data passkey data
+ * @param[in] evp_pkey EVP_PKEY public key
+ * @param[out] _pk_data Public key data
  *
- * @return 0 if the public key was decoded properly,
+ * @return 0 if the public key was formatted properly,
  *         error code otherwise.
  */
 errno_t
-decode_public_key(char *b64_public_key, struct passkey_data *_data);
+evp_pkey_to_es256_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data);
+
+/**
+ * @brief Format EVP_PKEY to libfido2's rs256 data structure
+ *
+ * @param[in] evp_pkey EVP_PKEY public key
+ * @param[out] _pk_data Public key data
+ *
+ * @return 0 if the public key was formatted properly,
+ *         error code otherwise.
+ */
+errno_t
+evp_pkey_to_rs256_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data);
+
+/**
+ * @brief Format EVP_PKEY to libfido2's eddsa data structure
+ *
+ * @param[in] evp_pkey EVP_PKEY public key
+ * @param[out] _pk_data Public key data
+ *
+ * @return 0 if the public key was formatted properly,
+ *         error code otherwise.
+ */
+errno_t
+evp_pkey_to_eddsa_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data);
+
+/**
+ * @brief Format the public key to the libfido2 data structure
+ *
+ * @param[in] pem_public_key PEM formatter public key
+ * @param[out] _pk_data Public key data
+ *
+ * @return 0 if the public key was formatted properly,
+ *         error code otherwise.
+ */
+errno_t
+public_key_to_libfido2(const char *pem_public_key, struct pk_data_t *_pk_data);
 
 /**
  * @brief Get device options and compare with the policy options expectations
@@ -372,13 +412,13 @@ request_assert(struct passkey_data *data, fido_dev_t *dev,
 /**
  * @brief Verify assertion
  *
- * @param[in] data passkey data
+ * @param[in] pk_data Public key data
  * @param[in] assert Assert
  *
  * @return 0 if the assertion was verified properly,
  *         error code otherwise.
  */
 errno_t
-verify_assert(struct passkey_data *data, fido_assert_t *assert);
+verify_assert(struct pk_data_t *data, fido_assert_t *assert);
 
 #endif /* __PASSKEY_CHILD_H__ */
