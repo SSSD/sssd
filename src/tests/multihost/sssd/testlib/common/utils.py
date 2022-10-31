@@ -1,6 +1,8 @@
 """ This module defines classes regarding sssd tools,
 AD Operations and LDAP Operations"""
 
+# flake8: noqa: W605
+
 from __future__ import print_function
 import os
 import tempfile
@@ -50,8 +52,9 @@ class sssdTools(object):
             self.adhost = adhost
             self.adhost_ip = self.adhost.ip
             self.ad_ops = ADOperations(self.adhost)
+            self.ad_dns = ADDNS(self.adhost)
             self._ad_conn = None
-            self.domainname = self. adhost.domainname
+            self.domainname = self.adhost.domainname
             self.ad_realm = self.adhost.realm
             self.ad_password = self.adhost.ssh_password
             self.ad_hostname = self.adhost.external_hostname
@@ -2007,3 +2010,75 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
         uid = range_size * slice_val + rid + range_min
         gid = range_size * slice_val + range_min + primary_group
         return uid, gid
+
+
+class ADDNS(object):  # pylint: disable=useless-object-inheritance
+    """ ADDNS class consists of methods to search and manage AD DNS """
+
+    def __init__(self, ad_host):
+        self.ad_host = ad_host
+
+    def get_zones(self):
+        """ Returns a list of all the forward and reverse zones  on the server excluding msdcs """
+        zones = self.ad_host.run_command('dnscmd.exe /EnumZones | grep Primary | grep -v msdcs | cut -f2 -d" "')
+        return zones.stdout_text
+
+    def print_zone(self, zone):
+        """ Prints all the contents of a zone file, takes domain.com or 1.168.192.in-addr.arpa string """
+        zone = self.ad_host.run_command(f'dnscmd.exe /zoneprint {zone} | grep -v \; | sed "s/\t/ /g" | grep e |'
+                                        f'sed "s/\   / /g"')
+        return zone.stdout_text
+
+    def find_a(self, hostname):
+        """ Searches the zone for a specific A record, returning True for success and False for failure """
+        domain = self.ad_host.realm.lower()
+        host = hostname.split(".")[0]
+        results = self.ad_host.run_command(f'dnscmd.exe /zoneprint {domain} | grep -v \; | sed "s/\t/ /g" | grep e |'
+                                           f'sed "s/\   / /g" | grep {host}', raiseonerr=False)
+        if host in results.stdout_text:
+            return True
+        return False
+
+    def find_ptr(self, hostname, ip):
+        """ Searches the zone for a specific PTR record, returning True for success and False for failure """
+        hostname = hostname + '.'
+        net = str(ip.split(".")[2]) + '.' + str(ip.split(".")[1]) + '.' + str(ip.split(".")[0]) + '.in-addr.arpa'
+        ptr = str(ip.split(".")[3])
+        results = self.ad_host.run_command(f'dnscmd.exe /zoneprint {net} | grep -v \; | sed "s/\t/ /g" | grep e |'
+                                           f'sed "s/\   / /g" | grep -v hostmaster | grep {hostname}',
+                                           raiseonerr=False)
+        if ptr in results.stdout_text:
+            return True
+        return False
+
+    def add_zone(self, zone):
+        """ Adds a forward or reverse zone with dynamic updates in AD DNS, True if zone is listed and False if not """
+        self.ad_host.run_command(f"dnscmd.exe /zoneadd {zone} /primary")
+        self.ad_host.run_command(f"dnscmd.exe /config {zone} /allowupdate 1")
+        check_zone = self.ad_host.run_command("dnscmd.exe /EnumZones")
+        if zone in check_zone.stdout_text:
+            return True
+        return False
+
+    def del_zone(self, zone):
+        """ Deletes the DNS forward or reverse zone in AD DNS, True if not found in zone list and False if foudn """
+        self.ad_host.run_command(f"dnscmd.exe /zonedelete {zone} /f")
+        check_zone = self.ad_host.run_command("dnscmd.exe /EnumZones")
+        if zone not in check_zone.stdout_text:
+            return True
+        return False
+
+    def del_record(self, record):
+        """ Deletes both A/AAAA records when a hostname is used, deletes the PTR when an IP address is used """
+        domain = str(self.ad_host.realm).lower()
+        if domain in record:
+            hostname = record
+            short_hostname = hostname.split(".")[0]
+            self.ad_host.run_command(f"dnscmd.exe /recorddelete {domain} {short_hostname} A /f", raiseonerr=False)
+            self.ad_host.run_command(f"dnscmd.exe /recorddelete {domain} {short_hostname} AAAA /f", raiseonerr=False)
+        else:
+            ip = record
+            net = str(ip.split(".")[2]) + '.' + str(ip.split(".")[1]) + '.' + str(ip.split(".")[0]) + '.in-addr.arpa'
+            ptr = str(ip.split(".")[3])
+            self.ad_host.run_command(f"dnscmd.exe /recorddelete {net} {ptr} PTR /f", raiseonerr=False)
+
