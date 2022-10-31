@@ -33,7 +33,6 @@
 
 #define TEST_PATH "/test/path"
 #define TEST_KEY_HANDLE "tOGNbhyeyiMJXzqPYbU8DT3Gxwk/LI7QajaW1sEhnNTDHFL5pT189IujIku03gwRJH/1tIKZ7Y8SvmfnOONd6g=="
-#define TEST_PUBLIC_KEY "GcCRndSVnpjj00PnIBkSGXLwxe4rFYeifcvbVhAGTFNPM7nJFTkQnX11gqBskBUJppk5524ALziAS3NyoFENmg=="
 
 #define TEST_ES256_PEM_PUBLIC_KEY \
     "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEA4ln5Oo8O4pLoSUCuYkXnzHxLiy" \
@@ -825,54 +824,36 @@ void test_prepare_assert_error(void **state)
 
 void test_reset_public_key(void **state)
 {
-    struct passkey_data data;
+    struct pk_data_t pk_data;
     errno_t ret;
 
-    data.type = COSE_ES256;
-    data.public_key = es256_pk_new();
+    pk_data.type = COSE_ES256;
+    pk_data.public_key = es256_pk_new();
 
-    ret = reset_public_key(&data);
+    ret = reset_public_key(&pk_data);
 
     assert_int_equal(ret, EOK);
 }
 
-void test_parse_public_key(void **state)
+void test_encode_public_keys(void **state)
 {
-    TALLOC_CTX *tmp_ctx;
-    struct passkey_data data;
-    char *public_key;
+    struct pk_data_t pk_data;
     errno_t ret;
 
-    tmp_ctx = talloc_new(NULL);
-    assert_non_null(tmp_ctx);
-    data.type = COSE_ES256;
-    public_key = talloc_strdup(tmp_ctx, TEST_PUBLIC_KEY);
+    ret = public_key_to_libfido2(TEST_ES256_PEM_PUBLIC_KEY, &pk_data);
+    assert_int_equal(ret, FIDO_OK);
+    assert_memory_equal(pk_data.public_key, TEST_ES256_HEX_PUBLIC_KEY, 64);
+    reset_public_key(&pk_data);
 
-    ret = decode_public_key(public_key, &data);
+    ret = public_key_to_libfido2(TEST_RS256_PEM_PUBLIC_KEY, &pk_data);
+    assert_int_equal(ret, FIDO_OK);
+    assert_memory_equal(pk_data.public_key, TEST_RS256_HEX_PUBLIC_KEY, 259);
+    reset_public_key(&pk_data);
 
-    assert_int_equal(ret, EOK);
-    assert_non_null(data.public_key);
-    reset_public_key(&data);
-    talloc_free(tmp_ctx);
-}
-
-void test_parse_public_key_erroneous_key(void **state)
-{
-    TALLOC_CTX *tmp_ctx;
-    struct passkey_data data;
-    char *public_key;
-    errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    assert_non_null(tmp_ctx);
-    data.type = COSE_ES256;
-    public_key = talloc_strdup(tmp_ctx, "1234==");
-
-    ret = decode_public_key(public_key, &data);
-
-    assert_int_equal(ret, FIDO_ERR_INVALID_ARGUMENT);
-    reset_public_key(&data);
-    talloc_free(tmp_ctx);
+    ret = public_key_to_libfido2(TEST_EDDSA_PEM_PUBLIC_KEY, &pk_data);
+    assert_int_equal(ret, FIDO_OK);
+    assert_memory_equal(pk_data.public_key, TEST_EDDSA_HEX_PUBLIC_KEY, 32);
+    reset_public_key(&pk_data);
 }
 
 void test_get_authenticator_data_one_key(void **state)
@@ -992,27 +973,37 @@ void test_request_assert(void **state)
 void test_verify_assert(void **state)
 {
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    struct pk_data_t pk_data;
     errno_t ret;
 
+    pk_data.type = COSE_ES256;
+    pk_data.public_key = es256_pk_new();
     ts->data.user_verification = FIDO_OPT_FALSE;
     will_return(__wrap_fido_assert_verify, FIDO_OK);
 
-    ret = verify_assert(&ts->data, ts->assert);
+    ret = verify_assert(&pk_data, ts->assert);
 
     assert_int_equal(ret, FIDO_OK);
+
+    reset_public_key(&pk_data);
 }
 
 void test_verify_assert_failed(void **state)
 {
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    struct pk_data_t pk_data;
     errno_t ret;
 
+    pk_data.type = COSE_ES256;
+    pk_data.public_key = es256_pk_new();
     ts->data.user_verification = FIDO_OPT_FALSE;
     will_return(__wrap_fido_assert_verify, FIDO_ERR_TX);
 
-    ret = verify_assert(&ts->data, ts->assert);
+    ret = verify_assert(&pk_data, ts->assert);
 
     assert_int_equal(ret, FIDO_ERR_TX);
+
+    reset_public_key(&pk_data);
 }
 
 void test_authenticate_integration(void **state)
@@ -1030,7 +1021,7 @@ void test_authenticate_integration(void **state)
     data.shortname = "user";
     data.domain = "test.com";
     key_handle = talloc_strdup(tmp_ctx, TEST_KEY_HANDLE);
-    public_key = talloc_strdup(tmp_ctx, TEST_PUBLIC_KEY);
+    public_key = talloc_strdup(tmp_ctx, TEST_ES256_PEM_PUBLIC_KEY);
     data.key_handle_list = &key_handle;
     data.public_key_list = &public_key;
     data.keys_size = 1;
@@ -1111,8 +1102,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_prepare_assert_ok, setup, teardown),
         cmocka_unit_test_setup_teardown(test_prepare_assert_error, setup, teardown),
         cmocka_unit_test(test_reset_public_key),
-        cmocka_unit_test(test_parse_public_key),
-        cmocka_unit_test(test_parse_public_key_erroneous_key),
+        cmocka_unit_test(test_encode_public_keys),
         cmocka_unit_test_setup_teardown(test_get_authenticator_data_one_key, setup, teardown),
         cmocka_unit_test_setup_teardown(test_get_authenticator_data_multiple_keys_assert_found, setup, teardown),
         cmocka_unit_test_setup_teardown(test_get_authenticator_data_multiple_keys_assert_not_found, setup, teardown),

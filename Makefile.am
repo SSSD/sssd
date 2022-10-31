@@ -4755,6 +4755,7 @@ passkey_child_LDADD = \
     $(POPT_LIBS) \
     $(PASSKEY_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(CRYPTO_LIBS) \
     $(NULL)
 endif # BUILD_PASSKEY
 

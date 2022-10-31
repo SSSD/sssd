@@ -446,3 +446,87 @@ done:
 
     return ret;
 }
+
+errno_t
+evp_pkey_to_es256_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data)
+{
+    void *public_key = NULL;
+    errno_t ret;
+
+    public_key = es256_pk_new();
+    if (public_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "es256_pk_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = es256_pk_from_EVP_PKEY(public_key, evp_pkey);
+    if (ret != FIDO_OK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "es256_pk_from_EVP_PKEY failed [%d]: %s.\n",
+              ret, fido_strerr(ret));
+        goto done;
+    }
+
+    _pk_data->public_key = public_key;
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+errno_t
+evp_pkey_to_rs256_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data)
+{
+    void *public_key = NULL;
+    errno_t ret;
+
+    public_key = rs256_pk_new();
+    if (public_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "rs256_pk_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = rs256_pk_from_EVP_PKEY(public_key, evp_pkey);
+    if (ret != FIDO_OK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "rs256_pk_from_EVP_PKEY failed [%d]: %s.\n",
+              ret, fido_strerr(ret));
+        goto done;
+    }
+
+    _pk_data->public_key = public_key;
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+errno_t
+evp_pkey_to_eddsa_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data)
+{
+    void *public_key = NULL;
+    errno_t ret;
+
+    public_key = eddsa_pk_new();
+    if (public_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "eddsa_pk_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = eddsa_pk_from_EVP_PKEY(public_key, evp_pkey);
+    if (ret != FIDO_OK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "eddsa_pk_from_EVP_PKEY failed [%d]: %s.\n",
+              ret, fido_strerr(ret));
+        goto done;
+    }
+
+    _pk_data->public_key = public_key;
+    ret = EOK;
+
+done:
+    return ret;
+}

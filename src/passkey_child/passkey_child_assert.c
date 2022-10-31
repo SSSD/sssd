@@ -24,7 +24,6 @@
 
 #include <termios.h>
 #include <stdio.h>
-#include <openssl/ec.h>
 #include <fido/es256.h>
 #include <fido/rs256.h>
 #include <fido/eddsa.h>
@@ -140,93 +139,17 @@ done:
 }
 
 errno_t
-reset_public_key(struct passkey_data *_data)
+reset_public_key(struct pk_data_t *_pk_data)
 {
-    if (_data->type == COSE_ES256) {
-        es256_pk_free((es256_pk_t **) &_data->public_key);
-    } else if (_data->type == COSE_RS256) {
-        rs256_pk_free((rs256_pk_t **) &_data->public_key);
-    } else if (_data->type == COSE_EDDSA) {
-        eddsa_pk_free((eddsa_pk_t **) &_data->public_key);
+    if (_pk_data->type == COSE_ES256) {
+        es256_pk_free((es256_pk_t **) &_pk_data->public_key);
+    } else if (_pk_data->type == COSE_RS256) {
+        rs256_pk_free((rs256_pk_t **) &_pk_data->public_key);
+    } else if (_pk_data->type == COSE_EDDSA) {
+        eddsa_pk_free((eddsa_pk_t **) &_pk_data->public_key);
     }
 
     return EOK;
-}
-
-errno_t
-decode_public_key(char *b64_public_key, struct passkey_data *_data)
-{
-    TALLOC_CTX *tmp_ctx = NULL;
-    unsigned char *buf = NULL;
-    size_t buf_len;
-    errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    buf = sss_base64_decode(tmp_ctx, b64_public_key, &buf_len);
-    if (buf == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to decode public key.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    if (_data->type == COSE_ES256) {
-        _data->public_key = es256_pk_new();
-        if (_data->public_key == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "es256_pk_new failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = es256_pk_from_ptr(_data->public_key, buf, buf_len);
-        if (ret != FIDO_OK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "es256_pk_from_ptr failed [%d]: %s.\n",
-                  ret, fido_strerr(ret));
-            goto done;
-        }
-    } else if (_data->type == COSE_RS256) {
-        _data->public_key = rs256_pk_new();
-        if (_data->public_key == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "rs256_pk_new failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = rs256_pk_from_ptr(_data->public_key, buf, buf_len);
-        if (ret != FIDO_OK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "rs256_pk_from_ptr failed [%d]: %s.\n",
-                  ret, fido_strerr(ret));
-            goto done;
-        }
-    } else if (_data->type == COSE_EDDSA) {
-        _data->public_key = eddsa_pk_new();
-        if (_data->public_key == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "eddsa_pk_new failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = eddsa_pk_from_ptr(_data->public_key, buf, buf_len);
-        if (ret != FIDO_OK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "eddsa_pk_from_ptr failed [%d]: %s.\n",
-                  ret, fido_strerr(ret));
-            goto done;
-        }
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-
-    return ret;
 }
 
 errno_t
@@ -283,11 +206,11 @@ done:
 }
 
 errno_t
-verify_assert(struct passkey_data *data, fido_assert_t *assert)
+verify_assert(struct pk_data_t *pk_data, fido_assert_t *assert)
 {
     errno_t ret;
 
-    ret = fido_assert_verify(assert, 0, data->type, data->public_key);
+    ret = fido_assert_verify(assert, 0, pk_data->type, pk_data->public_key);
     if (ret != FIDO_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "fido_assert_verify failed [%d]: %s.\n",
               ret, fido_strerr(ret));
