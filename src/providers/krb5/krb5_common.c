@@ -687,7 +687,17 @@ static const char* fo_server_address_or_name(TALLOC_CTX *tmp_ctx, struct fo_serv
         }
     }
 
-    return fo_get_server_name(server);
+    address = discard_const(fo_get_server_name(server));
+    if (address != NULL && fo_get_use_search_list(server) == false) {
+        if (address[strlen(address)-1] != '.') {
+            address = talloc_asprintf(tmp_ctx, "%s.", address);
+            if (address == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "talloc_asprintf failed.\n");
+            }
+        }
+    }
+    return address;
 }
 
 errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,

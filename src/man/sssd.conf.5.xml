@@ -3635,6 +3635,27 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                 </varlistentry>
 
                 <varlistentry>
+                    <term>dns_resolver_use_search_list (bool)</term>
+                    <listitem>
+                        <para>
+                            Normally, the DNS resolver searches the domain
+                            list defined in the "search" directive from the
+                            resolv.conf file. This can lead to delays in
+                            environments with improperly configured DNS.
+                        </para>
+                        <para>
+                            If fully qualified domain names (or _srv_) are used
+                            in the SSSD configuration, setting this option
+                            to FALSE can prevent unnecessary DNS lookups in such
+                            environments.
+                        </para>
+                        <para>
+                            Default: TRUE
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dns_discovery_domain (string)</term>
                     <listitem>
                         <para>
