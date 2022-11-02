@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2022-06-24 20:18+0000\n"
+"PO-Revision-Date: 2022-11-02 08:19+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.13\n"
+"X-Generator: Weblate 4.14.1\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -2090,7 +2090,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1583
 msgid "pam_cert_auth (bool)"
-msgstr ""
+msgstr "pam_cert_auth (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1586
@@ -2172,7 +2172,7 @@ msgstr "p11_child가 완료될 때까지 pam_ss가 몇 초 동안 대기합니�
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1652
 msgid "pam_app_services (string)"
-msgstr ""
+msgstr "pam_app_services (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1655
@@ -2184,7 +2184,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1664
 msgid "pam_p11_allowed_services (integer)"
-msgstr ""
+msgstr "pam_p11_allowed_services (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1667
@@ -2337,7 +2337,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1799
 msgid "no_session"
-msgstr ""
+msgstr "no_session"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1800
@@ -2370,12 +2370,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1813
 msgid "Default: no_session"
-msgstr ""
+msgstr "기본값: no_session"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:1818 sssd.conf.5.xml:4104
 msgid "pam_gssapi_services"
-msgstr ""
+msgstr "pam_gssapi_services"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1821
@@ -3165,7 +3165,8 @@ msgstr "entry_cache_timeout (정수)"
 msgid ""
 "How many seconds should nss_sss consider entries valid before asking the "
 "backend again"
-msgstr ""
+msgstr "백엔드를 다시 요청하기 전에 nss_sss가 항목을 유효한 것으로 고려해야 하는 "
+"시간(초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2506
@@ -3193,14 +3194,15 @@ msgstr "entry_cache_user_timeout (정수)"
 msgid ""
 "How many seconds should nss_sss consider user entries valid before asking "
 "the backend again"
-msgstr ""
+msgstr "백엔드를 다시 요청하기 전에 nss_sss가 사용자 항목을 유효한 것으로 고려해야 "
+"하는 시간(초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2532 sssd.conf.5.xml:2545 sssd.conf.5.xml:2558
 #: sssd.conf.5.xml:2571 sssd.conf.5.xml:2585 sssd.conf.5.xml:2598
 #: sssd.conf.5.xml:2612 sssd.conf.5.xml:2626 sssd.conf.5.xml:2639
 msgid "Default: entry_cache_timeout"
-msgstr ""
+msgstr "기본값: entry_cache_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2538
@@ -3212,7 +3214,8 @@ msgstr "entry_cache_group_timeout (정수)"
 msgid ""
 "How many seconds should nss_sss consider group entries valid before asking "
 "the backend again"
-msgstr ""
+msgstr "백엔드를 다시 요청하기 전에 nss_nss가 그룹 항목을 유효한 것으로 고려해야 "
+"하는 시간(초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2551
@@ -3224,7 +3227,8 @@ msgstr "entry_cache_netgroup_timeout (정수)"
 msgid ""
 "How many seconds should nss_sss consider netgroup entries valid before "
 "asking the backend again"
-msgstr ""
+msgstr "백엔드를 다시 요청하기 전에 nss_sss가 넷그룹 항목을 유효한 것으로 고려해야 "
+"하는 시간(초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2564
@@ -3236,7 +3240,8 @@ msgstr "entry_cache_service_timeout (정수)"
 msgid ""
 "How many seconds should nss_sss consider service entries valid before asking "
 "the backend again"
-msgstr ""
+msgstr "백엔드를 다시 요청하기 전에 nss_sss가 서비스 항목을 유효한 것으로 고려해야 "
+"하는 시간(초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2577
@@ -3248,7 +3253,8 @@ msgstr "entry_cache_resolver_timeout (정수)"
 msgid ""
 "How many seconds should nss_sss consider hosts and networks entries valid "
 "before asking the backend again"
-msgstr ""
+msgstr "백엔드를 다시 요청하기 전에 nss_sss가 호스트와 네트워크 항목을 유효한 것으로 "
+"고려해야 하는 시간(초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2591
@@ -3260,7 +3266,8 @@ msgstr "entry_cache_sudo_timeout (정수)"
 msgid ""
 "How many seconds should sudo consider rules valid before asking the backend "
 "again"
-msgstr ""
+msgstr "백엔드를 다시 요청하기 전에 sudo가 규칙을 유효한 것으로 고려해야 하는 "
+"시간(초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2604
@@ -3272,7 +3279,8 @@ msgstr "entry_cache_autofs_timeout (정수)"
 msgid ""
 "How many seconds should the autofs service consider automounter maps valid "
 "before asking the backend again"
-msgstr ""
+msgstr "백엔드를 다시 요청하기 전에 autofs 서비스가 오토마운터 맵을 유효한 것으로 "
+"고려해야 하는 시간(초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2618
@@ -3298,7 +3306,7 @@ msgstr "entry_cache_computer_timeout (정수)"
 msgid ""
 "How many seconds to keep the local computer entry before asking the backend "
 "again"
-msgstr ""
+msgstr "백엔드를 다시 요청하기 전에 로컬 컴퓨터 항목을 유지해야 하는 시간(초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2645
@@ -3311,6 +3319,8 @@ msgid ""
 "Specifies how many seconds SSSD has to wait before triggering a background "
 "refresh task which will refresh all expired or nearly expired records."
 msgstr ""
+"만료되었거나 거의 만료된 모든 레코드를 갱신하는 백그라운드 갱신 작업을 "
+"실행하기 전에 SSSD가 기다려야 하는 시간(초)을 지정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2653
@@ -3362,12 +3372,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2695
 msgid "User credentials are stored in a SHA512 hash, not in plaintext"
-msgstr ""
+msgstr "사용자 자격증명은 일반 텍스트가 아닌 SHA512 해쉬로 저장됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2705
 msgid "cache_credentials_minimal_first_factor_length (int)"
-msgstr ""
+msgstr "cache_credentials_minimal_first_factor_length (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2708
@@ -3390,7 +3400,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2726
 msgid "account_cache_expiration (integer)"
-msgstr ""
+msgstr "account_cache_expiration (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2729
@@ -3434,12 +3444,13 @@ msgstr "auth_provider (문자열)"
 #: sssd.conf.5.xml:2768
 msgid ""
 "The identification provider used for the domain.  Supported ID providers are:"
-msgstr ""
+msgstr "식별 공급자는 도메인을 위해 사용됩니다.  지원되는 ID 공급자는 다음과 "
+"같습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2772
 msgid "<quote>proxy</quote>: Support a legacy NSS provider."
-msgstr ""
+msgstr "<quote>proxy</quote>: 기존 NSS 공급자를 지원합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2775
@@ -3454,6 +3465,9 @@ msgid ""
 "files</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> for more "
 "information on how to mirror local users and groups into SSSD."
 msgstr ""
+"<quote>files</quote>: 파일 공급자. SSSD에 로컬 사용자와 그룹을 복사(파일 "
+"동기화)하는 방법에서 더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-"
+"files</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>을 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2787
@@ -3462,6 +3476,9 @@ msgid ""
 "ldap</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> for more "
 "information on configuring LDAP."
 msgstr ""
+"<quote>ldap</quote>: LDAP 공급자. LDAP 구성에 대한 더 많은 정보를 위해 "
+"<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2795 sssd.conf.5.xml:2901 sssd.conf.5.xml:2956
@@ -3472,6 +3489,9 @@ msgid ""
 "<manvolnum>5</manvolnum> </citerefentry> for more information on configuring "
 "FreeIPA."
 msgstr ""
+"<quote>ipa</quote>: FreeIPA와 Red Hat Enterprise 식별 관리 공급자. FreeIPA를 "
+"구성에서 더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-ipa</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2804 sssd.conf.5.xml:2910 sssd.conf.5.xml:2965
@@ -3481,11 +3501,14 @@ msgid ""
 "<refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring Active Directory."
 msgstr ""
+"<quote>ad</quote>: 동적 디렉토리 공급자. 동적 디렉토리 구성을 위한 더 많은 "
+"정보를 위해 <citerefentry> <refentrytitle>sssd-ad</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2815
 msgid "use_fully_qualified_names (bool)"
-msgstr ""
+msgstr "use_fully_qualified_names (부울)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2818
@@ -3526,7 +3549,7 @@ msgstr "ignore_group_members (부울)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2848
 msgid "Do not return group members for group lookups."
-msgstr ""
+msgstr "그룹 조회를 위해 그룹 구성원을 반환하지 마세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2851
@@ -3874,7 +3897,8 @@ msgstr "autofs_provider (문자열)"
 #: sssd.conf.5.xml:3201
 msgid ""
 "The autofs provider used for the domain.  Supported autofs providers are:"
-msgstr ""
+msgstr "autofs 공급자는 도메인을 위해 사용됩니다.  지원되는 autofs 공급자는 다음과 "
+"같습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3205
@@ -3883,6 +3907,9 @@ msgid ""
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring LDAP."
 msgstr ""
+"LDAP에서 저장되는 맵을 적재하는 <quote>ldap</quote>. LDAP를 구성하는데 더 "
+"많은 정보를 위해 <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3212
@@ -3891,6 +3918,9 @@ msgid ""
 "<refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring IPA."
 msgstr ""
+"IPA 서버에서 저장되는 맵을 적재하려는 <quote>ipa</quote>. IPA 구성하기 위한 "
+"더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3220
@@ -3899,11 +3929,14 @@ msgid ""
 "<refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring the AD provider."
 msgstr ""
+"AD 서버에서 저장된 맵을 적재하는 <quote>ad</quote>. AD 공급자를 구성하는데 "
+"더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-ad</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3229
 msgid "<quote>none</quote> disables autofs explicitly."
-msgstr ""
+msgstr "<quote>none</quote>은 명시적으로 autofs를 비활성화 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3239
@@ -4063,7 +4096,7 @@ msgstr "ipv4_first: IPv4 주소를 찾아 보고, 만약 실패하면 IPv6을 �
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3407
 msgid "ipv4_only: Only attempt to resolve hostnames to IPv4 addresses."
-msgstr ""
+msgstr "ipv4_only: 호스트이름을 IPv4 주소로만 확인을 시도합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3410
@@ -4073,7 +4106,7 @@ msgstr "ipv6_first: IPv6 주소를 찾아 보고, 만약 실패하면 IPv4을 �
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3413
 msgid "ipv6_only: Only attempt to resolve hostnames to IPv6 addresses."
-msgstr ""
+msgstr "ipv6_only: 호스트이름을 IPv6 주소로만 확인을 시도합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3416
@@ -4148,7 +4181,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3528
 msgid "Default: Use the domain part of machine's hostname"
-msgstr ""
+msgstr "기본값: 장비의 호스트이름의 도메인 부분을 사용합니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3534
@@ -4224,7 +4257,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3595
 msgid "Default: True (False for AD provider)"
-msgstr ""
+msgstr "기본값: 사실 (AD 공급자를 위해 거짓)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3601
@@ -4289,7 +4322,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3641
 msgid "Note: This option only works with the IPA and AD provider."
-msgstr ""
+msgstr "주의: 이와 같은 옵션은 IPA와 AD 공급자와 함께만 동작합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3648
@@ -4299,7 +4332,7 @@ msgstr "subdomain_homedir (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3659
 msgid "%F"
-msgstr ""
+msgstr "%F"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3660
@@ -4325,7 +4358,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3669
 msgid "Default: <filename>/home/%d/%u</filename>"
-msgstr ""
+msgstr "기본값: <filename>/home/%d/%u</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3674
@@ -4375,7 +4408,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3714
 msgid "auto_private_groups (string)"
-msgstr ""
+msgstr "auto_private_groups (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3720
@@ -4461,6 +4494,8 @@ msgid ""
 "[domain/forest.domain/sub.domain]\n"
 "auto_private_groups = false\n"
 msgstr ""
+"[domain/forest.domain/sub.domain]\n"
+"auto_private_groups = false\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:3794
@@ -4470,6 +4505,9 @@ msgid ""
 "subdomain_inherit = auto_private_groups\n"
 "auto_private_groups = false\n"
 msgstr ""
+"[domain/forest.domain]\n"
+"subdomain_inherit = auto_private_groups\n"
+"auto_private_groups = false\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3785
@@ -4491,24 +4529,25 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3809
 msgid "proxy_pam_target (string)"
-msgstr ""
+msgstr "proxy_pam_target (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3812
 msgid "The proxy target PAM proxies to."
-msgstr ""
+msgstr "프락시 대상 PAM을 대리합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3815
 msgid ""
 "Default: not set by default, you have to take an existing pam configuration "
 "or create a new one and add the service name here."
-msgstr ""
+msgstr "기본값: 기본 값으로 설정 되지 않고, 기존 pam 구성을 가져오거나 신규 구성을 "
+"만들고 여기에 서비스 이름을 추가해야 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3823
 msgid "proxy_lib_name (string)"
-msgstr ""
+msgstr "proxy_lib_name (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3826
@@ -4521,7 +4560,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3836
 msgid "proxy_resolver_lib_name (string)"
-msgstr ""
+msgstr "proxy_resolver_lib_name (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3839
@@ -4534,7 +4573,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3850
 msgid "proxy_fast_alias (boolean)"
-msgstr ""
+msgstr "proxy_fast_alias (부울)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3853
@@ -4548,7 +4587,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3867
 msgid "proxy_max_children (integer)"
-msgstr ""
+msgstr "proxy_max_children (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3870
@@ -4563,12 +4602,12 @@ msgstr ""
 msgid ""
 "Options valid for proxy domains.  <placeholder type=\"variablelist\" id="
 "\"0\"/>"
-msgstr ""
+msgstr "프락시 도메인에 유효한 옵션.  <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:3886
 msgid "Application domains"
-msgstr ""
+msgstr "신청 도메인"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:3888
@@ -4876,12 +4915,13 @@ msgstr "use_fully_qualified_names"
 msgid ""
 "For more details about these options see their individual description in the "
 "manual page."
-msgstr ""
+msgstr "이들 옵션에 대한 보다 상세한 부분을 위해 설명서 부분에서 이들 개별 설명을 "
+"참조하세요."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:4113
 msgid "CERTIFICATE MAPPING SECTION"
-msgstr "인증서 맵핑 부분"
+msgstr "인증서 대응 부분"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4115
@@ -4940,7 +4980,7 @@ msgstr "maprule (문자열)"
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4162
 msgid "Defines how the user is found for a given certificate."
-msgstr ""
+msgstr "제공된 인증서를 위해 사용자를 찾는 방법을 정의합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:4168
@@ -5024,7 +5064,7 @@ msgstr "<quote>domains</quote> 옵션이 무시됩니다"
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:4242
 msgid "PROMPTING CONFIGURATION SECTION"
-msgstr ""
+msgstr "프롬프팅 구성 부분"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4244
@@ -5066,36 +5106,38 @@ msgid ""
 "to configure password prompting, allowed options are: <placeholder type="
 "\"variablelist\" id=\"0\"/>"
 msgstr ""
+"비밀번호 프롬프팅을 구성하려면, 허용된 옵션은: <placeholder type="
+"\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4276
 msgid "[prompting/2fa]"
-msgstr ""
+msgstr "[prompting/2fa]"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4280
 msgid "first_prompt"
-msgstr ""
+msgstr "first_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4281
 msgid "to change the string of the prompt for the first factor"
-msgstr ""
+msgstr "첫 번째 요인을 위해 프롬프트의 문자열 변경하려면"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4284
 msgid "second_prompt"
-msgstr ""
+msgstr "second_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4285
 msgid "to change the string of the prompt for the second factor"
-msgstr ""
+msgstr "두 번째 요인을 위해 프롬프트의 문자열 변경하려면"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4288
 msgid "single_prompt"
-msgstr ""
+msgstr "single_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4289
@@ -5206,6 +5248,8 @@ msgid ""
 "[domain/ipa.com/child.ad.com]\n"
 "use_fully_qualified_names = false\n"
 msgstr ""
+"[domain/ipa.com/child.ad.com]\n"
+"use_fully_qualified_names = false\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4346
@@ -5275,7 +5319,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:35
 msgid "You can configure SSSD to use more than one LDAP domain."
-msgstr ""
+msgstr "당신은 둘 이상의 LDAP 도메인을 사용하여 SSSD를 구성 할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:38
@@ -5314,28 +5358,28 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:76 sssd-secrets.5.xml:264
 msgid "The format of the URI must match the format defined in RFC 2732:"
-msgstr ""
+msgstr "URI의 형식은 RFC 2732에서 정의된 형식과 일치해야 합니다:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:79
 msgid "ldap[s]://&lt;host&gt;[:port]"
-msgstr ""
+msgstr "ldap[s]://&lt;host&gt;[:port]"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:82
 msgid ""
 "For explicit IPv6 addresses, &lt;host&gt; must be enclosed in brackets []"
-msgstr ""
+msgstr "명시적인 IPV6 주소를 위해, &lt;host&gt; 대괄호 []으로 묶어야 합니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:85
 msgid "example: ldap://[fc00::126:25]:389"
-msgstr ""
+msgstr "예제: ldap://[fc00::126:25]:389"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:91
 msgid "ldap_chpass_uri, ldap_chpass_backup_uri (string)"
-msgstr ""
+msgstr "ldap_chpass_uri, ldap_chpass_backup_uri (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:94
@@ -5354,7 +5398,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:105
 msgid "Default: empty, i.e. ldap_uri is used."
-msgstr ""
+msgstr "기본값: 공백, 예: ldap_uri가 사용되었습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:111
@@ -5364,7 +5408,7 @@ msgstr "ldap_search_base (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:114
 msgid "The default base DN to use for performing LDAP user operations."
-msgstr ""
+msgstr "LDAP 사용자 동작을 수행하기 위해 사용하려는 기본값 바인드 DN."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:118
@@ -5394,7 +5438,7 @@ msgstr ""
 #: sssd-ldap.5.xml:132 sssd-ad.5.xml:288 sss_override.8.xml:143
 #: sss_override.8.xml:240 sssd-ldap-attributes.5.xml:453
 msgid "Examples:"
-msgstr "예:"
+msgstr "예제:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:135
@@ -5402,6 +5446,8 @@ msgid ""
 "ldap_search_base = dc=example,dc=com (which is equivalent to)  "
 "ldap_search_base = dc=example,dc=com?subtree?"
 msgstr ""
+"ldap_search_base = dc=example,dc=com (which is equivalent to)  "
+"ldap_search_base = dc=example,dc=com?subtree?"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:140
@@ -5409,6 +5455,9 @@ msgid ""
 "ldap_search_base = cn=host_specific,dc=example,dc=com?subtree?"
 "(host=thishost)?dc=example.com?subtree?"
 msgstr ""
+"ldap_search_base = "
+"cn=host_specific,dc=example,dc=com?subtree?(host=thishost)?dc=example."
+"com?subtree?"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:143
@@ -5446,7 +5495,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:174
 msgid "Four schema types are currently supported:"
-msgstr ""
+msgstr "4가지 스키마 유형은 현재 다음과 같이 지원됩니다:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:178
@@ -5492,22 +5541,22 @@ msgstr "ldap_pwmodify_mode (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:218
 msgid "Specify the operation that is used to modify user password."
-msgstr ""
+msgstr "사용자 비밀번호를 수정하는데 사용되는 동작을 지정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:222
 msgid "Two modes are currently supported:"
-msgstr ""
+msgstr "두 방식은 현재 다음과 같이 지원됩니다:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:226
 msgid "exop - Password Modify Extended Operation (RFC 3062)"
-msgstr ""
+msgstr "exop - 비밀번호 수정 확장 동작 (RFC 3062)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ldap.5.xml:232
 msgid "ldap_modify - Direct modification of userPassword (not recommended)."
-msgstr ""
+msgstr "ldap_modify - userPassword의 직접 수정 (추천되지 않음)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:239
@@ -5531,7 +5580,7 @@ msgstr "ldap_default_bind_dn (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:256
 msgid "The default bind DN to use for performing LDAP operations."
-msgstr ""
+msgstr "LDAP 동작을 수행하기 위해 사용하려는 기본값 바인드 DN."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:263
@@ -5546,7 +5595,7 @@ msgstr "기본 바인드 DN의 인증 토큰 유형."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:270
 msgid "The two mechanisms currently supported are:"
-msgstr ""
+msgstr "현재 지원되는 두 개의 동작원리는 다음과 같습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:273
@@ -5604,7 +5653,8 @@ msgstr "ldap_enumeration_refresh_timeout (정수)"
 msgid ""
 "Specifies how many seconds SSSD has to wait before refreshing its cache of "
 "enumerated records."
-msgstr ""
+msgstr "열거된 레코드의 캐쉬를 갱신하기 전에 SSD가 기다려야 하는 시간(초)을 "
+"지정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:332
@@ -5676,7 +5726,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:398
 msgid "Default: True for AD and IPA otherwise False."
-msgstr ""
+msgstr "기본값: AD와 IPA를 위한 참과 그렇지 않으면 거짓."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:404
@@ -5694,12 +5744,13 @@ msgstr "선택적임. 호스트 객체의 검색 기준으로 제공된 문자�
 msgid ""
 "See <quote>ldap_search_base</quote> for information about configuring "
 "multiple search bases."
-msgstr ""
+msgstr "다중 검색 기반 구성에 대한 정보를 위해 <quote>ldap_search_base</quote>를 "
+"참고하세요."
 
 #. type: Content of: <listitem><para>
 #: sssd-ldap.5.xml:416 sssd-ipa.5.xml:394 include/ldap_search_bases.xml:27
 msgid "Default: the value of <emphasis>ldap_search_base</emphasis>"
-msgstr ""
+msgstr "기본값: <emphasis>ldap_search_base</emphasis>의 값"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:423
@@ -6231,7 +6282,7 @@ msgstr "ldap_krb5_keytab (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:943
 msgid "Specify the keytab to use when using SASL/GSSAPI/GSS-SPNEGO."
-msgstr ""
+msgstr "SASL/GSSAPI/GSS-SPNEGO을 사용 할 때에 사용하려는 키탭을 지정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:947 sssd-krb5.5.xml:247
@@ -6308,7 +6359,7 @@ msgstr "krb5_realm (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1013
 msgid "Specify the Kerberos REALM (for SASL/GSSAPI/GSS-SPNEGO auth)."
-msgstr ""
+msgstr "커버러스 범위(SASL/GSSAPI/GSS-SPNEGO 인증을 위해)을 지정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1017
@@ -6430,7 +6481,7 @@ msgstr "ldap_dns_service_name (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1136
 msgid "Specifies the service name to use when service discovery is enabled."
-msgstr ""
+msgstr "서비스 발견이 활성화 되었을 때에 사용하려면 서비스 이름을 지정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1140
@@ -6599,12 +6650,12 @@ msgstr "ldap_access_order (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1284
 msgid "Comma separated list of access control options.  Allowed values are:"
-msgstr ""
+msgstr "접근 제어 옵션의 쉼표로 구분된 목록.   허용된 값은 다음과 같습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1288
 msgid "<emphasis>filter</emphasis>: use ldap_access_filter"
-msgstr ""
+msgstr "<emphasis>필터</emphasis>: ldap_access_filter 사용"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1291
@@ -6639,7 +6690,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1325
 msgid "<emphasis>expire</emphasis>: use ldap_account_expire_policy"
-msgstr ""
+msgstr "<emphasis>유효기간</emphasis>: ldap_account_expire_policy 사용"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1329
@@ -7033,14 +7084,16 @@ msgstr "ldap_sudo_ip (문자열)"
 msgid ""
 "Space separated list of IPv4 or IPv6 host/network addresses that should be "
 "used to filter the rules."
-msgstr ""
+msgstr "규칙을 필터링하는 데 사용되는 IPv4 또는 IPv6 호스트/네트워크 주소의 공백으로 "
+"구분된 목록."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1652
 msgid ""
 "If this option is empty, SSSD will try to discover the addresses "
 "automatically."
-msgstr ""
+msgstr "만야 이와 같은 옵션이 비어 있으면, SSSD는 자동으로 주소를 검색하도록 "
+"시도합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1667
@@ -7428,7 +7481,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:173
 msgid "<option>allow_missing_name</option>"
-msgstr ""
+msgstr "<option>allow_missing_name</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:177
@@ -7521,7 +7574,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss.8.xml:256 pam_sss_gss.8.xml:103
 msgid "MODULE TYPES PROVIDED"
-msgstr ""
+msgstr "제공된 모듈 유형"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:257
@@ -7564,7 +7617,7 @@ msgstr "PAM_USER_UNKNOWN"
 msgid ""
 "The user is not known to the authentication service or the SSSD's PAM "
 "responder is not running."
-msgstr ""
+msgstr "사용자가 인증 서비스를 알지 못하거나 SSSD의 PAM 응답기가 동작하지 않습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:287 pam_sss_gss.8.xml:128
@@ -7581,7 +7634,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:296
 msgid "PAM_PERM_DENIED"
-msgstr ""
+msgstr "PAM_PERM_DENIED"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:299
@@ -7620,7 +7673,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:325 pam_sss_gss.8.xml:136
 msgid "PAM_AUTHINFO_UNAVAIL"
-msgstr ""
+msgstr "PAM_AUTHINFO_UNAVAIL"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:328 pam_sss_gss.8.xml:139
@@ -7681,7 +7734,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:372
 msgid "PAM_SERVICE_ERR"
-msgstr ""
+msgstr "PAM_SERVICE_ERR"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:375
@@ -7691,47 +7744,47 @@ msgstr "서비스 모듈에서 오류 발생."
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:380
 msgid "PAM_NEW_AUTHTOK_REQD"
-msgstr ""
+msgstr "PAM_NEW_AUTHTOK_REQD"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:383
 msgid "The user's authentication token has expired."
-msgstr ""
+msgstr "사용자의 인증서 토큰이 만료되었습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:388
 msgid "PAM_ACCT_EXPIRED"
-msgstr ""
+msgstr "PAM_ACCT_EXPIRED"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:391
 msgid "The user account has expired."
-msgstr ""
+msgstr "사용자 계졍이 만료되었습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:396
 msgid "PAM_SESSION_ERR"
-msgstr ""
+msgstr "PAM_SESSION_ERR"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:399
 msgid "Unable to fetch IPA Desktop Profile rules or user info."
-msgstr ""
+msgstr "IPA 데스크탑 프로파일 규칙 또는 사용자 정보를 가져 올 수 없습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:404
 msgid "PAM_CRED_UNAVAIL"
-msgstr ""
+msgstr "PAM_CRED_UNAVAIL"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:407
 msgid "Unable to retrieve Kerberos user credentials."
-msgstr ""
+msgstr "커버러스 사용자 인증서를 검색 할 수 없습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:412
 msgid "PAM_NO_MODULE_DATA"
-msgstr ""
+msgstr "PAM_NO_MODULE_DATA"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:415
@@ -7744,52 +7797,52 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:422
 msgid "PAM_CONV_ERR"
-msgstr ""
+msgstr "PAM_CONV_ERR"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:425
 msgid "Conversation failure."
-msgstr ""
+msgstr "대화 실패."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:430
 msgid "PAM_AUTHTOK_LOCK_BUSY"
-msgstr ""
+msgstr "PAM_AUTHTOK_LOCK_BUSY"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:433
 msgid "No KDC suitable for password change is available."
-msgstr ""
+msgstr "비밀번호 변경을 위해 어울릴만한 KDC가 없습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:438
 msgid "PAM_ABORT"
-msgstr ""
+msgstr "PAM_ABORT"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:441
 msgid "Unknown PAM call."
-msgstr ""
+msgstr "알 수 없는 PAM 호출."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:446
 msgid "PAM_MODULE_UNKNOWN"
-msgstr ""
+msgstr "PAM_MODULE_UNKNOWN"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:449
 msgid "Unsupported PAM task or command."
-msgstr ""
+msgstr "지원되지 않는 PAM 작업 또는 명령."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:454
 msgid "PAM_BAD_ITEM"
-msgstr ""
+msgstr "PAM_BAD_ITEM"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:457
 msgid "The authentication module cannot handle Smartcard credentials."
-msgstr ""
+msgstr "인증 모듈은 스마트카드 자격증명을 다룰 수 없습니다."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss.8.xml:465
@@ -7827,12 +7880,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: pam_sss_gss.8.xml:11 pam_sss_gss.8.xml:16
 msgid "pam_sss_gss"
-msgstr ""
+msgstr "pam_sss_gss"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: pam_sss_gss.8.xml:17
 msgid "PAM module for SSSD GSSAPI authentication"
-msgstr ""
+msgstr "SSSD GSSAPI 인증을 위한 PAM 모듈"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: pam_sss_gss.8.xml:22
@@ -7840,13 +7893,16 @@ msgid ""
 "<command>pam_sss_gss.so</command> <arg choice='opt'> <replaceable>debug</"
 "replaceable> </arg>"
 msgstr ""
+"<command>pam_sss_gss.so</command> <arg choice='opt'> <replaceable>디버그</"
+"replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:32
 msgid ""
 "<command>pam_sss_gss.so</command> authenticates user over GSSAPI in "
 "cooperation with SSSD."
-msgstr ""
+msgstr "<command>pam_sss_gss.so</command>는 SSSD와 함께 협력하여 GSSAPI를 통해 "
+"사용자를 인증합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:36
@@ -7911,7 +7967,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss_gss.8.xml:93
 msgid "<option>debug</option>"
-msgstr ""
+msgstr "<option>디버그</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss_gss.8.xml:96
@@ -7921,7 +7977,7 @@ msgstr "디버깅 정보 인쇄."
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:104
 msgid "Only the <option>auth</option> module type is provided."
-msgstr ""
+msgstr "<option>auth</option> 모듈 유형만 제공됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss_gss.8.xml:122
@@ -8047,7 +8103,7 @@ msgstr "sssd_krb5_locator_plugin"
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd_krb5_locator_plugin.8.xml:16
 msgid "Kerberos locator plugin"
-msgstr ""
+msgstr "커버러스 로케이터 플러그인"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:22
@@ -8174,7 +8230,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-simple.5.xml:10 sssd-simple.5.xml:16
 msgid "sssd-simple"
-msgstr ""
+msgstr "sssd-simple"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-simple.5.xml:17
@@ -8332,12 +8388,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss-certmap.5.xml:10 sss-certmap.5.xml:16
 msgid "sss-certmap"
-msgstr ""
+msgstr "sss-certmap"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss-certmap.5.xml:17
 msgid "SSSD Certificate Matching and Mapping Rules"
-msgstr ""
+msgstr "SSSD 인증서 일치하고 대응하는 규칙"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss-certmap.5.xml:23
@@ -8363,12 +8419,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss-certmap.5.xml:41
 msgid "RULE COMPONENTS"
-msgstr ""
+msgstr "규칙 구성요소"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss-certmap.5.xml:43
 msgid "PRIORITY"
-msgstr ""
+msgstr "우선 순위"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss-certmap.5.xml:45
@@ -8400,7 +8456,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss-certmap.5.xml:65
 msgid "MATCHING RULE"
-msgstr ""
+msgstr "일치 규칙"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss-certmap.5.xml:67
@@ -8417,7 +8473,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:79
 msgid "&lt;SUBJECT&gt;regular-expression"
-msgstr ""
+msgstr "&lt;SUBJECT&gt;정규-표현"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:82
@@ -8443,7 +8499,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:101
 msgid "Example: &lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN"
-msgstr ""
+msgstr "예제: &lt;SUBJECT&gt;.*,DC=MY,DC=도메인"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:104
@@ -8456,12 +8512,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:110
 msgid "Example: &lt;SUBJECT&gt;^CN=.* \\(Admin\\),DC=MY,DC=DOMAIN$"
-msgstr ""
+msgstr "예제: &lt;SUBJECT&gt;^CN=.* \\(Admin\\),DC=MY,DC=DOMAIN$"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:115
 msgid "&lt;ISSUER&gt;regular-expression"
-msgstr ""
+msgstr "&lt;ISSUER&gt;정규-표현"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:118
@@ -8473,12 +8529,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:123
 msgid "Example: &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$"
-msgstr ""
+msgstr "예제: &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:128
 msgid "&lt;KU&gt;key-usage"
-msgstr ""
+msgstr "&lt;KU&gt; 키-사용"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:131
@@ -8490,47 +8546,47 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:135
 msgid "digitalSignature"
-msgstr ""
+msgstr "digitalSignature"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:136
 msgid "nonRepudiation"
-msgstr ""
+msgstr "nonRepudiation"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:137
 msgid "keyEncipherment"
-msgstr ""
+msgstr "keyEncipherment"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:138
 msgid "dataEncipherment"
-msgstr ""
+msgstr "dataEncipherment"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:139
 msgid "keyAgreement"
-msgstr ""
+msgstr "keyAgreement"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:140
 msgid "keyCertSign"
-msgstr ""
+msgstr "keyCertSign"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:141
 msgid "cRLSign"
-msgstr ""
+msgstr "cRLSign"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:142
 msgid "encipherOnly"
-msgstr ""
+msgstr "encipherOnly"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:143
 msgid "decipherOnly"
-msgstr ""
+msgstr "decipherOnly"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:147
@@ -8542,12 +8598,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:151
 msgid "Example: &lt;KU&gt;digitalSignature,keyEncipherment"
-msgstr ""
+msgstr "예제: &lt;KU&gt;디지탈서명,키암호화"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:156
 msgid "&lt;EKU&gt;extended-key-usage"
-msgstr ""
+msgstr "&lt;EKU&gt;확장-키-사용"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:159
@@ -8559,47 +8615,47 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:163
 msgid "serverAuth"
-msgstr ""
+msgstr "serverAuth"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:164
 msgid "clientAuth"
-msgstr ""
+msgstr "clientAuth"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:165
 msgid "codeSigning"
-msgstr ""
+msgstr "codeSigning"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:166
 msgid "emailProtection"
-msgstr ""
+msgstr "emailProtection"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:167
 msgid "timeStamping"
-msgstr ""
+msgstr "timeStamping"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:168
 msgid "OCSPSigning"
-msgstr ""
+msgstr "OCSPSigning"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:169
 msgid "KPClientAuth"
-msgstr ""
+msgstr "KPClientAuth"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:170
 msgid "pkinit"
-msgstr ""
+msgstr "pkinit"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:171
 msgid "msScLogin"
-msgstr ""
+msgstr "msScLogin"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:175
@@ -8611,12 +8667,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:179
 msgid "Example: &lt;EKU&gt;clientAuth,1.3.6.1.5.2.3.4"
-msgstr ""
+msgstr "예제: &lt;EKU&gt;clientAuth,1.3.6.1.5.2.3.4"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:184
 msgid "&lt;SAN&gt;regular-expression"
-msgstr ""
+msgstr "&lt;SAN&gt;정규-표현"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:187
@@ -8664,7 +8720,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:221
 msgid "&lt;SAN:pkinit&gt;regular-expression"
-msgstr ""
+msgstr "&lt;SAN:pkinit&gt;정규-표현"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:224
@@ -8692,12 +8748,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:241
 msgid "Example: &lt;SAN:1.2.3.4&gt;test"
-msgstr ""
+msgstr "예제: &lt;SAN:1.2.3.4&gt;test"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:246
 msgid "&lt;SAN:otherName&gt;base64-string"
-msgstr ""
+msgstr "&lt;SAN:otherName&gt;base64-string"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:249
@@ -8711,57 +8767,57 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:256
 msgid "Example: &lt;SAN:otherName&gt;MTIz"
-msgstr ""
+msgstr "예제: &lt;SAN:otherName&gt;MTIz"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:261
 msgid "&lt;SAN:rfc822Name&gt;regular-expression"
-msgstr ""
+msgstr "&lt;SAN:rfc822Name&gt;정규-표현"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:264
 msgid "Match the value of the rfc822Name SAN."
-msgstr ""
+msgstr "rfc822Name SAN의 값과 일치합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:267
 msgid "Example: &lt;SAN:rfc822Name&gt;.*@email\\.domain"
-msgstr ""
+msgstr "예제: &lt;SAN:rfc822Name&gt;.*@email\\.domain"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:272
 msgid "&lt;SAN:dNSName&gt;regular-expression"
-msgstr ""
+msgstr "&lt;SAN:dNSName&gt;정규-표현"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:275
 msgid "Match the value of the dNSName SAN."
-msgstr ""
+msgstr "dNSName SAN의 값과 일치합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:278
 msgid "Example: &lt;SAN:dNSName&gt;.*\\.my\\.dns\\.domain"
-msgstr ""
+msgstr "예제: &lt;SAN:dNSName&gt;.*\\.my\\.dns\\.domain"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:283
 msgid "&lt;SAN:x400Address&gt;base64-string"
-msgstr ""
+msgstr "&lt;SAN:x400Address&gt;base64-문자열"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:286
 msgid "Binary match the value of the x400Address SAN."
-msgstr ""
+msgstr "바이너리는 x400Address SAN의 값과 일치합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:289
 msgid "Example: &lt;SAN:x400Address&gt;MTIz"
-msgstr ""
+msgstr "예제: &lt;SAN:x400Address&gt;MTIz"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:294
 msgid "&lt;SAN:directoryName&gt;regular-expression"
-msgstr ""
+msgstr "&lt;SAN:directoryName&gt;정규-표현"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:297
@@ -8769,82 +8825,85 @@ msgid ""
 "Match the value of the directoryName SAN. The same comments as given for &lt;"
 "ISSUER&gt; and &lt;SUBJECT&gt; apply here as well."
 msgstr ""
+"directoryName SAN의 값과 일치합니다. &lt;ISSUER&gt; 그리고 &lt;SUBJECT&gt;를 "
+"위해 제공된 것과 같은 동일한 의견은 여기에 적용하세요."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:302
 msgid "Example: &lt;SAN:directoryName&gt;.*,DC=com"
-msgstr ""
+msgstr "예제: &lt;SAN:directoryName&gt;.*,DC=com"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:307
 msgid "&lt;SAN:ediPartyName&gt;base64-string"
-msgstr ""
+msgstr "&lt;SAN:ediPartyName&gt;base64-문자열"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:310
 msgid "Binary match the value of the ediPartyName SAN."
-msgstr ""
+msgstr "바이너리는 editPartyName SAN의 값과 일치합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:313
 msgid "Example: &lt;SAN:ediPartyName&gt;MTIz"
-msgstr ""
+msgstr "예제: &lt;SAN:ediPartyName&gt;MTIz"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:318
 msgid "&lt;SAN:uniformResourceIdentifier&gt;regular-expression"
-msgstr ""
+msgstr "&lt;SAN:uniformResourceIdentifier&gt;정규-표현"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:321
 msgid "Match the value of the uniformResourceIdentifier SAN."
-msgstr ""
+msgstr "uniformResourceIdentifier SAN의 값과 일치합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:324
 msgid "Example: &lt;SAN:uniformResourceIdentifier&gt;URN:.*"
-msgstr ""
+msgstr "예제: &lt;SAN:uniformResourceIdentifier&gt;URN:.*"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:329
 msgid "&lt;SAN:iPAddress&gt;regular-expression"
-msgstr ""
+msgstr "&lt;SAN:iPAddress&gt;정규-표현"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:332
 msgid "Match the value of the iPAddress SAN."
-msgstr ""
+msgstr "iPAddress SAN의 값과 일치합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:335
 msgid "Example: &lt;SAN:iPAddress&gt;192\\.168\\..*"
-msgstr ""
+msgstr "예제: &lt;SAN:iPAddress&gt;192\\.168\\..*"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:340
 msgid "&lt;SAN:registeredID&gt;regular-expression"
-msgstr ""
+msgstr "&lt;SAN:registeredID&gt;정규-표현"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:343
 msgid "Match the value of the registeredID SAN as dotted-decimal string."
-msgstr ""
+msgstr "점으로 구분된-십진수 문자열과 같은 registeredID SAN의 값과 일치합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:347
 msgid "Example: &lt;SAN:registeredID&gt;1\\.2\\.3\\..*"
-msgstr ""
+msgstr "예제: &lt;SAN:registeredID&gt;1\\.2\\.3\\..*"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss-certmap.5.xml:76
 msgid ""
 "The available options are: <placeholder type=\"variablelist\" id=\"0\"/>"
-msgstr ""
+msgstr "사용 가능한 옵션은 다음과 같습니다: <placeholder type=\"variablelist\" id=\"0"
+"\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss-certmap.5.xml:355
 msgid "MAPPING RULE"
-msgstr ""
+msgstr "대응 규칙"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss-certmap.5.xml:357
@@ -8888,7 +8947,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:393
 msgid "{issuer_dn[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}"
-msgstr ""
+msgstr "{issuer_dn[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:396
@@ -8925,11 +8984,12 @@ msgid ""
 "Example: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!ad}&lt;S&gt;{subject_dn!"
 "ad})"
 msgstr ""
+"예제: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!ad}&lt;S&gt;{subject_dn!ad})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:419
 msgid "{subject_dn[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}"
-msgstr ""
+msgstr "{subject_dn[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:422
@@ -8945,11 +9005,13 @@ msgid ""
 "Example: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!nss_x500}&lt;S&gt;"
 "{subject_dn!nss_x500})"
 msgstr ""
+"예제: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!nss_x500}&lt;S&gt;{subject_dn!"
+"nss_x500})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:445
 msgid "{cert[!(bin|base64)]}"
-msgstr ""
+msgstr "{cert[!(bin|base64)]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:448
@@ -8964,12 +9026,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:456
 msgid "Example: (userCertificate;binary={cert!bin})"
-msgstr ""
+msgstr "예제: (userCertificate;binary={cert!bin})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:461
 msgid "{subject_principal[.short_name]}"
-msgstr ""
+msgstr "{subject_principal[.short_name]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:464
@@ -8985,11 +9047,13 @@ msgid ""
 "Example: (|(userPrincipal={subject_principal})"
 "(samAccountName={subject_principal.short_name}))"
 msgstr ""
+"예제: (|(userPrincipal={subject_principal})(samAccountName={subject_principal"
+".short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:475
 msgid "{subject_pkinit_principal[.short_name]}"
-msgstr ""
+msgstr "{subject_pkinit_principal[.short_name]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:478
@@ -9005,11 +9069,14 @@ msgid ""
 "Example: (|(userPrincipal={subject_pkinit_principal})"
 "(uid={subject_pkinit_principal.short_name}))"
 msgstr ""
+"예제: "
+"(|(userPrincipal={subject_pkinit_principal})(uid={subject_pkinit_principal."
+"short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:489
 msgid "{subject_nt_principal[.short_name]}"
-msgstr ""
+msgstr "{subject_nt_principal[.short_name]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:492
@@ -9025,11 +9092,13 @@ msgid ""
 "Example: (|(userPrincipalName={subject_nt_principal})"
 "(samAccountName={subject_nt_principal.short_name}))"
 msgstr ""
+"예제: (|(userPrincipalName={subject_nt_principal})(samAccountName={subject_nt"
+"_principal.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:503
 msgid "{subject_rfc822_name[.short_name]}"
-msgstr ""
+msgstr "{subject_rfc822_name[.short_name]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:506
@@ -9045,11 +9114,12 @@ msgid ""
 "Example: (|(mail={subject_rfc822_name})(uid={subject_rfc822_name."
 "short_name}))"
 msgstr ""
+"예제: (|(mail={subject_rfc822_name})(uid={subject_rfc822_name.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:517
 msgid "{subject_dns_name[.short_name]}"
-msgstr ""
+msgstr "{subject_dns_name[.short_name]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:520
@@ -9063,12 +9133,12 @@ msgstr ""
 #: sss-certmap.5.xml:526
 msgid ""
 "Example: (|(fqdn={subject_dns_name})(host={subject_dns_name.short_name}))"
-msgstr ""
+msgstr "예제: (|(fqdn={subject_dns_name})(host={subject_dns_name.short_name}))"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:531
 msgid "{subject_uri}"
-msgstr ""
+msgstr "{subject_uri}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:534
@@ -9080,29 +9150,30 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:538
 msgid "Example: (uri={subject_uri})"
-msgstr ""
+msgstr "예제: (uri={subject_uri})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:543
 msgid "{subject_ip_address}"
-msgstr ""
+msgstr "{subject_ip_address}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:546
 msgid ""
 "This template will add the string which is stored in the iPAddress component "
 "of the SAN."
-msgstr ""
+msgstr "이와 같은 템플릿트는 SAN의 iPAddress 구성 요소에서 저장된 것과 같은 문자열이 "
+"추가됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:550
 msgid "Example: (ip={subject_ip_address})"
-msgstr ""
+msgstr "예제: (ip={subject_ip_address})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:555
 msgid "{subject_x400_address}"
-msgstr ""
+msgstr "{subject_x400_address}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:558
@@ -9114,13 +9185,14 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:563
 msgid "Example: (attr:binary={subject_x400_address})"
-msgstr ""
+msgstr "예제: (attr:binary={subject_x400_address})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:568
 msgid ""
 "{subject_directory_name[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}"
 msgstr ""
+"{subject_directory_name[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:571
@@ -9149,12 +9221,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:588
 msgid "Example: (attr:binary={subject_ediparty_name})"
-msgstr ""
+msgstr "예제: (attr:binary={subject_ediparty_name})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:593
 msgid "{subject_registered_id}"
-msgstr ""
+msgstr "{subject_registered_id}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:596
@@ -9166,7 +9238,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:601
 msgid "Example: (oid={subject_registered_id})"
-msgstr ""
+msgstr "예제: (oid={subject_registered_id})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss-certmap.5.xml:386
@@ -9181,7 +9253,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss-certmap.5.xml:609
 msgid "DOMAIN LIST"
-msgstr ""
+msgstr "도메인 목록"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss-certmap.5.xml:611
@@ -9194,7 +9266,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ipa.5.xml:10 sssd-ipa.5.xml:16
 msgid "sssd-ipa"
-msgstr ""
+msgstr "sssd-ipa"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-ipa.5.xml:17
@@ -9309,7 +9381,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:128 sssd-ad.5.xml:1158
 msgid "dyndns_update (boolean)"
-msgstr ""
+msgstr "dyndns_update (부울)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:131
@@ -9339,7 +9411,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:157 sssd-ad.5.xml:1183
 msgid "dyndns_ttl (integer)"
-msgstr ""
+msgstr "dyndns_ttl (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:160 sssd-ad.5.xml:1186
@@ -9360,12 +9432,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:171
 msgid "Default: 1200 (seconds)"
-msgstr ""
+msgstr "기본값t: 1200 (초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:177 sssd-ad.5.xml:1197
 msgid "dyndns_iface (string)"
-msgstr ""
+msgstr "dyndns_iface (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:180 sssd-ad.5.xml:1200
@@ -9394,7 +9466,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:197 sssd-ad.5.xml:1211
 msgid "Example: dyndns_iface = em1, vnet1, vnet2"
-msgstr ""
+msgstr "예제: dyndns_iface = em1, vnet1, vnet2"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:203 sssd-ad.5.xml:1262
@@ -9457,7 +9529,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:259 sssd-ad.5.xml:1217
 msgid "dyndns_refresh_interval (integer)"
-msgstr ""
+msgstr "dyndns_refresh_interval (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:262
@@ -9470,7 +9542,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:275 sssd-ad.5.xml:1235
 msgid "dyndns_update_ptr (bool)"
-msgstr ""
+msgstr "dyndns_update_ptr (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:278 sssd-ad.5.xml:1238
@@ -9506,12 +9578,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:302 sssd-ad.5.xml:1256
 msgid "Default: False (let nsupdate choose the protocol)"
-msgstr ""
+msgstr "기본값: 거짓 (nsupdate가 통신규약을 선택하도록 하세요)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:308 sssd-ad.5.xml:1292
 msgid "dyndns_server (string)"
-msgstr ""
+msgstr "dyndns_server (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:311 sssd-ad.5.xml:1295
@@ -9537,12 +9609,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:326 sssd-ad.5.xml:1310
 msgid "Default: None (let nsupdate choose the server)"
-msgstr ""
+msgstr "기본값: 없음 (nsupdate 서버를 선택하도록 하세요)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:332 sssd-ad.5.xml:1316
 msgid "dyndns_update_per_family (boolean)"
-msgstr ""
+msgstr "dyndns_update_per_family (부울)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:335 sssd-ad.5.xml:1319
@@ -9555,7 +9627,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:347
 msgid "ipa_deskprofile_search_base (string)"
-msgstr ""
+msgstr "ipa_deskprofile_search_base (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:350
@@ -9567,7 +9639,7 @@ msgstr "선택적임. 주어진 문자열을 데스크탑 프로파일과 연관
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:354 sssd-ipa.5.xml:367
 msgid "Default: Use base DN"
-msgstr ""
+msgstr "기본값: 기본 DN 사용"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:360
@@ -9588,7 +9660,7 @@ msgstr "ldap_host_search_base (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:376
 msgid "Deprecated. Use ldap_host_search_base instead."
-msgstr ""
+msgstr "더 이상 사용하지 않음. 대신에 ldap_host_search_base를 사용합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:382
@@ -9598,7 +9670,8 @@ msgstr "ipa_selinux_search_base (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:385
 msgid "Optional. Use the given string as search base for SELinux user maps."
-msgstr ""
+msgstr "선택적임. SELinux 사용자 맵을 위해 검색된 기반으로 제공된 문자열을 "
+"사용합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:401
@@ -9615,7 +9688,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:413
 msgid "Default: the value of <emphasis>cn=trusts,%basedn</emphasis>"
-msgstr ""
+msgstr "기본값: <emphasis>cn=trusts,%basedn</emphasis>의 값"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:420
@@ -9631,7 +9704,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:432
 msgid "Default: the value of <emphasis>cn=ad,cn=etc,%basedn</emphasis>"
-msgstr ""
+msgstr "기본값: <emphasis>cn=ad,cn=etc,%basedn</emphasis>의 값"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:439
@@ -9646,7 +9719,7 @@ msgstr "선택적임. 주어진 문자열을 보기 컨테이너용 검색 기�
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:451
 msgid "Default: the value of <emphasis>cn=views,cn=accounts,%basedn</emphasis>"
-msgstr ""
+msgstr "기본값: <emphasis>cn=views,cn=accounts,%basedn</emphasis>의 값"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:461
@@ -9665,7 +9738,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:473 sssd-ad.5.xml:1334
 msgid "krb5_confd_path (string)"
-msgstr ""
+msgstr "krb5_confd_path (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:476 sssd-ad.5.xml:1337
@@ -9690,7 +9763,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:491
 msgid "ipa_deskprofile_refresh (integer)"
-msgstr ""
+msgstr "ipa_deskprofile_refresh (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:494
@@ -9703,12 +9776,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:501 sssd-ipa.5.xml:531 sssd-ipa.5.xml:547 sssd-ad.5.xml:576
 msgid "Default: 5 (seconds)"
-msgstr ""
+msgstr "기본값: 5 (초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:507
 msgid "ipa_deskprofile_request_interval (integer)"
-msgstr ""
+msgstr "ipa_deskprofile_request_interval (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:510
@@ -9738,7 +9811,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:537
 msgid "ipa_hbac_selinux (integer)"
-msgstr ""
+msgstr "ipa_hbac_selinux (정수)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:540
@@ -9751,7 +9824,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:553
 msgid "ipa_server_mode (boolean)"
-msgstr ""
+msgstr "ipa_server_mode (부울)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:556
@@ -9792,7 +9865,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:595
 msgid "ipa_automount_location (string)"
-msgstr ""
+msgstr "ipa_automount_location (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:598
@@ -9802,17 +9875,17 @@ msgstr "이와같은 IPA 클라이언트가 사용 중인 오토마운터 위치
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:601
 msgid "Default: The location named \"default\""
-msgstr ""
+msgstr "기본값: \"기본값\" 이름의 위치"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd-ipa.5.xml:609
 msgid "VIEWS AND OVERRIDES"
-msgstr ""
+msgstr "보기와 재정의"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:618
 msgid "ipa_view_class (string)"
-msgstr ""
+msgstr "ipa_view_class (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:621
@@ -9822,17 +9895,17 @@ msgstr "보기용 컨테이너의 객체 클래스."
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:624
 msgid "Default: nsContainer"
-msgstr ""
+msgstr "기본값: nsContainer"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:630
 msgid "ipa_view_name (string)"
-msgstr ""
+msgstr "ipa_view_name (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:633
 msgid "Name of the attribute holding the name of the view."
-msgstr ""
+msgstr "보기 이름을 유지하는 속성의 이름."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:637 sssd-ldap-attributes.5.xml:496
@@ -9855,24 +9928,24 @@ msgstr "객체를 재정의 하기 위한 객체 클래스."
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:649
 msgid "Default: ipaOverrideAnchor"
-msgstr ""
+msgstr "기본값: ipaOverrideAnchor"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:655
 msgid "ipa_anchor_uuid (string)"
-msgstr ""
+msgstr "ipa_anchor_uuid (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:658
 msgid ""
 "Name of the attribute containing the reference to the original object in a "
 "remote domain."
-msgstr ""
+msgstr "원격 도메인에서 원래의 객체에 대한 참조를 포함하는 속성의 이름."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:662
 msgid "Default: ipaAnchorUUID"
-msgstr ""
+msgstr "기본값: ipaAnchorUUID"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:668
@@ -9889,7 +9962,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:676
 msgid "User overrides can contain attributes given by"
-msgstr ""
+msgstr "사용자 재정의는 제공된 속성이 포함 될 수 있습니다"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ipa.5.xml:679
@@ -9946,17 +10019,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:716
 msgid "Group overrides can contain attributes given by"
-msgstr ""
+msgstr "그룹 재정의는 제공된 속성이 포함 될 수 있습니다"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ipa.5.xml:719
 msgid "ldap_group_name"
-msgstr ""
+msgstr "ldap_group_name"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ipa.5.xml:722
 msgid "ldap_group_gid_number"
-msgstr ""
+msgstr "ldap_group_gid_number"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:727
@@ -9976,7 +10049,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ipa.5.xml:739
 msgid "SUBDOMAINS PROVIDER"
-msgstr ""
+msgstr "하위-도메인 공급자"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:741
@@ -10008,7 +10081,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ipa.5.xml:762
 msgid "TRUSTED DOMAINS CONFIGURATION"
-msgstr ""
+msgstr "신뢰 할 수 있는 도메인 구성"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-ipa.5.xml:770
@@ -10047,18 +10120,18 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd-ipa.5.xml:787
 msgid "OPTIONS TUNABLE ON IPA MASTERS"
-msgstr ""
+msgstr "IPA MASTERS에서 조정 가능한 옵션"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd-ipa.5.xml:789
 msgid ""
 "The following options can be set in a subdomain section on an IPA master:"
-msgstr ""
+msgstr "다음과 같은 옵션은 IPA 마스터의 하위-도메인 부분에서 설정 할 수 있습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
 #: sssd-ipa.5.xml:793 sssd-ipa.5.xml:823
 msgid "ad_server"
-msgstr ""
+msgstr "ad_server"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
 #: sssd-ipa.5.xml:796
@@ -10088,13 +10161,14 @@ msgstr "ldap_group_search_base"
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd-ipa.5.xml:817
 msgid "OPTIONS TUNABLE ON IPA CLIENTS"
-msgstr ""
+msgstr "IPA 클라이언트에서 조정 가능한 옵션"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd-ipa.5.xml:819
 msgid ""
 "The following options can be set in a subdomain section on an IPA client:"
-msgstr ""
+msgstr "다음과 같은 옵션은 IPA 클라이언트에서 하위-도메인 부분에서 설정 할 수 "
+"있습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd-ipa.5.xml:831
@@ -10147,7 +10221,7 @@ msgstr "sssd-ad"
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-ad.5.xml:17
 msgid "SSSD Active Directory provider"
-msgstr ""
+msgstr "SSSD 동적 디렉토리 공급자"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:23
@@ -10290,7 +10364,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:143
 msgid "ad_enabled_domains (string)"
-msgstr ""
+msgstr "ad_enabled_domains (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:146
@@ -10470,7 +10544,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:310
 msgid "ad_site (string)"
-msgstr ""
+msgstr "ad_site (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:313
@@ -10482,7 +10556,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:324
 msgid "ad_enable_gc (boolean)"
-msgstr ""
+msgstr "ad_enable_gc (부울)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:327
@@ -10505,7 +10579,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:349
 msgid "ad_gpo_access_control (string)"
-msgstr ""
+msgstr "ad_gpo_access_control (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:352
@@ -10611,17 +10685,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:458
 msgid "Default: permissive"
-msgstr ""
+msgstr "기본값: permissive"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:461
 msgid "Default: enforcing"
-msgstr ""
+msgstr "기본값: enforcing"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:467
 msgid "ad_gpo_implicit_deny (boolean)"
-msgstr ""
+msgstr "ad_gpo_implicit_deny (부울)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:470
@@ -10645,28 +10719,28 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd-ad.5.xml:498
 msgid "ad_gpo_implicit_deny = False (default)"
-msgstr ""
+msgstr "ad_gpo_implicit_deny = 거짓 (기본값)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd-ad.5.xml:499 sssd-ad.5.xml:525
 msgid "allow-rules"
-msgstr ""
+msgstr "허용-규칙"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd-ad.5.xml:499 sssd-ad.5.xml:525
 msgid "deny-rules"
-msgstr ""
+msgstr "거부-규칙"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd-ad.5.xml:500 sssd-ad.5.xml:526
 msgid "results"
-msgstr ""
+msgstr "결과"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry>
 #: sssd-ad.5.xml:503 sssd-ad.5.xml:506 sssd-ad.5.xml:509 sssd-ad.5.xml:529
 #: sssd-ad.5.xml:532 sssd-ad.5.xml:535
 msgid "missing"
-msgstr ""
+msgstr "누락"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
 #: sssd-ad.5.xml:504
@@ -10682,12 +10756,12 @@ msgstr "존재"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
 #: sssd-ad.5.xml:507
 msgid "only users not in deny-rules are allowed"
-msgstr ""
+msgstr "거부-규칙에 없는 사용자만이 허용됩니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
 #: sssd-ad.5.xml:510 sssd-ad.5.xml:536
 msgid "only users in allow-rules are allowed"
-msgstr ""
+msgstr "허용-규칙에 있는 사용자만이 허용됩니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
 #: sssd-ad.5.xml:513 sssd-ad.5.xml:539
@@ -10735,7 +10809,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:582
 msgid "ad_gpo_map_interactive (string)"
-msgstr ""
+msgstr "ad_gpo_map_interactive (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:585
@@ -10785,37 +10859,37 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:640
 msgid "gdm-fingerprint"
-msgstr ""
+msgstr "gdm-fingerprint"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:660
 msgid "lightdm"
-msgstr ""
+msgstr "lightdm"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:665
 msgid "lxdm"
-msgstr ""
+msgstr "lxdm"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:670
 msgid "sddm"
-msgstr ""
+msgstr "sddm"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:675
 msgid "unity"
-msgstr "단위"
+msgstr "unity"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:680
 msgid "xdm"
-msgstr ""
+msgstr "xdm"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:689
 msgid "ad_gpo_map_remote_interactive (string)"
-msgstr ""
+msgstr "ad_gpo_map_remote_interactive (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:692
@@ -10866,7 +10940,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:734
 msgid "sshd"
-msgstr ""
+msgstr "sshd"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:739
@@ -10876,7 +10950,7 @@ msgstr "Cockpit"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:748
 msgid "ad_gpo_map_network (string)"
-msgstr ""
+msgstr "ad_gpo_map_network (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:751
@@ -10987,12 +11061,12 @@ msgstr ""
 #: sssd-ad.5.xml:844
 msgid ""
 "Note: Cron service name may differ depending on Linux distribution used."
-msgstr ""
+msgstr "주의: Cron 서비스 이름은 사용되는 리눅스 배포판에 따라 다를 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd-ad.5.xml:850
 msgid "crond"
-msgstr ""
+msgstr "crond"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:859
@@ -11112,7 +11186,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:978
 msgid "ad_gpo_default_right (string)"
-msgstr ""
+msgstr "ad_gpo_default_right (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:981
@@ -11188,12 +11262,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1049
 msgid "Default: 30 days"
-msgstr ""
+msgstr "기본값: 30일"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:1055
 msgid "ad_machine_account_password_renewal_opts (string)"
-msgstr ""
+msgstr "ad_machine_account_password_renewal_opts (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1058
@@ -11208,12 +11282,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1067
 msgid "Default: 86400:750 (24h and 15m)"
-msgstr ""
+msgstr "기본값: 86400:750 (24시간 및 15분)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:1073
 msgid "ad_update_samba_machine_account_password (boolean)"
-msgstr ""
+msgstr "ad_update_samba_machine_account_password (부울)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1076
@@ -11227,7 +11301,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:1089
 msgid "ad_use_ldaps (bool)"
-msgstr ""
+msgstr "ad_use_ldaps (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1092
@@ -11297,7 +11371,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1191
 msgid "Default: 3600 (seconds)"
-msgstr ""
+msgstr "기본값: 3600 (초)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1207
@@ -11338,6 +11412,15 @@ msgid ""
 "ad_hostname = client.example.com\n"
 "ad_domain = example.com\n"
 msgstr ""
+"[도메인/예제]\n"
+"id_provider = ad\n"
+"auth_provider = ad\n"
+"access_provider = ad\n"
+"chpass_provider = ad\n"
+"\n"
+"ad_server = dc1.example.com\n"
+"ad_hostname = client.example.com\n"
+"ad_domain = example.com\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-ad.5.xml:1392
@@ -11347,6 +11430,9 @@ msgid ""
 "ldap_access_order = expire\n"
 "ldap_account_expire_policy = ad\n"
 msgstr ""
+"access_provider = ldap\n"
+"ldap_access_order = expire\n"
+"ldap_account_expire_policy = ad\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:1388
@@ -11377,12 +11463,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-sudo.5.xml:10 sssd-sudo.5.xml:16
 msgid "sssd-sudo"
-msgstr ""
+msgstr "sssd-sudo"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-sudo.5.xml:17
 msgid "Configuring sudo with the SSSD back end"
-msgstr ""
+msgstr "SSSD 백엔드와 함께 sudo 구성하기"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:23
@@ -11446,7 +11532,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-sudo.5.xml:82
 msgid "Configuring SSSD to fetch sudo rules"
-msgstr ""
+msgstr "sudo 규칙을 가져오도록 SSSD 구성하기"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:84
@@ -11654,7 +11740,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd.8.xml:16
 msgid "System Security Services Daemon"
-msgstr ""
+msgstr "시스템 보안 서비스 데몬"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sssd.8.xml:21
@@ -11662,6 +11748,8 @@ msgid ""
 "<command>sssd</command> <arg choice='opt'> <replaceable>options</"
 "replaceable> </arg>"
 msgstr ""
+"<command>sssd</command> <arg choice='opt'> <replaceable>옵션</replaceable> "
+"</arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.8.xml:31
@@ -13209,12 +13297,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_cache.8.xml:10 sss_cache.8.xml:15
 msgid "sss_cache"
-msgstr ""
+msgstr "sss_cache"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_cache.8.xml:16
 msgid "perform cache cleanup"
-msgstr ""
+msgstr "캐쉬 청소를 수행합니다"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_cache.8.xml:21
@@ -13222,6 +13310,8 @@ msgid ""
 "<command>sss_cache</command> <arg choice='opt'> <replaceable>options</"
 "replaceable> </arg>"
 msgstr ""
+"<command>sss_cache</command> <arg choice='opt'> <replaceable>옵션</"
+"replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_cache.8.xml:31
@@ -13252,7 +13342,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:58
 msgid "Invalidate specific user."
-msgstr ""
+msgstr "특정 사용자를 무효화합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:64
@@ -13264,7 +13354,8 @@ msgstr ""
 msgid ""
 "Invalidate all user records. This option overrides invalidation of specific "
 "user if it was also set."
-msgstr ""
+msgstr "모든 사용자 레코드를 무효화합니다. 이와 같은 옵션은 만약 또한 설정 되었으면 "
+"특정 사용자의 무효화를 재정의합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:75
@@ -13276,19 +13367,20 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:80
 msgid "Invalidate specific group."
-msgstr ""
+msgstr "특정 그룹을 무효화합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:86
 msgid "<option>-G</option>,<option>--groups</option>"
-msgstr ""
+msgstr "<option>-G</option>,<option>--groups</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:90
 msgid ""
 "Invalidate all group records. This option overrides invalidation of specific "
 "group if it was also set."
-msgstr ""
+msgstr "모든 그룹 레코드를 무효화합니다. 이와 같은 옵션은 만약 또한 설정 되었으면 "
+"특정 그룹의 무효화를 재정의합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:97
@@ -13302,19 +13394,20 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:102
 msgid "Invalidate specific netgroup."
-msgstr ""
+msgstr "특정 넷그룹을 무효화합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:108
 msgid "<option>-N</option>,<option>--netgroups</option>"
-msgstr ""
+msgstr "<option>-N</option>,<option>--netgroups</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:112
 msgid ""
 "Invalidate all netgroup records. This option overrides invalidation of "
 "specific netgroup if it was also set."
-msgstr ""
+msgstr "모든 넷그룹 레코드를 무효화합니다. 이와 같은 옵션은 만약 또한 설정 되었으면 "
+"특정 넷그룹의 무효화를 재정의합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:119
@@ -13328,7 +13421,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:124
 msgid "Invalidate specific service."
-msgstr ""
+msgstr "특정 서비스를 무효화합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:130
@@ -13340,7 +13433,8 @@ msgstr ""
 msgid ""
 "Invalidate all service records. This option overrides invalidation of "
 "specific service if it was also set."
-msgstr ""
+msgstr "모든 서비스 레코드를 무효화합니다. 이와 같은 옵션은 만약 또한 설정 되었으면 "
+"특정 서비스의 무효화를 재정의합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:141
@@ -13352,19 +13446,20 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:146
 msgid "Invalidate specific autofs maps."
-msgstr ""
+msgstr "특정 autofs 맵을 무효화합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:152
 msgid "<option>-A</option>,<option>--autofs-maps</option>"
-msgstr ""
+msgstr "<option>-A</option>,<option>--autofs-maps</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_cache.8.xml:156
 msgid ""
 "Invalidate all autofs maps. This option overrides invalidation of specific "
 "map if it was also set."
-msgstr ""
+msgstr "모든 autofs 맵을 무효화합니다. 이와 같은 옵션은 만약 또한 설정 되었으면 특정 "
+"맵의 무효화를 재정의합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:163
@@ -13416,7 +13511,8 @@ msgstr ""
 msgid ""
 "Invalidate all cached sudo rules. This option overrides invalidation of "
 "specific sudo rule if it was also set."
-msgstr ""
+msgstr "모든 캐쉬 sudo 규칙을 무효화합니다. 이와 같은 옵션은 만약 또한 설정 되었으면 "
+"특정 sudo 무효화를 재정의합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:209
@@ -13482,7 +13578,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_debuglevel.8.xml:10 sss_debuglevel.8.xml:15
 msgid "sss_debuglevel"
-msgstr ""
+msgstr "sss_debuglevel"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_debuglevel.8.xml:16
@@ -13508,12 +13604,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_seed.8.xml:10 sss_seed.8.xml:15
 msgid "sss_seed"
-msgstr ""
+msgstr "sss_seed"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_seed.8.xml:16
 msgid "seed the SSSD cache with a user"
-msgstr ""
+msgstr "사용자와 함께 SSSD 캐쉬 시드"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_seed.8.xml:21
@@ -13683,12 +13779,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-ifp.5.xml:91
 msgid "name"
-msgstr ""
+msgstr "이름"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:92
 msgid "user's login name"
-msgstr ""
+msgstr "사용자의 로그인 이름"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-ifp.5.xml:95
@@ -13780,7 +13876,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:144
 msgid "Default: 0 (let the caller set an upper limit)"
-msgstr ""
+msgstr "기본값: 0 (발신자가 상한선을 설정하게 하다)"
 
 #. type: Content of: <reference><refentry><refentryinfo>
 #: sss_rpcidmapd.5.xml:8
@@ -13796,7 +13892,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_rpcidmapd.5.xml:26 sss_rpcidmapd.5.xml:32
 msgid "sss_rpcidmapd"
-msgstr ""
+msgstr "sss_rpcidmapd"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_rpcidmapd.5.xml:33
@@ -13849,12 +13945,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><title>
 #: sss_rpcidmapd.5.xml:67
 msgid "Configuration attributes"
-msgstr ""
+msgstr "구성 속성"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sss_rpcidmapd.5.xml:69
 msgid "memcache (bool)"
-msgstr ""
+msgstr "memcache (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sss_rpcidmapd.5.xml:72
@@ -13864,7 +13960,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_rpcidmapd.5.xml:85
 msgid "SSSD INTEGRATION"
-msgstr ""
+msgstr "SSSD 통합"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_rpcidmapd.5.xml:87
@@ -13937,7 +14033,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_ssh_authorizedkeys.1.xml:10 sss_ssh_authorizedkeys.1.xml:15
 msgid "sss_ssh_authorizedkeys"
-msgstr ""
+msgstr "sss_ssh_authorizedkeys"
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
 #: sss_ssh_authorizedkeys.1.xml:11 sss_ssh_knownhostsproxy.1.xml:11
@@ -14003,7 +14099,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss_ssh_authorizedkeys.1.xml:65
 msgid "KEYS FROM CERTIFICATES"
-msgstr ""
+msgstr "인증서에서 키"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss_ssh_authorizedkeys.1.xml:67
@@ -14205,12 +14301,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: idmap_sss.8.xml:29
 msgid "IDMAP OPTIONS"
-msgstr ""
+msgstr "IDMAP 옵션"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: idmap_sss.8.xml:33
 msgid "range = low - high"
-msgstr ""
+msgstr "범위 = 낮음 - 높음"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: idmap_sss.8.xml:35
@@ -15440,7 +15536,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-kcm.8.xml:78
 msgid "USING THE KCM CREDENTIAL CACHE"
-msgstr ""
+msgstr "KCM 자격 증명 캐쉬 사용하기"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-kcm.8.xml:88
@@ -15566,7 +15662,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-kcm.8.xml:166
 msgid "RENEWALS"
-msgstr ""
+msgstr "새 단장"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-kcm.8.xml:174
@@ -15701,7 +15797,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:259
 msgid "Default: 0 (unlimited, only the per-UID quota is enforced)"
-msgstr ""
+msgstr "기본값: 0 (제한없음, UID-당 할당량만 적용됩니다)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-kcm.8.xml:264
@@ -15750,7 +15846,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:295
 msgid "Default: False (Automatic renewals disabled)"
-msgstr ""
+msgstr "기본값: 거짓 (자동으로 새 단장이 비활성화 됨)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-kcm.8.xml:300
@@ -16147,12 +16243,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:332
 msgid "probe dp_req_send"
-msgstr ""
+msgstr "probe dp_req_send"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:335
 msgid "A Data Provider request is submitted."
-msgstr ""
+msgstr "자료 공급자 요청이 제출되었습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><programlisting>
 #: sssd-systemtap.5.xml:338
@@ -16173,12 +16269,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:346
 msgid "probe dp_req_done"
-msgstr ""
+msgstr "probe dp_req_done"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:349
 msgid "A Data Provider request is completed."
-msgstr ""
+msgstr "자료 공급자 요청이 완료되었습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><programlisting>
 #: sssd-systemtap.5.xml:352
@@ -16201,17 +16297,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd-systemtap.5.xml:365
 msgid "MISCELLANEOUS FUNCTIONS"
-msgstr ""
+msgstr "기타 기능"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:372
 msgid "function acct_req_desc(entry_type)"
-msgstr ""
+msgstr "function acct_req_desc(항목_유형)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:375
 msgid "Convert entry_type to string and return string"
-msgstr ""
+msgstr "항목_유형을 문자열로 전환하고 문자열을 반환"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:380
@@ -16219,36 +16315,38 @@ msgid ""
 "function sssd_acct_req_probestr(fc_name, entry_type, filter_type, "
 "filter_value, extra_value)"
 msgstr ""
+"기능 sssd_acct_req_probestr(fc_name, entry_type, filter_type, filter_value, "
+"extra_value)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:384
 msgid "Create probe string based on filter type"
-msgstr ""
+msgstr "필터 유형 기반에서 검색 문자열을 생성합니다"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:389
 msgid "function dp_target_str(target)"
-msgstr ""
+msgstr "기능 dp_target_str(대상)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:392
 msgid "Convert target to string and return string"
-msgstr ""
+msgstr "대상을 문자열을 변환하고 문자열을 반환합니다"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:397
 msgid "function dp_method_str(target)"
-msgstr ""
+msgstr "기능 dp_method_str(대상)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:400
 msgid "Convert method to string and return string"
-msgstr ""
+msgstr "방법을 문자열로 변환하고 문자열을 반환합니다"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-systemtap.5.xml:410
 msgid "SAMPLE SYSTEMTAP SCRIPTS"
-msgstr ""
+msgstr "예제 시스템탭 스크립트"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-systemtap.5.xml:412
@@ -16261,57 +16359,57 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-systemtap.5.xml:418
 msgid "Provided SystemTap scripts are:"
-msgstr ""
+msgstr "제공된 시스템탭 스크립트는 다음과 같습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:422
 msgid "dp_request.stp"
-msgstr ""
+msgstr "dp_request.stp"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:425
 msgid "Monitoring of data provider request performance."
-msgstr ""
+msgstr "자료 공급자 요청 성능의 관리하기."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:430
 msgid "id_perf.stp"
-msgstr ""
+msgstr "id_perf.stp"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:433
 msgid "Monitoring of <command>id</command> command performance."
-msgstr ""
+msgstr "<command>id</command> 명령 성능의 관리하기."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:439
 msgid "ldap_perf.stp"
-msgstr ""
+msgstr "ldap_perf.stp"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:442
 msgid "Monitoring of LDAP queries."
-msgstr ""
+msgstr "LDAP 질의의 관리하기."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-systemtap.5.xml:447
 msgid "nested_group_perf.stp"
-msgstr ""
+msgstr "nested_group_perf.stp"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-systemtap.5.xml:450
 msgid "Performance of nested groups resolving."
-msgstr ""
+msgstr "중첩된 그룹 해결의 성능."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ldap-attributes.5.xml:10 sssd-ldap-attributes.5.xml:16
 msgid "sssd-ldap-attributes"
-msgstr ""
+msgstr "sssd-ldap-attributes"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-ldap-attributes.5.xml:17
 msgid "SSSD LDAP Provider: Mapping Attributes"
-msgstr ""
+msgstr "SSSD LDAP 공급자: 대응 속성"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap-attributes.5.xml:23
@@ -16326,7 +16424,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap-attributes.5.xml:38
 msgid "USER ATTRIBUTES"
-msgstr ""
+msgstr "사용자 속성"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:42
@@ -16341,7 +16439,7 @@ msgstr "LDAP에서 호스트 항목의 개체 클래스입니다."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:48
 msgid "Default: posixAccount"
-msgstr ""
+msgstr "기본값: posixAccount"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:54
@@ -16356,7 +16454,7 @@ msgstr "사용자 로그인 이름에 해당하는 LDAP 속성입니다."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:61
 msgid "Default: uid (rfc2307, rfc2307bis and IPA), sAMAccountName (AD)"
-msgstr ""
+msgstr "기본값: uid (rfc2307, rfc2307bis and IPA), sAMAccountName (AD)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:68
@@ -16371,7 +16469,7 @@ msgstr "사용자 id에 해당하는 LDAP 속성입니다."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:75
 msgid "Default: uidNumber"
-msgstr ""
+msgstr "기본값: uidNumber"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:81
@@ -16381,17 +16479,17 @@ msgstr "ldap_user_gid_number (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:84
 msgid "The LDAP attribute that corresponds to the user's primary group id."
-msgstr ""
+msgstr "사용자의 기본 그룹 id에 해당하는 LDAP 속성."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:88 sssd-ldap-attributes.5.xml:681
 msgid "Default: gidNumber"
-msgstr ""
+msgstr "기본값: gidNumber"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:94
 msgid "ldap_user_primary_group (string)"
-msgstr ""
+msgstr "ldap_user_primary_group (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:97
@@ -16404,12 +16502,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:103
 msgid "Default: unset (LDAP), primaryGroupID (AD)"
-msgstr ""
+msgstr "기본값: unset (LDAP), primaryGroupID (AD)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:109
 msgid "ldap_user_gecos (string)"
-msgstr ""
+msgstr "ldap_user_gecos (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:112
@@ -16419,12 +16517,12 @@ msgstr "사용자의 gecos 부분에 해당하는 LDAP 속성입니다."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:116
 msgid "Default: gecos"
-msgstr ""
+msgstr "기본값: gecos"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:122
 msgid "ldap_user_home_directory (string)"
-msgstr ""
+msgstr "ldap_user_home_directory (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:125
@@ -16488,7 +16586,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:177
 msgid "ldap_user_modify_timestamp (string)"
-msgstr ""
+msgstr "ldap_user_modify_timestamp (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:180 sssd-ldap-attributes.5.xml:732
@@ -16521,12 +16619,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:203
 msgid "Default: shadowLastChange"
-msgstr ""
+msgstr "기본값: shadowLastChange"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:209
 msgid "ldap_user_shadow_min (string)"
-msgstr ""
+msgstr "ldap_user_shadow_min (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:212
@@ -16545,7 +16643,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:227
 msgid "ldap_user_shadow_max (string)"
-msgstr ""
+msgstr "ldap_user_shadow_max (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:230
@@ -16564,7 +16662,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:245
 msgid "ldap_user_shadow_warning (string)"
-msgstr ""
+msgstr "ldap_user_shadow_warning (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:248
@@ -16583,7 +16681,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:264
 msgid "ldap_user_shadow_inactive (string)"
-msgstr ""
+msgstr "ldap_user_shadow_inactive (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:267
@@ -16602,7 +16700,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:283
 msgid "ldap_user_shadow_expire (string)"
-msgstr ""
+msgstr "ldap_user_shadow_expire (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:286
@@ -16634,12 +16732,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:311
 msgid "Default: krbLastPwdChange"
-msgstr ""
+msgstr "기본값: krbLastPwdChange"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:317
 msgid "ldap_user_krb_password_expiration (string)"
-msgstr ""
+msgstr "ldap_user_krb_password_expiration (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:320
@@ -16651,12 +16749,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:326
 msgid "Default: krbPasswordExpiration"
-msgstr ""
+msgstr "기본값: krbPasswordExpiration"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:332
 msgid "ldap_user_ad_account_expires (string)"
-msgstr ""
+msgstr "ldap_user_ad_account_expires (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:335
@@ -16690,7 +16788,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:360
 msgid "ldap_ns_account_lock (string)"
-msgstr ""
+msgstr "ldap_ns_account_lock (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:363
@@ -16801,7 +16899,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:456
 msgid "ldap_user_extra_attrs = telephoneNumber"
-msgstr ""
+msgstr "ldap_user_extra_attrs = telephoneNumber"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:459
@@ -16813,7 +16911,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:463
 msgid "ldap_user_extra_attrs = phone:telephoneNumber"
-msgstr ""
+msgstr "ldap_user_extra_attrs = phone:telephoneNumber"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:466
@@ -16825,7 +16923,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:476
 msgid "ldap_user_ssh_public_key (string)"
-msgstr ""
+msgstr "ldap_user_ssh_public_key (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:479
@@ -16835,7 +16933,7 @@ msgstr "사용자의 SSH 공개 키가 포함된 LDAP 속성입니다."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:483 sssd-ldap-attributes.5.xml:946
 msgid "Default: sshPublicKey"
-msgstr ""
+msgstr "기본값: sshPublicKey"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:489
@@ -16850,7 +16948,7 @@ msgstr "사용자의 성명에 포함된 LDAP 속성입니다."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:502
 msgid "ldap_user_member_of (string)"
-msgstr ""
+msgstr "ldap_user_member_of (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:505
@@ -16860,7 +16958,7 @@ msgstr "사용자의 그룹 멤버쉽에 목록화된 LDAP 속성."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:509 sssd-ldap-attributes.5.xml:933
 msgid "Default: memberOf"
-msgstr ""
+msgstr "기본값: memberOf"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:515
@@ -16983,7 +17081,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:613
 msgid "Default: userCertificate;binary"
-msgstr ""
+msgstr "기본값: userCertificate;binary"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:619
@@ -17043,7 +17141,7 @@ msgstr "그룹 이름에 해당하는 LDAP 속성."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:667
 msgid "Default: cn (rfc2307, rfc2307bis and IPA), sAMAccountName (AD)"
-msgstr ""
+msgstr "기본값: cn (rfc2307, rfc2307bis 및 IPA), sAMAccountName (AD)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:674
@@ -17095,7 +17193,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:729
 msgid "ldap_group_modify_timestamp (string)"
-msgstr ""
+msgstr "ldap_group_modify_timestamp (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:742
@@ -17223,7 +17321,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:852
 msgid "ldap_netgroup_modify_timestamp (string)"
-msgstr ""
+msgstr "ldap_netgroup_modify_timestamp (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap-attributes.5.xml:871
@@ -17270,22 +17368,22 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:907
 msgid "Default: fqdn"
-msgstr ""
+msgstr "기본값: fqdn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:913
 msgid "ldap_host_serverhostname (string)"
-msgstr ""
+msgstr "ldap_host_serverhostname (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:920
 msgid "Default: serverHostname"
-msgstr ""
+msgstr "기본값: serverHostname"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:926
 msgid "ldap_host_member_of (string)"
-msgstr ""
+msgstr "ldap_host_member_of (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:929
@@ -17295,7 +17393,7 @@ msgstr "호스트 그룹의 구성원에 목록화된 LDAP 속성."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:939
 msgid "ldap_host_ssh_public_key (string)"
-msgstr ""
+msgstr "ldap_host_ssh_public_key (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:942
@@ -17373,7 +17471,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap-attributes.5.xml:1026
 msgid "SUDO ATTRIBUTES"
-msgstr ""
+msgstr "SUDO 속성"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1030
@@ -17393,7 +17491,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1042
 msgid "ldap_sudorule_name (string)"
-msgstr ""
+msgstr "ldap_sudorule_name (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1045
@@ -17403,7 +17501,7 @@ msgstr "sudo 규칙 이름에 해당하는 LDAP 속성."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1055
 msgid "ldap_sudorule_command (string)"
-msgstr ""
+msgstr "ldap_sudorule_command (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1058
@@ -17413,12 +17511,12 @@ msgstr "명령 이름에 해당하는 LDAP 속성."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1062
 msgid "Default: sudoCommand"
-msgstr ""
+msgstr "기본값: sudoCommand"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1068
 msgid "ldap_sudorule_host (string)"
-msgstr ""
+msgstr "ldap_sudorule_host (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1071
@@ -17435,7 +17533,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1082
 msgid "ldap_sudorule_user (string)"
-msgstr ""
+msgstr "ldap_sudorule_user (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1085
@@ -17452,7 +17550,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1095
 msgid "ldap_sudorule_option (string)"
-msgstr ""
+msgstr "ldap_sudorule_option (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1098
@@ -17467,7 +17565,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1108
 msgid "ldap_sudorule_runasuser (string)"
-msgstr ""
+msgstr "ldap_sudorule_runasuser (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1111
@@ -17501,7 +17599,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1134
 msgid "ldap_sudorule_notbefore (string)"
-msgstr ""
+msgstr "ldap_sudorule_notbefore (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1137
@@ -17518,7 +17616,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1147
 msgid "ldap_sudorule_notafter (string)"
-msgstr ""
+msgstr "ldap_sudorule_notafter (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1150
@@ -17535,7 +17633,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1161
 msgid "ldap_sudorule_order (string)"
-msgstr ""
+msgstr "ldap_sudorule_order (문자열)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1164
@@ -17570,7 +17668,7 @@ msgstr "LDAP에서 iphost 항목의 객체 클래스."
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1194
 msgid "Default: ipHost"
-msgstr ""
+msgstr "기본값: ipHost"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1200
@@ -17726,7 +17824,7 @@ msgstr ""
 #. type: Content of: <refsect1><title>
 #: include/service_discovery.xml:2
 msgid "SERVICE DISCOVERY"
-msgstr ""
+msgstr "서비스 발견"
 
 #. type: Content of: <refsect1><para>
 #: include/service_discovery.xml:4
