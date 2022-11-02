@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-10-07 12:48+0200\n"
-"PO-Revision-Date: 2022-09-04 11:19+0000\n"
+"PO-Revision-Date: 2022-10-11 11:19+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/uk/>\n"
@@ -24,9 +24,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.14\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.14.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -3355,6 +3355,12 @@ msgid ""
 "IPA and AD provider. If krb5_validate is set to 'False' the PAC checks will "
 "be skipped."
 msgstr ""
+"Застосувати додаткові перевірки до PAC квитка Kerberos, який доступний у "
+"доменах Active Directory і FreeIPA, якщо це налаштовано. Будь ласка, "
+"зауважте, що має бути увімкнено перевірку квитка Kerberos, щоб мати змогу "
+"перевірити PAC, тобто для параметра krb5_validate має бути встановлено "
+"значення «True», яке є типовим для надавачів даних IPA і AD. Якщо для "
+"krb5_validate встановлено значення «False», перевірки PAC буде пропущено."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2268
@@ -3441,16 +3447,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2264
-#, fuzzy
-#| msgid ""
-#| "The following expansions are supported: <placeholder "
-#| "type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "The following options can be used alone or in a comma-separated list: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"Передбачено використання таких замінників: <placeholder "
-"type=\"variablelist\" id=\"0\"/>"
+"Вказаними нижче параметрами можна скористатися окремо або у форматі списку "
+"відокремлених комами значень: <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2322
@@ -5105,11 +5107,6 @@ msgstr "dns_resolver_op_timeout (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3572
-#, fuzzy
-#| msgid ""
-#| "Defines the amount of time (in seconds) to wait to resolve single DNS "
-#| "query (e.g. resolution of a hostname or an SRV record)  before try next "
-#| "hostname or DNS discovery."
 msgid ""
 "Defines the amount of time (in seconds) to wait to resolve single DNS query "
 "(e.g. resolution of a hostname or an SRV record)  before trying the next "
@@ -5253,45 +5250,33 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3695
-#, fuzzy
-#| msgid "ldap_search_timeout (integer)"
 msgid "ldap_search_timeout"
-msgstr "ldap_search_timeout (ціле число)"
+msgstr "ldap_search_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3698
-#, fuzzy
-#| msgid "ldap_network_timeout (integer)"
 msgid "ldap_network_timeout"
-msgstr "ldap_network_timeout (ціле число)"
+msgstr "ldap_network_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3701
-#, fuzzy
-#| msgid "ldap_opt_timeout (integer)"
 msgid "ldap_opt_timeout"
-msgstr "ldap_opt_timeout (ціле число)"
+msgstr "ldap_opt_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3704
-#, fuzzy
-#| msgid "ldap_connection_idle_timeout"
 msgid "ldap_offline_timeout"
-msgstr "ldap_connection_idle_timeout"
+msgstr "ldap_offline_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3707
-#, fuzzy
-#| msgid "ldap_enumeration_refresh_timeout (integer)"
 msgid "ldap_enumeration_refresh_timeout"
-msgstr "ldap_enumeration_refresh_timeout (ціле число)"
+msgstr "ldap_enumeration_refresh_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3710
-#, fuzzy
-#| msgid "ldap_enumeration_refresh_timeout (integer)"
 msgid "ldap_enumeration_refresh_offset"
-msgstr "ldap_enumeration_refresh_timeout (ціле число)"
+msgstr "ldap_enumeration_refresh_offset"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3713
@@ -5300,10 +5285,8 @@ msgstr "ldap_purge_cache_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3716
-#, fuzzy
-#| msgid "ldap_purge_cache_timeout"
 msgid "ldap_purge_cache_offset"
-msgstr "ldap_purge_cache_timeout"
+msgstr "ldap_purge_cache_offset"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3719
@@ -5316,31 +5299,23 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3723
-#, fuzzy
-#| msgid "ldap_krb5_ticket_lifetime (integer)"
 msgid "ldap_krb5_ticket_lifetime"
-msgstr "ldap_krb5_ticket_lifetime (ціле число)"
+msgstr "ldap_krb5_ticket_lifetime"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3726
-#, fuzzy
-#| msgid "ldap_enumeration_search_timeout (integer)"
 msgid "ldap_enumeration_search_timeout"
-msgstr "ldap_enumeration_search_timeout (ціле число)"
+msgstr "ldap_enumeration_search_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3729
-#, fuzzy
-#| msgid "ldap_connection_idle_timeout"
 msgid "ldap_connection_expire_timeout"
-msgstr "ldap_connection_idle_timeout"
+msgstr "ldap_connection_expire_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3732
-#, fuzzy
-#| msgid "ldap_connection_expire_offset (integer)"
 msgid "ldap_connection_expire_offset"
-msgstr "ldap_connection_expire_offset (ціле число)"
+msgstr "ldap_connection_expire_offset"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3735
@@ -12767,17 +12742,13 @@ msgid ""
 "windows-server/identity/ad-ds/manage/understand-security-groups\"> Active "
 "Directory security groups</ulink>"
 msgstr ""
+"SSSD може встановлювати відповідність лише груп захисту Active Directory. "
+"Щоб дізнатися більше про типи груп AD, ознайомтеся із <ulink url=\"https"
+"://docs.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-"
+"security-groups\"> підручником з груп захисту Active Directory</ulink>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:120
-#, fuzzy
-#| msgid ""
-#| "If this option is set to <quote>true</quote> SSSD will not filter out "
-#| "Domain Local groups from remote domains in the AD forest. By default they "
-#| "are filtered out e.g. when following a nested group hierarchy in remote "
-#| "domains because they are not valid in the local domain. To be compatible "
-#| "with other solutions which make AD users and groups available on Linux "
-#| "client this option was added."
 msgid ""
 "SSSD filters out Domain Local groups from remote domains in the AD forest. "
 "By default they are filtered out e.g. when following a nested group "
@@ -12786,12 +12757,12 @@ msgid ""
 "assignment which can be seen in the PAC of the Kerberos ticket of a user "
 "issued by Active Directory."
 msgstr ""
-"Якщо для цього параметра встановлено значення <quote>true</quote>, SSSD не "
-"відфільтровуватиме локальні для домену групи від віддалених доменів у лісі "
-"AD. Типово, групи буде відфільтровано, наприклад при слідуванні за вкладеною "
-"ієрархією груп у віддалених доменах, оскільки вони не є чинними у локальних "
-"доменах. Цей параметр було додано для сумісності із іншими рішеннями, які "
-"роблять користувачів і групи AD доступними у клієнті Linux."
+"SSSD відфільтровуватиме локальні для домену групи від віддалених доменів у "
+"лісі AD. Типово, групи буде відфільтровано, наприклад при слідуванні за "
+"вкладеною ієрархією груп у віддалених доменах, оскільки вони не є чинними у "
+"локальних доменах. Так зроблено для забезпечення узгодженості з призначенням "
+"груп і участі у них Active Directory, яку можна переглянути у PAC квитка "
+"Kerberos користувача, який видано Active Directory."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:138
@@ -21356,17 +21327,13 @@ msgstr "Авторська служба сертифікації (Creator Author
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:294
-#, fuzzy
-#| msgid "Creator Authority"
 msgid "Mandatory Label Authority"
-msgstr "Авторська служба сертифікації (Creator Authority)"
+msgstr "Обов'язкова служба сертифікації міток"
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:295
-#, fuzzy
-#| msgid "Authentication failure."
 msgid "Authentication Authority"
-msgstr "Помилка під час спроби розпізнавання."
+msgstr "Служба розпізнавання"
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:296
@@ -21389,16 +21356,6 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:303
-#, fuzzy
-#| msgid ""
-#| "Since some utilities allow to modify SID based access control information "
-#| "with the help of a name instead of using the SID directly SSSD supports "
-#| "to look up the SID by the name as well. To avoid collisions only the "
-#| "fully qualified names can be used to look up Well-Known SIDs. As a result "
-#| "the domain names <quote>NULL AUTHORITY</quote>, <quote>WORLD AUTHORITY</"
-#| "quote>, <quote> LOCAL AUTHORITY</quote>, <quote>CREATOR AUTHORITY</"
-#| "quote>, <quote>NT AUTHORITY</quote> and <quote>BUILTIN</quote> should not "
-#| "be used as domain names in <filename>sssd.conf</filename>."
 msgid ""
 "Since some utilities allow to modify SID based access control information "
 "with the help of a name instead of using the SID directly SSSD supports to "
@@ -21416,8 +21373,8 @@ msgstr ""
 "уникнути конфліктів, для пошуку добре відомих (Well-Known) SID приймаються "
 "лише повні назви. Отже, не можна використовувати як назви доменів у "
 "<filename>sssd.conf</filename> такі назви: «NULL AUTHORITY», «WORLD "
-"AUTHORITY», «LOCAL AUTHORITY», «CREATOR AUTHORITY», «NT AUTHORITY» та "
-"«BUILTIN»."
+"AUTHORITY», «LOCAL AUTHORITY», «CREATOR AUTHORITY», «MANDATORY LABEL "
+"AUTHORITY», «AUTHENTICATION AUTHORITY», «NT AUTHORITY» та «BUILTIN»."
 
 #. type: Content of: <varlistentry><term>
 #: include/param_help.xml:3
@@ -22272,18 +22229,11 @@ msgstr ""
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:29
-#, fuzzy
-#| msgid "Default: false (AD provider: true)"
 msgid "Default: false (IPA and AD provider: true)"
-msgstr "Типове значення: false (надається AD: true)"
+msgstr "Типове значення: false (надається IPA та AD: true)"
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:32
-#, fuzzy
-#| msgid ""
-#| "Please refer to the <quote>dns_discovery_domain</quote> parameter in the "
-#| "<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-#| "manvolnum> </citerefentry> manual page for more details."
 msgid ""
 "Please note that the ticket validation is the first step when checking the "
 "PAC (see 'pac_check' in the <citerefentry> <refentrytitle>sssd.conf</"
@@ -22291,9 +22241,11 @@ msgid ""
 "details). If ticket validation is disabled the PAC checks will be skipped as "
 "well."
 msgstr ""
-"З докладнішими відомостями щодо параметра «dns_discovery_domain» можна "
-"ознайомитися на сторінці підручника (man) <citerefentry> <refentrytitle>sssd."
-"conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
+"Будь ласка, зауважте, що перевірка квитка є першим кроком при перевірці PAC ("
+"див. «pac_check» на сторінці підручника щодо <citerefentry> "
+"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>, щоб дізнатися більше). Якщо перевірку квитків вимкнено, також "
+"буде вимкнено і перевірки PAC."
 
 #. type: Content of: <variablelist><varlistentry><term>
 #: include/krb5_options.xml:44
