@@ -76,7 +76,7 @@ static int setup_resolv_test(int timeout, struct resolv_test_ctx **ctx)
         return EFAULT;
     }
 
-    ret = resolv_init(test_ctx, test_ctx->ev, timeout, 2000, &test_ctx->resolv);
+    ret = resolv_init(test_ctx, test_ctx->ev, timeout, 2000, true, &test_ctx->resolv);
     if (ret != EOK) {
         ck_abort_msg("Could not init resolv context");
         talloc_free(test_ctx);
@@ -1070,4 +1070,3 @@ int main(int argc, const char *argv[])
     srunner_free(sr);
     return (failure_count==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
-

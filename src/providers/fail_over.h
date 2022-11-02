@@ -74,6 +74,9 @@ struct fo_server;
  * The 'srv_retry_neg_timeout' member specifies how long a SRV lookup
  * waits before previously failed lookup is tried again.
  *
+ * The 'use_search_list' member specifies whether DNS lookup should perform
+ * the search as specified in /etc/resolv.conf or not.
+ *
  * The family_order member specifies the order of address families to
  * try when looking up the service.
  */
@@ -81,6 +84,7 @@ struct fo_options {
     time_t srv_retry_neg_timeout;
     time_t retry_timeout;
     int service_resolv_timeout;
+    bool use_search_list;
     enum restrict_family family_order;
 };
 
@@ -203,6 +207,8 @@ time_t fo_get_server_hostname_last_change(struct fo_server *server);
 int fo_is_srv_lookup(struct fo_server *s);
 
 time_t fo_get_service_retry_timeout(struct fo_service *svc);
+
+bool fo_get_use_search_list(struct fo_server *server);
 
 void fo_reset_services(struct fo_ctx *fo_ctx);
 

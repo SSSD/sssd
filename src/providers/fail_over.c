@@ -160,6 +160,7 @@ fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
     ctx->opts->retry_timeout = opts->retry_timeout;
     ctx->opts->family_order  = opts->family_order;
     ctx->opts->service_resolv_timeout = opts->service_resolv_timeout;
+    ctx->opts->use_search_list = opts->use_search_list;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Created new fail over context, retry timeout is %ld\n",
@@ -1684,6 +1685,21 @@ time_t fo_get_service_retry_timeout(struct fo_service *svc)
 
     return svc->ctx->opts->retry_timeout;
 }
+
+bool fo_get_use_search_list(struct fo_server *server)
+{
+    if (
+        server == NULL ||
+        server->service == NULL ||
+        server->service->ctx == NULL ||
+        server->service->ctx->opts == NULL
+    ) {
+        return true;
+    }
+
+    return server->service->ctx->opts->use_search_list;
+}
+
 
 void fo_reset_servers(struct fo_service *service)
 {
