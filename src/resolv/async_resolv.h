@@ -52,7 +52,8 @@
 struct resolv_ctx;
 
 int resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
-                int timeout, int ares_timeout, struct resolv_ctx **ctxp);
+                int timeout, int ares_timeout, bool use_search_list,
+                struct resolv_ctx **ctxp);
 
 void resolv_reread_configuration(struct resolv_ctx *ctx);
 
