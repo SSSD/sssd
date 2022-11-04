@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-10-07 12:50+0200\n"
+"POT-Creation-Date: 2022-11-04 11:34+0100\n"
 "PO-Revision-Date: 2022-09-11 10:19+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
@@ -2034,48 +2034,48 @@ msgstr "Ruta de las fuentes del fichero passwd"
 msgid "Path of group file sources."
 msgstr "Ruta de las fuentes del fichero group"
 
-#: src/monitor/monitor.c:2360
+#: src/monitor/monitor.c:2361
 msgid "Become a daemon (default)"
 msgstr "Convertirse en demonio (predeterminado)"
 
-#: src/monitor/monitor.c:2362
+#: src/monitor/monitor.c:2363
 msgid "Run interactive (not a daemon)"
 msgstr "Ejecutarse en forma interactiva (no un demonio)"
 
-#: src/monitor/monitor.c:2365
+#: src/monitor/monitor.c:2366
 msgid "Disable netlink interface"
 msgstr "Deshabilitar el interfaz netlink"
 
-#: src/monitor/monitor.c:2367 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
 msgid "Specify a non-default config file"
 msgstr "Indicar un archivo de configuración diferente al predeterminado"
 
-#: src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2370
 msgid "Refresh the configuration database, then exit"
 msgstr "Refrescar la base de datos de configuración, después salir"
 
-#: src/monitor/monitor.c:2372
+#: src/monitor/monitor.c:2373
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "Similar a --genconf, pero solo refresca la sección dada"
 
-#: src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2376
 msgid "Print version number and exit"
 msgstr "Muestra el número de versión y finaliza"
 
-#: src/monitor/monitor.c:2413
+#: src/monitor/monitor.c:2414
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "La opción -i|--interactive no está permitida junto con -D|--daemon\n"
 
-#: src/monitor/monitor.c:2419
+#: src/monitor/monitor.c:2420
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "La opción -g ies incompatible con -D o -i\n"
 
-#: src/monitor/monitor.c:2432
+#: src/monitor/monitor.c:2433
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "Corriendo bajo %<PRIu64>, debe ser root\n"
 
-#: src/monitor/monitor.c:2514
+#: src/monitor/monitor.c:2515
 msgid "SSSD is already running\n"
 msgstr "SSSD ya está corriendo\n"
 
@@ -2485,29 +2485,29 @@ msgstr "Incapaz de leer la entrada del usuario\n"
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
 msgstr "Entrada no válida, por favor suministre bien '%s' o bien '%s'.\n"
 
-#: src/tools/sssctl/sssctl.c:109 src/tools/sssctl/sssctl.c:119
+#: src/tools/sssctl/sssctl.c:133 src/tools/sssctl/sssctl.c:143
 msgid "Error while executing external command\n"
 msgstr "Error mientras se ejecutaba comando externo\n"
 
-#: src/tools/sssctl/sssctl.c:123
+#: src/tools/sssctl/sssctl.c:147
 #, c-format
 msgid "Error while executing external command '%s'\n"
 msgstr "Error ejecutando comando externo '%s'\n"
 
-#: src/tools/sssctl/sssctl.c:126
+#: src/tools/sssctl/sssctl.c:150
 #, c-format
 msgid "Command '%s' failed with [%d]\n"
 msgstr "Comando '%s' falló con [%d]\n"
 
-#: src/tools/sssctl/sssctl.c:173
+#: src/tools/sssctl/sssctl.c:197
 msgid "SSSD needs to be running. Start SSSD now?"
 msgstr "SSSD necesita estar corriendo. ¿Arrancar SSSD ahora?"
 
-#: src/tools/sssctl/sssctl.c:212
+#: src/tools/sssctl/sssctl.c:236
 msgid "SSSD must not be running. Stop SSSD now?"
 msgstr "SSSD no debe estar corriendo. ¿Parar SSSD ahora?"
 
-#: src/tools/sssctl/sssctl.c:248
+#: src/tools/sssctl/sssctl.c:272
 msgid "SSSD needs to be restarted. Restart SSSD now?"
 msgstr "SSSD necesita ser reiniciado. ¿Reiniciar SSSD ahora?"
 

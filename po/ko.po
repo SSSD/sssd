@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-10-07 12:50+0200\n"
+"POT-Creation-Date: 2022-11-04 11:34+0100\n"
 "PO-Revision-Date: 2022-10-31 04:19+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
@@ -1884,48 +1884,48 @@ msgstr "passwd 파일 소스 경로입니다."
 msgid "Path of group file sources."
 msgstr "그룹 파일 소스의 경로입니다."
 
-#: src/monitor/monitor.c:2360
+#: src/monitor/monitor.c:2361
 msgid "Become a daemon (default)"
 msgstr "데몬이 됨 (기본값)"
 
-#: src/monitor/monitor.c:2362
+#: src/monitor/monitor.c:2363
 msgid "Run interactive (not a daemon)"
 msgstr "대화식 실행 (데몬이 아님)"
 
-#: src/monitor/monitor.c:2365
+#: src/monitor/monitor.c:2366
 msgid "Disable netlink interface"
 msgstr "netlink 인터페이스 비활성화"
 
-#: src/monitor/monitor.c:2367 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
 msgid "Specify a non-default config file"
 msgstr "기본이 아닌 config 파일 지정"
 
-#: src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2370
 msgid "Refresh the configuration database, then exit"
 msgstr "설정 데이터베이스를 새로 고친 다음 종료합니다"
 
-#: src/monitor/monitor.c:2372
+#: src/monitor/monitor.c:2373
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "--genconf와 유사하지만 지정된 섹션만 새로 고침합니다"
 
-#: src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2376
 msgid "Print version number and exit"
 msgstr "버전 번호를 인쇄하고 종료합니다"
 
-#: src/monitor/monitor.c:2413
+#: src/monitor/monitor.c:2414
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "옵션 -i|--interactive는 -D|--daemon과 함께 사용할 수 없습니다.\n"
 
-#: src/monitor/monitor.c:2419
+#: src/monitor/monitor.c:2420
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "옵션 -g는 -D 또는 -i와 호환되지 않습니다\n"
 
-#: src/monitor/monitor.c:2432
+#: src/monitor/monitor.c:2433
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "%<PRIu64> 에서 실행 중, root여야 합니다\n"
 
-#: src/monitor/monitor.c:2514
+#: src/monitor/monitor.c:2515
 msgid "SSSD is already running\n"
 msgstr "SSSD가 이미 실행되고 있습니다\n"
 
@@ -2331,29 +2331,29 @@ msgstr "사용자 입력을 읽을 수 없습니다\n"
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
 msgstr "잘못된 입력, '%s' 또는 '%s'를 입력하십시오.\n"
 
-#: src/tools/sssctl/sssctl.c:109 src/tools/sssctl/sssctl.c:119
+#: src/tools/sssctl/sssctl.c:133 src/tools/sssctl/sssctl.c:143
 msgid "Error while executing external command\n"
 msgstr "외부 명령을 실행하는 도중 오류 발생\n"
 
-#: src/tools/sssctl/sssctl.c:123
+#: src/tools/sssctl/sssctl.c:147
 #, c-format
 msgid "Error while executing external command '%s'\n"
 msgstr "외부 명령 '%s'을 실행하는 도중 오류 발생\n"
 
-#: src/tools/sssctl/sssctl.c:126
+#: src/tools/sssctl/sssctl.c:150
 #, c-format
 msgid "Command '%s' failed with [%d]\n"
 msgstr "명령 '%s'이(가) [%d]에 실패했습니다\n"
 
-#: src/tools/sssctl/sssctl.c:173
+#: src/tools/sssctl/sssctl.c:197
 msgid "SSSD needs to be running. Start SSSD now?"
 msgstr "SSSD를 실행해야 합니다. 지금 SSSD를 시작하시겠습니까?"
 
-#: src/tools/sssctl/sssctl.c:212
+#: src/tools/sssctl/sssctl.c:236
 msgid "SSSD must not be running. Stop SSSD now?"
 msgstr "SSSD가 실행되고 있지 않아야 합니다. 지금 SSSD를 중지하시겠습니까?"
 
-#: src/tools/sssctl/sssctl.c:248
+#: src/tools/sssctl/sssctl.c:272
 msgid "SSSD needs to be restarted. Restart SSSD now?"
 msgstr "SSSD를 다시 시작해야 합니다. 지금 SSSD를 다시 시작하시겠습니까?"
 

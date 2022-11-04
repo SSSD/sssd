@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-10-07 12:50+0200\n"
+"POT-Creation-Date: 2022-11-04 11:34+0100\n"
 "PO-Revision-Date: 2022-10-11 11:19+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
@@ -24,8 +24,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
@@ -2041,49 +2041,49 @@ msgstr "Шлях до початкового тексту файла passwd."
 msgid "Path of group file sources."
 msgstr "Шлях до початкового тексту файла group."
 
-#: src/monitor/monitor.c:2360
+#: src/monitor/monitor.c:2361
 msgid "Become a daemon (default)"
 msgstr "Запуститися фонову службу (типова поведінка)"
 
-#: src/monitor/monitor.c:2362
+#: src/monitor/monitor.c:2363
 msgid "Run interactive (not a daemon)"
 msgstr "Запустити у інтерактивному режимі (без фонової служби)"
 
-#: src/monitor/monitor.c:2365
+#: src/monitor/monitor.c:2366
 msgid "Disable netlink interface"
 msgstr "Вимкнути інтерфейс netlink"
 
-#: src/monitor/monitor.c:2367 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
 msgid "Specify a non-default config file"
 msgstr "Вказати нетиповий файл налаштувань"
 
-#: src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2370
 msgid "Refresh the configuration database, then exit"
 msgstr "Оновити налаштування бази даних, потім вийти"
 
-#: src/monitor/monitor.c:2372
+#: src/monitor/monitor.c:2373
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "Подібний до --genconf, але оновлює дані лише вказаного розділу"
 
-#: src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2376
 msgid "Print version number and exit"
 msgstr "Вивести номер версії і завершити роботу"
 
-#: src/monitor/monitor.c:2413
+#: src/monitor/monitor.c:2414
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr ""
 "Параметр -i|--interactive не можна поєднувати із параметром -D|--daemon\n"
 
-#: src/monitor/monitor.c:2419
+#: src/monitor/monitor.c:2420
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "Параметр -g є несумісним із параметрами -D і -i\n"
 
-#: src/monitor/monitor.c:2432
+#: src/monitor/monitor.c:2433
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "Запущено від імені %<PRIu64>, а має бути від імені root\n"
 
-#: src/monitor/monitor.c:2514
+#: src/monitor/monitor.c:2515
 msgid "SSSD is already running\n"
 msgstr "SSSD вже запущено\n"
 
@@ -2494,29 +2494,29 @@ msgstr "Не вдалося прочитати вхідні дані корис�
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
 msgstr "Некоректні вхідні дані, будь ласка, вкажіть «%s» або «%s».\n"
 
-#: src/tools/sssctl/sssctl.c:109 src/tools/sssctl/sssctl.c:119
+#: src/tools/sssctl/sssctl.c:133 src/tools/sssctl/sssctl.c:143
 msgid "Error while executing external command\n"
 msgstr "Помилка під час спроби виконати зовнішню команду\n"
 
-#: src/tools/sssctl/sssctl.c:123
+#: src/tools/sssctl/sssctl.c:147
 #, c-format
 msgid "Error while executing external command '%s'\n"
 msgstr "Помилка під час спроби виконати зовнішню команду «%s»\n"
 
-#: src/tools/sssctl/sssctl.c:126
+#: src/tools/sssctl/sssctl.c:150
 #, c-format
 msgid "Command '%s' failed with [%d]\n"
 msgstr "Не вдалося виконати команду «%s», код [%d]\n"
 
-#: src/tools/sssctl/sssctl.c:173
+#: src/tools/sssctl/sssctl.c:197
 msgid "SSSD needs to be running. Start SSSD now?"
 msgstr "SSSD має бути запущено. Запустити SSSD зараз?"
 
-#: src/tools/sssctl/sssctl.c:212
+#: src/tools/sssctl/sssctl.c:236
 msgid "SSSD must not be running. Stop SSSD now?"
 msgstr "Роботу SSSD не завершено. Зупинити SSSD зараз?"
 
-#: src/tools/sssctl/sssctl.c:248
+#: src/tools/sssctl/sssctl.c:272
 msgid "SSSD needs to be restarted. Restart SSSD now?"
 msgstr "SSSD слід перезапустити. Перезапустити SSSD зараз?"
 

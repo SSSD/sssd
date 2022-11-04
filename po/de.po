@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-10-07 12:50+0200\n"
+"POT-Creation-Date: 2022-11-04 11:34+0100\n"
 "PO-Revision-Date: 2022-07-01 09:40+0000\n"
 "Last-Translator: Joachim Philipp <joachim.philipp@gmail.com>\n"
 "Language-Team: German <https://translate.fedoraproject.org/projects/sssd/"
@@ -1924,48 +1924,48 @@ msgstr ""
 msgid "Path of group file sources."
 msgstr ""
 
-#: src/monitor/monitor.c:2360
+#: src/monitor/monitor.c:2361
 msgid "Become a daemon (default)"
 msgstr "Zum Hintergrunddienst werden (Vorgabe)"
 
-#: src/monitor/monitor.c:2362
+#: src/monitor/monitor.c:2363
 msgid "Run interactive (not a daemon)"
 msgstr "Interaktiv ausführen (nicht als Hintergrunddienst)"
 
-#: src/monitor/monitor.c:2365
+#: src/monitor/monitor.c:2366
 msgid "Disable netlink interface"
 msgstr ""
 
-#: src/monitor/monitor.c:2367 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
 msgid "Specify a non-default config file"
 msgstr "Angabe einer nicht standardmäßigen Konfigurationsdatei"
 
-#: src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2370
 msgid "Refresh the configuration database, then exit"
 msgstr ""
 
-#: src/monitor/monitor.c:2372
+#: src/monitor/monitor.c:2373
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr ""
 
-#: src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2376
 msgid "Print version number and exit"
 msgstr "Versionsnummer ausgeben und das Programm beenden"
 
-#: src/monitor/monitor.c:2413
+#: src/monitor/monitor.c:2414
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2419
+#: src/monitor/monitor.c:2420
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2432
+#: src/monitor/monitor.c:2433
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2514
+#: src/monitor/monitor.c:2515
 msgid "SSSD is already running\n"
 msgstr ""
 
@@ -2374,29 +2374,29 @@ msgstr ""
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl.c:109 src/tools/sssctl/sssctl.c:119
+#: src/tools/sssctl/sssctl.c:133 src/tools/sssctl/sssctl.c:143
 msgid "Error while executing external command\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl.c:123
+#: src/tools/sssctl/sssctl.c:147
 #, c-format
 msgid "Error while executing external command '%s'\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl.c:126
+#: src/tools/sssctl/sssctl.c:150
 #, c-format
 msgid "Command '%s' failed with [%d]\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl.c:173
+#: src/tools/sssctl/sssctl.c:197
 msgid "SSSD needs to be running. Start SSSD now?"
 msgstr ""
 
-#: src/tools/sssctl/sssctl.c:212
+#: src/tools/sssctl/sssctl.c:236
 msgid "SSSD must not be running. Stop SSSD now?"
 msgstr ""
 
-#: src/tools/sssctl/sssctl.c:248
+#: src/tools/sssctl/sssctl.c:272
 msgid "SSSD needs to be restarted. Restart SSSD now?"
 msgstr ""
 
