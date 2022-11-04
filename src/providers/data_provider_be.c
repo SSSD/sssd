@@ -549,6 +549,14 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* Load the resolv.conf file in case a call to dbus' resInit() was missed */
+    if (monitor_be_methods.resInit != NULL) {
+        ret = monitor_be_methods.resInit(NULL, (void *) be_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to reload resolv.conf\n");
+        }
+    }
+
     ret = EOK;
 
 done:
