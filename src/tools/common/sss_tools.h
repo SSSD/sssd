@@ -35,10 +35,6 @@ struct sss_tool_ctx {
     struct sss_domain_info *domains;
 };
 
-errno_t sss_tool_init(TALLOC_CTX *mem_ctx,
-                      int *argc, const char **argv,
-                      struct sss_tool_ctx **_tool_ctx);
-
 struct sss_cmdline {
     const char *exec; /* argv[0] */
     const char *command; /* command name */
@@ -68,14 +64,6 @@ struct sss_route_cmd {
     sss_route_fn fn;
     int flags;
 };
-
-void sss_tool_usage(const char *tool_name,
-                    struct sss_route_cmd *commands);
-
-errno_t sss_tool_route(int argc, const char **argv,
-                       struct sss_tool_ctx *tool_ctx,
-                       struct sss_route_cmd *commands,
-                       void *pvt);
 
 typedef errno_t (*sss_popt_fn)(poptContext pc, char option, void *pvt);
 
