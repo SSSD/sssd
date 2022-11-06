@@ -178,9 +178,9 @@ static errno_t sss_tool_domains_init(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
-errno_t sss_tool_init(TALLOC_CTX *mem_ctx,
-                      int *argc, const char **argv,
-                      struct sss_tool_ctx **_tool_ctx)
+static errno_t sss_tool_init(TALLOC_CTX *mem_ctx,
+                             int *argc, const char **argv,
+                             struct sss_tool_ctx **_tool_ctx)
 {
     struct sss_tool_ctx *tool_ctx;
 
@@ -235,7 +235,7 @@ static size_t sss_tool_max_length(struct sss_route_cmd *commands)
     return max;
 }
 
-void sss_tool_usage(const char *tool_name, struct sss_route_cmd *commands)
+static void sss_tool_usage(const char *tool_name, struct sss_route_cmd *commands)
 {
     int min_len;
     int i;
@@ -304,10 +304,10 @@ done:
     return ret;
 }
 
-errno_t sss_tool_route(int argc, const char **argv,
-                       struct sss_tool_ctx *tool_ctx,
-                       struct sss_route_cmd *commands,
-                       void *pvt)
+static errno_t sss_tool_route(int argc, const char **argv,
+                              struct sss_tool_ctx *tool_ctx,
+                              struct sss_route_cmd *commands,
+                              void *pvt)
 {
     struct sss_cmdline cmdline;
     const char *cmd;
