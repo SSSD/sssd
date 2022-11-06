@@ -336,22 +336,13 @@ static errno_t sss_tool_route(int argc, const char **argv,
             cmdline.argc = argc - 2;
             cmdline.argv = argv + 2;
 
-            if (!sss_tools_handles_init_error(&commands[i], tool_ctx->init_err)) {
-                DEBUG(SSSDBG_FATAL_FAILURE,
-                      "Command %s does not handle initialization error [%d] %s\n",
-                      cmdline.command, tool_ctx->init_err,
-                      sss_strerror(tool_ctx->init_err));
-                return tool_ctx->init_err;
-            }
-
             if (!tool_ctx->print_help) {
                 ret = tool_cmd_init(tool_ctx, &commands[i]);
-                if (ret == ERR_SYSDB_VERSION_TOO_OLD) {
-                    tool_ctx->init_err = ret;
-                } else if (ret != EOK) {
+
+                if (!sss_tools_handles_init_error(&commands[i], ret)) {
                     DEBUG(SSSDBG_FATAL_FAILURE,
-                          "Command initialization failed [%d] %s\n",
-                          ret, sss_strerror(ret));
+                          "Command %s does not handle initialization error [%d] %s\n",
+                          cmdline.command, ret, sss_strerror(ret));
                     return ret;
                 }
             }
