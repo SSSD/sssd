@@ -359,19 +359,19 @@
                     <varlistentry>
                         <term>try_inotify (boolean)</term>
                         <listitem>
-                            <para>
+                            <para condition="have_inotify">
                                 By default, SSSD will attempt to use inotify
                                 to monitor configuration files changes and
                                 will fall back to polling every five seconds
                                 if inotify cannot be used.
                             </para>
-                            <para>
+                            <para condition="have_inotify">
                                 There are some limited situations where it is
                                 preferred that we should skip even trying to
                                 use inotify. In these rare cases, this option
                                 should be set to 'false'
                             </para>
-                            <para>
+                            <para condition="have_inotify">
                                 Default: true on platforms where inotify is
                                 supported. False on other platforms.
                             </para>
