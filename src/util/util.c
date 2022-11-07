@@ -607,6 +607,9 @@ bool is_host_in_domain(const char *host, const char *domain)
     return false;
 }
 
+#ifndef IN_LOOPBACK  /* from <linux/in.h> */
+#define IN_LOOPBACK(a)          ((((long int) (a)) & 0xff000000) == 0x7f000000)
+#endif
 /* addr is in network order for both IPv4 and IPv6 versions */
 bool check_ipv4_addr(struct in_addr *addr, uint8_t flags)
 {
@@ -622,7 +625,7 @@ bool check_ipv4_addr(struct in_addr *addr, uint8_t flags)
         DEBUG(SSSDBG_FUNC_DATA, "Multicast IPv4 address %s\n", straddr);
         return false;
     } else if ((flags & SSS_NO_LOOPBACK)
-               && inet_netof(*addr) == IN_LOOPBACKNET) {
+               && IN_LOOPBACK(ntohl(addr->s_addr))) {
         DEBUG(SSSDBG_FUNC_DATA, "Loopback IPv4 address %s\n", straddr);
         return false;
     } else if ((flags & SSS_NO_LINKLOCAL)
