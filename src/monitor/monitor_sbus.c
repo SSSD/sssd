@@ -156,11 +156,6 @@ int monitor_common_res_init(struct sbus_request *dbus_req, void *data)
         return EIO;
     }
 
-    if (dbus_req == NULL) {
-        /* No reply needed */
-        return EOK;
-    }
-
     /* Send an empty reply to acknowledge receipt */
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
