@@ -514,7 +514,7 @@ class TestMisc(object):
             ssh.login(multihost.client[0].sys_hostname, 'foo1', 'Secret123')
             ssh.sendline('kdestroy -A -q')
             ssh.prompt(timeout=5)
-            ssh.sendline(f'kinit foo1{dom_name.upper()}')
+            ssh.sendline(f'kinit foo1@{dom_name.upper()}')
             ssh.expect('Password for .*:', timeout=10)
             ssh.sendline('Secret123')
             ssh.prompt(timeout=5)
