@@ -381,6 +381,7 @@ class TestProxyMisc(object):
         assert ssh_res, "Ssh for user foo2 failed."
 
     @staticmethod
+    @pytest.mark.tier2
     def test_bz1368467(multihost, backupsssdconf, create_350_posix_users):
         """
         :title: sssd runs out of available child slots and

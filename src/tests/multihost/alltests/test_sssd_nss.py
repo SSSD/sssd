@@ -44,6 +44,14 @@ class TestSssdNss(object):
             2. Should succeed
             3. Should succeed
         """
+        version_fedora = 0
+        version_rel_cent = 0
+        if "Fedora" in multihost.client[0].distro:
+            version_fedora = int(re.search(r'\d+', multihost.client[0].distro).group())
+        else:
+            version_rel_cent = float(re.findall(r"\d+\.\d+", multihost.client[0].distro)[0])
+        if version_rel_cent < 9 and version_fedora < 35:
+            pytest.skip("unsupported configuration")
         tools = sssdTools(multihost.client[0])
         sssd_params = {'domains': ds_instance_name}
         tools.sssd_conf('sssd', sssd_params)
