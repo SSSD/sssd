@@ -34,7 +34,7 @@ from sssd_nss import NssReturnCode
 from sssd_passwd import (call_sssd_getpwnam,
                          call_sssd_getpwuid)
 from sssd_group import call_sssd_getgrnam, call_sssd_getgrgid
-from files_ops import passwd_ops_setup, group_ops_setup, PasswdOps, GroupOps
+from files_ops import PasswdOps, GroupOps
 from util import unindent
 
 # Sync this with files_ops.c

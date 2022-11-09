@@ -31,7 +31,6 @@ import kdc
 import krb5utils
 import config
 from util import unindent
-from intg.files_ops import passwd_ops_setup
 
 MAX_SECRETS = 10
 
