@@ -85,6 +85,7 @@ struct be_ctx {
     struct session_recording_conf sr_conf;
     struct be_failover_ctx *be_fo;
     struct be_resolv_ctx *be_res;
+    struct file_watch_ctx *file_ctx;
 
     /* Functions to be invoked when the
      * backend goes online or offline

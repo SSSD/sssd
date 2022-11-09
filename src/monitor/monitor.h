@@ -22,8 +22,6 @@
 #ifndef _MONITOR_H_
 #define _MONITOR_H_
 
-#define RESOLV_CONF_PATH "/etc/resolv.conf"
-
 /* for detecting if NSCD is running */
 #ifndef NSCD_SOCKET_PATH
 #define NSCD_SOCKET_PATH "/var/run/nscd/socket"
