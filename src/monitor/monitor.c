@@ -28,25 +28,16 @@
 #include <time.h>
 #include <string.h>
 #include <signal.h>
-#ifdef HAVE_SYS_INOTIFY_H
-#include <sys/inotify.h>
-#endif
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <popt.h>
 #include <tevent.h>
 
-/* Needed for res_init() */
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <resolv.h>
-
 #include "confdb/confdb.h"
 #include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
 #include "monitor/monitor.h"
-#include "util/file_watch.h"
 #include "sss_iface/sss_iface_async.h"
 
 #ifdef USE_KEYRING
@@ -130,7 +121,6 @@ struct mt_ctx {
     int num_services;
     int started_services;
     struct mt_svc *svc_list;
-    struct file_watch_ctx *file_ctx;
     bool check_children;
     bool services_started;
     struct netlink_ctx *nlctx;
@@ -579,29 +569,6 @@ static int add_services_startup_timeout(struct mt_ctx *ctx)
 
 static void monitor_restart_service(struct mt_svc *svc);
 
-static int service_signal_dns_reload(struct mt_svc *svc);
-static void monitor_update_resolv(const char *filename, void *arg)
-{
-    int ret;
-    struct mt_svc *cur_svc;
-    struct mt_ctx *mt_ctx;
-
-    mt_ctx = (struct mt_ctx *) arg;
-
-    DEBUG(SSSDBG_TRACE_LIBS, "%s has been updated. Reloading.\n", filename);
-
-    ret = res_init();
-    if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to read %s.\n", filename);
-        return;
-    }
-
-    /* Signal all services to reload their DNS configuration */
-    for (cur_svc = mt_ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
-        service_signal_dns_reload(cur_svc);
-    }
-}
-
 typedef struct tevent_req *
 (*service_signal_send_fn)(TALLOC_CTX *mem_ctx,
                           struct sbus_connection *conn,
@@ -660,11 +627,6 @@ static void service_signal_done(struct tevent_req *req)
           "Unable to signal service [%d]: %s\n", ret, sss_strerror(ret));
 }
 
-static int service_signal_dns_reload(struct mt_svc *svc)
-{
-    return service_signal(svc, sbus_call_service_resInit_send,
-                          sbus_call_service_resInit_recv);
-}
 static int service_signal_offline(struct mt_svc *svc)
 {
     return service_signal(svc, sbus_call_service_goOffline_send,
@@ -1448,20 +1410,6 @@ static void monitor_quit_signal(struct tevent_context *ev,
     monitor_quit(mt_ctx, 0);
 }
 
-static void signal_res_init(struct mt_ctx *monitor)
-{
-    struct mt_svc *cur_svc;
-    int ret;
-    DEBUG(SSSDBG_OP_FAILURE, "Reloading Resolv.conf.\n");
-
-    ret = res_init();
-    if (ret == 0) {
-        for(cur_svc = monitor->svc_list; cur_svc; cur_svc = cur_svc->next) {
-            service_signal_dns_reload(cur_svc);
-        }
-    }
-}
-
 static void signal_offline(struct tevent_context *ev,
                            struct tevent_signal *se,
                            int signum,
@@ -1510,7 +1458,6 @@ static void signal_offline_reset(struct tevent_context *ev,
             service_signal_sysbus_reconnect(cur_svc);
         }
     }
-    signal_res_init(monitor);
 }
 
 static int monitor_ctx_destructor(void *mem)
@@ -1608,42 +1555,6 @@ done:
     return ret;
 }
 
-static int monitor_config_files(struct mt_ctx *ctx)
-{
-    int ret;
-    bool monitor_resolv_conf;
-    bool use_inotify;
-
-    /* Watch for changes to the DNS resolv.conf */
-    ret = confdb_get_bool(ctx->cdb,
-                          CONFDB_MONITOR_CONF_ENTRY,
-                          CONFDB_MONITOR_RESOLV_CONF,
-                          true, &monitor_resolv_conf);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ret = confdb_get_bool(ctx->cdb,
-                          CONFDB_MONITOR_CONF_ENTRY,
-                          CONFDB_MONITOR_TRY_INOTIFY,
-                          true, &use_inotify);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    if (monitor_resolv_conf) {
-        ctx->file_ctx = fw_watch_file(ctx, ctx->ev, RESOLV_CONF_PATH,
-                                      use_inotify, monitor_update_resolv, ctx);
-        if (ctx->file_ctx == NULL) {
-            return ENOMEM;
-        }
-    } else {
-        DEBUG(SSS_LOG_NOTICE, "%s monitoring is disabled\n", RESOLV_CONF_PATH);
-    }
-
-    return EOK;
-}
-
 static void monitor_sbus_connected(struct tevent_req *req);
 
 static int monitor_process_init(struct mt_ctx *ctx,
@@ -1722,12 +1633,6 @@ static int monitor_process_init(struct mt_ctx *ctx,
     /* Set up the SIGCHLD handler */
     ret = sss_sigchld_init(ctx, ctx->ev, &ctx->sigchld_ctx);
     if (ret != EOK) return ret;
-
-    /* Set up watchers for system config files */
-    ret = monitor_config_files(ctx);
-    if (ret != EOK) {
-        return ret;
-    }
 
     /* Avoid a startup race condition between process.
      * We need to handle DB upgrades or DB creation only

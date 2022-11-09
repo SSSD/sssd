@@ -33,6 +33,8 @@
 #include <popt.h>
 #include <signal.h>
 
+#include <resolv.h>
+
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 
@@ -45,8 +47,11 @@
 #include "providers/be_refresh.h"
 #include "providers/be_ptask.h"
 #include "util/child_common.h"
+#include "util/file_watch.h"
 #include "resolv/async_resolv.h"
 #include "sss_iface/sss_iface_async.h"
+
+#define RESOLV_CONF_PATH "/etc/resolv.conf"
 
 #define ONLINE_CB_RETRY 3
 #define ONLINE_CB_RETRY_MAX_DELAY 4
@@ -605,12 +610,6 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
 
     tevent_req_set_callback(req, dp_initialized, be_ctx);
 
-    /* Load the resolv.conf file in case a call to dbus' resInit() was missed */
-    ret = data_provider_res_init(be_ctx, NULL, be_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to reload resolv.conf\n");
-    }
-
     ret = EOK;
 
 done:
@@ -619,6 +618,58 @@ done:
     }
 
     return ret;
+}
+
+static void watch_update_resolv(const char *filename, void *arg)
+{
+    int ret;
+    struct be_ctx *be_ctx = (struct be_ctx *) arg;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Reloading %s.\n", filename);
+    resolv_reread_configuration(be_ctx->be_res->resolv);
+    ret = res_init();
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to reload %s.\n", filename);
+        return;
+    }
+    check_if_online(be_ctx, 1);
+}
+
+static int watch_config_files(struct be_ctx *ctx)
+{
+    int ret;
+    bool monitor_resolv_conf;
+    bool use_inotify;
+
+    /* Watch for changes to the DNS resolv.conf */
+    ret = confdb_get_bool(ctx->cdb,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_RESOLV_CONF,
+                          true, &monitor_resolv_conf);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = confdb_get_bool(ctx->cdb,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_TRY_INOTIFY,
+                          true, &use_inotify);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (monitor_resolv_conf) {
+        ctx->file_ctx = fw_watch_file(ctx, ctx->ev, RESOLV_CONF_PATH,
+                                      use_inotify, watch_update_resolv, ctx);
+        if (ctx->file_ctx == NULL) {
+            return ENOMEM;
+        }
+
+    } else {
+        DEBUG(SSS_LOG_NOTICE, "%s watching is disabled\n", RESOLV_CONF_PATH);
+    }
+
+    return EOK;
 }
 
 static void fix_child_log_permissions(uid_t uid, gid_t gid)
@@ -698,6 +749,12 @@ static void dp_initialized(struct tevent_req *req)
     }
 
     fix_child_log_permissions(be_ctx->uid, be_ctx->gid);
+
+    /* Set up watchers for system config files */
+    ret = watch_config_files(be_ctx);
+    if (ret != EOK) {
+        goto done;
+    }
 
     ret = become_user(be_ctx->uid, be_ctx->gid);
     if (ret != EOK) {
