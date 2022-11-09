@@ -21,7 +21,7 @@ import grp
 import pytest
 
 import ent
-from files_ops import passwd_ops_setup, group_ops_setup
+
 
 USER1 = dict(name='user1', passwd='*', uid=10001, gid=20001,
              gecos='User for tests',
