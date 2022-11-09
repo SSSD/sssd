@@ -18,8 +18,9 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from sbus_Invoker import *
-from sbus_CodeGen import CodeGen
+from collections import OrderedDict
+from sbus_Invoker import Invoker, InvokerArgumentType, InvokerCaller, InvokerKeygen
+from sbus_Introspection import SBus
 from sbus_DataType import DataType
 
 
@@ -103,6 +104,18 @@ class Generator:
             generator.generate()
 
         templates.write()
+
+    @staticmethod
+    def FilterAnnotations(annotations):
+        dict = OrderedDict()
+        if annotations is None or not annotations:
+            return dict
+
+        for name, annotation in annotations.items():
+            if not name.startswith("codegen."):
+                dict[name] = annotation
+
+        return dict
 
     class Base(object):
         """
@@ -296,7 +309,7 @@ class Generator:
             """
 
             # We do not include codegen annotations.
-            filtered = CodeGen.FilterAnnotations(annotations)
+            filtered = Generator.FilterAnnotations(annotations)
 
             show = True
             if filtered is None or not filtered:
@@ -385,7 +398,7 @@ class Generator:
 
         def generateAnnotations(self, token, annotations):
             # We do not include codegen annotations.
-            filtered = CodeGen.FilterAnnotations(annotations)
+            filtered = Generator.FilterAnnotations(annotations)
 
             if filtered is None or not filtered:
                 return

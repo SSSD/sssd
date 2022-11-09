@@ -4,9 +4,13 @@ from __future__ import print_function
 import subprocess
 import random
 import pytest
-from sssd.testlib.common.qe_class import session_multihost
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 from sssd.testlib.common.utils import sssdTools
+
+
+pytest_plugins = (
+    'sssd.testlib.common.fixtures',
+)
 
 
 def pytest_configure():

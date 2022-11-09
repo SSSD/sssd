@@ -35,7 +35,6 @@ import kdc
 import pytest
 
 from intg.util import unindent
-from intg.files_ops import passwd_ops_setup
 
 LDAP_BASE_DN = "dc=example,dc=com"
 

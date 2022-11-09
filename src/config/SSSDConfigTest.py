@@ -36,7 +36,7 @@ if srcdir:
     srcdir = srcdir + "/src/config"
 else:
     srcdir = "."
-import SSSDConfig
+import SSSDConfig  # noqa
 
 
 def create_temp_dir():

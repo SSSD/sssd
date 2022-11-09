@@ -1,4 +1,3 @@
-from sssd.testlib.common.qe_class import session_multihost
 from sssd.testlib.common.libkrb5 import krb5srv
 from sssd.testlib.common.utils import sssdTools, PkiTools
 from sssd.testlib.common.utils import LdapOperations
@@ -14,6 +13,11 @@ except ImportError:
 import os
 import tempfile
 import ldap
+
+
+pytest_plugins = (
+    'sssd.testlib.common.fixtures',
+)
 
 
 def pytest_configure():
@@ -449,9 +453,6 @@ def setup_session(request, session_multihost,
                   create_posix_usersgroups,
                   enable_oddjob):
     """ Run all session scoped fixtures """
-    # pylint: disable=unused-argument
-    _pytest_fixture = [package_install, run_authselect,
-                       setup_ldap, setup_kerberos, create_posix_usersgroups]
     tp = TestPrep(session_multihost)
     tp.setup()
 

@@ -22,8 +22,9 @@ import os
 import argparse
 from collections import OrderedDict
 from sbus_Introspection import Introspectable
-from sbus_Template import *
-from sbus_Generator import *
+from sbus_Template import TemplateFile
+from sbus_Generator import Generator
+from sbus_DataType import DataType
 
 
 class CodeGen:
@@ -77,18 +78,6 @@ class CodeGen:
 
     def generate(self):
         Generator.GenerateCode(self.templates, self.interfaces)
-
-    @staticmethod
-    def FilterAnnotations(annotations):
-        dict = OrderedDict()
-        if annotations is None or not annotations:
-            return dict
-
-        for name, annotation in annotations.items():
-            if not name.startswith("codegen."):
-                dict[name] = annotation
-
-        return dict
 
     class Options:
         def __init__(self,
