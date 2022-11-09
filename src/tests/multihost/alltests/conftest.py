@@ -12,11 +12,15 @@ import random
 from constants import ds_instance_name, ds_suffix, krb_realm, ds_rootdn, ds_rootpw
 from sssd.testlib.common.libkrb5 import krb5srv
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF, NSSWITCH_DEFAULT_CONF
-from sssd.testlib.common.qe_class import session_multihost
 from sssd.testlib.common.utils import PkiTools, sssdTools, LdapOperations
 from sssd.testlib.common.libdirsrv import DirSrvWrap
 from sssd.testlib.common.exceptions import PkiLibException, LdapException
 from datetime import datetime, timedelta
+
+
+pytest_plugins = (
+    'sssd.testlib.common.fixtures',
+)
 
 
 def pytest_configure():

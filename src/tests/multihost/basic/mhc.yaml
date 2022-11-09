@@ -4,5 +4,5 @@ domains:
   type: sssd
   hosts:
   - name: client
-    external_hostname: master.client.vm
+    external_hostname: client.test
     role: master
