@@ -75,7 +75,6 @@ autofs_register_service_iface(struct autofs_ctx *autofs_ctx,
     SBUS_INTERFACE(iface_svc,
         sssd_service,
         SBUS_METHODS(
-            SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),
             SBUS_SYNC(METHOD, sssd_service, rotateLogs, responder_logrotate, rctx),
             SBUS_SYNC(METHOD, sssd_service, clearEnumCache, autofs_clean_hash_table, autofs_ctx)
         ),

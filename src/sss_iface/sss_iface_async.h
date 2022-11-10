@@ -58,10 +58,4 @@ sss_monitor_service_init(TALLOC_CTX *mem_ctx,
                          time_t *last_request_time,
                          struct sbus_connection **_conn);
 
-
-errno_t
-monitor_common_res_init(TALLOC_CTX *mem_ctx,
-                       struct sbus_request *sbus_req,
-                       void *no_data);
-
 #endif /* _SSS_IFACE_ASYNC_H_ */
