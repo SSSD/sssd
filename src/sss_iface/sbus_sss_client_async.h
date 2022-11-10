@@ -477,17 +477,6 @@ sbus_call_service_goOffline_recv
     (struct tevent_req *req);
 
 struct tevent_req *
-sbus_call_service_resInit_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path);
-
-errno_t
-sbus_call_service_resInit_recv
-    (struct tevent_req *req);
-
-struct tevent_req *
 sbus_call_service_resetOffline_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,

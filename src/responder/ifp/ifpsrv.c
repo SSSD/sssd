@@ -138,7 +138,6 @@ ifp_register_service_iface(struct ifp_ctx *ifp_ctx,
     SBUS_INTERFACE(iface_svc,
         sssd_service,
         SBUS_METHODS(
-            SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),
             SBUS_SYNC(METHOD, sssd_service, rotateLogs, responder_logrotate, rctx),
             SBUS_SYNC(METHOD, sssd_service, sysbusReconnect, ifp_sysbus_reconnect, ifp_ctx)
         ),

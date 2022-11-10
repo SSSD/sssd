@@ -396,7 +396,6 @@ sss_nss_register_service_iface(struct sss_nss_ctx *nss_ctx,
     SBUS_INTERFACE(iface_svc,
         sssd_service,
         SBUS_METHODS(
-            SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),
             SBUS_SYNC(METHOD, sssd_service, rotateLogs, responder_logrotate, rctx),
             SBUS_SYNC(METHOD, sssd_service, clearEnumCache, sss_nss_clear_netgroup_hash_table, nss_ctx),
             SBUS_SYNC(METHOD, sssd_service, clearMemcache, sss_nss_clear_memcache, nss_ctx),

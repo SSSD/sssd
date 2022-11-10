@@ -15,7 +15,6 @@
     <interface name="sssd.service">
         <annotation name="codegen.Name" value="service" />
         <annotation name="codegen.SyncCaller" value="false" />
-        <method name="resInit" />
         <method name="goOffline" />
         <method name="resetOffline" />
         <method name="rotateLogs" />

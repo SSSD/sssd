@@ -20,7 +20,6 @@
 
 #include <unistd.h>
 #include <sys/stat.h>
-#include <resolv.h>
 
 #include "util/util.h"
 #include "sbus/sbus.h"
@@ -191,19 +190,4 @@ sss_monitor_service_init_done(struct tevent_req *req)
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Got id ack and version (%d) from Monitor\n",
           version);
-}
-
-errno_t
-monitor_common_res_init(TALLOC_CTX *mem_ctx,
-                        struct sbus_request *sbus_req,
-                        void *no_data)
-{
-    int ret;
-
-    ret = res_init();
-    if (ret != 0) {
-        return EIO;
-    }
-
-    return EOK;
 }

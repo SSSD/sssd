@@ -907,28 +907,6 @@
         (handler_send), (handler_recv), (data)); \
 })
 
-/* Method: sssd.service.resInit */
-#define SBUS_METHOD_SYNC_sssd_service_resInit(handler, data) ({ \
-    SBUS_CHECK_SYNC((handler), (data)); \
-    sbus_method_sync("resInit", \
-        &_sbus_sss_args_sssd_service_resInit, \
-        NULL, \
-        _sbus_sss_invoke_in__out__send, \
-        NULL, \
-        (handler), (data)); \
-})
-
-#define SBUS_METHOD_ASYNC_sssd_service_resInit(handler_send, handler_recv, data) ({ \
-    SBUS_CHECK_SEND((handler_send), (data)); \
-    SBUS_CHECK_RECV((handler_recv)); \
-    sbus_method_async("resInit", \
-        &_sbus_sss_args_sssd_service_resInit, \
-        NULL, \
-        _sbus_sss_invoke_in__out__send, \
-        NULL, \
-        (handler_send), (handler_recv), (data)); \
-})
-
 /* Method: sssd.service.resetOffline */
 #define SBUS_METHOD_SYNC_sssd_service_resetOffline(handler, data) ({ \
     SBUS_CHECK_SYNC((handler), (data)); \
