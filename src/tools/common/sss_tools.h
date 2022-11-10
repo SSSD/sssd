@@ -54,7 +54,8 @@ typedef errno_t
 #define SSS_TOOL_DELIMITER(message) {"", _(message), 0, NULL, 0}
 #define SSS_TOOL_LAST {NULL, NULL, 0, NULL, 0}
 
-#define SSS_TOOL_FLAG_SKIP_CMD_INIT 0x01
+#define SSS_TOOL_FLAG_SKIP_CMD_INIT   0x01
+#define SSS_TOOL_FLAG_SKIP_ROOT_CHECK 0x02
 
 struct sss_route_cmd {
     const char *command;
