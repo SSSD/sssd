@@ -142,7 +142,6 @@ sss_resp_register_service_iface(struct resp_ctx *rctx)
     SBUS_INTERFACE(iface_svc,
         sssd_service,
         SBUS_METHODS(
-            SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),
             SBUS_SYNC(METHOD, sssd_service, rotateLogs, responder_logrotate, rctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),

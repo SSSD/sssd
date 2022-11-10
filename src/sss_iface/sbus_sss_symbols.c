@@ -465,16 +465,6 @@ _sbus_sss_args_sssd_service_goOffline = {
 };
 
 const struct sbus_method_arguments
-_sbus_sss_args_sssd_service_resInit = {
-    .input = (const struct sbus_argument[]){
-        {NULL}
-    },
-    .output = (const struct sbus_argument[]){
-        {NULL}
-    }
-};
-
-const struct sbus_method_arguments
 _sbus_sss_args_sssd_service_resetOffline = {
     .input = (const struct sbus_argument[]){
         {NULL}

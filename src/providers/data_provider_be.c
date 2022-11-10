@@ -62,11 +62,6 @@
 
 /* sssd.service */
 static errno_t
-data_provider_res_init(TALLOC_CTX *mem_ctx,
-                       struct sbus_request *sbus_req,
-                       struct be_ctx *be_ctx);
-
-static errno_t
 data_provider_go_offline(TALLOC_CTX *mem_ctx,
                          struct sbus_request *sbus_req,
                          struct be_ctx *be_ctx);
@@ -483,7 +478,6 @@ be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
     SBUS_INTERFACE(iface_service,
         sssd_service,
         SBUS_METHODS(
-            SBUS_SYNC(METHOD, sssd_service, resInit, data_provider_res_init, be_ctx),
             SBUS_SYNC(METHOD, sssd_service, goOffline, data_provider_go_offline, be_ctx),
             SBUS_SYNC(METHOD, sssd_service, resetOffline, data_provider_reset_offline, be_ctx),
             SBUS_SYNC(METHOD, sssd_service, rotateLogs, data_provider_logrotate, be_ctx)
@@ -870,17 +864,6 @@ int main(int argc, const char *argv[])
     return 0;
 }
 #endif
-
-static errno_t
-data_provider_res_init(TALLOC_CTX *mem_ctx,
-                       struct sbus_request *sbus_req,
-                       struct be_ctx *be_ctx)
-{
-    resolv_reread_configuration(be_ctx->be_res->resolv);
-    check_if_online(be_ctx, 1);
-
-    return monitor_common_res_init(mem_ctx, sbus_req, NULL);
-}
 
 static errno_t
 data_provider_go_offline(TALLOC_CTX *mem_ctx,
