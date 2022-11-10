@@ -267,6 +267,15 @@ static int tool_cmd_init(struct sss_tool_ctx *tool_ctx,
                          struct sss_route_cmd *command)
 {
     int ret;
+    uid_t uid;
+
+    if (!(command->flags & SSS_TOOL_FLAG_SKIP_ROOT_CHECK)) {
+        uid = getuid();
+        if (uid != 0) {
+            ERROR("'%s' must be run as root\n", command->command);
+            return EXIT_FAILURE;
+        }
+    }
 
     if (command->flags & SSS_TOOL_FLAG_SKIP_CMD_INIT) {
         return EOK;
@@ -522,14 +531,7 @@ int sss_tool_main(int argc, const char **argv,
                   void *pvt)
 {
     struct sss_tool_ctx *tool_ctx;
-    uid_t uid;
     errno_t ret;
-
-    uid = getuid();
-    if (uid != 0) {
-        ERROR("%1$s must be run as root\n", argv[0]);
-        return EXIT_FAILURE;
-    }
 
     ret = sss_tool_init(NULL, &argc, argv, &tool_ctx);
     if (ret != EOK) {
