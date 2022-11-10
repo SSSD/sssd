@@ -376,13 +376,13 @@ static void sssd_async_socket_init_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         if (ret == ETIMEDOUT) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
+            DEBUG(SSSDBG_OP_FAILURE,
                   "sdap_async_sys_connect request failed: [%d]: %s "
                   "[ldap_network_timeout].\n",
                   ret, sss_strerror(ret));
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sdap_async_sys_connect request failed: [%d]: %s.",
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sdap_async_sys_connect request failed: [%d]: %s.\n",
                   ret, sss_strerror(ret));
         }
         goto fail;
