@@ -110,7 +110,7 @@ def config_sssd(multihost):
                          'sssdproxyldap',
                          'install_nslcd',
                          'ldap_objects_sssd_client')
-@pytest.mark.tier1_3
+@pytest.mark.tier1_4
 class TestProxyrfc2307(object):
     """
     This is test case class for proxy provider suite

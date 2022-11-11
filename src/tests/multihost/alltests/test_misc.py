@@ -511,15 +511,13 @@ class TestMisc(object):
                           "UserKnownHostsFile": "/dev/null"})
         ssh.force_password = True
         try:
-            ssh.login(multihost.client[0].sys_hostname, 'foo1', 'Secret123')
+            ssh.login(multihost.client[0].sys_hostname, f'foo1@{dom_name}', 'Secret123')
             ssh.sendline('kdestroy -A -q')
             ssh.prompt(timeout=5)
-            ssh.sendline(f'kinit foo1@{dom_name.upper()}')
-            ssh.expect('Password for .*:', timeout=10)
-            ssh.sendline('Secret123')
+            ssh.sendline(f'echo Secret123 | kinit foo1@{dom_name.upper()}')
             ssh.prompt(timeout=5)
             ssh.sendline(f'ssh -v -o StrictHostKeyChecking=no -o PasswordAuthentication=no '
-                         f'-o PubkeyAuthentication=no -K -l foo1 '
+                         f'-o PubkeyAuthentication=no -K -l foo1@example1 '
                          f'{multihost.client[0].sys_hostname} id')
             ssh.prompt(timeout=30)
             ssh.sendline('echo "ssh_result:$?"')

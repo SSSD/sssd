@@ -22,7 +22,7 @@ def execute_cmd(multihost, command):
                          'install_nslcd',
                          'sssdproxyldap',
                          'sssdproxyldap_test')
-@pytest.mark.tier1_3
+@pytest.mark.tier1_4
 class TestProxy(object):
     """
     This is test case class for ldap proxy suite

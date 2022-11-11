@@ -15,7 +15,7 @@ from constants import ds_instance_name
 
 
 @pytest.mark.krbldapconnection
-@pytest.mark.tier1_3
+@pytest.mark.tier1_4
 @pytest.mark.usefixtures('setup_sssd',
                          'create_posix_usersgroups',
                          'krb_connection_timeout')

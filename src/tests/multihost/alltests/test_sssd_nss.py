@@ -22,7 +22,7 @@ def execute_cmd(multihost, command):
 
 
 @pytest.mark.usefixtures('setup_sssd')
-@pytest.mark.tier1_3
+@pytest.mark.tier1_4
 class TestSssdNss(object):
     """
     This is test case class for sssd nss suite

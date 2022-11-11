@@ -16,7 +16,7 @@ from constants import ds_instance_name
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
 @pytest.mark.timelog
-@pytest.mark.tier1_3
+@pytest.mark.tier1_4
 class TestLdapTimeLogging(object):
     """ Test ldap_time_logging """
 

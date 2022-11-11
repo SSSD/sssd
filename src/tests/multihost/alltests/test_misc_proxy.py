@@ -104,7 +104,7 @@ class TestProxyMisc(object):
     This is test case class for proxy provider suite
     """
     @staticmethod
-    @pytest.mark.tier1_3
+    @pytest.mark.tier1_4
     def test_netgroup(multihost, backupsssdconf):
         """
         :title: Lookup alias and original netgroups
@@ -150,7 +150,7 @@ class TestProxyMisc(object):
             execute_cmd(multihost, arg)
 
     @staticmethod
-    @pytest.mark.tier1_3
+    @pytest.mark.tier1_4
     def test_bz1036758(multihost, backupsssdconf):
         """
         :title: Allow for custom attributes in RDN bz1036758
@@ -179,7 +179,7 @@ class TestProxyMisc(object):
         execute_cmd(multihost, "systemctl start sssd.service")
 
     @staticmethod
-    @pytest.mark.tier1_3
+    @pytest.mark.tier1_4
     def test_bz785902(multihost):
         """
         :title: Errors with empty loginShell and proxy provider bz785902
@@ -230,7 +230,7 @@ class TestProxyMisc(object):
                 execute_cmd(multihost, f"grep {error_error} /var/log/sssd/*")
 
     @staticmethod
-    @pytest.mark.tier1_3
+    @pytest.mark.tier1_4
     def test_bz804103(multihost):
         """
         :title: Nss-pam-ldapd returns empty netgroup when a
@@ -259,7 +259,7 @@ class TestProxyMisc(object):
             execute_cmd(multihost, "getent netgroup testsumgroup")
 
     @staticmethod
-    @pytest.mark.tier1_3
+    @pytest.mark.tier1_4
     def test_bz801377(multihost, backupsssdconf):
         """
         :title: Non existing netgroup returned with proxy provider
@@ -297,7 +297,7 @@ class TestProxyMisc(object):
         execute_cmd(multihost, 'echo "" > /etc/netgroup')
 
     @staticmethod
-    @pytest.mark.tier1_3
+    @pytest.mark.tier1_4
     def test_bz647816(multihost, backupsssdconf):
         """
         :title: More than 10 auth attempt times out bz647816
@@ -324,7 +324,7 @@ class TestProxyMisc(object):
                                    "queuing request' /var/log/sssd/*")
 
     @staticmethod
-    @pytest.mark.tier1_3
+    @pytest.mark.tier1_4
     def test_bz871424(multihost, backupsssdconf):
         """
         :title: authconfig chokes on sssd.conf with chpass_provider directive
@@ -352,7 +352,7 @@ class TestProxyMisc(object):
         execute_cmd(multihost, "authselect test sssd")
 
     @staticmethod
-    @pytest.mark.tier1_3
+    @pytest.mark.tier1_4
     def test_bz1221992(multihost, backupsssdconf):
         """
         :title: sssd_be segfault at 0 ip sp error 6 in libtevent.so.0.9.21
@@ -388,7 +388,7 @@ class TestProxyMisc(object):
                                      "/private/sbus-dp_example1.*").stdout_text
 
     @staticmethod
-    @pytest.mark.tier1_3
+    @pytest.mark.tier1_4
     def test_0002_bz1209483(multihost, backupsssdconf):
         """
         :title: sssd does not work as expected when id provider
@@ -485,7 +485,7 @@ class TestProxyMisc(object):
                                    "queuing request' /var/log/sssd/*")
 
     @staticmethod
-    @pytest.mark.tier1_3
+    @pytest.mark.tier1_4
     def test_bz1927195(multihost, backupsssdconf, proxy_sleep):
         """
         :title: sssd runs out of proxy child slots and
