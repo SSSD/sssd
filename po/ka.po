@@ -1373,11 +1373,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:431
 msgid "krbLastPwdChange attribute"
-msgstr "krbLastPwdChange attribute"
+msgstr "krbLastPwdChange ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:432
 msgid "krbPasswordExpiration attribute"
-msgstr "krbPasswordExpiration attribute"
+msgstr "krbPasswordExpiration ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:433
 msgid "Attribute indicating that server side password policies are active"
@@ -1445,7 +1445,7 @@ msgstr "ჯგუფის პაროლი"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "GID attribute"
-msgstr ""
+msgstr "GID ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:451
 msgid "Group member attribute"
@@ -1517,7 +1517,7 @@ msgstr "სერვისის სახელის ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:471
 msgid "Service port attribute"
-msgstr ""
+msgstr "სერვისის პორტის ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:472
 msgid "Service protocol attribute"
@@ -1813,48 +1813,49 @@ msgstr ""
 msgid "Path of group file sources."
 msgstr ""
 
-#: src/monitor/monitor.c:2361
+#: src/monitor/monitor.c:2361 src/monitor/monitor.c:2360
 msgid "Become a daemon (default)"
 msgstr ""
 
-#: src/monitor/monitor.c:2363
+#: src/monitor/monitor.c:2363 src/monitor/monitor.c:2362
 msgid "Run interactive (not a daemon)"
 msgstr ""
 
-#: src/monitor/monitor.c:2366
+#: src/monitor/monitor.c:2366 src/monitor/monitor.c:2365
 msgid "Disable netlink interface"
 msgstr ""
 
 #: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2367
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: src/monitor/monitor.c:2370
+#: src/monitor/monitor.c:2370 src/monitor/monitor.c:2369
 msgid "Refresh the configuration database, then exit"
 msgstr ""
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2373 src/monitor/monitor.c:2372
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr ""
 
-#: src/monitor/monitor.c:2376
+#: src/monitor/monitor.c:2376 src/monitor/monitor.c:2375
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/monitor/monitor.c:2414
+#: src/monitor/monitor.c:2414 src/monitor/monitor.c:2413
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2420
+#: src/monitor/monitor.c:2420 src/monitor/monitor.c:2419
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2433
+#: src/monitor/monitor.c:2433 src/monitor/monitor.c:2432
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr ""
 
-#: src/monitor/monitor.c:2515
+#: src/monitor/monitor.c:2515 src/monitor/monitor.c:2514
 msgid "SSSD is already running\n"
 msgstr ""
 
@@ -2101,7 +2102,7 @@ msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:234
 msgid "Invalid port\n"
-msgstr ""
+msgstr "არასწორი პორტი\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:239
 msgid "Host not specified\n"
@@ -2500,9 +2501,8 @@ msgid "Attribute to index"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:469
-#, fuzzy
 msgid "attribute"
-msgstr "UID ატრიბუტი"
+msgstr "ატრიბუტი"
 
 #: src/tools/sssctl/sssctl_data.c:482
 msgid "Action not provided\n"
