@@ -12,9 +12,10 @@ import time
 import os
 import pytest
 import ldap
-from pexpect import pxssh
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from sssd.testlib.common.libkrb5 import krb5srv
+from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.exceptions import SSHLoginException
 
 
 def execute_cmd(multihost, command):
@@ -468,18 +469,16 @@ class TestProxyMisc(object):
         # sssd runs out of available child slots and starts
         # queuing requests in proxy mode
         execute_cmd(multihost, "systemctl start nslcd.service")
+        client_hostip = multihost.client[0].ip
         for i in range(1, 351):
-            p_ssh = pxssh.pxssh(
-                options={"StrictHostKeyChecking": "no",
-                         "UserKnownHostsFile": "/dev/null"}
-            )
-            p_ssh.force_password = True
             try:
-                p_ssh.login(multihost.client[0].ip, f"doo{i}", "Secret123")
-                p_ssh.logout()
-            except pxssh.ExceptionPxssh:
-                # We just trigger condition and check logs
-                pass
+                client = pexpect_ssh(client_hostip, f"doo{i}", 'Secret123', debug=False)
+                client.login(login_timeout=30, sync_multiplier=5,
+                             auto_prompt_reset=False)
+            except SSHLoginException:
+                pytest.fail(f"doo{i} failed to login")
+            else:
+                client.logout()
         with pytest.raises(subprocess.CalledProcessError):
             execute_cmd(multihost, "grep 'All available child slots are full, "
                                    "queuing request' /var/log/sssd/*")
