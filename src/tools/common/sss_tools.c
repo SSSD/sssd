@@ -37,6 +37,11 @@ static void sss_tool_print_common_opts(int min_len)
                     _("Show this for a command"));
     fprintf(stderr, "  %-*s\t %s\n", min_len, "--usage",
                     _("Show brief usage message for a command"));
+    ERROR("\n");
+
+    ERROR("Debug options:\n");
+    fprintf(stderr, "  %-*s\t %s\n", min_len, "--debug",
+                    _("Enable debug log level of sssctl tool"));
 }
 
 static struct poptOption *sss_tool_common_opts_table(void)
