@@ -203,6 +203,7 @@ static int extract_authtok_v2(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
     case SSS_AUTHTOK_TYPE_OAUTH2:
+    case SSS_AUTHTOK_TYPE_PASSKEY:
         ret = sss_authtok_set(tok, auth_token_type,
                               auth_token_data, auth_token_length);
         break;

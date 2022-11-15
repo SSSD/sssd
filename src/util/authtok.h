@@ -438,4 +438,34 @@ errno_t sss_authtok_get_oauth2(struct sss_auth_token *tok,
 errno_t sss_authtok_set_oauth2(struct sss_auth_token *tok,
                                const char *str, size_t len);
 
+/**
+ * @brief Returns a const string if the auth token is of type
+          SSS_AUTHTOK_TYPE_PASSKEY, otherwise it returns the error code
+ *
+ * @param tok    A pointer to an sss_auth_token
+ * @param pwd    A pointer to a const char *, that will point to a null
+ *               terminated string
+ * @param len    The length of the credential string
+ *
+ * @return       EOK on success
+ *               ENOENT if the token is empty
+ *               EACCESS if the token is not a password token
+ */
+errno_t sss_authtok_get_passkey_pin(struct sss_auth_token *tok,
+                                    const char **pin, size_t *len);
+
+/**
+ * @brief Set passkey credentials into an auth token, replacing any previous data.
+ *
+ * @param tok        A pointer to an sss_auth_token structure to change, also
+ *                   used as a memory context to allocate the internal data.
+ * @param pin        A string that holds the passkey PIN.
+ * @param len        The length of the string or, if 0 is passed,
+ *                   then strlen(password) will be used internally.
+ *
+ * @return       EOK on success
+ *               ENOMEM on error
+ */
+errno_t sss_authtok_set_passkey(struct sss_auth_token *tok,
+                                const char *pin, size_t len);
 #endif /*  __AUTHTOK_H__ */
