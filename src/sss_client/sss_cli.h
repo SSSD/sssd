@@ -534,6 +534,11 @@ enum response_type {
                             *   - verification_uri_complete
                             *   - user_code
                             */
+    SSS_PAM_PASSKEY_INFO, /**< Indicates that passkey authentication
+                            * is available, including a parameter string
+                            * which dictates whether prompting for PIN is
+                            * needed.
+                            * @param prompt_pin. */
 };
 
 /**
@@ -637,6 +642,7 @@ enum prompt_config_type {
     PC_TYPE_PASSWORD,
     PC_TYPE_2FA,
     PC_TYPE_2FA_SINGLE,
+    PC_TYPE_PASSKEY,
     PC_TYPE_SC_PIN,
     PC_TYPE_LAST
 };
@@ -648,6 +654,11 @@ const char *pc_get_password_prompt(struct prompt_config *pc);
 const char *pc_get_2fa_1st_prompt(struct prompt_config *pc);
 const char *pc_get_2fa_2nd_prompt(struct prompt_config *pc);
 const char *pc_get_2fa_single_prompt(struct prompt_config *pc);
+const char *pc_get_passkey_inter_prompt(struct prompt_config *pc);
+const char *pc_get_passkey_touch_prompt(struct prompt_config *pc);
+errno_t pc_list_add_passkey(struct prompt_config ***pc_list,
+                            const char *inter_prompt,
+                            const char *touch_prompt);
 void pc_list_free(struct prompt_config **pc_list);
 errno_t pc_list_add_password(struct prompt_config ***pc_list,
                              const char *prompt);

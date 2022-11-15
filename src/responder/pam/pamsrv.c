@@ -327,7 +327,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to create pre-authentication indicator file, "
-                  "Smartcard authentication or configured prompting might "
+                  "Smartcard/passkey authentication or configured prompting might "
                   "not work as expected.\n");
         }
     }
