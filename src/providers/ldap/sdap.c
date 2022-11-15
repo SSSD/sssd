@@ -415,7 +415,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     int lerrno;
     int i, ret, ai;
     int base_attr_idx = 0;
-    const char *name;
+    const char *name = NULL;
     bool store;
     bool base64;
     char *base_attr;
@@ -532,7 +532,6 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 }
             } else {
                 store = false;
-                name = NULL;
             }
         } else {
             name = base_attr;
