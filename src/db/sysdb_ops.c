@@ -2307,7 +2307,7 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
 
 done:
     if (ret != EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, sss_strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
