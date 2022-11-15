@@ -291,6 +291,8 @@ int kcm_get_renewal_config(struct kcm_ctx *kctx,
                 ret = dp_opt_set_bool(krb5_ctx->opts, i,
                                       default_krb5_opts[i].def_val.boolean);
                 break;
+            default:
+                ret = EINVAL;
         }
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed setting default renewal kerberos "

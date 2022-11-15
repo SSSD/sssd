@@ -515,6 +515,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
         if (ret == ECANCELED) {
             store = false;
+            name = NULL;
         } else if (map) {
             for (i = 1; i < attrs_num; i++) {
                 /* check if this attr is valid with the chosen schema */

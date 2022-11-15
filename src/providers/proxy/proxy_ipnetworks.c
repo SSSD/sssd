@@ -233,7 +233,7 @@ get_net_byname(struct proxy_resolver_ctx *ctx,
     if (ret == ENOENT) {
         /* Not found, make sure we remove it from the cache */
         DEBUG(SSSDBG_TRACE_INTERNAL, "Network [%s] not found, removing from "
-              "cache\n", name);
+              "cache\n", search_name);
         sysdb_ipnetwork_delete(domain, search_name, NULL);
         ret = ENOENT;
         goto done;
@@ -334,7 +334,7 @@ get_net_byaddr(struct proxy_resolver_ctx *ctx,
     if (ret == ENOENT) {
         /* Not found, make sure we remove it from the cache */
         DEBUG(SSSDBG_TRACE_INTERNAL, "Network [%s] not found, removing from "
-              "cache\n", name);
+              "cache\n", search_addrstr);
         sysdb_ipnetwork_delete(domain, NULL, search_addrstr);
         ret = ENOENT;
         goto done;
