@@ -378,6 +378,9 @@ enum sss_authtok_type {
                                            * challenge that is acquired from
                                            * Kerberos. It may or may no
                                            * contain a trailing \\0 */
+    SSS_AUTHTOK_TYPE_PASSKEY =    0x0008, /**< Authentication token is a Passkey
+                                           * PIN, it may or may not contain
+                                           * a trailing \\0 */
 };
 
 /**
