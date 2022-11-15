@@ -68,6 +68,7 @@
 
 #define EXP_ACC_MSG _("Permission denied. ")
 #define SRV_MSG     _("Server message: ")
+#define PASSKEY_DEFAULT_PIN_MSG     _("Enter PIN:")
 
 #define DEBUG_MGS_LEN 1024
 #define MAX_AUTHTOK_SIZE (1024*1024)
@@ -1284,6 +1285,19 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                 }
 
                 break;
+            case SSS_PAM_PASSKEY_INFO:
+                if (buf[p + (len - 1)] != '\0') {
+                    D(("passkey info does not end with \\0."));
+                    break;
+                }
+
+                free(pi->passkey_prompt_pin);
+                pi->passkey_prompt_pin = strdup((char *) &buf[p]);
+                if (pi->passkey_prompt_pin == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+                break;
             default:
                 D(("Unknown response type [%d]", type));
         }
@@ -1777,6 +1791,121 @@ static int prompt_oauth2(pam_handle_t *pamh, struct pam_items *pi)
     pi->pam_authtok_size=strlen(pi->oauth2_pin);
 
     return PAM_SUCCESS;
+}
+
+static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
+                          const char *prompt_interactive, const char *prompt_touch)
+{
+    int ret;
+    const struct pam_conv *conv;
+    const struct pam_message *mesg[3] = { NULL, NULL, NULL };
+    struct pam_message m[3] = { {0}, {0}, {0} };
+    struct pam_response *resp = NULL;
+    int pin_idx = 0;
+    int msg_idx = 0;
+
+    ret = pam_get_item(pamh, PAM_CONV, (const void **) &conv);
+    if (ret != PAM_SUCCESS) {
+        return ret;
+    }
+    if (conv == NULL || conv->conv == NULL) {
+        logger(pamh, LOG_ERR, "No conversation function");
+        return PAM_SYSTEM_ERR;
+    }
+
+    pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
+	/* Interactive, prompt a message and wait before continuing */
+    if (prompt_interactive != NULL && prompt_interactive[0] != '\0') {
+	    m[msg_idx].msg_style = PAM_PROMPT_ECHO_OFF;
+	    m[msg_idx].msg = prompt_interactive;
+	    msg_idx++;
+    }
+
+    /* Prompt for PIN
+     *
+     * If prompt_pin is false but a PIN is set on the device
+     * we still prompt for PIN */
+    if ((strcasecmp(pi->passkey_prompt_pin, "true")) == 0) {
+        m[msg_idx].msg_style = PAM_PROMPT_ECHO_OFF;
+        m[msg_idx].msg = PASSKEY_DEFAULT_PIN_MSG;
+        pin_idx = msg_idx;
+        msg_idx++;
+    }
+
+    /* Prompt to remind the user to touch the device */
+    if (prompt_touch != NULL && prompt_touch[0] != '\0') {
+        m[msg_idx].msg_style = PAM_TEXT_INFO;
+	    m[msg_idx].msg = prompt_touch;
+        msg_idx++;
+    }
+
+    mesg[0] = (const struct pam_message *) m;
+    /* The following assignment might look a bit odd but is recommended in the
+     * pam_conv man page to make sure that the second argument of the PAM
+     * conversation function can be interpreted in two different ways.
+     * Basically it is important that both the actual struct pam_message and
+     * the pointers to the struct pam_message are arrays. Since the assignment
+     * makes clear that mesg[] and (*mesg)[] are arrays it should be kept this
+     * way and not be replaced by other equivalent assignments. */
+    for (int i = 1; i < msg_idx; i++) {
+        mesg[i] = & (( *mesg )[i]);
+    }
+
+    ret = conv->conv(msg_idx, mesg, &resp, conv->appdata_ptr);
+    if (ret != PAM_SUCCESS) {
+        D(("Conversation failure: %s.", pam_strerror(pamh, ret)));
+        return ret;
+    }
+
+    if ((strcasecmp(pi->passkey_prompt_pin, "true")) == 0) {
+        if (resp == NULL) {
+            D(("response expected, but resp==NULL"));
+            return PAM_SYSTEM_ERR;
+        }
+
+        if (resp[pin_idx].resp == NULL) {
+            pi->pam_authtok = NULL;
+            pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+            pi->pam_authtok_size=0;
+        } else {
+            pi->pam_authtok = strdup(resp[pin_idx].resp);
+            if (pi->pam_authtok == NULL) {
+                ret = PAM_BUF_ERR;
+                goto done;
+            }
+
+            /* Fallback to password auth if no PIN was entered */
+            if (resp[pin_idx].resp == NULL || resp[pin_idx].resp[0] == '\0') {
+                ret = EIO;
+                goto done;
+            }
+
+			pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
+			pi->pam_authtok_size=strlen(pi->pam_authtok);
+        }
+    } else {
+        /* user verification = false, SSS_AUTHTOK_TYPE_PASSKEY will be reset to
+         * SSS_AUTHTOK_TYPE_NULL in PAM responder
+         */
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
+        pi->pam_authtok = NULL;
+        pi->pam_authtok_size=0;
+    }
+
+    ret = PAM_SUCCESS;
+
+done:
+    if (resp != NULL) {
+        if (resp[pin_idx].resp != NULL) {
+            _pam_overwrite((void *)resp[pin_idx].resp);
+            free(resp[pin_idx].resp);
+        }
+
+        free(resp);
+        resp = NULL;
+    }
+
+    return ret;
 }
 
 #define SC_PROMPT_FMT "PIN for %s: "
@@ -2285,6 +2414,11 @@ static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
             ret = prompt_2fa_single(pamh, pi,
                                     pc_get_2fa_single_prompt(pi->pc[c]));
             break;
+        case PC_TYPE_PASSKEY:
+            ret = prompt_passkey(pamh, pi,
+                                 pc_get_passkey_inter_prompt(pi->pc[c]),
+                                 pc_get_passkey_touch_prompt(pi->pc[c]));
+            break;
         case PC_TYPE_SC_PIN:
             ret = prompt_sc_pin(pamh, pi);
             /* Todo: add extra string option */
@@ -2356,6 +2490,14 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                     || (pi->flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)) {
                /* Use pin prompt as fallback for gdm-smartcard */
                 ret = prompt_sc_pin(pamh, pi);
+            } else if (pi->passkey_prompt_pin) {
+                ret = prompt_passkey(pamh, pi,
+                                     _("Insert your passkey device, then press ENTER."),
+                                     "");
+                /* Fallback to password auth if no PIN was entered */
+                if (ret == EIO) {
+                    ret = prompt_password(pamh, pi, _("Password: "));
+                }
             } else {
                 ret = prompt_password(pamh, pi, _("Password: "));
             }

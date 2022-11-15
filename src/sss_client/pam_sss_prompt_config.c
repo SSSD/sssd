@@ -40,6 +40,11 @@ struct prompt_config_2fa_single {
     char *prompt;
 };
 
+struct prompt_config_passkey {
+    char *prompt_inter;
+    char *prompt_touch;
+};
+
 struct prompt_config_sc_pin {
     char *prompt; /* Currently not used */
 };
@@ -50,6 +55,7 @@ struct prompt_config {
         struct prompt_config_password password;
         struct prompt_config_2fa two_fa;
         struct prompt_config_2fa_single two_fa_single;
+        struct prompt_config_passkey passkey;
         struct prompt_config_sc_pin sc_pin;
     } data;
 };
@@ -94,6 +100,33 @@ const char *pc_get_2fa_single_prompt(struct prompt_config *pc)
     return NULL;
 }
 
+const char *pc_get_passkey_touch_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_PASSKEY)) {
+        return pc->data.passkey.prompt_touch;
+    }
+    return NULL;
+}
+
+const char *pc_get_passkey_inter_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_PASSKEY)) {
+        return pc->data.passkey.prompt_inter;
+    }
+    return NULL;
+}
+
+static void pc_free_passkey(struct prompt_config *pc)
+{
+    if (pc != NULL && pc_get_type(pc) == PC_TYPE_PASSKEY) {
+        free(pc->data.passkey.prompt_inter);
+        pc->data.passkey.prompt_inter = NULL;
+        free(pc->data.passkey.prompt_touch);
+        pc->data.passkey.prompt_touch = NULL;
+    }
+    return;
+}
+
 static void pc_free_password(struct prompt_config *pc)
 {
     if (pc != NULL && pc_get_type(pc) == PC_TYPE_PASSWORD) {
@@ -132,6 +165,7 @@ static void pc_free_sc_pin(struct prompt_config *pc)
     return;
 }
 
+
 void pc_list_free(struct prompt_config **pc_list)
 {
     size_t c;
@@ -153,6 +187,9 @@ void pc_list_free(struct prompt_config **pc_list)
             break;
         case PC_TYPE_SC_PIN:
             pc_free_sc_pin(pc_list[c]);
+            break;
+        case PC_TYPE_PASSKEY:
+            pc_free_passkey(pc_list[c]);
             break;
         default:
             return;
@@ -312,6 +349,53 @@ done:
     return ret;
 }
 
+errno_t pc_list_add_passkey(struct prompt_config ***pc_list,
+                            const char *prompt_inter, const char *prompt_touch)
+{
+    struct prompt_config *pc;
+    int ret;
+
+    if (pc_list == NULL) {
+        return EINVAL;
+    }
+
+    pc = calloc(1, sizeof(struct prompt_config));
+    if (pc == NULL) {
+        return ENOMEM;
+    }
+
+    pc->type = PC_TYPE_PASSKEY;
+
+    pc->data.passkey.prompt_inter = strdup(prompt_inter != NULL ? prompt_inter
+                                           : "");
+    if (pc->data.passkey.prompt_inter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    pc->data.passkey.prompt_touch = strdup(prompt_touch != NULL ? prompt_touch
+                                           : "");
+    if (pc->data.passkey.prompt_touch == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = pc_list_add_pc(pc_list, pc);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        free(pc->data.passkey.prompt_inter);
+        free(pc->data.passkey.prompt_touch);
+        free(pc);
+    }
+
+    return ret;
+}
+
 errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
                                        uint8_t **data)
 {
@@ -342,6 +426,12 @@ errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
         case PC_TYPE_2FA_SINGLE:
             l += sizeof(uint32_t);
             l += strlen(pc_list[c]->data.two_fa_single.prompt);
+            break;
+        case PC_TYPE_PASSKEY:
+            l += sizeof(uint32_t);
+            l += strlen(pc_list[c]->data.passkey.prompt_inter);
+            l += sizeof(uint32_t);
+            l += strlen(pc_list[c]->data.passkey.prompt_touch);
             break;
         case PC_TYPE_SC_PIN:
             break;
@@ -389,6 +479,18 @@ errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
             safealign_memcpy(&d[rp], pc_list[c]->data.two_fa_single.prompt,
                              strlen(pc_list[c]->data.two_fa_single.prompt),
                              &rp);
+            break;
+        case PC_TYPE_PASSKEY:
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 strlen(pc_list[c]->data.passkey.prompt_inter),
+                                 &rp);
+            safealign_memcpy(&d[rp], pc_list[c]->data.passkey.prompt_inter,
+                             strlen(pc_list[c]->data.passkey.prompt_inter), &rp);
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 strlen(pc_list[c]->data.passkey.prompt_touch),
+                                 &rp);
+            safealign_memcpy(&d[rp], pc_list[c]->data.passkey.prompt_touch,
+                             strlen(pc_list[c]->data.passkey.prompt_touch), &rp);
             break;
         case PC_TYPE_SC_PIN:
             break;
@@ -502,6 +604,51 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
             rp += l;
 
             ret = pc_list_add_2fa(&pl, str, str2);
+            free(str);
+            free(str2);
+            if (ret != EOK) {
+                goto done;
+            }
+            break;
+        case PC_TYPE_PASSKEY:
+            if (rp > size - sizeof(uint32_t)) {
+                ret = EINVAL;
+                goto done;
+            }
+            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
+
+            if (l > size || rp > size - l) {
+                ret = EINVAL;
+                goto done;
+            }
+            str = strndup((char *) buf + rp, l);
+            if (str == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            rp += l;
+
+            if (rp > size - sizeof(uint32_t)) {
+                free(str);
+                ret = EINVAL;
+                goto done;
+            }
+            SAFEALIGN_COPY_UINT32(&l, buf + rp, &rp);
+
+            if (l > size || rp > size - l) {
+                free(str);
+                ret = EINVAL;
+                goto done;
+            }
+            str2 = strndup((char *) buf + rp, l);
+            if (str2 == NULL) {
+                free(str);
+                ret = ENOMEM;
+                goto done;
+            }
+            rp += l;
+
+            ret = pc_list_add_passkey(&pl, str, str2);
             free(str);
             free(str2);
             if (ret != EOK) {
