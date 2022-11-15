@@ -331,7 +331,7 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND("cert-map", "Show users mapped to the certificate", 0, sssctl_cert_map),
 #ifdef BUILD_PASSKEY
         SSS_TOOL_DELIMITER("Passkey related tools:"),
-        SSS_TOOL_COMMAND("passkey-exec", "Perform passkey related operations", 0, sssctl_passkey_exec),
+        SSS_TOOL_COMMAND_FLAGS("passkey-exec", "Perform passkey related operations", 0, sssctl_passkey_exec, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
 #endif
         SSS_TOOL_LAST
     };
