@@ -214,7 +214,7 @@ class RequestAnalyzer:
                         print("       - " + name[:-1])
                         cr_done.append(cr)
                 if (id and ("UID" in cidline or "GID" in cidline)):
-                    if id not in id_done:
+                    if id not in id_done and bool(re.search(r'\d', id)):
                         print("       - " + id)
                         id_done.append(id)
 
