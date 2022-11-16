@@ -1252,6 +1252,9 @@ class TestADParamsPorted:
         # Run su
         su_result = client.su_success(aduser)
 
+        # Wait for log to be written
+        time.sleep(15)
+
         # Download sssd log
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
