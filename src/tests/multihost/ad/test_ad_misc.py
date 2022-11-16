@@ -224,7 +224,7 @@ class TestADMisc:
             tfile.flush()
             multihost.client[0].transport.put_file(tfile.name, '/tmp/sss_nss_idmap.py')
         multihost.client[0].run_command('python3 /tmp/sss_nss_idmap.py', raiseonerr=True)
-        time.sleep(2)
+        time.sleep(5)
         log_str = multihost.client[0].get_file_contents(f'/var/log/sssd_{domain_name}.log').decode('utf-8')
         patt = re.compile(r'999.*Does.not.exit.*negative.cache')
         assert patt.search(log_str)
