@@ -224,9 +224,19 @@ errno_t check_upn_and_sid_from_user_and_pac(struct ldb_message *msg,
 
         if (user_data != NULL) {
             if (strcasecmp(user_data, upn_dns_info->upn_name) != 0) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "UPN of user entry and PAC do not match.\n");
-                return ERR_CHECK_PAC_FAILED;
+                if (pac_check_opts & CHECK_PAC_CHECK_UPN) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "UPN of user entry [%s] and "
+                                               "PAC [%s] do not match.\n",
+                                               user_data,
+                                               upn_dns_info->upn_name);
+                    return ERR_CHECK_PAC_FAILED;
+                } else {
+                    DEBUG(SSSDBG_IMPORTANT_INFO, "UPN of user entry [%s] and "
+                                                 "PAC [%s] do not match, "
+                                                 "ignored.\n", user_data,
+                                                 upn_dns_info->upn_name);
+                    return EOK;
+                }
             }
         }
 
