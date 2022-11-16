@@ -2575,14 +2575,24 @@ int sysdb_store_user(struct sss_domain_info *domain,
         /* the user doesn't exist, turn into adding a user */
         ret = sysdb_store_new_user(domain, name, uid, gid, gecos, homedir,
                                    shell, orig_dn, attrs, cache_timeout, now);
+        if (ret != EOK) {
+            if ((ret == EEXIST) && sss_domain_is_mpg(domain)) {
+                /* ipa_s2n_save_objects() will handle this later */
+                DEBUG(SSSDBG_TRACE_FUNC, "sysdb_store_new_user() failed: conflict in MPG domain\n");
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_new_user() failed: %d\n", ret);
+            }
+        }
     } else {
         /* the user exists, let's just replace attributes when set */
         ret = sysdb_store_user_attrs(domain, name, uid, gid, gecos, homedir,
                                      shell, orig_dn, attrs, remove_attrs,
                                      cache_timeout, now);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_user_attrs() failed: %d\n", ret);
+        }
     }
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cache update failed: %d\n", ret);
         goto done;
     }
 
