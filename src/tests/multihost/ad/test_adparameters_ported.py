@@ -3558,9 +3558,9 @@ class TestADParamsPorted:
         client.sssd_conf(dom_section, sssd_params)
 
         multihost.client[0].run_command(
-             "semanage port -a -t kerberos_port_t -p tcp 6666;"
-             " semanage port -a -t kerberos_port_t -p udp 6666",
-             raiseonerr=False
+            "semanage port -a -t kerberos_port_t -p tcp 6666;"
+            " semanage port -a -t kerberos_port_t -p udp 6666",
+            raiseonerr=False
         )
 
         # Forward ports on AD machine so 6666 works
