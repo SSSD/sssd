@@ -157,6 +157,8 @@
 #define SYSDB_USER_MAPPED_CERT "userMappedCertificate"
 #define SYSDB_USER_EMAIL "mail"
 
+#define SYSDB_USER_PASSKEY "userPasskey"
+
 #define SYSDB_SUBDOMAIN_REALM "realmName"
 #define SYSDB_SUBDOMAIN_FLAT "flatName"
 #define SYSDB_SUBDOMAIN_ID "domainID"

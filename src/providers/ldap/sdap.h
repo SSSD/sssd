@@ -288,6 +288,7 @@ enum sdap_user_attrs {
     SDAP_AT_USER_AUTH_TYPE,
     SDAP_AT_USER_CERT,
     SDAP_AT_USER_EMAIL,
+    SDAP_AT_USER_PASSKEY,
 
     SDAP_OPTS_USER /* attrs counter */
 };

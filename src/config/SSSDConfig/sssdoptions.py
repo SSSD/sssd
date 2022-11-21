@@ -446,6 +446,7 @@ class SSSDOptions(object):
         'ldap_user_auth_type': _('attribute listing allowed authentication types for a user'),
         'ldap_user_certificate': _('attribute containing the X509 certificate of the user'),
         'ldap_user_email': _('attribute containing the email address of the user'),
+        'ldap_user_passkey': _('attribute containing the passkey mapping data of the user'),
         'ldap_user_extra_attrs': _('A list of extra attributes to download along with the user entry'),
 
         'ldap_group_search_base': _('Base DN for group lookups'),
