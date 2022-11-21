@@ -195,6 +195,7 @@ struct sdap_attr_map rfc2307_user_map[] = {
     { "ldap_user_auth_type", NULL, SYSDB_AUTH_TYPE, NULL },
     { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
     { "ldap_user_email", "mail", SYSDB_USER_EMAIL, NULL },
+    { "ldap_user_passkey", "passkey", SYSDB_USER_PASSKEY, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
@@ -254,6 +255,7 @@ struct sdap_attr_map rfc2307bis_user_map[] = {
     { "ldap_user_auth_type", NULL, SYSDB_AUTH_TYPE, NULL },
     { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
     { "ldap_user_email", "mail", SYSDB_USER_EMAIL, NULL },
+    { "ldap_user_passkey", "passkey", SYSDB_USER_PASSKEY, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
@@ -313,6 +315,7 @@ struct sdap_attr_map gen_ad2008r2_user_map[] = {
     { "ldap_user_auth_type", NULL, SYSDB_AUTH_TYPE, NULL },
     { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
     { "ldap_user_email", "mail", SYSDB_USER_EMAIL, NULL },
+    { "ldap_user_passkey", "passkey", SYSDB_USER_PASSKEY, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 

@@ -636,6 +636,19 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry condition="build_passkey">
+                    <term>ldap_user_passkey (string)</term>
+                    <listitem>
+                        <para>
+                            Name of the LDAP attribute containing the passkey
+                            mapping data of the user.
+                        </para>
+                        <para>
+                            Default: passkey (LDAP), ipaPassKey (IPA),
+                                     altSecurityIdentities (AD)
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
     </refsect1>
