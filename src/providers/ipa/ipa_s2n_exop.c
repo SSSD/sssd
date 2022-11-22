@@ -2468,8 +2468,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     time_t now;
     struct sss_nss_homedir_ctx homedir_ctx;
     char *name = NULL;
-    char *realm;
-    char *short_name = NULL;
     char *upn = NULL;
     gid_t gid;
     gid_t orig_gid = 0;
@@ -2606,48 +2604,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 DEBUG(SSSDBG_OP_FAILURE,
                       "sysdb_attrs_add_lc_name_alias_safe failed.\n");
                 goto done;
-            }
-
-            if (upn == NULL) {
-                /* We also have to store a fake UPN here, because otherwise the
-                 * krb5 child later won't be able to properly construct one as
-                 * the username is fully qualified but the child doesn't have
-                 * access to the regex to deconstruct it */
-                /* FIXME: The real UPN is available from the PAC, we should get
-                 * it from there. */
-                realm = get_uppercase_realm(tmp_ctx, dom->name);
-                if (!realm) {
-                    DEBUG(SSSDBG_OP_FAILURE, "failed to get realm.\n");
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                ret = sss_parse_internal_fqname(tmp_ctx, attrs->a.user.pw_name,
-                                                &short_name, NULL);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Cannot parse internal name %s\n",
-                          attrs->a.user.pw_name);
-                    goto done;
-                }
-
-                upn = talloc_asprintf(tmp_ctx, "%s@%s", short_name, realm);
-                if (!upn) {
-                    DEBUG(SSSDBG_OP_FAILURE, "failed to format UPN.\n");
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                /* We might already have the SID or the UPN from other sources
-                 * hence sysdb_attrs_add_string_safe is used to avoid double
-                 * entries. */
-                ret = sysdb_attrs_add_string_safe(attrs->sysdb_attrs, SYSDB_UPN,
-                                                  upn);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "sysdb_attrs_add_string failed.\n");
-                    goto done;
-                }
             }
 
             if (req_input->type == REQ_INP_SECID) {
