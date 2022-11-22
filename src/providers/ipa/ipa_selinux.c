@@ -1130,7 +1130,7 @@ static void ipa_get_config_step(struct tevent_req *req)
     subreq = ipa_get_config_send(state, state->be_ctx->ev,
                                  sdap_id_op_handle(state->op),
                                  id_ctx->sdap_id_ctx->opts,
-                                 domain, NULL);
+                                 domain, NULL, NULL, NULL);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
     }

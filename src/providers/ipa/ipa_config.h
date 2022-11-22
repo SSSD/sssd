@@ -44,7 +44,9 @@ struct tevent_req * ipa_get_config_send(TALLOC_CTX *mem_ctx,
                                         struct sdap_handle *sh,
                                         struct sdap_options *opts,
                                         const char *domain,
-                                        const char **attrs);
+                                        const char **attrs,
+                                        const char *filter,
+                                        const char *base);
 
 errno_t ipa_get_config_recv(struct tevent_req *req,
                             TALLOC_CTX *mem_ctx,

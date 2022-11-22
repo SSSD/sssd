@@ -1920,7 +1920,7 @@ ipa_domain_resolution_order_send(TALLOC_CTX *mem_ctx,
     state->domain = sd_ctx->be_ctx->domain;
 
     subreq = ipa_get_config_send(state, ev, sh, sd_ctx->sdap_id_ctx->opts,
-                                 state->domain->name, attrs);
+                                 state->domain->name, attrs, NULL, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         tevent_req_error(req, ret);
