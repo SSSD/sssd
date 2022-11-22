@@ -2,7 +2,7 @@
     Authors:
         Pavel Březina <pbrezina@redhat.com>
 
-    Copyright (C) 2021 Red Hat
+    Copyright (C) 2023 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -114,16 +114,14 @@ sss_passkeycl_process(krb5_context context,
     }
 
     answer = cb->get_responder_answer(context, rock, SSSD_PASSKEY_QUESTION);
-    /* Call prompter if we have no answer. We don't really require any answer,
-     * but we need to present a prompt to the user and wait until the user has
-     * finished authentication via an passkey provider. */
+    /* Call prompter if we have no answer to present a prompt. */
     if (answer == NULL) {
         user_reply.magic = 0;
         user_reply.length = sizeof(prompt_answer) / sizeof(char);
         user_reply.data = prompt_answer;
 
-        ret = sss_passkeycl_prompt(context, prompter, prompter_data, input_message,
-                                   &user_reply);
+        ret = sss_passkeycl_prompt(context, prompter, prompter_data,
+                                   input_message, &user_reply);
         if (ret != 0) {
             goto done;
         }
