@@ -30,6 +30,7 @@
 #include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_opts.h"
 #include "providers/ipa/ipa_config.h"
+#include "providers/ipa/ipa_subdomains_passkey.h"
 
 #include <ctype.h>
 
@@ -63,6 +64,8 @@
 #define IPA_ENABLED_FLAG "ipaEnabledFlag"
 #define IPA_TRUE_VALUE "TRUE"
 #define IPA_ASSOCIATED_DOMAIN "associatedDomain"
+#define IPA_PASSKEY_VERIFICATION "ipaRequireUserVerification"
+#define IPA_PASSKEY_CONFIG_FILTER "cn=passkeyconfig"
 
 #define OBJECTCLASS "objectClass"
 
@@ -81,24 +84,6 @@ struct ipa_sd_k5_svc_list {
 
     struct ipa_sd_k5_svc_list *next;
     struct ipa_sd_k5_svc_list *prev;
-};
-
-struct ipa_subdomains_ctx {
-    struct be_ctx *be_ctx;
-    struct ipa_id_ctx *ipa_id_ctx;
-    struct sdap_id_ctx *sdap_id_ctx;
-    struct sdap_search_base **search_bases;
-    struct sdap_search_base **master_search_bases;
-    struct sdap_search_base **ranges_search_bases;
-    struct sdap_search_base **host_search_bases;
-
-    time_t last_refreshed;
-    bool view_read_at_init;
-    /* List of krb5_service structures for each subdomain
-     * in order to write the kdcinfo files. For use on
-     * the client only
-     */
-    struct ipa_sd_k5_svc_list *k5svc_list;
 };
 
 static errno_t
@@ -2623,6 +2608,7 @@ static errno_t ipa_subdomains_refresh_retry(struct tevent_req *req);
 static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq);
+static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq);
@@ -2772,6 +2758,35 @@ static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to read certificate mapping rules "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        /* Not good, but let's try to continue with other server side options */
+    }
+
+    subreq = ipa_subdomains_passkey_send(state, state->ev, state->sd_ctx,
+                                         sdap_id_op_handle(state->sdap_op));
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_refresh_passkey_done, req);
+    return;
+}
+
+static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq)
+{
+
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    ret = ipa_subdomains_passkey_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get passkey configuration "
               "[%d]: %s\n", ret, sss_strerror(ret));
         /* Not good, but let's try to continue with other server side options */
     }
