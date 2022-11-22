@@ -324,7 +324,7 @@ non_interactive_cmocka_based_tests += test_kcm_renewals
 endif # BUILD_KCM_RENEWAL
 
 if BUILD_PASSKEY
-non_interactive_cmocka_based_tests += test_passkey
+non_interactive_cmocka_based_tests += test_passkey test_krb5_passkey_plugin
 endif # BUILD_PASSKEY
 
 
@@ -916,6 +916,9 @@ dist_noinst_HEADERS = \
     src/p11_child/p11_child.h \
     src/oidc_child/oidc_child_util.h \
     src/passkey_child/passkey_child.h \
+    src/krb5_plugin/common/radius_kdcpreauth.h \
+    src/krb5_plugin/common/radius_clpreauth.h \
+    src/krb5_plugin/common/utils.h \
     $(NULL)
 
 
@@ -3923,6 +3926,21 @@ test_krb5_idp_plugin_LDADD = \
     $(JANSSON_LIBS) \
     $(NULL)
 
+if BUILD_PASSKEY
+test_krb5_passkey_plugin_SOURCES = \
+    src/tests/cmocka/test_krb5_passkey_plugin.c \
+    src/krb5_plugin/common/utils.c \
+    src/krb5_plugin/passkey/passkey_utils.c \
+    $(NULL)
+test_krb5_passkey_plugin_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_krb5_passkey_plugin_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(JANSSON_LIBS) \
+    $(NULL)
+endif # BUILD_PASSKEY
+
 if BUILD_KCM_RENEWAL
 test_kcm_renewals_SOURCES = \
 	$(TEST_MOCK_RESP_OBJ) \
@@ -4904,6 +4922,35 @@ sssd_krb5_idp_plugin_la_LDFLAGS = \
 
 dist_noinst_HEADERS += src/krb5_plugin/idp/idp.h
 dist_krb5snippets_DATA += src/krb5_plugin/idp/sssd_enable_idp
+
+if BUILD_PASSKEY
+krb5_plugin_LTLIBRARIES += sssd_krb5_passkey_plugin.la
+
+sssd_krb5_passkey_plugin_la_SOURCES = \
+    src/krb5_plugin/common/utils.c \
+    src/krb5_plugin/common/radius_kdcpreauth.c \
+    src/krb5_plugin/common/radius_clpreauth.c \
+    src/krb5_plugin/passkey/passkey_clpreauth.c \
+    src/krb5_plugin/passkey/passkey_kdcpreauth.c \
+    src/krb5_plugin/passkey/passkey_utils.c \
+    $(NULL)
+sssd_krb5_passkey_plugin_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(KRB5_CFLAGS) \
+    $(NULL)
+sssd_krb5_passkey_plugin_la_LIBADD = \
+    $(KRB5_LIBS) \
+    $(KRAD_LIBS) \
+    $(JANSSON_LIBS) \
+    $(NULL)
+sssd_krb5_passkey_plugin_la_LDFLAGS = \
+    -avoid-version \
+    -module \
+    $(NULL)
+
+dist_noinst_HEADERS += src/krb5_plugin/passkey/passkey.h
+dist_krb5snippets_DATA += src/krb5_plugin/passkey/sssd_enable_passkey
+endif # BUILD_PASSKEY
 
 sssd_pac_plugin_la_SOURCES = \
     src/sss_client/sssd_pac.c \
