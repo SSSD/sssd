@@ -64,12 +64,22 @@ static errno_t check_check_pac_opt(const char *inp, uint32_t *check_pac_flags)
             flags |= CHECK_PAC_CHECK_UPN_DNS_INFO_EX;
             flags |= CHECK_PAC_UPN_DNS_INFO_PRESENT;
             flags |= CHECK_PAC_CHECK_UPN;
+        } else if (strcasecmp(list[c], CHECK_PAC_CHECK_UPN_ALLOW_MISSING_STR) == 0) {
+            flags |= CHECK_PAC_CHECK_UPN_ALLOW_MISSING;
         } else {
             DEBUG(SSSDBG_OP_FAILURE, "Unknown value [%s] for pac_check.\n",
                                      list[c]);
             ret = EINVAL;
             goto done;
         }
+    }
+
+    if ((flags & CHECK_PAC_CHECK_UPN_ALLOW_MISSING)
+                && !(flags & CHECK_PAC_CHECK_UPN)) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "pac_check option '%s' is set but '%s' is not set, this means "
+              "the UPN is not checked.\n",
+              CHECK_PAC_CHECK_UPN_ALLOW_MISSING_STR, CHECK_PAC_CHECK_UPN_STR);
     }
 
     ret = EOK;

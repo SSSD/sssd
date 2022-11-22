@@ -215,10 +215,26 @@ errno_t check_upn_and_sid_from_user_and_pac(struct ldb_message *msg,
             DEBUG(SSSDBG_MINOR_FAILURE, "User object does not have a UPN but PAC "
                       "says otherwise, maybe ldap_user_principal option is set.\n");
             if (pac_check_opts & CHECK_PAC_CHECK_UPN) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "UPN is missing but PAC UPN check required, "
-                      "PAC validation failed.\n");
-                return ERR_CHECK_PAC_FAILED;
+                if (pac_check_opts & CHECK_PAC_CHECK_UPN_ALLOW_MISSING) {
+                    DEBUG(SSSDBG_IMPORTANT_INFO,
+                          "UPN is missing but PAC UPN check required, "
+                          "PAC validation failed. However, "
+                          "'check_upn_allow_missing' is set and the error is "
+                          "ignored. To make this message go away please check "
+                          "why the UPN is not read from the server. In FreeIPA "
+                          "environments 'ldap_user_principal' is most probably "
+                          "set to a non-existing attribute name to avoid "
+                          "issues with enterprise principals. This is not "
+                          "needed anymore with recent versions of FreeIPA.\n");
+                    sss_log(SSS_LOG_CRIT, "PAC validation issue, please check "
+                                          "sssd_pac.log for details");
+                    return EOK;
+                } else {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "UPN is missing but PAC UPN check required, "
+                          "PAC validation failed.\n");
+                    return ERR_CHECK_PAC_FAILED;
+                }
             }
         }
 
