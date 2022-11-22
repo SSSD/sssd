@@ -1,0 +1,14 @@
+# Enable SSSD Passkey Kerberos preauthentication plugins.
+#
+# This will allow you to obtain Kerberos TGT through passkey authentication.
+#
+# To disable the passkey plugin, comment out the following lines.
+
+[plugins]
+ clpreauth = {
+  module = passkey:/usr/lib64/sssd/modules/sssd_krb5_passkey_plugin.so
+ }
+
+ kdcpreauth = {
+  module = passkey:/usr/lib64/sssd/modules/sssd_krb5_passkey_plugin.so
+ }
