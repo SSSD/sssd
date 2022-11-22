@@ -41,7 +41,9 @@ ipa_get_config_send(TALLOC_CTX *mem_ctx,
                     struct sdap_handle *sh,
                     struct sdap_options *opts,
                     const char *domain,
-                    const char **attrs)
+                    const char **attrs,
+                    const char *filter,
+                    const char *base)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
@@ -68,14 +70,20 @@ ipa_get_config_send(TALLOC_CTX *mem_ctx,
         state->attrs = attrs;
     }
 
+    if (filter == NULL) {
+        filter = IPA_CONFIG_FILTER;
+    }
+
     ret = domain_to_basedn(state, domain, &ldap_basedn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "domain_to_basedn failed.\n");
         goto done;
     }
 
-    state->base = talloc_asprintf(state, IPA_CONFIG_SEARCH_BASE_TEMPLATE,
-                                  ldap_basedn);
+    if (base == NULL) {
+        base = IPA_CONFIG_SEARCH_BASE_TEMPLATE;
+    }
+    state->base = talloc_asprintf(state, base, ldap_basedn);
     if (state->base == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
@@ -84,7 +92,7 @@ ipa_get_config_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_get_generic_send(state, ev, opts,
                                    sh, state->base,
-                                   LDAP_SCOPE_SUBTREE, IPA_CONFIG_FILTER,
+                                   LDAP_SCOPE_SUBTREE, filter,
                                    state->attrs, NULL, 0,
                                    dp_opt_get_int(opts->basic,
                                                   SDAP_ENUM_SEARCH_TIMEOUT),
