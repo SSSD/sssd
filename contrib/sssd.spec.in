@@ -513,7 +513,7 @@ Requires: sssd-common = %{version}-%{release}
 Requires: libfido2
 
 %description passkey
-This package provides helper processes and plugins that are required to
+This package provides helper processes and Kerberos plugins that are required to
 enable authentication with passkey token.
 %endif
 
@@ -589,6 +589,12 @@ cp $RPM_BUILD_ROOT/%{_datadir}/sssd-kcm/kcm_default_ccache \
 # Enable krb5 idp plugins by default (when sssd-idp package is installed)
 cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_idp \
    $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/sssd_enable_idp
+
+# Enable krb5 passkey plugins by default (when sssd-passkey package is installed)
+%if %{build_passkey}
+cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/sssd_enable_passkey \
+   $RPM_BUILD_ROOT/%{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
+%endif
 
 # krb5 configuration snippet
 cp $RPM_BUILD_ROOT/%{_datadir}/sssd/krb5-snippets/enable_sssd_conf_dir \
@@ -987,6 +993,9 @@ done
 %if %{build_passkey}
 %files passkey
 %attr(755,%{sssd_user},%{sssd_user}) %{_libexecdir}/%{servicename}/passkey_child
+%{_libdir}/%{name}/modules/sssd_krb5_passkey_plugin.so
+%{_datadir}/sssd/krb5-snippets/sssd_enable_passkey
+%config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_passkey
 %endif
 
 %if 0%{?rhel}
