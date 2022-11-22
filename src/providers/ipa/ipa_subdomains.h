@@ -45,6 +45,24 @@ enum extdom_protocol {
     EXTDOM_V2
 };
 
+struct ipa_subdomains_ctx {
+    struct be_ctx *be_ctx;
+    struct ipa_id_ctx *ipa_id_ctx;
+    struct sdap_id_ctx *sdap_id_ctx;
+    struct sdap_search_base **search_bases;
+    struct sdap_search_base **master_search_bases;
+    struct sdap_search_base **ranges_search_bases;
+    struct sdap_search_base **host_search_bases;
+
+    time_t last_refreshed;
+    bool view_read_at_init;
+    /* List of krb5_service structures for each subdomain
+     * in order to write the kdcinfo files. For use on
+     * the client only
+     */
+    struct ipa_sd_k5_svc_list *k5svc_list;
+};
+
 errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
                             struct be_ctx *be_ctx,
                             struct ipa_id_ctx *ipa_id_ctx,

@@ -206,6 +206,7 @@
 #define SYSDB_OVERRIDE_OBJECT_DN "overrideObjectDN"
 #define SYSDB_USE_DOMAIN_RESOLUTION_ORDER "useDomainResolutionOrder"
 #define SYSDB_DOMAIN_RESOLUTION_ORDER "domainResolutionOrder"
+#define SYSDB_PASSKEY_USER_VERIFICATION "passkeyUserVerification"
 #define SYSDB_SESSION_RECORDING "sessionRecording"
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
@@ -524,6 +525,7 @@ errno_t sysdb_domain_update_domain_resolution_order(
                                         struct sysdb_ctx *sysdb,
                                         const char *domain_name,
                                         const char *domain_resolution_order);
+
 
 errno_t
 sysdb_get_site(TALLOC_CTX *mem_ctx,
