@@ -1612,6 +1612,7 @@ done:
     return ret;
 }
 
+
 errno_t
 sysdb_get_site(TALLOC_CTX *mem_ctx,
                struct sss_domain_info *dom,
