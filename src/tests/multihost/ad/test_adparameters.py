@@ -289,26 +289,26 @@ class TestBugzillaAutomation(object):
         user = "testusr_%s" % digit
         ad_realm = multihost.ad[0].domainname
         password = multihost.ad[0].ssh_password
-        adcli_cg = "adcli create-group %s --domain=%s"\
-            " --login-user=Administrator" % (group, ad_realm)
+        adcli_cg = f"adcli create-group {group} --domain={ad_realm}"\
+            f" --login-user=Administrator --stdin-password -v"
         multihost.client[0].run_command(adcli_cg, stdin_text=password)
 
-        adcli_cu = "adcli create-user %s --domain=%s"\
-            " --login-user=Administrator" % (user, ad_realm)
+        adcli_cu = f"adcli create-user {user} --domain={ad_realm}"\
+            f" --login-user=Administrator --stdin-password -v"
         multihost.client[0].run_command(adcli_cu, stdin_text=password)
         time.sleep(30)
         getent = "date; SSS_NSS_USE_MEMCACHE=NO "\
                  "getent group %s@%s" % (group, ad_realm)
         lookup = multihost.client[0].run_command(getent, raiseonerr=False)
         assert lookup.returncode == 0
-        adcli_am = "adcli add-member %s %s --domain=%s "\
-            "--login-user=Administrator" % (group, user, ad_realm)
+        adcli_am = f"adcli add-member {group} {user} --domain={ad_realm} "\
+            f"--login-user=Administrator  --stdin-password -v"
         multihost.client[0].run_command(adcli_am, stdin_text=password)
         time.sleep(30)
         lookup = multihost.client[0].run_command(getent, raiseonerr=False)
         print(lookup.stdout_text)
-        adcli_rm = "adcli remove-member %s %s --domain=%s "\
-            "--login-user=Administrator" % (group, user, ad_realm)
+        adcli_rm = f"adcli remove-member {group} {user} --domain={ad_realm} "\
+            f"--login-user=Administrator  --stdin-password -v"
         multihost.client[0].run_command(adcli_rm, stdin_text=password)
         time.sleep(30)
         lookup = multihost.client[0].run_command(getent, raiseonerr=False)
@@ -316,11 +316,11 @@ class TestBugzillaAutomation(object):
         search = "%s@%s" % (user, ad_realm)
         assert lookup.stdout_text.find(search) == -1
         print("Delete user and group")
-        adcli_dg = "adcli delete-group %s --domain=%s"\
-            " --login-user=Administrator" % (group, ad_realm)
+        adcli_dg = f"adcli delete-group {group} --domain={ad_realm}"\
+            f" --login-user=Administrator  --stdin-password -v"
         multihost.client[0].run_command(adcli_dg, stdin_text=password)
-        adcli_du = "adcli delete-user %s --domain=%s"\
-            " --login-user=Administrator" % (user, ad_realm)
+        adcli_du = f"adcli delete-user {user} --domain={ad_realm}"\
+            f" --login-user=Administrator  --stdin-password -v"
         multihost.client[0].run_command(adcli_du, stdin_text=password)
         print("Group {} and User {} deleted".format(group, user))
         assert lookup.returncode == 0

@@ -30,17 +30,19 @@ def fixture_create_plain_aduser_group(session_multihost, request):
     # Create user
     session_multihost.client[0].run_command(
         f'adcli create-user {ad_user} -D {domainname} --display-name='
-        f'"Plain {ad_user}"', stdin_text=password, raiseonerr=False
+        f'"Plain {ad_user}" --stdin-password -v',
+        stdin_text=password, raiseonerr=False
     )
     # Create group
     session_multihost.client[0].run_command(
         f'adcli create-group {ad_group} -D {domainname} -z '
-        f'"Plain {ad_group}"', stdin_text=password, raiseonerr=False
+        f'"Plain {ad_group}" --stdin-password -v',
+        stdin_text=password, raiseonerr=False
     )
     # Add member
     session_multihost.client[0].run_command(
-        f'adcli add-member -D {domainname} {ad_group} {ad_user}',
-        stdin_text=password, raiseonerr=False
+        f'adcli add-member -D {domainname} {ad_group} {ad_user} '
+        f' --stdin-password -v', stdin_text=password, raiseonerr=False
     )
 
     def remove_plain_ad_user_group():
@@ -2854,8 +2856,8 @@ class TestADParamsPorted:
         user2 = f'testusr_2_{rand_num}'
         multihost.client[0].run_command(
             f'adcli create-user {user2} -D {ad_domain} --display-name='
-            f'"Plain {user2}"', stdin_text=multihost.ad[0].ssh_password,
-            raiseonerr=False
+            f'"Plain {user2}" --stdin-password -v',
+            stdin_text=multihost.ad[0].ssh_password, raiseonerr=False
         )
 
         group2 = f'testgrp_2_{rand_num}'
