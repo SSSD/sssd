@@ -2291,6 +2291,34 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                                 </listitem>
                             </varlistentry>
                             <varlistentry>
+                                <term>check_upn_allow_missing</term>
+                                <listitem>
+                                    <para>This option should be used together
+                                    with 'check_upn' and handles the case where
+                                    a UPN is set on the server-side but is not
+                                    read by SSSD. The typical example is a
+                                    FreeIPA domain where 'ldap_user_principal'
+                                    is set to a not existing attribute name.
+                                    This was typically done to work-around
+                                    issues in the handling of enterprise
+                                    principals. But this is fixed since quite
+                                    some time and FreeIPA can handle enterprise
+                                    principals just fine and there is no need
+                                    anymore to set 'ldap_user_principal'.</para>
+                                    <para>Currently this option is set by
+                                    default to avoid regressions in such
+                                    environments. A log message will be added
+                                    to the system log and SSSD's debug log in
+                                    case a UPN is found in the PAC but not in
+                                    SSSD's cache. To avoid this log message it
+                                    would be best to evaluate if the
+                                    'ldap_user_principal' option can be removed.
+                                    If this is not possible, removing
+                                    'check_upn' will skip the test and avoid the
+                                    log message.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
                                 <term>upn_dns_info_present</term>
                                 <listitem>
                                     <para>The PAC must contain the UPN-DNS-INFO
@@ -2320,7 +2348,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         </para>
                         <para>
                             Default: no_check (AD and IPA provider
-                            'check_upn, check_upn_dns_info_ex')
+                            'check_upn, check_upn_allow_missing, check_upn_dns_info_ex')
                         </para>
                     </listitem>
                 </varlistentry>

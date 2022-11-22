@@ -829,6 +829,8 @@ uint64_t get_spend_time_us(uint64_t st);
 #define CHECK_PAC_CHECK_UPN_DNS_INFO_EX (1 << 3)
 #define CHECK_PAC_UPN_DNS_INFO_EX_PRESENT_STR "upn_dns_info_ex_present"
 #define CHECK_PAC_UPN_DNS_INFO_EX_PRESENT (1 << 4)
+#define CHECK_PAC_CHECK_UPN_ALLOW_MISSING_STR "check_upn_allow_missing"
+#define CHECK_PAC_CHECK_UPN_ALLOW_MISSING (1 << 5)
 
 errno_t get_pac_check_config(struct confdb_ctx *cdb, uint32_t *pac_check_opts);
 #endif /* __SSSD_UTIL_H__ */
