@@ -121,7 +121,8 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
 
     subreq = ipa_get_config_send(state, state->ev,
                                  sdap_id_op_handle(state->sdap_op),
-                                 state->sdap_id_ctx->opts, state->ipa_realm, NULL);
+                                 state->sdap_id_ctx->opts, state->ipa_realm,
+                                 NULL, NULL, NULL);
 
     tevent_req_set_callback(subreq, get_password_migration_flag_done, req);
 }
