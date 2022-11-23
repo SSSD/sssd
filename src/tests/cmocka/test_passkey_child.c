@@ -127,6 +127,9 @@ static int setup(void **state)
     ts->data.shortname = "user";
     ts->data.domain = "test.com";
     ts->data.type = COSE_ES256;
+    ts->data.user_id = talloc_array(global_talloc_context, unsigned char,
+                                    USER_ID_SIZE);
+    assert_non_null(ts->data.user_id);
 
     ts->dev_list = fido_dev_info_new(DEVLIST_SIZE);
     assert_non_null(ts->dev_list);
@@ -148,6 +151,7 @@ static int teardown(void **state)
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
 
     assert_non_null(ts);
+    talloc_free(ts->data.user_id);
 
     assert_true(check_leaks_pop(ts));
     fido_cred_free(&ts->cred);
@@ -444,6 +448,7 @@ void test_parse_required_args(void **state)
     assert_string_equal(data.key_handle_list[0], "keyHandle");
     assert_int_equal(data.type, COSE_ES256);
     assert_int_equal(data.user_verification, FIDO_OPT_OMIT);
+    assert_int_equal(data.cred_type, CRED_SERVER_SIDE);
     assert_int_equal(data.debug_libfido2, false);
 
     talloc_free(test_ctx);
@@ -467,6 +472,7 @@ void test_parse_all_args(void **state)
     argv[argc++] = "--key-handle=keyHandle";
     argv[argc++] = "--type=rs256";
     argv[argc++] = "--user-verification=true";
+    argv[argc++] = "--cred-type=discoverable";
     argv[argc++] = "--debug-libfido2";
 
     ret = parse_arguments(test_ctx, argc, argv, &data);
@@ -479,6 +485,7 @@ void test_parse_all_args(void **state)
     assert_string_equal(data.key_handle_list[0], "keyHandle");
     assert_int_equal(data.type, COSE_RS256);
     assert_int_equal(data.user_verification, FIDO_OPT_TRUE);
+    assert_int_equal(data.cred_type, CRED_DISCOVERABLE);
     assert_int_equal(data.debug_libfido2, true);
 
     talloc_free(test_ctx);
@@ -768,6 +775,7 @@ void test_register_key_integration(void **state)
     data.domain = "test.com";
     data.type = COSE_ES256;
     data.user_verification = FIDO_OPT_FALSE;
+    data.cred_type = CRED_SERVER_SIDE;
     data.quiet = false;
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, 1);
