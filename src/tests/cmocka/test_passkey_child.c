@@ -375,6 +375,16 @@ __wrap_fido_assert_set_uv(fido_assert_t *assert, fido_opt_t uv)
     return ret;
 }
 
+size_t
+__wrap_fido_assert_user_id_len(const fido_assert_t *assert, size_t size)
+{
+    size_t ret;
+
+    ret = (size_t) mock();
+
+    return ret;
+}
+
 int
 __wrap_fido_assert_set_clientdata_hash(fido_assert_t *assert,
                                        const unsigned char *ptr, size_t len)
@@ -1037,6 +1047,7 @@ void test_authenticate_integration(void **state)
     data.keys_size = 1;
     data.type = COSE_ES256;
     data.user_verification = FIDO_OPT_FALSE;
+    data.user_id = NULL;
     data.quiet = false;
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, dev_number);
@@ -1056,6 +1067,7 @@ void test_authenticate_integration(void **state)
     }
     will_return(__wrap_fido_dev_has_uv, false);
     will_return(__wrap_fido_dev_has_pin, false);
+    will_return(__wrap_fido_assert_user_id_len, 0);
     will_return(__wrap_fido_assert_set_uv, FIDO_OK);
     will_return(__wrap_fido_assert_set_clientdata_hash, FIDO_OK);
     will_return(__wrap_fido_dev_has_uv, false);

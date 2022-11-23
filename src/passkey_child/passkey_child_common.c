@@ -148,6 +148,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     data->type = COSE_ES256;
     data->user_verification = FIDO_OPT_OMIT;
     data->cred_type = CRED_SERVER_SIDE;
+    data->user_id = NULL;
     data->quiet = false;
     data->debug_libfido2 = false;
 
@@ -558,6 +559,7 @@ done:
 errno_t
 authenticate(struct passkey_data *data)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
     fido_assert_t *assert = NULL;
     fido_dev_info_t *dev_list = NULL;
     fido_dev_t *dev = NULL;
@@ -565,6 +567,12 @@ authenticate(struct passkey_data *data)
     size_t dev_list_len = 0;
     int count = 0;
     errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc_new() failed\n");
+        return ENOMEM;
+    }
 
     dev_list = fido_dev_info_new(DEVLIST_SIZE);
     if (dev_list == NULL) {
@@ -624,6 +632,13 @@ authenticate(struct passkey_data *data)
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Getting user id.\n");
+    ret = get_assert_user_id(tmp_ctx, assert, &data->user_id);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get user id.\n");
+        goto done;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Resetting assert options.\n");
     ret = set_assert_options(FIDO_OPT_TRUE, data->user_verification, assert);
     if (ret != FIDO_OK) {
@@ -656,6 +671,10 @@ authenticate(struct passkey_data *data)
         goto done;
     }
 
+    if (data->user_id != NULL) {
+        fprintf(stdout,"%s\n", data->user_id);
+        fflush(stdout);
+    }
     ret = FIDO_OK;
 
 done:
@@ -666,6 +685,7 @@ done:
     fido_dev_free(&dev);
     fido_assert_free(&assert);
     fido_dev_info_free(&dev_list, dev_list_len);
+    talloc_free(tmp_ctx);
 
     return ret;
 }
