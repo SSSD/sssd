@@ -35,6 +35,46 @@
 #include "passkey_child.h"
 
 errno_t
+get_assert_user_id(TALLOC_CTX *mem_ctx, fido_assert_t *assert,
+                   unsigned char **_user_id)
+{
+    size_t user_id_len;
+    const unsigned char *user_id;
+    errno_t ret;
+
+    user_id_len = fido_assert_user_id_len(assert, 0);
+    if (user_id_len == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "There isn't any user id\n");
+        ret = EOK;
+        goto done;
+    } else if (user_id_len != USER_ID_SIZE) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "User id size [%ld] differs from passkey_child's default value [%d]\n",
+              user_id_len, USER_ID_SIZE);
+    }
+
+    user_id = fido_assert_user_id_ptr(assert, 0);
+    if (user_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "fido_assert_user_id_ptr failed.\n");
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    *_user_id = (unsigned char*)sss_base64_encode(mem_ctx, user_id, user_id_len);
+    if (*_user_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to encode user id.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "User id: %s\n", *_user_id);
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+errno_t
 set_assert_client_data_hash(fido_assert_t *_assert)
 {
     unsigned char cdh[32];

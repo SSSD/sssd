@@ -3841,6 +3841,7 @@ test_passkey_LDFLAGS = \
     -Wl,-wrap,fido_assert_set_rp \
     -Wl,-wrap,fido_assert_allow_cred \
     -Wl,-wrap,fido_assert_set_uv \
+    -Wl,-wrap,fido_assert_user_id_len \
     -Wl,-wrap,fido_assert_set_clientdata_hash \
     -Wl,-wrap,fido_dev_get_assert \
     -Wl,-wrap,fido_dev_is_fido2 \

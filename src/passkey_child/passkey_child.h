@@ -308,6 +308,19 @@ errno_t
 authenticate(struct passkey_data *data);
 
 /**
+ * @brief Get user id from assert
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] assert Assert
+ * @param[out] _user_id User id
+ *
+ * @return 0 if the user id was obtained properly, error code otherwise.
+ */
+errno_t
+get_assert_user_id(TALLOC_CTX *mem_ctx, fido_assert_t *assert,
+                   unsigned char **_user_id);
+
+/**
  * @brief Set client data hash in the assert
  *
  * @param[out] assert Assert
