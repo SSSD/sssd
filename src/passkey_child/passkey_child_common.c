@@ -62,6 +62,21 @@ cose_str_to_int(const char *type, int *out)
 }
 
 static errno_t
+cred_type_str_to_enum(const char *type, enum credential_type *out)
+{
+    if (strcasecmp(type, "server-side") == 0) {
+        *out = CRED_SERVER_SIDE;
+    } else if (strcasecmp(type, "discoverable") == 0) {
+        *out = CRED_DISCOVERABLE;
+    } else {
+        *out = 0;
+        return ERR_INVALID_CRED_TYPE;
+    }
+
+    return EOK;
+}
+
+static errno_t
 parse_public_keys_and_handlers(TALLOC_CTX *mem_ctx,
                                const char *public_keys,
                                const char *key_handles,
@@ -119,6 +134,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     char *key_handles = NULL;
     const char *opt_logger = NULL;
     const char *type = NULL;
+    const char *cred_type = NULL;
     poptContext pc;
     errno_t ret;
 
@@ -131,6 +147,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     data->keys_size = 0;
     data->type = COSE_ES256;
     data->user_verification = FIDO_OPT_OMIT;
+    data->cred_type = CRED_SERVER_SIDE;
     data->quiet = false;
     data->debug_libfido2 = false;
 
@@ -158,6 +175,8 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("COSE type to use"), "es256|rs256|eddsa"},
         {"user-verification", 0, POPT_ARG_STRING, &user_verification, 0,
          _("Require user-verification"), "true|false"},
+        {"cred-type", 0, POPT_ARG_STRING, &cred_type, 0,
+         _("Credential type"), "server-side|discoverable"},
         {"quiet", 0, POPT_ARG_NONE, NULL, 'q',
          _("Supress prompts"), NULL},
         {"debug-libfido2", 0, POPT_ARG_NONE, NULL, 'd',
@@ -244,6 +263,16 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
         }
     }
 
+    if (cred_type != NULL) {
+        ret = cred_type_str_to_enum(cred_type, &data->cred_type);
+        if (ret != EOK) {
+            ERROR("[%s] is not a valid credential type (server-side or"
+                  " discoverable).\n",
+                  cred_type);
+            goto done;
+        }
+    }
+
     debug_prg_name = talloc_asprintf(NULL, "passkey_child[%d]", getpid());
     if (debug_prg_name == NULL) {
         ERROR("talloc_asprintf failed.\n");
@@ -286,6 +315,8 @@ check_arguments(const struct passkey_data *data)
     DEBUG(SSSDBG_TRACE_FUNC, "type: %d\n", data->type);
     DEBUG(SSSDBG_TRACE_FUNC, "user_verification: %d\n",
           data->user_verification);
+    DEBUG(SSSDBG_TRACE_FUNC, "cred_type: %d\n",
+          data->cred_type);
     DEBUG(SSSDBG_TRACE_FUNC, "debug_libfido2: %d\n", data->debug_libfido2);
 
     if (data->action == ACTION_NONE) {
@@ -317,11 +348,25 @@ done:
 errno_t
 register_key(struct passkey_data *data)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
     fido_cred_t *cred = NULL;
     fido_dev_t *dev = NULL;
     fido_dev_info_t *dev_list = NULL;
     size_t dev_number = 0;
     errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new() failed.\n");
+        return ENOMEM;
+    }
+
+    data->user_id = talloc_array(tmp_ctx, unsigned char, USER_ID_SIZE);
+    if (data->user_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array() failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
 
     cred = fido_cred_new();
     if (cred == NULL) {
@@ -377,6 +422,7 @@ done:
         fido_dev_close(dev);
     }
     fido_dev_free(&dev);
+    talloc_free(tmp_ctx);
 
     return ret;
 }
@@ -515,7 +561,7 @@ authenticate(struct passkey_data *data)
     fido_assert_t *assert = NULL;
     fido_dev_info_t *dev_list = NULL;
     fido_dev_t *dev = NULL;
-    struct pk_data_t pk_data;
+    struct pk_data_t pk_data = { 0 };
     size_t dev_list_len = 0;
     int count = 0;
     errno_t ret;
