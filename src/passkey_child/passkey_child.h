@@ -31,6 +31,7 @@
 #define DEFAULT_CUE "Please touch the device."
 
 #define DEVLIST_SIZE    64
+#define USER_ID_SIZE    32
 #define TIMEOUT         15
 #define FREQUENCY       1
 
@@ -38,6 +39,11 @@ enum action_opt {
     ACTION_NONE,
     ACTION_REGISTER,
     ACTION_AUTHENTICATE
+};
+
+enum credential_type {
+    CRED_SERVER_SIDE,
+    CRED_DISCOVERABLE
 };
 
 struct passkey_data {
@@ -49,6 +55,8 @@ struct passkey_data {
     int keys_size;
     int type;
     fido_opt_t user_verification;
+    enum credential_type cred_type;
+    unsigned char *user_id;
     bool quiet;
     bool debug_libfido2;
 };

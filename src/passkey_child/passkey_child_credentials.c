@@ -41,8 +41,8 @@ errno_t
 prepare_credentials(struct passkey_data *data, fido_dev_t *dev,
                     fido_cred_t *cred)
 {
-    unsigned char userid[32];
     unsigned char cdh[32];
+    fido_opt_t rk = FIDO_OPT_OMIT;
     bool has_pin;
     bool has_uv;
     errno_t ret = EOK;
@@ -80,7 +80,14 @@ prepare_credentials(struct passkey_data *data, fido_dev_t *dev,
         goto done;
     }
 
-    ret = sss_generate_csprng_buffer(userid, sizeof(userid));
+    if (data->user_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "user_id must be allocated before using it.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_generate_csprng_buffer(data->user_id, USER_ID_SIZE);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sss_generate_csprng_buffer failed [%d]: %s.\n",
@@ -90,17 +97,21 @@ prepare_credentials(struct passkey_data *data, fido_dev_t *dev,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Setting user: %s.\n", data->shortname);
 
-    ret = fido_cred_set_user(cred, userid, sizeof(userid), data->shortname,
-                             NULL, NULL);
+    ret = fido_cred_set_user(cred, data->user_id, USER_ID_SIZE,
+                             data->shortname, NULL, NULL);
     if (ret != FIDO_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "fido_cred_set_user failed [%d]: %s.\n",
               ret, fido_strerr(ret));
         goto done;
     }
 
+    if (data->cred_type == CRED_DISCOVERABLE) {
+        rk = FIDO_OPT_TRUE;
+    }
+
     /* Set to FIDO_OPT_OMIT instead of FIDO_OPT_FALSE for compatibility reasons
      */
-    ret = fido_cred_set_rk(cred, FIDO_OPT_OMIT);
+    ret = fido_cred_set_rk(cred, rk);
     if (ret != FIDO_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "fido_cred_set_rk failed [%d]: %s.\n",
               ret, fido_strerr(ret));
@@ -334,6 +345,7 @@ print_credentials(const struct passkey_data *data,
     const unsigned char *cred_id = NULL;
     const unsigned char *public_key = NULL;
     const char *b64_cred_id = NULL;
+    const char *b64_user_id = NULL;
     char *pem_key = NULL;
     size_t cred_id_len;
     size_t user_key_len;
@@ -389,7 +401,18 @@ print_credentials(const struct passkey_data *data,
         goto done;
     }
 
-    printf("passkey:%s,%s\n", b64_cred_id, pem_key);
+    b64_user_id = sss_base64_encode(tmp_ctx, data->user_id, USER_ID_SIZE);
+    if (b64_user_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "failed to encode user id.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (data->cred_type == CRED_SERVER_SIDE) {
+        printf("passkey:%s,%s\n", b64_cred_id, pem_key);
+    } else {
+        printf("passkey:%s,%s,%s\n", b64_cred_id, pem_key, b64_user_id);
+    }
     ret = EOK;
 
 done:
