@@ -40,6 +40,7 @@
 #include "providers/data_provider.h"
 #include "providers/backend.h"
 #include "providers/ldap/ldap_auth.h"
+#include "providers/ipa/ipa_common.h"
 
 #define PERMANENTLY_LOCKED_ACCOUNT "000001010000Z"
 #define MALFORMED_FILTER "Malformed access control filter [%s]\n"
@@ -53,6 +54,7 @@ enum sdap_pwpolicy_mode {
 static errno_t perform_pwexpire_policy(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *domain,
                                        struct pam_data *pd,
+                                       enum sdap_access_type access_type,
                                        struct sdap_options *opts);
 
 static errno_t sdap_save_user_cache_bool(struct sss_domain_info *domain,
@@ -281,6 +283,7 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
 
         case LDAP_ACCESS_EXPIRE_POLICY_REJECT:
             ret = perform_pwexpire_policy(state, state->domain, state->pd,
+                                          state->access_ctx->type,
                                           state->access_ctx->id_ctx->opts);
             if (ret == ERR_PASSWORD_EXPIRED) {
                 ret = ERR_PASSWORD_EXPIRED_REJECT;
@@ -289,6 +292,7 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
 
         case LDAP_ACCESS_EXPIRE_POLICY_WARN:
             ret = perform_pwexpire_policy(state, state->domain, state->pd,
+                                          state->access_ctx->type,
                                           state->access_ctx->id_ctx->opts);
             if (ret == ERR_PASSWORD_EXPIRED) {
                 ret = ERR_PASSWORD_EXPIRED_WARN;
@@ -297,6 +301,7 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
 
         case LDAP_ACCESS_EXPIRE_POLICY_RENEW:
             ret = perform_pwexpire_policy(state, state->domain, state->pd,
+                                          state->access_ctx->type,
                                           state->access_ctx->id_ctx->opts);
             if (ret == ERR_PASSWORD_EXPIRED) {
                 ret = ERR_PASSWORD_EXPIRED_RENEW;
@@ -785,6 +790,7 @@ static errno_t sdap_account_expired(struct sdap_access_ctx *access_ctx,
 static errno_t perform_pwexpire_policy(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *domain,
                                        struct pam_data *pd,
+                                       enum sdap_access_type access_type,
                                        struct sdap_options *opts)
 {
     enum pwexpire pw_expire_type;
@@ -792,8 +798,8 @@ static errno_t perform_pwexpire_policy(TALLOC_CTX *mem_ctx,
     errno_t ret;
     char *dn;
 
-    ret = get_user_dn(mem_ctx, domain, opts, pd->user, &dn, &pw_expire_type,
-                      &pw_expire_data);
+    ret = get_user_dn(mem_ctx, domain, access_type, opts, pd->user, &dn,
+                      &pw_expire_type, &pw_expire_data);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "get_user_dn returned %d:[%s].\n",
               ret, sss_strerror(ret));
@@ -2064,12 +2070,12 @@ done:
 }
 
 static errno_t get_access_filter(TALLOC_CTX *mem_ctx,
-                                 struct sdap_options *opts,
+                                 struct dp_option *opts,
                                  const char **_filter)
 {
     const char *filter;
 
-    filter = dp_opt_get_cstring(opts->basic, SDAP_ACCESS_FILTER);
+    filter = dp_opt_get_cstring(opts, SDAP_ACCESS_FILTER);
     if (filter == NULL) {
         /* It's okay if this is NULL. In that case we will simply act
          * like the 'deny' provider.
@@ -2091,7 +2097,7 @@ static errno_t get_access_filter(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t check_expire_policy(struct sdap_options *opts)
+static errno_t check_expire_policy(struct dp_option *opts)
 {
     const char *expire_policy;
     bool matched_policy = false;
@@ -2103,8 +2109,7 @@ static errno_t check_expire_policy(struct sdap_options *opts)
                               LDAP_ACCOUNT_EXPIRE_389DS,
                               NULL};
 
-    expire_policy = dp_opt_get_cstring(opts->basic,
-                                       SDAP_ACCOUNT_EXPIRE_POLICY);
+    expire_policy = dp_opt_get_cstring(opts, SDAP_ACCOUNT_EXPIRE_POLICY);
     if (expire_policy == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Warning: LDAP access rule 'expire' is set, "
@@ -2197,31 +2202,63 @@ done:
 }
 
 
-errno_t sdap_set_access_rules(TALLOC_CTX *mem_ctx,
-                              struct sdap_access_ctx *access_ctx,
-                              struct sdap_options *opts)
+static errno_t get_order_list(TALLOC_CTX *mem_ctx,
+                              enum sdap_access_type type,
+                              struct dp_option *opts,
+                              char ***_order_list)
 {
-    errno_t ret;
-    char **order_list = NULL;
-    const char *filter = NULL;
+    errno_t ret = EOK;
     const char *order;
-    size_t c;
 
-    order = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
-                               SDAP_ACCESS_ORDER);
-    if (order == NULL) {
+    switch (type) {
+    case SDAP_TYPE_LDAP:
+        order = dp_opt_get_cstring(opts, SDAP_ACCESS_ORDER);
+        if (order == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ldap_access_order not given, using 'filter'.\n");
+            order = "filter";
+        }
+        break;
+    case SDAP_TYPE_IPA:
+        order = dp_opt_get_cstring(opts, IPA_ACCESS_ORDER);
+        if (order == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ipa_access_order not given, using 'expire'.\n");
+            order = "expire";
+        }
+        break;
+    default:
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "ldap_access_order not given, using 'filter'.\n");
-        order = "filter";
+              "Unknown sdap_access_type [%i].\n", type);
+        ret = EINVAL;
+        goto done;
     }
 
-    ret = get_access_order_list(mem_ctx, order, &order_list);
+    /* We can pass _order_list because it is the last operation.
+     * Should this ever change, this would require an intermediate variable and
+     * to assign the value to _order_list on success at the very last moment. */
+    ret = get_access_order_list(mem_ctx, order, _order_list);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "get_access_order_list failed: [%d][%s].\n",
               ret, sss_strerror(ret));
         goto done;
     }
+
+done:
+    return ret;
+}
+
+
+static errno_t set_sdap_access_rules(TALLOC_CTX *mem_ctx,
+                                     struct dp_option *opts,
+                                     char **order_list,
+                                     struct sdap_access_ctx *access_ctx)
+{
+    int ret = EOK;
+    int c;
+    const char *filter = NULL;
+
 
     for (c = 0; order_list[c] != NULL; c++) {
         if (strcasecmp(order_list[c], LDAP_ACCESS_FILTER_NAME) == 0) {
@@ -2270,11 +2307,96 @@ errno_t sdap_set_access_rules(TALLOC_CTX *mem_ctx,
     }
 
 done:
-    talloc_free(order_list);
     if (ret == EOK) {
         access_ctx->filter = filter;
     } else {
         talloc_zfree(filter);
     }
+
+    return ret;
+}
+
+
+static errno_t set_ipa_access_rules(TALLOC_CTX *mem_ctx,
+                                    struct dp_option *opts,
+                                    char **order_list,
+                                    struct sdap_access_ctx *access_ctx)
+{
+    int ret = EOK;
+    int c;
+    const char *filter = NULL;
+
+
+    for (c = 0; order_list[c] != NULL; c++) {
+        if (strcasecmp(order_list[c], LDAP_ACCESS_EXPIRE_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE;
+            if (check_expire_policy(opts) != EOK) {
+                goto done;
+            }
+        } else if (strcasecmp(order_list[c],
+                              LDAP_ACCESS_EXPIRE_POLICY_REJECT_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE_POLICY_REJECT;
+        } else if (strcasecmp(order_list[c],
+                              LDAP_ACCESS_EXPIRE_POLICY_WARN_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE_POLICY_WARN;
+        } else if (strcasecmp(order_list[c],
+                              LDAP_ACCESS_EXPIRE_POLICY_RENEW_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE_POLICY_RENEW;
+        } else if (strcasecmp(order_list[c], LDAP_ACCESS_PPOLICY_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_PPOLICY;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unexpected access rule name [%s].\n", order_list[c]);
+            ret = EINVAL;
+            goto done;
+        }
+    }
+    access_ctx->access_rule[c] = LDAP_ACCESS_EMPTY;
+    if (c == 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Warning: access_provider=ipa set, "
+              "but ipa_access_order is empty. "
+              "All domain users will be denied access.\n");
+    }
+
+done:
+    if (ret == EOK) {
+        access_ctx->filter = filter;
+    } else {
+        talloc_zfree(filter);
+    }
+
+    return ret;
+}
+
+
+errno_t sdap_set_access_rules(TALLOC_CTX *mem_ctx,
+                              struct sdap_access_ctx *access_ctx,
+                              struct dp_option *opts,
+                              struct dp_option *more_opts)
+{
+    errno_t ret;
+    char **order_list = NULL;
+
+    ret = get_order_list(mem_ctx, access_ctx->type, opts, &order_list);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    switch (access_ctx->type) {
+    case SDAP_TYPE_LDAP:
+        ret = set_sdap_access_rules(mem_ctx, opts, order_list, access_ctx);
+        break;
+    case SDAP_TYPE_IPA:
+        ret = set_ipa_access_rules(mem_ctx, more_opts, order_list, access_ctx);
+        break;
+    default:
+        ret = EINVAL;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid sdap_access_type [%i].\n", access_ctx->type);
+        break;
+    }
+
+done:
+    talloc_free(order_list);
     return ret;
 }

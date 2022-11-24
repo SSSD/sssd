@@ -761,7 +761,7 @@ errno_t sssm_ipa_access_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Set up an sdap_access_ctx for checking expired/locked accounts. */
+    /* Set up an sdap_access_ctx for checking as configured */
     access_ctx->sdap_access_ctx = talloc_zero(access_ctx, struct sdap_access_ctx);
     if (access_ctx->sdap_access_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed\n");
@@ -769,9 +769,17 @@ errno_t sssm_ipa_access_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    access_ctx->sdap_access_ctx->type = SDAP_TYPE_IPA;
     access_ctx->sdap_access_ctx->id_ctx = access_ctx->sdap_ctx;
-    access_ctx->sdap_access_ctx->access_rule[0] = LDAP_ACCESS_EXPIRE;
-    access_ctx->sdap_access_ctx->access_rule[1] = LDAP_ACCESS_EMPTY;
+    ret = sdap_set_access_rules(access_ctx, access_ctx->sdap_access_ctx,
+                                access_ctx->ipa_options,
+                                id_ctx->ipa_options->id->basic);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sdap_set_access_rules failed: [%d][%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
 
     dp_set_method(dp_methods, DPM_ACCESS_HANDLER,
                   ipa_pam_access_handler_send, ipa_pam_access_handler_recv, access_ctx,
