@@ -1468,10 +1468,6 @@ ldap_access_filter = (employeeType=admin)
                             his password immediately.
                         </para>
                         <para>
-                            Note If user password is expired no explicit message
-                            is prompted by SSSD.
-                        </para>
-                        <para>
                             Please note that 'access_provider = ldap' must
                             be set for this feature to work. Also 'ldap_pwd_policy'
                             must be set to an appropriate password policy.
