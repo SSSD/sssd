@@ -1,9 +1,13 @@
+"""
+Module with extensions to the pytest_multihost
+"""
+
+import time
+import logging
+import pytest
 from pytest_multihost import make_multihost_fixture
 import pytest_multihost.config
 import pytest_multihost.host
-import logging
-import pytest
-import time
 from .exceptions import SSSDException
 
 
@@ -14,7 +18,7 @@ class QeConfig(pytest_multihost.config.Config):
                        'rootdn', 'rootdn_pwd'}
 
     def __init__(self, **kwargs):
-        self.log = self.get_logger('%s.%s' % (__name__, type(self).__name__))
+        self.log = self.get_logger(f'{__name__}.{type(self).__name__}')
         pytest_multihost.config.Config.__init__(self, **kwargs)
 
     def get_domain_class(self):
@@ -64,7 +68,6 @@ class QeConfig(pytest_multihost.config.Config):
 
 class QeBaseHost(pytest_multihost.host.BaseHost):
     """QeBaseHost subclass of multihost plugin BaseHost class."""
-    pass
 
 
 class QeHost(QeBaseHost):
@@ -91,8 +94,7 @@ class QeHost(QeBaseHost):
             ret = output.split('\n')
             name = (ret[len(ret) - 1])
             return name
-        else:
-            return cmd.stdout_text.strip()
+        return cmd.stdout_text.strip()
 
     @property
     def fips(self):
@@ -101,8 +103,7 @@ class QeHost(QeBaseHost):
         cmd = self.run_command(fips_check_cmd, raiseonerr=False)
         if cmd.returncode == 0:
             return True
-        else:
-            return False
+        return False
 
     @property
     def distro(self):
@@ -122,14 +123,15 @@ class QeHost(QeBaseHost):
     def package_mgmt(self, package, action='install'):
         """ Install packages
             : param str package: Package name or list of packages
-            : param str acation: Install/uninstall/update
+            : param str action: Install/uninstall/update
             : return str: Return code of the yum remove command
         """
-        if 'Fedora' in self.distro or '8.' in self.distro:
+        if 'Fedora' in self.distro or '8.' in self.distro or\
+                '9.' in self.distro:
             pkg_cmd = 'dnf'
         else:
             pkg_cmd = 'yum'
-        pkg_install_cmd = '%s -y %s %s' % (pkg_cmd, action, package)
+        pkg_install_cmd = f'{pkg_cmd} -y {action} {package}'
         cmd = self.run_command(pkg_install_cmd, raiseonerr=False)
         return bool(cmd.returncode == 0)
 
@@ -139,38 +141,16 @@ class QeHost(QeBaseHost):
             :return: str Return code of the systemctl/service command
             :Exception Raises exception
         """
-        if 'Fedora' in self.distro:
-            cmd = self.run_command(['systemctl', action, 'sssd'],
-                                   raiseonerr=False)
-            if cmd.returncode == 0:
-                time.sleep(10)
-                return cmd.returncode
-            else:
-                raise SSSDException('Unable to %s sssd' % action, 1)
-        elif '7.' or '8.' in self.distro.split()[6]:
-            cmd = self.run_command(['systemctl', action, 'sssd'],
-                                   raiseonerr=False)
-            if cmd.returncode == 0:
-                time.sleep(10)
-                return cmd.returncode
-            else:
-                raise SSSDException('Unable to %s sssd' % action, 1)
-        elif '6.' in self.distro.split()[6]:
-            cmd = self.run_command(['service', 'sssd', action],
-                                   raiseonerr=False)
-            if cmd.returncode == 0:
-                time.sleep(10)
-                return cmd.returncode
-            else:
-                raise SSSDException('Unable to %s sssd' % action, 1)
-        elif 'Atomic' in self.distro.split():
-            cmd = self.run_command(['systemctl', action, 'sssd'],
-                                   raiseonerr=False)
-            if cmd.returncode == 0:
-                time.sleep(10)
-                return cmd.returncode
-            else:
-                raise SSSDException('Unable to %s sssd' % action, 1)
+        # For Fedora, Atomic and RHELs 7, 8, 9 this should work.
+        service_command = f'systemctl {action} sssd'
+        if '6.' in self.distro.split()[6]:
+            # RHEL 6 needs service command
+            service_command = f"service sssd {action}"
+        cmd = self.run_command(service_command, raiseonerr=False)
+        if cmd.returncode == 0:
+            time.sleep(10)
+            return cmd.returncode
+        raise SSSDException(f'Unable to {action} sssd', 1)
 
     def yum_install(self, package):
         """ Install packages through yum
@@ -190,7 +170,7 @@ class QeHost(QeBaseHost):
             :return str: Returncode of the dnf command
             :Exception: None
         """
-        install = 'dnf install -y --setopt=strict=0 %s' % package
+        install = f'dnf install -y --setopt=strict=0 {package}'
         cmd = self.run_command(install, raiseonerr=False)
         return cmd.returncode
 
@@ -291,6 +271,8 @@ class QeDomain(pytest_multihost.config.Domain):
 
         :return None:
         """
+        # No need to call the super constructor as everything is done here
+        # pylint: disable=super-init-not-called
         self.type = str(domain_type)
         self.config = config
         self.name = str(name)
@@ -301,9 +283,10 @@ class QeDomain(pytest_multihost.config.Domain):
 
 @pytest.fixture(scope="session", autouse=True)
 def session_multihost(request):
+    # pylint: disable=no-member
     """Multihost plugin fixture for session scope"""
     if pytest.num_ad > 0:
-        mh = make_multihost_fixture(request, descriptions=[
+        mhost = make_multihost_fixture(request, descriptions=[
             {
                 'type': 'sssd',
                 'hosts':
@@ -324,7 +307,7 @@ def session_multihost(request):
             },
         ], config_class=QeConfig,)
     else:
-        mh = make_multihost_fixture(request, descriptions=[
+        mhost = make_multihost_fixture(request, descriptions=[
             {
                 'type': 'sssd',
                 'hosts':
@@ -337,69 +320,54 @@ def session_multihost(request):
                 }
             },
         ], config_class=QeConfig,)
-    mh.domain = mh.config.domains[0]
-    mh.master = mh.domain.hosts_by_role('master')
-    mh.atomic = mh.domain.hosts_by_role('atomic')
-    mh.replica = mh.domain.hosts_by_role('replica')
-    mh.client = mh.domain.hosts_by_role('client')
-    mh.others = mh.domain.hosts_by_role('other')
+    mhost.domain = mhost.config.domains[0]
+    mhost.master = mhost.domain.hosts_by_role('master')
+    mhost.atomic = mhost.domain.hosts_by_role('atomic')
+    mhost.replica = mhost.domain.hosts_by_role('replica')
+    mhost.client = mhost.domain.hosts_by_role('client')
+    mhost.others = mhost.domain.hosts_by_role('other')
 
     if pytest.num_ad > 0:
-        mh.ad = []
+        mhost.ad = []
         for i in range(1, pytest.num_ad + 1):
             print(i)
-            print(mh.config.domains[i].hosts_by_role('ad'))
-            mh.ad.extend(mh.config.domains[i].hosts_by_role('ad'))
+            print(mhost.config.domains[i].hosts_by_role('ad'))
+            mhost.ad.extend(mhost.config.domains[i].hosts_by_role('ad'))
 
-    yield mh
+    yield mhost
 
 
+# pylint: disable=redefined-outer-name
 @pytest.fixture(scope='session', autouse=True)
 def create_testdir(session_multihost, request):
-    config_dir_cmd = "mkdir -p %s" % (session_multihost.config.test_dir)
-    env_file_cmd = "touch %s/env.sh" % (session_multihost.config.test_dir)
-    rm_config_cmd = "rm -rf %s" % (session_multihost.config.test_dir)
+    """
+    Create test dir on the hosts and backup resolv.conf
+    @param session_multihost: Multihost fixture
+    @param request: Pytest request
+    """
+    config_dir_cmd = f"mkdir -p {session_multihost.config.test_dir}"
+    env_file_cmd = f"touch {session_multihost.config.test_dir}/env.sh"
+    rm_config_cmd = f"rm -rf {session_multihost.config.test_dir}"
     bkup_resolv_conf = 'cp -a /etc/resolv.conf /etc/resolv.conf.orig'
     restore_resolv_conf = 'cp -a /etc/resolv.conf.orig /etc/resolv.conf'
 
-    for i in range(len(session_multihost.atomic)):
-        session_multihost.atomic[i].run_command(config_dir_cmd)
-        session_multihost.atomic[i].run_command(env_file_cmd)
+    for machine in session_multihost.atomic + session_multihost.others +\
+            session_multihost.replica:
+        machine.run_command(config_dir_cmd)
+        machine.run_command(env_file_cmd)
 
-    for i in range(len(session_multihost.client)):
-        session_multihost.client[i].run_command(config_dir_cmd)
-        session_multihost.client[i].run_command(env_file_cmd)
-        session_multihost.client[i].run_command(bkup_resolv_conf)
-
-    for i in range(len(session_multihost.master)):
-        session_multihost.master[i].run_command(config_dir_cmd)
-        session_multihost.master[i].run_command(env_file_cmd)
-        session_multihost.master[i].run_command(bkup_resolv_conf)
-
-    for i in range(len(session_multihost.others)):
-        session_multihost.others[i].run_command(config_dir_cmd)
-        session_multihost.others[i].run_command(env_file_cmd)
-
-    for i in range(len(session_multihost.replica)):
-        session_multihost.replica[i].run_command(config_dir_cmd)
-        session_multihost.replica[i].run_command(env_file_cmd)
+    for machine in session_multihost.client + session_multihost.master:
+        machine.run_command(config_dir_cmd)
+        machine.run_command(env_file_cmd)
+        machine.run_command(bkup_resolv_conf)
 
     def remove_test_dir():
-        for i in range(len(session_multihost.atomic)):
-            session_multihost.atomic[i].run_command(rm_config_cmd)
+        for machine in session_multihost.client + session_multihost.master:
+            machine.run_command(rm_config_cmd)
+            machine.run_command(restore_resolv_conf)
 
-        for i in range(len(session_multihost.client)):
-            session_multihost.client[i].run_command(rm_config_cmd)
-            session_multihost.client[i].run_command(restore_resolv_conf)
-
-        for i in range(len(session_multihost.master)):
-            session_multihost.master[i].run_command(rm_config_cmd)
-            session_multihost.master[i].run_command(restore_resolv_conf)
-
-        for i in range(len(session_multihost.others)):
-            session_multihost.others[i].run_command(rm_config_cmd)
-
-        for i in range(len(session_multihost.replica)):
-            session_multihost.replica[i].run_command(rm_config_cmd)
+        for machine in session_multihost.atomic + session_multihost.others +\
+                session_multihost.replica:
+            machine.run_command(config_dir_cmd)
 
     request.addfinalizer(remove_test_dir)
