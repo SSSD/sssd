@@ -1462,10 +1462,27 @@ ldap_access_filter = (employeeType=admin)
                        <para>
                             The difference between these options is the action
                             taken if user password is expired:
-                            pwd_expire_policy_reject - user is denied to log in,
-                            pwd_expire_policy_warn - user is still able to log in,
-                            pwd_expire_policy_renew - user is prompted to change
-                            his password immediately.
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        pwd_expire_policy_reject -
+                                        user is denied to log in,
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        pwd_expire_policy_warn -
+                                        user is still able to log in,
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        pwd_expire_policy_renew -
+                                        user is prompted to change their
+                                        password immediately.
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
                         </para>
                         <para>
                             Please note that 'access_provider = ldap' must
