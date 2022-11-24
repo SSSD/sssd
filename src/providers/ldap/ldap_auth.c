@@ -102,6 +102,12 @@ static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
 
     if (difftime(now, expire_time) > 0.0) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Kerberos password expired.\n");
+        if (pd != NULL) {
+            ret = add_expired_warning(pd, 0);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "add_expired_warning failed.\n");
+            }
+        }
         ret = ERR_PASSWORD_EXPIRED;
     } else {
         if (pwd_exp_warning >= 0) {
@@ -155,6 +161,10 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
 
     if (spwd->sp_max != -1 && password_age > spwd->sp_max) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Password expired.\n");
+        ret = add_expired_warning(pd, 0);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "add_expired_warning failed.\n");
+        }
         return ERR_PASSWORD_EXPIRED;
     }
 
