@@ -251,6 +251,7 @@ class SSSDOptions(object):
                                               "rules against the IPA server when the last request did not find any "
                                               "rule"),
         'ipa_subid_ranges_search_base': _("Search base for SUBID ranges"),
+        'ipa_access_order': _("Which rules should be used to evaluate access control"),
         'ipa_host_fqdn': _('The LDAP attribute that contains FQDN of the host.'),
         'ipa_host_object_class': _('The object class of a host entry in LDAP.'),
         'ipa_host_search_base': _('Use the given string as search base for host objects.'),

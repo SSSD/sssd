@@ -623,10 +623,16 @@ static void ipa_pam_access_handler_sdap_done(struct tevent_req *subreq)
     talloc_free(subreq);
     switch (ret) {
     case EOK:
+    case ERR_PASSWORD_EXPIRED_WARN:
         /* Account wasn't locked. Continue below to HBAC processing. */
+        state->pd->pam_status = PAM_SUCCESS;
+        break;
+    case ERR_PASSWORD_EXPIRED_RENEW:
+        state->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
         break;
     case ERR_ACCESS_DENIED:
-        /* Account was locked. Return permission denied here. */
+    case ERR_PASSWORD_EXPIRED_REJECT:
+        /* Account was locked or password expired. */
         state->pd->pam_status = PAM_PERM_DENIED;
         goto done;
     case ERR_ACCOUNT_EXPIRED:
@@ -646,6 +652,9 @@ static void ipa_pam_access_handler_sdap_done(struct tevent_req *subreq)
         goto done;
     }
 
+    /* The callback function will not overwrite pam_status in case of
+     * success. Because of that, pam_status must be set to the desired
+     * value in advance. */
     tevent_req_set_callback(subreq, ipa_pam_access_handler_done, req);
 
     return;
@@ -659,6 +668,7 @@ static void ipa_pam_access_handler_done(struct tevent_req *subreq)
 {
     struct ipa_pam_access_handler_state *state;
     struct tevent_req *req;
+    int preset_pam_status;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -678,16 +688,19 @@ static void ipa_pam_access_handler_done(struct tevent_req *subreq)
         goto done;
     }
 
+    /* ipa_hbac_evaluate_rules() could overwrite state->pd->pam_status but
+       we don't want that. Save the previous value and set it back in case
+       of succcess. */
+    preset_pam_status = state->pd->pam_status;
     ret = ipa_hbac_evaluate_rules(state->be_ctx,
                                   state->access_ctx->ipa_options, state->pd);
     if (ret == EOK) {
-        state->pd->pam_status = PAM_SUCCESS;
+        state->pd->pam_status = preset_pam_status;
     } else if (ret == ERR_ACCESS_DENIED) {
         state->pd->pam_status = PAM_PERM_DENIED;
     } else {
         state->pd->pam_status = PAM_SYSTEM_ERR;
     }
-
 done:
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
