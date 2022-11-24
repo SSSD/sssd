@@ -400,9 +400,11 @@ errno_t sssm_ldap_access_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    access_ctx->type = SDAP_TYPE_LDAP;
     access_ctx->id_ctx = init_ctx->id_ctx;
 
-    ret = sdap_set_access_rules(access_ctx, access_ctx, access_ctx->id_ctx->opts);
+    ret = sdap_set_access_rules(access_ctx, access_ctx,
+                                access_ctx->id_ctx->opts->basic, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "set_access_rules failed: [%d][%s].\n",

@@ -59,9 +59,10 @@
             <quote>MODIFIED DEFAULT OPTIONS</quote> section.
         </para>
         <para>
-            As an access provider, the IPA provider uses HBAC (host-based access control)
-            rules. Please refer to freeipa.org for more information about HBAC. No
-            configuration of access provider is required on the client side.
+            As an access provider, the IPA provider has a minimal configuration
+            (see <quote>ipa_access_order</quote>) as it mainly uses HBAC
+            (host-based access control) rules. Please refer to freeipa.org for
+            more information about HBAC.
         </para>
         <para>
             If <quote>auth_provider=ipa</quote> or
@@ -339,6 +340,59 @@
                         </para>
                         <para>
                             Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_access_order (string)</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of access control options.
+                            Allowed values are:
+                        </para>
+                        <para>
+                            <emphasis>expire</emphasis>: use
+                            IPA's account expiration policy.
+                        </para>
+                        <para>
+                            <emphasis>pwd_expire_policy_reject,
+                                      pwd_expire_policy_warn,
+                                      pwd_expire_policy_renew:
+                            </emphasis>
+                            These options are useful if users are interested
+                            in being warned that password is about to expire
+                            and authentication is based on using a different
+                            method than passwords - for example SSH keys.
+                       </para>
+                       <para>
+                            The difference between these options is the action
+                            taken if user password is expired:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                    pwd_expire_policy_reject -
+                                    user is denied to log in,
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                    pwd_expire_policy_warn -
+                                    user is still able to log in,
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                    pwd_expire_policy_renew -
+                                    user is prompted to change their
+                                    password immediately.
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            Please note that 'access_provider = ipa' must
+                            be set for this feature to work.
                         </para>
                     </listitem>
                 </varlistentry>

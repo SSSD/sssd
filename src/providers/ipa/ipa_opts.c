@@ -53,6 +53,7 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_deskprofile_refresh", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
     { "ipa_deskprofile_request_interval", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ipa_subid_ranges_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ipa_access_order", DP_OPT_STRING, { "expire" }, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
 

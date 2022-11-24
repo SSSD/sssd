@@ -47,7 +47,6 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_auth.h"
-#include "providers/ldap/sdap_access.h"
 
 
 #define LDAP_PWEXPIRE_WARNING_TIME 0
@@ -260,8 +259,10 @@ errno_t check_pwexpire_policy(enum pwexpire pw_expire_type,
 static errno_t
 find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
                                     const struct ldb_message *msg,
+                                    enum sdap_access_type access_type,
                                     struct dp_option *opts,
-                                    enum pwexpire *type, void **data)
+                                    enum pwexpire *pwd_exp_type,
+                                    void **data)
 {
     const char *mark;
     const char *val;
@@ -269,12 +270,23 @@ find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
     const char *pwd_policy;
     int ret;
 
-    *type = PWEXPIRE_NONE;
+    *pwd_exp_type = PWEXPIRE_NONE;
     *data = NULL;
 
-    pwd_policy = dp_opt_get_string(opts, SDAP_PWD_POLICY);
-    if (pwd_policy == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing password policy.\n");
+    switch (access_type) {
+    case SDAP_TYPE_IPA:
+        /* MIT-Kerberos is the only option for IPA */
+        pwd_policy = PWD_POL_OPT_MIT;
+        break;
+    case SDAP_TYPE_LDAP:
+        pwd_policy = dp_opt_get_string(opts, SDAP_PWD_POLICY);
+        if (pwd_policy == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Missing password policy.\n");
+            return EINVAL;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE,"Unknown access_type [%i].\n", access_type);
         return EINVAL;
     }
 
@@ -294,7 +306,7 @@ find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
                     DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
                     return ENOMEM;
                 }
-                *type = PWEXPIRE_KERBEROS;
+                *pwd_exp_type = PWEXPIRE_KERBEROS;
 
                 return EOK;
             }
@@ -341,7 +353,7 @@ find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
             if (ret != EOK) goto shadow_fail;
 
             *data = spwd;
-            *type = PWEXPIRE_SHADOW;
+            *pwd_exp_type = PWEXPIRE_SHADOW;
 
             return EOK;
         } else {
@@ -509,6 +521,7 @@ static int get_user_dn_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req,
 
 int get_user_dn(TALLOC_CTX *memctx,
                        struct sss_domain_info *domain,
+                       enum sdap_access_type access_type,
                        struct sdap_options *opts,
                        const char *username,
                        char **user_dn,
@@ -574,6 +587,7 @@ int get_user_dn(TALLOC_CTX *memctx,
 
         ret = find_password_expiration_attributes(tmpctx,
                                                   res->msgs[0],
+                                                  access_type,
                                                   opts->basic,
                                                   &pw_expire_type,
                                                   &pw_expire_data);
@@ -665,7 +679,7 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
         state->sdap_service = ctx->service;
     }
 
-    ret = get_user_dn(state, state->ctx->be->domain,
+    ret = get_user_dn(state, state->ctx->be->domain, SDAP_TYPE_LDAP,
                       state->ctx->opts, state->username, &state->dn,
                       &state->pw_expire_type, &state->pw_expire_data);
     if (ret == EAGAIN) {
