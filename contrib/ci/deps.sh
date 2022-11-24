@@ -134,7 +134,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libpopt-dev
         libsasl2-dev
         libselinux1-dev
-        libsemanage1-dev
+        libsemanage-dev
         libsmbclient-dev
         libsystemd-dev
         libtalloc-dev
