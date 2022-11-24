@@ -160,6 +160,8 @@ jobs:
             client:
               image: ${REGISTRY}/ci-client-devel:${TAG}
               shm_size: 4G
+              tmpfs:
+              - /dev/shm
               volumes:
               - ../sssd:/sssd:rw
 
