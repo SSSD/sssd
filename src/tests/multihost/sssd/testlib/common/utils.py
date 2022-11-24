@@ -942,7 +942,7 @@ class sssdTools(object):
                  f" -Confirm:$False -ProtectedFromAccidentalDeletion $false'"
         self.adhost.run_command(mod_ou, log_stdout=verbose, raiseonerr=False)
         remove_automount = f"powershell.exe -inputformat none -noprofile "\
-                           f"'(Remove-ADOrganizationalUnit -Recursive"\
+                           f"'(Remove-ADOrganizationalUnit -Recursive "\
                            f"-Identity \"{automount_dn}\" -Confirm:$false)'"
         self.adhost.run_command(
             remove_automount, log_stdout=verbose, raiseonerr=False)
