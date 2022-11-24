@@ -101,9 +101,7 @@ class QeHost(QeBaseHost):
         """ Check if system is fips enabled """
         fips_check_cmd = "fips-mode-setup --is-enabled"
         cmd = self.run_command(fips_check_cmd, raiseonerr=False)
-        if cmd.returncode == 0:
-            return True
-        return False
+        return bool(cmd.returncode != 0)
 
     @property
     def distro(self):
@@ -115,10 +113,8 @@ class QeHost(QeBaseHost):
         cmd = self.run_command(['cat', '/etc/redhat-release'],
                                raiseonerr=False)
         if cmd.returncode != 0:
-            distro = 'Unknown Distro'
-        else:
-            distro = cmd.stdout_text.strip()
-        return distro
+            return 'Unknown Distro'
+        return cmd.stdout_text.strip()
 
     def package_mgmt(self, package, action='install'):
         """ Install packages
@@ -204,45 +200,64 @@ class QeWinHost(QeBaseHost, pytest_multihost.host.WinHost):
     Functions defined provide extra attributes when using Windows AD
 
     Attributes:
-        domainname (str): Return domainname of the AD Machine
+        domainname (str): Return domainname of the AD machine
+        domain_basedn_entry (str): Return AD basedn
+        netbiosname (str): Rerurn the netbios name of the machine
         realm (str):  Return AD realm in upper case
+        sys_hostname(str): Return full hostname of the machine
      """
+
+    # These are defined as class properties to be overriden on the
+    # instance level.
+    _domainname = None
+    _domain_basedn_entry = None
+    _hostname = None
+    _netbiosname = None
+    _realm = None
 
     @property
     def domainname(self):
         """ Return Domain name """
-        cmd = self.run_command(['domainname'], set_env=False, raiseonerr=False)
-        return cmd.stdout_text.strip()
+        if self._domainname is None:
+            cmd = self.run_command(
+                ['domainname'], set_env=False, raiseonerr=False)
+            self._domainname = cmd.stdout_text.strip()
+        return self._domainname
 
     @property
     def sys_hostname(self):
         """ Return FQDN """
-        hostname = 'hostname -f'
-        cmd = self.run_command(hostname, set_env=False, raiseonerr=False)
-        return cmd.stdout_text.strip().lower()
+        if self._hostname is None:
+            hostname = 'hostname -f'
+            cmd = self.run_command(hostname, set_env=False, raiseonerr=False)
+            self._hostname = cmd.stdout_text.strip().lower()
+        return self._hostname
 
     @property
     def realm(self):
         """ Return AD Realm """
-        cmd = self.run_command(['domainname'], set_env=False, raiseonerr=False)
-        return cmd.stdout_text.strip().upper()
+        if self._realm is None:
+            self._realm = self.domainname.upper()
+        return self._realm
 
     @property
     def domain_basedn_entry(self):
         """ Return base DN Entry of the """
-        cmd = self.run_command(['domainname'], set_env=False, raiseonerr=False)
-        domain_list = ['DC=' + string for string in cmd.stdout_text.strip().
-                       split('.')]
-        list1 = map(str, domain_list)
-        domain_base_dn = ','.join(list1)
-        return domain_base_dn
+        if self._domain_basedn_entry is None:
+            domain_list = ['DC=' + string for string in
+                           self.domainname.split('.')]
+            list1 = map(str, domain_list)
+            self._domain_basedn_entry = ','.join(list1)
+        return self._domain_basedn_entry
 
     @property
     def netbiosname(self):
         """ Return netbios name """
-        cmd = "powershell.exe -inputformat none -noprofile "\
-              "'(Get-ADDomain -Current LocalComputer)'.NetBIOSName"
-        return self.run_command(cmd).stdout_text
+        if self._netbiosname is None:
+            cmd = "powershell.exe -inputformat none -noprofile "\
+                  "'(Get-ADDomain -Current LocalComputer)'.NetBIOSName"
+            self._netbiosname = self.run_command(cmd).stdout_text
+        return self._netbiosname
 
     def _get_client_dn_entry(self, client):
         """ Return DN entry of client computer in AD """
