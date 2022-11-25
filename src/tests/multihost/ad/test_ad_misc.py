@@ -174,7 +174,7 @@ class TestADMisc:
 
     @staticmethod
     def test_0002_improved_use_negative_sid_for_sid_lookup(
-            multihost, adjoin, backupsssdconf):
+            multihost, adjoin):
         """
         :title: IDM-SSSD-TC: Multiple provider configuration interferes
          with each other
@@ -191,15 +191,11 @@ class TestADMisc:
           1. domain log file should show that the SID of non-existing does
              not exist in negative cache
         """
-        client = sssdTools(multihost.client[0])
+        adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
         domain_name = client.get_domain_section_name()
-        multihost.client[0].service_sssd('stop')
-        domain_section = f'domain/{domain_name}'
-        sssd_params = {
-            'debug_level': '9',
-            'use_fully_qualified_names': 'True'
-        }
-        client.sssd_conf(domain_section, sssd_params, action='add')
+        client.backup_sssd_conf()
+        client.sssd_conf('nss', {'debug_level' : '9'}, action='add')
         client.clear_sssd_cache()
         multihost.client[0].run_command('dnf install python3-libsss_nss_idmap -y', raiseonerr=True)
         with tempfile.NamedTemporaryFile(mode='w') as tfile:
@@ -223,8 +219,8 @@ class TestADMisc:
             tfile.write('idmap.getnamebysid(sid)\n')
             tfile.flush()
             multihost.client[0].transport.put_file(tfile.name, '/tmp/sss_nss_idmap.py')
-        multihost.client[0].run_command('python3 /tmp/sss_nss_idmap.py', raiseonerr=True)
+        multihost.client[0].run_command('python /tmp/sss_nss_idmap.py', raiseonerr=True)
         time.sleep(2)
-        log_str = multihost.client[0].get_file_contents(f'/var/log/sssd_{domain_name}.log').decode('utf-8')
-        patt = re.compile(r'999.*Does.not.exit.*negative.cache')
+        log_str = multihost.client[0].get_file_contents(f'/var/log/sssd/sssd_nss.log').decode('utf-8')
+        patt = re.compile(r'999.*does.not.exist.*negative.cache')
         assert patt.search(log_str)
