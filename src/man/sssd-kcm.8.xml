@@ -189,7 +189,7 @@ tgt_renewal_inherit = domain-name
             options are described in detail below
             <programlisting>
 krb5_renew_interval
-krb5_renew_lifetime
+krb5_renewable_lifetime
 krb5_lifetime
 krb5_validate
 krb5_canonicalize
