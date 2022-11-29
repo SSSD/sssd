@@ -568,6 +568,8 @@ authenticate(struct passkey_data *data)
     int count = 0;
     errno_t ret;
 
+    pk_data.type = 0;
+
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         ERROR("talloc_new() failed\n");
