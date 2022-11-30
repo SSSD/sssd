@@ -26,6 +26,7 @@
 #include <string.h>
 #include <krb5/clpreauth_plugin.h>
 
+#include "krb5_plugin/common/radius_clpreauth.h"
 #include "idp.h"
 
 static krb5_pa_data **
@@ -87,14 +88,6 @@ sss_idpcl_prompt(krb5_context context,
     free(prompt_str);
 
     return ret;
-}
-
-static void
-sss_idpcl_init(krb5_context context,
-               krb5_clpreauth_moddata moddata,
-               krb5_clpreauth_modreq *modreq_out)
-{
-    return;
 }
 
 static krb5_error_code
@@ -209,14 +202,6 @@ done:
     return ret;
 }
 
-static void
-sss_idpcl_fini(krb5_context context,
-               krb5_clpreauth_moddata moddata,
-               krb5_clpreauth_modreq modreq)
-{
-    return;
-}
-
 krb5_error_code
 clpreauth_idp_initvt(krb5_context context,
                      int maj_ver,
@@ -233,10 +218,10 @@ clpreauth_idp_initvt(krb5_context context,
     vt = (krb5_clpreauth_vtable)vtable;
     vt->name = discard_const(SSSD_IDP_PLUGIN);
     vt->pa_type_list = pa_type_list;
-    vt->request_init = sss_idpcl_init;
+    vt->request_init = sss_radiuscl_init;
     vt->prep_questions = sss_idpcl_prep_questions;
     vt->process = sss_idpcl_process;
-    vt->request_fini = sss_idpcl_fini;
+    vt->request_fini = sss_radiuscl_fini;
     vt->gic_opts = NULL;
 
     return 0;
