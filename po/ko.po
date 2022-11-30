@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-11-04 11:34+0100\n"
-"PO-Revision-Date: 2022-10-31 04:19+0000\n"
+"PO-Revision-Date: 2022-11-21 17:19+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 4.14.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -235,27 +235,25 @@ msgstr "공급자가 목록을 나열하지 않는 경우 사용할 쉘"
 
 #: src/config/SSSDConfig/sssdoptions.py:75
 msgid "How long will be in-memory cache records valid"
-msgstr "캐시 메모리에 기록의 유효 기간"
+msgstr "캐쉬 메모리에 기록의 유효 기간"
 
 #: src/config/SSSDConfig/sssdoptions.py:77
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for passwd requests"
-msgstr "passwd 요청을 위해 빠른 캐시 메모리에 할당된 데이터 테이블의 크기(MB)"
+msgstr "비밀번호 요청을 위해 빠른 캐쉬 메모리에 할당된 자료 테이블의 크기(MB)"
 
 #: src/config/SSSDConfig/sssdoptions.py:79
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
-msgstr ""
-"그룹 요청을 위한 고속 캐시 메모리에 내부에 할당된 데이터 테이블의 크기(MB)"
+msgstr "그룹 요청을 위한 고속 캐쉬 메모리에 내부에 할당된자료 테이블의 크기(MB)"
 
 #: src/config/SSSDConfig/sssdoptions.py:81
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
-msgstr ""
-"initgroups 요청을 위해 빠른 캐시 메모리에 할당된 데이터 테이블의 크기(MB)"
+msgstr "initgroups 요청을 위해 빠른 캐쉬 메모리에 할당된 자료 테이블의 크기(MB)"
 
 #: src/config/SSSDConfig/sssdoptions.py:82
 msgid ""
@@ -277,12 +275,13 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
-"항목 캐시는 도메인에 대한 entry_cache_timeout 값의 백분율을 초과하여 요청되"
-"는 경우 백그라운드에서 항목을 자동으로 업데이트하도록 설정할 수 있습니다."
+"항목 캐쉬는 도메인에 대한 entry_cache_timeout 값의 백분율을 초과하여 "
+"요청되는 경우 백그라운드에서 항목을 자동으로 최신화 하도록 설정 할 수 "
+"있습니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:91
 msgid "How long to allow cached logins between online logins (days)"
-msgstr "온라인 접속과 캐시사이의 접속을 허용하는 기간(매일)"
+msgstr "온라인 접속과 캐쉬 사이의 접속을 허용하는 기간(일)"
 
 #: src/config/SSSDConfig/sssdoptions.py:92
 msgid "How many failed logins attempts are allowed when offline"
@@ -305,7 +304,7 @@ msgstr "pam_sss로 전송된 PAM 응답 필터링"
 
 #: src/config/SSSDConfig/sssdoptions.py:97
 msgid "How many seconds to keep identity information cached for PAM requests"
-msgstr "PAM 요청에 대해 캐시된 ID 정보를 유지하는 데 걸리는 시간(초)"
+msgstr "PAM 요청에 대해 캐쉬된 ID 정보를 유지하는 데 걸리는 시간(초)"
 
 #: src/config/SSSDConfig/sssdoptions.py:98
 msgid "How many days before password expiration a warning should be displayed"
@@ -540,7 +539,7 @@ msgstr "모든 사용자/그룹 활성화"
 
 #: src/config/SSSDConfig/sssdoptions.py:174
 msgid "Cache credentials for offline login"
-msgstr "오프라인 접속을 위한 캐시 자격 증명"
+msgstr "오프라인 접속을 위한 캐쉬 자격 증명"
 
 #: src/config/SSSDConfig/sssdoptions.py:175
 msgid "Display users/groups in fully-qualified form"
@@ -559,7 +558,7 @@ msgstr "그룹 검색에 그룹 구성원을 포함하지 마십시오"
 #: src/config/SSSDConfig/sssdoptions.py:192
 #: src/config/SSSDConfig/sssdoptions.py:193
 msgid "Entry cache timeout length (seconds)"
-msgstr "항목 캐시 시간 초과 길이(초)"
+msgstr "항목 캐쉬 시간 초과 길이(초)"
 
 #: src/config/SSSDConfig/sssdoptions.py:178
 msgid ""
@@ -568,7 +567,7 @@ msgstr "DNS 검색을 수행할 때 특정 주소 계열을 제한하거나 선�
 
 #: src/config/SSSDConfig/sssdoptions.py:179
 msgid "How long to keep cached entries after last successful login (days)"
-msgstr "마지막 접속 성공 후 캐시된 항목을 보관할 기간(일)"
+msgstr "마지막 접속 성공 후 캐쉬된 항목을 보관할 기간(일)"
 
 #: src/config/SSSDConfig/sssdoptions.py:180
 msgid ""
@@ -1070,7 +1069,7 @@ msgstr "인증 정보 캐쉬를 저장 할 디렉토리"
 
 #: src/config/SSSDConfig/sssdoptions.py:329
 msgid "Location of the user's credential cache"
-msgstr "사용자 인증 정보 캐시의 위치"
+msgstr "사용자 인증 정보 캐쉬의 위치"
 
 #: src/config/SSSDConfig/sssdoptions.py:330
 msgid "Location of the keytab to validate credentials"
@@ -1311,7 +1310,7 @@ msgstr "열거된 최신화 사이의 최대 기간 편차"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Length of time between cache cleanups"
-msgstr "캐시 정리 사이의 대기 시간"
+msgstr "캐쉬 정리 사이의 대기 시간"
 
 #: src/config/SSSDConfig/sssdoptions.py:401
 msgid "Maximum time deviation between cache cleanups"
@@ -1870,7 +1869,7 @@ msgstr "호스트 및 네트워크 검색에 사용할 NSS 라이브러리의 �
 
 #: src/config/SSSDConfig/sssdoptions.py:563
 msgid "Whether to look up canonical group name from cache if possible"
-msgstr "가능한 경우 캐시에서 정식 그룹 이름을 검색할지 여부"
+msgstr "가능한 경우 캐쉬에서 정식 그룹 이름을 검색할지 여부"
 
 #: src/config/SSSDConfig/sssdoptions.py:566
 msgid "PAM stack to use"
@@ -2048,11 +2047,11 @@ msgstr "root로 재설정한 암호는 지원되지 않습니다."
 
 #: src/sss_client/pam_sss.c:532
 msgid "Authenticated with cached credentials"
-msgstr "캐시된 인증 정보로 인증됨"
+msgstr "캐쉬된 인증 정보로 인증됨"
 
 #: src/sss_client/pam_sss.c:533
 msgid ", your cached password will expire at: "
-msgstr "캐시된 암호는 다음에 만료됩니다. "
+msgstr ", 당신의 캐쉬된 비밀번호는 다음에 만료됩니다.: "
 
 #: src/sss_client/pam_sss.c:563
 #, c-format
@@ -2085,7 +2084,7 @@ msgstr "PIN 잠금"
 
 #: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "
-msgstr "암호 변경에 실패함. "
+msgstr "비밀번호 변경에 실패함. "
 
 #: src/sss_client/pam_sss.c:1741
 #, c-format
@@ -2200,7 +2199,7 @@ msgstr "sss_ssh_knownhostsproxy: 호스트 이름을 확인할 수 없습니다 
 
 #: src/tools/sss_cache.c:245
 msgid "No cache object matched the specified search\n"
-msgstr "지정한 검색과 일치하는 캐시 오브젝트가 없습니다\n"
+msgstr "지정한 검색과 일치하는 캐쉬 대상이 없습니다\n"
 
 #: src/tools/sss_cache.c:536
 #, c-format
@@ -2214,7 +2213,7 @@ msgstr "비활성화할 수 없습니다 %1$s %2$s\n"
 
 #: src/tools/sss_cache.c:734
 msgid "Invalidate all cached entries"
-msgstr "캐시된 모든 항목을 무효화합니다"
+msgstr "캐쉬된 모든 항목을 무효화합니다"
 
 #: src/tools/sss_cache.c:736
 msgid "Invalidate particular user"
@@ -2270,7 +2269,7 @@ msgstr "특정 sudo 규칙을 무효화"
 
 #: src/tools/sss_cache.c:767
 msgid "Invalidate all cached sudo rules"
-msgstr "캐시된 모든 sudo 규칙을 무효화"
+msgstr "캐쉬된 모든 sudo 규칙을 무효화"
 
 #: src/tools/sss_cache.c:770
 msgid "Only invalidate entries from a particular domain"
@@ -2360,7 +2359,7 @@ msgstr "SSSD를 다시 시작해야 합니다. 지금 SSSD를 다시 시작하�
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
 msgid " %s is not present in cache.\n"
-msgstr " %s이/가 캐시에 없습니다.\n"
+msgstr " %s가 캐쉬에 없습니다.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:33
 msgid "Name"
@@ -2368,7 +2367,7 @@ msgstr "이름"
 
 #: src/tools/sssctl/sssctl_cache.c:34
 msgid "Cache entry creation date"
-msgstr "캐시 항목 생성 날짜"
+msgstr "캐쉬 항목 생성 날짜"
 
 #: src/tools/sssctl/sssctl_cache.c:35
 msgid "Cache entry last update time"
@@ -2376,11 +2375,11 @@ msgstr "캐쉬 항목 마지막 최신화 시간"
 
 #: src/tools/sssctl/sssctl_cache.c:36
 msgid "Cache entry expiration time"
-msgstr "캐시 항목 만료 시간"
+msgstr "캐쉬 항목 만료 시간"
 
 #: src/tools/sssctl/sssctl_cache.c:37
 msgid "Cached in InfoPipe"
-msgstr "InfoPipe에 캐시"
+msgstr "InfoPipe에서 캐쉬됨"
 
 #: src/tools/sssctl/sssctl_cache.c:522
 #, c-format
@@ -2517,15 +2516,15 @@ msgstr "데이터 가져 오기 후 SSSD 재시작"
 
 #: src/tools/sssctl/sssctl_data.c:220
 msgid "Create clean cache files and import local data"
-msgstr "정리된 캐시 파일을 만들고 로컬 데이터 가져 오기"
+msgstr "정리된 캐쉬 파일을 만들고 로컬 자료 가져 오기"
 
 #: src/tools/sssctl/sssctl_data.c:221
 msgid "Stop SSSD before removing the cache"
-msgstr "캐시를 제거하기 전에 SSSD 중지"
+msgstr "캐쉬를 제거하기 전에 SSSD 중지"
 
 #: src/tools/sssctl/sssctl_data.c:222
 msgid "Start SSSD when the cache is removed"
-msgstr "캐시가 제거되면 SSSD 시작"
+msgstr "캐쉬가 제거될 때 SSSD를 시작합니다"
 
 #: src/tools/sssctl/sssctl_data.c:237
 msgid "Creating backup of local data...\n"
@@ -2537,7 +2536,7 @@ msgstr "로컬 데이터의 백업을 생성 할 수 없으며, 캐쉬를 제거
 
 #: src/tools/sssctl/sssctl_data.c:245
 msgid "Removing cache files...\n"
-msgstr "캐시 파일 제거 중...\n"
+msgstr "캐쉬 파일 제거 중...\n"
 
 #: src/tools/sssctl/sssctl_data.c:248
 msgid "Unable to remove cache files\n"
