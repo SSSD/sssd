@@ -29,60 +29,12 @@
 #include <arpa/inet.h>
 #include <krb5/preauth_plugin.h>
 
+#include "krb5_plugin/common/utils.h"
 #include "krb5_plugin/idp/idp.h"
-
-#define is_empty(var) ((var) == NULL || (var)[0] == '\0')
-
-static krb5_error_code
-sss_idp_json_array_to_strings(json_t *jarray, char ***_array)
-{
-    krb5_error_code ret;
-    const char *strval;
-    char **array;
-    json_t *jval;
-    size_t i;
-
-    if (!json_is_array(jarray)) {
-        return EINVAL;
-    }
-
-    array = calloc(json_array_size(jarray) + 1, sizeof(char *));
-    if (array == NULL) {
-        return ENOMEM;
-    }
-
-    json_array_foreach(jarray, i, jval) {
-        strval = json_string_value(jval);
-        if (strval == NULL) {
-            ret = EINVAL;
-            goto fail;
-        }
-
-        array[i] = strdup(strval);
-        if (array[i] == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-    }
-
-    *_array = array;
-
-    return 0;
-
-fail:
-    for (i = 0; array[i] != NULL; i++) {
-        free(array[i]);
-    }
-    free(array);
-
-    return ret;
-}
 
 void
 sss_idp_config_free(struct sss_idp_config *idpcfg)
 {
-    int i;
-
     if (idpcfg == NULL) {
         return;
     }
@@ -91,13 +43,7 @@ sss_idp_config_free(struct sss_idp_config *idpcfg)
         free(idpcfg->type);
     }
 
-    if (idpcfg->indicators != NULL) {
-        for (i = 0; idpcfg->indicators[i] != NULL; i++) {
-            free(idpcfg->indicators[i]);
-        }
-        free(idpcfg->indicators);
-    }
-
+    sss_string_array_free(idpcfg->indicators);
     free(idpcfg);
 }
 
@@ -154,8 +100,9 @@ sss_idp_config_init(const char *config,
 
     /* Are indicators set? */
     if (jindicators != NULL) {
-        ret = sss_idp_json_array_to_strings(jindicators, &idpcfg->indicators);
-        if (ret != 0) {
+        idpcfg->indicators = sss_json_array_to_strings(jindicators);
+        if (idpcfg->indicators == NULL) {
+            ret = EINVAL;
             goto done;
         }
     }
@@ -288,91 +235,29 @@ sss_idp_oauth2_to_json(const struct sss_idp_oauth2 *data)
 static struct sss_idp_oauth2 *
 sss_idp_oauth2_decode(const char *str)
 {
-    size_t prefix_len;
-
-    prefix_len = strlen(SSSD_IDP_OAUTH2_PREFIX);
-    if (strncmp(str, SSSD_IDP_OAUTH2_PREFIX, prefix_len) != 0) {
-        return NULL;
-    }
-
-    return sss_idp_oauth2_from_json(str + prefix_len);
+    return sss_radius_message_decode(SSSD_IDP_OAUTH2_PREFIX,
+        (sss_radius_message_decode_fn)sss_idp_oauth2_from_json, str);
 }
 
 static char *
 sss_idp_oauth2_encode(struct sss_idp_oauth2 *data)
 {
-    char *json_str;
-    char *str;
-    int aret;
-
-    json_str = sss_idp_oauth2_to_json(data);
-    if (json_str == NULL) {
-        return NULL;
-    }
-
-    aret = asprintf(&str, "%s%s", SSSD_IDP_OAUTH2_PREFIX, json_str);
-    free(json_str);
-    if (aret < 0) {
-        return NULL;
-    }
-
-    return str;
-}
-
-struct sss_idp_oauth2 *
-sss_idp_oauth2_decode_reply_message(const krb5_data *msg)
-{
-    struct sss_idp_oauth2 *data;
-    char *str;
-
-    str = strndup(msg->data, msg->length);
-    if (str == NULL) {
-        return NULL;
-    }
-
-    data = sss_idp_oauth2_decode(str);
-    free(str);
-
-    return data;
+    return sss_radius_message_encode(SSSD_IDP_OAUTH2_PREFIX,
+        (sss_radius_message_encode_fn)sss_idp_oauth2_to_json, data);
 }
 
 krb5_pa_data *
 sss_idp_oauth2_encode_padata(struct sss_idp_oauth2 *data)
 {
-    krb5_pa_data *padata;
-    char *str;
-
-    str = sss_idp_oauth2_encode(data);
-    if (str == NULL) {
-        return NULL;
-    }
-
-    padata = malloc(sizeof(krb5_pa_data));
-    if (padata == NULL) {
-        free(str);
-        return NULL;
-    }
-
-    padata->pa_type = SSSD_IDP_OAUTH2_PADATA;
-    padata->contents = (krb5_octet*)str;
-    padata->length = strlen(str) + 1;
-
-    return padata;
+    return sss_radius_encode_padata(SSSD_IDP_OAUTH2_PADATA,
+        (sss_radius_message_encode_fn)sss_idp_oauth2_encode, data);
 }
 
 struct sss_idp_oauth2 *
 sss_idp_oauth2_decode_padata(krb5_pa_data *padata)
 {
-    if (padata->length == 0 || padata->contents == NULL) {
-        return NULL;
-    }
-
-    /* contents is NULL terminated string */
-    if (padata->contents[padata->length - 1] != '\0') {
-        return NULL;
-    }
-
-    return sss_idp_oauth2_decode((const char*)padata->contents);
+    return sss_radius_decode_padata(
+        (sss_radius_message_decode_fn)sss_idp_oauth2_decode, padata);
 }
 
 char *

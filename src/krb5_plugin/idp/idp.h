@@ -55,9 +55,6 @@ struct sss_idp_oauth2 {
 void
 sss_idp_oauth2_free(struct sss_idp_oauth2 *data);
 
-struct sss_idp_oauth2 *
-sss_idp_oauth2_decode_reply_message(const krb5_data *msg);
-
 krb5_pa_data *
 sss_idp_oauth2_encode_padata(struct sss_idp_oauth2 *data);
 
