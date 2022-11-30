@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-11-04 11:34+0100\n"
-"PO-Revision-Date: 2022-07-27 10:19+0000\n"
+"PO-Revision-Date: 2022-11-13 09:19+0000\n"
 "Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
 "Language-Team: Georgian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ka/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.13\n"
+"X-Generator: Weblate 4.14.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1373,11 +1373,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:431
 msgid "krbLastPwdChange attribute"
-msgstr "krbLastPwdChange attribute"
+msgstr "krbLastPwdChange ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:432
 msgid "krbPasswordExpiration attribute"
-msgstr "krbPasswordExpiration attribute"
+msgstr "krbPasswordExpiration ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:433
 msgid "Attribute indicating that server side password policies are active"
@@ -1445,7 +1445,7 @@ msgstr "ჯგუფის პაროლი"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "GID attribute"
-msgstr ""
+msgstr "GID ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:451
 msgid "Group member attribute"
@@ -1517,7 +1517,7 @@ msgstr "სერვისის სახელის ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:471
 msgid "Service port attribute"
-msgstr ""
+msgstr "სერვისის პორტის ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:472
 msgid "Service protocol attribute"
@@ -2101,7 +2101,7 @@ msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:234
 msgid "Invalid port\n"
-msgstr ""
+msgstr "არასწორი პორტი\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:239
 msgid "Host not specified\n"
@@ -2500,9 +2500,8 @@ msgid "Attribute to index"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:469
-#, fuzzy
 msgid "attribute"
-msgstr "UID ატრიბუტი"
+msgstr "ატრიბუტი"
 
 #: src/tools/sssctl/sssctl_data.c:482
 msgid "Action not provided\n"
