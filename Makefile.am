@@ -3916,6 +3916,7 @@ test_kcm_queue_LDADD = \
 
 test_krb5_idp_plugin_SOURCES = \
     src/tests/cmocka/test_krb5_idp_plugin.c \
+    src/krb5_plugin/common/utils.c \
     src/krb5_plugin/idp/idp_utils.c \
     $(NULL)
 test_krb5_idp_plugin_CFLAGS = \
@@ -4652,6 +4653,7 @@ krb5_child_SOURCES = \
     src/util/become_user.c \
     src/util/util_errors.c \
     src/sss_client/common.c \
+    src/krb5_plugin/common/utils.c \
     src/krb5_plugin/idp/idp_utils.c \
     $(NULL)
 krb5_child_CFLAGS = \
@@ -4902,6 +4904,9 @@ krb5_plugin_LTLIBRARIES = \
     $(NULL)
 
 sssd_krb5_idp_plugin_la_SOURCES = \
+    src/krb5_plugin/common/utils.c \
+    src/krb5_plugin/common/radius_clpreauth.c \
+    src/krb5_plugin/common/radius_kdcpreauth.c \
     src/krb5_plugin/idp/idp_clpreauth.c \
     src/krb5_plugin/idp/idp_kdcpreauth.c \
     src/krb5_plugin/idp/idp_utils.c \
