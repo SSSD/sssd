@@ -895,8 +895,9 @@ AC_ARG_ENABLE([files-domain],
               [AS_HELP_STRING([--enable-files-domain],
                               [If this feature is enabled, then SSSD always enables
                                a domain with id_provider=files even if the domain
-                               is not specified in the config file
-                              [default=no]])],
+                               is not specified in the config file [default=no]
+                               Please note this configure option is deprecated and
+                               will be removed in one of the next versions of SSSD.])],
               [enable_files_domain=$enableval],
               [enable_files_domain=no])
 AS_IF([test x$enable_files_domain = xyes],
