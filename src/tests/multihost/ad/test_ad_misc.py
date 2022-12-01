@@ -173,6 +173,7 @@ class TestADMisc:
             not in log_str, "The configuration interferes."
         assert "Going offline" in log_str
 
+    @pytest.mark.tier2
     @staticmethod
     def test_0002_improved_use_negative_sid_for_sid_lookup(
             multihost, adjoin, backupsssdconf):
