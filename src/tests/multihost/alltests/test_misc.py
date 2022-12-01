@@ -12,7 +12,6 @@ import re
 import time
 import subprocess
 import pytest
-from pexpect import pxssh
 from sssd.testlib.common.expect import pexpect_ssh
 from sssd.testlib.common.exceptions import SSHLoginException
 from sssd.testlib.common.utils import sssdTools, LdapOperations
@@ -480,52 +479,3 @@ class TestMisc(object):
         assert "Failed to connect to '/var/lib/sss/db/config.ldb'" \
             not in log_str
         assert "The confdb initialization failed" not in log_str
-
-    @pytest.mark.tier1_3
-    def test_0009_gssapi_ssh(self, multihost, backupsssdconf):
-        """
-        :title: gssapi ssh log in with 'krb5_confd_path'
-        :description: User should log in with GSSAPI after setting
-         'krb5_confd_path' option in sssd.conf
-        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1961182
-        :id: 752b69ab-55a8-464f-814b-4985c06dc49a
-        :customerscenario: true
-        :steps:
-            1. Set 'krb5_confd_path' option in sssd.conf
-            2. restart SSSD with empty cache.
-            3. Fetch kerberos ticket for user
-            4. Check user is able to log in with GSSAPI
-        :expectedresults:
-            1. Should succeed
-            2. Should succeed
-            3. Should succeed
-            4. User should be to log in with GSSAPI
-        """
-        client = sssdTools(multihost.client[0])
-        dom_name = client.get_domain_section_name()
-        section = f"domain/{dom_name}"
-        section_params = {"krb5_confd_path": "/etc/krb5.conf.d/"}
-        client.sssd_conf(section, section_params, action="update")
-        client.clear_sssd_cache(start=True)
-        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
-                          "UserKnownHostsFile": "/dev/null"})
-        ssh.force_password = True
-        try:
-            ssh.login(multihost.client[0].sys_hostname, 'foo1', 'Secret123')
-            ssh.sendline('kdestroy -A -q')
-            ssh.prompt(timeout=5)
-            ssh.sendline(f'kinit foo1@{dom_name.upper()}')
-            ssh.expect('Password for .*:', timeout=10)
-            ssh.sendline('Secret123')
-            ssh.prompt(timeout=5)
-            ssh.sendline(f'ssh -v -o StrictHostKeyChecking=no -o PasswordAuthentication=no '
-                         f'-o PubkeyAuthentication=no -K -l foo1 '
-                         f'{multihost.client[0].sys_hostname} id')
-            ssh.prompt(timeout=30)
-            ssh.sendline('echo "ssh_result:$?"')
-            ssh.prompt(timeout=30)
-            ssh_output = str(ssh.before)
-            ssh.logout()
-        except pxssh.ExceptionPxssh:
-            pytest.fail("Ssh login failed.")
-        assert 'ssh_result:0' in ssh_output, "GSSAPI ssh authentication successful"
