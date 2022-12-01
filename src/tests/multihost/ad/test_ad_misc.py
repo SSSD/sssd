@@ -12,6 +12,7 @@ import pytest
 import re
 
 from sssd.testlib.common.utils import sssdTools
+from pexpect import pxssh
 
 
 @pytest.mark.tier1_3
@@ -191,15 +192,10 @@ class TestADMisc:
           1. domain log file should show that the SID of non-existing does
              not exist in negative cache
         """
-        client = sssdTools(multihost.client[0])
+        adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
         domain_name = client.get_domain_section_name()
-        multihost.client[0].service_sssd('stop')
-        domain_section = f'domain/{domain_name}'
-        sssd_params = {
-            'debug_level': '9',
-            'use_fully_qualified_names': 'True'
-        }
-        client.sssd_conf(domain_section, sssd_params, action='add')
+        client.sssd_conf('nss', {'debug_level': '9'}, action='add')
         client.clear_sssd_cache()
         multihost.client[0].run_command('dnf install python3-libsss_nss_idmap -y', raiseonerr=True)
         with tempfile.NamedTemporaryFile(mode='w') as tfile:
@@ -224,7 +220,63 @@ class TestADMisc:
             tfile.flush()
             multihost.client[0].transport.put_file(tfile.name, '/tmp/sss_nss_idmap.py')
         multihost.client[0].run_command('python3 /tmp/sss_nss_idmap.py', raiseonerr=True)
+        multihost.client[0].run_command('python3 /tmp/sss_nss_idmap.py', raiseonerr=True)
         time.sleep(2)
-        log_str = multihost.client[0].get_file_contents(f'/var/log/sssd_{domain_name}.log').decode('utf-8')
-        patt = re.compile(r'999.*Does.not.exit.*negative.cache')
+        log_str = multihost.client[0].get_file_contents('/var/log/sssd/sssd_nss.log').decode('utf-8')
+        patt = re.compile(r'999.*does.not.exist.*negative.cache')
         assert patt.search(log_str)
+
+    @pytest.mark.tier1_3
+    def test_0003_gssapi_ssh(self, multihost, adjoin, create_aduser_group):
+        """
+        :title: gssapi ssh log in with 'krb5_confd_path'
+        :description: User should log in with GSSAPI after setting
+         'krb5_confd_path' option in sssd.conf
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1961182
+        :id: 752b69ab-55a8-464f-814b-4985c06dc49a
+        :customerscenario: true
+        :steps:
+            1. Join rhel-client to AD-domain
+            2. restart SSSD and clear cache
+            3. Fetch kerberos ticket for user
+            4. Check user is able to log in with GSSAPI
+        :expectedresults:
+            1. Should succeed
+            2. Should succeed
+            3. Should succeed
+            4. User should be to log in with GSSAPI
+        """
+        adjoin(membersw='adcli')
+        (aduser, _) = create_aduser_group
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        dom_name = client.get_domain_section_name()
+        ad_realm = multihost.ad[0].domainname.upper()
+        section = f"domain/{dom_name}"
+        section_params = {'krb5_confd_path': "/etc/krb5.conf.d/"}
+        client.sssd_conf(section, section_params, action="update")
+        client.clear_sssd_cache()
+        ad_user = f'{aduser}@{dom_name}'
+        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
+                          "UserKnownHostsFile": "/dev/null"})
+        ssh.force_password = True
+        try:
+            ssh.login(multihost.client[0].sys_hostname, f'{ad_user}', 'Secret123')
+            ssh.sendline('kdestroy -A -q')
+            ssh.prompt(timeout=5)
+            ssh.sendline(f'kinit {aduser}@{ad_realm}')
+            ssh.expect('Password for .*:', timeout=10)
+            ssh.sendline('Secret123')
+            ssh.prompt(timeout=5)
+            ssh.sendline('ssh -v -o StrictHostKeyChecking=no -o GSSAPIAuthentication=yes '
+                          '-o PasswordAuthentication=no '
+                         f'-o PubkeyAuthentication=no -K -l {ad_user} '
+                         f'{multihost.client[0].sys_hostname} id')
+            ssh.prompt(timeout=30)
+            ssh.sendline('echo "ssh_result:$?"')
+            ssh.prompt(timeout=30)
+            ssh_output = str(ssh.before)
+            ssh.logout()
+        except pxssh.ExceptionPxssh:
+            pytest.fail("Ssh login failed.")
+            ssh_output = 'FAIL'
+        assert 'ssh_result:0' in ssh_output, "GSSAPI ssh authentication failed"
