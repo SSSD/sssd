@@ -17,6 +17,7 @@ src/tools/tools_util.c
 src/tools/tools_util.h
 src/tools/sssctl/sssctl.c
 src/tools/sssctl/sssctl_cache.c
+src/tools/sssctl/sssctl_cert.c
 src/tools/sssctl/sssctl_config.c
 src/tools/sssctl/sssctl_data.c
 src/tools/sssctl/sssctl_domains.c
