@@ -3717,3 +3717,188 @@ class TestADParamsPorted:
 
         # Evaluate test results
         assert f'/home/{aduser.lower()}' in usr_cmd.stdout_text
+
+    @staticmethod
+    @pytest.mark.tier2
+    def test_0044_ad_parameters_upn_mismatch_check(
+            multihost, adjoin, create_aduser_group):
+        """ UPN check cannot be disabled explicitly but requires krb5_validate
+
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: UPN mismatch
+        :id: ea445810-8bec-4a4c-924b-ec527e60b14b
+        :setup:
+         1. Create an AD user, set its upn to other domain.
+        :steps:
+          1. Set `ldap_user_principal = mail`, pac_check = no_check.
+             Clear cache and restart sssd.
+          2. Run getent passwd for the user.
+          4. Run su for the user.
+          5. Check that pac.log contains info about mismatch that is ignored.
+        :expectedresults:
+          1. Sssd starts.
+          2. User is found.
+          4. Su for the uses succeeds.
+          5. Log does contain the expected message.
+        :customerscenario: True
+        :bugzilla:
+          https://bugzilla.redhat.com/show_bug.cgi?id=2148737
+          https://bugzilla.redhat.com/show_bug.cgi?id=2144491
+          https://bugzilla.redhat.com/show_bug.cgi?id=2148989
+          https://bugzilla.redhat.com/show_bug.cgi?id=2148988
+        """
+        # Note: The IPA server was guessing the UPN based on samAccountName
+        # in the past which was failing the check in sssd if the user
+        # had a different UPN on the AD side with the message:
+        # UPN of user entry and PAC do not match.
+        # To validate the fix we are skipping the whole IPA part and
+        # forcing sssd to use mismatched parameter for UPN instead.
+
+        ad_domain = multihost.ad[0].domainname
+        adjoin(membersw='adcli')
+        # Create AD user and group
+        (aduser, _) = create_aduser_group
+
+        # Modify UPN for aduser
+        multihost.ad[0].run_command(
+            f"powershell -inputformat none -noprofile 'Import-Module "
+            f"ActiveDirectory; Set-ADUser -Identity {aduser} "
+            f"-UserPrincipalName \"{aduser}@otherdomain.com\"'",
+            raiseonerr=False
+        )
+
+        # Configure sssd
+        multihost.client[0].service_sssd('stop')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        client.backup_sssd_conf()
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True',
+            'cache_credentials': 'True',
+            'ldap_user_principal': 'mail',
+        }
+        client.sssd_conf(dom_section, sssd_params)
+        client.sssd_conf('pac', {'pac_check': 'no_check'})
+        client.clear_sssd_cache()
+
+        # Search for the user
+        usr_cmd = multihost.client[0].run_command(
+            f'getent passwd {aduser}@{ad_domain}', raiseonerr=False
+        )
+
+        su_result = client.su_success(f'{aduser}@{ad_domain}')
+
+        # Pull sssd_pac.log
+        time.sleep(5)
+        # Download the sssd domain log
+        log_str = multihost.client[0].get_file_contents(
+            "/var/log/sssd/sssd_pac.log"). \
+            decode('utf-8')
+
+        # Cleanup
+        client.restore_sssd_conf()
+        client.clear_sssd_cache()
+
+        # Evaluate test results
+        assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
+        assert f"UPN of user entry [{aduser}@{ad_domain.upper()}] and PAC " \
+               f"[{aduser}@otherdomain.com] do not match, ignored." in log_str
+        assert su_result, f"su to user {aduser} with mismatched UPN failed!"
+
+    @staticmethod
+    @pytest.mark.tier2
+    def test_0045_ad_parameters_upn_empty_skip_check(
+            multihost, adjoin, create_aduser_group):
+        """ UPN check in pac is skipped when upn is empty be default
+
+        :title: IDM-SSSD-TC: ad_provider: ad_parameters: UPN empty
+        :id: 8792541c-7bf9-433e-a81d-088b0e118236
+        :setup:
+         1. Create an AD user, set its upn to other domain.
+        :steps:
+          1. Set `ldap_user_principal = non-existent-attr`.
+             Clear cache and restart sssd.
+          2. Run getent passwd for the user.
+          4. Run su for the user.
+          5. Check that pac.log contains info about empty UPN that is ignored.
+        :expectedresults:
+          1. Sssd starts.
+          2. User is found.
+          4. su for the uses succeeds.
+          5. Log does contain the expected message.
+        :customerscenario: True
+        :bugzilla:
+          https://bugzilla.redhat.com/show_bug.cgi?id=2148737
+          https://bugzilla.redhat.com/show_bug.cgi?id=2144491
+          https://bugzilla.redhat.com/show_bug.cgi?id=2148989
+          https://bugzilla.redhat.com/show_bug.cgi?id=2148988
+
+        """
+        # Note: The IPA server was guessing the UPN based on samAccountName
+        # in the past which was failing the check in sssd if the user
+        # had a different UPN on the AD side with the message:
+        # UPN of user entry and PAC do not match.
+        # To validate the fix we are skipping the whole IPA part and
+        # forcing sssd to use empty parameter for UPN instead.
+        # SSSD should recognize missing/empty upn and skip the check
+        # by default now.
+
+        ad_domain = multihost.ad[0].domainname
+        adjoin(membersw='adcli')
+        # Create AD user and group
+        (aduser, _) = create_aduser_group
+
+        # Modify UPN for aduser
+        multihost.ad[0].run_command(
+            f"powershell -inputformat none -noprofile 'Import-Module "
+            f"ActiveDirectory; Set-ADUser -Identity {aduser} "
+            f"-UserPrincipalName \"{aduser}@otherdomain.com\"'",
+            raiseonerr=False
+        )
+
+        # Display aduser
+        multihost.ad[0].run_command(
+            f"powershell -inputformat none -noprofile 'Import-Module "
+            f"ActiveDirectory; Get-ADUser -Identity {aduser} "
+            f"-Properties *'",
+            raiseonerr=False
+        )
+
+        # Configure sssd
+        multihost.client[0].service_sssd('stop')
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        client.backup_sssd_conf()
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True',
+            'cache_credentials': 'True',
+            'ldap_user_principal': 'non-existent-attr',
+        }
+        client.sssd_conf(dom_section, sssd_params)
+        client.clear_sssd_cache()
+
+        # Search for the user
+        usr_cmd = multihost.client[0].run_command(
+            f'getent passwd {aduser}@{ad_domain}', raiseonerr=False
+        )
+
+        su_result = client.su_success(f'{aduser}@{ad_domain}')
+
+        # Pull sssd_pac.log
+        time.sleep(5)
+        # Download the sssd domain log
+        log_str = multihost.client[0].get_file_contents(
+            "/var/log/sssd/sssd_pac.log"). \
+            decode('utf-8')
+
+        # Clean up
+        client.restore_sssd_conf()
+        client.clear_sssd_cache()
+
+        # Evaluate test results
+        assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
+        assert su_result, f"su to user {aduser} with empty UPN failed!"
+        assert "UPN is missing but PAC UPN check required, PAC validation" \
+               " failed. However, 'check_upn_allow_missing' is set and" \
+               " the error is ignored." in log_str
