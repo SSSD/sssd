@@ -3694,3 +3694,50 @@ class TestADParamsPorted:
 
         # Evaluate test results
         assert f'/home/{aduser.lower()}' in usr_cmd.stdout_text
+
+    @pytest.mark.tier1_3
+    @staticmethod
+    def test_0044_bz2110091(multihost, adjoin, create_aduser_group):
+        """
+        :title: SSSD starts offline after reboot
+        :id: 8fe03cef-891d-4cb9-be26-d747cb4d8fd8
+        :customerscenario: true
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2110091
+                   https://bugzilla.redhat.com/show_bug.cgi?id=2116207
+        :steps:
+          1. Join sssd client to AD
+          2. Lookup AD user
+          3. Clear sssd cache and logs
+          4. Reboot client
+          5. Domain logs should have "Destroying the old c-ares channel"
+          6. Domain logs should have "[recreate_ares_channel] (0x0100):
+             Initializing new c-ares channel" 2 times
+        :expectedresults:
+          1. sssd client is enrolled in AD domain successfully
+          2. AD user lookup is successful
+          3. sssd cache and logs are cleared
+          4. Client reboots successfully
+          5. Domain logs has string "Destroying the old c-ares channel"
+          6. Domain logs has string "[recreate_ares_channel] (0x0100):
+             Initializing new c-ares channel" 2 times
+        """
+        adjoin(membersw='adcli')
+        (ad_user, _) = create_aduser_group
+        domainname = multihost.ad[0].domainname
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        multihost.client[0].run_command(f'getent passwd {ad_user}@{domainname}')
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {'debug_level': '9'}
+        client.sssd_conf(dom_section, sssd_params)
+        multihost.client[0].run_command('systemctl reboot', raiseonerr=False)
+        time.sleep(50)
+        domain_log = f'/var/log/sssd/sssd_{domainname}.log'
+        cmd1 = f'grep -i "Destroying the old c-ares channel" {domain_log}'
+        multihost.client[0].run_command(cmd1)
+        print(cmd1.stdout_text)
+        string = r'\[recreate_ares_channel\].+\(0x0100\)\:.+Initializing' \
+                 ' new c-ares channel$'
+        cmd2 = f'egrep -ci "{string}" {domain_log}'
+        cmd3 = multihost.client[0].run_command(cmd2)
+        print(cmd3.stdout_text)
+        assert cmd3.stdout_text == 2
