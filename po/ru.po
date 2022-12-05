@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-11-04 11:37+0100\n"
+"POT-Creation-Date: 2022-12-05 11:25+0100\n"
 "PO-Revision-Date: 2022-10-11 11:19+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
@@ -2020,50 +2020,49 @@ msgstr "Путь к исходному тексту файла passwd."
 msgid "Path of group file sources."
 msgstr "Путь к исходному тексту файла group."
 
-#: src/monitor/monitor.c:2361 src/monitor/monitor.c:2360
+#: src/monitor/monitor.c:2361
 msgid "Become a daemon (default)"
 msgstr "Запускаться в качестве службы (по умолчанию)"
 
-#: src/monitor/monitor.c:2363 src/monitor/monitor.c:2362
+#: src/monitor/monitor.c:2363
 msgid "Run interactive (not a daemon)"
 msgstr "Запускаться интерактивно (не службой)"
 
-#: src/monitor/monitor.c:2366 src/monitor/monitor.c:2365
+#: src/monitor/monitor.c:2366
 msgid "Disable netlink interface"
 msgstr "Отключить интерфейс netlink"
 
 #: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
-#: src/monitor/monitor.c:2367
 msgid "Specify a non-default config file"
 msgstr "Указать нестандартный файл конфигурации"
 
-#: src/monitor/monitor.c:2370 src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2370
 msgid "Refresh the configuration database, then exit"
 msgstr "Обновить базу данных конфигурации и выйти"
 
-#: src/monitor/monitor.c:2373 src/monitor/monitor.c:2372
+#: src/monitor/monitor.c:2373
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr ""
 "Аналогично --genconf, но выполняется обновление только указанного раздела"
 
-#: src/monitor/monitor.c:2376 src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2376
 msgid "Print version number and exit"
 msgstr "Вывести номер версии и выйти"
 
-#: src/monitor/monitor.c:2414 src/monitor/monitor.c:2413
+#: src/monitor/monitor.c:2414
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "Параметр -i|--interactive нельзя использовать вместе с -D|--daemon\n"
 
-#: src/monitor/monitor.c:2420 src/monitor/monitor.c:2419
+#: src/monitor/monitor.c:2420
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "Параметр -g несовместим с -D или -i\n"
 
-#: src/monitor/monitor.c:2433 src/monitor/monitor.c:2432
+#: src/monitor/monitor.c:2433
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "Запущено от %<PRIu64>, а должно быть от имени пользователя root\n"
 
-#: src/monitor/monitor.c:2515 src/monitor/monitor.c:2514
+#: src/monitor/monitor.c:2515
 msgid "SSSD is already running\n"
 msgstr "SSSD уже выполняется\n"
 
@@ -2501,6 +2500,128 @@ msgstr "Необходимо завершить работу SSSD. Сделат�
 msgid "SSSD needs to be restarted. Restart SSSD now?"
 msgstr "Необходимо перезапустить SSSD. Сделать это сейчас?"
 
+#: src/tools/sssctl/sssctl.c:280
+msgid "SSSD Status:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:281
+#, fuzzy
+msgid "List available domains"
+msgstr "Не удалось открыть доступные домены\n"
+
+#: src/tools/sssctl/sssctl.c:282
+#, fuzzy
+msgid "Print information about domain"
+msgstr "Показать информацию об активном сервере"
+
+#: src/tools/sssctl/sssctl.c:283
+msgid "Print information about a user and check authentication"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:284
+msgid "Generate access report for a domain"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:285
+#, fuzzy
+msgid "Information about cached content:"
+msgstr "Показать информацию об активном сервере"
+
+#: src/tools/sssctl/sssctl.c:286
+#, fuzzy
+msgid "Information about cached user"
+msgstr "Показать информацию об активном сервере"
+
+#: src/tools/sssctl/sssctl.c:287
+#, fuzzy
+msgid "Information about cached group"
+msgstr "Показать информацию об активном сервере"
+
+#: src/tools/sssctl/sssctl.c:288
+#, fuzzy
+msgid "Information about cached netgroup"
+msgstr "Показать информацию об активном сервере"
+
+#: src/tools/sssctl/sssctl.c:289
+msgid "Local data tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:290
+#, fuzzy
+msgid "Backup local data"
+msgstr "Создание резервной копии локальных данных...\n"
+
+#: src/tools/sssctl/sssctl.c:291
+#, fuzzy
+msgid "Restore local data from backup"
+msgstr "Восстановление локальных данных...\n"
+
+#: src/tools/sssctl/sssctl.c:292
+msgid "Backup local data and remove cached content"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:293
+msgid "Perform cache upgrade"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:294
+#, fuzzy
+msgid "Invalidate cached objects"
+msgstr "Объявить недействительными все кэшированные записи"
+
+#: src/tools/sssctl/sssctl.c:295
+msgid "Manage cache indexes"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:296
+msgid "Log files tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:297
+#, fuzzy
+msgid "Remove existing SSSD log files"
+msgstr "Удаление файлов журнала...\n"
+
+#: src/tools/sssctl/sssctl.c:298
+#, fuzzy
+msgid "Archive SSSD log files in tarball"
+msgstr "Архивация файлов журнала в %s...\n"
+
+#: src/tools/sssctl/sssctl.c:299
+#, fuzzy
+msgid "Change or print information about SSSD debug level"
+msgstr "Показать информацию об активном сервере"
+
+#: src/tools/sssctl/sssctl.c:300
+msgid "Analyze logged data"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:302
+msgid "Configuration files tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:303
+msgid "Perform static analysis of SSSD configuration"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:305
+msgid "Certificate related tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:306
+#, fuzzy
+msgid "Print information about the certificate"
+msgstr "Показать информацию об активном сервере"
+
+#: src/tools/sssctl/sssctl.c:307
+#, fuzzy
+msgid "Show users mapped to the certificate"
+msgstr "Путь к хранилищу доверенных сертификатов CA"
+
+#: src/tools/sssctl/sssctl.c:308
+msgid "Check mapping and matching rule with a certificate"
+msgstr ""
+
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
 msgid " %s is not present in cache.\n"
@@ -2560,6 +2681,84 @@ msgstr "Время истечения срока действия групп и�
 #: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by group ID"
 msgstr "Поиск по ID группы"
+
+#: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
+#: src/tools/sssctl/sssctl_cert.c:217
+msgid "Show debug information"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
+#: src/tools/sssctl/sssctl_cert.c:223
+msgid "Specify base64 encoded certificate."
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
+#: src/tools/sssctl/sssctl_domains.c:368
+#: src/tools/sssctl/sssctl_user_checks.c:95
+msgid "Unable to connect to system bus!\n"
+msgstr "Не удалось подключиться к системной шине!\n"
+
+#: src/tools/sssctl/sssctl_cert.c:166
+msgid " - no mapped users found -"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:215
+msgid "Mapping rule"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:216
+msgid "Matching rule"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:226
+#, fuzzy
+msgid "Unable to parse command arguments\n"
+msgstr "Не удалось разобрать имя %s.\n"
+
+#: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
+msgid "Out of memory!\n"
+msgstr "Недостаточно памяти!\n"
+
+#: src/tools/sssctl/sssctl_cert.c:241
+msgid "Failed to setup certmap context.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:247
+#, c-format
+msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:254
+#, fuzzy
+msgid "Failed to decode base64 string.\n"
+msgstr "Не удалось открыть %s\n"
+
+#: src/tools/sssctl/sssctl_cert.c:262
+msgid "Certificate matches rule.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:265
+msgid "Certificate does not match rule.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:268
+#, c-format
+msgid "Error during certificate matching [%d][%s].\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:275
+#, c-format
+msgid "Failed to generate mapping filter [%d][%s].\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:279
+#, c-format
+msgid ""
+"Mapping filter:\n"
+"\n"
+"    %s\n"
+"\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""
@@ -2773,11 +2972,6 @@ msgstr "Не забудьте также обновить индексы на у
 msgid "Show domain list including primary or trusted domain type"
 msgstr "Показать список доменов, включая основные и доверенные"
 
-#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:368
-#: src/tools/sssctl/sssctl_user_checks.c:95
-msgid "Unable to connect to system bus!\n"
-msgstr "Не удалось подключиться к системной шине!\n"
-
 #: src/tools/sssctl/sssctl_domains.c:167
 msgid "Online"
 msgstr "В сети"
@@ -2831,10 +3025,6 @@ msgstr "Показать список обнаруженных серверов"
 #: src/tools/sssctl/sssctl_domains.c:333
 msgid "Specify domain name."
 msgstr "Укажите имя домена."
-
-#: src/tools/sssctl/sssctl_domains.c:356
-msgid "Out of memory!\n"
-msgstr "Недостаточно памяти!\n"
 
 #: src/tools/sssctl/sssctl_domains.c:376 src/tools/sssctl/sssctl_domains.c:386
 msgid "Unable to get online status\n"

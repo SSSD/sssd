@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-11-04 11:37+0100\n"
+"POT-Creation-Date: 2022-12-05 11:25+0100\n"
 "PO-Revision-Date: 2022-11-21 18:19+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
@@ -247,13 +247,15 @@ msgstr "비밀번호 요청을 위해 빠른 캐쉬 메모리에 할당된 자�
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
-msgstr "그룹 요청을 위한 고속 캐쉬 메모리에 내부에 할당된자료 테이블의 크기(MB)"
+msgstr ""
+"그룹 요청을 위한 고속 캐쉬 메모리에 내부에 할당된자료 테이블의 크기(MB)"
 
 #: src/config/SSSDConfig/sssdoptions.py:81
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
-msgstr "initgroups 요청을 위해 빠른 캐쉬 메모리에 할당된 자료 테이블의 크기(MB)"
+msgstr ""
+"initgroups 요청을 위해 빠른 캐쉬 메모리에 할당된 자료 테이블의 크기(MB)"
 
 #: src/config/SSSDConfig/sssdoptions.py:82
 msgid ""
@@ -275,9 +277,8 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
-"항목 캐쉬는 도메인에 대한 entry_cache_timeout 값의 백분율을 초과하여 "
-"요청되는 경우 백그라운드에서 항목을 자동으로 최신화 하도록 설정 할 수 "
-"있습니다."
+"항목 캐쉬는 도메인에 대한 entry_cache_timeout 값의 백분율을 초과하여 요청되"
+"는 경우 백그라운드에서 항목을 자동으로 최신화 하도록 설정 할 수 있습니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:91
 msgid "How long to allow cached logins between online logins (days)"
@@ -1883,49 +1884,48 @@ msgstr "passwd 파일 소스 경로입니다."
 msgid "Path of group file sources."
 msgstr "그룹 파일 소스의 경로입니다."
 
-#: src/monitor/monitor.c:2361 src/monitor/monitor.c:2360
+#: src/monitor/monitor.c:2361
 msgid "Become a daemon (default)"
 msgstr "데몬이 됨 (기본값)"
 
-#: src/monitor/monitor.c:2363 src/monitor/monitor.c:2362
+#: src/monitor/monitor.c:2363
 msgid "Run interactive (not a daemon)"
 msgstr "대화식 실행 (데몬이 아님)"
 
-#: src/monitor/monitor.c:2366 src/monitor/monitor.c:2365
+#: src/monitor/monitor.c:2366
 msgid "Disable netlink interface"
 msgstr "netlink 인터페이스 비활성화"
 
 #: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
-#: src/monitor/monitor.c:2367
 msgid "Specify a non-default config file"
 msgstr "기본이 아닌 config 파일 지정"
 
-#: src/monitor/monitor.c:2370 src/monitor/monitor.c:2369
+#: src/monitor/monitor.c:2370
 msgid "Refresh the configuration database, then exit"
 msgstr "설정 데이터베이스를 새로 고친 다음 종료합니다"
 
-#: src/monitor/monitor.c:2373 src/monitor/monitor.c:2372
+#: src/monitor/monitor.c:2373
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "--genconf와 유사하지만 지정된 섹션만 새로 고침합니다"
 
-#: src/monitor/monitor.c:2376 src/monitor/monitor.c:2375
+#: src/monitor/monitor.c:2376
 msgid "Print version number and exit"
 msgstr "버전 번호를 인쇄하고 종료합니다"
 
-#: src/monitor/monitor.c:2414 src/monitor/monitor.c:2413
+#: src/monitor/monitor.c:2414
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "옵션 -i|--interactive는 -D|--daemon과 함께 사용할 수 없습니다.\n"
 
-#: src/monitor/monitor.c:2420 src/monitor/monitor.c:2419
+#: src/monitor/monitor.c:2420
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "옵션 -g는 -D 또는 -i와 호환되지 않습니다\n"
 
-#: src/monitor/monitor.c:2433 src/monitor/monitor.c:2432
+#: src/monitor/monitor.c:2433
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "%<PRIu64> 에서 실행 중, root여야 합니다\n"
 
-#: src/monitor/monitor.c:2515 src/monitor/monitor.c:2514
+#: src/monitor/monitor.c:2515
 msgid "SSSD is already running\n"
 msgstr "SSSD가 이미 실행되고 있습니다\n"
 
@@ -2357,6 +2357,128 @@ msgstr "SSSD가 실행되고 있지 않아야 합니다. 지금 SSSD를 중지�
 msgid "SSSD needs to be restarted. Restart SSSD now?"
 msgstr "SSSD를 다시 시작해야 합니다. 지금 SSSD를 다시 시작하시겠습니까?"
 
+#: src/tools/sssctl/sssctl.c:280
+msgid "SSSD Status:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:281
+#, fuzzy
+msgid "List available domains"
+msgstr "사용 가능한 도메인을 열 수 없습니다\n"
+
+#: src/tools/sssctl/sssctl.c:282
+#, fuzzy
+msgid "Print information about domain"
+msgstr "활성 서버에 대한 정보 표시"
+
+#: src/tools/sssctl/sssctl.c:283
+msgid "Print information about a user and check authentication"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:284
+msgid "Generate access report for a domain"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:285
+#, fuzzy
+msgid "Information about cached content:"
+msgstr "활성 서버에 대한 정보 표시"
+
+#: src/tools/sssctl/sssctl.c:286
+#, fuzzy
+msgid "Information about cached user"
+msgstr "활성 서버에 대한 정보 표시"
+
+#: src/tools/sssctl/sssctl.c:287
+#, fuzzy
+msgid "Information about cached group"
+msgstr "활성 서버에 대한 정보 표시"
+
+#: src/tools/sssctl/sssctl.c:288
+#, fuzzy
+msgid "Information about cached netgroup"
+msgstr "활성 서버에 대한 정보 표시"
+
+#: src/tools/sssctl/sssctl.c:289
+msgid "Local data tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:290
+#, fuzzy
+msgid "Backup local data"
+msgstr "로컬 데이터의 백업 생성 중...\n"
+
+#: src/tools/sssctl/sssctl.c:291
+#, fuzzy
+msgid "Restore local data from backup"
+msgstr "로컬 데이터 복원 중...\n"
+
+#: src/tools/sssctl/sssctl.c:292
+msgid "Backup local data and remove cached content"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:293
+msgid "Perform cache upgrade"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:294
+#, fuzzy
+msgid "Invalidate cached objects"
+msgstr "캐쉬된 모든 항목을 무효화합니다"
+
+#: src/tools/sssctl/sssctl.c:295
+msgid "Manage cache indexes"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:296
+msgid "Log files tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:297
+#, fuzzy
+msgid "Remove existing SSSD log files"
+msgstr "로그 파일 삭제 중...\n"
+
+#: src/tools/sssctl/sssctl.c:298
+#, fuzzy
+msgid "Archive SSSD log files in tarball"
+msgstr "%s에 로그 파일 보관 중...\n"
+
+#: src/tools/sssctl/sssctl.c:299
+#, fuzzy
+msgid "Change or print information about SSSD debug level"
+msgstr "활성 서버에 대한 정보 표시"
+
+#: src/tools/sssctl/sssctl.c:300
+msgid "Analyze logged data"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:302
+msgid "Configuration files tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:303
+msgid "Perform static analysis of SSSD configuration"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:305
+msgid "Certificate related tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:306
+#, fuzzy
+msgid "Print information about the certificate"
+msgstr "활성 서버에 대한 정보 표시"
+
+#: src/tools/sssctl/sssctl.c:307
+#, fuzzy
+msgid "Show users mapped to the certificate"
+msgstr "신뢰할 수 있는 CA 인증서 저장 경로"
+
+#: src/tools/sssctl/sssctl.c:308
+msgid "Check mapping and matching rule with a certificate"
+msgstr ""
+
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
 msgid " %s is not present in cache.\n"
@@ -2416,6 +2538,84 @@ msgstr "Initgroups 만료 시간"
 #: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by group ID"
 msgstr "그룹 ID로 검색"
+
+#: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
+#: src/tools/sssctl/sssctl_cert.c:217
+msgid "Show debug information"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
+#: src/tools/sssctl/sssctl_cert.c:223
+msgid "Specify base64 encoded certificate."
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
+#: src/tools/sssctl/sssctl_domains.c:368
+#: src/tools/sssctl/sssctl_user_checks.c:95
+msgid "Unable to connect to system bus!\n"
+msgstr "시스템 버스에 연결할 수 없습니다!\n"
+
+#: src/tools/sssctl/sssctl_cert.c:166
+msgid " - no mapped users found -"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:215
+msgid "Mapping rule"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:216
+msgid "Matching rule"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:226
+#, fuzzy
+msgid "Unable to parse command arguments\n"
+msgstr "%s 이름을 구문 분석할 수 없습니다.\n"
+
+#: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
+msgid "Out of memory!\n"
+msgstr "메모리 부족!\n"
+
+#: src/tools/sssctl/sssctl_cert.c:241
+msgid "Failed to setup certmap context.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:247
+#, c-format
+msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:254
+#, fuzzy
+msgid "Failed to decode base64 string.\n"
+msgstr "%s 열기 실패\n"
+
+#: src/tools/sssctl/sssctl_cert.c:262
+msgid "Certificate matches rule.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:265
+msgid "Certificate does not match rule.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:268
+#, c-format
+msgid "Error during certificate matching [%d][%s].\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:275
+#, c-format
+msgid "Failed to generate mapping filter [%d][%s].\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:279
+#, c-format
+msgid ""
+"Mapping filter:\n"
+"\n"
+"    %s\n"
+"\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""
@@ -2623,11 +2823,6 @@ msgstr "원격 공급자에서도 색인을 최신화하는 것을 잊지 마세
 msgid "Show domain list including primary or trusted domain type"
 msgstr "메인 또는 신뢰할 수 있는 도메인 유형을 포함한 도메인 목록 표시"
 
-#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:368
-#: src/tools/sssctl/sssctl_user_checks.c:95
-msgid "Unable to connect to system bus!\n"
-msgstr "시스템 버스에 연결할 수 없습니다!\n"
-
 #: src/tools/sssctl/sssctl_domains.c:167
 msgid "Online"
 msgstr "온라인"
@@ -2681,10 +2876,6 @@ msgstr "검색된 서버 목록 표시"
 #: src/tools/sssctl/sssctl_domains.c:333
 msgid "Specify domain name."
 msgstr "도메인 이름을 지정합니다."
-
-#: src/tools/sssctl/sssctl_domains.c:356
-msgid "Out of memory!\n"
-msgstr "메모리 부족!\n"
 
 #: src/tools/sssctl/sssctl_domains.c:376 src/tools/sssctl/sssctl_domains.c:386
 msgid "Unable to get online status\n"
