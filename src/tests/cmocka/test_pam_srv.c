@@ -33,6 +33,10 @@
 #include "sss_client/pam_message.h"
 #include "sss_client/sss_cli.h"
 #include "confdb/confdb.h"
+#ifdef BUILD_PASSKEY
+#include "src/responder/pam/pamsrv_passkey.h"
+#include "db/sysdb_passkey_user_verification.h"
+#endif
 
 #include "util/crypto/sss_crypto.h"
 
@@ -81,6 +85,21 @@
 #define TEST5_KEY_ID "1195833C424AB00297F582FC43FFFFAB47A64CC9"
 #define TEST5_LABEL "SSSD test cert 0005"
 
+#define SSSD_TEST_PASSKEY \
+     "passkey:zO7lzqHPkVgsWkMTuJ17E+9OTcPtYUZJFHDs3xPSDgjcsHp/yLHkiRRNJ2IMU278" \
+     "wdzGuHmSI4rOnyZ0VcJ/kA==,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEKhSQWMPgAU" \
+	 "cz4d7Fjz2hZK7QUlnAttuEW5XrxD06VBaQvIRYJT7e6wM+vFU4z+uQgU9B5ERbgMiBVe99rB" \
+	 "L9w=="
+
+#define SSSD_TEST_PASSKEY_PK \
+     "zO7lzqHPkVgsWkMTuJ17E+9OTcPtYUZJFHDs3xPSDgjcsHp/yLHkiRRNJ2IMU278" \
+      "wdzGuHmSI4rOnyZ0VcJ/kA=="
+
+#define SSSD_TEST_PASSKEY_KEY_HANDLE \
+     "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEKhSQWMPgAUcz4d7Fjz2hZK7QUlnAttuEW5Xr" \
+     "xD06VBaQvIRYJT7e6wM+vFU4z+uQgU9B5ERbgMiBVe99rBL9w=="
+
+
 int no_cleanup;
 
 static char CACHED_AUTH_TIMEOUT_STR[] = "4";
@@ -103,6 +122,7 @@ struct pam_test_ctx {
 
     const char *pam_user_fqdn;
     const char *wrong_user_fqdn;
+    int child_status;
 };
 
 /* Must be global because it is needed in some wrappers */
@@ -184,6 +204,7 @@ void test_pam_setup(struct sss_test_conf_param dom_params[],
 
     pam_test_ctx->pam_cmds = get_pam_cmds();
     assert_non_null(pam_test_ctx->pam_cmds);
+    pam_test_ctx->tctx->dom->dns_name = talloc_strdup(pam_test_ctx, TEST_DOM_NAME);
 
     /* FIXME - perhaps this should be folded into sssd_domain_init or strictly
      * used together
@@ -488,6 +509,127 @@ int __wrap_pam_dp_send_req(struct pam_auth_req *preq, int timeout)
     return EOK;
 }
 
+#ifdef BUILD_PASSKEY
+static void passkey_test_done(struct tevent_req *req)
+{
+    struct pam_test_ctx *ctx =
+            tevent_req_callback_data(req, struct pam_test_ctx);
+
+    pam_passkey_auth_recv(req, &pam_test_ctx->child_status);
+    talloc_zfree(req);
+
+    /* No actual fido2 device available, overwrite the child status to successful.
+     * as we are faking authentication */
+    if (pam_test_ctx->child_status == 1) {
+        pam_test_ctx->child_status = 0;
+    }
+
+    ctx->tctx->done = true;
+}
+
+static void mock_input_pam_passkey(TALLOC_CTX *mem_ctx,
+                                   const char *name,
+                                   const char *pin,
+                                   const char *svc,
+                                   acct_cb_t acct_cb,
+                                   const char *passkey)
+{
+    size_t buf_size;
+    uint8_t *m_buf;
+    uint8_t *buf;
+    struct pam_items pi = { 0 };
+    int ret;
+    char *s_name;
+    char *dom;
+
+    if (name != NULL) {
+        pi.pam_user = name;
+        pi.pam_user_size = strlen(pi.pam_user) + 1;
+    } else {
+        pi.pam_user = "";
+        pi.pam_user_size = 0;
+    }
+
+    if (pin != NULL) {
+         pi.pam_authtok = discard_const(pin);
+         pi.pam_authtok_size = strlen(pi.pam_authtok) + 1;
+         pi.pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
+    }
+
+    if (svc == NULL) {
+        svc = "pam_test_service";
+    }
+    pi.pam_service = svc;
+    pi.pam_service_size = strlen(pi.pam_service) + 1;
+    pi.pam_tty = "/dev/tty";
+    pi.pam_tty_size = strlen(pi.pam_tty) + 1;
+    pi.pam_ruser = "remuser";
+    pi.pam_ruser_size = strlen(pi.pam_ruser) + 1;
+    pi.pam_rhost = "remhost";
+    pi.pam_rhost_size = strlen(pi.pam_rhost) + 1;
+    pi.requested_domains = "";
+    pi.cli_pid = 12345;
+
+    ret = pack_message_v3(&pi, &buf_size, &m_buf);
+    assert_int_equal(ret, 0);
+
+    buf = talloc_memdup(mem_ctx, m_buf, buf_size);
+    free(m_buf);
+    assert_non_null(buf);
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, buf);
+    will_return(__wrap_sss_packet_get_body, buf_size);
+
+    if (strrchr(name, '@') == NULL) {
+        mock_parse_inp(name, NULL, EOK);
+    } else {
+        ret = sss_parse_internal_fqname(mem_ctx, name, &s_name, &dom);
+        mock_parse_inp(s_name, dom, EOK);
+    }
+
+    if (acct_cb != NULL) {
+        mock_account_recv(0, 0, NULL, acct_cb, discard_const(passkey));
+    }
+}
+
+static int test_pam_passkey_auth_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    return EOK;
+}
+
+static int test_pam_passkey_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    size_t rp = 0;
+    uint32_t val;
+
+    assert_int_equal(status, 0);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, pam_test_ctx->exp_pam_status);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 1);
+
+    /* passkey verification */
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_PASSKEY_INFO);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 5);
+
+    assert_int_equal(*(body + rp + val - 1), 0);
+    assert_string_equal(body + rp, "true");
+
+    return EOK;
+}
+
+static void set_passkey_auth_param(struct pam_ctx *pctx)
+{
+    pam_test_ctx->pctx->passkey_auth = true;
+}
+#endif
+
 static void mock_input_pam_ex(TALLOC_CTX *mem_ctx,
                               const char *name,
                               const char *pwd,
@@ -650,6 +792,7 @@ static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
         mock_parse_inp(name, NULL, EOK);
     }
 }
+
 
 static int test_pam_simple_check(uint32_t status, uint8_t *body, size_t blen)
 {
@@ -1045,6 +1188,8 @@ static int test_pam_cert_check_2certs(uint32_t status, uint8_t *body,
                                   "pamuser@"TEST_DOM_NAME,
                                   "pamuser");
 }
+
+
 
 static int test_pam_offline_chauthtok_check(uint32_t status,
                                             uint8_t *body, size_t blen)
@@ -1909,6 +2054,7 @@ void test_pam_auth_upn_logon_name(void **state)
     ret = test_ev_loop(pam_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
+
 
 
 static void set_cert_auth_param(struct pam_ctx *pctx, const char *dbpath)
@@ -3944,6 +4090,174 @@ void test_pam_prompting_2fa_single_and_service_srv(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_pam_passkey_preauth_no_passkey(void **state)
+{
+    int ret;
+
+    set_passkey_auth_param(pam_test_ctx->pctx);
+
+    mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234",
+                                         NULL, NULL, NULL);
+
+    /* sss_parse_inp_recv() is called twice
+     * multiple cache req calls */
+    mock_parse_inp("pamuser", NULL, EOK);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    pam_test_ctx->exp_pam_status = PAM_SUCCESS;
+    set_cmd_cb(test_pam_simple_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_passkey_preauth_found(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    const char *passkey = SSSD_TEST_PASSKEY;
+    size_t pk_size;
+    const char *user_verification = "on";
+
+    set_passkey_auth_param(pam_test_ctx->pctx);
+
+    /* Add user verification attribute */
+    ret = sysdb_domain_update_passkey_user_verification(
+                        pam_test_ctx->tctx->dom->sysdb,
+                        pam_test_ctx->tctx->dom->name,
+                        user_verification);
+    assert_int_equal(ret, EOK);
+
+    mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234", NULL,
+                                         NULL, SSSD_TEST_PASSKEY);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+
+    /* Add the test passkey data for this user */
+    pk_size = strlen(passkey) + 1;
+
+    attrs = sysdb_new_attrs(pam_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_PASSKEY, passkey, pk_size);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom,
+                              pam_test_ctx->pam_user_fqdn,
+                              attrs,
+                              LDB_FLAG_MOD_ADD);
+    assert_int_equal(ret, EOK);
+
+    pam_test_ctx->exp_pam_status = PAM_SUCCESS;
+    set_cmd_cb(test_pam_passkey_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_passkey_auth(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    const char *passkey = SSSD_TEST_PASSKEY;
+    size_t pk_size;
+    const char *user_verification = "on";
+
+    set_passkey_auth_param(pam_test_ctx->pctx);
+
+    /* Add user verification attribute  */
+    ret = sysdb_domain_update_passkey_user_verification(
+                        pam_test_ctx->tctx->dom->sysdb,
+                        pam_test_ctx->tctx->dom->name,
+                        user_verification);
+    assert_int_equal(ret, EOK);
+
+    mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234", NULL,
+                                         NULL, SSSD_TEST_PASSKEY);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Add the test passkey data for this user */
+    pk_size = strlen(passkey) + 1;
+
+    attrs = sysdb_new_attrs(pam_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_PASSKEY, passkey, pk_size);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom,
+                              pam_test_ctx->pam_user_fqdn,
+                              attrs,
+                              LDB_FLAG_MOD_ADD);
+    assert_int_equal(ret, EOK);
+
+    pam_test_ctx->exp_pam_status = PAM_SUCCESS;
+    set_cmd_cb(test_pam_passkey_auth_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+
+void test_pam_passkey_auth_send(void **state)
+{
+    enum passkey_user_verification uv = PAM_PASSKEY_VERIFICATION_ON;
+    struct tevent_req *req;
+    struct pk_child_user_data *pk_data;
+    struct pam_items pi = { 0 };
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(global_talloc_context);
+    assert_non_null(tmp_ctx);
+    check_leaks_push(tmp_ctx);
+
+    pk_data = talloc_zero(tmp_ctx, struct pk_child_user_data);
+    assert_non_null(pk_data);
+    pk_data->public_keys = talloc_zero_array(pk_data, const char *, 2);
+    pk_data->public_keys[0] = talloc_strdup(pk_data->public_keys, SSSD_TEST_PASSKEY_PK);
+    pk_data->key_handles = talloc_zero_array(pk_data, const char *, 2);
+    pk_data->key_handles[0] = talloc_strdup(pk_data->key_handles, SSSD_TEST_PASSKEY_KEY_HANDLE);
+
+    /* pam data */
+    pi.pam_authtok = discard_const("1234");
+    pi.pam_authtok_size = strlen(pi.pam_authtok) + 1;
+    pi.pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
+    pam_test_ctx->pd->user = discard_const("pamuser");
+    pi.pam_user = "pamuser";
+    pi.pam_user_size = strlen(pi.pam_user) + 1;
+
+    req = pam_passkey_auth_send(tmp_ctx, pam_test_ctx->tctx->ev,
+                                10, false, uv, pam_test_ctx->pd,
+                                pk_data);
+    assert_non_null(req);
+    tevent_req_set_callback(req, passkey_test_done, pam_test_ctx);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    assert_true(WIFEXITED(pam_test_ctx->child_status));
+    assert_int_equal(WEXITSTATUS(pam_test_ctx->child_status), 0);
+
+    talloc_free(tmp_ctx);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -4119,6 +4433,17 @@ int main(int argc, const char *argv[])
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_uri_token2,
                                         pam_test_setup, pam_test_teardown),
+#ifdef BUILD_PASSKEY
+        cmocka_unit_test_setup_teardown(test_pam_passkey_preauth_no_passkey,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_passkey_preauth_found,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_passkey_auth,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_passkey_auth_send,
+                                        pam_test_setup, pam_test_teardown),
+#endif /* BUILD_PASSKEY */
+
 #ifdef HAVE_FAKETIME
         cmocka_unit_test_setup_teardown(test_pam_preauth_expired_crl_file,
                                         pam_test_setup, pam_test_teardown),
