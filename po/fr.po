@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-11-04 11:34+0100\n"
-"PO-Revision-Date: 2022-06-24 20:18+0000\n"
+"PO-Revision-Date: 2022-12-08 08:19+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
@@ -27,7 +27,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.13\n"
+"X-Generator: Weblate 4.14.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -180,6 +180,7 @@ msgstr "Exécution automatique du répondeur PAC pour le fournisseur AD et IPA"
 #: src/config/SSSDConfig/sssdoptions.py:57
 msgid "Enable or disable core dumps for all SSSD processes."
 msgstr ""
+"Activer ou désactiver les vidages de noyau pour tous les processus SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:60
 msgid "Enumeration cache timeout length (seconds)"
@@ -671,6 +672,8 @@ msgstr "Fréquence de rafraîchissement en arrière plan des entrées expirées"
 #: src/config/SSSDConfig/sssdoptions.py:195
 msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr ""
+"Écart maximal de période lors du rafraîchissement des entrées expirées en "
+"arrière-plan"
 
 #: src/config/SSSDConfig/sssdoptions.py:196
 msgid "Whether to automatically update the client's DNS entry"
@@ -693,9 +696,10 @@ msgid "How often to periodically update the client's DNS entry"
 msgstr "Fréquence de mise à jour automatique de l'entrée DNS du client"
 
 #: src/config/SSSDConfig/sssdoptions.py:200
-#, fuzzy
 msgid "Maximum period deviation when updating the client's DNS entry"
-msgstr "Fréquence de mise à jour automatique de l'entrée DNS du client"
+msgstr ""
+"Déviation maximale de la période lors de la mise à jour de l'entrée DNS du "
+"client"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 msgid "Whether the provider should explicitly update the PTR record as well"
@@ -728,6 +732,8 @@ msgstr "Fréquence de rafraîchissement des sous-domaines"
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid "Maximum period deviation when refreshing the subdomain list"
 msgstr ""
+"Écart de période maximum lors du rafraîchissement de la liste des sous-"
+"domaines"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "List of options that should be inherited into a subdomain"
@@ -1442,18 +1448,16 @@ msgid "Length of time between enumeration updates"
 msgstr "Durée entre deux mises à jour d'énumération"
 
 #: src/config/SSSDConfig/sssdoptions.py:399
-#, fuzzy
 msgid "Maximum period deviation between enumeration updates"
-msgstr "Durée entre deux mises à jour d'énumération"
+msgstr "Écart maximal de période entre les mises à jour de l'énumération"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Length of time between cache cleanups"
 msgstr "Durée entre les nettoyages de cache"
 
 #: src/config/SSSDConfig/sssdoptions.py:401
-#, fuzzy
 msgid "Maximum time deviation between cache cleanups"
-msgstr "Durée entre les nettoyages de cache"
+msgstr "Écart de temps maximal entre les nettoyages du cache"
 
 #: src/config/SSSDConfig/sssdoptions.py:402
 msgid "Require TLS for ID lookups"
@@ -2090,7 +2094,7 @@ msgstr "SSSD est déjà en cours d'exécution\n"
 
 #: src/providers/krb5/krb5_child.c:3760 src/providers/ldap/ldap_child.c:641
 msgid "Allow core dumps"
-msgstr ""
+msgstr "Autoriser les vidages de noyau"
 
 #: src/providers/krb5/krb5_child.c:3762 src/providers/ldap/ldap_child.c:643
 msgid "An open file descriptor for the debug logs"
@@ -2725,45 +2729,42 @@ msgstr "Restauration des données locales...\n"
 #: src/tools/sssctl/sssctl_data.c:415
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
-msgstr ""
+msgstr "Création d'un index de cache pour le domaine %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:417
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
-msgstr ""
+msgstr "Suppression de l'index du cache pour le domaine %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:419
 #, c-format
 msgid "Indexes for domain %1$s:\n"
-msgstr ""
+msgstr "Index pour le domaine %1$s :\n"
 
 #: src/tools/sssctl/sssctl_data.c:439
 #, c-format
 msgid "  Attribute: %1$s\n"
-msgstr ""
+msgstr "  Attribut : %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
 msgid "Target a specific domain"
-msgstr ""
+msgstr "Cibler un domaine spécifique"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
-#, fuzzy
 msgid "domain"
-msgstr "Domaine IPA"
+msgstr "domaine"
 
 #: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute to index"
-msgstr ""
+msgstr "Attribut à indexer"
 
 #: src/tools/sssctl/sssctl_data.c:469
-#, fuzzy
 msgid "attribute"
-msgstr "Attribut UID"
+msgstr "Attribut"
 
 #: src/tools/sssctl/sssctl_data.c:482
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "Fournisseur d'authentification"
+msgstr "Action non fournie\n"
 
 #: src/tools/sssctl/sssctl_data.c:495
 #, c-format
@@ -2771,29 +2772,33 @@ msgid ""
 "Unknown action: %1$s\n"
 "Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
 msgstr ""
+"Action inconnue : %1$s\n"
+"Les actions valides sont \"%2$s\", \"%3$s et \"%4$s\".\n"
 
 #: src/tools/sssctl/sssctl_data.c:503
 msgid "Attribute (-a) not provided\n"
-msgstr ""
+msgstr "Attribut (-a) non fourni\n"
 
 #: src/tools/sssctl/sssctl_data.c:511
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
-msgstr ""
+msgstr "Attribut %1$s non indexé.\n"
 
 #: src/tools/sssctl/sssctl_data.c:514
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
-msgstr ""
+msgstr "Attribut %1$s déjà indexé.\n"
 
 #: src/tools/sssctl/sssctl_data.c:517
-#, fuzzy, c-format
+#, c-format
 msgid "Index operation failed: %1$s\n"
-msgstr "La commande post-suppression a échoué : %1$s\n"
+msgstr "L'opération d'indexation a échoué : %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:522
 msgid "Don't forget to also update the indexes on the remote providers.\n"
 msgstr ""
+"N'oubliez pas de mettre également à jour les index sur les fournisseurs "
+"distants.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"
@@ -2877,24 +2882,23 @@ msgid "\n"
 msgstr "\n"
 
 #: src/tools/sssctl/sssctl_logs.c:215
-#, fuzzy
 msgid "SSSD is not running.\n"
-msgstr "SSSD est déjà en cours d'exécution\n"
+msgstr "SSSD ne fonctionne pas.\n"
 
 #: src/tools/sssctl/sssctl_logs.c:232
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
-msgstr ""
+msgstr "%1$-25s %2$#.4x\n"
 
 #: src/tools/sssctl/sssctl_logs.c:236
 #, c-format
 msgid "%1$-25s Unknown domain\n"
-msgstr ""
+msgstr "%1$-25s Domaine inconnu\n"
 
 #: src/tools/sssctl/sssctl_logs.c:238
 #, c-format
 msgid "%1$-25s Unreachable service\n"
-msgstr ""
+msgstr "%1$-25s Service inaccessible\n"
 
 #: src/tools/sssctl/sssctl_logs.c:431
 msgid "Delete log files instead of truncating"
@@ -2927,36 +2931,35 @@ msgstr "Impossible d'archiver les fichiers journaux\n"
 
 #: src/tools/sssctl/sssctl_logs.c:530
 msgid "Target the SSSD service"
-msgstr ""
+msgstr "Ciblez le service SSSD"
 
 #: src/tools/sssctl/sssctl_logs.c:531
 msgid "Target the NSS service"
-msgstr ""
+msgstr "Cibler le service NSS"
 
 #: src/tools/sssctl/sssctl_logs.c:532
-#, fuzzy
 msgid "Target the PAM service"
-msgstr "Attribut listant les services PAM autorisés"
+msgstr "Ciblez le service PAM"
 
 #: src/tools/sssctl/sssctl_logs.c:533
 msgid "Target the SUDO service"
-msgstr ""
+msgstr "Ciblez le service SUDO"
 
 #: src/tools/sssctl/sssctl_logs.c:534
 msgid "Target the AUTOFS service"
-msgstr ""
+msgstr "Ciblez le service AUTOFS"
 
 #: src/tools/sssctl/sssctl_logs.c:535
 msgid "Target the SSH service"
-msgstr ""
+msgstr "Ciblez le service SSH"
 
 #: src/tools/sssctl/sssctl_logs.c:536
 msgid "Target the PAC service"
-msgstr ""
+msgstr "Cibler le service PAC"
 
 #: src/tools/sssctl/sssctl_logs.c:537
 msgid "Target the IFP service"
-msgstr ""
+msgstr "Cibler le service IFP"
 
 #: src/tools/sssctl/sssctl_logs.c:552
 msgid "Specify debug level you want to set"
