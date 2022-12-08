@@ -459,6 +459,25 @@ def enable_autofs_service(session_multihost,
 
 
 @pytest.fixture(scope="class")
+def create_idmap_users_groups(session_multihost, request):
+    """ create Ad idmap users and groups """
+    ad = ADOperations(session_multihost.ad[0])
+    usrgrp = ['posix_usr', 'posix_grp', 'noposix_usr', 'noposix_grp']
+    for object in usrgrp:
+        ad.delete_ad_user_group(object)
+    ad.create_ad_nonposix_user('noposix_usr')
+    ad.create_ad_nonposix_group('noposix_grp')
+    ad.add_user_member_of_group('noposix_grp', 'noposix_usr')
+    ad.create_ad_unix_user_group('posix_usr', 'posix_grp')
+
+    def remove_idmap_objects():
+        """ Remove AD idmap users and groups """
+        for object in usrgrp:
+            ad.delete_ad_user_group(object)
+    request.addfinalizer(remove_idmap_objects)
+
+
+@pytest.fixture(scope="class")
 def enable_ad_sudoschema(session_multihost):
     """ Enable AD Sudo schema """
     basedn = session_multihost.ad[0].domain_basedn_entry
