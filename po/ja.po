@@ -15,8 +15,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-11-04 11:34+0100\n"
-"PO-Revision-Date: 2022-06-24 20:18+0000\n"
-"Last-Translator: Transtats <suanand@redhat.com>\n"
+"PO-Revision-Date: 2022-12-08 08:19+0000\n"
+"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ja/>\n"
 "Language: ja\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.13\n"
+"X-Generator: Weblate 4.14.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -169,7 +169,7 @@ msgstr "AD および IPA プロバイダーに対して PAC レスポンダー�
 
 #: src/config/SSSDConfig/sssdoptions.py:57
 msgid "Enable or disable core dumps for all SSSD processes."
-msgstr ""
+msgstr "すべての SSSD プロセスのコアダンプを有効または無効にします。"
 
 #: src/config/SSSDConfig/sssdoptions.py:60
 msgid "Enumeration cache timeout length (seconds)"
@@ -618,7 +618,7 @@ msgstr "期限切れのエントリーがバックグラウンドで更新され
 
 #: src/config/SSSDConfig/sssdoptions.py:195
 msgid "Maximum period deviation when refreshing expired entries in background"
-msgstr ""
+msgstr "バックグラウンドで期限切れのエントリーを更新するときの最大期間の逸脱"
 
 #: src/config/SSSDConfig/sssdoptions.py:196
 msgid "Whether to automatically update the client's DNS entry"
@@ -639,9 +639,8 @@ msgid "How often to periodically update the client's DNS entry"
 msgstr "どのくらい定期的にクライアントの DNS エントリーを更新するか"
 
 #: src/config/SSSDConfig/sssdoptions.py:200
-#, fuzzy
 msgid "Maximum period deviation when updating the client's DNS entry"
-msgstr "どのくらい定期的にクライアントの DNS エントリーを更新するか"
+msgstr "クライアントの DNS エントリーを更新するときの最大期間の逸脱"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 msgid "Whether the provider should explicitly update the PTR record as well"
@@ -670,7 +669,7 @@ msgstr "サブドメインの一覧のリフレッシュ回数"
 
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid "Maximum period deviation when refreshing the subdomain list"
-msgstr ""
+msgstr "サブドメインリストを更新するときの最大期間の逸脱"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "List of options that should be inherited into a subdomain"
@@ -1334,18 +1333,16 @@ msgid "Length of time between enumeration updates"
 msgstr "列挙の更新間隔"
 
 #: src/config/SSSDConfig/sssdoptions.py:399
-#, fuzzy
 msgid "Maximum period deviation between enumeration updates"
-msgstr "列挙の更新間隔"
+msgstr "列挙更新間隔の最大期間の逸脱"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Length of time between cache cleanups"
 msgstr "キャッシュをクリーンアップする間隔"
 
 #: src/config/SSSDConfig/sssdoptions.py:401
-#, fuzzy
 msgid "Maximum time deviation between cache cleanups"
-msgstr "キャッシュをクリーンアップする間隔"
+msgstr "キャッシュクリーンアップ間隔の最大期間の逸脱"
 
 #: src/config/SSSDConfig/sssdoptions.py:402
 msgid "Require TLS for ID lookups"
@@ -1963,7 +1960,7 @@ msgstr "SSSD はすでに実行中です\n"
 
 #: src/providers/krb5/krb5_child.c:3760 src/providers/ldap/ldap_child.c:641
 msgid "Allow core dumps"
-msgstr ""
+msgstr "コアダンプの許可"
 
 #: src/providers/krb5/krb5_child.c:3762 src/providers/ldap/ldap_child.c:643
 msgid "An open file descriptor for the debug logs"
@@ -2591,45 +2588,42 @@ msgstr "ローカルデータの復元中...\n"
 #: src/tools/sssctl/sssctl_data.c:415
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
-msgstr ""
+msgstr "ドメイン %1$s のキャッシュインデックスの作成\n"
 
 #: src/tools/sssctl/sssctl_data.c:417
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
-msgstr ""
+msgstr "ドメイン %1$s のキャッシュインデックスの削除\n"
 
 #: src/tools/sssctl/sssctl_data.c:419
 #, c-format
 msgid "Indexes for domain %1$s:\n"
-msgstr ""
+msgstr "ドメイン %1$s のインデックス:\n"
 
 #: src/tools/sssctl/sssctl_data.c:439
 #, c-format
 msgid "  Attribute: %1$s\n"
-msgstr ""
+msgstr "  属性: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
 msgid "Target a specific domain"
-msgstr ""
+msgstr "特定ドメインをターゲットに指定"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
-#, fuzzy
 msgid "domain"
-msgstr "IPA ドメイン"
+msgstr "ドメイン"
 
 #: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute to index"
-msgstr ""
+msgstr "インデックスの属性"
 
 #: src/tools/sssctl/sssctl_data.c:469
-#, fuzzy
 msgid "attribute"
-msgstr "UID の属性"
+msgstr "属性"
 
 #: src/tools/sssctl/sssctl_data.c:482
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "認証プロバイダー"
+msgstr "アクションが指定されていません\n"
 
 #: src/tools/sssctl/sssctl_data.c:495
 #, c-format
@@ -2637,29 +2631,31 @@ msgid ""
 "Unknown action: %1$s\n"
 "Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
 msgstr ""
+"不明なアクション: %1$s \n"
+"有効なアクションは %2$s、%3$s、%4$s です\n"
 
 #: src/tools/sssctl/sssctl_data.c:503
 msgid "Attribute (-a) not provided\n"
-msgstr ""
+msgstr "属性 (-a) は指定されていません\n"
 
 #: src/tools/sssctl/sssctl_data.c:511
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
-msgstr ""
+msgstr "属性 %1$s のインデックスは作成されていません。\n"
 
 #: src/tools/sssctl/sssctl_data.c:514
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
-msgstr ""
+msgstr "属性 %1$s のインデックスはすでに作成されています。\n"
 
 #: src/tools/sssctl/sssctl_data.c:517
-#, fuzzy, c-format
+#, c-format
 msgid "Index operation failed: %1$s\n"
-msgstr "削除後コマンドの実行に失敗しました: %1$s\n"
+msgstr "インデックス操作に失敗しました: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:522
 msgid "Don't forget to also update the indexes on the remote providers.\n"
-msgstr ""
+msgstr "リモートプロバイダーのインデックスも忘れず更新してください。\n"
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"
@@ -2742,24 +2738,23 @@ msgid "\n"
 msgstr "\n"
 
 #: src/tools/sssctl/sssctl_logs.c:215
-#, fuzzy
 msgid "SSSD is not running.\n"
-msgstr "SSSD はすでに実行中です\n"
+msgstr "SSSD は実行されていません。\n"
 
 #: src/tools/sssctl/sssctl_logs.c:232
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
-msgstr ""
+msgstr "%1$-25s %2$#.4x\n"
 
 #: src/tools/sssctl/sssctl_logs.c:236
 #, c-format
 msgid "%1$-25s Unknown domain\n"
-msgstr ""
+msgstr "%1$-25s 不明なドメイン\n"
 
 #: src/tools/sssctl/sssctl_logs.c:238
 #, c-format
 msgid "%1$-25s Unreachable service\n"
-msgstr ""
+msgstr "%1$-25s アクセスできないサービス\n"
 
 #: src/tools/sssctl/sssctl_logs.c:431
 msgid "Delete log files instead of truncating"
@@ -2792,36 +2787,35 @@ msgstr "ログファイルのアーカイブができません\n"
 
 #: src/tools/sssctl/sssctl_logs.c:530
 msgid "Target the SSSD service"
-msgstr ""
+msgstr "SSSD サービスをターゲットに設定"
 
 #: src/tools/sssctl/sssctl_logs.c:531
 msgid "Target the NSS service"
-msgstr ""
+msgstr "NSS サービスをターゲットに設定"
 
 #: src/tools/sssctl/sssctl_logs.c:532
-#, fuzzy
 msgid "Target the PAM service"
-msgstr "認可された PAM サービスを一覧化する属性"
+msgstr "PAM サービスをターゲットに設定"
 
 #: src/tools/sssctl/sssctl_logs.c:533
 msgid "Target the SUDO service"
-msgstr ""
+msgstr "SUDO サービスをターゲットに設定"
 
 #: src/tools/sssctl/sssctl_logs.c:534
 msgid "Target the AUTOFS service"
-msgstr ""
+msgstr "AUTOFS サービスをターゲットに設定"
 
 #: src/tools/sssctl/sssctl_logs.c:535
 msgid "Target the SSH service"
-msgstr ""
+msgstr "SSH サービスをターゲットに設定"
 
 #: src/tools/sssctl/sssctl_logs.c:536
 msgid "Target the PAC service"
-msgstr ""
+msgstr "PAC サービスをターゲットに設定"
 
 #: src/tools/sssctl/sssctl_logs.c:537
 msgid "Target the IFP service"
-msgstr ""
+msgstr "IFP サービスをターゲットに設定"
 
 #: src/tools/sssctl/sssctl_logs.c:552
 msgid "Specify debug level you want to set"
