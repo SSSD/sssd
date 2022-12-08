@@ -122,6 +122,7 @@ class TestMisc(object):
                          'entry_cache_timeout': '5400',
                          'refresh_expired_interval': '4000'}
         client.sssd_conf(f'domain/{domain_name}', domain_params)
+        client.sssd_conf("sssd", {'enable_files_domain': 'true'}, action='update')
         multihost.client[0].service_sssd('restart')
         user = 'foo1@%s' % domain_name
         client = pexpect_ssh(multihost.client[0].sys_hostname, user,
