@@ -605,6 +605,12 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
 
     tevent_req_set_callback(req, dp_initialized, be_ctx);
 
+    /* Load the resolv.conf file in case a call to dbus' resInit() was missed */
+    ret = data_provider_res_init(be_ctx, NULL, be_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to reload resolv.conf\n");
+    }
+
     ret = EOK;
 
 done:
