@@ -1061,6 +1061,10 @@ int sysdb_set_user_attr(struct sss_domain_info *domain,
                         struct sysdb_attrs *attrs,
                         int mod_op);
 
+errno_t sysdb_update_user_shadow_last_change(struct sss_domain_info *domain,
+                                             const char *name,
+                                             const char *attrname);
+
 /* Replace group attrs */
 int sysdb_set_group_attr(struct sss_domain_info *domain,
                          const char *name,
