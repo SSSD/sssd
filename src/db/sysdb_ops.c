@@ -1485,6 +1485,38 @@ done:
     return ret;
 }
 
+errno_t sysdb_update_user_shadow_last_change(struct sss_domain_info *domain,
+                                             const char *name,
+                                             const char *attrname)
+{
+    struct sysdb_attrs *attrs;
+    char *value;
+    errno_t ret;
+
+    attrs = sysdb_new_attrs(NULL);
+    if (attrs == NULL) {
+        return ENOMEM;
+    }
+
+    /* The attribute contains number of days since the epoch */
+    value = talloc_asprintf(attrs, "%ld", (long)time(NULL)/86400);
+    if (value == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, attrname, value);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_set_user_attr(domain, name, attrs, SYSDB_MOD_REP);
+
+done:
+    talloc_free(attrs);
+    return ret;
+}
+
 /* =Replace-Attributes-On-Group=========================================== */
 
 int sysdb_set_group_attr(struct sss_domain_info *domain,

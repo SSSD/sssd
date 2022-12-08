@@ -1240,6 +1240,7 @@ struct sdap_pam_chpass_handler_state {
     struct pam_data *pd;
     struct sdap_handle *sh;
     char *dn;
+    enum pwexpire pw_expire_type;
 };
 
 static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq);
@@ -1339,7 +1340,6 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
 {
     struct sdap_pam_chpass_handler_state *state;
     struct tevent_req *req;
-    enum pwexpire pw_expire_type;
     void *pw_expire_data;
     size_t msg_len;
     uint8_t *msg;
@@ -1349,7 +1349,7 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct sdap_pam_chpass_handler_state);
 
     ret = auth_recv(subreq, state, &state->sh, &state->dn,
-                    &pw_expire_type, &pw_expire_data);
+                    &state->pw_expire_type, &pw_expire_data);
     talloc_free(subreq);
 
     if ((ret == EOK || ret == ERR_PASSWORD_EXPIRED) &&
@@ -1361,7 +1361,7 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
     }
 
     if (ret == EOK) {
-        switch (pw_expire_type) {
+        switch (state->pw_expire_type) {
         case PWEXPIRE_SHADOW:
             ret = check_pwexpire_shadow(pw_expire_data, time(NULL), NULL);
             break;
@@ -1381,7 +1381,8 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Unknown password expiration type %d.\n", pw_expire_type);
+                  "Unknown password expiration type %d.\n",
+                  state->pw_expire_type);
             state->pd->pam_status = PAM_SYSTEM_ERR;
             goto done;
         }
@@ -1392,7 +1393,8 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
         case ERR_PASSWORD_EXPIRED:
             DEBUG(SSSDBG_TRACE_LIBS,
                   "user [%s] successfully authenticated.\n", state->dn);
-            ret = sdap_pam_chpass_handler_change_step(state, req, pw_expire_type);
+            ret = sdap_pam_chpass_handler_change_step(state, req,
+                                                      state->pw_expire_type);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "sdap_pam_chpass_handler_change_step() failed.\n");
@@ -1506,6 +1508,15 @@ static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq)
 
     switch (ret) {
     case EOK:
+        if (state->pw_expire_type == PWEXPIRE_SHADOW) {
+            ret = sysdb_update_user_shadow_last_change(state->be_ctx->domain,
+                    state->pd->user, SYSDB_SHADOWPW_LASTCHANGE);
+            if (ret != EOK) {
+                state->pd->pam_status = PAM_SYSTEM_ERR;
+                goto done;
+            }
+        }
+
         state->pd->pam_status = PAM_SUCCESS;
         break;
     case ERR_CHPASS_DENIED:
