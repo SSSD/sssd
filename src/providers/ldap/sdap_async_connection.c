@@ -65,7 +65,8 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sdap_options *opts,
                                      const char *uri,
-                                     struct sockaddr_storage *sockaddr,
+                                     struct sockaddr *sockaddr,
+                                     socklen_t sockaddr_len,
                                      bool use_start_tls)
 {
     struct tevent_req *req;
@@ -111,8 +112,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     timeout = dp_opt_get_int(state->opts->basic, SDAP_NETWORK_TIMEOUT);
 
     subreq = sss_ldap_init_send(state, ev, state->uri, sockaddr,
-                                sizeof(struct sockaddr_storage),
-                                timeout);
+                                sockaddr_len, timeout);
     if (subreq == NULL) {
         ret = ENOMEM;
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_ldap_init_send failed.\n");
@@ -538,7 +538,8 @@ static void sdap_connect_host_resolv_done(struct tevent_req *subreq)
     struct tevent_req *req = NULL;
     struct sdap_connect_host_state *state = NULL;
     struct resolv_hostent *hostent = NULL;
-    struct sockaddr_storage *sockaddr = NULL;
+    struct sockaddr *sockaddr = NULL;
+    socklen_t sockaddr_len;
     int status;
     errno_t ret;
 
@@ -553,7 +554,8 @@ static void sdap_connect_host_resolv_done(struct tevent_req *subreq)
         goto done;
     }
 
-    sockaddr = resolv_get_sockaddr_address(state, hostent, state->port);
+    sockaddr = resolv_get_sockaddr_address(state, hostent, state->port,
+                                           &sockaddr_len);
     if (sockaddr == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "resolv_get_sockaddr_address() failed\n");
         ret = EIO;
@@ -563,7 +565,8 @@ static void sdap_connect_host_resolv_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "Connecting to %s\n", state->uri);
 
     subreq = sdap_connect_send(state, state->ev, state->opts,
-                               state->uri, sockaddr, state->use_start_tls);
+                               state->uri, sockaddr, sockaddr_len,
+                               state->use_start_tls);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1601,6 +1604,7 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
     subreq = sdap_connect_send(state, state->ev, state->opts,
                                state->service->uri,
                                state->service->sockaddr,
+                               state->service->sockaddr_len,
                                state->use_tls);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
@@ -1629,6 +1633,7 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
         subreq = sdap_connect_send(state, state->ev, state->opts,
                                    state->service->uri,
                                    state->service->sockaddr,
+                                   state->service->sockaddr_len,
                                    state->use_tls);
 
         if (!subreq) {
@@ -1977,6 +1982,7 @@ static errno_t sdap_cli_auth_reconnect(struct tevent_req *req)
     subreq = sdap_connect_send(state, state->ev, state->opts,
                                state->service->uri,
                                state->service->sockaddr,
+                               state->service->sockaddr_len,
                                state->use_tls);
 
     if (subreq == NULL) {

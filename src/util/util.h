@@ -32,6 +32,7 @@
 #include <sys/stat.h>
 #include <netinet/in.h>
 #include <limits.h>
+#include <sys/un.h>
 
 #include <talloc.h>
 #include <tevent.h>

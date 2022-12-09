@@ -348,6 +348,68 @@ START_TEST(test_resolv_ip_addr)
 }
 END_TEST
 
+static void test_unix(struct tevent_req *req)
+{
+    int recv_status;
+    int status;
+    struct resolv_hostent *rhostent;
+    struct resolv_test_ctx *test_ctx = tevent_req_callback_data(req,
+                                                                struct resolv_test_ctx);
+
+    test_ctx->done = true;
+
+    recv_status = resolv_gethostbyname_recv(req, test_ctx,
+                                            &status, NULL, &rhostent);
+    talloc_zfree(req);
+    if (recv_status != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "resolv_gethostbyname_recv failed: %d\n", recv_status);
+        test_ctx->error = recv_status;
+        return;
+    }
+    DEBUG(SSSDBG_TRACE_LIBS, "resolv_gethostbyname_recv status: %d\n", status);
+
+    test_ctx->error = ENOENT;
+    if (rhostent->addr_list[0] == NULL) {
+        test_ctx->error = EOK;
+    }
+    talloc_free(rhostent);
+}
+
+START_TEST(test_resolv_unix)
+{
+    struct resolv_test_ctx *test_ctx;
+    int ret = EOK;
+    struct tevent_req *req;
+    const char *path = "/tmp/socket";
+
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
+    if (ret != EOK) {
+        ck_abort_msg("Could not set up test");
+        return;
+    }
+
+    ck_leaks_push(test_ctx);
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
+                                    test_ctx->resolv, path, IPV4_ONLY,
+                                    default_host_dbs);
+    DEBUG(SSSDBG_TRACE_LIBS, "Sent resolv_gethostbyname\n");
+    if (req == NULL) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_unix, test_ctx);
+        ret = test_loop(test_ctx);
+    }
+
+    ck_leaks_pop(test_ctx);
+    ck_assert_msg(ret == EOK, "test_loop failed with error: %d", ret);
+
+    talloc_zfree(test_ctx);
+}
+END_TEST
+
 static void test_localhost(struct tevent_req *req)
 {
     int recv_status;
@@ -988,6 +1050,7 @@ Suite *create_resolv_suite(void)
     tcase_add_test(tc_resolv, test_copy_hostent);
     tcase_add_test(tc_resolv, test_address_to_string);
     tcase_add_test(tc_resolv, test_resolv_ip_addr);
+    tcase_add_test(tc_resolv, test_resolv_unix);
     tcase_add_test(tc_resolv, test_resolv_sort_srv_reply);
     tcase_add_test(tc_resolv, test_resolv_sort_srv_reply_zero_weight);
     if (use_net_test) {

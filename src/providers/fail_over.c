@@ -353,8 +353,9 @@ get_server_status(struct fo_server *server)
         }
     }
 
-    if (server->common->rhostent && STATUS_DIFF(server->common, tv) >
-        server->common->rhostent->addr_list[0]->ttl) {
+    if (server->common->rhostent && server->common->rhostent->addr_list[0] &&
+            STATUS_DIFF(server->common, tv) >
+            server->common->rhostent->addr_list[0]->ttl) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Hostname resolution expired, resetting the server "
                   "status of '%s'\n", SERVER_NAME(server));

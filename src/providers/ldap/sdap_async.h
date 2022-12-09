@@ -37,8 +37,9 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sdap_options *opts,
                                      const char *uri,
-                                     struct sockaddr_storage *sockaddr,
-                                     bool use_start_tls);
+                                     struct sockaddr *sockaddr,
+                                     socklen_t sockaddr_len,
+				     bool use_start_tls);
 int sdap_connect_recv(struct tevent_req *req,
                       TALLOC_CTX *memctx,
                       struct sdap_handle **sh);

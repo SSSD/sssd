@@ -74,10 +74,11 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     TALLOC_CTX *tmp_ctx = NULL;
     struct sdap_service *service;
     struct resolv_hostent *srvaddr;
-    struct sockaddr_storage *sockaddr;
+    struct sockaddr *sockaddr;
     const char *tmp;
     const char *srv_name;
     char *new_uri;
+    socklen_t sockaddr_len;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -103,7 +104,8 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     }
 
     sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr,
-                                           fo_get_server_port(server));
+                                           fo_get_server_port(server),
+                                           &sockaddr_len);
     if (sockaddr == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_sockaddr_address failed.\n");
         talloc_free(tmp_ctx);
@@ -143,6 +145,7 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     service->uri = new_uri;
     talloc_zfree(service->sockaddr);
     service->sockaddr = talloc_steal(service, sockaddr);
+    service->sockaddr_len = sockaddr_len;
     talloc_free(tmp_ctx);
 }
 

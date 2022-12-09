@@ -80,8 +80,19 @@ errno_t set_fd_common_opts(int fd, int timeout)
     int ret;
     struct timeval tv;
     unsigned int milli;
+    int domain;
     int type;
     socklen_t optlen = sizeof(int);
+
+    /* Get protocol domain. */
+    ret = getsockopt(fd, SOL_SOCKET, SO_DOMAIN, &domain, &optlen);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_FUNC_DATA, "Unable to get socket domain [%d]: %s.\n",
+              ret, strerror(ret));
+        /* Assume IPV6. */
+        domain = AF_INET6;
+    }
 
     /* Get protocol type. */
     ret = getsockopt(fd, SOL_SOCKET, SO_TYPE, &type, &optlen);
@@ -103,7 +114,7 @@ errno_t set_fd_common_opts(int fd, int timeout)
                   strerror(ret));
     }
 
-    if (type == SOCK_STREAM) {
+    if (domain != AF_UNIX && type == SOCK_STREAM) {
         ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
         if (ret != 0) {
             ret = errno;
@@ -133,7 +144,7 @@ errno_t set_fd_common_opts(int fd, int timeout)
                   strerror(ret));
         }
 
-        if (type == SOCK_STREAM) {
+        if (domain != AF_UNIX && type == SOCK_STREAM) {
             milli = timeout * 1000; /* timeout in milliseconds */
             ret = setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &milli,
                             sizeof(milli));
@@ -289,7 +300,7 @@ static void sssd_async_socket_init_done(struct tevent_req *subreq);
 struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,
                                                bool use_udp,
-                                               struct sockaddr_storage *addr,
+                                               struct sockaddr *addr,
                                                socklen_t addr_len, int timeout)
 {
     struct sssd_async_socket_state *state;
@@ -307,7 +318,7 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
     talloc_set_destructor((TALLOC_CTX *)state,
                           sssd_async_socket_state_destructor);
 
-    state->sd = socket(addr->ss_family, use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
+    state->sd = socket(addr->sa_family, use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (state->sd == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,

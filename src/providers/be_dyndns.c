@@ -49,10 +49,10 @@ struct sss_iface_addr {
     struct sss_iface_addr *next;
     struct sss_iface_addr *prev;
 
-    struct sockaddr_storage *addr;
+    struct sockaddr *addr;
 };
 
-struct sockaddr_storage*
+struct sockaddr *
 sss_iface_addr_get_address(struct sss_iface_addr *address)
 {
     if (address == NULL) {
@@ -77,14 +77,14 @@ void sss_iface_addr_concatenate(struct sss_iface_addr **list,
     DLIST_CONCATENATE((*list), list2, struct sss_iface_addr*);
 }
 
-static errno_t addr_to_str(struct sockaddr_storage *addr,
+static errno_t addr_to_str(struct sockaddr *addr,
                            char *dst, size_t size)
 {
     const void *src;
     const char *res;
     errno_t ret;
 
-    switch(addr->ss_family) {
+    switch(addr->sa_family) {
     case AF_INET:
         src = &(((struct sockaddr_in *)addr)->sin_addr);
         break;
@@ -96,7 +96,7 @@ static errno_t addr_to_str(struct sockaddr_storage *addr,
         goto done;
     }
 
-    res = inet_ntop(addr->ss_family, src, dst, size);
+    res = inet_ntop(addr->sa_family, src, dst, size);
     if (res == NULL) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE, "inet_ntop failed [%d]: %s\n",
@@ -302,7 +302,7 @@ nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
             return NULL;
         }
 
-        switch (new_record->addr->ss_family) {
+        switch (new_record->addr->sa_family) {
         case AF_INET:
             updateipv4 = talloc_asprintf_append(updateipv4,
                                                 "update add %s. %d in %s %s\n",
@@ -343,11 +343,11 @@ nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
                                   updateipv6);
 }
 
-static uint8_t *nsupdate_convert_address(struct sockaddr_storage *add_address)
+static uint8_t *nsupdate_convert_address(struct sockaddr *add_address)
 {
     uint8_t *addr;
 
-    switch(add_address->ss_family) {
+    switch(add_address->sa_family) {
     case AF_INET:
         addr = (uint8_t *) &((struct sockaddr_in *) add_address)->sin_addr;
         break;
@@ -384,13 +384,13 @@ nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
             return NULL;
         }
 
-        ptr = resolv_get_string_ptr_address(update_msg, address_it->addr->ss_family,
+        ptr = resolv_get_string_ptr_address(update_msg, address_it->addr->sa_family,
                                             addr);
         if (ptr == NULL) {
             return NULL;
         }
 
-        switch (address_it->addr->ss_family) {
+        switch (address_it->addr->sa_family) {
         case AF_INET:
             if (remove_af & DYNDNS_REMOVE_A) {
                 updateipv4 = talloc_asprintf_append(updateipv4,
@@ -717,7 +717,7 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
             goto done;
         }
 
-        addr->addr = resolv_get_sockaddr_address_index(addr, rhostent, 0, i);
+        addr->addr = resolv_get_sockaddr_address_index(addr, rhostent, 0, i, NULL);
         if (addr->addr == NULL) {
             ret = ENOMEM;
             goto done;

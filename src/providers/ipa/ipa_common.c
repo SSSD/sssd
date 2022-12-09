@@ -882,9 +882,10 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     TALLOC_CTX *tmp_ctx = NULL;
     struct ipa_service *service;
     struct resolv_hostent *srvaddr;
-    struct sockaddr_storage *sockaddr;
+    struct sockaddr *sockaddr;
     char *new_uri;
     const char *srv_name;
+    socklen_t sockaddr_len;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -909,7 +910,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT);
+    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT, &sockaddr_len);
     if (sockaddr == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_sockaddr_address failed.\n");
         talloc_free(tmp_ctx);
@@ -936,6 +937,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     service->sdap->uri = new_uri;
     talloc_zfree(service->sdap->sockaddr);
     service->sdap->sockaddr = talloc_steal(service, sockaddr);
+    service->sdap->sockaddr_len = sockaddr_len;
 
     if (service->krb5_service->write_kdcinfo) {
         ret = write_krb5info_file_from_fo_server(service->krb5_service,
