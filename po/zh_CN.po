@@ -14,16 +14,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-05 11:25+0100\n"
-"PO-Revision-Date: 2022-06-24 20:18+0000\n"
-"Last-Translator: Transtats <suanand@redhat.com>\n"
+"PO-Revision-Date: 2022-12-07 11:29+0000\n"
+"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
-"projects/sssd/sssd-master/zh_CN/>\n"
+"projects/sssd/sssd-2-8/zh_CN/>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.13\n"
+"X-Generator: Weblate 4.14.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -161,7 +161,7 @@ msgstr "为 AD 和 IPA 提供商自动运行 PAC 响应器"
 
 #: src/config/SSSDConfig/sssdoptions.py:57
 msgid "Enable or disable core dumps for all SSSD processes."
-msgstr ""
+msgstr "为所有 SSSD 进程启用或禁用内核转储。"
 
 #: src/config/SSSDConfig/sssdoptions.py:60
 msgid "Enumeration cache timeout length (seconds)"
@@ -596,7 +596,7 @@ msgstr "过期条目应在后台刷新的频率"
 
 #: src/config/SSSDConfig/sssdoptions.py:195
 msgid "Maximum period deviation when refreshing expired entries in background"
-msgstr ""
+msgstr "在后台刷新过期条目时的最大周期偏差"
 
 #: src/config/SSSDConfig/sssdoptions.py:196
 msgid "Whether to automatically update the client's DNS entry"
@@ -617,9 +617,8 @@ msgid "How often to periodically update the client's DNS entry"
 msgstr "定期更新客户端的 DNS 条目的频率"
 
 #: src/config/SSSDConfig/sssdoptions.py:200
-#, fuzzy
 msgid "Maximum period deviation when updating the client's DNS entry"
-msgstr "定期更新客户端的 DNS 条目的频率"
+msgstr "更新客户端的 DNS 条目时的最大周期偏差"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 msgid "Whether the provider should explicitly update the PTR record as well"
@@ -647,7 +646,7 @@ msgstr "子域列表应该多久刷新一次"
 
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid "Maximum period deviation when refreshing the subdomain list"
-msgstr ""
+msgstr "刷新子域列表时的最大周期偏差"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "List of options that should be inherited into a subdomain"
@@ -1285,18 +1284,16 @@ msgid "Length of time between enumeration updates"
 msgstr "枚举更新之间的时间长度"
 
 #: src/config/SSSDConfig/sssdoptions.py:399
-#, fuzzy
 msgid "Maximum period deviation between enumeration updates"
-msgstr "枚举更新之间的时间长度"
+msgstr "枚举更新之间的最长周期偏差"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Length of time between cache cleanups"
 msgstr "两次缓存清除之间的时间长度"
 
 #: src/config/SSSDConfig/sssdoptions.py:401
-#, fuzzy
 msgid "Maximum time deviation between cache cleanups"
-msgstr "两次缓存清除之间的时间长度"
+msgstr "缓存清理之间的最长时间偏差"
 
 #: src/config/SSSDConfig/sssdoptions.py:402
 msgid "Require TLS for ID lookups"
@@ -1907,7 +1904,7 @@ msgstr "SSSD 已运行\n"
 
 #: src/providers/krb5/krb5_child.c:3760 src/providers/ldap/ldap_child.c:641
 msgid "Allow core dumps"
-msgstr ""
+msgstr "允许内核转储"
 
 #: src/providers/krb5/krb5_child.c:3762 src/providers/ldap/ldap_child.c:643
 msgid "An open file descriptor for the debug logs"
@@ -2332,125 +2329,111 @@ msgstr "需要重新运行 SSSD。现在重新运行 SSSD？"
 
 #: src/tools/sssctl/sssctl.c:280
 msgid "SSSD Status:"
-msgstr ""
+msgstr "SSSD 状态："
 
 #: src/tools/sssctl/sssctl.c:281
-#, fuzzy
 msgid "List available domains"
-msgstr "无法打开可用域\n"
+msgstr "列出可用的域"
 
 #: src/tools/sssctl/sssctl.c:282
-#, fuzzy
 msgid "Print information about domain"
-msgstr "显示有关活动服务器的信息"
+msgstr "打印有关域的信息"
 
 #: src/tools/sssctl/sssctl.c:283
 msgid "Print information about a user and check authentication"
-msgstr ""
+msgstr "打印有关用户的信息，并检查身份验证"
 
 #: src/tools/sssctl/sssctl.c:284
 msgid "Generate access report for a domain"
-msgstr ""
+msgstr "为域生成访问报告"
 
 #: src/tools/sssctl/sssctl.c:285
-#, fuzzy
 msgid "Information about cached content:"
-msgstr "显示有关活动服务器的信息"
+msgstr "有关缓存内容的信息："
 
 #: src/tools/sssctl/sssctl.c:286
-#, fuzzy
 msgid "Information about cached user"
-msgstr "显示有关活动服务器的信息"
+msgstr "有关缓存用户的信息"
 
 #: src/tools/sssctl/sssctl.c:287
-#, fuzzy
 msgid "Information about cached group"
-msgstr "显示有关活动服务器的信息"
+msgstr "有关缓存组的信息"
 
 #: src/tools/sssctl/sssctl.c:288
-#, fuzzy
 msgid "Information about cached netgroup"
-msgstr "显示有关活动服务器的信息"
+msgstr "有关缓存的 netgroup 的信息"
 
 #: src/tools/sssctl/sssctl.c:289
 msgid "Local data tools:"
-msgstr ""
+msgstr "本地数据工具："
 
 #: src/tools/sssctl/sssctl.c:290
-#, fuzzy
 msgid "Backup local data"
-msgstr "正在创建本地数据备份...\n"
+msgstr "备份本地数据"
 
 #: src/tools/sssctl/sssctl.c:291
-#, fuzzy
 msgid "Restore local data from backup"
-msgstr "恢复本地数据...\n"
+msgstr "从备份中恢复本地数据"
 
 #: src/tools/sssctl/sssctl.c:292
 msgid "Backup local data and remove cached content"
-msgstr ""
+msgstr "备份本地数据，并删除缓存的内容"
 
 #: src/tools/sssctl/sssctl.c:293
 msgid "Perform cache upgrade"
-msgstr ""
+msgstr "执行缓存升级"
 
 #: src/tools/sssctl/sssctl.c:294
-#, fuzzy
 msgid "Invalidate cached objects"
-msgstr "使所有缓存的条目无效"
+msgstr "无效的缓存对象"
 
 #: src/tools/sssctl/sssctl.c:295
 msgid "Manage cache indexes"
-msgstr ""
+msgstr "管理缓存索引"
 
 #: src/tools/sssctl/sssctl.c:296
 msgid "Log files tools:"
-msgstr ""
+msgstr "日志文件工具："
 
 #: src/tools/sssctl/sssctl.c:297
-#, fuzzy
 msgid "Remove existing SSSD log files"
-msgstr "删除日志文件...\n"
+msgstr "删除现有 SSSD 日志文件"
 
 #: src/tools/sssctl/sssctl.c:298
-#, fuzzy
 msgid "Archive SSSD log files in tarball"
-msgstr "将日志文件归档到 %s ...\n"
+msgstr "以 tarball 形式归档 SSSD 日志文件"
 
 #: src/tools/sssctl/sssctl.c:299
-#, fuzzy
 msgid "Change or print information about SSSD debug level"
-msgstr "显示有关活动服务器的信息"
+msgstr "更改或打印有关 SSSD 调试级别的信息"
 
 #: src/tools/sssctl/sssctl.c:300
 msgid "Analyze logged data"
-msgstr ""
+msgstr "分析日志记录的数据"
 
 #: src/tools/sssctl/sssctl.c:302
 msgid "Configuration files tools:"
-msgstr ""
+msgstr "配置文件工具："
 
 #: src/tools/sssctl/sssctl.c:303
 msgid "Perform static analysis of SSSD configuration"
-msgstr ""
+msgstr "执行 SSSD 配置的静态分析"
 
 #: src/tools/sssctl/sssctl.c:305
 msgid "Certificate related tools:"
-msgstr ""
+msgstr "认证相关的工具："
 
 #: src/tools/sssctl/sssctl.c:306
-#, fuzzy
 msgid "Print information about the certificate"
-msgstr "显示有关活动服务器的信息"
+msgstr "打印有关证书的信息"
 
 #: src/tools/sssctl/sssctl.c:307
-#, fuzzy
 msgid "Show users mapped to the certificate"
-msgstr "到可信 CA 证书存储的路径"
+msgstr "显示映射到证书的用户"
 
 #: src/tools/sssctl/sssctl.c:308
 msgid "Check mapping and matching rule with a certificate"
-msgstr ""
+msgstr "使用证书检查映射并匹配规则"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2515,12 +2498,12 @@ msgstr "使用组 ID 搜索"
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
 msgid "Show debug information"
-msgstr ""
+msgstr "显示调试信息"
 
 #: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
 #: src/tools/sssctl/sssctl_cert.c:223
 msgid "Specify base64 encoded certificate."
-msgstr ""
+msgstr "指定 base64 编码的证书。"
 
 #: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
 #: src/tools/sssctl/sssctl_domains.c:368
@@ -2530,20 +2513,19 @@ msgstr "无法连接到系统总线!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:166
 msgid " - no mapped users found -"
-msgstr ""
+msgstr " - 未找到映射用户 -"
 
 #: src/tools/sssctl/sssctl_cert.c:215
 msgid "Mapping rule"
-msgstr ""
+msgstr "映射规则"
 
 #: src/tools/sssctl/sssctl_cert.c:216
 msgid "Matching rule"
-msgstr ""
+msgstr "匹配规则"
 
 #: src/tools/sssctl/sssctl_cert.c:226
-#, fuzzy
 msgid "Unable to parse command arguments\n"
-msgstr "无法解析名称 %s 。\n"
+msgstr "无法解析命令参数\n"
 
 #: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
@@ -2551,35 +2533,34 @@ msgstr "无可用的内存！\n"
 
 #: src/tools/sssctl/sssctl_cert.c:241
 msgid "Failed to setup certmap context.\n"
-msgstr ""
+msgstr "设置 certmap 上下文失败。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:247
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
-msgstr ""
+msgstr "添加映射和匹配规则失败，错误为 [%d][%s]。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "打开失败： %s\n"
+msgstr "解码 base64 字符串失败。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate matches rule.\n"
-msgstr ""
+msgstr "证书与规则匹配。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:265
 msgid "Certificate does not match rule.\n"
-msgstr ""
+msgstr "证书与规则不匹配。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:268
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr ""
+msgstr "证书匹配 [%d][%s] 过程中的错误。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:275
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
-msgstr ""
+msgstr "生成映射过滤器 [%d][%s]失败。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:279
 #, c-format
@@ -2589,6 +2570,10 @@ msgid ""
 "    %s\n"
 "\n"
 msgstr ""
+"映射过滤器：\n"
+"\n"
+"    %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""
@@ -2721,45 +2706,42 @@ msgstr "恢复本地数据...\n"
 #: src/tools/sssctl/sssctl_data.c:415
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
-msgstr ""
+msgstr "为域 %1$s 创建缓存索引\n"
 
 #: src/tools/sssctl/sssctl_data.c:417
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
-msgstr ""
+msgstr "删除域 %1$s 的缓存索引\n"
 
 #: src/tools/sssctl/sssctl_data.c:419
 #, c-format
 msgid "Indexes for domain %1$s:\n"
-msgstr ""
+msgstr "域 %1$s 的索引：\n"
 
 #: src/tools/sssctl/sssctl_data.c:439
 #, c-format
 msgid "  Attribute: %1$s\n"
-msgstr ""
+msgstr "  属性: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
 msgid "Target a specific domain"
-msgstr ""
+msgstr "以特定域为目标"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
-#, fuzzy
 msgid "domain"
-msgstr "IPA 域"
+msgstr "域"
 
 #: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute to index"
-msgstr ""
+msgstr "属性到索引"
 
 #: src/tools/sssctl/sssctl_data.c:469
-#, fuzzy
 msgid "attribute"
-msgstr "UID 属性"
+msgstr "属性"
 
 #: src/tools/sssctl/sssctl_data.c:482
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "身份验证提供者"
+msgstr "未提供操作\n"
 
 #: src/tools/sssctl/sssctl_data.c:495
 #, c-format
@@ -2767,29 +2749,31 @@ msgid ""
 "Unknown action: %1$s\n"
 "Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
 msgstr ""
+"未知操作：%1$s \n"
+" 有效的操作为 \"%2$s\"、\"%3$s 和 \"%4$s\"\n"
 
 #: src/tools/sssctl/sssctl_data.c:503
 msgid "Attribute (-a) not provided\n"
-msgstr ""
+msgstr "未提供属性(-a)\n"
 
 #: src/tools/sssctl/sssctl_data.c:511
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
-msgstr ""
+msgstr "属性 %1$s 未索引。\n"
 
 #: src/tools/sssctl/sssctl_data.c:514
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
-msgstr ""
+msgstr "属性 %1$s 已索引。\n"
 
 #: src/tools/sssctl/sssctl_data.c:517
-#, fuzzy, c-format
+#, c-format
 msgid "Index operation failed: %1$s\n"
-msgstr "后删除命令失败： %1$s\n"
+msgstr "索引操作失败：%1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:522
 msgid "Don't forget to also update the indexes on the remote providers.\n"
-msgstr ""
+msgstr "不要忘记还要更新对远程提供程序的索引。\n"
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"
@@ -2862,24 +2846,23 @@ msgid "\n"
 msgstr "\n"
 
 #: src/tools/sssctl/sssctl_logs.c:215
-#, fuzzy
 msgid "SSSD is not running.\n"
-msgstr "SSSD 已运行\n"
+msgstr "SSSD 未运行。\n"
 
 #: src/tools/sssctl/sssctl_logs.c:232
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
-msgstr ""
+msgstr "%1$-25s %2$#.4x\n"
 
 #: src/tools/sssctl/sssctl_logs.c:236
 #, c-format
 msgid "%1$-25s Unknown domain\n"
-msgstr ""
+msgstr "%1$-25s 未知域类型\n"
 
 #: src/tools/sssctl/sssctl_logs.c:238
 #, c-format
 msgid "%1$-25s Unreachable service\n"
-msgstr ""
+msgstr "%1$-25s 无法访问的服务\n"
 
 #: src/tools/sssctl/sssctl_logs.c:431
 msgid "Delete log files instead of truncating"
@@ -2912,36 +2895,35 @@ msgstr "无法归档日志文件\n"
 
 #: src/tools/sssctl/sssctl_logs.c:530
 msgid "Target the SSSD service"
-msgstr ""
+msgstr "以 SSSD 服务为目标"
 
 #: src/tools/sssctl/sssctl_logs.c:531
 msgid "Target the NSS service"
-msgstr ""
+msgstr "以 NSS 服务为目标"
 
 #: src/tools/sssctl/sssctl_logs.c:532
-#, fuzzy
 msgid "Target the PAM service"
-msgstr "列出授权的 PAM 服务的属性"
+msgstr "以 PAM 服务为目标"
 
 #: src/tools/sssctl/sssctl_logs.c:533
 msgid "Target the SUDO service"
-msgstr ""
+msgstr "以 SUDO 服务为目标"
 
 #: src/tools/sssctl/sssctl_logs.c:534
 msgid "Target the AUTOFS service"
-msgstr ""
+msgstr "以 AUTOFS 服务为目标"
 
 #: src/tools/sssctl/sssctl_logs.c:535
 msgid "Target the SSH service"
-msgstr ""
+msgstr "以 SSH 服务为目标"
 
 #: src/tools/sssctl/sssctl_logs.c:536
 msgid "Target the PAC service"
-msgstr ""
+msgstr "以 PAC 服务为目标"
 
 #: src/tools/sssctl/sssctl_logs.c:537
 msgid "Target the IFP service"
-msgstr ""
+msgstr "以 IFP 服务为目标"
 
 #: src/tools/sssctl/sssctl_logs.c:552
 msgid "Specify debug level you want to set"

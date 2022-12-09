@@ -18,16 +18,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-05 11:25+0100\n"
-"PO-Revision-Date: 2022-06-24 20:18+0000\n"
+"PO-Revision-Date: 2022-12-07 11:29+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
-"sssd-master/fr/>\n"
+"sssd-2-8/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.13\n"
+"X-Generator: Weblate 4.14.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -180,6 +180,7 @@ msgstr "Exécution automatique du répondeur PAC pour le fournisseur AD et IPA"
 #: src/config/SSSDConfig/sssdoptions.py:57
 msgid "Enable or disable core dumps for all SSSD processes."
 msgstr ""
+"Activer ou désactiver les vidages de noyau pour tous les processus SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:60
 msgid "Enumeration cache timeout length (seconds)"
@@ -671,6 +672,8 @@ msgstr "Fréquence de rafraîchissement en arrière plan des entrées expirées"
 #: src/config/SSSDConfig/sssdoptions.py:195
 msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr ""
+"Écart maximal de période lors du rafraîchissement des entrées expirées en "
+"arrière-plan"
 
 #: src/config/SSSDConfig/sssdoptions.py:196
 msgid "Whether to automatically update the client's DNS entry"
@@ -693,9 +696,10 @@ msgid "How often to periodically update the client's DNS entry"
 msgstr "Fréquence de mise à jour automatique de l'entrée DNS du client"
 
 #: src/config/SSSDConfig/sssdoptions.py:200
-#, fuzzy
 msgid "Maximum period deviation when updating the client's DNS entry"
-msgstr "Fréquence de mise à jour automatique de l'entrée DNS du client"
+msgstr ""
+"Déviation maximale de la période lors de la mise à jour de l'entrée DNS du "
+"client"
 
 #: src/config/SSSDConfig/sssdoptions.py:201
 msgid "Whether the provider should explicitly update the PTR record as well"
@@ -728,6 +732,8 @@ msgstr "Fréquence de rafraîchissement des sous-domaines"
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid "Maximum period deviation when refreshing the subdomain list"
 msgstr ""
+"Écart de période maximum lors du rafraîchissement de la liste des sous-"
+"domaines"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "List of options that should be inherited into a subdomain"
@@ -1442,18 +1448,16 @@ msgid "Length of time between enumeration updates"
 msgstr "Durée entre deux mises à jour d'énumération"
 
 #: src/config/SSSDConfig/sssdoptions.py:399
-#, fuzzy
 msgid "Maximum period deviation between enumeration updates"
-msgstr "Durée entre deux mises à jour d'énumération"
+msgstr "Écart maximal de période entre les mises à jour de l'énumération"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Length of time between cache cleanups"
 msgstr "Durée entre les nettoyages de cache"
 
 #: src/config/SSSDConfig/sssdoptions.py:401
-#, fuzzy
 msgid "Maximum time deviation between cache cleanups"
-msgstr "Durée entre les nettoyages de cache"
+msgstr "Écart de temps maximal entre les nettoyages du cache"
 
 #: src/config/SSSDConfig/sssdoptions.py:402
 msgid "Require TLS for ID lookups"
@@ -2090,7 +2094,7 @@ msgstr "SSSD est déjà en cours d'exécution\n"
 
 #: src/providers/krb5/krb5_child.c:3760 src/providers/ldap/ldap_child.c:641
 msgid "Allow core dumps"
-msgstr ""
+msgstr "Autoriser les vidages de noyau"
 
 #: src/providers/krb5/krb5_child.c:3762 src/providers/ldap/ldap_child.c:643
 msgid "An open file descriptor for the debug logs"
@@ -2528,125 +2532,112 @@ msgstr "Le SSSD doit être relancé. Redémarrer SSSD maintenant ?"
 
 #: src/tools/sssctl/sssctl.c:280
 msgid "SSSD Status:"
-msgstr ""
+msgstr "Statut SSSD :"
 
 #: src/tools/sssctl/sssctl.c:281
-#, fuzzy
 msgid "List available domains"
-msgstr "Impossible d'ouvrir aucun des domaines disponibles\n"
+msgstr "Liste des domaines disponibles"
 
 #: src/tools/sssctl/sssctl.c:282
-#, fuzzy
 msgid "Print information about domain"
-msgstr "Afficher les informations sur le serveur actif"
+msgstr "Imprimer des informations sur le domaine"
 
 #: src/tools/sssctl/sssctl.c:283
 msgid "Print information about a user and check authentication"
 msgstr ""
+"Imprimer des informations sur un utilisateur et vérifier l'authentification"
 
 #: src/tools/sssctl/sssctl.c:284
 msgid "Generate access report for a domain"
-msgstr ""
+msgstr "Générer un rapport d'accès pour un domaine"
 
 #: src/tools/sssctl/sssctl.c:285
-#, fuzzy
 msgid "Information about cached content:"
-msgstr "Afficher les informations sur le serveur actif"
+msgstr "Informations sur le contenu en cache :"
 
 #: src/tools/sssctl/sssctl.c:286
-#, fuzzy
 msgid "Information about cached user"
-msgstr "Afficher les informations sur le serveur actif"
+msgstr "Informations sur l'utilisateur en cache"
 
 #: src/tools/sssctl/sssctl.c:287
-#, fuzzy
 msgid "Information about cached group"
-msgstr "Afficher les informations sur le serveur actif"
+msgstr "Informations sur le groupe en cache"
 
 #: src/tools/sssctl/sssctl.c:288
-#, fuzzy
 msgid "Information about cached netgroup"
-msgstr "Afficher les informations sur le serveur actif"
+msgstr "Informations sur le groupe réseau en cache"
 
 #: src/tools/sssctl/sssctl.c:289
 msgid "Local data tools:"
-msgstr ""
+msgstr "Outils de données locales :"
 
 #: src/tools/sssctl/sssctl.c:290
-#, fuzzy
 msgid "Backup local data"
-msgstr "Création d'une sauvegarde des données locales...\n"
+msgstr "Sauvegarde des données locales"
 
 #: src/tools/sssctl/sssctl.c:291
-#, fuzzy
 msgid "Restore local data from backup"
-msgstr "Restauration des données locales...\n"
+msgstr "Restauration des données locales à partir d'une sauvegarde"
 
 #: src/tools/sssctl/sssctl.c:292
 msgid "Backup local data and remove cached content"
-msgstr ""
+msgstr "Sauvegarde des données locales et suppression du contenu en cache"
 
 #: src/tools/sssctl/sssctl.c:293
 msgid "Perform cache upgrade"
-msgstr ""
+msgstr "Effectuer la mise à niveau du cache"
 
 #: src/tools/sssctl/sssctl.c:294
-#, fuzzy
 msgid "Invalidate cached objects"
-msgstr "Invalidez toutes les entrées en cache"
+msgstr "Invalider les objets mis en cache"
 
 #: src/tools/sssctl/sssctl.c:295
 msgid "Manage cache indexes"
-msgstr ""
+msgstr "Gérer les index de cache"
 
 #: src/tools/sssctl/sssctl.c:296
 msgid "Log files tools:"
-msgstr ""
+msgstr "Outils de fichiers journaux :"
 
 #: src/tools/sssctl/sssctl.c:297
-#, fuzzy
 msgid "Remove existing SSSD log files"
-msgstr "Suppression des fichiers journaux...\n"
+msgstr "Suppression des fichiers journaux SSSD existants"
 
 #: src/tools/sssctl/sssctl.c:298
-#, fuzzy
 msgid "Archive SSSD log files in tarball"
-msgstr "Archivage des fichiers journaux dans %s...\n"
+msgstr "Archiver les fichiers journaux SSSD dans un tarball"
 
 #: src/tools/sssctl/sssctl.c:299
-#, fuzzy
 msgid "Change or print information about SSSD debug level"
-msgstr "Afficher les informations sur le serveur actif"
+msgstr "Modifier ou imprimer les informations sur le niveau de débogage de SSSD"
 
 #: src/tools/sssctl/sssctl.c:300
 msgid "Analyze logged data"
-msgstr ""
+msgstr "Analyser les données enregistrées"
 
 #: src/tools/sssctl/sssctl.c:302
 msgid "Configuration files tools:"
-msgstr ""
+msgstr "Outils de fichiers de configuration :"
 
 #: src/tools/sssctl/sssctl.c:303
 msgid "Perform static analysis of SSSD configuration"
-msgstr ""
+msgstr "Effectuer une analyse statique de la configuration SSSD"
 
 #: src/tools/sssctl/sssctl.c:305
 msgid "Certificate related tools:"
-msgstr ""
+msgstr "Outils liés aux certificats :"
 
 #: src/tools/sssctl/sssctl.c:306
-#, fuzzy
 msgid "Print information about the certificate"
-msgstr "Afficher les informations sur le serveur actif"
+msgstr "Imprimer des informations sur le certificat"
 
 #: src/tools/sssctl/sssctl.c:307
-#, fuzzy
 msgid "Show users mapped to the certificate"
-msgstr "Chemin d'accès au stockage des certificats d'AC de confiance"
+msgstr "Afficher les utilisateurs associés au certificat"
 
 #: src/tools/sssctl/sssctl.c:308
 msgid "Check mapping and matching rule with a certificate"
-msgstr ""
+msgstr "Vérifier le mappage et la règle de correspondance avec un certificat"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2711,12 +2702,12 @@ msgstr "Recherche par ID de groupe"
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
 msgid "Show debug information"
-msgstr ""
+msgstr "Afficher les informations de débogage"
 
 #: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
 #: src/tools/sssctl/sssctl_cert.c:223
 msgid "Specify base64 encoded certificate."
-msgstr ""
+msgstr "Spécifiez le certificat codé en base64."
 
 #: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
 #: src/tools/sssctl/sssctl_domains.c:368
@@ -2726,20 +2717,19 @@ msgstr "Impossible de se connecter au bus système !\n"
 
 #: src/tools/sssctl/sssctl_cert.c:166
 msgid " - no mapped users found -"
-msgstr ""
+msgstr " - aucun utilisateur mappé trouvé -"
 
 #: src/tools/sssctl/sssctl_cert.c:215
 msgid "Mapping rule"
-msgstr ""
+msgstr "Règle de correspondance"
 
 #: src/tools/sssctl/sssctl_cert.c:216
 msgid "Matching rule"
-msgstr ""
+msgstr "Règle de correspondance"
 
 #: src/tools/sssctl/sssctl_cert.c:226
-#, fuzzy
 msgid "Unable to parse command arguments\n"
-msgstr "Impossible d'analyser le nom %s.\n"
+msgstr "Impossible d’analyser les arguments de la commande\n"
 
 #: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
@@ -2747,35 +2737,36 @@ msgstr "Plus de mémoire disponible !\n"
 
 #: src/tools/sssctl/sssctl_cert.c:241
 msgid "Failed to setup certmap context.\n"
-msgstr ""
+msgstr "Échec de la configuration du contexte de la carte de certification.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:247
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
+"Échec de l'ajout de règles de mappage et de correspondance avec l'erreur "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "N’a pas pu ouvrir %s\n"
+msgstr "Échec du décodage de la chaîne base64.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate matches rule.\n"
-msgstr ""
+msgstr "Le certificat correspond à la règle.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:265
 msgid "Certificate does not match rule.\n"
-msgstr ""
+msgstr "Le certificat ne correspond pas à la règle.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:268
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr ""
+msgstr "Erreur pendant la correspondance des certificats [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:275
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
-msgstr ""
+msgstr "Échec de la génération du filtre de mappage [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:279
 #, c-format
@@ -2785,6 +2776,10 @@ msgid ""
 "    %s\n"
 "\n"
 msgstr ""
+"Filtre de mappage :\n"
+"\n"
+"    %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""
@@ -2925,45 +2920,42 @@ msgstr "Restauration des données locales...\n"
 #: src/tools/sssctl/sssctl_data.c:415
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
-msgstr ""
+msgstr "Création d'un index de cache pour le domaine %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:417
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
-msgstr ""
+msgstr "Suppression de l'index du cache pour le domaine %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:419
 #, c-format
 msgid "Indexes for domain %1$s:\n"
-msgstr ""
+msgstr "Index pour le domaine %1$s :\n"
 
 #: src/tools/sssctl/sssctl_data.c:439
 #, c-format
 msgid "  Attribute: %1$s\n"
-msgstr ""
+msgstr "  Attribut : %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
 msgid "Target a specific domain"
-msgstr ""
+msgstr "Cibler un domaine spécifique"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
-#, fuzzy
 msgid "domain"
-msgstr "Domaine IPA"
+msgstr "domaine"
 
 #: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute to index"
-msgstr ""
+msgstr "Attribut à indexer"
 
 #: src/tools/sssctl/sssctl_data.c:469
-#, fuzzy
 msgid "attribute"
-msgstr "Attribut UID"
+msgstr "Attribut"
 
 #: src/tools/sssctl/sssctl_data.c:482
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "Fournisseur d'authentification"
+msgstr "Action non fournie\n"
 
 #: src/tools/sssctl/sssctl_data.c:495
 #, c-format
@@ -2971,29 +2963,33 @@ msgid ""
 "Unknown action: %1$s\n"
 "Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
 msgstr ""
+"Action inconnue : %1$s\n"
+"Les actions valides sont \"%2$s\", \"%3$s et \"%4$s\".\n"
 
 #: src/tools/sssctl/sssctl_data.c:503
 msgid "Attribute (-a) not provided\n"
-msgstr ""
+msgstr "Attribut (-a) non fourni\n"
 
 #: src/tools/sssctl/sssctl_data.c:511
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
-msgstr ""
+msgstr "Attribut %1$s non indexé.\n"
 
 #: src/tools/sssctl/sssctl_data.c:514
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
-msgstr ""
+msgstr "Attribut %1$s déjà indexé.\n"
 
 #: src/tools/sssctl/sssctl_data.c:517
-#, fuzzy, c-format
+#, c-format
 msgid "Index operation failed: %1$s\n"
-msgstr "La commande post-suppression a échoué : %1$s\n"
+msgstr "L'opération d'indexation a échoué : %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:522
 msgid "Don't forget to also update the indexes on the remote providers.\n"
 msgstr ""
+"N'oubliez pas de mettre également à jour les index sur les fournisseurs "
+"distants.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"
@@ -3068,24 +3064,23 @@ msgid "\n"
 msgstr "\n"
 
 #: src/tools/sssctl/sssctl_logs.c:215
-#, fuzzy
 msgid "SSSD is not running.\n"
-msgstr "SSSD est déjà en cours d'exécution\n"
+msgstr "SSSD ne fonctionne pas.\n"
 
 #: src/tools/sssctl/sssctl_logs.c:232
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
-msgstr ""
+msgstr "%1$-25s %2$#.4x\n"
 
 #: src/tools/sssctl/sssctl_logs.c:236
 #, c-format
 msgid "%1$-25s Unknown domain\n"
-msgstr ""
+msgstr "%1$-25s Domaine inconnu\n"
 
 #: src/tools/sssctl/sssctl_logs.c:238
 #, c-format
 msgid "%1$-25s Unreachable service\n"
-msgstr ""
+msgstr "%1$-25s Service inaccessible\n"
 
 #: src/tools/sssctl/sssctl_logs.c:431
 msgid "Delete log files instead of truncating"
@@ -3118,36 +3113,35 @@ msgstr "Impossible d'archiver les fichiers journaux\n"
 
 #: src/tools/sssctl/sssctl_logs.c:530
 msgid "Target the SSSD service"
-msgstr ""
+msgstr "Ciblez le service SSSD"
 
 #: src/tools/sssctl/sssctl_logs.c:531
 msgid "Target the NSS service"
-msgstr ""
+msgstr "Cibler le service NSS"
 
 #: src/tools/sssctl/sssctl_logs.c:532
-#, fuzzy
 msgid "Target the PAM service"
-msgstr "Attribut listant les services PAM autorisés"
+msgstr "Ciblez le service PAM"
 
 #: src/tools/sssctl/sssctl_logs.c:533
 msgid "Target the SUDO service"
-msgstr ""
+msgstr "Ciblez le service SUDO"
 
 #: src/tools/sssctl/sssctl_logs.c:534
 msgid "Target the AUTOFS service"
-msgstr ""
+msgstr "Ciblez le service AUTOFS"
 
 #: src/tools/sssctl/sssctl_logs.c:535
 msgid "Target the SSH service"
-msgstr ""
+msgstr "Ciblez le service SSH"
 
 #: src/tools/sssctl/sssctl_logs.c:536
 msgid "Target the PAC service"
-msgstr ""
+msgstr "Cibler le service PAC"
 
 #: src/tools/sssctl/sssctl_logs.c:537
 msgid "Target the IFP service"
-msgstr ""
+msgstr "Cibler le service IFP"
 
 #: src/tools/sssctl/sssctl_logs.c:552
 msgid "Specify debug level you want to set"
