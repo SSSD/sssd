@@ -142,7 +142,7 @@ static int sss_ldap_init_state_destructor(void *data)
 struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,
                                       const char *uri,
-                                      struct sockaddr_storage *addr,
+                                      struct sockaddr *addr,
                                       int addr_len, int timeout)
 {
     int ret = EOK;

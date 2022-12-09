@@ -978,10 +978,11 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     TALLOC_CTX *tmp_ctx;
     struct ad_service *service;
     struct resolv_hostent *srvaddr;
-    struct sockaddr_storage *sockaddr;
+    struct sockaddr *sockaddr;
     char *address;
     char *new_uri;
     int new_port;
+    socklen_t sockaddr_len;
     const char *srv_name;
     struct ad_server_data *sdata = NULL;
 
@@ -1036,7 +1037,8 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     }
     DEBUG(SSSDBG_CONF_SETTINGS, "Constructed uri '%s'\n", new_uri);
 
-    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, service->port);
+    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, service->port,
+                    &sockaddr_len);
     if (sockaddr == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_sockaddr_address failed.\n");
         ret = EIO;
@@ -1051,6 +1053,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
         service->sdap->uri = new_uri;
         talloc_zfree(service->sdap->sockaddr);
         service->sdap->sockaddr = talloc_steal(service->sdap, sockaddr);
+	service->sdap->sockaddr_len = sockaddr_len;
     }
 
     talloc_zfree(service->gc->uri);
@@ -1068,7 +1071,9 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
 
         service->gc->sockaddr = resolv_get_sockaddr_address(service->gc,
                                                             srvaddr,
-                                                            new_port);
+                                                            new_port,
+                                                            &sockaddr_len);
+        service->gc->sockaddr_len = sockaddr_len;
     } else {
         /* Make sure there always is an URI even if we know that this
          * server doesn't support GC. That way the lookup would go through
@@ -1076,7 +1081,8 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
          */
         service->gc->uri = talloc_strdup(service->gc, service->sdap->uri);
         service->gc->sockaddr = talloc_memdup(service->gc, service->sdap->sockaddr,
-                                              sizeof(struct sockaddr_storage));
+                                              service->sdap->sockaddr_len);
+        service->gc->sockaddr_len = service->sdap->sockaddr_len;
     }
 
     if (!service->gc->uri) {

@@ -90,7 +90,8 @@ struct sdap_service {
     char *name;
     char *uri;
     char *kinit_service_name;
-    struct sockaddr_storage *sockaddr;
+    struct sockaddr *sockaddr;
+    socklen_t sockaddr_len;
 };
 
 struct sdap_ppolicy_data {

@@ -660,7 +660,6 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
 
     if (fo_get_server_name(state->srv)) {
         struct resolv_hostent *srvaddr;
-        char ipaddr[128];
         srvaddr = fo_get_server_hostent(state->srv);
         if (!srvaddr) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -669,12 +668,19 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
             return EFAULT;
         }
 
-        inet_ntop(srvaddr->family, srvaddr->addr_list[0]->ipaddr,
-                  ipaddr, 128);
+        if (!srvaddr->addr_list[0]) {
+            DEBUG(SSSDBG_FUNC_DATA, "Found socket for server %s: [%s]\n",
+                  fo_get_server_str_name(state->srv), srvaddr->name);
+        }
+        else {
+            char ipaddr[128];
+            inet_ntop(srvaddr->family, srvaddr->addr_list[0]->ipaddr,
+                      ipaddr, 128);
 
-        DEBUG(SSSDBG_FUNC_DATA, "Found address for server %s: [%s] TTL %d\n",
-              fo_get_server_str_name(state->srv), ipaddr,
-              srvaddr->addr_list[0]->ttl);
+            DEBUG(SSSDBG_FUNC_DATA, "Found address for server %s: [%s] TTL %d\n",
+                  fo_get_server_str_name(state->srv), ipaddr,
+                  srvaddr->addr_list[0]->ttl);
+        }
     }
 
     srv_status_change = fo_get_server_hostname_last_change(state->srv);
