@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-12-05 11:25+0100\n"
+"POT-Creation-Date: 2022-12-09 13:38+0100\n"
 "PO-Revision-Date: 2022-09-11 10:19+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
@@ -2143,7 +2143,7 @@ msgstr "talloc_asprintf falló.\n"
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd falló.\n"
 
-#: src/providers/data_provider_be.c:735
+#: src/providers/data_provider_be.c:741
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 

@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-12-05 11:25+0100\n"
+"POT-Creation-Date: 2022-12-09 13:38+0100\n"
 "PO-Revision-Date: 2022-12-07 11:29+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
@@ -2022,7 +2022,7 @@ msgstr "talloc_asprintf は失敗しました。\n"
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "set_debug_file_from_fd は失敗しました。\n"
 
-#: src/providers/data_provider_be.c:735
+#: src/providers/data_provider_be.c:741
 msgid "Domain of the information provider (mandatory)"
 msgstr "情報プロバイダーのドメイン (必須)"
 
@@ -2599,8 +2599,9 @@ msgstr "certmap コンテキストの設定に失敗しました。\n"
 #: src/tools/sssctl/sssctl_cert.c:247
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
-msgstr "エラー [%d][%s] "
-"により、マッピングおよびマッチングルールを追加できませんでした。\n"
+msgstr ""
+"エラー [%d][%s] により、マッピングおよびマッチングルールを追加できませんでし"
+"た。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
 msgid "Failed to decode base64 string.\n"

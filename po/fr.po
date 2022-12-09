@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-12-05 11:25+0100\n"
+"POT-Creation-Date: 2022-12-09 13:38+0100\n"
 "PO-Revision-Date: 2022-12-07 11:29+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
@@ -2156,7 +2156,7 @@ msgstr "Échec de talloc_asprintf.\n"
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "Échec de set_debug_file_from_fd.\n"
 
-#: src/providers/data_provider_be.c:735
+#: src/providers/data_provider_be.c:741
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domaine du fournisseur d'informations (obligatoire)"
 
@@ -2609,7 +2609,8 @@ msgstr "Archiver les fichiers journaux SSSD dans un tarball"
 
 #: src/tools/sssctl/sssctl.c:299
 msgid "Change or print information about SSSD debug level"
-msgstr "Modifier ou imprimer les informations sur le niveau de débogage de SSSD"
+msgstr ""
+"Modifier ou imprimer les informations sur le niveau de débogage de SSSD"
 
 #: src/tools/sssctl/sssctl.c:300
 msgid "Analyze logged data"
@@ -2743,8 +2744,8 @@ msgstr "Échec de la configuration du contexte de la carte de certification.\n"
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Échec de l'ajout de règles de mappage et de correspondance avec l'erreur "
-"[%d][%s].\n"
+"Échec de l'ajout de règles de mappage et de correspondance avec l'erreur [%d]"
+"[%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
 msgid "Failed to decode base64 string.\n"
