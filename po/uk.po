@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-11-04 11:34+0100\n"
+"POT-Creation-Date: 2022-12-09 13:35+0100\n"
 "PO-Revision-Date: 2022-10-11 11:19+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
@@ -24,8 +24,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
@@ -2153,7 +2153,7 @@ msgstr "Помилка talloc_asprintf.\n"
 msgid "set_debug_file_from_fd failed.\n"
 msgstr "Помилка set_debug_file_from_fd.\n"
 
-#: src/providers/data_provider_be.c:735
+#: src/providers/data_provider_be.c:741
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
@@ -2520,6 +2520,136 @@ msgstr "Роботу SSSD не завершено. Зупинити SSSD зар�
 msgid "SSSD needs to be restarted. Restart SSSD now?"
 msgstr "SSSD слід перезапустити. Перезапустити SSSD зараз?"
 
+#: src/tools/sssctl/sssctl.c:304
+msgid "SSSD Status:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:305
+#, fuzzy
+msgid "List available domains"
+msgstr "Не вдалося відкрити доступні домени\n"
+
+#: src/tools/sssctl/sssctl.c:306
+#, fuzzy
+msgid "Print information about domain"
+msgstr "Показати дані щодо активного сервера"
+
+#: src/tools/sssctl/sssctl.c:307
+msgid "Print information about a user and check authentication"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:308
+msgid "Generate access report for a domain"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:309
+#, fuzzy
+msgid "Information about cached content:"
+msgstr "Показати дані щодо активного сервера"
+
+#: src/tools/sssctl/sssctl.c:310
+#, fuzzy
+msgid "Information about cached user"
+msgstr "Показати дані щодо активного сервера"
+
+#: src/tools/sssctl/sssctl.c:311
+#, fuzzy
+msgid "Information about cached group"
+msgstr "Показати дані щодо активного сервера"
+
+#: src/tools/sssctl/sssctl.c:312
+#, fuzzy
+msgid "Information about cached netgroup"
+msgstr "Показати дані щодо активного сервера"
+
+#: src/tools/sssctl/sssctl.c:313
+msgid "Local data tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:314
+#, fuzzy
+msgid "Backup local data"
+msgstr "Створюємо резервну копію локальних даних...\n"
+
+#: src/tools/sssctl/sssctl.c:315
+#, fuzzy
+msgid "Restore local data from backup"
+msgstr "Відновлюємо локальні дані...\n"
+
+#: src/tools/sssctl/sssctl.c:316
+msgid "Backup local data and remove cached content"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:317
+msgid "Perform cache upgrade"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:318
+#, fuzzy
+msgid "Invalidate cached objects"
+msgstr "Скасувати чинність усіх кешованих записів"
+
+#: src/tools/sssctl/sssctl.c:319
+msgid "Manage cache indexes"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:320
+msgid "Log files tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:321
+#, fuzzy
+msgid "Remove existing SSSD log files"
+msgstr "Вилучаємо файли журналу...\n"
+
+#: src/tools/sssctl/sssctl.c:322
+#, fuzzy
+msgid "Archive SSSD log files in tarball"
+msgstr "Архівуємо файли журналу до %s...\n"
+
+#: src/tools/sssctl/sssctl.c:323
+#, fuzzy
+msgid "Change or print information about SSSD debug level"
+msgstr "Показати дані щодо активного сервера"
+
+#: src/tools/sssctl/sssctl.c:324
+msgid "Analyze logged data"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:326
+msgid "Configuration files tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:327
+msgid "Perform static analysis of SSSD configuration"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:329
+msgid "Certificate related tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:330
+#, fuzzy
+msgid "Print information about the certificate"
+msgstr "Показати дані щодо активного сервера"
+
+#: src/tools/sssctl/sssctl.c:331
+#, fuzzy
+msgid "Show users mapped to the certificate"
+msgstr "Шлях до сховища надійних сертифікатів служб сертифікації (CA)"
+
+#: src/tools/sssctl/sssctl.c:332
+msgid "Check mapping and matching rule with a certificate"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:334
+msgid "Passkey related tools:"
+msgstr ""
+
+#: src/tools/sssctl/sssctl.c:335
+msgid "Perform passkey related operations"
+msgstr ""
+
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
 msgid " %s is not present in cache.\n"
@@ -2579,6 +2709,85 @@ msgstr "Час завершення строку дії груп ініціал�
 #: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by group ID"
 msgstr "Шукати за ідентифікатором групи"
+
+#: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
+#: src/tools/sssctl/sssctl_cert.c:217
+msgid "Show debug information"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
+#: src/tools/sssctl/sssctl_cert.c:223
+msgid "Specify base64 encoded certificate."
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
+#: src/tools/sssctl/sssctl_domains.c:368
+#: src/tools/sssctl/sssctl_user_checks.c:95
+msgid "Unable to connect to system bus!\n"
+msgstr ""
+"Не вдалося встановити з'єднання із системним каналом передавання даних!\n"
+
+#: src/tools/sssctl/sssctl_cert.c:166
+msgid " - no mapped users found -"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:215
+msgid "Mapping rule"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:216
+msgid "Matching rule"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:226
+#, fuzzy
+msgid "Unable to parse command arguments\n"
+msgstr "Не вдалося обробити ім'я %s.\n"
+
+#: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
+msgid "Out of memory!\n"
+msgstr "Не вистачає пам'яті\n"
+
+#: src/tools/sssctl/sssctl_cert.c:241
+msgid "Failed to setup certmap context.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:247
+#, c-format
+msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:254
+#, fuzzy
+msgid "Failed to decode base64 string.\n"
+msgstr "Не вдалося відкрити %s\n"
+
+#: src/tools/sssctl/sssctl_cert.c:262
+msgid "Certificate matches rule.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:265
+msgid "Certificate does not match rule.\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:268
+#, c-format
+msgid "Error during certificate matching [%d][%s].\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:275
+#, c-format
+msgid "Failed to generate mapping filter [%d][%s].\n"
+msgstr ""
+
+#: src/tools/sssctl/sssctl_cert.c:279
+#, c-format
+msgid ""
+"Mapping filter:\n"
+"\n"
+"    %s\n"
+"\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""
@@ -2794,12 +3003,6 @@ msgid "Show domain list including primary or trusted domain type"
 msgstr ""
 "Показати список доменів з включенням основних або довірених типів доменів"
 
-#: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:368
-#: src/tools/sssctl/sssctl_user_checks.c:95
-msgid "Unable to connect to system bus!\n"
-msgstr ""
-"Не вдалося встановити з'єднання із системним каналом передавання даних!\n"
-
 #: src/tools/sssctl/sssctl_domains.c:167
 msgid "Online"
 msgstr "У мережі"
@@ -2853,10 +3056,6 @@ msgstr "Показати список виявлених серверів"
 #: src/tools/sssctl/sssctl_domains.c:333
 msgid "Specify domain name."
 msgstr "Вказати назву домену."
-
-#: src/tools/sssctl/sssctl_domains.c:356
-msgid "Out of memory!\n"
-msgstr "Не вистачає пам'яті\n"
 
 #: src/tools/sssctl/sssctl_domains.c:376 src/tools/sssctl/sssctl_domains.c:386
 msgid "Unable to get online status\n"
