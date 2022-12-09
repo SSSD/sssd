@@ -7,6 +7,7 @@ import time
 import pytest
 import os
 import posixpath
+import ldap
 from sssd.testlib.common.qe_class import session_multihost
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 from sssd.testlib.common.exceptions import SSSDException
@@ -111,6 +112,68 @@ def fetch_ca_cert(session_multihost, request, run_powershell_script):
         session_multihost.client[0].run_command(remove_client_ad_cacert)
     request.addfinalizer(remove_cert)
 
+@pytest.fixture(scope="function")
+def range_retr_mods(session_multihost, fetch_ca_cert, request):
+    """ AD-ldap modifications """
+    ad = ADOperations(session_multihost.ad[0])
+    ad_ldap = ad.ad_conn()
+    ad_password = session_multihost.ad[0].ssh_password
+    # set MaxValRange=$AD_MAX_RANGE on AD server and everything else to default
+    basedn = session_multihost.ad[0].domain_basedn_entry
+    DEF_QUERY= f'cn=Default Query Policy,cn=Query-Policies,cn=Directory Service,cn=Windows NT,cn=Services,cn=Configuration,{basedn}'
+    cmd = f'ldapsearch -x -h {session_multihost.ad[0].ip} -D "cn=Administrator,cn=Users,{basedn}" -w {ad_password} -b "{DEF_QUERY}" lDAPAdminLimits |egrep MaxValRange|cut -d "=" -f2'
+    value = session_multihost.client[0].run_command(cmd)
+    orig_val = value.stdout_text.rstrip()
+    maxVal = f'MaxValRange={orig_val}'
+    modify_range = [(ldap.MOD_DELETE, 'lDAPAdminLimits', maxVal.encode('utf-8'))]
+    (ret, _) = ad_ldap.modify_ldap(DEF_QUERY, modify_range)
+    maxVal = 'MaxValRange=50'
+    modify_range = [(ldap.MOD_ADD, 'lDAPAdminLimits', maxVal.encode('utf-8'))]
+    (ret, _) = ad_ldap.modify_ldap(DEF_QUERY, modify_range)
+
+
+@pytest.fixture(scope="class")
+def create_small_grp_usr(session_multihost, request):
+    """ Create a group with 50 member users """
+    ad = ADOperations(session_multihost.ad[0])
+    AD_MAX_RANGE = 51
+    ad.create_ad_unix_group('smallgrp')
+    for uid in range(1, AD_MAX_RANGE):
+        ad.create_ad_unix_user(f'ad_user{uid}')
+        ad.add_user_member_of_group('smallgrp', f'ad_user{uid}')
+
+    def remove_ad_user_group():
+        """ Remove windows AD user and group """
+        ad.delete_ad_user_group('smallgrp')
+        for i in range(1, AD_MAX_RANGE):
+            ad.delete_ad_user_group(f'ad_user{uid}')
+    request.addfinalizer(remove_ad_user_group)
+
+
+@pytest.fixture(scope="class")
+def create_range_aduser_group(session_multihost, request):
+    """ create 200 AD users and groups
+        Creates a group with 200 member users
+        Creates a user with the 200 groups membership
+    """
+    ad = ADOperations(session_multihost.ad[0])
+    ad.create_ad_unix_user('rangeuser')
+    ad.create_ad_unix_group('rangegroup')
+    for uid in range(1,201):
+        ad.create_ad_unix_user(f'rangeuser0{uid}')
+        ad.create_ad_unix_group(f'rangegroup0{uid}')
+        ad.add_user_member_of_group('rangegroup', f'rangeuser0{uid}')
+        ad.add_user_member_of_group(f'rangegroup0{uid}', 'rangeuser')
+
+    def remove_ad_user_group():
+        """ Remove windows AD user and group """
+        for i in range(1, 201):
+            ad_user = f'rangeuser0{uid}'
+            ad_group = f'testgroup0{uid}'
+            ad.delete_ad_user_group(ad_group)
+            ad.delete_ad_user_group(ad_user)
+    request.addfinalizer(remove_ad_user_group)
+
 
 @pytest.fixture(scope="function")
 def create_aduser_group(session_multihost, request):
@@ -125,7 +188,6 @@ def create_aduser_group(session_multihost, request):
         """ Remove windows AD user and group """
         ad.delete_ad_user_group(ad_group)
         ad.delete_ad_user_group(ad_user)
-
     request.addfinalizer(remove_ad_user_group)
     return (ad_user, ad_group)
 
