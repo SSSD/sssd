@@ -155,13 +155,14 @@ resolv_get_string_ptr_address(TALLOC_CTX *mem_ctx,
 #define resolv_get_string_address(mem_ctx, hostent) \
         resolv_get_string_address_index(mem_ctx, hostent, 0)
 
-struct sockaddr_storage *
+struct sockaddr *
 resolv_get_sockaddr_address_index(TALLOC_CTX *mem_ctx,
                                   struct resolv_hostent *hostent,
-                                  int port, int addrindex);
+                                  int port, int addrindex,
+                                  socklen_t *sockaddr_len);
 
-#define resolv_get_sockaddr_address(mem_ctx, rhostent, port) \
-        resolv_get_sockaddr_address_index(mem_ctx, rhostent, port, 0)
+#define resolv_get_sockaddr_address(mem_ctx, rhostent, port, sockaddr_len) \
+        resolv_get_sockaddr_address_index(mem_ctx, rhostent, port, 0, sockaddr_len)
 
 /** Get SRV record **/
 struct tevent_req *resolv_getsrv_send(TALLOC_CTX *mem_ctx,
@@ -222,4 +223,8 @@ errno_t resolv_discover_srv_recv(TALLOC_CTX *mem_ctx,
 
 bool
 resolv_is_address(const char *name);
+
+bool
+resolv_is_unix(const char *name);
+
 #endif /* __ASYNC_RESOLV_H__ */

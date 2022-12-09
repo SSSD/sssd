@@ -357,6 +357,26 @@ void test_resolv_is_address(void **state)
     assert_false(ret);
 }
 
+void test_resolv_is_unix(void **state)
+{
+    bool ret;
+
+    ret = resolv_is_unix("10.192.211.37");
+    assert_false(ret);
+
+    ret = resolv_is_unix("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+    assert_false(ret);
+
+    ret = resolv_is_unix("sssd.ldap.com");
+    assert_false(ret);
+
+    ret = resolv_is_unix("testhostname");
+    assert_false(ret);
+
+    ret = resolv_is_unix("/tmp/socket");
+    assert_true(ret);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -373,6 +393,7 @@ int main(int argc, const char *argv[])
                                         test_resolv_fake_setup,
                                         test_resolv_fake_teardown),
         cmocka_unit_test(test_resolv_is_address),
+        cmocka_unit_test(test_resolv_is_unix),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */

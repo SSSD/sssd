@@ -134,7 +134,7 @@ sss_get_dualstack_addresses(TALLOC_CTX *mem_ctx,
 struct sss_iface_addr *
 sss_iface_addr_get_next(struct sss_iface_addr *address);
 
-struct sockaddr_storage*
+struct sockaddr *
 sss_iface_addr_get_address(struct sss_iface_addr *address);
 
 #endif /* DP_DYNDNS_H_ */

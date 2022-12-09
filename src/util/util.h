@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <sys/un.h>
 
 #include <talloc.h>
 #include <tevent.h>
