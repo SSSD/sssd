@@ -33,6 +33,7 @@ jobs:
     runs-on: covscan
     permissions:
       contents: read
+    timeout-minutes: 1440
     steps:
     - name: Checkout target branch
       uses: actions/checkout@v3
