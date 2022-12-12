@@ -96,7 +96,7 @@ parse_public_keys_and_handlers(TALLOC_CTX *mem_ctx,
     }
 
     ret = split_on_separator(tmp_ctx, public_keys, ',', true, true, &pk_list, &pk_num);
-    if (ret != EOK) {
+    if (ret != EOK && _data->action == ACTION_AUTHENTICATE) {
         ERROR("Incorrectly formatted public keys.\n");
         goto done;
     }
@@ -107,14 +107,15 @@ parse_public_keys_and_handlers(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (pk_num != kh_num) {
+    if (_data->action == ACTION_AUTHENTICATE && pk_num != kh_num) {
         ERROR("The number of public keys and key handles don't match.\n");
         goto done;
     }
 
     _data->public_key_list = talloc_steal(mem_ctx, pk_list);
     _data->key_handle_list = talloc_steal(mem_ctx, kh_list);
-    _data->keys_size = pk_num;
+    _data->public_key_size = pk_num;
+    _data->key_handle_size = kh_num;
 
 done:
     talloc_free(tmp_ctx);
@@ -144,7 +145,9 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     data->domain = NULL;
     data->public_key_list = NULL;
     data->key_handle_list = NULL;
-    data->keys_size = 0;
+    data->public_key_size = 0;
+    data->key_handle_size = 0;
+    data->crypto_challenge = NULL;
     data->type = COSE_ES256;
     data->user_verification = FIDO_OPT_OMIT;
     data->cred_type = CRED_SERVER_SIDE;
@@ -164,6 +167,8 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("Register a passkey for a user"), NULL },
         {"authenticate", 0, POPT_ARG_NONE, NULL, 'a',
          _("Authenticate a user with a passkey"), NULL },
+        {"get-assert", 0, POPT_ARG_NONE, NULL, 'g',
+         _("Obtain assertion data"), NULL },
         {"username", 0, POPT_ARG_STRING, &data->shortname, 0,
          _("Shortname"), NULL },
         {"domain", 0, POPT_ARG_STRING, &data->domain, 0,
@@ -172,6 +177,9 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("Public key"), NULL },
         {"key-handle", 0, POPT_ARG_STRING, &key_handles, 0,
          _("Key handle"), NULL},
+        {"cryptographic-challenge", 0, POPT_ARG_STRING,
+         &data->crypto_challenge, 0,
+         _("Cryptographic challenge"), NULL},
         {"type", 0, POPT_ARG_STRING, &type, 0,
          _("COSE type to use"), "es256|rs256|eddsa"},
         {"user-verification", 0, POPT_ARG_STRING, &user_verification, 0,
@@ -215,6 +223,17 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
             }
             data->action = ACTION_AUTHENTICATE;
             break;
+        case 'g':
+            if (data->action != ACTION_NONE
+                && data->action != ACTION_GET_ASSERT) {
+                fprintf(stderr, "\nActions are mutually exclusive and should" \
+                                " be used only once.\n\n");
+                poptPrintUsage(pc, stderr, 0);
+                ret = EINVAL;
+                goto done;
+            }
+            data->action = ACTION_GET_ASSERT;
+            break;
         case 'q':
             data->quiet = true;
             break;
@@ -256,7 +275,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
         }
     }
 
-    if (public_keys != NULL && key_handles != NULL) {
+    if (public_keys != NULL || key_handles != NULL) {
         ret = parse_public_keys_and_handlers(mem_ctx, public_keys, key_handles,
                                              data);
         if (ret != EOK) {
@@ -307,12 +326,20 @@ check_arguments(const struct passkey_data *data)
     DEBUG(SSSDBG_TRACE_FUNC, "action: %d\n", data->action);
     DEBUG(SSSDBG_TRACE_FUNC, "shortname: %s, domain: %s\n",
           data->shortname, data->domain);
-    DEBUG(SSSDBG_TRACE_FUNC, "Number of keys %d\n",
-          data->keys_size);
-    for (int i = 0; i < data->keys_size; i++) {
-        DEBUG(SSSDBG_TRACE_FUNC, "key %d, public_key: %s, key_handle: %s\n",
-              i + 1, data->public_key_list[i], data->key_handle_list[i]);
+    DEBUG(SSSDBG_TRACE_FUNC, "Number of key handles %d\n",
+          data->key_handle_size);
+    for (int i = 0; i < data->key_handle_size; i++) {
+        DEBUG(SSSDBG_TRACE_FUNC, "key %d, key_handle: %s\n",
+              i + 1, data->key_handle_list[i]);
     }
+    DEBUG(SSSDBG_TRACE_FUNC, "Number of public keys %d\n",
+          data->public_key_size);
+    for (int i = 0; i < data->public_key_size; i++) {
+        DEBUG(SSSDBG_TRACE_FUNC, "key %d, public_key: %s\n",
+              i + 1, data->public_key_list[i]);
+    }
+    DEBUG(SSSDBG_TRACE_FUNC, "cryptographic-challenge: %s\n",
+          data->crypto_challenge);
     DEBUG(SSSDBG_TRACE_FUNC, "type: %d\n", data->type);
     DEBUG(SSSDBG_TRACE_FUNC, "user_verification: %d\n",
           data->user_verification);
@@ -338,6 +365,15 @@ check_arguments(const struct passkey_data *data)
         || data->key_handle_list == NULL)) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Too few arguments for authenticate action.\n");
+        ret = ERR_INPUT_PARSE;
+        goto done;
+    }
+
+    if (data->action == ACTION_GET_ASSERT
+        && (data->domain == NULL || data->key_handle_list == NULL
+        || data->crypto_challenge == NULL)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Too few arguments for get-assert action.\n");
         ret = ERR_INPUT_PARSE;
         goto done;
     }
@@ -518,9 +554,9 @@ select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "%d key handles provided.\n",
-          data->keys_size);
+          data->key_handle_size);
 
-    while (index < data->keys_size) {
+    while (index < data->key_handle_size) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "Preparing assert request data with key handle %d.\n", index + 1);
 
@@ -670,7 +706,7 @@ authenticate(struct passkey_data *data)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Resetting assert client data.\n");
-    ret = set_assert_client_data_hash(assert);
+    ret = set_assert_client_data_hash(data, assert);
     if (ret != FIDO_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to reset client data hash.\n");
         goto done;
@@ -702,6 +738,76 @@ authenticate(struct passkey_data *data)
 
 done:
     reset_public_key(&pk_data);
+    if (dev != NULL) {
+        fido_dev_close(dev);
+    }
+    fido_dev_free(&dev);
+    fido_assert_free(&assert);
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
+get_assert_data(struct passkey_data *data)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    fido_dev_t *dev = NULL;
+    fido_assert_t *assert = NULL;
+    unsigned char *user_id = NULL;
+    const char *auth_data = NULL;
+    const char *signature = NULL;
+    int index;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new() failed.\n");
+        return ENOMEM;
+    }
+
+    ret = select_authenticator(data, &dev, &assert, &index);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Comparing the device and policy options.\n");
+    ret = get_device_options(dev, data);
+    if (ret != FIDO_OK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Getting user id.\n");
+    ret = get_assert_user_id(tmp_ctx, assert, &user_id);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get user id.\n");
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Resetting assert options.\n");
+    ret = set_assert_options(FIDO_OPT_TRUE, data->user_verification, assert);
+    if (ret != FIDO_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to reset assert options.\n");
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Getting assert.\n");
+    ret = request_assert(data, dev, assert);
+    if (ret != FIDO_OK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Getting authentication data and signature.\n");
+    ret = get_assert_auth_data_signature(tmp_ctx, assert, &auth_data,
+                                         &signature);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    print_assert_data(data->key_handle_list[index], data->crypto_challenge,
+                      auth_data, signature, user_id);
+
+done:
     if (dev != NULL) {
         fido_dev_close(dev);
     }

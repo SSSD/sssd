@@ -22,6 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <jansson.h>
 #include <termios.h>
 #include <stdio.h>
 #include <fido/es256.h>
@@ -75,28 +76,67 @@ done:
 }
 
 errno_t
-set_assert_client_data_hash(fido_assert_t *_assert)
+set_assert_client_data_hash(const struct passkey_data *data,
+                            fido_assert_t *_assert)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
     unsigned char cdh[32];
+    unsigned char *crypto_challenge = NULL;
+    size_t crypto_challenge_len;
     errno_t ret;
 
-    ret = sss_generate_csprng_buffer(cdh, sizeof(cdh));
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sss_generate_csprng_buffer failed [%d]: %s.\n",
-              ret, fido_strerr(ret));
-        goto done;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new() failed.\n");
+        return ENOMEM;
     }
 
-    ret = fido_assert_set_clientdata_hash(_assert, cdh, sizeof(cdh));
-    if (ret != FIDO_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "fido_assert_set_clientdata_hash failed [%d]: %s.\n",
-              ret, fido_strerr(ret));
-        goto done;
+    if (data->action == ACTION_AUTHENTICATE) {
+        ret = sss_generate_csprng_buffer(cdh, sizeof(cdh));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sss_generate_csprng_buffer failed [%d]: %s.\n",
+                  ret, fido_strerr(ret));
+            goto done;
+        }
+
+        ret = fido_assert_set_clientdata_hash(_assert, cdh, sizeof(cdh));
+        if (ret != FIDO_OK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "fido_assert_set_clientdata_hash failed [%d]: %s.\n",
+                  ret, fido_strerr(ret));
+            goto done;
+        }
+    } else {
+        crypto_challenge = sss_base64_decode(tmp_ctx, data->crypto_challenge,
+                                             &crypto_challenge_len);
+        if (crypto_challenge == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "failed to decode client data hash.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (crypto_challenge_len != 32) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "cryptographic-challenge length [%ld] must be 32.\n",
+                  crypto_challenge_len);
+            ret = EINVAL;
+            goto done;
+        }
+
+        ret = fido_assert_set_clientdata_hash(_assert, crypto_challenge,
+                                              crypto_challenge_len);
+        if (ret != FIDO_OK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "fido_assert_set_clientdata_hash failed [%d]: %s.\n",
+                  ret, fido_strerr(ret));
+            goto done;
+        }
     }
 
 done:
+    talloc_free(tmp_ctx);
+
     return ret;
 }
 
@@ -122,6 +162,82 @@ set_assert_options(fido_opt_t up, fido_opt_t uv, fido_assert_t *_assert)
     }
 
 done:
+    return ret;
+}
+
+errno_t
+get_assert_auth_data_signature(TALLOC_CTX *mem_ctx, fido_assert_t *assert,
+                               const char **_auth_data,
+                               const char **_signature)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const unsigned char *auth_data;
+    const unsigned char *signature;
+    const char *b64_auth_data;
+    const char *b64_signature;
+    size_t auth_data_len;
+    size_t signature_len;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new() failed.\n");
+        return ENOMEM;
+    }
+
+    auth_data = fido_assert_authdata_ptr(assert, 0);
+    if (auth_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "fido_assert_authdata_ptr failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    auth_data_len = fido_assert_authdata_len(assert, 0);
+    if (auth_data_len == 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "fido_assert_authdata_len failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    b64_auth_data = sss_base64_encode(tmp_ctx, auth_data, auth_data_len);
+    if (b64_auth_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "failed to encode authenticator data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    signature = fido_assert_sig_ptr(assert, 0);
+    if (signature == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "fido_assert_sig_ptr failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    signature_len = fido_assert_sig_len(assert, 0);
+    if (signature_len == 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "fido_assert_sig_len failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    b64_signature = sss_base64_encode(tmp_ctx, signature, signature_len);
+    if (b64_signature == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "failed to encode signature.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_auth_data = talloc_steal(mem_ctx, b64_auth_data);
+    *_signature = talloc_steal(mem_ctx, b64_signature);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
     return ret;
 }
 
@@ -167,7 +283,7 @@ prepare_assert(const struct passkey_data *data, int index,
         goto done;
     }
 
-    ret = set_assert_client_data_hash(_assert);
+    ret = set_assert_client_data_hash(data, _assert);
     if (ret != EOK) {
         goto done;
     }
@@ -272,4 +388,39 @@ verify_assert(struct pk_data_t *pk_data, fido_assert_t *assert)
 
 done:
     return ret;
+}
+
+void
+print_assert_data(const char *key_handle, const char *crypto_challenge,
+                  const char *auth_data, const char *signature,
+                  const unsigned char *user_id)
+{
+    json_t *passkey = NULL;
+    char* string = NULL;
+    const char *id = (user_id == NULL) ? "" : (const char *)user_id;
+
+    passkey = json_pack("{s:s*, s:s*, s:s*, s:s*, s:s*}",
+                        "credential_id", key_handle,
+                        "cryptographic_challenge", crypto_challenge,
+                        "authenticator_data", auth_data,
+                        "assertion_signature", signature,
+                        "user_id", id);
+    if (passkey == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create passkey object.\n");
+        goto done;
+    }
+
+    string = json_dumps(passkey, 0);
+    if (string == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "json_dumps() failed.\n");
+        goto done;
+    }
+
+    puts(string);
+    free(string);
+
+done:
+    json_decref(passkey);
+
+    return;
 }
