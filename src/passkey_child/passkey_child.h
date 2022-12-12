@@ -38,7 +38,8 @@
 enum action_opt {
     ACTION_NONE,
     ACTION_REGISTER,
-    ACTION_AUTHENTICATE
+    ACTION_AUTHENTICATE,
+    ACTION_GET_ASSERT
 };
 
 enum credential_type {
@@ -50,9 +51,11 @@ struct passkey_data {
     enum action_opt action;
     const char *shortname;
     const char *domain;
-    char **public_key_list;
     char **key_handle_list;
-    int keys_size;
+    int key_handle_size;
+    char **public_key_list;
+    int public_key_size;
+    const char *crypto_challenge;
     int type;
     fido_opt_t user_verification;
     enum credential_type cred_type;
@@ -339,13 +342,15 @@ select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
 /**
  * @brief Set client data hash in the assert
  *
- * @param[out] assert Assert
+ * @param[in] data passkey data
+ * @param[in,out] _assert Assert
  *
  * @return 0 if the data was set properly,
  *         error code otherwise.
  */
 errno_t
-set_assert_client_data_hash(fido_assert_t *_assert);
+set_assert_client_data_hash(const struct passkey_data *data,
+                            fido_assert_t *_assert);
 
 /**
  * @brief Set options in the assert
@@ -361,11 +366,27 @@ errno_t
 set_assert_options(fido_opt_t up, fido_opt_t uv, fido_assert_t *_assert);
 
 /**
+ * @brief Get authentication data and signature from assert
+ *
+ * @param[in] mem_ctx Memory context
+ * @param[in] assert Assert
+ * @param[out] _auth_data Authentication data
+ * @param[out] _signature Signature
+ *
+ * @return 0 if the data was get properly,
+ *         error code otherwise.
+ */
+errno_t
+get_assert_auth_data_signature(TALLOC_CTX *mem_ctx, fido_assert_t *assert,
+                               const char **_auth_data,
+                               const char **_signature);
+
+/**
  * @brief Prepare assert
  *
  * @param[in] data passkey data
  * @param[in] index Index for key handle list
- * @param[out] _assert Assert
+ * @param[in,out] _assert Assert
  *
  * @return 0 if the assert was prepared properly,
  *         error code otherwise.
@@ -470,5 +491,36 @@ request_assert(struct passkey_data *data, fido_dev_t *dev,
  */
 errno_t
 verify_assert(struct pk_data_t *data, fido_assert_t *assert);
+
+/**
+ * @brief Print assert request data in JSON format
+ *
+ * @param[in] key_handle Key handle
+ * @param[in] crypto_challenge Cryptographic challenge
+ * @param[in] auth_data Authenticator data
+ * @param[in] signature Assertion signature
+ * @param[in] user_id User id
+ *
+ */
+void
+print_assert_data(const char *key_handle, const char *crypto_challenge,
+                  const char *auth_data, const char *signature,
+                  const unsigned char *user_id);
+
+/**
+ * @brief Obtain assertion data
+ *
+ * Prepare the assertion request data, select the device to use, select the
+ * authenticator, get the device options and compare them with the organization
+ * policy, request the assert, get the authenticator data, get the signature
+ * and print this all information.
+ *
+ * @param[in] data passkey data
+ *
+ * @return 0 if the assertion was obtained properly,
+ *         error code otherwise.
+ */
+errno_t
+get_assert_data(struct passkey_data *data);
 
 #endif /* __PASSKEY_CHILD_H__ */

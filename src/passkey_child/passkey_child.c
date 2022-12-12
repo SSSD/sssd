@@ -78,6 +78,12 @@ int main(int argc, const char *argv[])
             ERROR("Authentication error.\n");
             goto done;
         }
+    } else if (data.action == ACTION_GET_ASSERT) {
+        ret = get_assert_data(&data);
+        if (ret != EOK) {
+            ERROR("Error getting assertion data.\n");
+            goto done;
+        }
     }
 
 done:
