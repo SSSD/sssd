@@ -807,6 +807,45 @@ void test_register_key_integration(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_select_authenticator(void **state)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct passkey_data data;
+    fido_dev_t *dev = NULL;
+    fido_assert_t *assert = NULL;
+    int index = 0;
+    char *key_handle;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    assert_non_null(tmp_ctx);
+    data.domain = "test.com";
+    key_handle = talloc_strdup(tmp_ctx, TEST_KEY_HANDLE);
+    data.key_handle_list = &key_handle;
+    data.keys_size = 1;
+    will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
+    will_return(__wrap_fido_dev_info_manifest, 1);
+    will_return(__wrap_fido_assert_set_rp, FIDO_OK);
+    will_return(__wrap_fido_assert_allow_cred, FIDO_OK);
+    will_return(__wrap_fido_assert_set_uv, FIDO_OK);
+    will_return(__wrap_fido_assert_set_clientdata_hash, FIDO_OK);
+    will_return(__wrap_fido_dev_info_path, TEST_PATH);
+    will_return(__wrap_fido_dev_open, FIDO_OK);
+    will_return(__wrap_fido_dev_is_fido2, true);
+    will_return(__wrap_fido_dev_get_assert, FIDO_OK);
+
+    ret = select_authenticator(&data, &dev, &assert, &index);
+
+    assert_int_equal(ret, FIDO_OK);
+
+    if (dev != NULL) {
+        fido_dev_close(dev);
+    }
+    fido_dev_free(&dev);
+    fido_assert_free(&assert);
+    talloc_free(tmp_ctx);
+}
+
 void test_prepare_assert_ok(void **state)
 {
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
@@ -1122,6 +1161,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_verify_credentials_error, setup, teardown),
         cmocka_unit_test(test_decode_public_key),
         cmocka_unit_test(test_register_key_integration),
+        cmocka_unit_test(test_select_authenticator),
         cmocka_unit_test_setup_teardown(test_prepare_assert_ok, setup, teardown),
         cmocka_unit_test_setup_teardown(test_prepare_assert_error, setup, teardown),
         cmocka_unit_test(test_reset_public_key),

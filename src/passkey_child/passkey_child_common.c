@@ -494,6 +494,78 @@ done:
 }
 
 errno_t
+select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
+                     fido_assert_t **_assert, int *_index)
+{
+    fido_dev_info_t *dev_list = NULL;
+    fido_dev_t *dev = NULL;
+    size_t dev_list_len = 0;
+    fido_assert_t *assert = NULL;
+    int index = 0;
+    errno_t ret;
+
+    dev_list = fido_dev_info_new(DEVLIST_SIZE);
+    if (dev_list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "fido_dev_info_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking for devices.\n");
+    ret = list_devices(dev_list, &dev_list_len);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "%d key handles provided.\n",
+          data->keys_size);
+
+    while (index < data->keys_size) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Preparing assert request data with key handle %d.\n", index + 1);
+
+        assert = fido_assert_new();
+        if (assert == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "fido_assert_new failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Preparing assert request data.\n");
+        ret = prepare_assert(data, index, assert);
+        if (ret != FIDO_OK) {
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Selecting device.\n");
+        ret = select_device(data->action, dev_list, dev_list_len, assert, &dev);
+        if (ret == EOK) {
+            /* Key handle found in device */
+            break;
+        }
+
+        if (dev != NULL) {
+            fido_dev_close(dev);
+        }
+        fido_dev_free(&dev);
+        fido_assert_free(&assert);
+        index++;
+    }
+
+    *_dev = dev;
+    *_assert = assert;
+    *_index = index;
+
+done:
+    if (ret != EOK) {
+        fido_assert_free(&assert);
+    }
+    fido_dev_info_free(&dev_list, dev_list_len);
+
+    return ret;
+}
+
+errno_t
 public_key_to_libfido2(const char *pem_public_key, struct pk_data_t *_pk_data)
 {
     TALLOC_CTX *tmp_ctx = NULL;
@@ -561,14 +633,10 @@ authenticate(struct passkey_data *data)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     fido_assert_t *assert = NULL;
-    fido_dev_info_t *dev_list = NULL;
     fido_dev_t *dev = NULL;
     struct pk_data_t pk_data = { 0 };
-    size_t dev_list_len = 0;
-    int count = 0;
+    int index;
     errno_t ret;
-
-    pk_data.type = 0;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -576,55 +644,8 @@ authenticate(struct passkey_data *data)
         return ENOMEM;
     }
 
-    dev_list = fido_dev_info_new(DEVLIST_SIZE);
-    if (dev_list == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "fido_dev_info_new failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Checking for devices.\n");
-    ret = list_devices(dev_list, &dev_list_len);
+    ret = select_authenticator(data, &dev, &assert, &index);
     if (ret != EOK) {
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "%d key handles provided.\n",
-          data->keys_size);
-
-    while (count < data->keys_size) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Preparing assert request data with key handle %d.\n", count + 1);
-
-        assert = fido_assert_new();
-        if (assert == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "fido_assert_new failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        DEBUG(SSSDBG_TRACE_FUNC, "Preparing assert request data.\n");
-        ret = prepare_assert(data, count, assert);
-        if (ret != FIDO_OK) {
-            goto done;
-        }
-
-        DEBUG(SSSDBG_TRACE_FUNC, "Selecting device.\n");
-        ret = select_device(data->action, dev_list, dev_list_len, assert, &dev);
-        if (ret == EOK) {
-            /* Key handle found in device */
-            break;
-        }
-
-        if (dev != NULL) {
-            fido_dev_close(dev);
-        }
-        fido_dev_free(&dev);
-        fido_assert_free(&assert);
-        count++;
-    }
-
-    if (dev == NULL) {
         goto done;
     }
 
@@ -656,7 +677,7 @@ authenticate(struct passkey_data *data)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Decoding public key.\n");
-    ret = public_key_to_libfido2(data->public_key_list[count], &pk_data);
+    ret = public_key_to_libfido2(data->public_key_list[index], &pk_data);
     if (ret != FIDO_OK) {
         goto done;
     }
@@ -686,7 +707,6 @@ done:
     }
     fido_dev_free(&dev);
     fido_assert_free(&assert);
-    fido_dev_info_free(&dev_list, dev_list_len);
     talloc_free(tmp_ctx);
 
     return ret;

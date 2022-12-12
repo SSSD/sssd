@@ -320,6 +320,22 @@ errno_t
 get_assert_user_id(TALLOC_CTX *mem_ctx, fido_assert_t *assert,
                    unsigned char **_user_id);
 
+/*
+ * @brief Select authenticator for verification
+ *
+ *
+ * @param[in] data passkey data
+ * @param[out] _dev Device information
+ * @param[out] _assert Assert
+ * @param[out] _index Index for key handle list
+ *
+ * @return 0 if the authenticator was selected properly,
+ *         error code otherwise.
+ */
+errno_t
+select_authenticator(struct passkey_data *data, fido_dev_t **_dev,
+                     fido_assert_t **_assert, int *_index);
+
 /**
  * @brief Set client data hash in the assert
  *
@@ -348,8 +364,8 @@ set_assert_options(fido_opt_t up, fido_opt_t uv, fido_assert_t *_assert);
  * @brief Prepare assert
  *
  * @param[in] data passkey data
- * @param[in] count Index for key handle list
- * @param[out] assert Assert
+ * @param[in] index Index for key handle list
+ * @param[out] _assert Assert
  *
  * @return 0 if the assert was prepared properly,
  *         error code otherwise.
