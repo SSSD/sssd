@@ -103,11 +103,13 @@ static const unsigned char TEST_EDDSA_HEX_PUBLIC_KEY[32] = {
 
 #define TEST_CRYPTO_CHALLENGE "mZmBWUaJGwEjSNQvkFaicpCzDKhap2pQlfi8FXsv68k="
 
+#define TEST_B64_AUTH_DATA  "authdata"
 #define TEST_AUTH_DATA_LEN  6
 static const unsigned char TEST_HEX_AUTH_DATA[TEST_AUTH_DATA_LEN] = {
     0x6a, 0xeb, 0x61, 0x75, 0xab, 0x5a
 };
 
+#define TEST_B64_SIGNATURE  "signatur"
 #define TEST_SIGNATURE_LEN  6
 static const unsigned char TEST_HEX_SIGNATURE[TEST_SIGNATURE_LEN] = {
     0xb2, 0x28, 0x27, 0x6a, 0xdb, 0xab
@@ -480,6 +482,38 @@ __wrap_fido_assert_sig_len(const fido_assert_t *assert, size_t idx)
     return ret;
 }
 
+int
+__wrap_fido_assert_set_count(fido_assert_t *assert, size_t n)
+{
+    int ret;
+
+    ret = mock();
+
+    return ret;
+}
+
+int
+__wrap_fido_assert_set_authdata(fido_assert_t *assert, size_t idx,
+                                const unsigned char *ptr, size_t len)
+{
+    int ret;
+
+    ret = mock();
+
+    return ret;
+}
+
+int
+__wrap_fido_assert_set_sig(fido_assert_t *assert, size_t idx,
+                           const unsigned char *ptr, size_t len)
+{
+    int ret;
+
+    ret = mock();
+
+    return ret;
+}
+
 /***********************
  * TEST
  **********************/
@@ -533,6 +567,8 @@ void test_parse_all_args(void **state)
     argv[argc++] = "--public-key=publicKey";
     argv[argc++] = "--key-handle=keyHandle";
     argv[argc++] = "--cryptographic-challenge=crypto";
+    argv[argc++] = "--auth-data=auth";
+    argv[argc++] = "--signature=sign";
     argv[argc++] = "--type=rs256";
     argv[argc++] = "--user-verification=true";
     argv[argc++] = "--cred-type=discoverable";
@@ -547,6 +583,8 @@ void test_parse_all_args(void **state)
     assert_string_equal(data.public_key_list[0], "publicKey");
     assert_string_equal(data.key_handle_list[0], "keyHandle");
     assert_string_equal(data.crypto_challenge, "crypto");
+    assert_string_equal(data.auth_data, "auth");
+    assert_string_equal(data.signature, "sign");
     assert_int_equal(data.type, COSE_RS256);
     assert_int_equal(data.user_verification, FIDO_OPT_TRUE);
     assert_int_equal(data.cred_type, CRED_DISCOVERABLE);
@@ -1235,6 +1273,42 @@ void test_get_assert_data_integration(void **state)
     talloc_free(tmp_ctx);
 }
 
+void test_verify_assert_data_integration(void **state)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct passkey_data data;
+    char *key_handle;
+    char *public_key;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    assert_non_null(tmp_ctx);
+    data.action = ACTION_VERIFY_ASSERT;
+    data.domain = "test.com";
+    key_handle = talloc_strdup(tmp_ctx, TEST_KEY_HANDLE);
+    public_key = talloc_strdup(tmp_ctx, TEST_ES256_PEM_PUBLIC_KEY);
+    data.key_handle_list = &key_handle;
+    data.key_handle_size = 1;
+    data.public_key_list = &public_key;
+    data.public_key_size = 1;
+    data.crypto_challenge = TEST_CRYPTO_CHALLENGE;
+    data.auth_data = TEST_B64_AUTH_DATA;
+    data.signature = TEST_B64_SIGNATURE;
+    will_return(__wrap_fido_assert_set_rp, FIDO_OK);
+    will_return(__wrap_fido_assert_allow_cred, FIDO_OK);
+    will_return(__wrap_fido_assert_set_uv, FIDO_OK);
+    will_return(__wrap_fido_assert_set_clientdata_hash, FIDO_OK);
+    will_return(__wrap_fido_assert_set_count, FIDO_OK);
+    will_return(__wrap_fido_assert_set_authdata, FIDO_OK);
+    will_return(__wrap_fido_assert_set_sig, FIDO_OK);
+    will_return(__wrap_fido_assert_verify, FIDO_OK);
+
+    ret = verify_assert_data(&data);
+
+    assert_int_equal(ret, EOK);
+    talloc_free(tmp_ctx);
+}
+
 static void test_parse_supp_valgrind_args(void)
 {
     /*
@@ -1290,6 +1364,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_verify_assert_failed, setup, teardown),
         cmocka_unit_test(test_authenticate_integration),
         cmocka_unit_test(test_get_assert_data_integration),
+        cmocka_unit_test(test_verify_assert_data_integration),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */

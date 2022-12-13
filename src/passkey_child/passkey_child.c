@@ -84,6 +84,15 @@ int main(int argc, const char *argv[])
             ERROR("Error getting assertion data.\n");
             goto done;
         }
+    } else if (data.action == ACTION_VERIFY_ASSERT) {
+        ret = verify_assert_data(&data);
+        if (ret == EOK) {
+            PRINT("Verification success.\n");
+            goto done;
+        } else {
+            ERROR("Verification error.\n");
+            goto done;
+        }
     }
 
 done:

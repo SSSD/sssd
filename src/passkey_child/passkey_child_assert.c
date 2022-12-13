@@ -242,6 +242,67 @@ done:
 }
 
 errno_t
+set_assert_auth_data_signature(const struct passkey_data *data,
+                               fido_assert_t *_assert)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const unsigned char *auth_data = NULL;
+    const unsigned char *signature = NULL;
+    size_t auth_data_len;
+    size_t signature_len;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = fido_assert_set_count(_assert, 1);
+    if (ret != FIDO_OK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "fido_assert_set_count failed [%d]: %s.\n",
+              ret, fido_strerr(ret));
+        goto done;
+    }
+
+    auth_data = sss_base64_decode(tmp_ctx, data->auth_data, &auth_data_len);
+    if (auth_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "failed to decode authenticator data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = fido_assert_set_authdata(_assert, 0, auth_data, auth_data_len);
+    if (ret != FIDO_OK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "fido_assert_set_authdata failed [%d]: %s.\n",
+              ret, fido_strerr(ret));
+        goto done;
+    }
+
+    signature = sss_base64_decode(tmp_ctx, data->signature, &signature_len);
+    if (signature == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "failed to decode signature.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = fido_assert_set_sig(_assert, 0, signature, signature_len);
+    if (ret != FIDO_OK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "fido_assert_set_sig failed [%d]: %s.\n",
+              ret, fido_strerr(ret));
+        goto done;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
 prepare_assert(const struct passkey_data *data, int index,
                fido_assert_t *_assert)
 {
