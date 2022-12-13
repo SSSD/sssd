@@ -148,6 +148,8 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     data->public_key_size = 0;
     data->key_handle_size = 0;
     data->crypto_challenge = NULL;
+    data->auth_data = NULL;
+    data->signature = NULL;
     data->type = COSE_ES256;
     data->user_verification = FIDO_OPT_OMIT;
     data->cred_type = CRED_SERVER_SIDE;
@@ -169,6 +171,8 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("Authenticate a user with a passkey"), NULL },
         {"get-assert", 0, POPT_ARG_NONE, NULL, 'g',
          _("Obtain assertion data"), NULL },
+        {"verify-assert", 0, POPT_ARG_NONE, NULL, 'v',
+         _("Verify assertion data"), NULL },
         {"username", 0, POPT_ARG_STRING, &data->shortname, 0,
          _("Shortname"), NULL },
         {"domain", 0, POPT_ARG_STRING, &data->domain, 0,
@@ -180,6 +184,10 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
         {"cryptographic-challenge", 0, POPT_ARG_STRING,
          &data->crypto_challenge, 0,
          _("Cryptographic challenge"), NULL},
+        {"auth-data", 0, POPT_ARG_STRING, &data->auth_data, 0,
+         _("Authenticator data"), NULL},
+        {"signature", 0, POPT_ARG_STRING, &data->signature, 0,
+         _("Signature"), NULL},
         {"type", 0, POPT_ARG_STRING, &type, 0,
          _("COSE type to use"), "es256|rs256|eddsa"},
         {"user-verification", 0, POPT_ARG_STRING, &user_verification, 0,
@@ -233,6 +241,17 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
                 goto done;
             }
             data->action = ACTION_GET_ASSERT;
+            break;
+        case 'v':
+            if (data->action != ACTION_NONE
+                && data->action != ACTION_VERIFY_ASSERT) {
+                fprintf(stderr, "\nActions are mutually exclusive and should" \
+                                " be used only once.\n\n");
+                poptPrintUsage(pc, stderr, 0);
+                ret = EINVAL;
+                goto done;
+            }
+            data->action = ACTION_VERIFY_ASSERT;
             break;
         case 'q':
             data->quiet = true;
@@ -340,6 +359,10 @@ check_arguments(const struct passkey_data *data)
     }
     DEBUG(SSSDBG_TRACE_FUNC, "cryptographic-challenge: %s\n",
           data->crypto_challenge);
+    DEBUG(SSSDBG_TRACE_FUNC, "auth-data: %s\n",
+          data->auth_data);
+    DEBUG(SSSDBG_TRACE_FUNC, "signature: %s\n",
+          data->signature);
     DEBUG(SSSDBG_TRACE_FUNC, "type: %d\n", data->type);
     DEBUG(SSSDBG_TRACE_FUNC, "user_verification: %d\n",
           data->user_verification);
@@ -374,6 +397,16 @@ check_arguments(const struct passkey_data *data)
         || data->crypto_challenge == NULL)) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Too few arguments for get-assert action.\n");
+        ret = ERR_INPUT_PARSE;
+        goto done;
+    }
+
+    if (data->action == ACTION_VERIFY_ASSERT
+        && (data->domain == NULL || data->public_key_list == NULL
+        || data->key_handle_list == NULL || data->crypto_challenge == NULL
+        || data->auth_data == NULL || data->signature == NULL)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Too few arguments for verify-assert action.\n");
         ret = ERR_INPUT_PARSE;
         goto done;
     }
@@ -814,6 +847,54 @@ done:
     fido_dev_free(&dev);
     fido_assert_free(&assert);
     talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
+verify_assert_data(struct passkey_data *data)
+{
+    fido_assert_t *assert = NULL;
+    struct pk_data_t pk_data = { 0 };
+    errno_t ret;
+
+    assert = fido_assert_new();
+    if (assert == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "fido_assert_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Preparing assert data.\n");
+    ret = prepare_assert(data, 0, assert);
+    if (ret != FIDO_OK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Preparing assert authenticator data and signature.\n");
+    ret = set_assert_auth_data_signature(data, assert);
+    if (ret != FIDO_OK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Decoding public key.\n");
+    ret = public_key_to_libfido2(data->public_key_list[0], &pk_data);
+    if (ret != FIDO_OK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Verifying assert.\n");
+    ret = verify_assert(&pk_data, assert);
+    if (ret != FIDO_OK) {
+        goto done;
+    }
+
+    ret = FIDO_OK;
+
+done:
+    reset_public_key(&pk_data);
+    fido_assert_free(&assert);
 
     return ret;
 }
