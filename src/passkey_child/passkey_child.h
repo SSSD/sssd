@@ -39,7 +39,8 @@ enum action_opt {
     ACTION_NONE,
     ACTION_REGISTER,
     ACTION_AUTHENTICATE,
-    ACTION_GET_ASSERT
+    ACTION_GET_ASSERT,
+    ACTION_VERIFY_ASSERT
 };
 
 enum credential_type {
@@ -56,6 +57,8 @@ struct passkey_data {
     char **public_key_list;
     int public_key_size;
     const char *crypto_challenge;
+    const char *auth_data;
+    const char *signature;
     int type;
     fido_opt_t user_verification;
     enum credential_type cred_type;
@@ -353,6 +356,19 @@ set_assert_client_data_hash(const struct passkey_data *data,
                             fido_assert_t *_assert);
 
 /**
+ * @brief Set authenticator data and signature in the assert
+ *
+ * @param[in] data passkey data
+ * @param[in,out] _assert Assert
+ *
+ * @return 0 if the data was set properly,
+ *         error code otherwise.
+ */
+errno_t
+set_assert_auth_data_signature(const struct passkey_data *data,
+                               fido_assert_t *_assert);
+
+/**
  * @brief Set options in the assert
  *
  * @param[in] up User presence check
@@ -522,5 +538,19 @@ print_assert_data(const char *key_handle, const char *crypto_challenge,
  */
 errno_t
 get_assert_data(struct passkey_data *data);
+
+/**
+ * @brief Verify assertion data
+ *
+ * Prepare the assertion data, including the authenticator data and the
+ * signature; decode the public key and verify the assertion.
+ *
+ * @param[in] data passkey data
+ *
+ * @return 0 if the assertion was obtained properly,
+ *         error code otherwise.
+ */
+errno_t
+verify_assert_data(struct passkey_data *data);
 
 #endif /* __PASSKEY_CHILD_H__ */
