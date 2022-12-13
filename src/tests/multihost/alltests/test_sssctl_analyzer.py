@@ -295,3 +295,47 @@ class TestSssctlAnalyze(object):
             assert re.findall(r"RID#[0-9]*] Received error code", stdout)
         else:
             pytest.fail(f"{user} sucessful to login")
+
+    @staticmethod
+    def test_non_root_privileged(multihost, localusers):
+        """
+        :title: SSSD: `sssctl analyze` command shouldn't require 'root' privileged
+        :id: 51a69d4e-7ae4-11ed-95a5-845cf3eff344
+        :description: `sssctl analyze` command shouldn't require
+            'root' privileged when run with `--logdir`
+            pointing to otherwise accessible files.
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2142960
+                   https://bugzilla.redhat.com/show_bug.cgi?id=2142794
+                   https://bugzilla.redhat.com/show_bug.cgi?id=2142961
+        :steps:
+          1. Create directory
+          2. Copy logs to above directory
+          3. Change ownership to a local user
+          4. Try sssctl analyze command pointing to above
+            directory with root and loacluser
+        :expectedresults:
+          1. Should succeed
+          2. Should succeed
+          3. Should succeed
+          4. sssctl analyze outputs provided for user root
+            and user5000 are the same
+        """
+        # Create directory
+        # Copy logs to above directory
+        # Change ownership to a local user
+        for command in ["mkdir /tmp/sssd",
+                        "cp -vf /var/log/sssd/* /tmp/sssd",
+                        "chown user5000 /tmp/sssd/",
+                        "chown user5000 /tmp/sssd/*"]:
+            multihost.client[0].run_command(command)
+        # sssctl analyze command with root
+        cmd_root = multihost.client[0].run_command("sssctl analyze --logdir /tmp/sssd")
+        # sssctl analyze command with non root user
+        cmd_user500 = multihost.client[0].run_command("runuser -l user5000 -c "
+                                                      "'sssctl analyze --logdir /tmp/sssd'")
+        multihost.client[0].run_command("rm -vfr /tmp/sssd")
+        assert cmd_root.returncode == 0
+        assert cmd_user500.returncode == 0
+        # sssctl analyze command output should same for both
+        # root and non root user
+        assert cmd_root.stdout_text == cmd_user500.stdout_text
