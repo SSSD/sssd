@@ -12,9 +12,10 @@ import time
 import os
 import pytest
 import ldap
-from pexpect import pxssh
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from sssd.testlib.common.libkrb5 import krb5srv
+from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.exceptions import SSHLoginException
 
 
 def execute_cmd(multihost, command):
@@ -99,12 +100,58 @@ def create_user_with_cn(multihost, request):
                          'install_nslcd',
                          'create_user_with_cn',
                          'netgroups')
-@pytest.mark.tier1_3
 class TestProxyMisc(object):
     """
     This is test case class for proxy provider suite
     """
     @staticmethod
+    @pytest.mark.tier1_3
+    def test_netgroup(multihost, backupsssdconf):
+        """
+        :title: Lookup alias and original netgroups
+        :id: b35a6a2e-0ce5-11ed-b2dc-845cf3eff344
+        :steps:
+          1. Check alias and original netgroups.
+          2. Check if returning non-existant netgroups.
+          3. Check while case sensitive is false lookup netgroups.
+        :expectedresults:
+          1. Should succeed
+          2. Should not succeed
+          3. Should succeed
+        """
+        tools = sssdTools(multihost.client[0])
+        domain_name = tools.get_domain_section_name()
+        domain_params = {'debug_level': '0xFFF0',
+                         'id_provider': 'proxy',
+                         'proxy_lib_name': 'ldap',
+                         'proxy_pam_target': 'sssdproxyldap'}
+        tools.sssd_conf('domain/' + domain_name, domain_params)
+        tools.clear_sssd_cache()
+        # Lookup alias and original netgroups
+        execute_cmd(multihost, "getent netgroup NetGroup_CS1 | "
+                               "grep NetGroup_CS1 | grep Host1.example.com")
+        execute_cmd(multihost, "getent netgroup NetGroup_CS1_Alias | "
+                               "grep NetGroup_CS1 | grep User1")
+        # Bug 804103 was the issue about returning non-existant netgroups
+        # The bug is in nss-ldap and sssd just shows whatever nss-ldap returns.
+        for non_exist in ["getent netgroup nonexistantnetgroup",
+                          "getent netgroup netgroup_cs1"]:
+            with pytest.raises(subprocess.CalledProcessError):
+                execute_cmd(multihost, non_exist)
+        # case sensitive is false lookup netgroups
+        execute_cmd(multihost, 'echo "ignorecase yes" >> /etc/nslcd.conf')
+        execute_cmd(multihost, "systemctl restart nslcd")
+        domain_params = {'case_sensitive': 'false'}
+        tools.sssd_conf('domain/' + domain_name, domain_params)
+        tools.clear_sssd_cache()
+        for arg in ["getent netgroup NetGroup_CS1 | grep NetGroup_CS1 | grep Host1.example.com",
+                    "getent netgroup netgroup_cs1 | grep netgroup_cs1 | grep Host1.example.com",
+                    "getent netgroup NetGroup_CS1_Alias | grep NetGroup_CS1_Alias | grep User1",
+                    "getent netgroup netgroup_cs1_alias | grep netgroup_cs1_alias | grep User1"]:
+            execute_cmd(multihost, arg)
+
+    @staticmethod
+    @pytest.mark.tier1_3
     def test_bz1036758(multihost, backupsssdconf):
         """
         :title: Allow for custom attributes in RDN bz1036758
@@ -133,6 +180,7 @@ class TestProxyMisc(object):
         execute_cmd(multihost, "systemctl start sssd.service")
 
     @staticmethod
+    @pytest.mark.tier1_3
     def test_bz785902(multihost):
         """
         :title: Errors with empty loginShell and proxy provider bz785902
@@ -183,6 +231,7 @@ class TestProxyMisc(object):
                 execute_cmd(multihost, f"grep {error_error} /var/log/sssd/*")
 
     @staticmethod
+    @pytest.mark.tier1_3
     def test_bz804103(multihost):
         """
         :title: Nss-pam-ldapd returns empty netgroup when a
@@ -211,6 +260,7 @@ class TestProxyMisc(object):
             execute_cmd(multihost, "getent netgroup testsumgroup")
 
     @staticmethod
+    @pytest.mark.tier1_3
     def test_bz801377(multihost, backupsssdconf):
         """
         :title: Non existing netgroup returned with proxy provider
@@ -248,6 +298,7 @@ class TestProxyMisc(object):
         execute_cmd(multihost, 'echo "" > /etc/netgroup')
 
     @staticmethod
+    @pytest.mark.tier1_3
     def test_bz647816(multihost, backupsssdconf):
         """
         :title: More than 10 auth attempt times out bz647816
@@ -274,6 +325,7 @@ class TestProxyMisc(object):
                                    "queuing request' /var/log/sssd/*")
 
     @staticmethod
+    @pytest.mark.tier1_3
     def test_bz871424(multihost, backupsssdconf):
         """
         :title: authconfig chokes on sssd.conf with chpass_provider directive
@@ -301,6 +353,7 @@ class TestProxyMisc(object):
         execute_cmd(multihost, "authselect test sssd")
 
     @staticmethod
+    @pytest.mark.tier1_3
     def test_bz1221992(multihost, backupsssdconf):
         """
         :title: sssd_be segfault at 0 ip sp error 6 in libtevent.so.0.9.21
@@ -336,6 +389,7 @@ class TestProxyMisc(object):
                                      "/private/sbus-dp_example1.*").stdout_text
 
     @staticmethod
+    @pytest.mark.tier1_3
     def test_0002_bz1209483(multihost, backupsssdconf):
         """
         :title: sssd does not work as expected when id provider
@@ -381,6 +435,7 @@ class TestProxyMisc(object):
         assert ssh_res, "Ssh for user foo2 failed."
 
     @staticmethod
+    @pytest.mark.tier2
     def test_bz1368467(multihost, backupsssdconf, create_350_posix_users):
         """
         :title: sssd runs out of available child slots and
@@ -414,23 +469,22 @@ class TestProxyMisc(object):
         # sssd runs out of available child slots and starts
         # queuing requests in proxy mode
         execute_cmd(multihost, "systemctl start nslcd.service")
+        client_hostip = multihost.client[0].ip
         for i in range(1, 351):
-            p_ssh = pxssh.pxssh(
-                options={"StrictHostKeyChecking": "no",
-                         "UserKnownHostsFile": "/dev/null"}
-            )
-            p_ssh.force_password = True
             try:
-                p_ssh.login(multihost.client[0].ip, f"doo{i}", "Secret123")
-                p_ssh.logout()
-            except pxssh.ExceptionPxssh:
-                # We just trigger condition and check logs
-                pass
+                client = pexpect_ssh(client_hostip, f"doo{i}", 'Secret123', debug=False)
+                client.login(login_timeout=30, sync_multiplier=5,
+                             auto_prompt_reset=False)
+            except SSHLoginException:
+                pytest.fail(f"doo{i} failed to login")
+            else:
+                client.logout()
         with pytest.raises(subprocess.CalledProcessError):
             execute_cmd(multihost, "grep 'All available child slots are full, "
                                    "queuing request' /var/log/sssd/*")
 
     @staticmethod
+    @pytest.mark.tier1_3
     def test_bz1927195(multihost, backupsssdconf, proxy_sleep):
         """
         :title: sssd runs out of proxy child slots and
@@ -489,48 +543,3 @@ class TestProxyMisc(object):
                                         "queuing request' "
                                         "/var/log/sssd/sssd_example1.log")
         assert result.stdout_text == '1\n'
-
-    @staticmethod
-    def test_netgroup(multihost, backupsssdconf):
-        """
-        :title: Lookup alias and original netgroups
-        :id: b35a6a2e-0ce5-11ed-b2dc-845cf3eff344
-        :steps:
-          1. Check alias and original netgroups.
-          2. Check if returning non-existant netgroups.
-          3. Check while case sensitive is false lookup netgroups.
-        :expectedresults:
-          1. Should succeed
-          2. Should not succeed
-          3. Should succeed
-        """
-        tools = sssdTools(multihost.client[0])
-        domain_name = tools.get_domain_section_name()
-        domain_params = {'debug_level': '0xFFF0',
-                         'id_provider': 'proxy',
-                         'proxy_lib_name': 'ldap',
-                         'proxy_pam_target': 'sssdproxyldap'}
-        tools.sssd_conf('domain/' + domain_name, domain_params)
-        tools.clear_sssd_cache()
-        # Lookup alias and original netgroups
-        execute_cmd(multihost, "getent netgroup NetGroup_CS1 | "
-                               "grep NetGroup_CS1 | grep Host1.example.com")
-        execute_cmd(multihost, "getent netgroup NetGroup_CS1_Alias | "
-                               "grep NetGroup_CS1 | grep User1")
-        # Bug 804103 was the issue about returning non-existant netgroups
-        # The bug is in nss-ldap and sssd just shows whatever nss-ldap returns.
-        for non_exist in ["getent netgroup nonexistantnetgroup",
-                          "getent netgroup netgroup_cs1"]:
-            with pytest.raises(subprocess.CalledProcessError):
-                execute_cmd(multihost, non_exist)
-        # case sensitive is false lookup netgroups
-        execute_cmd(multihost, 'echo "ignorecase yes" >> /etc/nslcd.conf')
-        execute_cmd(multihost, "systemctl restart nslcd")
-        domain_params = {'case_sensitive': 'false'}
-        tools.sssd_conf('domain/' + domain_name, domain_params)
-        tools.clear_sssd_cache()
-        for arg in ["getent netgroup NetGroup_CS1 | grep NetGroup_CS1 | grep Host1.example.com",
-                    "getent netgroup netgroup_cs1 | grep netgroup_cs1 | grep Host1.example.com",
-                    "getent netgroup NetGroup_CS1_Alias | grep NetGroup_CS1_Alias | grep User1",
-                    "getent netgroup netgroup_cs1_alias | grep netgroup_cs1_alias | grep User1"]:
-            execute_cmd(multihost, arg)
