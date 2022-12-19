@@ -67,7 +67,7 @@ static errno_t krb5_init_kpasswd(struct krb5_ctx *ctx,
 
     if (primary_servers == NULL && kdc_servers != NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Missing krb5_kpasswd option and KDC set "
-              "explicitly, will use KDC for pasword change operations!\n");
+              "explicitly, will use KDC for password change operations!\n");
         ctx->kpasswd_service = NULL;
     } else {
         ret = krb5_service_init(ctx, be_ctx, SSS_KRB5KPASSWD_FO_SRV,
