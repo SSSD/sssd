@@ -158,10 +158,18 @@ ldap_id_mapping = False
                     <term>ad_enabled_domains (string)</term>
                     <listitem>
                         <para>
-                            A comma-separated list of enabled Active Directory domains.
-                            If provided, SSSD will ignore any domains not listed in this
-                            option. If left unset, all domains from the AD forest will
-                            be available.
+                            A comma-separated list of enabled Active Directory
+                            domains. If provided, SSSD will ignore any domains
+                            not listed in this option. If left unset, all
+                            discovered domains from the AD forest will be
+                            available.
+                        </para>
+                        <para>
+                            During the discovery of the domains SSSD will
+                            filter out some domains where flags or attributes
+                            indicate that they do not belong to the local
+                            forest or are not trusted. If ad_enabled_domains is
+                            set, SSSD will try to enable all listed domains.
                         </para>
                         <para>
                             For proper operation, this option must be specified in all
