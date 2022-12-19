@@ -1524,12 +1524,19 @@ static void ad_get_root_domain_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = ad_filter_domains(state, unfiltered_reply, unfiltered_reply_count,
-                            &state->reply, &state->reply_count);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to filter list of returned domains.\n");
-        goto done;
+    if (state->sd_ctx->ad_enabled_domains == NULL) {
+        ret = ad_filter_domains(state, unfiltered_reply, unfiltered_reply_count,
+                                &state->reply, &state->reply_count);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to filter list of returned domains.\n");
+            goto done;
+        }
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "ad_enabled_domains is set, skipping domain filtering.\n");
+        state->reply_count = unfiltered_reply_count;
+        state->reply = unfiltered_reply;
     }
 
     if (state->reply_count == 0
