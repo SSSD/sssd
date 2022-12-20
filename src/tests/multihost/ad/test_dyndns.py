@@ -76,7 +76,7 @@ def extra_interface(session_multihost, request):
 
 @pytest.mark.usefixtures("disable_dns_forwarders", "change_client_hostname")
 @pytest.mark.dyndns
-@pytest.mark.tier1_3
+@pytest.mark.tier2
 class TestDynDns(object):
 
     @staticmethod
