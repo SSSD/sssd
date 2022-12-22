@@ -129,13 +129,13 @@ sbus_server_socket_listen(const char *socket_address)
     if (server == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to start a D-Bus server at "
               "%s [%s]: %s\n", socket_address, error.name, error.message);
+    } else {
+        server_address = dbus_server_get_address(server);
+        DEBUG(SSSDBG_TRACE_FUNC, "D-BUS Server listening on %s\n", server_address);
+        free(server_address);
     }
 
     dbus_error_free(&error);
-
-    server_address = dbus_server_get_address(server);
-    DEBUG(SSSDBG_TRACE_FUNC, "D-BUS Server listening on %s\n", server_address);
-    free(server_address);
 
     return server;
 }
