@@ -46,7 +46,6 @@ struct file_watch_ctx {
     } inotify_check;
 
     struct config_file_poll_check {
-        TALLOC_CTX *parent_ctx;
         struct tevent_timer *timer;
         time_t modified;
     } poll_check;
@@ -67,7 +66,7 @@ static errno_t create_poll_timer(struct file_watch_ctx *fw_ctx)
     tv = tevent_timeval_current_ofs(FILE_WATCH_POLL_INTERVAL, 0);
 
     fw_ctx->poll_check.timer = tevent_add_timer(fw_ctx->ev,
-                                                fw_ctx->poll_check.parent_ctx,
+                                                fw_ctx,
                                                 tv,
                                                 poll_watched_file,
                                                 fw_ctx);
@@ -166,8 +165,7 @@ static int try_inotify(struct file_watch_ctx *fw_ctx)
 #endif /* HAVE_INOTIFY */
 }
 
-static errno_t fw_watch_file_poll(TALLOC_CTX *parent_ctx,
-                                  struct file_watch_ctx *fw_ctx)
+static errno_t fw_watch_file_poll(struct file_watch_ctx *fw_ctx)
 {
     struct stat file_stat;
     int ret, err;
@@ -187,7 +185,6 @@ static errno_t fw_watch_file_poll(TALLOC_CTX *parent_ctx,
         return err;
     }
 
-    fw_ctx->poll_check.parent_ctx = parent_ctx;
     fw_ctx->poll_check.modified = file_stat.st_mtime;
 
     if(!fw_ctx->poll_check.timer) {
@@ -202,8 +199,7 @@ static errno_t fw_watch_file_poll(TALLOC_CTX *parent_ctx,
 }
 
 
-static int watch_file(TALLOC_CTX *mem_ctx,
-                      struct file_watch_ctx *fw_ctx)
+static int watch_file(struct file_watch_ctx *fw_ctx)
 {
     int ret = EOK;
     bool use_inotify;
@@ -218,7 +214,7 @@ static int watch_file(TALLOC_CTX *mem_ctx,
     }
 
     if (!use_inotify) {
-        ret = fw_watch_file_poll(mem_ctx, fw_ctx);
+        ret = fw_watch_file_poll(fw_ctx);
     }
 
     return ret;
@@ -232,7 +228,7 @@ static void missing_file(struct tevent_context *ev,
     int ret;
     struct file_watch_ctx *fw_ctx = talloc_get_type(data, struct file_watch_ctx);
 
-    ret = watch_file(fw_ctx, fw_ctx);
+    ret = watch_file(fw_ctx);
     if (ret == EOK) {
         fw_ctx->cb(fw_ctx->filename, fw_ctx->cb_arg);
     } else if (ret == ENOENT) {
@@ -289,7 +285,7 @@ struct file_watch_ctx *fw_watch_file(TALLOC_CTX *mem_ctx,
     }
 
     /* Watch for changes to the requested file */
-    ret = watch_file(fw_ctx, fw_ctx);
+    ret = watch_file(fw_ctx);
     if (ret == ENOENT) {
         tv = tevent_timeval_current_ofs(MISSING_FILE_POLL_TIME, 0);
         te = tevent_add_timer(fw_ctx->ev, fw_ctx, tv, missing_file, fw_ctx);
