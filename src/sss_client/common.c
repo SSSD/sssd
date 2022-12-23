@@ -27,6 +27,7 @@
 #include <nss.h>
 #include <security/pam_modules.h>
 #include <errno.h>
+#include <stdatomic.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -63,7 +64,8 @@
 
 #ifdef HAVE_PTHREAD_EXT
 static pthread_key_t sss_sd_key;
-static pthread_once_t sss_sd_key_initialized = PTHREAD_ONCE_INIT;
+static pthread_once_t sss_sd_key_init = PTHREAD_ONCE_INIT;
+static atomic_bool sss_sd_key_initialized = false;
 static __thread int sss_cli_sd = -1; /* the sss client socket descriptor */
 static __thread struct stat sss_cli_sb; /* the sss client stat buffer */
 #else
@@ -71,9 +73,6 @@ static int sss_cli_sd = -1; /* the sss client socket descriptor */
 static struct stat sss_cli_sb; /* the sss client stat buffer */
 #endif
 
-#if HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR
-__attribute__((destructor))
-#endif
 void sss_cli_close_socket(void)
 {
     if (sss_cli_sd != -1) {
@@ -91,8 +90,23 @@ static void sss_at_thread_exit(void *v)
 static void init_sd_key(void)
 {
     pthread_key_create(&sss_sd_key, sss_at_thread_exit);
+    sss_sd_key_initialized = true;
 }
 #endif
+
+#if HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR
+__attribute__((destructor)) void sss_at_lib_unload(void)
+{
+#ifdef HAVE_PTHREAD_EXT
+    if (sss_sd_key_initialized) {
+        sss_sd_key_initialized = false;
+        pthread_key_delete(sss_sd_key);
+    }
+#endif
+    sss_cli_close_socket();
+}
+#endif
+
 
 /* Requests:
  *
@@ -572,7 +586,7 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
     }
 
 #ifdef HAVE_PTHREAD_EXT
-    pthread_once(&sss_sd_key_initialized, init_sd_key); /* once for all threads */
+    pthread_once(&sss_sd_key_init, init_sd_key); /* once for all threads */
 
     /* It actually doesn't matter what value to set for a key.
      * The only important thing: key must be non-NULL to ensure
