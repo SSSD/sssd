@@ -132,7 +132,12 @@ static int watched_file_inotify_cb(const char *filename,
     }
 
     if (strcmp(fw_ctx->filename, filename) == 0) {
-        fw_ctx->cb(fw_ctx->filename, fw_ctx->cb_arg);
+        if (access(fw_ctx->filename, F_OK) == 0) {
+            fw_ctx->cb(fw_ctx->filename, fw_ctx->cb_arg);
+        } else {
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "File %s is missing. Skipping the callback.\n", filename);
+        }
     }
 
     return EOK;
@@ -221,22 +226,24 @@ static int watch_file(struct file_watch_ctx *fw_ctx)
 }
 
 
-static void missing_file(struct tevent_context *ev,
-                                struct tevent_timer *te,
-                                struct timeval tv, void *data)
+static void set_file_watching(struct tevent_context *ev,
+                              struct tevent_timer *te,
+                              struct timeval tv, void *data)
 {
     int ret;
     struct file_watch_ctx *fw_ctx = talloc_get_type(data, struct file_watch_ctx);
 
     ret = watch_file(fw_ctx);
     if (ret == EOK) {
-        fw_ctx->cb(fw_ctx->filename, fw_ctx->cb_arg);
+        if (access(fw_ctx->filename, F_OK) == 0) {
+            fw_ctx->cb(fw_ctx->filename, fw_ctx->cb_arg);
+        }
     } else if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "%s missing. Waiting for it to appear.\n",
               fw_ctx->filename);
         tv = tevent_timeval_current_ofs(MISSING_FILE_POLL_TIME, 0);
-        te = tevent_add_timer(fw_ctx->ev, fw_ctx, tv, missing_file, fw_ctx);
+        te = tevent_add_timer(fw_ctx->ev, fw_ctx, tv, set_file_watching, fw_ctx);
         if (te == NULL) {
             DEBUG(SSSDBG_IMPORTANT_INFO,
                   "tevent_add_timer failed. %s will be ignored.\n",
@@ -259,7 +266,6 @@ struct file_watch_ctx *fw_watch_file(TALLOC_CTX *mem_ctx,
 {
     int ret;
     struct timeval tv;
-    struct tevent_timer *te;
     struct file_watch_ctx *fw_ctx;
 
     if (ev == NULL || filename == NULL || cb == NULL) {
@@ -284,18 +290,14 @@ struct file_watch_ctx *fw_watch_file(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Watch for changes to the requested file */
-    ret = watch_file(fw_ctx);
-    if (ret == ENOENT) {
-        tv = tevent_timeval_current_ofs(MISSING_FILE_POLL_TIME, 0);
-        te = tevent_add_timer(fw_ctx->ev, fw_ctx, tv, missing_file, fw_ctx);
-        if (te == NULL) {
-            DEBUG(SSSDBG_IMPORTANT_INFO, "%s will be ignored\n", filename);
-        }
-    }
+    /* Watch for changes to the requested file, and retry periodically
+     * if the file does not exist */
+    tv = tevent_timeval_current_ofs(0, 0); // Not actually used
+    set_file_watching(fw_ctx->ev, NULL, tv, fw_ctx);
+    ret = EOK;
 
 done:
-    if (ret != EOK && ret != ENOENT) {
+    if (ret != EOK) {
         talloc_free(fw_ctx);
         fw_ctx = NULL;
     }
