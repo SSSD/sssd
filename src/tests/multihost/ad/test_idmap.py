@@ -11,7 +11,7 @@ from sssd.testlib.common.utils import sssdTools
 
 
 @pytest.mark.usefixtures('joinad', 'create_idmap_users_groups')
-@pytest.mark.tier1_3
+@pytest.mark.tier2
 @pytest.mark.idmap
 class Testidmap(object):
     """ Test cases for idmap
