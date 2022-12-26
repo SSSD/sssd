@@ -15,7 +15,7 @@ from sssd.testlib.common.utils import sssdTools
 from pexpect import pxssh
 
 
-@pytest.mark.tier1_3
+@pytest.mark.tier1_4
 @pytest.mark.admisc
 class TestADMisc:
     """ Miscellaneous Automated Test Cases for AD integration Bugzillas"""
@@ -281,3 +281,45 @@ class TestADMisc:
             pytest.fail("Ssh login failed.")
             ssh_output = 'FAIL'
         assert 'ssh_result:0' in ssh_output, "GSSAPI ssh authentication failed"
+
+    @staticmethod
+    def test_0004_bz2110091(multihost, adjoin, create_aduser_group):
+        """
+        :title: SSSD starts offline after reboot
+        :id: 8fe03cef-891d-4cb9-be26-d747cb4d8fd8
+        :customerscenario: true
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2110091
+                   https://bugzilla.redhat.com/show_bug.cgi?id=2116207
+        :steps:
+          1. Join sssd client to AD
+          2. Lookup AD user
+          3. Clear sssd cache and logs
+          4. Reboot client
+          5. Domain logs should have "Destroying the old c-ares channel"
+          6. Domain logs should have "[recreate_ares_channel]: Initializing new c-ares channel"
+             Initializing new c-ares channel" 2 times
+        :expectedresults:
+          1. sssd client is enrolled in AD domain successfully
+          2. AD user lookup is successful
+          3. sssd cache and logs are cleared
+          4. Client reboots successfully
+          5. Domain logs has string "Destroying the old c-ares channel"
+          6. Domain logs has string "[recreate_ares_channel] (0x0100): Initializing new c-ares channel"
+             Initializing new c-ares channel" 2 times
+        """
+        adjoin(membersw='adcli')
+        (ad_user, _) = create_aduser_group
+        domainname = multihost.ad[0].domainname
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        multihost.client[0].run_command(f'getent passwd {ad_user}@{domainname}')
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {'debug_level': '9'}
+        client.sssd_conf(dom_section, sssd_params)
+        client.clear_sssd_cache()
+        multihost.client[0].run_command('systemctl reboot', raiseonerr=False)
+        time.sleep(50)
+        dom_log = multihost.client[0].get_file_contents(f'/var/log/sssd/sssd_{domainname}.log').decode('utf-8')
+        log1 = re.compile(r'Destroying.the.old.c-ares.channel', re.IGNORECASE)
+        log2 = re.compile(r'\[recreate_ares_channel.*Initializing.new.c-ares.channel', re.IGNORECASE)
+        assert log1.search(dom_log), 'Destroying the old c-ares related log missing'
+        assert log2.search(dom_log), 'Initializing new c-ares related log missing'
