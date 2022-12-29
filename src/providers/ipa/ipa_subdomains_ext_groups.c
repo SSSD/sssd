@@ -1041,7 +1041,7 @@ ipa_ext_group_member_check(TALLOC_CTX *mem_ctx,
 
     expire = ldb_msg_find_attr_as_uint64(msg, SYSDB_CACHE_EXPIRE, 0);
     if (expire != 0 && expire <= now) {
-        DEBUG(SSSDBG_TRACE_FUNC, "%s is expired", ext_member);
+        DEBUG(SSSDBG_TRACE_FUNC, "%s is expired\n", ext_member);
         ret = EAGAIN;
         goto done;
     }

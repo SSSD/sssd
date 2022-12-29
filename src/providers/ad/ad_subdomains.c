@@ -1898,7 +1898,7 @@ static void ad_check_gc_usability_search_done(struct tevent_req *subreq)
 
         ret = sysdb_attrs_get_string(reply[i], AD_AT_SCHEMA_NAME, &name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get "AD_AT_SCHEMA_NAME);
+            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get "AD_AT_SCHEMA_NAME"\n");
             continue;
         }
 
@@ -1915,7 +1915,7 @@ static void ad_check_gc_usability_search_done(struct tevent_req *subreq)
                                      AD_AT_SCHEMA_IS_REPL,
                                      &is_in_partial_set);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get "AD_AT_SCHEMA_IS_REPL);
+            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get "AD_AT_SCHEMA_IS_REPL"\n");
             continue;
         }
 
