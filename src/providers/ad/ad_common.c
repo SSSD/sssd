@@ -384,7 +384,7 @@ ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
 
     ret = ad_set_sdap_options(ad_options, ad_options->id);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ad_set_sdap_options failed");
+        DEBUG(SSSDBG_CRIT_FAILURE, "ad_set_sdap_options failed\n");
         talloc_free(ad_options);
         return NULL;
     }
