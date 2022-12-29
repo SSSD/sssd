@@ -1250,7 +1250,7 @@ done:
                   "Failed to make request to our cache: [%d]: [%s]\n",
                    ret, sss_strerror(ret));
         } else {
-            DEBUG(SSSDBG_FUNC_DATA, "Object wasn't found in cache");
+            DEBUG(SSSDBG_FUNC_DATA, "Object wasn't found in cache\n");
         }
     }
 
