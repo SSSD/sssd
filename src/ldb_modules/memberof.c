@@ -2215,6 +2215,10 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
         }
         el->num_values = j;
 
+        if (el->num_values == 0) { /* everything was skipped */
+            talloc_zfree(el->values);
+            el->flags = LDB_FLAG_MOD_DELETE;
+        }
     }
     else {
         ret = ldb_msg_add_empty(msg, DB_MEMBEROF, LDB_FLAG_MOD_DELETE, &el);
