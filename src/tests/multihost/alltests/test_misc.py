@@ -15,11 +15,10 @@ import pytest
 from sssd.testlib.common.expect import pexpect_ssh
 from sssd.testlib.common.exceptions import SSHLoginException
 from sssd.testlib.common.utils import sssdTools, LdapOperations
-from constants import ds_instance_name
+from constants import ds_instance_name, ds_suffix
 
 
-@pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups'
-                         )
+@pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
 @pytest.mark.misc
 class TestMisc(object):
     """
@@ -480,3 +479,56 @@ class TestMisc(object):
         assert "Failed to connect to '/var/lib/sss/db/config.ldb'" \
             not in log_str
         assert "The confdb initialization failed" not in log_str
+
+    @staticmethod
+    @pytest.mark.tier1
+    def test_0009_dbus_method_find_usrby_attr(multihost, backupsssdconf, ldap_posix_usergroup):
+        """
+        :title: D-Bus method to find user by attributes
+        :id: ee3437ff-572e-472e-8f55-0d7d8134266c
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2128840
+        :customerscenario: true
+        :setup:
+          1. In sssd.conf
+             set ldap_user_extra_attrs = sn:sn in domain section of sssd.conf
+             set user_attributes = +sn in [ifp] section
+          2. Create 10 users with 'sn' attribute containing pattern foo
+          3. Create a user who does not have sn=foo pattern in it's sn attribute
+        :steps:
+          1. Restart sssd with clean cache
+          2. Fetch users with attribute 'sn:foo*' with dbus-send command
+          3. Confirm dbus-send command output has all users with foo*
+          4. Confirm dbus-send command output does not contain user
+             who donot have sn=foo* matching pattern
+        :expectedresults:
+          1. SSSD should start successfully
+          2. Command should be completed successfully
+          3. Expected users with sn:foo* are returned
+          4. Expected users without sn:foo* are not returned
+        :teardown:
+          1. Delete users and groups created for test
+          2. Restore sssd.conf
+        """
+        usr = ldap_posix_usergroup
+        client = sssdTools(multihost.client[0])
+        domain_name = client.get_domain_section_name()
+        domain_params = {'ldap_search_base': ds_suffix,
+                         'auth_provider': 'ldap',
+                         'id_provider': 'ldap',
+                         'ldap_uri': f'ldaps://{multihost.master[0].sys_hostname}',
+                         'ldap_tls_cacert': '/etc/openldap/cacerts/cacert.pem',
+                         'use_fully_qualified_names': 'True',
+                         'debug_level': '9',
+                         'ldap_user_extra_attrs': 'sn:sn'}
+        client.sssd_conf(f'domain/{domain_name}', domain_params)
+        client.sssd_conf('ifp', {'user_attributes': '+sn'}, action='add')
+        client.clear_sssd_cache()
+        dbuscmd = 'dbus-send --system --print-reply --dest=org.freedesktop.sssd.infopipe '\
+                  '/org/freedesktop/sssd/infopipe/Users org.freedesktop.sssd.infopipe.Users.ListByAttr '\
+                  '"string:sn" "string:foo*" "uint32:0"'
+        cmd = multihost.client[0].run_command(dbuscmd, raiseonerr=False)
+        for i in range(10):
+            cmd2 = multihost.client[0].run_command(f'id -u foo{i}@{domain_name}', raiseonerr=False)
+            assert cmd2.stdout_text.strip('\n') in cmd.stdout_text, 'dbus is not fetching expected users'
+        cmd1 = multihost.client[0].run_command(f'id -u {usr}@{domain_name}', raiseonerr=False)
+        assert cmd1.stdout_text.strip('\n') not in cmd.stdout_text, 'dbus is fetching unwanted user'

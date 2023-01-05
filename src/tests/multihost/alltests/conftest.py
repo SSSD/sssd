@@ -8,7 +8,8 @@ import ldap
 import pytest
 import re
 import subprocess
-from constants import ds_instance_name, ds_suffix, krb_realm
+import random
+from constants import ds_instance_name, ds_suffix, krb_realm, ds_rootdn, ds_rootpw
 from sssd.testlib.common.libkrb5 import krb5srv
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF, NSSWITCH_DEFAULT_CONF
 from sssd.testlib.common.qe_class import session_multihost
@@ -121,6 +122,40 @@ def capture_sssd_logs(session_multihost, request):
         for data_d in client.run_command("ls /var/log/sssd/").stdout_text.split():
             client.run_command(f'echo "--- {data_d} ---"; '
                                f'cat /var/log/sssd/{data_d}')
+
+
+@pytest.fixture(scope='function')
+def ldap_posix_usergroup(session_multihost, request):
+    """ Create single ldap posix user group """
+    ldap_uri = f'ldap://{session_multihost.master[0].sys_hostname}'
+    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    krb = krb5srv(session_multihost.master[0], 'EXAMPLE.TEST')
+    id = random.randint(9, 99)
+    user_info = {'cn': f'usr_{id}',
+                 'uid': f'usr_{id}',
+                 'uidNumber': f'345831{id}',
+                 'gidNumber': f'345641{id}'}
+    if ldap_inst.posix_user("ou=People", "dc=example,dc=test", user_info):
+        krb.add_principal(f'usr_{id}', 'user', 'Secret123')
+    else:
+        print(f"Unable to add ldap User {user_info}")
+        assert False
+    memberdn = f'uid=usr_{id},ou=People,dc=example,dc=test'
+    group_info = {'cn': f'ldapgrp{id}',
+                  'gidNumber': f'345641{id}',
+                  'uniqueMember': memberdn}
+    try:
+        ldap_inst.posix_group("ou=Groups", "dc=example,dc=test", group_info)
+    except LdapException:
+        assert False
+
+    def delposixobject():
+        """ Delete ldap posix user and group """
+        ldap_inst.del_dn(f'uid=usr_{id},ou=People,dc=example,dc=test')
+        ldap_inst.del_dn(f'cn=ldapgrp1,ou=People,dc=example,dc=test')
+        krb.delete_principal(f'usr_{id}')
+    request.addfinalizer(delposixobject)
+    return f'usr_{id}'
 
 
 @pytest.fixture(scope='function')
