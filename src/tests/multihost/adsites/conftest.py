@@ -66,6 +66,18 @@ def run_powershell_script(session_multihost, request):
     return _script
 
 
+@pytest.fixture(autouse=True)
+def capture_sssd_logs(session_multihost, request):
+    """This will print sssd logs in case of test failure"""
+    yield
+    if request.session.testsfailed:
+        client = session_multihost.client[0]
+        print(f"\n\n===Logs for {request.node.name}===\n\n")
+        for data_d in client.run_command("ls /var/log/sssd/").stdout_text.split():
+            client.run_command(f'echo "--- {data_d} ---"; '
+                               f'cat /var/log/sssd/{data_d}')
+
+
 @pytest.fixture(scope="function")
 def adjoin(session_multihost, request):
     """ Join to AD using net ads command """
