@@ -164,12 +164,9 @@ class TestDynDns(object):
         dns.del_record(ip)
         client.clear_sssd_cache()
 
-        cmd = f'dnscmd.exe /zoneprint {domain} | grep -v \; | sed "s/\t/ /g" | grep e | ' \
-              f'sed "s/\   / /g" | grep {hostname.split(".")[0]}'
-        result = multihost.ad[0].run_command(cmd, raiseonerr=False)
-        assert '9200' in result.stdout_text
         assert dns.find_a(hostname)
         assert dns.find_ptr(hostname, ip)
+        assert '9200' in dns.print_zone(domain)
 
     @staticmethod
     def test_0004_check_dyndns_iface_with_existing_interfaces(
@@ -206,7 +203,7 @@ class TestDynDns(object):
 
         assert dns.find_a(hostname)
         assert dns.find_ptr(hostname, extra_ip)
-        assert ip not in dns.print_zone(ip)
+        assert ip not in dns.print_zone(domain)
 
     @staticmethod
     def test_0005_check_dyndns_iface_with_non_existing_interfaces(multihost, adjoin):

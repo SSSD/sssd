@@ -2020,35 +2020,47 @@ class ADDNS(object):  # pylint: disable=useless-object-inheritance
 
     def get_zones(self):
         """ Returns a list of all the forward and reverse zones  on the server excluding msdcs """
-        zones = self.ad_host.run_command('dnscmd.exe /EnumZones | grep Primary | grep -v msdcs | cut -f2 -d" "')
-        return zones.stdout_text
+        zones = str.split(self.ad_host.run_command("dnscmd.exe /EnumZones").stdout_text, "\n")
+        # This is cleaning up the output, removing unnecessary lines from the beginning and end of the output
+        i = 0
+        while 7 >= i:
+            del zones[0]
+            i += 1
+        i = 0
+        while 4 >= i:
+            del zones[len(zones)-1]
+            i += 1
 
     def print_zone(self, zone):
         """ Prints all the contents of a zone file, takes domain.com or 1.168.192.in-addr.arpa string """
-        zone = self.ad_host.run_command(f'dnscmd.exe /zoneprint {zone} | grep -v \; | sed "s/\t/ /g" | grep e |'
-                                        f'sed "s/\   / /g"')
-        return zone.stdout_text
+        zone_out = self.ad_host.run_command(f"dnscmd.exe /zoneprint {zone}")
+        return zone_out.stdout_text
 
     def find_a(self, hostname):
         """ Searches the zone for a specific A record, returning True for success and False for failure """
         domain = self.ad_host.realm.lower()
         host = hostname.split(".")[0]
-        results = self.ad_host.run_command(f'dnscmd.exe /zoneprint {domain} | grep -v \; | sed "s/\t/ /g" | grep e |'
-                                           f'sed "s/\   / /g" | grep {host}', raiseonerr=False)
-        if host in results.stdout_text:
-            return True
+        for x in range(0, 600, 15):
+            results = self.ad_host.run_command(f"dnscmd.exe /zoneprint {domain}")
+            if host not in results.stdout_text:
+                time.sleep(15)
+                x += 15
+            else:
+                return True
         return False
 
     def find_ptr(self, hostname, ip):
         """ Searches the zone for a specific PTR record, returning True for success and False for failure """
-        hostname = hostname + '.'
+        hostname += '.'
         net = str(ip.split(".")[2]) + '.' + str(ip.split(".")[1]) + '.' + str(ip.split(".")[0]) + '.in-addr.arpa'
         ptr = str(ip.split(".")[3])
-        results = self.ad_host.run_command(f'dnscmd.exe /zoneprint {net} | grep -v \; | sed "s/\t/ /g" | grep e |'
-                                           f'sed "s/\   / /g" | grep -v hostmaster | grep {hostname}',
-                                           raiseonerr=False)
-        if ptr in results.stdout_text:
-            return True
+        for x in range(0, 600, 15):
+            results = self.ad_host.run_command(f"dnscmd.exe /zoneprint {net}")
+            if ptr not in results.stdout_text:
+                time.sleep(15)
+                x += 15
+            else:
+                return True
         return False
 
     def add_zone(self, zone):
