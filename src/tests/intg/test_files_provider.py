@@ -292,12 +292,6 @@ def disabled_files_domain(request):
 
 
 @pytest.fixture
-def no_sssd_conf(request):
-    create_sssd_fixture(request)
-    return None
-
-
-@pytest.fixture
 def domain_resolution_order(request):
     conf = unindent("""\
         [sssd]
@@ -1167,16 +1161,6 @@ def test_disable_files_domain(add_user_with_canary, disabled_files_domain):
     # The local user will not be resolvable through nss_sss now
     res, user = sssd_getpwnam_sync(USER1["name"])
     assert res != NssReturnCode.SUCCESS
-
-
-def test_no_sssd_conf(add_user_with_canary, no_sssd_conf):
-    """
-    Test that running without sssd.conf implicitly configures one with
-    id_provider=files
-    """
-    res, user = sssd_getpwnam_sync(USER1["name"])
-    assert res == NssReturnCode.SUCCESS
-    assert user == USER1
 
 
 def test_multiple_passwd_group_files(add_user_with_canary,

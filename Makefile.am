@@ -94,15 +94,9 @@ if HAVE_SYSTEMD_UNIT
 ifp_exec_cmd = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --dbus-activated
 ifp_systemdservice = SystemdService=sssd-ifp.service
 ifp_restart = Restart=on-failure
-# If sssd is configured with --enable-files-domain, the service is
-# able to start even without a configuration file.  Otherwise, sssd
-# requires a configuration file (either /etc/sssd/sssd.conf, or some
-# snippet under /etc/sssd/sssd.conf.d/) to be present.
-if ADD_FILES_DOMAIN
-condconfigexists =
-else
+# SSSD requires a configuration file (either /etc/sssd/sssd.conf,
+# or some snippet under /etc/sssd/sssd.conf.d/) to be present.
 condconfigexists = ConditionPathExists=\|/etc/sssd/sssd.conf\nConditionDirectoryNotEmpty=\|/etc/sssd/conf.d/
-endif
 # If sssd is configured with --with-sssd-user=<user> where <user>!='root'
 # but is actually run under the root we need CAP_DAC_OVERRIDE to access
 # files owned by <user>:<user>
@@ -3999,7 +3993,6 @@ intgcheck-prepare:
 	    --enable-intgcheck-reqs \
 	    --without-semanage \
 	    --with-session-recording-shell=/bin/false \
-	    --enable-files-domain \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
 	    CFLAGS="-O2 -g $$CFLAGS"; \
 	$(MAKE) $(AM_MAKEFLAGS) ; \
