@@ -144,11 +144,9 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     ra_success = sss_ini_get_ra_success_list(init_data);
     num_ra_success = ref_array_len(ra_success);
     if ((sss_ini_exists(init_data) == false) && (num_ra_success == 0)) {
-        PRINT("There is no configuration."
-#ifdef ADD_FILES_DOMAIN
-              " SSSD will use default configuration with files provider."
-#endif
-              "\n");
+        PRINT("There is no configuration.\n");
+        ret = ERR_INI_OPEN_FAILED;
+        goto done;
     }
 
     /* Run validators */

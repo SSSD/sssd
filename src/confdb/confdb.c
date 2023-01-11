@@ -2226,23 +2226,17 @@ done:
 static int confdb_ensure_files_domain(struct confdb_ctx *cdb,
                                       const char *implicit_files_dom_name)
 {
-#ifdef ADD_FILES_DOMAIN
-    const bool default_enable_files = true;
-#else
-    const bool default_enable_files = false;
-#endif
     errno_t ret;
     bool enable_files;
 
     ret = confdb_get_bool(cdb,
                           CONFDB_MONITOR_CONF_ENTRY,
                           CONFDB_MONITOR_ENABLE_FILES_DOM,
-                          default_enable_files, &enable_files);
+                          false, &enable_files);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot get the value of %s assuming %s\n",
-              CONFDB_MONITOR_ENABLE_FILES_DOM,
-              default_enable_files ? "true" : "false");
+              "Cannot get the value of %s\n",
+              CONFDB_MONITOR_ENABLE_FILES_DOM);
         return ret;
     }
 

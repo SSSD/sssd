@@ -640,11 +640,8 @@
                                 <quote>id_provider=files</quote> before
                                 any explicitly configured domains.
                             </para>
-                            <para condition="no_enable_files_domain">
+                            <para>
                                 Default: false
-                            </para>
-                            <para condition="enable_files_domain">
-                                Default: true
                             </para>
                         </listitem>
                     </varlistentry>
