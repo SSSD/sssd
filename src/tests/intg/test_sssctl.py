@@ -400,6 +400,20 @@ def conf_snippets_only(request):
     return None
 
 
+@pytest.fixture
+def conf_stub_domain(request):
+    snip = unindent("""\
+        [sssd]
+        services = nss
+        domains = files
+        [nss]
+        [domain/files]
+        id_provider = files
+    """)
+    create_conf_fixture(request, None, snip)
+    return None
+
+
 def test_sssctl_snippets_only(conf_snippets_only, portable_LC_ALL):
     output = get_call_output(["sssctl", "config-check"])
     assert "There is no configuration" not in output
@@ -470,7 +484,7 @@ def test_debug_level_sanity(ldap_conn, sanity_rfc2307, portable_LC_ALL):
         assert cpe.output.strip() == ""
 
 
-def test_debug_level_no_sssd():
+def test_debug_level_no_sssd(conf_stub_domain, portable_LC_ALL):
     # Once we are sure all tests run using Python 3.5 or newer,
     # we can remove the redirections STDOUT > STDERR and check cpe.stderr.
 
@@ -501,3 +515,18 @@ def test_debug_level_no_sssd():
     except subprocess.CalledProcessError as cpe:
         assert cpe.returncode == 1
         assert "SSSD is not running" in cpe.output
+
+
+def test_invalidate_missing_specific_entry(ldap_conn, sanity_rfc2307, portable_LC_ALL):
+    # Ensure we will fail when invalidating missing specific entry
+    ret = subprocess.call(["sssctl", "cache-expire", "-u", "non-existing"])
+    assert ret == 1
+
+    ret = subprocess.call(["sssctl", "cache-expire", "-d", "non-existing", "-u", "dummy"])
+    assert ret == 1
+
+    ret = subprocess.call(["sssctl", "cache-expire", "-g", "non-existing"])
+    assert ret == 1
+
+    ret = subprocess.call(["sssctl", "cache-expire", "-d", "non-existing", "-g", "dummy"])
+    assert ret == 1

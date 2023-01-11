@@ -55,13 +55,12 @@
             Another reason is to provide efficient caching of local users and groups.
         </para>
         <para>
-            Please note that some distributions enable the files domain automatically,
-            prepending the domain before any explicitly configured domains.
-            See enable_files_domain in
+            Please note that besides explicit domain definition the files provider
+            can be configured also implicitly using 'enable_files_domain' option. See
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry>.
+            </citerefentry> for details.
         </para>
         <para>
             SSSD never handles resolution of user/group "root". Also resolution of
