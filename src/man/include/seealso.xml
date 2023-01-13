@@ -11,6 +11,9 @@
                 <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry>,
             <citerefentry>
+                <refentrytitle>sssd-ldap-attributes</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
                 <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry>,
             <citerefentry>
