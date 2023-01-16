@@ -1,0 +1,18 @@
+[tool.mypy]
+exclude = "docs"
+
+[[tool.mypy.overrides]]
+module = "jc.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "ldap.*"
+ignore_missing_imports = true
+
+[tool.isort]
+line_length = 119
+profile = "black"
+add_imports = "from __future__ import annotations"
+
+[tool.black]
+line-length = 119

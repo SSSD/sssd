@@ -277,11 +277,13 @@ def kcm_overwrite(testenv):
     assert exp_ccache == testenv.k5util.list_all_princs()
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_overwrite')
 def test_kcm_mem_overwrite(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
     kcm_overwrite(testenv)
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_overwrite')
 def test_kcm_secdb_overwrite(setup_for_kcm_secdb):
     testenv = setup_for_kcm_secdb
     kcm_overwrite(testenv)
@@ -362,11 +364,13 @@ def collection_init_list_destroy(testenv):
     assert testenv.k5util.num_princs() == 0
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_collection')
 def test_kcm_mem_collection_init_list_destroy(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
     collection_init_list_destroy(testenv)
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_collection')
 def test_kcm_secdb_collection_init_list_destroy(setup_for_kcm_secdb):
     testenv = setup_for_kcm_secdb
     collection_init_list_destroy(testenv)
@@ -416,11 +420,13 @@ def exercise_kswitch(testenv):
                                                'host/differenthostname@KCMTEST'])
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_switch')
 def test_kcm_mem_kswitch(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
     exercise_kswitch(testenv)
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_switch')
 def test_kcm_secdb_kswitch(setup_for_kcm_secdb):
     testenv = setup_for_kcm_secdb
     exercise_kswitch(testenv)
@@ -469,11 +475,13 @@ def exercise_subsidiaries(testenv):
                                                'host/differenthostname@KCMTEST'])
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__subsidiaries')
 def test_kcm_mem_subsidiaries(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
     exercise_subsidiaries(testenv)
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__subsidiaries')
 def test_kcm_secdb_subsidiaries(setup_for_kcm_secdb):
     testenv = setup_for_kcm_secdb
     exercise_subsidiaries(testenv)
@@ -493,11 +501,13 @@ def kdestroy_nocache(testenv):
     assert out == 0
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kdestroy_nocache')
 def test_kcm_mem_kdestroy_nocache(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
     exercise_subsidiaries(testenv)
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__kdestroy_nocache')
 def test_kcm_secdb_kdestroy_nocache(setup_for_kcm_secdb):
     testenv = setup_for_kcm_secdb
     exercise_subsidiaries(testenv)
@@ -507,6 +517,7 @@ def get_secrets_socket():
     return os.path.join(config.RUNSTATEDIR, "secrets.socket")
 
 
+@pytest.mark.converted('test_kcm.py', 'test_kcm__tgt_renewal')
 @pytest.mark.skipif(not have_kcm_renewal(),
                     reason="KCM renewal disabled, skipping")
 def test_kcm_renewals(setup_for_kcm_renewals_secdb):
