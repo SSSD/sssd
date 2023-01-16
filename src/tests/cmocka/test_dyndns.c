@@ -205,7 +205,7 @@ void will_return_getifaddrs(const char *ifname, const char *straddr,
 void dyndns_test_sss_iface_addr_get_misc(void **state)
 {
     struct sss_iface_addr addrs[3];
-    struct sockaddr_storage ss[3];
+    struct sockaddr ss[3];
 
     addrs[0].prev = NULL;
     addrs[0].next = &addrs[1];
