@@ -1,0 +1,6 @@
+jc
+pytest
+python-ldap
+git+https://github.com/next-actions/pytest-mh
+git+https://github.com/next-actions/pytest-ticket
+git+https://github.com/next-actions/pytest-tier

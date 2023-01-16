@@ -15,6 +15,7 @@ from sssd.testlib.common.utils import sssdTools
 class TestSanitySudo(object):
     """ Basic Sanity Test cases for sudo service in sssd """
     @staticmethod
+    @pytest.mark.converted('test_sudo.py', 'test_sudo__case_sensitive_false')
     @pytest.mark.usefixtures(
         "case_sensitive_sudorule", "enable_sss_sudo_nsswitch",
         "set_case_sensitive_false")
@@ -38,6 +39,7 @@ class TestSanitySudo(object):
         assert rule2_result, f"Rules missing for user: {user}."
 
     @staticmethod
+    @pytest.mark.converted('test_sudo.py', 'test_sudo__rules_refresh')
     @pytest.mark.usefixtures("enable_sss_sudo_nsswitch", "generic_sudorule",
                              "set_entry_cache_sudo_timeout")
     def test_refresh_expired_rule(multihost):

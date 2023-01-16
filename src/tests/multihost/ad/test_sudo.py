@@ -36,6 +36,7 @@ class TestSudo(object):
         client.clear_sssd_cache()
 
     @staticmethod
+    @pytest.mark.converted('test_sudo.py', 'test_sudo__case_sensitive_false')
     def test_001_bz1380436(multihost):
         """test_001_bz1380436
 
@@ -70,6 +71,7 @@ class TestSudo(object):
         assert not failed, f"Rules missing for users: {','.join(failed)}"
 
     @staticmethod
+    @pytest.mark.converted('test_sudo.py', 'test_sudo__sudo_user_is_group')
     def test_002_bz1372440(multihost):
         """test_002_bz1372440
 
@@ -110,6 +112,7 @@ class TestSudo(object):
         assert cmd2.returncode == 0, f"Sudo command failed for user: {user}!"
 
     @staticmethod
+    @pytest.mark.converted('test_sudo.py', 'test_sudo__sudo_user_is_nonposix_group')
     def test_003_support_non_posix_group_in_sudorule(multihost):
         """test_003_support_non_posix_group_in_sudorule
 
@@ -156,6 +159,7 @@ class TestSudo(object):
         assert test_result, f"Rules missing for user: {user}."
 
     @staticmethod
+    @pytest.mark.converted('test_sudo.py', 'test_sudo__runasuser_shortname')
     def test_004_sudorule_with_short_username(multihost):
         """test_004_sudorule_with_short_username
 

@@ -1,0 +1,50 @@
+name: Documentation
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  system-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup virtual environment
+      working-directory: ./src/tests/system
+      run: |
+        sudo apt-get update
+
+        # Install dependencies for python-ldap
+        sudo apt-get install -y libsasl2-dev python3-dev libldap2-dev libssl-dev
+
+        pip3 install virtualenv
+        python3 -m venv .venv
+        source .venv/bin/activate
+        pip3 install -r ./requirements.txt
+        pip3 install -r ./docs/requirements.txt
+
+    - name: Build docs
+      working-directory: ./src/tests/system
+      run: |
+        source .venv/bin/activate
+        cd docs
+        make html SPHINXOPTS="-W --keep-going"
+
+  result:
+    name: All documentation builds correctly
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: [system-tests]
+    steps:
+      - name: Fail on failure
+        if: ${{ needs.system-tests.result != 'success' }}
+        run: exit 1
