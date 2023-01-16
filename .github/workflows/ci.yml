@@ -247,12 +247,136 @@ jobs:
           multihost-install.log
           multihost-pytest.log
 
+  system:
+    needs: [prepare, build]
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: ${{ fromJson(needs.prepare.outputs.matrix).multihost }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout sssd repository
+      uses: actions/checkout@v3
+      with:
+        path: sssd
+
+    - name: Setup containers
+      uses: SSSD/sssd-ci-containers/actions/setup@master
+      with:
+        path: sssd-ci-containers
+        tag: ${{ matrix.tag }}
+        override: |
+          services:
+            client:
+              image: ${REGISTRY}/ci-client-devel:${TAG}
+              shm_size: 4G
+              tmpfs:
+              - /dev/shm
+              volumes:
+              - ../sssd:/sssd:rw
+
+    - name: Build SSSD on the client
+      uses: SSSD/sssd-ci-containers/actions/exec@master
+      with:
+        log-file: build.log
+        working-directory: /sssd
+        script: |
+          #!/bin/bash
+          set -ex
+
+          ./contrib/ci/run --deps-only
+          autoreconf -if
+
+          mkdir -p /dev/shm/sssd
+          pushd /dev/shm/sssd
+          /sssd/configure --enable-silent-rules
+          make rpms
+
+    - name: Install SSSD on the client
+      uses: SSSD/sssd-ci-containers/actions/exec@master
+      with:
+        log-file: install.log
+        user: root
+        script: |
+          #!/bin/bash
+          set -ex
+
+          dnf remove -y --noautoremove sssd\*
+          dnf install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
+          rm -fr /dev/shm/sssd
+
+          # We need to reenable sssd-kcm since it was disabled by removing sssd not not enabled again
+          systemctl enable --now sssd-kcm.socket
+
+    - name: Install system tests dependencies
+      shell: bash
+      working-directory: ./sssd/src/tests/system
+      run: |
+        set -ex
+
+        sudo apt-get update
+
+        # Install dependencies for python-ldap
+        sudo apt-get install -y libsasl2-dev python3-dev libldap2-dev libssl-dev
+
+        # Virtualenv
+        pip3 install virtualenv
+        python3 -m venv .venv
+        source .venv/bin/activate
+
+        # Install system tests requirements
+        pip3 install -r ./requirements.txt
+
+        # Install yq to parse yaml files
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod a+x /usr/local/bin/yq
+
+    - name: Remove ad from mhc.yaml
+      shell: bash
+      working-directory: ./sssd/src/tests/system
+      run: |
+        yq -i 'del(.domains[0].hosts.[] | select(.role == "ad"))' mhc.yaml
+
+    - name: Run tests
+      shell: bash
+      working-directory: ./sssd/src/tests/system
+      run: |
+        set -ex -o pipefail
+
+        source .venv/bin/activate
+        pytest \
+          --color=yes \
+          --mh-config=./mhc.yaml \
+          --mh-log-path=$GITHUB_WORKSPACE/mh.log \
+          --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
+          -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
+
+    - name: Upload artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        if-no-files-found: ignore
+        name: ${{ matrix.tag }}-system
+        path: |
+          sssd/ci-install-deps.log
+          artifacts
+          mh.log
+          build.log
+          install.log
+          pytest.log
+
   result:
     name: All tests are successful
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    needs: [build, intgcheck, multihost]
+    needs: [build, intgcheck, multihost, system]
     steps:
       - name: Fail on failure
-        if: ${{ needs.build.result != 'success' || needs.intgcheck.result != 'success' || needs.multihost.result != 'success' }}
+        if: |
+          needs.build.result != 'success'
+          || needs.intgcheck.result != 'success'
+          || needs.multihost.result != 'success'
+          || needs.system.result != 'success'
         run: exit 1

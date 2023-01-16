@@ -232,6 +232,7 @@ def add_common_rules(request, ldap_conn):
     return None
 
 
+@pytest.mark.converted('test_sudo.py', 'test_sudo__user_allowed')
 def test_sudo_rule_for_user(add_common_rules, sudocli_tool):
     """
     Test that user1 is allowed in the rule but user2 is not
@@ -264,6 +265,7 @@ def add_double_qualified_rules(request, ldap_conn):
     return None
 
 
+@pytest.mark.converted('test_sudo.py', 'test_sudo__duplicate_sudo_user')
 def test_sudo_rule_duplicate_sudo_user(add_double_qualified_rules,
                                        sudocli_tool):
     """
