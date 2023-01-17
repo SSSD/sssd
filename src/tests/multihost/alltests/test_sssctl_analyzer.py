@@ -323,6 +323,7 @@ class TestSssctlAnalyze(object):
         # Create directory
         # Copy logs to above directory
         # Change ownership to a local user
+        multihost.client[0].run_command("rm -vfr /tmp/sssd", raiseonerr=False)
         for command in ["mkdir /tmp/sssd",
                         "cp -vf /var/log/sssd/* /tmp/sssd",
                         "chown user5000 /tmp/sssd/",
