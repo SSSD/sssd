@@ -152,7 +152,7 @@ def ldap_posix_usergroup(session_multihost, request):
     def delposixobject():
         """ Delete ldap posix user and group """
         ldap_inst.del_dn(f'uid=usr_{id},ou=People,dc=example,dc=test')
-        ldap_inst.del_dn(f'cn=ldapgrp1,ou=People,dc=example,dc=test')
+        ldap_inst.del_dn(f'cn=ldapgrp{id},ou=Groups,dc=example,dc=test')
         krb.delete_principal(f'usr_{id}')
     request.addfinalizer(delposixobject)
     return f'usr_{id}'
