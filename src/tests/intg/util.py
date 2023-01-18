@@ -91,8 +91,14 @@ def get_call_output(cmd, stderr_output=subprocess.PIPE, check=False):
 
     if (sys.version_info.major < 3
             or (sys.version_info.major == 3 and sys.version_info.minor < 7)):
-        output = subprocess.check_output(cmd, universal_newlines=True,
-                                         stderr=stderr_output)
+        try:
+            output = subprocess.check_output(cmd, universal_newlines=True,
+                                             stderr=stderr_output)
+        except subprocess.CalledProcessError as err:
+            if (not check):
+                output = err.output
+            else:
+                raise err
         return output
 
     process = subprocess.run(cmd, check=check, text=True,
