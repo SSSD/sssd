@@ -30,6 +30,12 @@
 %global build_kcm_renewals 0
 %endif
 
+%if 0%{?fedora} >= 39
+%global build_passkey 1
+%else
+%global build_passkey 0
+%endif
+
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python3_sitearch}/.*\.so$
 
@@ -104,6 +110,9 @@ BuildRequires: keyutils-libs-devel
 BuildRequires: krb5-devel
 BuildRequires: libcmocka-devel >= 1.0.0
 BuildRequires: libdhash-devel >= 0.4.2
+%if %{build_passkey}
+BuildRequires: libfido2-devel
+%endif
 BuildRequires: libini_config-devel >= 1.1
 BuildRequires: libldb-devel >= %{ldb_version}
 BuildRequires: libnfsidmap-devel
@@ -513,6 +522,18 @@ This package provides Kerberos plugins that are required to enable
 authentication against external identity providers. Additionally a helper
 program to handle the OAuth 2.0 Device Authorization Grant is provided.
 
+%if %{build_passkey}
+%package passkey
+Summary: SSSD helpers and plugins needed for authentication with passkey token
+License: GPLv3+
+Requires: sssd-common = %{version}-%{release}
+Requires: libfido2
+
+%description passkey
+This package provides helper processes and plugins that are required to
+enable authentication with passkey token.
+%endif
+
 %prep
 %autosetup -p1
 
@@ -546,6 +567,9 @@ autoreconf -ivf
 %endif
 %if 0%{?fedora}
     --disable-polkit-rules-path \
+%endif
+%if %{build_passkey}
+    --with-passkey \
 %endif
     %{nil}
 
@@ -986,6 +1010,11 @@ done
 %{_libdir}/%{name}/modules/sssd_krb5_idp_plugin.so
 %{_datadir}/sssd/krb5-snippets/sssd_enable_idp
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/sssd_enable_idp
+
+%if %{build_passkey}
+%files passkey
+%attr(755,%{sssd_user},%{sssd_user}) %{_libexecdir}/%{servicename}/passkey_child
+%endif
 
 %if 0%{?rhel}
 %pre common
