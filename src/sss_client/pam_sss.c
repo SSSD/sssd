@@ -1638,6 +1638,16 @@ static int prompt_2fa(pam_handle_t *pamh, struct pam_items *pi,
         goto done;
     }
 
+    /* If the force second factor flag is set and this is ssh,
+     * fail if the second factor is not provided. */
+    if ((resp[1].resp == NULL || *(resp[1].resp) == '\0')
+        && (pi->flags & PAM_CLI_FLAGS_FORCE_SECOND_FACTOR )
+		&& (pi->pam_service != NULL && strcmp(pi->pam_service, "sshd") == 0)) {
+        D(("Missing required second factor."));
+        ret = PAM_CRED_INSUFFICIENT;
+        goto done;
+    }
+
     if (resp[1].resp == NULL || *(resp[1].resp) == '\0'
             || (pi->pam_service != NULL && strcmp(pi->pam_service, "sshd") == 0
                     && strcmp(resp[0].resp, resp[1].resp) == 0)) {
@@ -2238,6 +2248,8 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             }
         } else if (strcmp(*argv, "quiet") == 0) {
             *quiet_mode = true;
+        } else if (strcmp(*argv, "force_second_factor") == 0) {
+            *flags |= PAM_CLI_FLAGS_FORCE_SECOND_FACTOR;
         } else if (strcmp(*argv, "ignore_unknown_user") == 0) {
             *flags |= PAM_CLI_FLAGS_IGNORE_UNKNOWN_USER;
         } else if (strcmp(*argv, "ignore_authinfo_unavail") == 0) {

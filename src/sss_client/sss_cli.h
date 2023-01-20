@@ -406,6 +406,7 @@ enum pam_item_type {
 #define PAM_CLI_FLAGS_PROMPT_ALWAYS (1 << 7)
 #define PAM_CLI_FLAGS_TRY_CERT_AUTH (1 << 8)
 #define PAM_CLI_FLAGS_REQUIRE_CERT_AUTH (1 << 9)
+#define PAM_CLI_FLAGS_FORCE_SECOND_FACTOR (1 << 10)
 
 #define SSS_NSS_MAX_ENTRIES 256
 #define SSS_NSS_HEADER_SIZE (sizeof(uint32_t) * 4)

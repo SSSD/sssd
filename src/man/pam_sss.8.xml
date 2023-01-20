@@ -56,6 +56,9 @@
             <arg choice='opt'>
                 <replaceable>require_cert_auth</replaceable>
             </arg>
+            <arg choice='opt'>
+                <replaceable>force_second_factor</replaceable>
+            </arg>
         </cmdsynopsis>
     </refsynopsisdiv>
 
@@ -246,6 +249,19 @@ auth sufficient pam_sss.so allow_missing_name
                         If no Smartcard is available after the timeout or
                         certificate based authentication is not allowed for the
                         current service PAM_AUTHINFO_UNAVAIL is returned.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>force_second_factor</option>
+                </term>
+                <listitem>
+                    <para>
+                        For sshd, if you have enabled 2FA and want to require 
+                        that both factors are provided, versus providing them
+			            all in the first factor, set this option. A NULL or
+		                empty second factor will cause login to fail.	
                     </para>
                 </listitem>
             </varlistentry>
