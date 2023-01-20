@@ -216,7 +216,8 @@ read_pin(char **pin)
         goto done;
     }
 
-    printf("Enter PIN: ");
+    printf("Enter PIN:\n");
+    fflush(stdout);
     bytes_read = getline(&line_ptr, &line_len, stdin);
     if (bytes_read == -1) {
         DEBUG(SSSDBG_OP_FAILURE, "getline failed [%d]: %s.\n",
@@ -280,6 +281,7 @@ generate_credentials(struct passkey_data *data, fido_dev_t *dev,
 
     if (data->quiet == false) {
         printf("Please touch the device.\n");
+        fflush(stdout);
     }
     ret = fido_dev_make_cred(dev, cred, pin);
     sss_erase_mem_securely(pin, pin_len);
