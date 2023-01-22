@@ -10,6 +10,7 @@
 from __future__ import print_function
 import re
 import pytest
+import time
 from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name
 
@@ -138,6 +139,7 @@ class TestLdapTimeLogging(object):
             get_tc_rule = f'tc qdisc show dev {interface}'
             show_rule = multihost.client[0].run_command(get_tc_rule, raiseonerr=True)
             print(f'===tc rules for {interface}===:\n{show_rule.stdout_text}')
+            time.sleep(3)
         tools.clear_sssd_cache()
         user = f'foo5@{ds_instance_name}'
         get_user = f'getent passwd {user}'
