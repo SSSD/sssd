@@ -276,6 +276,9 @@ class Testautofsresponder(object):
                                         "rm -rf /var/log/sssd/* ; "
                                         "rm -rf /var/lib/sss/db/* ; "
                                         "systemctl start sssd")
+        time.sleep(3)
+        multihost.client[0].run_command("systemctl restart sssd")
+        time.sleep(3)
         multihost.client[0].run_command("systemctl restart autofs")
         multihost.client[0].run_command("automount -m")
         multihost.master[0].run_command("touch /export1/export1")
@@ -488,6 +491,7 @@ class Testautofsresponder(object):
         domain_name = client.get_domain_section_name()
         for service in ['sssd', 'autofs']:
             client.service_ctrl("stop", service)
+        multihost.client[0].run_command("yum install -y firewalld")
         client.service_ctrl("start", "firewalld")
         multihost.client[0].run_command("iptables -A "
                                         "OUTPUT -p tcp "
