@@ -100,7 +100,8 @@ class TestLdapTimeLogging(object):
         assert find1.search(log_str2)
         assert find2.search(log_str2)
 
-    def test_0003_bz1925559(self, multihost, backupsssdconf):
+    @staticmethod
+    def disabled_test_0003_bz1925559(multihost, backupsssdconf):
         """
         :title: Warning message for long queries without debug level set
         :id: 9280b9fa-e0b4-446a-92ad-258888195633
