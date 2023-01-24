@@ -162,6 +162,14 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    if (be_ptask_running(sudo_ctx->full_refresh)) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Skipping smart refresh because "
+              "there is ongoing full refresh.\n");
+        state->dp_error = DP_ERR_OK;
+        ret = EOK;
+        goto immediately;
+    }
+
     /* Download all rules from LDAP that are newer than usn */
     if (srv_opts == NULL || srv_opts->max_sudo_value == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, assuming zero.\n");
@@ -201,7 +209,12 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    tevent_req_error(req, ret);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+
     tevent_req_post(req, ev);
 
     return req;
