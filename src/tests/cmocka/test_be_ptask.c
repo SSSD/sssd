@@ -943,6 +943,37 @@ void test_be_ptask_get_timeout(void **state)
     assert_null(ptask);
 }
 
+void test_be_ptask_running(void **state)
+{
+    struct test_ctx *test_ctx = (struct test_ctx *)(*state);
+    struct be_ptask *ptask = NULL;
+    errno_t ret;
+
+    mark_offline(test_ctx);
+
+    ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
+                          0, test_be_ptask_send,
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_EXECUTE |
+                          BE_PTASK_SCHEDULE_FROM_NOW,
+                          &ptask);
+    assert_int_equal(ret, ERR_OK);
+    assert_non_null(ptask);
+    assert_non_null(ptask->timer);
+    assert_true(ptask->enabled);
+
+    while (!test_ctx->done) {
+        tevent_loop_once(test_ctx->be_ctx->ev);
+        if (ptask->req != NULL) {
+            break;
+        }
+    }
+
+    assert_true(be_ptask_running(ptask));
+    be_ptask_destroy(&ptask);
+    assert_null(ptask);
+}
+
 void test_be_ptask_no_periodic(void **state)
 {
     struct test_ctx *test_ctx = (struct test_ctx *)(*state);
@@ -1145,6 +1176,7 @@ int main(int argc, const char *argv[])
         new_test(be_ptask_reschedule_backoff),
         new_test(be_ptask_get_period),
         new_test(be_ptask_get_timeout),
+        new_test(be_ptask_running),
         new_test(be_ptask_no_periodic),
         new_test(be_ptask_create_sync),
         new_test(be_ptask_sync_reschedule_ok),

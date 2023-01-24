@@ -147,5 +147,6 @@ void be_ptask_destroy(struct be_ptask **task);
 
 time_t be_ptask_get_period(struct be_ptask *task);
 time_t be_ptask_get_timeout(struct be_ptask *task);
+bool be_ptask_running(struct be_ptask *task);
 
 #endif /* _DP_PTASK_H_ */

@@ -447,6 +447,11 @@ time_t be_ptask_get_timeout(struct be_ptask *task)
     return task->timeout;
 }
 
+bool be_ptask_running(struct be_ptask *task)
+{
+    return task->req != NULL;
+}
+
 struct be_ptask_sync_ctx {
     be_ptask_sync_t fn;
     void *pvt;
