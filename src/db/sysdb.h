@@ -161,6 +161,7 @@
 
 #define SYSDB_SUBDOMAIN_REALM "realmName"
 #define SYSDB_SUBDOMAIN_FLAT "flatName"
+#define SYSDB_SUBDOMAIN_DNS "dnsName"
 #define SYSDB_SUBDOMAIN_ID "domainID"
 #define SYSDB_SUBDOMAIN_MPG "mpg"
 #define SYSDB_SUBDOMAIN_ENUM "enumerate"
@@ -545,7 +546,8 @@ sysdb_list_subdomains(TALLOC_CTX *mem_ctx,
 
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
-                              const char *flat_name, const char *domain_id,
+                              const char *flat_name, const char *dns_name,
+                              const char *domain_id,
                               enum sss_domain_mpg_mode mpg_mode,
                               bool enumerate, const char *forest,
                               uint32_t trust_direction,
@@ -559,6 +561,7 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain);
 errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
                                      const char *realm,
                                      const char *flat,
+                                     const char *dns,
                                      const char *id,
                                      const char *forest,
                                      struct ldb_message_element *alt_dom_suf);
@@ -582,6 +585,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *name,
                                       const char *realm,
                                       const char *flat_name,
+                                      const char *dns_name,
                                       const char *id,
                                       enum sss_domain_mpg_mode mpg_mode,
                                       bool enumerate,
