@@ -581,6 +581,7 @@ ad_subdom_store(struct confdb_ctx *cdb,
     const char *name;
     char *realm;
     const char *flat;
+    const char *dns;
     errno_t ret;
     enum idmap_error_code err;
     struct ldb_message_element *el;
@@ -613,6 +614,13 @@ ad_subdom_store(struct confdb_ctx *cdb,
         goto done;
     }
 
+    ret = sysdb_attrs_get_string(subdom_attrs, AD_AT_DOMAIN_NAME, &dns);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, "failed to get dns name of subdomain %s\n",
+                                  name);
+        goto done;
+    }
+
     ret = sysdb_attrs_get_el(subdom_attrs, AD_AT_SID, &el);
     if (ret != EOK || el->num_values != 1) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_attrs_get_el failed.\n");
@@ -636,7 +644,7 @@ ad_subdom_store(struct confdb_ctx *cdb,
     DEBUG(SSSDBG_CONF_SETTINGS, "MPG mode of %s is %s\n",
                                 name, str_domain_mpg_mode(mpg_mode));
 
-    ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
+    ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, dns, sid_str,
                                 mpg_mode, enumerate, domain->forest, 0, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
@@ -2079,6 +2087,7 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
     struct ad_subdomains_refresh_state *state;
     struct tevent_req *req;
     const char *realm;
+    const char *dns;
     char *master_sid;
     char *flat_name;
     char *site = NULL;
@@ -2152,8 +2161,15 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = sysdb_master_domain_add_info(state->be_ctx->domain, realm,
-                                       flat_name, master_sid, state->forest, NULL);
+    dns = dp_opt_get_cstring(state->ad_options->basic, AD_DOMAIN);
+    if (dns == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Missing domain name.\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    ret = sysdb_master_domain_add_info(state->be_ctx->domain, realm, flat_name,
+                                       dns, master_sid, state->forest, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -2594,7 +2610,7 @@ ad_check_domain_send(TALLOC_CTX *mem_ctx,
         }
 
         state->dom = new_subdomain(state->parent, state->parent, dom_name,
-                                   dom_name, NULL, NULL, MPG_DISABLED, false,
+                                   dom_name, NULL, NULL, NULL, MPG_DISABLED, false,
                                    state->parent->forest,
                                    NULL, 0, be_ctx->cdb, true);
         if (state->dom == NULL) {

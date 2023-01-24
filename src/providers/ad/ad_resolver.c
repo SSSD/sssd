@@ -346,6 +346,7 @@ ad_resolver_enumeration_master_done(struct tevent_req *subreq)
     struct ad_resolver_enum_state *state = tevent_req_data(req,
                                                 struct ad_resolver_enum_state);
     char *flat_name;
+    const char *dns_name;
     char *master_sid;
     char *forest;
     struct ad_id_ctx *ad_id_ctx;
@@ -359,18 +360,27 @@ ad_resolver_enumeration_master_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = sysdb_master_domain_add_info(state->sdom->dom, state->realm,
-                                       flat_name, master_sid, forest, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info\n");
-        tevent_req_error(req, ret);
-        return;
-    }
-
     ad_id_ctx = talloc_get_type(state->sdom->pvt, struct ad_id_ctx);
     if (ad_id_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot retrieve ad_id_ctx!\n");
         tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    dns_name = dp_opt_get_cstring(ad_id_ctx->ad_options->basic, AD_DOMAIN);
+    if (dns_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing domain name\n");
+        ret = EINVAL;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_master_domain_add_info(state->sdom->dom, state->realm,
+                                       flat_name, dns_name,
+                                       master_sid, forest, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info\n");
+        tevent_req_error(req, ret);
         return;
     }
 
