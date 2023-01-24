@@ -684,6 +684,7 @@ ad_enumeration_master_done(struct tevent_req *subreq)
     struct ad_enumeration_state *state = tevent_req_data(req,
                                                 struct ad_enumeration_state);
     char *flat_name;
+    char *dns_name;
     char *master_sid;
     char *forest;
 
@@ -696,8 +697,16 @@ ad_enumeration_master_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = sysdb_master_domain_add_info(state->sdom->dom, state->realm,
-                                       flat_name, master_sid, forest, NULL);
+    dns_name = dp_opt_get_string(state->id_ctx->ad_options->basic, AD_DOMAIN);
+    if (dns_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No domain name for AD?\n");
+        ret = EIO;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_master_domain_add_info(state->sdom->dom, state->realm, flat_name,
+                                       dns_name, master_sid, forest, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info\n");
         tevent_req_error(req, ret);

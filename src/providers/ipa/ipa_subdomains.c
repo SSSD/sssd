@@ -400,6 +400,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     const char *name;
     char *realm;
     const char *flat;
+    const char *dns;
     const char *id;
     char *forest = NULL;
     int ret;
@@ -424,6 +425,12 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
 
     realm = get_uppercase_realm(tmp_ctx, name);
     if (!realm) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dns = talloc_strdup(tmp_ctx, name);
+    if (dns == NULL) {
         ret = ENOMEM;
         goto done;
     }
@@ -509,7 +516,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     DEBUG(SSSDBG_TRACE_FUNC, "Domain mpg mode for %s: %s\n",
           name, str_domain_mpg_mode(mpg_mode));
 
-    ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
+    ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat, dns,
                                 id, mpg_mode, enumerate, forest,
                                 direction, alternative_domain_suffixes);
     if (ret) {
@@ -1232,6 +1239,7 @@ ipa_subdomains_master_send(TALLOC_CTX *mem_ctx,
     }
 
     if (domain->flat_name != NULL && domain->domain_id != NULL
+            && domain->dns_name != NULL
             && domain->realm != NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, "Master record is up to date.\n");
         ret = EOK;
@@ -1269,6 +1277,7 @@ static void ipa_subdomains_master_done(struct tevent_req *subreq)
     struct sysdb_attrs **reply;
     size_t reply_count;
     const char *flat = NULL;
+    const char *dns = NULL;
     const char *id = NULL;
     const char *realm = NULL;
     struct ldb_message_element *alternative_domain_suffixes = NULL;
@@ -1319,7 +1328,14 @@ static void ipa_subdomains_master_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_master_domain_add_info(state->domain, realm, flat, id, NULL,
+    dns = dp_opt_get_string(state->ipa_options->basic, IPA_DOMAIN);
+    if (dns == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No domain name for IPA?\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = sysdb_master_domain_add_info(state->domain, realm, flat, dns, id, NULL,
                                        alternative_domain_suffixes);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add master domain info "

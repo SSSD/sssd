@@ -99,7 +99,7 @@ static void test_sysdb_subdomain_create(void **state)
     const char *const dom2[4] = { "dom2.sub", "DOM2.SUB", "dom2", "S-2" };
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                dom1[0], dom1[1], dom1[2], dom1[3],
+                                dom1[0], dom1[1], dom1[2], dom1[0], dom1[3],
                                 MPG_DISABLED, false, NULL, 0, NULL);
     assert_int_equal(ret, EOK);
 
@@ -112,7 +112,7 @@ static void test_sysdb_subdomain_create(void **state)
     assert_true(test_ctx->tctx->dom->subdomains->mpg_mode == MPG_DISABLED);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                dom2[0], dom2[1], dom2[2], dom2[3],
+                                dom2[0], dom2[1], dom2[2], dom2[0], dom2[3],
                                 MPG_DISABLED, false, NULL, 1, NULL);
     assert_int_equal(ret, EOK);
 
@@ -126,12 +126,12 @@ static void test_sysdb_subdomain_create(void **state)
 
     /* Reverse the trust directions */
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                dom1[0], dom1[1], dom1[2], dom1[3],
+                                dom1[0], dom1[1], dom1[2], dom1[0], dom1[3],
                                 MPG_DISABLED, false, NULL, 1, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                dom2[0], dom2[1], dom2[2], dom2[3],
+                                dom2[0], dom2[1], dom2[2], dom2[0], dom2[3],
                                 MPG_DISABLED, false, NULL, 0, NULL);
     assert_int_equal(ret, EOK);
 
@@ -158,12 +158,12 @@ static void test_sysdb_subdomain_create(void **state)
 
     /* Test that changing the MPG status works */
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                dom1[0], dom1[1], dom1[2], dom1[3],
+                                dom1[0], dom1[1], dom1[2], dom1[0], dom1[3],
                                 MPG_ENABLED, false, NULL, 1, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                dom2[0], dom2[1], dom2[2], dom2[3],
+                                dom2[0], dom2[1], dom2[2], dom2[0], dom2[3],
                                 MPG_ENABLED, false, NULL, 0, NULL);
     assert_int_equal(ret, EOK);
 
@@ -174,12 +174,12 @@ static void test_sysdb_subdomain_create(void **state)
     assert_true(test_ctx->tctx->dom->subdomains->next->mpg_mode == MPG_ENABLED);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                dom1[0], dom1[1], dom1[2], dom1[3],
+                                dom1[0], dom1[1], dom1[2], dom1[0], dom1[3],
                                 MPG_HYBRID, false, NULL, 1, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                dom2[0], dom2[1], dom2[2], dom2[3],
+                                dom2[0], dom2[1], dom2[2], dom2[0], dom2[3],
                                 MPG_HYBRID, false, NULL, 0, NULL);
     assert_int_equal(ret, EOK);
 
@@ -197,7 +197,7 @@ static void test_sysdb_master_domain_ops(void **state)
         talloc_get_type(*state, struct subdom_test_ctx);
 
     ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
-                                       "realm1", "flat1", "id1", "forest1",
+                                       "realm1", "flat1", "realm1", "id1", "forest1",
                                        NULL);
     assert_int_equal(ret, EOK);
 
@@ -210,7 +210,7 @@ static void test_sysdb_master_domain_ops(void **state)
     assert_string_equal(test_ctx->tctx->dom->forest, "forest1");
 
     ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
-                                       "realm2", "flat2", "id2", "forest2",
+                                       "realm2", "flat2", "realm2", "id2", "forest2",
                                        NULL);
     assert_int_equal(ret, EOK);
 
@@ -246,26 +246,26 @@ static void test_sysdb_link_forest_root_ipa(void **state)
                                         "CHILD2.DOM1", "S-2-2", "DOM2.SUB" };
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                dom1[0], dom1[1], dom1[2], dom1[3],
+                                dom1[0], dom1[1], dom1[2], dom1[0], dom1[3],
                                 MPG_DISABLED, false, dom1[4], 0, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 child_dom1[0], child_dom1[1],
-                                child_dom1[2], child_dom1[3],
+                                child_dom1[2], child_dom1[0], child_dom1[3],
                                 MPG_DISABLED, false, child_dom1[4],
                                 0, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
-                                dom2[0], dom2[1], dom2[2], dom2[3],
+                                dom2[0], dom2[1], dom2[2], dom2[0], dom2[3],
                                 MPG_DISABLED, false, dom2[4],
                                 0, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 child_dom2[0], child_dom2[1],
-                                child_dom2[2], child_dom2[3],
+                                child_dom2[2], child_dom2[0], child_dom2[3],
                                 MPG_DISABLED, false, child_dom2[4],
                                 0, NULL);
     assert_int_equal(ret, EOK);
@@ -331,6 +331,7 @@ static void test_sysdb_link_forest_root_ad(void **state)
     ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
                                        TEST_REALM,
                                        TEST_FLAT_NAME,
+                                       TEST_REALM,
                                        TEST_SID,
                                        TEST_FOREST,
                                        NULL);
@@ -338,14 +339,14 @@ static void test_sysdb_link_forest_root_ad(void **state)
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 child_dom[0], child_dom[1],
-                                child_dom[2], child_dom[3],
+                                child_dom[2], child_dom[0], child_dom[3],
                                 MPG_DISABLED, false, child_dom[4],
                                 0, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 sub_dom[0], sub_dom[1],
-                                sub_dom[2], sub_dom[3],
+                                sub_dom[2], sub_dom[0], sub_dom[3],
                                 MPG_DISABLED, false, sub_dom[4],
                                 0, NULL);
     assert_int_equal(ret, EOK);
@@ -408,6 +409,7 @@ static void test_sysdb_link_forest_member_ad(void **state)
     ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
                                        child_dom[1],
                                        child_dom[2],
+                                       child_dom[0],
                                        child_dom[3],
                                        TEST_FOREST,
                                        NULL);
@@ -415,14 +417,14 @@ static void test_sysdb_link_forest_member_ad(void **state)
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 sub_dom[0], sub_dom[1],
-                                sub_dom[2], sub_dom[3],
+                                sub_dom[2], sub_dom[0], sub_dom[3],
                                 MPG_DISABLED, false, sub_dom[4],
                                 0, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 forest_root[0], forest_root[1],
-                                forest_root[2], forest_root[3],
+                                forest_root[2], forest_root[0], forest_root[3],
                                 MPG_DISABLED, false, forest_root[4],
                                 0, NULL);
     assert_int_equal(ret, EOK);
@@ -493,6 +495,7 @@ static void test_sysdb_link_ad_multidom(void **state)
     ret = sysdb_master_domain_add_info(main_dom1,
                                        TEST_REALM,
                                        TEST_FLAT_NAME,
+                                       TEST_REALM,
                                        TEST_SID,
                                        TEST_FOREST,
                                        NULL);
@@ -500,7 +503,7 @@ static void test_sysdb_link_ad_multidom(void **state)
 
     ret = sysdb_subdomain_store(main_dom1->sysdb,
                                 child_dom[0], child_dom[1],
-                                child_dom[2], child_dom[3],
+                                child_dom[2], child_dom[0], child_dom[3],
                                 MPG_DISABLED, false, child_dom[4],
                                 0, NULL);
     assert_int_equal(ret, EOK);
@@ -514,6 +517,7 @@ static void test_sysdb_link_ad_multidom(void **state)
     ret = sysdb_master_domain_add_info(main_dom2,
                                        TEST_REALM2,
                                        TEST_FLAT_NAME2,
+                                       TEST_REALM2,
                                        TEST_SID2,
                                        TEST_FOREST2,
                                        NULL);
@@ -521,7 +525,7 @@ static void test_sysdb_link_ad_multidom(void **state)
 
     ret = sysdb_subdomain_store(main_dom2->sysdb,
                                 dom2_forest_root[0], dom2_forest_root[1],
-                                dom2_forest_root[2], dom2_forest_root[3],
+                                dom2_forest_root[2], dom2_forest_root[0], dom2_forest_root[3],
                                 MPG_DISABLED, false, dom2_forest_root[4], 0, NULL);
     assert_int_equal(ret, EOK);
 

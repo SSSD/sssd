@@ -1547,7 +1547,7 @@ START_TEST (test_sysdb_get_user_attr_subdomain)
 
     /* Create subdomain */
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                              "test.sub", "TEST.SUB", "test", "S-3",
+                              "test.sub", "TEST.SUB", "test", "test.sub", "S-3",
                               MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
     sss_ck_fail_if_msg(subdomain == NULL, "Failed to create new subdomain.");
 
@@ -6322,11 +6322,11 @@ START_TEST(test_sysdb_subdomain_store_user)
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test");
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                              testdom[0], testdom[1], testdom[2], testdom[3],
-                              MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
+                              testdom[0], testdom[1], testdom[2], testdom[0],
+                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
     ck_assert_msg(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                testdom[0], testdom[1], testdom[2], testdom[3],
+                                testdom[0], testdom[1], testdom[2], testdom[0], testdom[3],
                                 false, false, NULL, 0, NULL);
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test (test subdom)");
 
@@ -6400,11 +6400,11 @@ START_TEST(test_sysdb_subdomain_content_delete)
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test");
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                              testdom[0], testdom[1], testdom[2], testdom[3],
-                              MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
+                              testdom[0], testdom[1], testdom[2], testdom[0],
+                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
     ck_assert_msg(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                testdom[0], testdom[1], testdom[2], testdom[3],
+                                testdom[0], testdom[1], testdom[2], testdom[0], testdom[3],
                                 false, false, NULL, 0, NULL);
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test (test subdom)");
 
@@ -6488,11 +6488,11 @@ START_TEST(test_sysdb_subdomain_user_ops)
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test");
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                              testdom[0], testdom[1], testdom[2], testdom[3],
-                              MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
+                              testdom[0], testdom[1], testdom[2], testdom[0],
+                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
     ck_assert_msg(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                testdom[0], testdom[1], testdom[2], testdom[3],
+                                testdom[0], testdom[1], testdom[2], testdom[0], testdom[3],
                                 false, false, NULL, 0, NULL);
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test (test subdom)");
 
@@ -6561,11 +6561,11 @@ START_TEST(test_sysdb_subdomain_group_ops)
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test");
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
-                              testdom[0], testdom[1], testdom[2], testdom[3],
-                              MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
+                              testdom[0], testdom[1], testdom[2], testdom[0],
+                              testdom[3], MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
     ck_assert_msg(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                testdom[0], testdom[1], testdom[2], testdom[3],
+                                testdom[0], testdom[1], testdom[2], testdom[0], testdom[3],
                                 false, false, NULL, 0, NULL);
     sss_ck_fail_if_msg(ret != EOK, "Could not set up the test (test subdom)");
 

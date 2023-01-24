@@ -415,6 +415,7 @@ struct sss_domain_info {
     struct sss_domain_info *subdomains;
     char *realm;
     char *flat_name;
+    char *dns_name;
     char *domain_id;
     uint32_t trust_direction;
     struct timeval subdomains_last_checked;

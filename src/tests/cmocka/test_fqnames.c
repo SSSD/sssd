@@ -309,7 +309,7 @@ static int parse_name_test_setup(void **state)
      * discovered
      */
     test_ctx->subdom = new_subdomain(dom, dom, SUBDOMNAME, NULL, SUBFLATNAME,
-                                     NULL, MPG_DISABLED, false,
+                                     SUBDOMNAME, NULL, MPG_DISABLED, false,
                                      NULL, NULL, 0, NULL, true);
     assert_non_null(test_ctx->subdom);
 

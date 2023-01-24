@@ -33,6 +33,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *name,
                                       const char *realm,
                                       const char *flat_name,
+                                      const char *dns_name,
                                       const char *id,
                                       enum sss_domain_mpg_mode mpg_mode,
                                       bool enumerate,
@@ -97,6 +98,14 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
         dom->flat_name = talloc_strdup(dom, flat_name);
         if (dom->flat_name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to copy flat name.\n");
+            goto fail;
+        }
+    }
+
+    if (dns_name != NULL) {
+        dom->dns_name = talloc_strdup(dom, dns_name);
+        if (dom->dns_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy dns name.\n");
             goto fail;
         }
     }
@@ -400,6 +409,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
     const char *attrs[] = {"cn",
                            SYSDB_SUBDOMAIN_REALM,
                            SYSDB_SUBDOMAIN_FLAT,
+                           SYSDB_SUBDOMAIN_DNS,
                            SYSDB_SUBDOMAIN_ID,
                            SYSDB_SUBDOMAIN_MPG,
                            SYSDB_SUBDOMAIN_ENUM,
@@ -413,6 +423,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
     const char *name;
     const char *realm;
     const char *flat;
+    const char *dns;
     const char *id;
     const char *forest;
     const char *str_mpg_mode;
@@ -469,6 +480,9 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
 
         flat = ldb_msg_find_attr_as_string(res->msgs[i],
                                            SYSDB_SUBDOMAIN_FLAT, NULL);
+
+        dns = ldb_msg_find_attr_as_string(res->msgs[i],
+                                          SYSDB_SUBDOMAIN_DNS, NULL);
 
         id = ldb_msg_find_attr_as_string(res->msgs[i],
                                          SYSDB_SUBDOMAIN_ID, NULL);
@@ -537,11 +551,24 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                         goto done;
                     }
                 }
+                if ((dom->dns_name == NULL && dns != NULL)
+                        || (dom->dns_name != NULL && dns != NULL
+                            && strcasecmp(dom->dns_name, dns) != 0)) {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          "DNS name changed from [%s] to [%s]!\n",
+                           dom->dns_name, dns);
+                    talloc_zfree(dom->dns_name);
+                    dom->dns_name = talloc_strdup(dom, dns);
+                    if (dom->dns_name == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                }
                 if ((dom->domain_id == NULL && id != NULL)
                         || (dom->domain_id != NULL && id != NULL
                             && strcasecmp(dom->domain_id, id) != 0)) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
-                          "Domain changed from [%s] to [%s]!\n",
+                          "Domain ID changed from [%s] to [%s]!\n",
                            dom->domain_id, id);
                     talloc_zfree(dom->domain_id);
                     dom->domain_id = talloc_strdup(dom, id);
@@ -626,7 +653,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
         /* If not found in loop it is a new subdomain */
         if (dom == NULL) {
             dom = new_subdomain(domain, domain, name, realm,
-                                flat, id, mpg_mode, enumerate, forest,
+                                flat, dns, id, mpg_mode, enumerate, forest,
                                 upn_suffixes, trust_direction, confdb,
                                 enabled);
             if (dom == NULL) {
@@ -659,6 +686,7 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
     const char *attrs[] = {"cn",
                            SYSDB_SUBDOMAIN_REALM,
                            SYSDB_SUBDOMAIN_FLAT,
+                           SYSDB_SUBDOMAIN_DNS,
                            SYSDB_SUBDOMAIN_ID,
                            SYSDB_SUBDOMAIN_FOREST,
                            SYSDB_UPN_SUFFIXES,
@@ -715,6 +743,19 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
         talloc_free(domain->flat_name);
         domain->flat_name = talloc_strdup(domain, tmp_str);
         if (domain->flat_name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SUBDOMAIN_DNS,
+                                          NULL);
+    if (tmp_str != NULL &&
+        (domain->dns_name == NULL ||
+         strcasecmp(tmp_str, domain->dns_name) != 0)) {
+        talloc_free(domain->dns_name);
+        domain->dns_name = talloc_strdup(domain, tmp_str);
+        if (domain->dns_name == NULL) {
             ret = ENOMEM;
             goto done;
         }
@@ -862,6 +903,7 @@ done:
 errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
                                      const char *realm,
                                      const char *flat,
+                                     const char *dns,
                                      const char *id,
                                      const char *forest,
                                      struct ldb_message_element *upn_suffixes)
@@ -898,6 +940,24 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
         }
 
         ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_FLAT, flat);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        do_update = true;
+    }
+
+    if (dns != NULL && (domain->dns_name == NULL ||
+                         strcmp(domain->dns_name, dns) != 0)) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_DNS,
+                                LDB_FLAG_MOD_REPLACE, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_DNS, dns);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;
@@ -1018,7 +1078,8 @@ done:
 
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
-                              const char *flat_name, const char *domain_id,
+                              const char *flat_name, const char *dns_name,
+                              const char *domain_id,
                               enum sss_domain_mpg_mode mpg_mode,
                               bool enumerate, const char *forest,
                               uint32_t trust_direction,
@@ -1031,6 +1092,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
     const char *attrs[] = {"cn",
                            SYSDB_SUBDOMAIN_REALM,
                            SYSDB_SUBDOMAIN_FLAT,
+                           SYSDB_SUBDOMAIN_DNS,
                            SYSDB_SUBDOMAIN_ID,
                            SYSDB_SUBDOMAIN_MPG,
                            SYSDB_SUBDOMAIN_ENUM,
@@ -1044,6 +1106,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
     bool store = false;
     int realm_flags = 0;
     int flat_flags = 0;
+    int dns_flags = 0;
     int id_flags = 0;
     int mpg_flags = 0;
     int enum_flags = 0;
@@ -1078,6 +1141,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         store = true;
         if (realm) realm_flags = LDB_FLAG_MOD_ADD;
         if (flat_name) flat_flags = LDB_FLAG_MOD_ADD;
+        if (dns_name) dns_flags = LDB_FLAG_MOD_ADD;
         if (domain_id) id_flags = LDB_FLAG_MOD_ADD;
         mpg_flags = LDB_FLAG_MOD_ADD;
         enum_flags = LDB_FLAG_MOD_ADD;
@@ -1100,6 +1164,13 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                                                   SYSDB_SUBDOMAIN_FLAT, NULL);
             if (!tmp_str || strcasecmp(tmp_str, flat_name) != 0) {
                 flat_flags = LDB_FLAG_MOD_REPLACE;
+            }
+        }
+        if (dns_name) {
+            tmp_str = ldb_msg_find_attr_as_string(res->msgs[0],
+                                                  SYSDB_SUBDOMAIN_DNS, NULL);
+            if (!tmp_str || strcasecmp(tmp_str, dns_name) != 0) {
+                dns_flags = LDB_FLAG_MOD_REPLACE;
             }
         }
         if (domain_id) {
@@ -1169,7 +1240,8 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         }
     }
 
-    if (!store && realm_flags == 0 && flat_flags == 0 && id_flags == 0
+    if (!store && realm_flags == 0 && flat_flags == 0
+            && dns_flags == 0 && id_flags == 0
             && mpg_flags == 0 && enum_flags == 0 && forest_flags == 0
             && td_flags == 0 && upn_flags == 0) {
         ret = EOK;
@@ -1219,6 +1291,20 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         }
 
         ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_FLAT, flat_name);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+    }
+
+    if (dns_flags) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_DNS, dns_flags, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_DNS, dns_name);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;
