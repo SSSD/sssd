@@ -116,6 +116,50 @@ def multidomain_sssd(session_multihost, request):
     return _modifysssd
 
 
+@pytest.fixture(scope='function')
+def create_nested_usersgroups(session_multihost, request):
+    """ Create single ldap posix user group """
+    ldap_uri = f'ldap://{session_multihost.master[0].sys_hostname}'
+    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    krb = krb5srv(session_multihost.master[0], 'EXAMPLE.TEST')
+    id = random.randint(99, 9999)
+    user_info = {'cn': f'usr_{id}',
+                 'uid': f'usr_{id}',
+                 'uidNumber': f'345831{id}',
+                 'gidNumber': f'345641{id}'}
+    if ldap_inst.posix_user("ou=People", f"{ds_suffix}", user_info):
+        krb.add_principal(f'usr_{id}', 'user', 'Secret123')
+    else:
+        print(f"Unable to add ldap User {user_info}")
+        assert False
+    group_info = {'cn': f'ng{id}',
+                  'gidNumber': f'12345{id}',
+                  'memberUid': f'usr_{id}'
+                  }
+    try:
+        ldap_inst.posix_group("ou=Groups", ds_suffix, group_info, memberUid=group_info.get('memberUid'))
+    except LdapException:
+        assert False
+    for count in range(1,3):
+        group_info = {'cn': f'ng{id + count}',
+                      'gidNumber': f'12345{id + count}',
+                      'memberUid': f'ng{id + count - 1}'}
+        try:
+            ldap_inst.posix_group("ou=Groups", f"{ds_rootpw}", group_info, memberUid=group_info.get('memberUid'))
+        except LdapException:
+            raise
+
+    def delnestedobject():
+        """ Delete ldap posix user and group """
+        ldap_inst.del_dn(f'uid=usr_{id},ou=People,{ds_suffix}')
+        krb.delete_principal(f'usr_{id}')
+        ldap_inst.del_dn(f'cn=ng{id},ou=Groups,{ds_suffix}')
+        ldap_inst.del_dn(f'cn=ng{id + 1},ou=Groups,{ds_suffix}')
+        ldap_inst.del_dn(f'cn=ng{id + 2},ou=Groups,{ds_suffix}')
+    request.addfinalizer(delnestedobject)
+    return f'{id}'
+
+
 @pytest.fixture(autouse=True)
 def capture_sssd_logs(session_multihost, request):
     """This will print sssd logs in case of test failure"""
@@ -280,6 +324,25 @@ def delete_groups_users(session_multihost, request):
                       'ou=Unit1,dc=example,dc=test']:
             ldap_inst.del_dn(dn_dn)
     request.addfinalizer(restoresssdconf)
+
+
+@pytest.fixture(scope="function")
+def disable_anonymous_bind(session_multihost, request):
+    """ disable anonymous bind on ldap-server """
+    ldap_uri = f'ldap://{session_multihost.master[0].sys_hostname}'
+    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    configdn = 'cn=config'
+    mod_limit = [(ldap.MOD_REPLACE, 'nsslapd-allow-anonymous-access', [b'off'])]
+    (ret, _) = ldap_inst.modify_ldap(configdn, mod_limit)
+    assert ret == 'Success'
+
+    def restore_anonymous_access():
+        """ Restore the default anonymous access """
+        restore_lookthrough = [(ldap.MOD_REPLACE, 'nsslapd-allow-anonymous-access',
+                               [b'on'])]
+        (ret, _) = ldap_inst.modify_ldap(configdn, restore_lookthrough)
+        assert ret == 'Success'
+    request.addfinalizer(restore_anonymous_access)
 
 
 @pytest.fixture(scope="function")
