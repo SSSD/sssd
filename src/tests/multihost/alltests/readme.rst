@@ -32,6 +32,8 @@ Following are the pytest markers used
 * krbldapconnection: Tests related to kerberos ldap connection
 * passwordcheck: Tests related to password check while updating password of user
 * proxy: Tests related to sssd-proxy
+* rfc2307: Tests related to rfc2307
+* rfc2307bis: Tests related to rfc2307bis
 * fips: Tests related to fips when auth_provider is krb5
 * ssh: Tests related to ssh responder
 * tier1: tier1 test cases
