@@ -139,7 +139,7 @@ class QeHost(QeBaseHost):
         """
         # For Fedora, Atomic and RHELs 7, 8, 9 this should work.
         service_command = f'systemctl {action} sssd'
-        if '6.' in self.distro.split()[6]:
+        if 'Red Hat Enterprise Linux' in self.distro and ' 6.' in self.distro:
             # RHEL 6 needs service command
             service_command = f"service sssd {action}"
         cmd = self.run_command(service_command, raiseonerr=False)
