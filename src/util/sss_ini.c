@@ -588,6 +588,39 @@ error:
 }
 
 #ifdef HAVE_LIBINI_CONFIG_V1_3
+static errno_t check_domain_inherit_from(char *cfg_section,
+                                         struct ini_cfgobj *config_obj,
+                                         struct ini_errobj *errobj)
+{
+    struct value_obj *vo = NULL;
+    int ret;
+
+    ret = ini_get_config_valueobj(cfg_section,
+                                  "inherit_from",
+                                  config_obj,
+                                  INI_GET_NEXT_VALUE,
+                                  &vo);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (vo != NULL) {
+        ret = ini_errobj_add_msg(errobj,
+                                 "Attribute 'inherit_from' is not "
+                                 "allowed in section '%s'. Check for "
+                                 "typos.",
+                                 cfg_section);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
 /* Here we can put custom SSSD specific checks that can not be implemented
  * using libini validators */
 static int custom_sssd_checks(const char *rule_name,
@@ -598,7 +631,6 @@ static int custom_sssd_checks(const char *rule_name,
 {
     char **cfg_sections = NULL;
     int num_cfg_sections;
-    struct value_obj *vo = NULL;
     char dom_prefix[] = "domain/";
     int ret;
 
@@ -612,20 +644,9 @@ static int custom_sssd_checks(const char *rule_name,
      * inherit_from and report error if it does */
     for (int i = 0; i < num_cfg_sections; i++) {
         if (strncmp(dom_prefix, cfg_sections[i], strlen(dom_prefix)) == 0) {
-            ret = ini_get_config_valueobj(cfg_sections[i],
-                                          "inherit_from",
-                                          config_obj,
-                                          INI_GET_NEXT_VALUE,
-                                          &vo);
-            if (vo != NULL) {
-                ret = ini_errobj_add_msg(errobj,
-                                         "Attribute 'inherit_from' is not "
-                                         "allowed in section '%s'. Check for "
-                                         "typos.",
-                                         cfg_sections[i]);
-                if (ret != EOK) {
-                    goto done;
-                }
+            ret = check_domain_inherit_from(cfg_sections[i], config_obj, errobj);
+            if (ret != EOK) {
+                goto done;
             }
         }
     }
