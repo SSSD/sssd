@@ -621,6 +621,65 @@ done:
     return ret;
 }
 
+static errno_t check_domain_id_provider(char *cfg_section,
+                                        struct ini_cfgobj *config_obj,
+                                        struct ini_errobj *errobj)
+{
+    struct value_obj *vo = NULL;
+    const char *valid_values[] = { "ad", "files", "ipa", "ldap", "proxy", NULL };
+    const char **valid_value;
+    const char *value;
+    int ret;
+
+    ret = ini_get_config_valueobj(cfg_section,
+                                  "id_provider",
+                                  config_obj,
+                                  INI_GET_NEXT_VALUE,
+                                  &vo);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (vo == NULL) {
+        ret = ini_errobj_add_msg(errobj,
+                                 "Attribute 'id_provider' is "
+                                 "missing in section '%s'.",
+                                 cfg_section);
+    } else {
+        value = sss_ini_get_const_string_config_value(vo, &ret);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        valid_value = valid_values;
+        while (*valid_value != NULL) {
+            if (strcmp(value, *valid_value) == 0) {
+                break;
+            }
+            valid_value++;
+        }
+        if (*valid_value == NULL) {
+            ret = ini_errobj_add_msg(errobj,
+                                     "Attribute 'id_provider' in section '%s' "
+                                     "has an invalid value: %s",
+                                     cfg_section, value);
+            if (ret != EOK) {
+                goto done;
+            }
+        }
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+#define SECTION_IS_DOMAIN(s) \
+             (strncmp("domain/", s, strlen("domain/")) == 0)
+#define SECTION_DOMAIN_IS_SUBDOMAIN(s) \
+             (strchr(s + strlen("domain/"), '/') != NULL)
+
 /* Here we can put custom SSSD specific checks that can not be implemented
  * using libini validators */
 static int custom_sssd_checks(const char *rule_name,
@@ -631,7 +690,6 @@ static int custom_sssd_checks(const char *rule_name,
 {
     char **cfg_sections = NULL;
     int num_cfg_sections;
-    char dom_prefix[] = "domain/";
     int ret;
 
     /* Get all sections in configuration */
@@ -640,13 +698,19 @@ static int custom_sssd_checks(const char *rule_name,
         goto done;
     }
 
-    /* Check if a normal domain section (not application domains) has option
-     * inherit_from and report error if it does */
+    /* Check a normal domain section (not application domains) */
     for (int i = 0; i < num_cfg_sections; i++) {
-        if (strncmp(dom_prefix, cfg_sections[i], strlen(dom_prefix)) == 0) {
+        if (SECTION_IS_DOMAIN(cfg_sections[i])) {
             ret = check_domain_inherit_from(cfg_sections[i], config_obj, errobj);
             if (ret != EOK) {
                 goto done;
+            }
+
+            if (!SECTION_DOMAIN_IS_SUBDOMAIN(cfg_sections[i])) {
+                ret = check_domain_id_provider(cfg_sections[i], config_obj, errobj);
+                if (ret != EOK) {
+                    goto done;
+                }
             }
         }
     }
