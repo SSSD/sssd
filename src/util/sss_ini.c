@@ -654,7 +654,7 @@ static int custom_sssd_checks(const char *rule_name,
     ret = EOK;
 done:
     ini_free_section_list(cfg_sections);
-    return EOK;
+    return ret;
 }
 
 static int sss_ini_call_validators_errobj(struct sss_ini *data,
