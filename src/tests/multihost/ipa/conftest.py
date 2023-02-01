@@ -426,8 +426,7 @@ def setup_ipa_client(session_multihost, request):
     ipa_server = ipaTools(session_multihost.master[0])
     ipa_client.install_common_pkgs()
     ipa_server.install_common_pkgs()
-    ipa_client_uuid = ipa_client.get_default_nw_uuid()
-    ipa_client_ip = ipa_client.get_interface_ip(ipa_client_uuid)
+    ipa_client_ip = session_multihost.client[0].ip
     ipa_server_uuid = ipa_server.get_default_nw_uuid()
     ipa_server_ip = ipa_server.get_interface_ip(ipa_server_uuid)
     sssd_client.update_resolv_conf(ipa_server_ip)
