@@ -8,6 +8,7 @@
 """
 import pytest
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.exceptions import SSSDException
 from packaging import version
 from constants import ds_instance_name
 
@@ -679,20 +680,23 @@ class TestKrbCredentialCache():
         domain_section = f'domain/{ds_instance_name}'
         domain_params = {'krb5_realm': 'EXAMPLE.TEST'}
         client.sssd_conf(domain_section, domain_params, action="delete")
-        sssd_log = f"/var/log/sssd/sssd_{ds_instance_name}.log"
-        sssd_ver = multihost.client[0].run_command("sssd --version").stdout_text[:-1]
-
-        assert "Missing krb5_realm option, will use libkrb default" in sssd_log, \
-            f"Missing krb5_realm not found in {sssd_log}"
-        assert "Will use default realm EXAMPLE.TEST" in sssd_log, \
-            f"default realm not found in {sssd_log}"
-        if version.parse(sssd_ver) >= version.parse("1.14.0"):
-            assert "Executing target [id] constructor" in sssd_log, \
-                f"Executing target [id] not found in {sssd_log}"
-        else:
-            assert "ID backend target successfully loaded from provider [ldap]" in sssd_log, \
-                f"ID backend target successfully loaded not found in {sssd_log}"
-        assert "Could not initialize backend" not in sssd_log, \
-            f"Could not initialize backend found in {sssd_log}"
-        assert "fatal error initializing data providers" not in sssd_log, \
-            f"fatal error found in {sssd_log}"
+        try:
+            client.clear_sssd_cache()
+        except SSSDException:
+            sssd_log = f"/var/log/sssd/sssd_{ds_instance_name}.log"
+            sssd_log_str = multihost.client[0].get_file_contents(sssd_log).decode('utf-8')
+            sssd_ver = multihost.client[0].run_command("sssd --version").stdout_text[:-1]
+            assert "Missing krb5_realm option, will use libkrb default" in sssd_log_str, \
+                f"Missing krb5_realm not found in {sssd_log_str}"
+            assert "Will use default realm EXAMPLE.TEST" in sssd_log_str, \
+                f"default realm not found in {sssd_log_str}"
+            if version.parse(sssd_ver) >= version.parse("1.14.0"):
+                assert "Executing target [id] constructor" in sssd_log_str, \
+                    f"Executing target [id] not found in {sssd_log_str}"
+            else:
+                assert "ID backend target successfully loaded from provider [ldap]" in sssd_log_str, \
+                    f"ID backend target successfully loaded not found in {sssd_log_str}"
+            assert "Could not initialize backend" not in sssd_log_str, \
+                f"Could not initialize backend found in {sssd_log_str}"
+            assert "fatal error initializing data providers" not in sssd_log_str, \
+                f"fatal error found in {sssd_log_str}"
