@@ -1576,6 +1576,38 @@ class ADOperations(object):  # pylint: disable=useless-object-inheritance
         mod = usr_res.returncode == 0
         return user and group and mbr and mod
 
+    def create_ad_unix_user(self, username, mail=None,
+                            password='Secret123', uid=None):
+        """ Create a AD User with Unix Attributes
+        :param str username: AD User Name
+        :param str mail: AD User e-mail address
+        :param str password: User password (default: Secret123)
+        :param int uid: User uid
+        :Return bool: if user added correctly return True else False
+        :Exceptions: False
+        """
+        if uid is None:
+            uid = random.randint(9999, 999999)
+
+        user = self.create_ad_nonposix_user(username, password)
+
+        if mail is None:
+            mail = f'{username}@{self.ad_host.realm}'
+
+        usr = f"powershell.exe -inputformat none -noprofile 'Set-ADUser " \
+              f"-Identity \"{username}\" -Add @{{" \
+              f"msSFU30NisDomain = \"{self.ad_host.netbiosname}\";" \
+              f"uidNumber = \"{str(uid)}\";" \
+              f"gidNumber = \"{str(uid)}\";" \
+              f"unixHomeDirectory = \"/home/{username}\";"\
+              f"loginShell = \"/bin/bash\";" \
+              f"msSFU30Name = \"{username}\";" \
+              f"mail = \"{mail}\";" \
+              f"}}'"
+        usr_res = self.ad_host.run_command(usr, raiseonerr=False)
+        mod = usr_res.returncode == 0
+        return user and mod
+
     def create_ad_unix_group(self, groupname, gid=None):
         """ Create AD Group with UNIX Attributes
 
