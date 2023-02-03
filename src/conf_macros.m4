@@ -633,6 +633,24 @@ AC_DEFUN([WITH_AUTOFS],
     AM_CONDITIONAL([BUILD_AUTOFS], [test x"$with_autofs" = xyes])
   ])
 
+AC_DEFUN([WITH_FILES_PROVIDER],
+  [ AC_ARG_WITH([files-provider],
+                [AC_HELP_STRING([--with-files-provider],
+                                [Whether to build with files provider support [no].
+                                 Please take a note that "files provider" is deprecated
+                                 and might be removed in further releases.]
+                               )
+                ],
+                [with_files_provider=$withval],
+                with_files_provider=no
+               )
+
+    if test x"$with_files_provider" = xyes; then
+        AC_DEFINE(BUILD_FILES_PROVIDER, 1, [whether to build with files provider support])
+    fi
+    AM_CONDITIONAL([BUILD_FILES_PROVIDER], [test x"$with_files_provider" = xyes])
+  ])
+
 AC_DEFUN([WITH_SUBID],
   [ AC_ARG_WITH([subid],
                 [AC_HELP_STRING([--with-subid],

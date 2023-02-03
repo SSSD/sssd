@@ -102,7 +102,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return ret;
     }
 
-    val[0] = "files";
+    val[0] = "proxy";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/FILES", "id_provider", val);
     if (ret != EOK) {
@@ -129,7 +129,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return ret;
     }
 
-    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "files",
+    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "FILES",
                            TESTS_PATH, &test_ctx->domain);
     if (ret != EOK) {
         ck_abort_msg("Could not initialize connection to the sysdb (%d)", ret);

@@ -88,7 +88,7 @@ def cleanup_sssd_process():
 
 def test_domains__domains(request):
     """
-    Test that SSSD starts without domains option.
+    Test that SSSD starts with explicitly configured domain.
     """
     conf = unindent("""\
         [sssd]
@@ -96,7 +96,9 @@ def test_domains__domains(request):
         domains = test
 
         [domain/test]
-        id_provider = files
+        id_provider = proxy
+        proxy_lib_name = files
+        auth_provider = none
     """)
 
     create_conf_fixture(request, conf)
@@ -119,7 +121,9 @@ def test_domains__enabled(request):
 
         [domain/test]
         enabled = true
-        id_provider = files
+        id_provider = proxy
+        proxy_lib_name = files
+        auth_provider = none
     """)
 
     create_conf_fixture(request, conf)
@@ -142,7 +146,9 @@ def test_domains__empty(request):
         enable_files_domain = false
 
         [domain/test]
-        id_provider = files
+        id_provider = proxy
+        proxy_lib_name = files
+        auth_provider = none
     """)
 
     create_conf_fixture(request, conf)

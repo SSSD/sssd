@@ -37,6 +37,9 @@ from sssd_group import call_sssd_getgrnam, call_sssd_getgrgid
 from files_ops import PasswdOps, GroupOps
 from util import unindent
 
+def have_files_provider():
+    return os.environ['FILES_PROVIDER'] == "enabled"
+
 # Sync this with files_ops.c
 FILES_REALLOC_CHUNK = 64
 
@@ -533,6 +536,8 @@ def assert_group_overriden():
 
 
 # User tests
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getpwnam_after_start(add_user_with_canary, files_domain_only):
     """
     Test that after startup without any additional operations, a user
@@ -543,6 +548,8 @@ def test_getpwnam_after_start(add_user_with_canary, files_domain_only):
     assert user == USER1
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getpwuid_after_start(add_user_with_canary, files_domain_only):
     """
     Test that after startup without any additional operations, a user
@@ -553,6 +560,8 @@ def test_getpwuid_after_start(add_user_with_canary, files_domain_only):
     assert user == USER1
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_user_overriden(add_user_with_canary, files_domain_only):
     """
     Test that user override works with files domain only
@@ -571,6 +580,8 @@ def test_user_overriden(add_user_with_canary, files_domain_only):
     assert_user_overriden()
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_group_overriden(add_group_with_canary, files_domain_only):
     """
     Test that user override works with files domain only
@@ -585,6 +596,8 @@ def test_group_overriden(add_group_with_canary, files_domain_only):
     assert_group_overriden()
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getpwnam_neg(files_domain_only):
     """
     Test that a nonexistent user cannot be resolved by name
@@ -593,6 +606,8 @@ def test_getpwnam_neg(files_domain_only):
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getpwuid_neg(files_domain_only):
     """
     Test that a nonexistent user cannot be resolved by UID
@@ -601,6 +616,8 @@ def test_getpwuid_neg(files_domain_only):
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_root_does_not_resolve(files_domain_only):
     """
     SSSD currently does not resolve the root user even though it can
@@ -613,6 +630,8 @@ def test_root_does_not_resolve(files_domain_only):
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_uid_zero_does_not_resolve(files_domain_only):
     """
     SSSD currently does not resolve the UID 0 even though it can
@@ -625,6 +644,8 @@ def test_uid_zero_does_not_resolve(files_domain_only):
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_add_remove_add_file_user(setup_pw_with_canary, files_domain_only):
     """
     Test that removing a user is detected and the user
@@ -647,6 +668,8 @@ def test_add_remove_add_file_user(setup_pw_with_canary, files_domain_only):
     check_user(USER1)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_mod_user_shell(add_user_with_canary, files_domain_only):
     """
     Test that modifying a user shell is detected and the user
@@ -674,6 +697,8 @@ def incomplete_user_setup(pwd_ops, del_field, exp_field):
     return exp_user
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_user_no_shell(setup_pw_with_canary, files_domain_only):
     """
     Test that resolving a user without a shell defined works and returns
@@ -682,6 +707,8 @@ def test_user_no_shell(setup_pw_with_canary, files_domain_only):
     check_user(incomplete_user_setup(setup_pw_with_canary, 'shell', ''))
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_user_no_dir(setup_pw_with_canary, files_domain_only):
     """
     Test that resolving a user without a homedir defined works and returns
@@ -690,6 +717,8 @@ def test_user_no_dir(setup_pw_with_canary, files_domain_only):
     check_user(incomplete_user_setup(setup_pw_with_canary, 'dir', ''))
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_user_no_gecos(setup_pw_with_canary, files_domain_only):
     """
     Test that resolving a user without a gecos defined works and returns
@@ -698,6 +727,8 @@ def test_user_no_gecos(setup_pw_with_canary, files_domain_only):
     check_user(incomplete_user_setup(setup_pw_with_canary, 'gecos', ''))
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_user_no_passwd(setup_pw_with_canary, files_domain_only):
     """
     Test that resolving a user without a password defined works and returns
@@ -713,6 +744,8 @@ def bad_incomplete_user_setup(pwd_ops, del_field):
     pwd_ops.useradd(**adduser)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_incomplete_user_fail(setup_pw_with_canary, files_domain_only):
     """
     Test resolving an incomplete user where the missing field is required
@@ -726,6 +759,8 @@ def test_incomplete_user_fail(setup_pw_with_canary, files_domain_only):
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_after_start(add_group_with_canary, files_domain_only):
     """
     Test that after startup without any additional operations, a group
@@ -734,6 +769,8 @@ def test_getgrnam_after_start(add_group_with_canary, files_domain_only):
     check_group(GROUP1)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrgid_after_start(add_group_with_canary, files_domain_only):
     """
     Test that after startup without any additional operations, a group
@@ -742,6 +779,8 @@ def test_getgrgid_after_start(add_group_with_canary, files_domain_only):
     check_group_by_gid(GROUP1)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_neg(files_domain_only):
     """
     Test that a nonexistent group cannot be resolved
@@ -750,6 +789,8 @@ def test_getgrnam_neg(files_domain_only):
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrgid_neg(files_domain_only):
     """
     Test that a nonexistent group cannot be resolved
@@ -758,6 +799,8 @@ def test_getgrgid_neg(files_domain_only):
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_root_group_does_not_resolve(files_domain_only):
     """
     SSSD currently does not resolve the root group even though it can
@@ -770,6 +813,8 @@ def test_root_group_does_not_resolve(files_domain_only):
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_gid_zero_does_not_resolve(files_domain_only):
     """
     SSSD currently does not resolve the group with GID 0 even though it
@@ -783,6 +828,8 @@ def test_gid_zero_does_not_resolve(files_domain_only):
 
 
 @pytest.mark.flaky(max_runs=5)
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_add_remove_add_file_group(
         setup_pw_with_canary, setup_gr_with_canary, files_domain_only
 ):
@@ -808,6 +855,8 @@ def test_add_remove_add_file_group(
     check_group(GROUP1)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_mod_group_name(add_group_with_canary, files_domain_only):
     """
     Test that modifying a group name is detected and the group
@@ -822,6 +871,8 @@ def test_mod_group_name(add_group_with_canary, files_domain_only):
     check_group(modgroup)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_mod_group_gid(add_group_with_canary, files_domain_only):
     """
     Test that modifying a group name is detected and the group
@@ -843,6 +894,8 @@ def add_group_nomem_with_canary(passwd_ops_setup, group_ops_setup):
     )
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_no_members(add_group_nomem_with_canary, files_domain_only):
     """
     Test that after startup without any additional operations, a group
@@ -887,6 +940,8 @@ def members_check(added_groups):
             assert group['name'] in groups
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_members_users_first(setup_pw_with_canary,
                                       setup_gr_with_canary,
                                       files_domain_only):
@@ -901,6 +956,8 @@ def test_getgrnam_members_users_first(setup_pw_with_canary,
     members_check([GROUP1])
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_members_users_multiple(setup_pw_with_canary,
                                          setup_gr_with_canary,
                                          files_domain_only):
@@ -915,6 +972,8 @@ def test_getgrnam_members_users_multiple(setup_pw_with_canary,
     members_check([GROUP12])
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_members_groups_first(setup_pw_with_canary,
                                        setup_gr_with_canary,
                                        files_domain_only):
@@ -929,6 +988,8 @@ def test_getgrnam_members_groups_first(setup_pw_with_canary,
     members_check([GROUP1])
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_ghost(setup_pw_with_canary,
                         setup_gr_with_canary,
                         files_domain_only):
@@ -975,6 +1036,8 @@ def ghost_and_member_test(pw_ops, grp_ops, reverse):
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_user_ghost_and_member(setup_pw_with_canary,
                                         setup_gr_with_canary,
                                         files_domain_only):
@@ -986,6 +1049,8 @@ def test_getgrnam_user_ghost_and_member(setup_pw_with_canary,
                           False)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_user_member_and_ghost(setup_pw_with_canary,
                                         setup_gr_with_canary,
                                         files_domain_only):
@@ -998,6 +1063,8 @@ def test_getgrnam_user_member_and_ghost(setup_pw_with_canary,
                           True)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_add_remove_members(setup_pw_with_canary,
                                      add_group_nomem_with_canary,
                                      files_domain_only):
@@ -1042,6 +1109,8 @@ def test_getgrnam_add_remove_members(setup_pw_with_canary,
     assert 'group_nomem' in groups
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_getgrnam_add_remove_ghosts(setup_pw_with_canary,
                                     add_group_nomem_with_canary,
                                     files_domain_only):
@@ -1080,6 +1149,8 @@ def realloc_users(pwd_ops, num):
     check_user(user)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_realloc_users_exact(setup_pw_with_canary, files_domain_only):
     """
     Test that returning exactly FILES_REALLOC_CHUNK users (see files_ops.c)
@@ -1089,6 +1160,8 @@ def test_realloc_users_exact(setup_pw_with_canary, files_domain_only):
     realloc_users(setup_pw_with_canary, FILES_REALLOC_CHUNK)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_realloc_users(setup_pw_with_canary, files_domain_only):
     """
     Test that returning exactly FILES_REALLOC_CHUNK users (see files_ops.c)
@@ -1107,6 +1180,8 @@ def realloc_groups(grp_ops, num):
 
 
 @pytest.mark.flaky(max_runs=5)
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_realloc_groups_exact(setup_gr_with_canary, files_domain_only):
     """
     Test that returning exactly FILES_REALLOC_CHUNK groups (see files_ops.c)
@@ -1117,6 +1192,8 @@ def test_realloc_groups_exact(setup_gr_with_canary, files_domain_only):
 
 
 @pytest.mark.flaky(max_runs=5)
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_realloc_groups(setup_gr_with_canary, files_domain_only):
     """
     Test that returning exactly FILES_REALLOC_CHUNK groups (see files_ops.c)
@@ -1127,6 +1204,8 @@ def test_realloc_groups(setup_gr_with_canary, files_domain_only):
 
 
 # Files domain autoconfiguration tests
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_no_sssd_domain(add_user_with_canary, no_sssd_domain):
     """
     Test that if no sssd domain is configured, sssd will add the implicit one
@@ -1136,6 +1215,8 @@ def test_no_sssd_domain(add_user_with_canary, no_sssd_domain):
     assert user == USER1
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_proxy_to_files_domain_only(add_user_with_canary,
                                     proxy_to_files_domain_only):
     """
@@ -1145,6 +1226,8 @@ def test_proxy_to_files_domain_only(add_user_with_canary,
     assert res == NssReturnCode.NOTFOUND
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_no_files_domain(add_user_with_canary, no_files_domain):
     """
     Test that if no files domain is configured, sssd will add the implicit one
@@ -1154,6 +1237,8 @@ def test_no_files_domain(add_user_with_canary, no_files_domain):
     assert user == USER1
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_disable_files_domain(add_user_with_canary, disabled_files_domain):
     """
     Test disabled files domain
@@ -1163,6 +1248,8 @@ def test_disable_files_domain(add_user_with_canary, disabled_files_domain):
     assert res != NssReturnCode.SUCCESS
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_multiple_passwd_group_files(add_user_with_canary,
                                      add_group_with_canary,
                                      files_multiple_sources):
@@ -1180,6 +1267,8 @@ def test_multiple_passwd_group_files(add_user_with_canary,
     check_group(ALT_GROUP1)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_multiple_files_created_after_startup(add_user_with_canary,
                                               add_group_with_canary,
                                               files_multiple_sources_nocreate):
@@ -1206,6 +1295,8 @@ def test_multiple_files_created_after_startup(add_user_with_canary,
     check_group(ALT_GROUP1)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_files_with_domain_resolution_order(add_user_with_canary,
                                             domain_resolution_order):
     """
@@ -1215,6 +1306,8 @@ def test_files_with_domain_resolution_order(add_user_with_canary,
     check_user(USER1)
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_files_with_default_domain_suffix(add_user_with_canary,
                                           default_domain_suffix):
     """
@@ -1230,6 +1323,8 @@ def test_files_with_default_domain_suffix(add_user_with_canary,
     assert found_user == USER1
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_files_with_override_homedir(add_user_with_canary,
                                      override_homedir_and_shell):
     res, user = sssd_getpwnam_sync(USER1["name"])
@@ -1237,6 +1332,8 @@ def test_files_with_override_homedir(add_user_with_canary,
     assert user["dir"] == USER1["dir"]
 
 
+@pytest.mark.skipif(not have_files_provider(),
+                    reason="'files provider' disabled, skipping")
 def test_files_with_override_shell(add_user_with_canary,
                                    override_homedir_and_shell):
     res, user = sssd_getpwnam_sync(USER1["name"])

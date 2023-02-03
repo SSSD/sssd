@@ -66,6 +66,7 @@ static void test_domain_resolution_order(void **state)
     }
 }
 
+#ifdef BUILD_FILES_PROVIDER
 static void
 test_domain_resolution_order_with_implicit_files_provider(void **state)
 {
@@ -92,6 +93,7 @@ test_domain_resolution_order_with_implicit_files_provider(void **state)
         assert_string_equal(expected_order[c], cr_domain->domain->name);
     }
 }
+#endif
 
 static void test_domain_resolution_order_output_fqnames(void **state)
 {
@@ -161,10 +163,12 @@ static int setup_domains_list(void **state)
     return setup_domains_list_helper(state, false);
 }
 
+#ifdef BUILD_FILES_PROVIDER
 static int setup_domains_list_with_implicit_files_provider(void **state)
 {
     return setup_domains_list_helper(state, true);
 }
+#endif
 
 static int teardown_domains_list(void **state)
 {
@@ -196,13 +200,15 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_domain_resolution_order,
                                         setup_domains_list,
                                         teardown_domains_list),
+#ifdef BUILD_FILES_PROVIDER
         cmocka_unit_test_setup_teardown(
                     test_domain_resolution_order_with_implicit_files_provider,
                     setup_domains_list_with_implicit_files_provider,
                     teardown_domains_list),
+#endif
         cmocka_unit_test_setup_teardown(
                     test_domain_resolution_order_output_fqnames,
-                    setup_domains_list_with_implicit_files_provider,
+                    setup_domains_list,
                     teardown_domains_list),
     };
 

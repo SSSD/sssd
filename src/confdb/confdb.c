@@ -42,8 +42,10 @@
 #define RETRIEVE_DOMAIN_ERROR_MSG "Error (%d [%s]) retrieving domain [%s], "\
                                   "skipping!\n"
 
+#ifdef BUILD_FILES_PROVIDER
 /* SSSD domain name that is used for the auto-configured files domain */
 #define IMPLICIT_FILES_DOMAIN_NAME "implicit_files"
+#endif
 
 static int confdb_get_domain_enabled(struct confdb_ctx *cdb,
                                      const char *domain, bool *_enabled);
@@ -1039,6 +1041,7 @@ static errno_t confdb_init_domain(struct sss_domain_info *domain,
 
     domain->state = DOM_ACTIVE;
 
+#ifdef BUILD_FILES_PROVIDER
     domain->fallback_to_nss = false;
     if (is_files_provider(domain)) {
         ret = get_entry_as_bool(res->msgs[0], &domain->fallback_to_nss,
@@ -1049,6 +1052,7 @@ static errno_t confdb_init_domain(struct sss_domain_info *domain,
             goto done;
         }
     }
+#endif
 
     domain->not_found_counter = 0;
     ret = EOK;
@@ -1153,7 +1157,8 @@ static errno_t confdb_init_domain_fqn(struct confdb_ctx *cdb,
     /* Determine if user/group names will be Fully Qualified
      * in NSS interfaces */
     if (default_domain != NULL
-             && is_files_provider(domain) == false) {
+             && is_files_provider(domain) == false
+             ) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Default domain suffix set. Changing default for "
               "use_fully_qualified_names to True.\n");
@@ -1170,7 +1175,8 @@ static errno_t confdb_init_domain_fqn(struct confdb_ctx *cdb,
 
     if (default_domain != NULL
             && domain->fqnames == false
-            && is_files_provider(domain) == false) {
+            && is_files_provider(domain) == false
+            ) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid configuration detected (default_domain_suffix is used "
               "while use_fully_qualified_names was set to false).\n");
@@ -1397,7 +1403,9 @@ static errno_t confdb_init_domain_user_info(struct sss_domain_info *domain,
                                       CONFDB_NSS_OVERRIDE_HOMEDIR, NULL);
     /* Here we skip the files provider as it should always return *only*
      * what's in the files and nothing else. */
-    if (tmp != NULL && !is_files_provider(domain)) {
+    if (tmp != NULL
+        && !is_files_provider(domain)
+        ) {
         domain->override_homedir = talloc_strdup(domain, tmp);
         if (!domain->override_homedir) {
             ret = ENOMEM;
@@ -1448,7 +1456,9 @@ static errno_t confdb_init_domain_user_info(struct sss_domain_info *domain,
     tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_NSS_OVERRIDE_SHELL, NULL);
     /* Here we skip the files provider as it should always return *only*
      * what's in the files and nothing else. */
-    if (tmp != NULL && !is_files_provider(domain)) {
+    if (tmp != NULL
+        && !is_files_provider(domain)
+        ) {
         domain->override_shell = talloc_strdup(domain, tmp);
         if (!domain->override_shell) {
             ret = ENOMEM;
@@ -2027,6 +2037,7 @@ done:
     return ret;
 }
 
+#ifdef BUILD_FILES_PROVIDER
 static bool need_implicit_files_domain(TALLOC_CTX *tmp_ctx,
                                        struct confdb_ctx *cdb,
                                        struct ldb_result *doms)
@@ -2263,6 +2274,7 @@ static int confdb_ensure_files_domain(struct confdb_ctx *cdb,
 
     return activate_files_domain(cdb, implicit_files_dom_name);
 }
+#endif
 
 static int confdb_get_parent_domain(TALLOC_CTX *mem_ctx,
                                     const char *name,
@@ -2451,6 +2463,7 @@ int confdb_expand_app_domains(struct confdb_ctx *cdb)
         return ENOMEM;
     }
 
+#ifdef BUILD_FILES_PROVIDER
     ret = confdb_ensure_files_domain(cdb, IMPLICIT_FILES_DOMAIN_NAME);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
@@ -2458,6 +2471,7 @@ int confdb_expand_app_domains(struct confdb_ctx *cdb)
               ret, strerror(ret));
         /* Not fatal */
     }
+#endif
 
     ret = confdb_get_enabled_domain_list(cdb, tmp_ctx, &domlist);
     if (ret == ENOENT) {
@@ -2507,6 +2521,7 @@ done:
     return ret;
 }
 
+#ifdef BUILD_FILES_PROVIDER
 static errno_t certmap_local_check(struct ldb_message *msg)
 {
     const char *rule_name;
@@ -2556,6 +2571,7 @@ static errno_t certmap_local_check(struct ldb_message *msg)
 
     return EOK;
 }
+#endif
 
 static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
                                        struct confdb_ctx *cdb,
@@ -2605,6 +2621,7 @@ static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
     }
 
     for (c = 0; c < res->count; c++) {
+#ifdef BUILD_FILES_PROVIDER
         if (is_files_provider(dom)) {
             ret = certmap_local_check(res->msgs[c]);
             if (ret != EOK) {
@@ -2614,6 +2631,7 @@ static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
                 continue;
             }
         }
+#endif
         ret = sysdb_ldb_msg_attr_to_certmap_info(certmap_list, res->msgs[c],
                                                  attrs, &certmap_list[c]);
         if (ret != EOK) {

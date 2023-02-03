@@ -923,10 +923,12 @@ void sss_domain_set_state(struct sss_domain_info *dom,
           "Domain %s is %s\n", dom->name, domain_state_str(dom));
 }
 
+#ifdef BUILD_FILES_PROVIDER
 bool sss_domain_fallback_to_nss(struct sss_domain_info *dom)
 {
     return dom->fallback_to_nss;
 }
+#endif
 
 bool sss_domain_is_forest_root(struct sss_domain_info *dom)
 {
@@ -983,9 +985,13 @@ bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain)
 
 bool is_files_provider(struct sss_domain_info *domain)
 {
+#ifdef BUILD_FILES_PROVIDER
     return domain != NULL &&
            domain->provider != NULL &&
            strcasecmp(domain->provider, "files") == 0;
+#else
+    return false;
+#endif
 }
 
 bool sss_domain_is_mpg(struct sss_domain_info *domain)

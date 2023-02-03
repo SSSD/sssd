@@ -28,6 +28,7 @@
 #include "responder/common/responder.h"
 #include "providers/data_provider.h"
 
+#ifdef BUILD_FILES_PROVIDER
 static errno_t
 sss_dp_account_files_params(struct sss_domain_info *dom,
                             enum sss_dp_acct_type type_in,
@@ -84,6 +85,7 @@ sss_dp_account_files_params(struct sss_domain_info *dom,
     DEBUG(SSSDBG_CRIT_FAILURE, "Unhandled type %d\n", type_in);
     return EINVAL;
 }
+#endif
 
 static errno_t
 sss_dp_get_account_filter(TALLOC_CTX *mem_ctx,
@@ -214,6 +216,7 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+#ifdef BUILD_FILES_PROVIDER
     if (is_files_provider(dom)) {
         /* This is a special case. If the files provider is just being updated,
          * we issue an enumeration request. We always use the same request type
@@ -238,6 +241,7 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
         }
         /* EAGAIN, fall through to issuing the request */
     }
+#endif
 
     ret = sss_dp_get_domain_conn(rctx, dom->conn_name, &be_conn);
     if (ret != EOK) {

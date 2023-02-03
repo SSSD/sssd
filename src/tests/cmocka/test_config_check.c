@@ -106,7 +106,7 @@ void config_check_test_bad_section_name(void **state)
 void config_check_test_bad_chars_in_section_name(void **state)
 {
     char cfg_str[] = "[domain/LD@P]\n"
-                     "id_provider = files\n";
+                     "id_provider = ldap\n";
     const char *expected_errors[] = {
         "[rule/allowed_sections]: Section [domain/LD@P] is not allowed. "
         "Check for typos.",
@@ -240,7 +240,7 @@ void config_check_test_good_sections(void **state)
                      "[pam]\n"
                      "[nss]\n"
                      "[domain/testdom.test]\n"
-                     "id_provider = files\n"
+                     "id_provider = proxy\n"
                      "[domain/testdom.test/testsubdom.testdom.test]\n"
                      "[application/myapp]\n"
                      "[ssh]\n"
@@ -266,7 +266,7 @@ void config_check_test_missing_id_provider(void **state)
 void config_check_test_inherit_from_in_normal_dom(void **state)
 {
     char cfg_str[] = "[domain/A.test]\n"
-                     "id_provider = files\n"
+                     "id_provider = proxy\n"
                      "inherit_from = domain\n";
     const char *expected_errors[] = {
         "[rule/sssd_checks]: Attribute 'inherit_from' is not allowed in "

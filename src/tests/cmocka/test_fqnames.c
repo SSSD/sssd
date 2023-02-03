@@ -29,7 +29,7 @@
 #define DOMNAME     "domname"
 #define FLATNAME    "flatname"
 #define SPECIALNAME "[]{}();:'|\",<.>/?!#$%^&*_+~`"
-#define PROVIDER    "files"
+#define PROVIDER    "proxy"
 #define CONNNAME    "conn"
 
 #define DOMNAME2    "domname2"

@@ -90,8 +90,11 @@ struct so {
     { "libifp_iface_sync.so", {NULL} },
     { "libsss_simple.so", { LIBPFX"libdlopen_test_providers.so",
                             LIBPFX"libsss_simple.so", NULL } },
+#ifdef BUILD_FILES_PROVIDER
     { "libsss_files.so", { LIBPFX"libdlopen_test_providers.so",
                            LIBPFX"libsss_files.so", NULL } },
+#endif
+
 #ifdef BUILD_SAMBA
     { "libsss_ad.so", { LIBPFX"libdlopen_test_providers.so",
                         LIBPFX"libsss_ad.so", NULL } },

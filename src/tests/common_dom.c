@@ -342,7 +342,7 @@ void test_multidom_suite_cleanup(const char *tests_path,
         for (i = 0; domains[i] != NULL; i++) {
             if (strcmp(domains[i], "FILES") == 0) {
                 /* files domain */
-                ret = sysdb_get_db_file(tmp_ctx, "files", domains[i], tests_path,
+                ret = sysdb_get_db_file(tmp_ctx, "FILES", domains[i], tests_path,
                                         &sysdb_path, &sysdb_ts_path);
                 if (ret != EOK) {
                     goto done;

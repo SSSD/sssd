@@ -89,10 +89,13 @@ get_subdomains_send(TALLOC_CTX *mem_ctx,
     ret = EAGAIN;
 
 done:
+#ifdef BUILD_FILES_PROVIDER
     if (ret == EOK) {
         tevent_req_done(req);
         tevent_req_post(req, rctx->ev);
-    } else if (ret != EAGAIN) {
+    } else
+#endif
+    if (ret != EAGAIN) {
         tevent_req_error(req, ret);
         tevent_req_post(req, rctx->ev);
     }

@@ -448,13 +448,15 @@
                                 to log in. Setting this option changes default
                                 of use_fully_qualified_names to True. It is not
                                 allowed to use this option together with
-                                use_fully_qualified_names set to False. One
-                                exception from this rule are domains with
-                                <quote>id_provider=files</quote> that always try
-                                to match the behaviour of nss_files
-                                and therefore their output is not
-                                qualified even when the default_domain_suffix
-                                option is used.
+                                use_fully_qualified_names set to False.
+                                <phrase condition="with_files_provider">
+                                    One exception from this rule are domains with
+                                    <quote>id_provider=files</quote> that always try
+                                    to match the behaviour of nss_files
+                                    and therefore their output is not
+                                    qualified even when the default_domain_suffix
+                                    option is used.
+                                </phrase>
                             </para>
                             <para>
                                 Default: not set
@@ -631,7 +633,7 @@
                             </para>
                         </listitem>
                     </varlistentry>
-                    <varlistentry>
+                    <varlistentry condition="with_files_provider">
                         <term>enable_files_domain (boolean)</term>
                         <listitem>
                             <para>
@@ -664,8 +666,11 @@
                                 Please, note that when this option is set the
                                 output format of all commands is always
                                 fully-qualified even when using short names
-                                for input, for all users but the ones managed
-                                by the files provider.
+                                for input
+                                <phrase condition="with_files_provider">
+                                , for all users but the ones managed
+                                by the files provider
+                                </phrase>.
                                 In case the administrator wants the output not
                                 fully-qualified, the full_name_format option
                                 can be used as shown below:
@@ -1364,7 +1369,9 @@ fallback_homedir = /home/%u
                         </para>
                         <para>
                             Default: <quote>not set</quote> (remote domains),
-                            <quote>x</quote> (the files domain),
+                            <phrase condition="with_files_provider">
+                                <quote>x</quote> (the files domain),
+                            </phrase>
                             <quote>x</quote> (proxy domain with nss_files
                             and sssd-shadowutils target)
                         </para>
@@ -2994,7 +3001,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         <para>
                             <quote>proxy</quote>: Support a legacy NSS provider.
                         </para>
-                        <para>
+                        <para condition="with_files_provider">
                             <quote>files</quote>: FILES provider. See
                             <citerefentry>
                                 <refentrytitle>sssd-files</refentrytitle>
@@ -4275,7 +4282,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
                                 <quote>ldap</quote>, <quote>AD</quote> or
                                 <quote>ipa</quote>.</para>
                             </listitem>
-                            <listitem>
+                            <listitem condition="with_files_provider">
                                 <para>The RULE_NAME for the <quote>files</quote>
                                 provider which tries to find a user with the
                                 same name.</para>
@@ -4314,7 +4321,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
                 </listitem>
             </varlistentry>
         </variablelist>
-        <para>
+        <para condition="with_files_provider">
             To make the configuration simple and reduce the amount of
             configuration options the <quote>files</quote> provider has some
             special properties:
@@ -4503,23 +4510,17 @@ use_fully_qualified_names = false
 </programlisting>
         </para>
         <para>
-            3. The following example shows the configuration for two certificate
-            mapping rules. The first is valid for the configured domain
+            3. The following example shows the configuration of a certificate
+            mapping rule. It is valid for the configured domain
             <quote>my.domain</quote> and additionally for the subdomains
             <quote>your.domain</quote> and uses the full certificate in the
-            search filter. The second example is valid for the domain
-            <quote>files</quote> where it is assumed the files provider is used
-            for this domain and contains a matching rule for the local user
-            <quote>myname</quote>.
+            search filter.
 <programlisting>
 [certmap/my.domain/rule_name]
 matchrule = &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$
 maprule = (userCertificate;binary={cert!bin})
 domains = my.domain, your.domain
 priority = 10
-
-[certmap/files/myname]
-matchrule = &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$&lt;SUBJECT&gt;^CN=User.Name,DC=MY,DC=DOMAIN$
 </programlisting>
         </para>
     </refsect1>

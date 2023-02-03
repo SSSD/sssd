@@ -394,9 +394,11 @@ sssdlib_LTLIBRARIES += \
 endif
 
 if HAVE_INOTIFY
+if BUILD_FILES_PROVIDER
 sssdlib_LTLIBRARIES += \
     libsss_files.la \
     $(NULL)
+endif # BUILD_FILES_PROVIDER
 endif # HAVE_INOTIFY
 
 ldblib_LTLIBRARIES = \
@@ -882,7 +884,6 @@ dist_noinst_HEADERS = \
     src/providers/ad/ad_subdomains.h \
     src/providers/ad/ad_resolver.h \
     src/providers/proxy/proxy.h \
-    src/providers/files/files_private.h \
     src/tools/tools_util.h \
     src/resolv/async_resolv.h \
     src/tests/common.h \
@@ -4374,6 +4375,9 @@ libsss_proxy_la_LDFLAGS = \
     -avoid-version \
     -module
 
+if BUILD_FILES_PROVIDER
+dist_noinst_HEADERS += src/providers/files/files_private.h
+
 libsss_files_la_SOURCES = \
     src/providers/files/files_init.c \
     src/providers/files/files_id.c \
@@ -4398,6 +4402,7 @@ libsss_files_la_LDFLAGS = \
     -avoid-version \
     -module \
     $(NULL)
+endif # BUILD_FILES_PROVIDER
 
 libsss_simple_la_SOURCES = \
     src/providers/simple/simple_access_check.c \
@@ -5144,8 +5149,11 @@ dist_sssdapiplugin_DATA = \
     src/config/etc/sssd.api.d/sssd-krb5.conf \
     src/config/etc/sssd.api.d/sssd-ldap.conf \
     src/config/etc/sssd.api.d/sssd-proxy.conf \
-    src/config/etc/sssd.api.d/sssd-simple.conf \
-    src/config/etc/sssd.api.d/sssd-files.conf
+    src/config/etc/sssd.api.d/sssd-simple.conf
+
+if BUILD_FILES_PROVIDER
+dist_sssdapiplugin_DATA += src/config/etc/sssd.api.d/sssd-files.conf
+endif # BUILD_FILES_PROVIDER
 
 edit_cmd = $(SED) \
         -e 's|@sbindir[@]|$(sbindir)|g' \

@@ -92,7 +92,7 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
                            "config/sssd", "domains", val);
     assert_int_equal(ret, EOK);
 
-    val[0] = "files";
+    val[0] = "proxy";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/FILES", "id_provider", val);
     assert_int_equal(ret, EOK);
@@ -107,7 +107,7 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
                            "config/domain/FILES", "cache_credentials", val);
     assert_int_equal(ret, EOK);
 
-    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "files",
+    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "FILES",
                            TESTS_PATH, &test_ctx->domain);
     assert_int_equal(ret, EOK);
 

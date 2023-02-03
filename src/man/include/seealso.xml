@@ -25,9 +25,11 @@
             <citerefentry>
                 <refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sssd-files</refentrytitle><manvolnum>5</manvolnum>
-            </citerefentry>,
+            <phrase condition="with_files_provider">
+                <citerefentry>
+                    <refentrytitle>sssd-files</refentrytitle><manvolnum>5</manvolnum>
+                </citerefentry>,
+            </phrase>
             <phrase condition="with_sudo">
                 <citerefentry>
                     <refentrytitle>sssd-sudo</refentrytitle>

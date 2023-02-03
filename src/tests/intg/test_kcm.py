@@ -131,7 +131,8 @@ def create_sssd_conf(kcm_path, ccache_storage, max_secrets=MAX_SECRETS):
         services = nss
 
         [domain/files]
-        id_provider = files
+        id_provider = proxy
+        proxy_lib_name = files
 
         [kcm]
         socket_path = {kcm_path}
@@ -148,7 +149,8 @@ def create_sssd_conf_renewals(kcm_path, ccache_storage, renew_lifetime,
         services = nss
 
         [domain/files]
-        id_provider = files
+        id_provider = proxy
+        proxy_lib_name = files
 
         [kcm]
         socket_path = {kcm_path}
