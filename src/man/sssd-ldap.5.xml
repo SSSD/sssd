@@ -1386,7 +1386,6 @@ ldap_access_filter = (employeeType=admin)
                             ldap_user_nds_login_expiration_time are used to
                             check if access is allowed. If both attributes are
                             missing access is granted.
-                            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/experimental.xml" />
                         </para>
                         <para>
                             Please note that the ldap_access_order
