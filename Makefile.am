@@ -9,7 +9,6 @@ endif
 
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb \
                             --disable-dbus-tests \
-                            --enable-all-experimental-features \
                             $(extra_distcheck_flags) \
                             $(AUX_DISTCHECK_CONFIGURE_FLAGS)
 CLEANFILES = $(NULL)
