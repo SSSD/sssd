@@ -47,7 +47,6 @@
 #define TEST_ATTR_ADD_VALUE "test_attr_add_value"
 #define CUSTOM_TEST_CONTAINER "custom_test_container"
 #define CUSTOM_TEST_OBJECT "custom_test_object"
-#define TEST_DOM_NAME "files"
 
 #define ASQ_TEST_USER "testuser27010"
 #define ASQ_TEST_USER_UID 27010
@@ -125,7 +124,7 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
         return ret;
     }
 
-    val[0] = "files";
+    val[0] = "proxy";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domain/FILES", "id_provider", val);
     if (ret != EOK) {
@@ -152,7 +151,7 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
         return ret;
     }
 
-    ret = sssd_domain_init(test_ctx, test_ctx->confdb, TEST_DOM_NAME,
+    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "FILES",
                            TESTS_PATH, &test_ctx->domain);
     if (ret != EOK) {
         ck_abort_msg("Could not initialize connection to the sysdb (%d)", ret);
@@ -1097,7 +1096,7 @@ START_TEST(test_user_group_by_name)
         return;
     }
 
-    /* setup_sysdb_tests creates files provider and we need to handle
+    /* setup_sysdb_tests creates proxy(files) provider and we need to handle
      * ldap provider differently with auto_private_groups.
      */
     test_ctx->domain->provider = discard_const_p(char, "ldap");
@@ -6913,7 +6912,7 @@ START_TEST(test_confdb_list_all_domain_names_single_dom)
                            "config/sssd", "domains", val);
     ck_assert_int_eq(ret, EOK);
 
-    val[0] = "files";
+    val[0] = "proxy";
     ret = confdb_add_param(confdb, true,
                            "config/domain/FILES", "id_provider", val);
     ck_assert_int_eq(ret, EOK);
@@ -7353,7 +7352,7 @@ START_TEST(test_confdb_list_all_domain_names_multi_dom)
                            "config/sssd", "domains", val);
     ck_assert_int_eq(ret, EOK);
 
-    val[0] = "files";
+    val[0] = "proxy";
     ret = confdb_add_param(confdb, true,
                            "config/domain/FILES", "id_provider", val);
     ck_assert_int_eq(ret, EOK);
@@ -7363,7 +7362,7 @@ START_TEST(test_confdb_list_all_domain_names_multi_dom)
                            "config/sssd", "domains", val);
     ck_assert_int_eq(ret, EOK);
 
-    val[0] = "files";
+    val[0] = "proxy";
     ret = confdb_add_param(confdb, true,
                            "config/domain/REMOTE", "id_provider", val);
     ck_assert_int_eq(ret, EOK);

@@ -137,7 +137,9 @@ def format_basic_conf(ldap_conn, schema):
         debug_level                     = 0xffff
 
         [domain/files]
-        id_provider                     = files
+        id_provider                     = proxy
+        proxy_lib_name                  = files
+        auth_provider                   = none
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true

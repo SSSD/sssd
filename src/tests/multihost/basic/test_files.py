@@ -9,6 +9,11 @@
 import pytest
 
 
+def have_files_provider(multihost):
+    cmd = multihost.master[0].run_command('man sssd-files | grep files', raiseonerr=False)
+    return cmd.returncode == 0
+
+
 def get_sss_entry(multihost, db, ent_name):
     cmd = multihost.master[0].run_command('getent %s -s sss %s' % (db, ent_name), raiseonerr=False)
     return cmd.returncode, cmd.stdout_text
@@ -29,6 +34,8 @@ class TestImplicitFilesProvider(object):
         :title: files: files provider does not handle root
         :id: 5aa5165d-379f-4fc6-b4ed-b32b66406d4f
         """
+        if not have_files_provider(multihost):
+            pytest.skip("Files Provider support isn't available, skipping")
         exit_status, _ = get_sss_user(multihost, 'root')
         assert exit_status == 2
 
@@ -37,6 +44,8 @@ class TestImplicitFilesProvider(object):
         :title: files: Test that the files provider can resolve a user
         :id: 242cd094-b04d-4857-981a-8624573dde84
         """
+        if not have_files_provider(multihost):
+            pytest.skip("Files Provider support isn't available, skipping")
         exit_status, _ = get_sss_user(multihost, 'lcl1')
         assert exit_status == 0
 
@@ -48,6 +57,8 @@ class TestImplicitFilesProvider(object):
          concatenate the results, the files provider of SSSD should
          not enumerate
         """
+        if not have_files_provider(multihost):
+            pytest.skip("Files Provider support isn't available, skipping")
         cmd = multihost.master[0].run_command('getent passwd -s sss')
         assert len(cmd.stdout_text) == 0
 
@@ -56,6 +67,8 @@ class TestImplicitFilesProvider(object):
         :title: files: Test that homedir is updated
         :id: a9a0a911-1818-40d1-b897-0397ef107fd4
         """
+        if not have_files_provider(multihost):
+            pytest.skip("Files Provider support isn't available, skipping")
         exit_status, output = get_sss_user(multihost, 'no_home_user')
         assert exit_status == 0
         assert ":/tmp:" in output

@@ -76,10 +76,15 @@ def files_domain_only(request):
     conf = unindent("""\
         [sssd]
         services = nss, pac
-        enable_files_domain = true
+        domains = files
 
         [nss]
         memcache_timeout = 0
+
+        [domain/files]
+        id_provider = proxy
+        proxy_lib_name = files
+        auth_provider = none
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)

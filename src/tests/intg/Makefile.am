@@ -92,6 +92,13 @@ else
 KCM_RENEW = "disabled"
 endif
 
+if BUILD_FILES_PROVIDER
+FILES_PROVIDER = "enabled"
+else
+FILES_PROVIDER = "disabled"
+endif
+
+
 cwrap-dbus-system.conf: data/cwrap-dbus-system.conf.in Makefile
 	$(SED) -e "s!@runstatedir[@]!$(runstatedir)!" \
            -e "s!@dbusservicedir[@]!$(dbusservicedir)!" \
@@ -218,6 +225,7 @@ intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service 
 	ABS_SRCDIR=$(abs_srcdir) \
 	SOFTHSM2_CONF=$(SOFTHSM2_CONF) \
 	KCM_RENEW=$(KCM_RENEW) \
+	FILES_PROVIDER=$(FILES_PROVIDER) \
 	DBUS_SOCK_DIR="$(DESTDIR)$(runstatedir)/dbus/" \
 	DBUS_SESSION_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/fake_socket" \
 	DBUS_SYSTEM_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/system_bus_socket" \
