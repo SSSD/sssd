@@ -661,7 +661,11 @@
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to
-                            the group name.
+                            the group name. In an environment with nested
+                            groups, this value must be an LDAP attribute
+                            which has a unique name for every group. This
+                            requirement includes non-POSIX groups in the
+                            tree of nested groups.
                         </para>
                         <para>
                             Default: cn (rfc2307, rfc2307bis and IPA),
