@@ -161,8 +161,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
         case 1:
             if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
                 *errnop = EPIPE;
-            }
-            if (!(pfd.revents & POLLOUT)) {
+            } else if (!(pfd.revents & POLLOUT)) {
                 *errnop = EBUSY;
             }
             break;
@@ -273,8 +272,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
             }
             if (pfd.revents & (POLLERR | POLLNVAL)) {
                 *errnop = EPIPE;
-            }
-            if (!(pfd.revents & POLLIN)) {
+            } else if (!(pfd.revents & POLLIN)) {
                 *errnop = EBUSY;
             }
             break;
@@ -725,8 +723,7 @@ static enum sss_status sss_cli_check_socket(int *errnop,
         case 1:
             if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
                 *errnop = EPIPE;
-            }
-            if (!(pfd.revents & (POLLIN | POLLOUT))) {
+            } else if (!(pfd.revents & (POLLIN | POLLOUT))) {
                 *errnop = EBUSY;
             }
             break;
