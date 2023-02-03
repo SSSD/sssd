@@ -13,12 +13,11 @@ from packaging import version
 from constants import ds_instance_name
 
 
-@pytest.fixture()
-def krb5_ccache_setup(session_multihost, request):
+def krb5_ccache_setup(client, request):
     """ To Customize domain parameter for Test Cases """
-    tools = sssdTools(session_multihost.client[0])
+    tools = sssdTools(client)
     domain_section = f'domain/{ds_instance_name}'
-    domain_params = {'krb5_ccachedir': request.param}
+    domain_params = {'krb5_ccachedir': request}
     tools.sssd_conf(domain_section, domain_params)
     tools.clear_sssd_cache()
 
@@ -79,8 +78,7 @@ class TestKrbCredentialCache():
     /var/cache/krb5rcache , related to individual Bugzilla
     """
     @staticmethod
-    @pytest.mark.parametrize("krb5_ccache_setup", ['/tmp/krb5_cache'], indirect=True)
-    def test_0001_krb5_ccachedir(multihost, krb5_ccache_setup):
+    def test_0001_krb5_ccachedir(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Access provider is simple\
                                                             and sssd is in krb5 ccachedir
@@ -98,21 +96,21 @@ class TestKrbCredentialCache():
         :teardown:
           1. Clear the /tmp/krb_cache directory.
         """
-        ldap_cmd = f"ldbsearch -H /var/lib/sss/db/config.ldb \
+        krb5_ccache_setup(multihost.client[0], '/tmp/krb5_cache')
+        ldb_cmd = f"ldbsearch -H /var/lib/sss/db/config.ldb \
                     -b 'cn={ds_instance_name},cn=domain,cn=config' | tee /tmp/output"
 
-        cmd = multihost.client[0].run_command(ldap_cmd, raiseonerr=False)
+        cmd = multihost.client[0].run_command(ldb_cmd, raiseonerr=False)
         output_file = multihost.client[0].get_file_contents('/tmp/output').decode('utf-8')
 
         multihost.client[0].run_command("rm -Rf /tmp/krb5_cache")
-        assert cmd.returncode == 0, f'{ldap_cmd} did not execute successfully'
+        assert cmd.returncode == 0, f'{ldb_cmd} did not execute successfully'
         assert "krb5_ccachedir: /tmp/krb5_cache" in output_file, f"krb5_ccachedir not found in {output_file}"
         assert "krb5_ccname_template: FILE:%d/krb5cc_%u" in output_file, f"krb5_ccname_template \
                                                                         not found in {output_file}"
 
     @staticmethod
-    @pytest.mark.parametrize("krb5_ccache_setup", ['/tmp/krb5_cache'], indirect=True)
-    def test_0002_krb5_ccachedir(multihost, krb5_ccache_setup):
+    def test_0002_krb5_ccachedir(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Check enumeration and file\
                                                 permissions after setting krb5 ccachedir
@@ -130,6 +128,7 @@ class TestKrbCredentialCache():
         :teardown:
           1. Clear the /tmp/krb_cache directory.
         """
+        krb5_ccache_setup(multihost.client[0], '/tmp/krb5_cache')
         client = sssdTools(multihost.client[0])
         ssh = client.auth_from_client('foo1', 'Secret123')
 
@@ -154,8 +153,7 @@ class TestKrbCredentialCache():
         assert file_permission == exp_permission2, f"{file} file permission not as expected. Got {file_permission[0]}"
 
     @staticmethod
-    @pytest.mark.parametrize("krb5_ccache_setup", ['/tmp/krb5_cache_%u'], indirect=True)
-    def test_0003_krb5_ccachedir(multihost, krb5_ccache_setup):
+    def test_0003_krb5_ccachedir(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Check enumeration and file\
                             permissions after setting krb5 ccachedir with percent u option
@@ -171,6 +169,7 @@ class TestKrbCredentialCache():
         :teardown:
           1. Clear the /tmp/krb_cache_foo1 directory.
         """
+        krb5_ccache_setup(multihost.client[0], '/tmp/krb5_cache_%u')
         client = sssdTools(multihost.client[0])
         ssh = client.auth_from_client('foo1', 'Secret123')
 
@@ -188,8 +187,7 @@ class TestKrbCredentialCache():
                                             not as expected. Got {dir_permission[0]}"
 
     @staticmethod
-    @pytest.mark.parametrize("krb5_ccache_setup", ['/tmp/krb5_cache_%U'], indirect=True)
-    def test_0004_krb5_ccachedir(multihost, krb5_ccache_setup):
+    def test_0004_krb5_ccachedir(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Check enumeration and file\
                              permissions after setting krb5 ccachedir with percent U option"
@@ -205,6 +203,7 @@ class TestKrbCredentialCache():
         :teardown:
           1. Clear the /tmp/krb_cache_14583101 directory.
         """
+        krb5_ccache_setup(multihost.client[0], '/tmp/krb5_cache_%U')
         client = sssdTools(multihost.client[0])
         ssh = client.auth_from_client('foo1', 'Secret123')
 
@@ -221,8 +220,7 @@ class TestKrbCredentialCache():
         assert dir_permission == exp_permission, f"{directory} directory permission not as expected. Got {dir}"
 
     @staticmethod
-    @pytest.mark.parametrize("krb5_ccache_setup", ['/tmp/krb5_cache_%p'], indirect=True)
-    def test_0005_krb5_ccachedir(multihost, krb5_ccache_setup):
+    def test_0005_krb5_ccachedir(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Check enumeration and file\
                             permissions after setting krb5 ccachedir with percent p option
@@ -238,6 +236,7 @@ class TestKrbCredentialCache():
         :teardown:
           1. Clear the /tmp/krb_cache_foo1@EXAMPLE.TEST directory.
         """
+        krb5_ccache_setup(multihost.client[0], '/tmp/krb5_cache_%p')
         client = sssdTools(multihost.client[0])
         ssh = client.auth_from_client('foo1', 'Secret123')
 
@@ -254,8 +253,7 @@ class TestKrbCredentialCache():
                                     not as expected. Got {dir_permission[0]}."
 
     @staticmethod
-    @pytest.mark.parametrize("krb5_ccache_setup", ['/tmp/krb5_cache_%r'], indirect=True)
-    def test_0006_krb5_ccachedir(multihost, krb5_ccache_setup):
+    def test_0006_krb5_ccachedir(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Check enumeration and file\
                             permissions after setting krb5 ccachedir with percent r option
@@ -271,6 +269,7 @@ class TestKrbCredentialCache():
         :teardown:
           1. Clear the /tmp/krb_cache_EXAMPLE.TEST directory.
         """
+        krb5_ccache_setup(multihost.client[0], '/tmp/krb5_cache_%r')
         client = sssdTools(multihost.client[0])
         ssh = client.auth_from_client('foo1', 'Secret123')
 
@@ -287,8 +286,7 @@ class TestKrbCredentialCache():
                                     not as expected. Got {dir_permission[0]}."
 
     @staticmethod
-    @pytest.mark.parametrize("krb5_ccache_setup", ['/tmp/krb5_cache_%h'], indirect=True)
-    def test_0007_krb5_ccachedir(multihost, krb5_ccache_setup):
+    def test_0007_krb5_ccachedir(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Check enumeration and file\
                             permissions after setting krb5 ccachedir with percent h option
@@ -304,6 +302,7 @@ class TestKrbCredentialCache():
         :teardown:
           1. Clear the /tmp/krb_cache_/home directory.
         """
+        krb5_ccache_setup(multihost.client[0], '/tmp/krb5_cache_%h')
         client = sssdTools(multihost.client[0])
         ssh = client.auth_from_client('foo1', 'Secret123')
 
@@ -320,8 +319,7 @@ class TestKrbCredentialCache():
                                     not as expected. got {dir_permission[0]}."
 
     @staticmethod
-    @pytest.mark.parametrize("krb5_ccache_setup", ['/tmp/krb5_cache_%d'], indirect=True)
-    def test_0008_krb5_ccachedir(multihost, krb5_ccache_setup):
+    def test_0008_krb5_ccachedir(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Check enumeration and file\
                             permissions after setting krb5 ccachedir with percent d option
@@ -338,6 +336,7 @@ class TestKrbCredentialCache():
         :teardown:
           1. Clear the SSSD Domain log.
         """
+        krb5_ccache_setup(multihost.client[0], '/tmp/krb5_cache_%d')
         file = f"/var/log/sssd/sssd_{ds_instance_name}.log"
         client = sssdTools(multihost.client[0])
         ssh = client.auth_from_client('foo1', 'Secret123')
@@ -347,8 +346,7 @@ class TestKrbCredentialCache():
         assert "'%d' is not allowed in this template" in sssd_log, f"%d not found in {file}"
 
     @staticmethod
-    @pytest.mark.parametrize("krb5_ccache_setup", ['/tmp/krb5_cache_%P'], indirect=True)
-    def test_0009_krb5_ccachedir(multihost, krb5_ccache_setup):
+    def test_0009_krb5_ccachedir(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Check enumeration and file\
                             permissions after setting krb5 ccachedir with percent P option
@@ -365,6 +363,7 @@ class TestKrbCredentialCache():
         :teardown:
           1. Clear the SSSD Domain log.
         """
+        krb5_ccache_setup(multihost.client[0], '/tmp/krb5_cache_%P')
         file = f"/var/log/sssd/sssd_{ds_instance_name}.log"
         client = sssdTools(multihost.client[0])
         ssh = client.auth_from_client('foo1', 'Secret123')
@@ -374,8 +373,7 @@ class TestKrbCredentialCache():
         assert "'%P' is not allowed in this template" in sssd_log, f"%P not found in {file}"
 
     @staticmethod
-    @pytest.mark.parametrize("krb5_ccache_setup", ['/tmp/my_%%_krb5'], indirect=True)
-    def test_0010_krb5_ccachedir(multihost, krb5_ccache_setup):
+    def test_0010_krb5_ccachedir(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Check enumeration and file\
                         permissions after setting krb5 ccachedir with double percent option
@@ -391,6 +389,7 @@ class TestKrbCredentialCache():
         :teardown:
           1. Clear the /tmp/my_%%_krb5 directory.
         """
+        krb5_ccache_setup(multihost.client[0], '/tmp/my_%%_krb5')
         client = sssdTools(multihost.client[0])
         ssh = client.auth_from_client('foo1', 'Secret123')
 
@@ -433,13 +432,13 @@ class TestKrbCredentialCache():
         multihost.client[0].run_command("getent -s sss passwd foo1")
         sssd_ver = multihost.client[0].run_command("sssd --version").stdout_text[:-1]
         if version.parse(sssd_ver) >= version.parse("1.14.0"):
-            ldap_cmd = f"ldbsearch -H /var/lib/sss/db/cache_{ds_instance_name}.ldb \
+            ldb_cmd = f"ldbsearch -H /var/lib/sss/db/cache_{ds_instance_name}.ldb \
                     -b 'name=foo1@{ds_instance_name},cn=users,cn={ds_instance_name},cn=sysdb' | tee /tmp/output"
-            cmd = multihost.client[0].run_command(ldap_cmd, raiseonerr=False)
+            cmd = multihost.client[0].run_command(ldb_cmd, raiseonerr=False)
         else:
-            ldap_cmd = f"ldbsearch -H /var/lib/sss/db/cache_{ds_instance_name}.ldb \
+            ldb_cmd = f"ldbsearch -H /var/lib/sss/db/cache_{ds_instance_name}.ldb \
                     -b 'name=foo1,cn=users,cn={ds_instance_name},cn=sysdb' | tee /tmp/output"
-            cmd = multihost.client[0].run_command(ldap_cmd, raiseonerr=False)
+            cmd = multihost.client[0].run_command(ldb_cmd, raiseonerr=False)
 
         output_file = multihost.client[0].get_file_contents('/tmp/output').decode('utf-8')
 
@@ -456,7 +455,7 @@ class TestKrbCredentialCache():
         cmd2 = multihost.client[0].run_command(list_cmd, raiseonerr=False)
 
         multihost.client[0].run_command("rm -f /tmp/output")
-        assert cmd.returncode == 0, f"{ldap_cmd} did not execute successfully"
+        assert cmd.returncode == 0, f"{ldb_cmd} did not execute successfully"
         assert "lastUpdate" in output_file, "ERROR: attribute lastUpdate was not created for the new user"
         assert ssh == 3, "foo1 failed to login"
         assert "segfault" not in secure_log, "segfault found in /var/log/secure"
@@ -466,10 +465,11 @@ class TestKrbCredentialCache():
     @staticmethod
     @pytest.mark.parametrize("ldap_krb5_setup", [pytest.param('False', id="1"),
                                                  pytest.param('True', id="2")], indirect=True)
-    def test_0012_ldap_krb5(multihost, ldap_krb5_setup, request):
+    def test_0012_ldap_krb5(multihost, ldap_krb5_setup, backupsssdconf, request):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: krb5 validate is set in sssd conf bz548423
         :id: 0e96a0b0-b8b5-44b6-b25c-f46b7c203a6f
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=548423
         :setup:
           1. Set the krb5_validate and restart sssd
         :steps:
@@ -484,7 +484,6 @@ class TestKrbCredentialCache():
           4. auth success when krb_validate: False & success if True
         """
         file = f"/var/log/sssd/sssd_{ds_instance_name}.log"
-        multihost.client[0].run_command(f"truncate -s 0 {file}")
         client = sssdTools(multihost.client[0])
         client.clear_sssd_cache()
 
@@ -549,7 +548,7 @@ class TestKrbCredentialCache():
                 f"authentication success not found in {secure_log_str4}"
 
     @staticmethod
-    def test_0013_ldap_krb5(multihost):
+    def test_0013_ldap_krb5(multihost, backupsssdconf):
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Set ldap krb5 ticket lifetime
         :id: d582d7dc-259e-40aa-bf5a-2a32a83beab8
@@ -565,7 +564,6 @@ class TestKrbCredentialCache():
           3. SSSD domain log contains the required principal name message
         """
         file = f"/var/log/sssd/sssd_{ds_instance_name}.log"
-        multihost.client[0].run_command(f"truncate -s 0 {file}")
         client = sssdTools(multihost.client[0])
         domain_section = f'domain/{ds_instance_name}'
         domain_params = {'ldap_sasl_mech': 'GSSAPI',
@@ -575,10 +573,10 @@ class TestKrbCredentialCache():
         client.sssd_conf(domain_section, domain_params)
         client.clear_sssd_cache()
 
-        ldap_cmd = f"ldbsearch -H /var/lib/sss/db/config.ldb \
+        ldb_cmd = f"ldbsearch -H /var/lib/sss/db/config.ldb \
                     -b 'cn={ds_instance_name},cn=domain,cn=config' | tee /tmp/output"
 
-        cmd = multihost.client[0].run_command(ldap_cmd, raiseonerr=False)
+        cmd = multihost.client[0].run_command(ldb_cmd, raiseonerr=False)
         output_file = multihost.client[0].get_file_contents('/tmp/output').decode('utf-8')
 
         multihost.client[0].run_command("getent -s sss passwd foo1")
@@ -593,7 +591,7 @@ class TestKrbCredentialCache():
         client.clear_sssd_cache()
         ssh2 = client.auth_from_client('foo1', 'Secret123')
 
-        assert cmd.returncode == 0, f"{ldap_cmd} did not execute successfully"
+        assert cmd.returncode == 0, f"{ldb_cmd} did not execute successfully"
         assert "ldap_krb5_ticket_lifetime: 120" in output_file, f"ldap_krb_ticket_lifetime not found in {output_file}"
         assert ssh == 3, "foo1 failed to login"
         assert f"Option ldap_sasl_authid has value host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST" in file, \
@@ -611,6 +609,7 @@ class TestKrbCredentialCache():
         """
         :title: IDM-SSSD-TC: krb_provider: krb_credential_cache: Set default krb5rcachedir bz732974
         :id: 6e8ae554-c7b7-4e8c-bff9-3c43278700f0
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=732974
         :setup:
           1. Set the ldap_sasl parameters and krb5_validate to True and restart sssd
         :steps:
@@ -639,6 +638,7 @@ class TestKrbCredentialCache():
         """
         :title: IDM-SSSD-TC: krb_provider: Set krb5 rcache dir to var cache krb5rcache bz748867
         :id: 2f7b0cef-4bdf-4ac7-9864-4abb4df1fc0f
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=748867
         :setup:
           1. Set the ldap_sasl parameters and krb5_rcache_dir and restart sssd
         :steps:
@@ -667,6 +667,7 @@ class TestKrbCredentialCache():
         """
         :title: IDM-SSSD-TC: krb_provider: LDAP plus GSSAPI needs explicit Kerberos realm bz748860
         :id: 9bc3d010-85a0-4fe2-8be3-d53ecbe8687d
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=748860
         :setup:
           1. Set the ldap_sasl parameters and remove the krb5_realm and restart sssd
         :steps:
