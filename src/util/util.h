@@ -586,7 +586,9 @@ struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
 enum sss_domain_state sss_domain_get_state(struct sss_domain_info *dom);
 void sss_domain_set_state(struct sss_domain_info *dom,
                           enum sss_domain_state state);
+#ifdef BUILD_FILES_PROVIDER
 bool sss_domain_fallback_to_nss(struct sss_domain_info *dom);
+#endif
 bool sss_domain_is_forest_root(struct sss_domain_info *dom);
 const char *sss_domain_type_str(struct sss_domain_info *dom);
 

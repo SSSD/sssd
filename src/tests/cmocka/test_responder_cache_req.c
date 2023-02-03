@@ -28,7 +28,9 @@
 #include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req.h"
 
+#ifdef BUILD_FILES_PROVIDER
 #define FILES_ID_PROVIDER "files"
+#endif
 #define LDAP_ID_PROVIDER "ldap"
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_responder_cache_req_conf.ldb"
@@ -62,10 +64,12 @@ struct test_group {
                                     test_single_domain_setup, \
                                     test_single_domain_teardown)
 
+#ifdef BUILD_FILES_PROVIDER
 #define new_files_domain_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, \
                                     test_files_domain_setup, \
                                     test_single_domain_teardown)
+#endif
 
 #define new_single_domain_id_limit_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, \
@@ -603,10 +607,12 @@ static int test_single_domain_setup_common(void **state,
     return 0;
 }
 
+#ifdef BUILD_FILES_PROVIDER
 int test_files_domain_setup(void **state)
 {
     return test_single_domain_setup_common(state, NULL, FILES_ID_PROVIDER);
 }
+#endif
 
 int test_single_domain_setup(void **state)
 {
@@ -4484,11 +4490,15 @@ int main(int argc, const char *argv[])
         new_single_domain_test(groups_by_recent_filter_valid),
 
         new_single_domain_test(users_by_filter_filter_old),
+#ifdef BUILD_FILES_PROVIDER
         new_files_domain_test(users_by_filter_filter_files),
+#endif
         new_single_domain_test(users_by_filter_notfound),
         new_multi_domain_test(users_by_filter_multiple_domains_valid),
         new_multi_domain_test(users_by_filter_multiple_domains_notfound),
+#ifdef BUILD_FILES_PROVIDER
         new_files_domain_test(groups_by_filter_files),
+#endif
         new_single_domain_test(groups_by_filter_notfound),
         new_multi_domain_test(groups_by_filter_multiple_domains_valid),
         new_multi_domain_test(groups_by_filter_multiple_domains_notfound),

@@ -264,7 +264,6 @@
 #define CONFDB_DOMAIN_TYPE_POSIX "posix"
 #define CONFDB_DOMAIN_TYPE_APP "application"
 #define CONFDB_DOMAIN_INHERIT_FROM "inherit_from"
-#define CONFDB_DOMAIN_FALLBACK_TO_NSS "fallback_to_nss"
 
 /* Proxy Provider */
 #define CONFDB_PROXY_LIBNAME "proxy_lib_name"
@@ -273,9 +272,12 @@
 #define CONFDB_PROXY_FAST_ALIAS "proxy_fast_alias"
 #define CONFDB_PROXY_MAX_CHILDREN "proxy_max_children"
 
+#ifdef BUILD_FILES_PROVIDER
 /* Files Provider */
 #define CONFDB_FILES_PASSWD "passwd_files"
 #define CONFDB_FILES_GROUP "group_files"
+#define CONFDB_DOMAIN_FALLBACK_TO_NSS "fallback_to_nss"
+#endif
 
 /* KCM Service */
 #define CONFDB_KCM_CONF_ENTRY "config/kcm"
@@ -427,7 +429,9 @@ struct sss_domain_info {
     struct sss_domain_info *next;
 
     enum sss_domain_state state;
+#ifdef BUILD_FILES_PROVIDER
     bool fallback_to_nss;
+#endif
     char **sd_inherit;
 
     /* Do not use the forest pointer directly in new code, but rather the
