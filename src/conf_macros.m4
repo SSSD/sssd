@@ -570,13 +570,6 @@ AC_DEFUN([WITH_SESSION_RECORDING_SHELL],
                        [The shell used to record user sessions])
   ])
 
-AC_ARG_ENABLE([all-experimental-features],
-              [AS_HELP_STRING([--enable-all-experimental-features],
-                              [build all experimental features])],
-              [build_all_experimental_features=$enableval],
-              [build_all_experimental_features=no])
-
-
 AC_DEFUN([WITH_APP_LIBS],
   [ AC_ARG_WITH([app-libs],
                 [AC_HELP_STRING([--with-app-libs=<path>],

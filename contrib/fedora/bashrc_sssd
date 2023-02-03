@@ -49,7 +49,6 @@ fedconfig()
         --with-initscript=systemd \
         --with-syslog=journald \
         --with-test-dir=/dev/shm \
-        --enable-all-experimental-features \
         --cache-file=/tmp/fedconfig.cache \
         --with-passkey \
         ${SSSD_NO_MANPAGES-} \
