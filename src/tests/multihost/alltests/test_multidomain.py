@@ -359,12 +359,14 @@ class TestMultiDomain(object):
         """
         multidomain_sssd(domains='local_ldap')
         multihost.client[0].service_sssd('start')
-        err_str = "groupdel: cannot remove the primary group of user 'quser0'"
+        err_str1 = "groupdel: cannot remove entry 'qgroup0' from /etc/group"
+        err_str2 = "groupdel: cannot remove the primary group of user 'quser0'"
         groupdel = 'groupdel qgroup0'
         cmd = multihost.client[0].run_command(groupdel, raiseonerr=False)
         assert cmd.returncode != 0
         print(cmd.stderr_text.strip().split('\n'))
-        assert err_str in cmd.stderr_text.strip().split('\n')
+        err_list = cmd.stderr_text.strip().split('\n')
+        assert err_str1 in err_list or err_str2 in err_list
 
     @pytest.mark.tier2
     def test_0018_filesfiles(self, multihost, multidomain_sssd):
