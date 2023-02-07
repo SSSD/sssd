@@ -40,7 +40,6 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     return test_req_succeed_send(mem_ctx, rctx->ev);
 }
 
-
 errno_t
 sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
                         struct tevent_req *req,

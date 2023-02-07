@@ -297,6 +297,15 @@ SSS_NSS_GETORIGBYGROUPNAME = 0x011B, /**< Takes a zero terminated fully qualifie
                                      second the value. Hence the list should
                                      have an even number of strings, if not
                                      the whole list is invalid. */
+SSS_NSS_GETSIDBYUSERNAME = 0x011C, /**< Takes a zero terminated fully qualified
+                                    name and returns the zero terminated
+                                    string representation of the SID of the
+                                    user with the given name. */
+SSS_NSS_GETSIDBYGROUPNAME = 0x011D, /**< Takes a zero terminated fully qualified
+                                     name and returns the zero terminated
+                                     string representation of the SID of the
+                                     group with the given name. */
+
 
 /* subid */
     SSS_NSS_GET_SUBID_RANGES = 0x0130, /**< Requests both subuid and subgid ranges
