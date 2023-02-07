@@ -607,8 +607,7 @@ static errno_t check_domain_inherit_from(char *cfg_section,
     if (vo != NULL) {
         ret = ini_errobj_add_msg(errobj,
                                  "Attribute 'inherit_from' is not "
-                                 "allowed in section '%s'. Check for "
-                                 "typos.",
+                                 "allowed in section '%s'.",
                                  cfg_section);
         if (ret != EOK) {
             goto done;
