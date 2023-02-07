@@ -219,6 +219,13 @@ def test_user_operations(ldap_conn, simple_ad):
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_USER
     assert output[pysss_nss_idmap.SID_KEY] == user_sid
 
+    output = pysss_nss_idmap.getsidbyusername(user)[user]
+    assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_USER
+    assert output[pysss_nss_idmap.SID_KEY] == user_sid
+
+    output = pysss_nss_idmap.getsidbygroupname(user)
+    assert len(output) == 0
+
     output = pysss_nss_idmap.getsidbyid(user_id)[user_id]
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_USER
     assert output[pysss_nss_idmap.SID_KEY] == user_sid
@@ -247,6 +254,13 @@ def test_group_operations(ldap_conn, simple_ad):
     output = pysss_nss_idmap.getsidbyname(group)[group]
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
     assert output[pysss_nss_idmap.SID_KEY] == group_sid
+
+    output = pysss_nss_idmap.getsidbygroupname(group)[group]
+    assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
+    assert output[pysss_nss_idmap.SID_KEY] == group_sid
+
+    output = pysss_nss_idmap.getsidbyusername(group)
+    assert len(output) == 0
 
     output = pysss_nss_idmap.getsidbyid(group_id)[group_id]
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
