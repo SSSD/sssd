@@ -100,7 +100,6 @@ class TestSubid(object):
             tfile.write('echo "uidmap_ $(cat /proc/$MYPID/uid_map) _uidmap"\n')
             tfile.write(f'newgidmap $MYPID 1000 {gid_start} 1\n')
             tfile.write('echo "gidmap_ $(cat /proc/$MYPID/gid_map) _gidmap"\n')
-            tfile.write('rm -vf /tmp/unshare.pid\n')
             tfile.flush()
             multihost.client[0].transport.put_file(tfile.name, '/tmp/maps.sh')
         multihost.client[0].run_command(
@@ -119,9 +118,10 @@ class TestSubid(object):
             pytest.fail(str(ex))
         multihost.client[0].run_command(
             f'echo "{ssh_output}"', raiseonerr=False)
-
         umap = re.search(f'uidmap_.*0.*{uid_start}.*1.*_uidmap', ssh_output)
         gmap = re.search(f'gidmap_.*1000.*{gid_start}.*1.*_gidmap', ssh_output)
+        for file in ['maps.sh', 'unshare.pid']:
+            multihost.client[0].run_command(f'rm -vf {file}')
         assert umap, "Expected uid map not found!"
         assert gmap, "Expected gid map not found!"
         assert "write to uid_map failed" not in ssh_output
