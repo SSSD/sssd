@@ -270,7 +270,7 @@ void config_check_test_inherit_from_in_normal_dom(void **state)
                      "inherit_from = domain\n";
     const char *expected_errors[] = {
         "[rule/sssd_checks]: Attribute 'inherit_from' is not allowed in "
-        "section 'domain/A.test'. Check for typos.",
+        "section 'domain/A.test'.",
     };
 
     config_check_test_common(cfg_str, 1, expected_errors);
