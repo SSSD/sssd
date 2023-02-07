@@ -4304,6 +4304,11 @@ struct group sid_user_group = {
     .gr_gid = 5678,
 };
 
+struct group sid_group = {
+    .gr_name = discard_const("testgroupsid"),
+    .gr_gid = 5555,
+};
+
 static int test_sss_nss_getsidbyname_check(uint32_t status,
                                        uint8_t *body,
                                        size_t blen)
@@ -4324,6 +4329,32 @@ static int test_sss_nss_getsidbyname_check(uint32_t status,
         name = (char *) body+rp;
 
         assert_int_equal(type, SSS_ID_TYPE_UID);
+        assert_string_equal(name, expected_result);
+    }
+
+    return EOK;
+}
+
+static int test_sss_nss_getsidbygroupname_check(uint32_t status,
+                                                uint8_t *body,
+                                                size_t blen)
+{
+    const char *name;
+    enum sss_id_type type;
+    size_t rp = 2 * sizeof(uint32_t);
+    char *expected_result = sss_mock_ptr_type(char *);
+
+    if (expected_result == NULL) {
+        assert_int_equal(status, EINVAL);
+        assert_int_equal(blen, 0);
+    } else {
+        assert_int_equal(status, EOK);
+
+        SAFEALIGN_COPY_UINT32(&type, body+rp, &rp);
+
+        name = (char *) body+rp;
+
+        assert_int_equal(type, SSS_ID_TYPE_GID);
         assert_string_equal(name, expected_result);
     }
 
@@ -4445,6 +4476,130 @@ void test_sss_nss_getsidbyname_ipa_upg_manual(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_sss_nss_getsidbyusername_user(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    const char *testuser_sid = "S-1-2-3-4";
+
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
+                     &sid_user, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testusersid");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYUSERNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    will_return(test_sss_nss_getsidbyname_check, testuser_sid);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_sss_nss_getsidbyname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYUSERNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_sss_nss_getsidbyusername_group(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    const char *testgroup_sid = "S-1-2-3-4";
+
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testgroup_sid);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
+                      &sid_group, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testgroupsid");
+    mock_account_recv_simple();
+    set_cmd_cb(NULL);
+
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYUSERNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+}
+
+void test_sss_nss_getsidbygroupname_group(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    const char *testgroup_sid = "S-1-2-3-4";
+
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testgroup_sid);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
+                     &sid_group, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testgroupsid");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYGROUPNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    will_return(test_sss_nss_getsidbygroupname_check, testgroup_sid);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_sss_nss_getsidbygroupname_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYGROUPNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_sss_nss_getsidbygroupname_user(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    const char *testuser_sid = "S-1-2-3-4";
+
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
+                      &sid_user, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testusersid");
+    mock_account_recv_simple();
+    set_cmd_cb(NULL);
+
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETSIDBYGROUPNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+}
+
 void test_sss_nss_getsidbyid(void **state)
 {
     errno_t ret;
@@ -4541,11 +4696,6 @@ void test_sss_nss_getsidbygid_no_group(void **state)
     ret = test_ev_loop(sss_nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
 }
-
-struct group sid_group = {
-    .gr_name = discard_const("testgroupsid"),
-    .gr_gid = 5555,
-};
 
 static int test_sss_nss_getsidbyname_group_check(uint32_t status,
                                              uint8_t *body,
@@ -5954,6 +6104,14 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyname,
                                         sss_nss_test_setup, sss_nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyname_ipa_upg,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyusername_user,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyusername_group,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbygroupname_user,
+                                        sss_nss_test_setup, sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getsidbygroupname_group,
                                         sss_nss_test_setup, sss_nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_sss_nss_getsidbyid,
                                         sss_nss_test_setup, sss_nss_test_teardown),

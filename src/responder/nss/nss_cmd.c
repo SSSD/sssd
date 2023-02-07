@@ -1142,6 +1142,28 @@ static errno_t sss_nss_cmd_getsidbyname(struct cli_ctx *cli_ctx)
                               SSS_MC_NONE, sss_nss_protocol_fill_sid);
 }
 
+static errno_t sss_nss_cmd_getsidbyusername(struct cli_ctx *cli_ctx)
+{
+    /* The attributes besides SYSDB_SID_STR are needed to handle some corner
+     * cases with respect to user-private-groups */
+    const char *attrs[] = { SYSDB_SID_STR, SYSDB_UIDNUM, SYSDB_GIDNUM,
+                            SYSDB_OBJECTCATEGORY, NULL };
+
+    return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_USER_BY_NAME, attrs,
+                              SSS_MC_NONE, sss_nss_protocol_fill_sid);
+}
+
+static errno_t sss_nss_cmd_getsidbygroupname(struct cli_ctx *cli_ctx)
+{
+    /* The attributes besides SYSDB_SID_STR are needed to handle some corner
+     * cases with respect to user-private-groups */
+    const char *attrs[] = { SYSDB_SID_STR, SYSDB_UIDNUM, SYSDB_GIDNUM,
+                            SYSDB_OBJECTCATEGORY, NULL };
+
+    return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_GROUP_BY_NAME, attrs,
+                              SSS_MC_NONE, sss_nss_protocol_fill_sid);
+}
+
 static errno_t sss_nss_cmd_getsidbyid(struct cli_ctx *cli_ctx)
 {
     const char *attrs[] = { SYSDB_SID_STR, SYSDB_UIDNUM, SYSDB_GIDNUM,
@@ -1374,6 +1396,8 @@ struct sss_cmd_table *get_sss_nss_cmds(void)
         { SSS_NSS_GETSERVENT, sss_nss_cmd_getservent },
         { SSS_NSS_ENDSERVENT, sss_nss_cmd_endservent },
         { SSS_NSS_GETSIDBYNAME, sss_nss_cmd_getsidbyname },
+        { SSS_NSS_GETSIDBYUSERNAME, sss_nss_cmd_getsidbyusername },
+        { SSS_NSS_GETSIDBYGROUPNAME, sss_nss_cmd_getsidbygroupname },
         { SSS_NSS_GETSIDBYID, sss_nss_cmd_getsidbyid },
         { SSS_NSS_GETSIDBYUID, sss_nss_cmd_getsidbyuid },
         { SSS_NSS_GETSIDBYGID, sss_nss_cmd_getsidbygid },
