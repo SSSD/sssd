@@ -22,6 +22,7 @@
 #ifndef _SDAP_H_
 #define _SDAP_H_
 
+#include <ldb.h>
 #include "providers/backend.h"
 #include <ldap.h>
 #include "util/sss_ldap.h"
@@ -419,6 +420,7 @@ struct sdap_attr_map {
 
 struct sdap_search_base {
     const char *basedn;
+    struct ldb_dn *ldb_basedn;
     int scope;
     const char *filter;
 };
@@ -458,6 +460,7 @@ struct sdap_domain {
     struct sdap_search_base **iphost_search_bases;
     struct sdap_search_base **ipnetwork_search_bases;
     struct sdap_search_base **autofs_search_bases;
+    struct sdap_search_base **ignore_user_search_bases;
 #ifdef BUILD_SUBID
     struct sdap_search_base **subid_ranges_search_bases;
 #endif

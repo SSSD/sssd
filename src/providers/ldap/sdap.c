@@ -1168,7 +1168,7 @@ sdap_create_search_base(TALLOC_CTX *mem_ctx,
     }
 
     /* Validate the basedn */
-    ldn = ldb_dn_new(tmp_ctx, ldb, unparsed_base);
+    ldn = ldb_dn_new(base, ldb, unparsed_base);
     if (!ldn) {
         ret = ENOMEM;
         goto done;
@@ -1180,6 +1180,7 @@ sdap_create_search_base(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    base->ldb_basedn = ldn;
     base->scope = scope;
     base->filter = filter;
 

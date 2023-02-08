@@ -747,9 +747,9 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                 ret = EINVAL;
                 goto done;
             }
-            talloc_zfree(ldn);
 
             /* Set the search base DN */
+            search_bases[i]->ldb_basedn = talloc_steal(search_bases[i], ldn);
             search_bases[i]->basedn = talloc_strdup(search_bases[i],
                                                     split_bases[c]);
             if (!search_bases[i]->basedn) {
