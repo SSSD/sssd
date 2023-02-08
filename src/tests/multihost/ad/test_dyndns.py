@@ -34,13 +34,34 @@ def change_client_hostname(session_multihost, request):
 @pytest.fixture(scope="class")
 def disable_dns_forwarders(session_multihost, request):
     """ Disables recursive lookups on DNS server """
-    session_multihost.ad[0].run_command('dnscmd.exe /config /norecursion 1')
+    session_multihost.ad[0].run_command('dnscmd.exe /config /norecursion 1', raiseonerr=False)
 
     def enable_dns_forwarders():
         """ Enables recursion lookups on DNS servers """
-        session_multihost.ad[0].run_command('dnscmd.exe /config /norecursion 0')
+        session_multihost.ad[0].run_command('dnscmd.exe /config /norecursion 0', raiseonerr=False)
 
     request.addfinalizer(enable_dns_forwarders)
+
+
+@pytest.fixture(scope="class")
+def reverse_zone(session_multihost, request):
+    """ Creates reverse zones """
+    dns = ADDNS(session_multihost.ad[0])
+    ip = session_multihost.ad[0].ip.split(".")
+    ip1 = session_multihost.client[0].ip.split(".")
+    network = str(f'{ip[2]}.{ip[1]}.{ip[0]}.in-addr.arpa')
+    dns.add_zone(network)
+    if ip[2] != ip1[2]:
+        network1 = str(f'{ip1[2]}.{ip1[1]}.{ip1[0]}.in-addr.arpa')
+        assert dns.add_zone(network1)
+
+    def remove_reverse_zone():
+        """ Delete reverse zones """
+        dns.del_zone(network)
+        if ip[2] != ip1[2]:
+            dns.del_zone(network1)
+
+    request.addfinalizer(remove_reverse_zone)
 
 
 @pytest.fixture(scope="function")
@@ -74,7 +95,7 @@ def extra_interface(session_multihost, request):
     return extra_interface, extra_ip
 
 
-@pytest.mark.usefixtures("disable_dns_forwarders", "change_client_hostname")
+@pytest.mark.usefixtures("reverse_zone", "disable_dns_forwarders", "change_client_hostname")
 @pytest.mark.dyndns
 @pytest.mark.tier2
 class TestDynDns(object):
@@ -101,7 +122,7 @@ class TestDynDns(object):
 
         client.clear_sssd_cache()
         # Update function with IPV6 support is added to output what failed
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip)
 
     @staticmethod
@@ -131,7 +152,7 @@ class TestDynDns(object):
         dns.del_record(hostname)
         dns.del_record(ip)
         client.clear_sssd_cache()
-        assert dns.find_a(hostname) is not True
+        assert dns.find_a(hostname, ip) is not True
         assert dns.find_ptr(hostname, ip) is not True
 
     @staticmethod
@@ -164,7 +185,7 @@ class TestDynDns(object):
         dns.del_record(ip)
         client.clear_sssd_cache()
 
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip)
         assert '9200' in dns.print_zone(domain)
 
@@ -201,7 +222,7 @@ class TestDynDns(object):
         dns.del_record(extra_ip)
         client.clear_sssd_cache()
 
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, extra_ip)
         assert dns.find_ptr(hostname, extra_ip)
         assert ip not in dns.print_zone(domain)
 
@@ -233,7 +254,7 @@ class TestDynDns(object):
         client.sssd_conf(domain_section, sssd_params)
         client.clear_sssd_cache()
 
-        assert dns.find_a(hostname) is not True
+        assert dns.find_a(hostname, ip) is not True
         assert dns.find_ptr(hostname, ip) is not True
 
     @staticmethod
@@ -279,14 +300,14 @@ class TestDynDns(object):
         sssd_params = {'dyndns_refresh_interval': '81', 'dyndns_iface': extra_interface}
         client.sssd_conf(domain_section, sssd_params)
         client.clear_sssd_cache()
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, extra_ip)
         assert dns.find_ptr(hostname, extra_ip)
 
         multihost.client[0].run_command('ip addr flush dev ' + extra_interface)
         multihost.client[0].run_command('ip addr change ' + extra_ip_after_refresh + ' dev ' + extra_interface)
         time.sleep(83)
 
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, extra_ip_after_refresh)
         assert dns.find_ptr(hostname, extra_ip_after_refresh)
 
     @staticmethod
@@ -324,7 +345,7 @@ class TestDynDns(object):
         client.sssd_conf(domain_section, sssd_params)
         client.clear_sssd_cache()
 
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip) is not True
 
     @staticmethod
@@ -366,8 +387,10 @@ class TestDynDns(object):
         domain_section = 'domain/{}'.format(domain)
         sssd_params = {'dyndns_refresh_interval': '81', 'dyndns_update': 'true', 'dyndns_iface': extra_int}
         client.sssd_conf(domain_section, sssd_params)
+        dns.del_record(hostname)
+        dns.del_record(ip)
         client.clear_sssd_cache()
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip)
 
         domain_section = 'domain/{}'.format(domain)
@@ -379,7 +402,7 @@ class TestDynDns(object):
         multihost.client[0].run_command('ip addr add ' + new_ip + ' dev ' + extra_int)
         client.clear_sssd_cache()
 
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, new_ip)
         assert dns.find_ptr(hostname, ip)
         assert dns.find_ptr(hostname, new_ip) is not True
 
@@ -424,12 +447,12 @@ class TestDynDns(object):
         multihost.client[0].run_command(f'iptables -A INPUT -p tcp --dport 53 -s {multihost.ad[0].ip} -j DROP; '
                                         f'iptables -A OUTPUT -p tcp --dport 53 -d {multihost.ad[0].ip} -j DROP')
         client.clear_sssd_cache()
-        assert dns.find_a(hostname) is not True
+        assert dns.find_a(hostname, ip) is not True
         assert dns.find_ptr(hostname, ip) is not True
 
         multihost.client[0].run_command('iptables -F', raiseonerr=False)
         client.clear_sssd_cache()
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip)
 
     @staticmethod
@@ -468,7 +491,7 @@ class TestDynDns(object):
         dns.del_record(ip)
         client.clear_sssd_cache()
 
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, extra_ip)
         assert dns.find_ptr(hostname, extra_ip)
         assert dns.find_ptr(hostname, ip) is not True
 
@@ -530,6 +553,8 @@ class TestDynDns(object):
         domain_section = 'domain/{}'.format(domain)
         sssd_params = {'dyndns_server': f'{adserver}'}
         client.sssd_conf(domain_section, sssd_params)
+        dns.del_record(hostname)
+        dns.del_record(ip)
         client.clear_sssd_cache()
-        assert dns.find_a(hostname)
+        assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip)
