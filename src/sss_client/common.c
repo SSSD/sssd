@@ -159,7 +159,11 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
             *errnop = ETIME;
             break;
         case 1:
-            if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            if (pfd.revents & (POLLERR | POLLHUP)) {
+                *errnop = EPIPE;
+            } else if (pfd.revents & POLLNVAL) {
+                /* Invalid request: fd is not opened */
+                sss_cli_sd = -1;
                 *errnop = EPIPE;
             } else if (!(pfd.revents & POLLOUT)) {
                 *errnop = EBUSY;
@@ -270,7 +274,11 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
             if (pfd.revents & (POLLHUP)) {
                 pollhup = true;
             }
-            if (pfd.revents & (POLLERR | POLLNVAL)) {
+            if (pfd.revents & POLLERR) {
+                *errnop = EPIPE;
+            } else if (pfd.revents & POLLNVAL) {
+                /* Invalid request: fd is not opened */
+                sss_cli_sd = -1;
                 *errnop = EPIPE;
             } else if (!(pfd.revents & POLLIN)) {
                 *errnop = EBUSY;
@@ -721,7 +729,11 @@ static enum sss_status sss_cli_check_socket(int *errnop,
             *errnop = ETIME;
             break;
         case 1:
-            if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            if (pfd.revents & (POLLERR | POLLHUP)) {
+                *errnop = EPIPE;
+            } else if (pfd.revents & POLLNVAL) {
+                /* Invalid request: fd is not opened */
+                sss_cli_sd = -1;
                 *errnop = EPIPE;
             } else if (!(pfd.revents & (POLLIN | POLLOUT))) {
                 *errnop = EBUSY;
