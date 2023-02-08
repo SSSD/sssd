@@ -2072,33 +2072,30 @@ class ADDNS(object):  # pylint: disable=useless-object-inheritance
 
     def get_zones(self):
         """ Returns a list of all the forward and reverse zones  on the server excluding msdcs """
-        zones = str.split(self.ad_host.run_command("dnscmd.exe /EnumZones").stdout_text, "\n")
-        # This is cleaning up the output, removing unnecessary lines from the beginning and end of the output
-        i = 0
-        while 7 >= i:
-            del zones[0]
-            i += 1
-        i = 0
-        while 4 >= i:
-            del zones[len(zones)-1]
-            i += 1
+        zones = self.ad_host.run_command("dnscmd.exe /EnumZones").stdout_text
+        zone_list = re.sub("\n\s*\n", "\n", re.sub("(.*?)Cache(.*?)\n|(.*?)Zone(.*?)\n|(.*?)Enumerated(.*?)\n|"
+                           "(.*?)_msdcs(.*?)\n|(.*?)Command(.*?)\n", "", zones))
+        return zone_list
 
     def print_zone(self, zone):
         """ Prints all the contents of a zone file, takes domain.com or 1.168.192.in-addr.arpa string """
-        zone_out = self.ad_host.run_command(f"dnscmd.exe /zoneprint {zone}")
-        return zone_out.stdout_text
+        zone_out = self.ad_host.run_command(f"dnscmd.exe /zoneprint {zone}").stdout_text
+        zone = re.sub("\n\s*\n", "\n", re.sub("[;_](.*?)\n|.*?(NS|SOA|DnsZones|@).*?\n", "", zone_out))
 
-    def find_a(self, hostname):
+        return zone
+
+    def find_a(self, hostname, ip):
         """ Searches the zone for a specific A record, returning True for success and False for failure """
         domain = self.ad_host.realm.lower()
-        host = hostname.split(".")[0]
+        host = str(hostname.split(".")[0])
         for x in range(0, 600, 15):
-            results = self.ad_host.run_command(f"dnscmd.exe /zoneprint {domain}")
-            if host not in results.stdout_text:
+            results = self.print_zone(domain)
+            if re.search(f'{host} .*A.*{ip}', results, re.M):
+                return True
+            else:
                 time.sleep(15)
                 x += 15
-            else:
-                return True
+                print(results)
         return False
 
     def find_ptr(self, hostname, ip):
@@ -2107,28 +2104,29 @@ class ADDNS(object):  # pylint: disable=useless-object-inheritance
         net = str(ip.split(".")[2]) + '.' + str(ip.split(".")[1]) + '.' + str(ip.split(".")[0]) + '.in-addr.arpa'
         ptr = str(ip.split(".")[3])
         for x in range(0, 600, 15):
-            results = self.ad_host.run_command(f"dnscmd.exe /zoneprint {net}")
-            if ptr not in results.stdout_text:
+            results = self.print_zone(net)
+            if re.search(f'{ptr} .*PTR.*{hostname}', results, re.M):
+                return True
+            else:
                 time.sleep(15)
                 x += 15
-            else:
-                return True
+                print(results)
         return False
 
     def add_zone(self, zone):
         """ Adds a forward or reverse zone with dynamic updates in AD DNS, True if zone is listed and False if not """
-        self.ad_host.run_command(f"dnscmd.exe /zoneadd {zone} /primary")
-        self.ad_host.run_command(f"dnscmd.exe /config {zone} /allowupdate 1")
-        check_zone = self.ad_host.run_command("dnscmd.exe /EnumZones")
-        if zone in check_zone.stdout_text:
+        self.ad_host.run_command(f"dnscmd.exe /zoneadd {zone} /primary", raiseonerr=False)
+        self.ad_host.run_command(f"dnscmd.exe /config {zone} /allowupdate 1", raiseonerr=False)
+        check_zone = self.get_zones()
+        if zone in check_zone:
             return True
         return False
 
     def del_zone(self, zone):
-        """ Deletes the DNS forward or reverse zone in AD DNS, True if not found in zone list and False if foudn """
-        self.ad_host.run_command(f"dnscmd.exe /zonedelete {zone} /f")
-        check_zone = self.ad_host.run_command("dnscmd.exe /EnumZones")
-        if zone not in check_zone.stdout_text:
+        """ Deletes the DNS forward or reverse zone in AD DNS, True if not found in zone list and False if found """
+        self.ad_host.run_command(f"dnscmd.exe /zonedelete {zone} /f", raiseonerr=False)
+        check_zone = self.get_zones()
+        if zone not in check_zone:
             return True
         return False
 
