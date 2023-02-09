@@ -778,7 +778,6 @@ def setup_session(request, session_multihost):
         master.update_resolv_conf(session_multihost.ad[0].ip)
     client.client_install_pkgs()
     client.update_resolv_conf(session_multihost.ad[0].ip)
-    client.clear_sssd_cache()
     client.systemsssdauth(realm, ad_host)
 
     def teardown_session():
