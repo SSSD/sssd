@@ -72,7 +72,7 @@ int main(int argc, const char *argv[])
     } else if (data.action == ACTION_AUTHENTICATE) {
         ret = authenticate(&data);
         if (ret == EOK) {
-            printf("Authentication success.\n");
+            PRINT("Authentication success.\n");
             goto done;
         } else {
             ERROR("Authentication error.\n");
