@@ -380,7 +380,7 @@ static void svc_child_info(struct mt_svc *svc, int wait_status)
                   pid, name, identity);
             sss_log(SSS_LOG_CRIT,
                     "Child [%d] ('%s':'%s') was terminated by own WATCHDOG. "
-                    "Consult corresponding logs to figure out the reason.",
+                    "Consult corresponding sssd logs to figure out the reason.",
                     pid, name, identity);
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
