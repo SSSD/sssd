@@ -216,7 +216,7 @@ read_pin(char **pin)
         goto done;
     }
 
-    printf("Enter PIN:\n");
+    PRINT("Enter PIN:\n");
     fflush(stdout);
     bytes_read = getline(&line_ptr, &line_len, stdin);
     if (bytes_read == -1) {
@@ -226,7 +226,7 @@ read_pin(char **pin)
         /* Remove the end of line '\n' character */
         line_ptr[--bytes_read] = '\0';
     }
-    printf("\n");
+    PRINT("\n");
 
     ret = tcsetattr(STDIN_FILENO, TCSAFLUSH, &old);
     if (ret != 0) {
@@ -280,7 +280,7 @@ generate_credentials(struct passkey_data *data, fido_dev_t *dev,
     }
 
     if (data->quiet == false) {
-        printf("Please touch the device.\n");
+        PRINT("Please touch the device.\n");
         fflush(stdout);
     }
     ret = fido_dev_make_cred(dev, cred, pin);
@@ -411,9 +411,9 @@ print_credentials(const struct passkey_data *data,
     }
 
     if (data->cred_type == CRED_SERVER_SIDE) {
-        printf("passkey:%s,%s\n", b64_cred_id, pem_key);
+        PRINT("passkey:%s,%s\n", b64_cred_id, pem_key);
     } else {
-        printf("passkey:%s,%s,%s\n", b64_cred_id, pem_key, b64_user_id);
+        PRINT("passkey:%s,%s,%s\n", b64_cred_id, pem_key, b64_user_id);
     }
     ret = EOK;
 
