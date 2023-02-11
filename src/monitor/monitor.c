@@ -242,7 +242,6 @@ get_service_in_the_list(struct mt_ctx *mt_ctx,
 
     for (svc = mt_ctx->svc_list; svc != NULL; svc = svc->next) {
         if (strcasecmp(svc->identity, svc_name) == 0) {
-            svc->socket_activated = false;
             *_svc = svc;
             return EOK;
         }
@@ -1801,6 +1800,8 @@ static int start_service(struct mt_svc *svc)
     struct timeval tv;
 
     DEBUG(SSSDBG_CONF_SETTINGS,"Queueing service %s for startup\n", svc->name);
+
+    svc->socket_activated = false;
 
     tv = tevent_timeval_current();
 
