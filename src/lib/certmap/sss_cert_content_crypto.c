@@ -624,7 +624,7 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
             DLIST_ADD(list, item);
             break;
         case GEN_X400:
-            len = i2d_ASN1_TYPE(current->d.x400Address, NULL);
+            len = i2d_ASN1_TYPE((ASN1_TYPE *)(current->d.x400Address), NULL);
             if (len <= 0) {
                 ret = EINVAL;
                 goto done;
@@ -639,7 +639,7 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
             /* i2d_TYPE increment the second argument so that it points to the end of
              * the written data hence we cannot use i->bin_val directly. */
             p = data;
-            len = i2d_ASN1_TYPE(current->d.x400Address, &p);
+            len = i2d_ASN1_TYPE((ASN1_TYPE *)(current->d.x400Address), &p);
 
             ret = add_to_san_list(mem_ctx, true,
                                   openssl_name_type_to_san_opt(current->type),
