@@ -76,7 +76,7 @@ sss_nss_get_homedir_override(TALLOC_CTX *mem_ctx,
     /* Here we skip the files provider as it should always return *only*
      * what's in the files and nothing else.
      */
-    if (strcasecmp(dom->provider, "files") != 0) {
+    if (!is_files_provider(dom)) {
         /* Check whether we are unconditionally overriding the server
          * for home directory locations.
          */
