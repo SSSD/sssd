@@ -214,33 +214,14 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (NEED_CHECK_PROVIDER(dom) == false) {
-        if (strcmp(dom->provider, "files") == 0) {
-            /* This is a special case. If the files provider is just being updated,
-             * we issue an enumeration request. We always use the same request type
-             * (user enumeration) to make sure concurrent requests are just chained
-             * in the Data Provider */
-            ret = sss_dp_account_files_params(dom, type, opt_name,
-                                              &type, &opt_name);
-            if (ret == EOK) {
-                state->dp_error = DP_ERR_OK;
-                state->error = EOK;
-                state->error_message = talloc_strdup(state, "Success");
-                if (state->error_message == NULL) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-                goto done;
-            } else if (ret != EAGAIN) {
-                DEBUG((ret == ENOENT) ? SSSDBG_MINOR_FAILURE : SSSDBG_OP_FAILURE,
-                      "Failed to set files provider update [%d]: %s\n",
-                      ret, sss_strerror(ret));
-                goto done;
-            }
-            /* EAGAIN, fall through to issuing the request */
-        } else {
-            DEBUG(SSSDBG_TRACE_INTERNAL, "Domain %s does not check DP\n",
-                  dom->name);
+    if (is_files_provider(dom)) {
+        /* This is a special case. If the files provider is just being updated,
+         * we issue an enumeration request. We always use the same request type
+         * (user enumeration) to make sure concurrent requests are just chained
+         * in the Data Provider */
+        ret = sss_dp_account_files_params(dom, type, opt_name,
+                                          &type, &opt_name);
+        if (ret == EOK) {
             state->dp_error = DP_ERR_OK;
             state->error = EOK;
             state->error_message = talloc_strdup(state, "Success");
@@ -248,9 +229,14 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
                 ret = ENOMEM;
                 goto done;
             }
-            ret = EOK;
+            goto done;
+        } else if (ret != EAGAIN) {
+            DEBUG((ret == ENOENT) ? SSSDBG_MINOR_FAILURE : SSSDBG_OP_FAILURE,
+                  "Failed to set files provider update [%d]: %s\n",
+                  ret, sss_strerror(ret));
             goto done;
         }
+        /* EAGAIN, fall through to issuing the request */
     }
 
     ret = sss_dp_get_domain_conn(rctx, dom->conn_name, &be_conn);
