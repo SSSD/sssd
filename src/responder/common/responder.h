@@ -52,8 +52,7 @@ extern hash_table_t *dp_requests;
 /* Files provider doesn't have a back end in the traditional sense
  * and can always just consult the responder's cache
  */
-#define NEED_CHECK_PROVIDER(provider) \
-    ((provider != NULL) && (strcmp(provider, "files") != 0))
+#define NEED_CHECK_PROVIDER(dom) (!is_files_provider(dom))
 
 /* needed until nsssrv.h is updated */
 struct cli_request {

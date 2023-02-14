@@ -1033,7 +1033,7 @@ static void pam_reply(struct pam_auth_req *preq)
         preq->domain->cache_credentials &&
         !pd->offline_auth &&
         !pd->last_auth_saved &&
-        NEED_CHECK_PROVIDER(preq->domain->provider)) {
+        NEED_CHECK_PROVIDER(preq->domain)) {
         ret = set_last_login(preq);
         if (ret != EOK) {
             goto done;
