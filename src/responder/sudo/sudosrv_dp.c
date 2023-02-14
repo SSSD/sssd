@@ -167,7 +167,7 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (NEED_CHECK_PROVIDER(dom) == false) {
+    if (is_files_provider(dom)) {
         DEBUG(SSSDBG_TRACE_INTERNAL, "Domain %s does not check DP\n",
               dom->name);
         state->dp_error = DP_ERR_OK;
