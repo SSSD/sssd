@@ -52,7 +52,7 @@ get_subdomains_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (NEED_CHECK_PROVIDER(dom) == false) {
+    if (is_files_provider(dom)) {
         DEBUG(SSSDBG_TRACE_INTERNAL, "Domain %s does not check DP\n",
               dom->name);
         state->dp_error = DP_ERR_OK;
@@ -203,7 +203,7 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
     }
 
     state->dom = rctx->domains;
-    while(state->dom != NULL && !NEED_CHECK_PROVIDER(state->dom)) {
+    while(is_files_provider(state->dom)) {
         state->dom = get_next_domain(state->dom, 0);
     }
 
@@ -291,8 +291,8 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
     /* Advance to the next domain */
     state->dom = get_next_domain(state->dom, 0);
 
-    /* Skip local domains */
-    while(state->dom != NULL && !NEED_CHECK_PROVIDER(state->dom)) {
+    /* Skip "files provider" */
+    while(is_files_provider(state->dom)) {
         state->dom = get_next_domain(state->dom, 0);
     }
 
@@ -457,7 +457,7 @@ static void get_domains_at_startup_done(struct tevent_req *req)
         }
     }
 
-    if (!NEED_CHECK_PROVIDER(state->rctx->domains)) {
+    if (is_files_provider(state->rctx->domains)) {
         ret = sysdb_master_domain_update(state->rctx->domains);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_master_domain_update failed, "
