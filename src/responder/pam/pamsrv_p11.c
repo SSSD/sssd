@@ -1247,9 +1247,7 @@ errno_t add_pam_cert_response(struct pam_data *pd, struct sss_domain_info *dom,
      * re_expression config option was set in a way that user@domain cannot be
      * handled anymore some more logic has to be added here. But for the time
      * being I think using sysdb_username is fine.
-     * As special case is the files provider which handles local users which
-     * by definition only have a short name. To avoid confusion by other
-     * modules on the PAM stack the short name is returned in this case. */
+     */
 
     if (sysdb_username != NULL) {
         ret = sss_parse_internal_fqname(pd, sysdb_username,
