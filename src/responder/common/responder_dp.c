@@ -214,7 +214,7 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (NEED_CHECK_PROVIDER(dom->provider) == false) {
+    if (NEED_CHECK_PROVIDER(dom) == false) {
         if (strcmp(dom->provider, "files") == 0) {
             /* This is a special case. If the files provider is just being updated,
              * we issue an enumeration request. We always use the same request type
