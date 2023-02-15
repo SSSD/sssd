@@ -19,6 +19,7 @@ Following are the pytest markers used
 * journald: Tests related to journald
 * krb5: Tests related to krb5
 * kcm: Tests related to kcm
+* krbfastprincipal: Tests related to kerberos fast principal
 * ldapextraattrs: Tests related to Ldap Extra attributes
 * localoverrides: Tests related to Local Overrides
 * multidomain: Tests related to SSSD Multiple Domains
