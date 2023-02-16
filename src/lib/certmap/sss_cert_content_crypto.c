@@ -662,10 +662,11 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
                 goto done;
             }
 
-            /* i2d_TYPE increment the second argument so that it points to the end of
-             * the written data hence we cannot use i->bin_val directly. */
+            /* i2d_EDIPARTYNAME increment the second argument so that it points
+             * to the end of the written data hence we cannot use data directly.
+             */
             p = data;
-            len = i2d_EDIPARTYNAME(current->d.ediPartyName, &data);
+            len = i2d_EDIPARTYNAME(current->d.ediPartyName, &p);
 
             ret = add_to_san_list(mem_ctx, true,
                                   openssl_name_type_to_san_opt(current->type),
