@@ -484,6 +484,73 @@ static int add_oid_to_san_list(TALLOC_CTX *mem_ctx,
     return 0;
 }
 
+/* Due to CVE-2023-0286 the type of the x400Address member of the
+ * GENERAL_NAME struct was changed from ASN1_TYPE to ASN1_STRING. The
+ * following code tries to make sure that the x400Address can be extracted from
+ * the certificate in either case. */
+static int get_x400address_data(TALLOC_CTX *mem_ctx, GENERAL_NAME *current,
+                                unsigned char **_data, int *_len)
+{
+    int ret;
+    unsigned char *data = NULL;
+    int len;
+
+#ifdef HAVE_X400ADDRESS_STRING
+    len = ASN1_STRING_length(current->d.x400Address);
+    if (len <= 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    data = (unsigned char *) talloc_strndup(mem_ctx,
+                   (const char *) ASN1_STRING_get0_data(current->d.x400Address),
+                   len);
+    if (data == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* just make sure we have the right length in case the original
+     * x400Address contained some unexpected \0-bytes. */
+    len = strlen((char *) data);
+#else
+    unsigned char *p;
+
+    len = i2d_ASN1_TYPE(current->d.x400Address, NULL);
+
+    if (len <= 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    data = talloc_size(mem_ctx, len);
+    if (data == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* i2d_ASN1_TYPE increment the second argument so that it points to the end
+     * of the written data hence we cannot use data directly. */
+    p = data;
+    len = i2d_ASN1_TYPE(current->d.x400Address, &p);
+#endif
+
+    ret = 0;
+
+done:
+    if (ret == 0) {
+        if (_data != NULL) {
+            *_data = data;
+        }
+        if (_len != NULL) {
+            *_len = len;
+        }
+    } else {
+        talloc_free(data);
+    }
+
+    return ret;
+}
 static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
 {
     STACK_OF(GENERAL_NAME) *extsan = NULL;
@@ -624,22 +691,10 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
             DLIST_ADD(list, item);
             break;
         case GEN_X400:
-            len = i2d_ASN1_TYPE(current->d.x400Address, NULL);
-            if (len <= 0) {
-                ret = EINVAL;
+            ret = get_x400address_data(mem_ctx, current, &data, &len);
+            if (ret != 0) {
                 goto done;
             }
-
-            data = talloc_size(mem_ctx, len);
-            if (data == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            /* i2d_TYPE increment the second argument so that it points to the end of
-             * the written data hence we cannot use i->bin_val directly. */
-            p = data;
-            len = i2d_ASN1_TYPE(current->d.x400Address, &p);
 
             ret = add_to_san_list(mem_ctx, true,
                                   openssl_name_type_to_san_opt(current->type),
