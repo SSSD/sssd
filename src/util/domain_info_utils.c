@@ -983,17 +983,6 @@ bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain)
     return domain->output_fqnames;
 }
 
-bool is_files_provider(struct sss_domain_info *domain)
-{
-#ifdef BUILD_FILES_PROVIDER
-    return domain != NULL &&
-           domain->provider != NULL &&
-           strcasecmp(domain->provider, "files") == 0;
-#else
-    return false;
-#endif
-}
-
 bool sss_domain_is_mpg(struct sss_domain_info *domain)
 {
     return domain->mpg_mode == MPG_ENABLED;
