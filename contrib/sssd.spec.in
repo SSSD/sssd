@@ -845,7 +845,7 @@ done
 %{_mandir}/man5/sssd-ifp.5*
 %{_unitdir}/sssd-ifp.service
 # InfoPipe DBus plumbing
-%{_sysconfdir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
+%{_datadir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
 %{_datadir}/dbus-1/system-services/org.freedesktop.sssd.infopipe.service
 
 %files -n libsss_simpleifp
