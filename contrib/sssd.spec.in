@@ -135,6 +135,7 @@ BuildRequires: pcre2-devel
 BuildRequires: pkgconfig
 BuildRequires: popt-devel
 BuildRequires: python3-devel
+BuildRequires: python3-setuptools
 BuildRequires: samba-devel
 # required for idmap_sss.so
 BuildRequires: samba-winbind
