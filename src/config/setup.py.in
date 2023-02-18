@@ -19,10 +19,10 @@
 #
 
 """
-Python-level packaging using distutils.
+Python-level packaging using setuptools.
 """
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='SSSDConfig',
