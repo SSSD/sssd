@@ -402,7 +402,8 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     ret = sysdb_search_group_by_origgid(NULL, domain, orig_gid, NULL,
                                         &primary_group_msg);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to find primary gid [%d]: %s\n",
+        DEBUG((ret == ENOENT ? SSSDBG_FUNC_DATA : SSSDBG_MINOR_FAILURE),
+              "Unable to find primary gid [%d]: %s\n",
               ret, sss_strerror(ret));
         /* Just continue with what we have. */
     } else {
