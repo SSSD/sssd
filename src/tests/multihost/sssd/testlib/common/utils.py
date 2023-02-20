@@ -134,7 +134,9 @@ class sssdTools(object):
         else:
             contents = resolv_conf
         contents = nameserver + contents.replace(nameserver, '')
+        self.multihost.run_command("chattr -i /etc/resolv.conf")
         self.multihost.put_file_contents('/etc/resolv.conf', contents)
+        self.multihost.run_command("chattr +i /etc/resolv.conf")
 
     def update_etc_hosts(self, ip_addr, hostname):
         """ Update /etc/hosts with ipaddress and hostname
@@ -392,10 +394,11 @@ class sssdTools(object):
         else:
             return cmd.stderr_text
 
-    def realm_leave(self, domainname):
+    def realm_leave(self, domainname, raiseonerr=True):
         """ Leave system from AD/IPA Domain
 
             :param str domainname: domain name of AD/IPA
+            :param bool raiseonerr: ignore failure, do not raise an exception
             :return bool: True if successfully dis-joined to AD/IPA
              else raises Exception
             :Exception: Raises SSSDException
@@ -404,35 +407,32 @@ class sssdTools(object):
         cmd = self.multihost.run_command(['realm', 'leave',
                                           domainname, '-v'],
                                          raiseonerr=False)
-        if cmd.returncode != 0:
+        if cmd.returncode != 0 and raiseonerr:
             raise SSSDException("Error: %s", cmd.stderr_text)
+        return True
 
     def join_ad(self, realm=None, adpassword=None, mem_sw=None):
         """ Join AD using realm
-        pass membership software as argumen
+        pass membership software as argument
         use adcli ad default
         """
         if not realm:
             realm = self.ad_realm
         if not adpassword:
             adpassword = self.ad_password
-        if mem_sw == 'samba':
-            prg = 'samba'
-        else:
-            prg = 'adcli'
+        prg = mem_sw if mem_sw == 'samba' else 'adcli'
         try:
             output = self.realm_join(realm, adpassword,
                                      membership_software=prg)
+            print("Successfully join to AD")
         except SSSDException:
             pytest.fail("Failed to join to AD")
-        else:
-            print("Successfully join to AD")
         return output
 
-    def disjoin_ad(self, realm_output=None):
+    def disjoin_ad(self, realm_output=None, raiseonerr=True):
         """ Disjoin system from Domain """
         try:
-            self.realm_leave(self.ad_realm)
+            self.realm_leave(self.ad_realm, raiseonerr=raiseonerr)
         except SSSDException:
             print("Failed to Disjoin system from Windows AD")
         if realm_output:

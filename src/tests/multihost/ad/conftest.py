@@ -28,6 +28,19 @@ def pytest_configure():
     pytest.num_clients = 1
     pytest.num_others = 0
 
+# ######## Helper functions ####################
+
+
+def _adleave(client):
+    """ Disjoin AD
+    @param client: sssdTools instance of the client
+    """
+    client.disjoin_ad()
+    client.multihost.run_command('kdestroy -A')
+    # Keytab should be deleted by realm leave
+    client.multihost.run_command('[ ! -f /etc/krb5.keytab ]')
+
+
 # ######## Function scoped Fixtures ####################
 
 
@@ -288,9 +301,9 @@ def adjoin(session_multihost, request):
     """ Join to AD using net ads command """
     ad_realm = session_multihost.ad[0].realm
     ad_ip = session_multihost.ad[0].ip
+    ad_dc = session_multihost.ad[0].hostname
     client_ad = sssdTools(session_multihost.client[0], session_multihost.ad[0])
-
-    client_ad.disjoin_ad()  # Make sure system is disjoined from AD
+    client_ad.disjoin_ad(raiseonerr=False)  # Make sure system is disjoined from AD
     client_ad.create_kdcinfo(ad_realm, ad_ip)
     kinit = "kinit Administrator"
     ad_password = session_multihost.ad[0].ssh_password
@@ -301,18 +314,21 @@ def adjoin(session_multihost, request):
 
     def _join(membersw=None):
         """ Join AD """
+        # We are using dc instead or realm to mitigate impact of AD being
+        # on a different network than the client.
+        # With "realm join REALM.COM" AD should be automatically discovered
+        # if it is on the same network.
+        # For all of the multi-arch tests we are mixing different networks
+        # and it happens also sometimes with pure openstack.
         if membersw == 'samba':
-            client_ad.join_ad(ad_realm, ad_password, mem_sw='samba')
+            client_ad.join_ad(ad_dc, ad_password, mem_sw='samba')
         else:
-            client_ad.join_ad(ad_realm, ad_password)
+            client_ad.join_ad(ad_dc, ad_password)
 
     def adleave():
         """ Disjoin AD """
-        client_ad.disjoin_ad()
-        remove_keytab = 'rm -f /etc/krb5.keytab'
-        kdestroy_cmd = 'kdestroy -A'
-        session_multihost.client[0].run_command(kdestroy_cmd)
-        session_multihost.client[0].run_command(remove_keytab)
+        _adleave(client_ad)
+
     request.addfinalizer(adleave)
     return _join
 
@@ -670,10 +686,11 @@ def sudorules(session_multihost, request):
 def joinad(session_multihost, request):
     """ class fixture to join AD using realm """
     client = sssdTools(session_multihost.client[0], session_multihost.ad[0])
-    client.disjoin_ad()  # Make sure system is disjoined from AD
+    client.disjoin_ad(raiseonerr=False)  # Make sure system is disjoined from AD
     kinit = "kinit Administrator"
     ad_password = session_multihost.ad[0].ssh_password
-    client.join_ad()
+    ad_dc = session_multihost.ad[0].hostname
+    client.join_ad(realm=ad_dc)
     try:
         session_multihost.client[0].service_sssd('restart')
     except SSSDException:
@@ -694,13 +711,7 @@ def joinad(session_multihost, request):
 
     def disjoin():
         """ Disjoin system from Windows AD """
-        client.disjoin_ad()
-        stop_sssd = 'systemctl stop sssd'
-        remove_keytab = 'rm -f /etc/krb5.keytab'
-        kdestroy_cmd = 'kdestroy -A'
-        session_multihost.client[0].run_command(stop_sssd)
-        session_multihost.client[0].run_command(remove_keytab)
-        session_multihost.client[0].run_command(kdestroy_cmd)
+        _adleave(client)
     request.addfinalizer(disjoin)
 
 
