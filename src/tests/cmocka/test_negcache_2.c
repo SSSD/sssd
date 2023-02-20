@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE     /* for `fgetpwent()` in musl libc */
 #include <stdio.h>
 #include <sys/types.h>
 #include <pwd.h>
