@@ -296,7 +296,7 @@ int sss_parse_name(TALLOC_CTX *memctx,
         result = NULL;
         ret = sss_regexp_get_named_substring(re, "domain", &result);
         if (ret < 0  || !result) {
-            DEBUG(SSSDBG_CONF_SETTINGS, "Domain not provided!\n");
+            DEBUG(SSSDBG_FUNC_DATA, "Domain not provided!\n");
             *_domain = NULL;
         } else {
             /* ignore "" string */
