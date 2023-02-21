@@ -2850,11 +2850,15 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                     <listitem>
                         <para>
                             Determines if user credentials are also cached
-                            in the local LDB cache
+                            in the local LDB cache.
                         </para>
                         <para>
-                            User credentials are stored in a SHA512 hash, not
-                            in plaintext
+                            Take a note that while credentials are stored as
+                            a salted SHA512 hash, this still potentially poses
+                            some security risk in case an attacker manages to
+                            get access to a cache file (normally requires
+                            privileged access) and to break a password using
+                            brute force attack.
                         </para>
                         <para>
                             Default: FALSE
