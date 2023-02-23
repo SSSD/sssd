@@ -293,39 +293,3 @@ class QeDomain(pytest_multihost.config.Domain):
         self.hosts = []
 
     host_classes = {'default': QeHost, 'windows': QeWinHost}
-
-
-# pylint: disable=redefined-outer-name
-@pytest.fixture(scope='session', autouse=True)
-def create_testdir(session_multihost, request):
-    """
-    Create test dir on the hosts and backup resolv.conf
-    @param session_multihost: Multihost fixture
-    @param request: Pytest request
-    """
-    config_dir_cmd = f"mkdir -p {session_multihost.config.test_dir}"
-    env_file_cmd = f"touch {session_multihost.config.test_dir}/env.sh"
-    rm_config_cmd = f"rm -rf {session_multihost.config.test_dir}"
-    bkup_resolv_conf = 'cp -a /etc/resolv.conf /etc/resolv.conf.orig'
-    restore_resolv_conf = 'cp -a /etc/resolv.conf.orig /etc/resolv.conf'
-
-    for machine in session_multihost.atomic + session_multihost.others +\
-            session_multihost.replica:
-        machine.run_command(config_dir_cmd)
-        machine.run_command(env_file_cmd)
-
-    for machine in session_multihost.client + session_multihost.master:
-        machine.run_command(config_dir_cmd)
-        machine.run_command(env_file_cmd)
-        machine.run_command(bkup_resolv_conf)
-
-    def remove_test_dir():
-        for machine in session_multihost.client + session_multihost.master:
-            machine.run_command(rm_config_cmd)
-            machine.run_command(restore_resolv_conf)
-
-        for machine in session_multihost.atomic + session_multihost.others +\
-                session_multihost.replica:
-            machine.run_command(config_dir_cmd)
-
-    request.addfinalizer(remove_test_dir)

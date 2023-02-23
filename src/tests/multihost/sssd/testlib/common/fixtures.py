@@ -58,3 +58,52 @@ def session_multihost(request):
             mhost.ad.extend(mhost.config.domains[i].hosts_by_role('ad'))
 
     yield mhost
+
+
+@pytest.fixture(scope='session', autouse=True)
+def create_testdir(session_multihost, request):
+    """
+    Create test dir on the hosts and backup resolv.conf
+    @param session_multihost: Multihost fixture
+    @param request: Pytest request
+    """
+    print(f"Testdir is '{session_multihost.config.test_dir}'")
+    test_dir = session_multihost.config.test_dir if \
+        session_multihost.config.test_dir else '/root/multihost_tests'
+    config_dir_cmd = f"mkdir -p {test_dir}"
+    env_file_cmd = f"touch {test_dir}/env.sh"
+    rm_config_cmd = f"rm -rf {test_dir}"
+    ad_test_dir = '/home/Administrator'
+    ad_config_dir_cmd = f"mkdir -p {ad_test_dir}"
+    ad_env_file_cmd = f"touch {ad_test_dir}/env.sh"
+    ad_rm_config_cmd = f"rm -rf {ad_test_dir}"
+    bkup_resolv_conf = 'cp -a /etc/resolv.conf /etc/resolv.conf.orig'
+    restore_resolv_conf = 'cp -a /etc/resolv.conf.orig /etc/resolv.conf'
+
+    for machine in session_multihost.atomic + session_multihost.others +\
+            session_multihost.replica:
+        machine.run_command(config_dir_cmd)
+        machine.run_command(env_file_cmd)
+
+    for machine in session_multihost.client + session_multihost.master:
+        machine.run_command(config_dir_cmd)
+        machine.run_command(env_file_cmd)
+        machine.run_command(bkup_resolv_conf)
+
+    for machine in session_multihost.ad:
+        machine.run_command(ad_config_dir_cmd)
+        machine.run_command(ad_env_file_cmd)
+
+    def remove_test_dir():
+        for machine in session_multihost.client + session_multihost.master:
+            machine.run_command(rm_config_cmd)
+            machine.run_command(restore_resolv_conf)
+
+        for machine in session_multihost.atomic + session_multihost.others +\
+                session_multihost.replica:
+            machine.run_command(config_dir_cmd)
+
+        for machine in session_multihost.ad:
+            machine.run_command(ad_rm_config_cmd)
+
+    request.addfinalizer(remove_test_dir)
