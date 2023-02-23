@@ -112,9 +112,9 @@ class TestKrbLdapConnectionTimeout(object):
             multihost.client[0]).sssd_conf(
             'domain/%s' %
             (ds_instance_name), domain_params)
-
-        sssdTools(multihost.client[0]).delete_sssd_domain_log(
-            "/var/log/sssd/sssd_LDAP")
+        tools = sssdTools(multihost.client[0])
+        domainname = tools.get_domain_section_name()
+        sssdTools(multihost.client[0]).delete_sssd_domain_log(domainname)
         logfile = '/var/log/sssd/sssd_%s.log' % ds_instance_name
 
         clear_sssd_cache = True
@@ -209,8 +209,9 @@ class TestKrbLdapConnectionTimeout(object):
               3. Lookup another user and get the port number.
               4. Compare the 2 port numbers.
         """
-        sssdTools(multihost.client[0]).delete_sssd_domain_log(
-            "/var/log/sssd/sssd_LDAP")
+        tools = sssdTools(multihost.client[0])
+        domainname = tools.get_domain_section_name()
+        sssdTools(multihost.client[0]).delete_sssd_domain_log(domainname)
         logfile = '/var/log/sssd/sssd_%s.log' % ds_instance_name
 
         sssdTools(multihost.client[0]).clear_sssd_cache()
