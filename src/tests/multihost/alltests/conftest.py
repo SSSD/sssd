@@ -8,14 +8,18 @@ import ldap
 import pytest
 import re
 import subprocess
-from constants import ds_instance_name, ds_suffix, krb_realm
+from datetime import datetime, timedelta
+from constants import ds_instance_name, ds_suffix, krb_realm, ds_rootdn, ds_rootpw
 from sssd.testlib.common.libkrb5 import krb5srv
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF, NSSWITCH_DEFAULT_CONF
-from sssd.testlib.common.qe_class import session_multihost
 from sssd.testlib.common.utils import PkiTools, sssdTools, LdapOperations
 from sssd.testlib.common.libdirsrv import DirSrvWrap
 from sssd.testlib.common.exceptions import PkiLibException, LdapException
-from datetime import datetime, timedelta
+
+
+pytest_plugins = (
+    'sssd.testlib.common.fixtures',
+)
 
 
 def pytest_configure():
@@ -111,6 +115,18 @@ def multidomain_sssd(session_multihost, request):
     return _modifysssd
 
 
+@pytest.fixture(autouse=True)
+def capture_sssd_logs(session_multihost, request):
+    """This will print sssd logs in case of test failure"""
+    yield
+    if request.session.testsfailed:
+        client = session_multihost.client[0]
+        print(f"\n\n===Logs for {request.node.name}===\n\n")
+        for data_d in client.run_command("ls /var/log/sssd/").stdout_text.split():
+            client.run_command(f'echo "--- {data_d} ---"; '
+                               f'cat /var/log/sssd/{data_d}')
+
+
 @pytest.fixture(scope='function')
 def localusers(session_multihost, request):
     """ Create local users """
@@ -136,8 +152,6 @@ def localusers(session_multihost, request):
 def create_350_posix_users(session_multihost, request):
     """ Create posix user and groups """
     ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
-    ds_rootdn = 'cn=Directory Manager'
-    ds_rootpw = 'Secret123'
     ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
     krb = krb5srv(session_multihost.master[0], 'EXAMPLE.TEST')
     for i in range(1, 351):
@@ -1542,7 +1556,7 @@ def ns_account_lock(session_multihost, request):
 
 @pytest.fixture(scope="session", autouse=True)
 # pylint: disable=unused-argument
-def setup_session(session_multihost, request):
+def setup_session(session_multihost, request, create_testdir):
     """
     Session fixture which calls fixture in order before tests run
     :param obj session_multihost: multihost object
