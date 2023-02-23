@@ -14,7 +14,6 @@ from sssd.testlib.common.utils import ADOperations
 from sssd.testlib.common.samba import sambaTools
 from sssd.testlib.common.utils import sssdTools
 
-
 pytest_plugins = (
     'sssd.testlib.common.fixtures',
 )
@@ -406,7 +405,7 @@ def range_retr_mods(session_multihost, fetch_ca_cert, request):
     """ AD default query policy modifications, MaxValRange is changed
         from 1500 to 50"""
     basedn = session_multihost.ad[0].domain_basedn_entry
-    DEF_QUERY= 'cn=Default Query Policy,cn=Query-Policies,cn=Directory Service,'\
+    DEF_QUERY = 'cn=Default Query Policy,cn=Query-Policies,cn=Directory Service,'\
         f'cn=Windows NT,cn=Services,cn=Configuration,{basedn}'
     with tempfile.NamedTemporaryFile(mode='w', newline='\n') as tfile:
         tfile.write(f"dn: {DEF_QUERY}\n")
@@ -543,7 +542,7 @@ def create_range_aduser_group(session_multihost, request):
     ad = ADOperations(session_multihost.ad[0])
     ad.create_ad_unix_user('rangeuser')
     ad.create_ad_unix_group('rangegroup')
-    for uid in range(1,201):
+    for uid in range(1, 201):
         ad.create_ad_unix_user(f'rangeuser0{uid}')
         ad.create_ad_unix_group(f'rangegroup0{uid}')
         ad.add_user_member_of_group('rangegroup', f'rangeuser0{uid}')
@@ -845,7 +844,7 @@ def fips_ad_support_policy(session_multihost, request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_session(request, session_multihost):
+def setup_session(request, session_multihost, create_testdir):
     """ Setup Session """
     client = sssdTools(session_multihost.client[0])
     realm = session_multihost.ad[0].realm

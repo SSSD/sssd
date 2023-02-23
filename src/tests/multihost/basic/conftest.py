@@ -5,6 +5,7 @@ from sssd.testlib.common.libdirsrv import DirSrvWrap
 from sssd.testlib.common.exceptions import PkiLibException
 from sssd.testlib.common.exceptions import LdapException
 from sssd.testlib.common.exceptions import SSSDException
+
 import pytest
 try:
     import ConfigParser
@@ -451,7 +452,8 @@ def setup_session(request, session_multihost,
                   setup_ldap,
                   setup_kerberos,
                   create_posix_usersgroups,
-                  enable_oddjob):
+                  enable_oddjob,
+                  create_testdir):
     """ Run all session scoped fixtures """
     tp = TestPrep(session_multihost)
     tp.setup()

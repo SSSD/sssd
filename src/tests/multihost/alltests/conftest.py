@@ -9,13 +9,13 @@ import pytest
 import re
 import subprocess
 import random
+from datetime import datetime, timedelta
 from constants import ds_instance_name, ds_suffix, krb_realm, ds_rootdn, ds_rootpw
 from sssd.testlib.common.libkrb5 import krb5srv
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF, NSSWITCH_DEFAULT_CONF
 from sssd.testlib.common.utils import PkiTools, sssdTools, LdapOperations
 from sssd.testlib.common.libdirsrv import DirSrvWrap
 from sssd.testlib.common.exceptions import PkiLibException, LdapException
-from datetime import datetime, timedelta
 
 
 pytest_plugins = (
@@ -1593,7 +1593,7 @@ def ns_account_lock(session_multihost, request):
 
 @pytest.fixture(scope="session", autouse=True)
 # pylint: disable=unused-argument
-def setup_session(session_multihost, request):
+def setup_session(session_multihost, request, create_testdir):
     """
     Session fixture which calls fixture in order before tests run
     :param obj session_multihost: multihost object
