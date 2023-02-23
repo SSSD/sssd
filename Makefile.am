@@ -701,6 +701,7 @@ dist_noinst_HEADERS = \
     src/util/sss_python.h \
     src/util/sss_regexp.h \
     src/util/sss_krb5.h \
+    src/util/sss_gss.h \
     src/util/sss_selinux.h \
     src/util/sss_sockets.h \
     src/util/sss_utf8.h \
@@ -4628,6 +4629,7 @@ ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
     src/providers/krb5/krb5_keytab.c \
     src/util/sss_krb5.c \
+    src/util/sss_gss.c \
     src/util/sss_iobuf.c \
     src/util/atomic_io.c \
     src/util/memory.c \
@@ -4642,13 +4644,15 @@ ldap_child_SOURCES = \
 ldap_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
-    $(KRB5_CFLAGS)
+    $(KRB5_CFLAGS) \
+    $(GSSAPI_KRB5_CFLAGS)
 ldap_child_LDADD = \
     libsss_debug.la \
     $(TALLOC_LIBS) \
     $(POPT_LIBS) \
     $(DHASH_LIBS) \
-    $(KRB5_LIBS)
+    $(KRB5_LIBS) \
+    $(GSSAPI_KRB5_LIBS)
 
 if BUILD_SEMANAGE
 selinux_child_SOURCES = \

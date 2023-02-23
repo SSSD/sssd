@@ -51,6 +51,10 @@ const char *sss_printable_keytab_name(krb5_context ctx, const char *keytab_name)
 #define HAVE_KRB5_CC_COLLECTION 1
 #endif
 
+char *sss_krb5_get_primary(TALLOC_CTX *mem_ctx,
+                           const char *pattern,
+                           const char *hostname);
+
 const char * KRB5_CALLCONV sss_krb5_get_error_message (krb5_context,
                                                    krb5_error_code);
 
