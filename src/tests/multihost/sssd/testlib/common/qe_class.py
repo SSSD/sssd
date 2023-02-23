@@ -1,9 +1,12 @@
-from pytest_multihost import make_multihost_fixture
-import pytest_multihost.config
-import pytest_multihost.host
+"""
+Module with extensions to the pytest_multihost
+"""
+
+import time
 import logging
 import pytest
-import time
+import pytest_multihost.config
+import pytest_multihost.host
 from .exceptions import SSSDException
 
 
@@ -14,7 +17,7 @@ class QeConfig(pytest_multihost.config.Config):
                        'rootdn', 'rootdn_pwd'}
 
     def __init__(self, **kwargs):
-        self.log = self.get_logger('%s.%s' % (__name__, type(self).__name__))
+        self.log = self.get_logger(f'{__name__}.{type(self).__name__}')
         pytest_multihost.config.Config.__init__(self, **kwargs)
 
     def get_domain_class(self):
@@ -64,7 +67,6 @@ class QeConfig(pytest_multihost.config.Config):
 
 class QeBaseHost(pytest_multihost.host.BaseHost):
     """QeBaseHost subclass of multihost plugin BaseHost class."""
-    pass
 
 
 class QeHost(QeBaseHost):
@@ -91,18 +93,14 @@ class QeHost(QeBaseHost):
             ret = output.split('\n')
             name = (ret[len(ret) - 1])
             return name
-        else:
-            return cmd.stdout_text.strip()
+        return cmd.stdout_text.strip()
 
     @property
     def fips(self):
         """ Check if system is fips enabled """
         fips_check_cmd = "fips-mode-setup --is-enabled"
         cmd = self.run_command(fips_check_cmd, raiseonerr=False)
-        if cmd.returncode == 0:
-            return True
-        else:
-            return False
+        return bool(cmd.returncode != 0)
 
     @property
     def distro(self):
@@ -114,22 +112,21 @@ class QeHost(QeBaseHost):
         cmd = self.run_command(['cat', '/etc/redhat-release'],
                                raiseonerr=False)
         if cmd.returncode != 0:
-            distro = 'Unknown Distro'
-        else:
-            distro = cmd.stdout_text.strip()
-        return distro
+            return 'Unknown Distro'
+        return cmd.stdout_text.strip()
 
     def package_mgmt(self, package, action='install'):
         """ Install packages
             : param str package: Package name or list of packages
-            : param str acation: Install/uninstall/update
+            : param str action: Install/uninstall/update
             : return str: Return code of the yum remove command
         """
-        if 'Fedora' in self.distro or '8.' in self.distro:
+        if 'Fedora' in self.distro or '8.' in self.distro or\
+                '9.' in self.distro:
             pkg_cmd = 'dnf'
         else:
             pkg_cmd = 'yum'
-        pkg_install_cmd = '%s -y %s %s' % (pkg_cmd, action, package)
+        pkg_install_cmd = f'{pkg_cmd} -y {action} {package}'
         cmd = self.run_command(pkg_install_cmd, raiseonerr=False)
         return bool(cmd.returncode == 0)
 
@@ -139,38 +136,16 @@ class QeHost(QeBaseHost):
             :return: str Return code of the systemctl/service command
             :Exception Raises exception
         """
-        if 'Fedora' in self.distro:
-            cmd = self.run_command(['systemctl', action, 'sssd'],
-                                   raiseonerr=False)
-            if cmd.returncode == 0:
-                time.sleep(10)
-                return cmd.returncode
-            else:
-                raise SSSDException('Unable to %s sssd' % action, 1)
-        elif '7.' or '8.' in self.distro.split()[6]:
-            cmd = self.run_command(['systemctl', action, 'sssd'],
-                                   raiseonerr=False)
-            if cmd.returncode == 0:
-                time.sleep(10)
-                return cmd.returncode
-            else:
-                raise SSSDException('Unable to %s sssd' % action, 1)
-        elif '6.' in self.distro.split()[6]:
-            cmd = self.run_command(['service', 'sssd', action],
-                                   raiseonerr=False)
-            if cmd.returncode == 0:
-                time.sleep(10)
-                return cmd.returncode
-            else:
-                raise SSSDException('Unable to %s sssd' % action, 1)
-        elif 'Atomic' in self.distro.split():
-            cmd = self.run_command(['systemctl', action, 'sssd'],
-                                   raiseonerr=False)
-            if cmd.returncode == 0:
-                time.sleep(10)
-                return cmd.returncode
-            else:
-                raise SSSDException('Unable to %s sssd' % action, 1)
+        # For Fedora, Atomic and RHELs 7, 8, 9 this should work.
+        service_command = f'systemctl {action} sssd'
+        if 'Red Hat Enterprise Linux' in self.distro and ' 6.' in self.distro:
+            # RHEL 6 needs service command
+            service_command = f"service sssd {action}"
+        cmd = self.run_command(service_command, raiseonerr=False)
+        if cmd.returncode == 0:
+            time.sleep(10)
+            return cmd.returncode
+        raise SSSDException(f'Unable to {action} sssd', 1)
 
     def yum_install(self, package):
         """ Install packages through yum
@@ -190,7 +165,7 @@ class QeHost(QeBaseHost):
             :return str: Returncode of the dnf command
             :Exception: None
         """
-        install = 'dnf install -y --setopt=strict=0 %s' % package
+        install = f'dnf install -y --setopt=strict=0 {package}'
         cmd = self.run_command(install, raiseonerr=False)
         return cmd.returncode
 
@@ -224,45 +199,64 @@ class QeWinHost(QeBaseHost, pytest_multihost.host.WinHost):
     Functions defined provide extra attributes when using Windows AD
 
     Attributes:
-        domainname (str): Return domainname of the AD Machine
+        domainname (str): Return domainname of the AD machine
+        domain_basedn_entry (str): Return AD basedn
+        netbiosname (str): Rerurn the netbios name of the machine
         realm (str):  Return AD realm in upper case
+        sys_hostname(str): Return full hostname of the machine
      """
+
+    # These are defined as class properties to be overriden on the
+    # instance level.
+    _domainname = None
+    _domain_basedn_entry = None
+    _hostname = None
+    _netbiosname = None
+    _realm = None
 
     @property
     def domainname(self):
         """ Return Domain name """
-        cmd = self.run_command(['domainname'], set_env=False, raiseonerr=False)
-        return cmd.stdout_text.strip()
+        if self._domainname is None:
+            cmd = self.run_command(
+                ['domainname'], set_env=False, raiseonerr=False)
+            self._domainname = cmd.stdout_text.strip()
+        return self._domainname
 
     @property
     def sys_hostname(self):
         """ Return FQDN """
-        hostname = 'hostname -f'
-        cmd = self.run_command(hostname, set_env=False, raiseonerr=False)
-        return cmd.stdout_text.strip().lower()
+        if self._hostname is None:
+            hostname = 'hostname -f'
+            cmd = self.run_command(hostname, set_env=False, raiseonerr=False)
+            self._hostname = cmd.stdout_text.strip().lower()
+        return self._hostname
 
     @property
     def realm(self):
         """ Return AD Realm """
-        cmd = self.run_command(['domainname'], set_env=False, raiseonerr=False)
-        return cmd.stdout_text.strip().upper()
+        if self._realm is None:
+            self._realm = self.domainname.upper()
+        return self._realm
 
     @property
     def domain_basedn_entry(self):
         """ Return base DN Entry of the """
-        cmd = self.run_command(['domainname'], set_env=False, raiseonerr=False)
-        domain_list = ['DC=' + string for string in cmd.stdout_text.strip().
-                       split('.')]
-        list1 = map(str, domain_list)
-        domain_base_dn = ','.join(list1)
-        return domain_base_dn
+        if self._domain_basedn_entry is None:
+            domain_list = ['DC=' + string for string in
+                           self.domainname.split('.')]
+            list1 = map(str, domain_list)
+            self._domain_basedn_entry = ','.join(list1)
+        return self._domain_basedn_entry
 
     @property
     def netbiosname(self):
         """ Return netbios name """
-        cmd = "powershell.exe -inputformat none -noprofile "\
-              "'(Get-ADDomain -Current LocalComputer)'.NetBIOSName"
-        return self.run_command(cmd).stdout_text
+        if self._netbiosname is None:
+            cmd = "powershell.exe -inputformat none -noprofile "\
+                  "'(Get-ADDomain -Current LocalComputer)'.NetBIOSName"
+            self._netbiosname = self.run_command(cmd).stdout_text
+        return self._netbiosname
 
     def _get_client_dn_entry(self, client):
         """ Return DN entry of client computer in AD """
@@ -291,115 +285,11 @@ class QeDomain(pytest_multihost.config.Domain):
 
         :return None:
         """
+        # No need to call the super constructor as everything is done here
+        # pylint: disable=super-init-not-called
         self.type = str(domain_type)
         self.config = config
         self.name = str(name)
         self.hosts = []
 
     host_classes = {'default': QeHost, 'windows': QeWinHost}
-
-
-@pytest.fixture(scope="session", autouse=True)
-def session_multihost(request):
-    """Multihost plugin fixture for session scope"""
-    if pytest.num_ad > 0:
-        mh = make_multihost_fixture(request, descriptions=[
-            {
-                'type': 'sssd',
-                'hosts':
-                {
-                    'master': pytest.num_masters,
-                    'atomic': pytest.num_atomic,
-                    'replica': pytest.num_replicas,
-                    'client': pytest.num_clients,
-                    'other': pytest.num_others,
-                }
-            },
-            {
-                'type': 'ad',
-                'hosts':
-                {
-                    'ad': pytest.num_ad,
-                },
-            },
-        ], config_class=QeConfig,)
-    else:
-        mh = make_multihost_fixture(request, descriptions=[
-            {
-                'type': 'sssd',
-                'hosts':
-                {
-                    'master': pytest.num_masters,
-                    'atomic': pytest.num_atomic,
-                    'replica': pytest.num_replicas,
-                    'client': pytest.num_clients,
-                    'other': pytest.num_others,
-                }
-            },
-        ], config_class=QeConfig,)
-    mh.domain = mh.config.domains[0]
-    mh.master = mh.domain.hosts_by_role('master')
-    mh.atomic = mh.domain.hosts_by_role('atomic')
-    mh.replica = mh.domain.hosts_by_role('replica')
-    mh.client = mh.domain.hosts_by_role('client')
-    mh.others = mh.domain.hosts_by_role('other')
-
-    if pytest.num_ad > 0:
-        mh.ad = []
-        for i in range(1, pytest.num_ad + 1):
-            print(i)
-            print(mh.config.domains[i].hosts_by_role('ad'))
-            mh.ad.extend(mh.config.domains[i].hosts_by_role('ad'))
-
-    yield mh
-
-
-@pytest.fixture(scope='session', autouse=True)
-def create_testdir(session_multihost, request):
-    config_dir_cmd = "mkdir -p %s" % (session_multihost.config.test_dir)
-    env_file_cmd = "touch %s/env.sh" % (session_multihost.config.test_dir)
-    rm_config_cmd = "rm -rf %s" % (session_multihost.config.test_dir)
-    bkup_resolv_conf = 'cp -a /etc/resolv.conf /etc/resolv.conf.orig'
-    restore_resolv_conf = 'cp -a /etc/resolv.conf.orig /etc/resolv.conf'
-
-    for i in range(len(session_multihost.atomic)):
-        session_multihost.atomic[i].run_command(config_dir_cmd)
-        session_multihost.atomic[i].run_command(env_file_cmd)
-
-    for i in range(len(session_multihost.client)):
-        session_multihost.client[i].run_command(config_dir_cmd)
-        session_multihost.client[i].run_command(env_file_cmd)
-        session_multihost.client[i].run_command(bkup_resolv_conf)
-
-    for i in range(len(session_multihost.master)):
-        session_multihost.master[i].run_command(config_dir_cmd)
-        session_multihost.master[i].run_command(env_file_cmd)
-        session_multihost.master[i].run_command(bkup_resolv_conf)
-
-    for i in range(len(session_multihost.others)):
-        session_multihost.others[i].run_command(config_dir_cmd)
-        session_multihost.others[i].run_command(env_file_cmd)
-
-    for i in range(len(session_multihost.replica)):
-        session_multihost.replica[i].run_command(config_dir_cmd)
-        session_multihost.replica[i].run_command(env_file_cmd)
-
-    def remove_test_dir():
-        for i in range(len(session_multihost.atomic)):
-            session_multihost.atomic[i].run_command(rm_config_cmd)
-
-        for i in range(len(session_multihost.client)):
-            session_multihost.client[i].run_command(rm_config_cmd)
-            session_multihost.client[i].run_command(restore_resolv_conf)
-
-        for i in range(len(session_multihost.master)):
-            session_multihost.master[i].run_command(rm_config_cmd)
-            session_multihost.master[i].run_command(restore_resolv_conf)
-
-        for i in range(len(session_multihost.others)):
-            session_multihost.others[i].run_command(rm_config_cmd)
-
-        for i in range(len(session_multihost.replica)):
-            session_multihost.replica[i].run_command(rm_config_cmd)
-
-    request.addfinalizer(remove_test_dir)

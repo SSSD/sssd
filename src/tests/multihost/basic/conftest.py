@@ -1,4 +1,3 @@
-from sssd.testlib.common.qe_class import session_multihost
 from sssd.testlib.common.libkrb5 import krb5srv
 from sssd.testlib.common.utils import sssdTools, PkiTools
 from sssd.testlib.common.utils import LdapOperations
@@ -6,6 +5,7 @@ from sssd.testlib.common.libdirsrv import DirSrvWrap
 from sssd.testlib.common.exceptions import PkiLibException
 from sssd.testlib.common.exceptions import LdapException
 from sssd.testlib.common.exceptions import SSSDException
+
 import pytest
 try:
     import ConfigParser
@@ -15,6 +15,9 @@ import os
 import tempfile
 import ldap
 
+pytest_plugins = (
+    'sssd.testlib.common.fixtures',
+)
 
 def pytest_configure():
     pytest.num_masters = 1
@@ -447,7 +450,8 @@ def setup_session(request, session_multihost,
                   setup_ldap,
                   setup_kerberos,
                   create_posix_usersgroups,
-                  enable_oddjob):
+                  enable_oddjob,
+                  create_testdir):
     """ Run all session scoped fixtures """
     # pylint: disable=unused-argument
     _pytest_fixture = [package_install, run_authselect,

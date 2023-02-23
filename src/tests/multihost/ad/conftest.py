@@ -7,12 +7,15 @@ import time
 import pytest
 import os
 import posixpath
-from sssd.testlib.common.qe_class import session_multihost
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 from sssd.testlib.common.exceptions import SSSDException
 from sssd.testlib.common.utils import ADOperations
 from sssd.testlib.common.samba import sambaTools
 from sssd.testlib.common.utils import sssdTools
+
+pytest_plugins = (
+    'sssd.testlib.common.fixtures',
+)
 
 
 def pytest_configure():
@@ -87,6 +90,18 @@ def create_adgrp(session_multihost, request, run_powershell_script):
         rm_ps = "rm adgroup.ps1"
         session_multihost.ad[0].run_command(rm_ps, raiseonerr=False)
     request.addfinalizer(delete_adgrp)
+
+
+@pytest.fixture(autouse=True)
+def capture_sssd_logs(session_multihost, request):
+    """This will print sssd logs in case of test failure"""
+    yield
+    if request.session.testsfailed:
+        client = session_multihost.client[0]
+        print(f"\n\n===Logs for {request.node.name}===\n\n")
+        for data_d in client.run_command("ls /var/log/sssd/").stdout_text.split():
+            client.run_command(f'echo "--- {data_d} ---"; '
+                               f'cat /var/log/sssd/{data_d}')
 
 
 @pytest.fixture(scope="function")
@@ -352,7 +367,6 @@ def backupsssdconf(session_multihost, request):
         restore = 'cp -f %s.orig %s' % (SSSD_DEFAULT_CONF, SSSD_DEFAULT_CONF)
         session_multihost.client[0].run_command(restore)
     request.addfinalizer(restoresssdconf)
-
 
 # ############## class scoped Fixtures ##############################
 
@@ -693,17 +707,28 @@ def fips_ad_support_policy(session_multihost, request):
     if "FIPS" == old_policy:
         session_multihost.client[0].run_command(
             'update-crypto-policies --set FIPS:AD-SUPPORT', raiseonerr=False)
+    old_policy_master = session_multihost.master[0].run_command(
+        'update-crypto-policies --show', raiseonerr=False).stdout_text
+    old_policy_master = old_policy_master.strip()
+    if "FIPS" == old_policy_master:
+        session_multihost.master[0].run_command(
+            'update-crypto-policies --set FIPS:AD-SUPPORT', raiseonerr=False)
 
     def restore_policy():
         """ Restore crypto policy """
         if "FIPS" == old_policy:
             session_multihost.client[0].run_command(
                 f'update-crypto-policies --set {old_policy}', raiseonerr=False)
+        if "FIPS" == old_policy_master:
+            session_multihost.master[0].run_command(
+                f'update-crypto-policies --set {old_policy_master}',
+                raiseonerr=False
+            )
     request.addfinalizer(restore_policy)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_session(request, session_multihost):
+def setup_session(request, session_multihost, create_testdir):
     """ Setup Session """
     client = sssdTools(session_multihost.client[0])
     realm = session_multihost.ad[0].realm
@@ -717,7 +742,7 @@ def setup_session(request, session_multihost):
         master.update_resolv_conf(session_multihost.ad[0].ip)
     client.client_install_pkgs()
     client.update_resolv_conf(session_multihost.ad[0].ip)
-    client.clear_sssd_cache()
+    client.clear_sssd_cache(start=False)
     client.systemsssdauth(realm, ad_host)
 
     def teardown_session():
