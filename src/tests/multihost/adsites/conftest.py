@@ -11,7 +11,6 @@ from sssd.testlib.common.exceptions import SSSDException
 from sssd.testlib.common.samba import sambaTools
 from sssd.testlib.common.utils import sssdTools
 
-
 pytest_plugins = (
     'sssd.testlib.common.fixtures',
 )
@@ -293,7 +292,7 @@ def joinad(session_multihost, request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_session(request, session_multihost):
+def setup_session(request, session_multihost, create_testdir):
     """ Setup Session """
     client = sssdTools(session_multihost.client[0])
     realm = session_multihost.ad[0].realm
