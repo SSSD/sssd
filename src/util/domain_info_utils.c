@@ -806,7 +806,7 @@ static errno_t sss_write_krb5_libdefaults_snippet(const char *path,
         goto done;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, "File for KRB5 kibdefaults configuration is [%s]\n",
+    DEBUG(SSSDBG_FUNC_DATA, "File for KRB5 libdefaults configuration is [%s]\n",
                              file_name);
 
     file_contents = talloc_strdup(tmp_ctx, "[libdefaults]\n");
