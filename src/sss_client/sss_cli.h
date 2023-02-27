@@ -381,6 +381,9 @@ enum sss_authtok_type {
     SSS_AUTHTOK_TYPE_PASSKEY =    0x0008, /**< Authentication token is a Passkey
                                            * PIN, it may or may not contain
                                            * a trailing \\0 */
+    SSS_AUTHTOK_TYPE_PASSKEY_REPLY = 0x0009, /**< Authentication token contains
+                                           * Passkey reply data presented as
+                                           * a kerberos challenge answer */
 };
 
 /**

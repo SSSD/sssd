@@ -23,6 +23,7 @@
 #include <errno.h>
 
 #include "sss_client/sss_cli.h"
+#include "sss_client/pam_message.h"
 
 errno_t sss_auth_pack_2fa_blob(const char *fa1, size_t fa1_len,
                                const char *fa2, size_t fa2_len,
@@ -71,6 +72,64 @@ errno_t sss_auth_pack_2fa_blob(const char *fa1, size_t fa1_len,
     memcpy(buf + c, fa2, fa2_len + 1);
 
     return 0;
+}
+
+errno_t sss_auth_passkey_calc_size(const char *uv,
+                                   const char *key,
+                                   const char *pin,
+                                   size_t *_passkey_buf_len)
+{
+    size_t len = 0;
+
+    if (uv == NULL || key == NULL) {
+        return EINVAL;
+    }
+
+    len += strlen(key) + 1;
+    len += strlen(uv) + 1;
+
+    if (pin != NULL) {
+        len += strlen(pin) + 1;
+    }
+
+    *_passkey_buf_len = len;
+
+    return EOK;
+}
+
+errno_t sss_auth_pack_passkey_blob(uint8_t *buf,
+                                   const char *uv,
+                                   const char *key,
+                                   const char *pin)
+{
+    size_t len = 0;
+    size_t key_len;
+    size_t uv_len;
+    size_t pin_len;
+
+    if (uv == NULL || key == NULL) {
+        return EINVAL;
+    }
+
+    uv_len = strlen(uv) + 1;
+    memcpy(buf + len, uv, uv_len);
+    len += uv_len;
+
+    key_len = strlen(key) + 1;
+    memcpy(buf + len, key, key_len);
+    len += key_len;
+
+    /* Add provided PIN */
+    if (pin != NULL) {
+        pin_len = strlen(pin) + 1;
+    /* User verification is false */
+    } else {
+        pin = "";
+        pin_len = 0;
+    }
+    memcpy(buf + len, pin, pin_len);
+
+    return EOK;
 }
 
 errno_t sss_auth_pack_sc_blob(const char *pin, size_t pin_len,
