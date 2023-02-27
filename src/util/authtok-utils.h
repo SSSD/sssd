@@ -23,6 +23,7 @@
 #include <talloc.h>
 
 #include "sss_client/sss_cli.h"
+#include "sss_client/pam_message.h"
 
 /**
  * @brief Fill memory buffer with Smartcard authentication blob
@@ -142,4 +143,43 @@ errno_t sss_auth_unpack_sc_blob(TALLOC_CTX *mem_ctx,
  * @return     pointer to 0-terminate PIN string in the memory buffer
  */
 const char *sss_auth_get_pin_from_sc_blob(uint8_t *blob, size_t blob_len);
+
+/**
+ * @brief Fill memory buffer with Passkey authentication blob
+ *
+ * @param[in]  buf         Memory buffer containing the Passkey data
+ * @param[in]  uv          User verification, "true" or "false"
+ * @param[in]  key         Hash table key used to lookup Passkey data
+ *                         in the PAM responder.
+ * @param[in]  pin         PIN provided by the user. Can be set to
+ *                         NULL if no PIN is provided (user verification false)
+ *
+ * @param[out] _passkey_buf_len  len size of the Passkey authentication blob
+ *
+ * @return     EOK         on success
+ *             EINVAL      if input data is not valid
+ */
+errno_t sss_auth_pack_passkey_blob(uint8_t *buf,
+                                   const char *uv,
+                                   const char *key,
+                                   const char *pin);
+/**
+ * @brief Calculate size of Passkey authentication data
+ *
+ * @param[in]  uv          User verification, "true" or "false"
+ * @param[in]  key         Hash table key used to lookup Passkey data
+ *                         in the PAM responder.
+ * @param[in]  pin         PIN provided by the user. Can be
+ *                         Set to NULL if no PIN is
+ *                         provided (user verification false)
+ *
+ * @param[out] _passkey_buf_len  len size of the Passkey authentication blob
+ *
+ * @return     EOK         on success
+ *             EINVAL      if input data is not valid
+ */
+errno_t sss_auth_passkey_calc_size(const char *uv,
+                                   const char *key,
+                                   const char *pin,
+                                   size_t *_passkey_buf_len);
 #endif /*  __AUTHTOK_UTILS_H__ */

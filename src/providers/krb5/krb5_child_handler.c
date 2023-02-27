@@ -89,6 +89,8 @@ static errno_t pack_authtok(struct io_buffer *buf, size_t *rp,
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
     case SSS_AUTHTOK_TYPE_OAUTH2:
+    case SSS_AUTHTOK_TYPE_PASSKEY:
+    case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
         data = (char *) sss_authtok_get_data(tok);
         auth_token_length = sss_authtok_get_size(tok);
         break;

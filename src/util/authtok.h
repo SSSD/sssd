@@ -396,7 +396,7 @@ errno_t sss_authtok_get_2fa_single(struct sss_auth_token *tok,
  *
  * @param tok        A pointer to an sss_auth_token structure to change, also
  *                   used as a memory context to allocate the internal data.
- * @param password   A string where the two authentication factors are
+ * @param str        A string where the two authentication factors are
  *                   concatenated together
  * @param len        The length of the string or, if 0 is passed,
  *                   then strlen(password) will be used internally.
@@ -428,7 +428,7 @@ errno_t sss_authtok_get_oauth2(struct sss_auth_token *tok,
  *
  * @param tok        A pointer to an sss_auth_token structure to change, also
  *                   used as a memory context to allocate the internal data.
- * @param password   A string that holds the one-time password.
+ * @param str   A string that holds the one-time password.
  * @param len        The length of the string or, if 0 is passed,
  *                   then strlen(password) will be used internally.
  *
@@ -437,7 +437,57 @@ errno_t sss_authtok_get_oauth2(struct sss_auth_token *tok,
  */
 errno_t sss_authtok_set_oauth2(struct sss_auth_token *tok,
                                const char *str, size_t len);
+/**
+ * @brief Returns a const string if the auth token is of type
+          SSS_AUTHTOK_TYPE_PASSKEY_REPLY, otherwise it returns an error
+ *
+ * @param tok    A pointer to an sss_auth_token
+ * @param str    A string that holds the passkey assertion data
+ * @param len    The length of the credential string
+ *
+ * @return       EOK on success
+ *               ENOENT if the token is empty
+ *               EACCESS if the token is not a passkey token
+ */
+errno_t sss_authtok_set_passkey_reply(struct sss_auth_token *tok,
+                                      const char *str, size_t len);
+/**
+ * @brief Returns a const string if the auth token is of type
+          SSS_AUTHTOK_TYPE_PASSKEY_REPLY, otherwise it returns an error
+ *
+ * @param tok    A pointer to an sss_auth_token
+ * @param str    A pointer to a const char *, that will point to a null
+ *               terminated string
+ * @param len    The length of the credential string
+ *
+ * @return       EOK on success
+ *               ENOENT if the token is empty
+ *               EACCESS if the token is not a password token
+ */
+errno_t sss_authtok_get_passkey_reply(struct sss_auth_token *tok,
+                                      const char **str, size_t *len);
 
+/**
+ * @brief Returns a const string if the auth token is of type
+          SSS_AUTHTOK_TYPE_PASSKEY, otherwise it returns an error
+ *
+ * @param mem_ctx    Parent talloc context to attach to
+ * @param tok    A pointer to an sss_auth_token
+ * @param prompt A pointer to a const char *, that will point to a null
+ *               terminated string
+ * @param key    A pointer to a const char *, that will point to a null
+ *               terminated string
+ * @param pin    A pointer to a const char *, that will point to a null
+ *               terminated string
+ *
+ * @return       EOK on success
+ *               ENOENT if the token is empty
+ *               EACCESS if the token is not a password token
+ */
+errno_t sss_authtok_get_passkey(TALLOC_CTX *mem_ctx,
+                                struct sss_auth_token *tok,
+                                const char **_prompt, const char **_key,
+                                const char **_pin, size_t *_pin_len);
 /**
  * @brief Returns a const string if the auth token is of type
           SSS_AUTHTOK_TYPE_PASSKEY, otherwise it returns the error code
@@ -455,7 +505,8 @@ errno_t sss_authtok_get_passkey_pin(struct sss_auth_token *tok,
                                     const char **pin, size_t *len);
 
 /**
- * @brief Set passkey credentials into an auth token, replacing any previous data.
+ * @brief Set passkey kerberos preauth credentials into an auth token,
+ *        replacing any previous data.
  *
  * @param tok        A pointer to an sss_auth_token structure to change, also
  *                   used as a memory context to allocate the internal data.
@@ -466,6 +517,7 @@ errno_t sss_authtok_get_passkey_pin(struct sss_auth_token *tok,
  * @return       EOK on success
  *               ENOMEM on error
  */
-errno_t sss_authtok_set_passkey(struct sss_auth_token *tok,
-                                const char *pin, size_t len);
+errno_t sss_authtok_set_passkey_krb(struct sss_auth_token *tok,
+                                    const char *prompt, const char *key,
+                                    const char *pin);
 #endif /*  __AUTHTOK_H__ */
