@@ -32,6 +32,7 @@ dist_noinst_DATA = \
     data/ad_data.ldif \
     data/ad_schema.ldif \
     data/cert_schema.ldif \
+    data/ssh_schema.ldif \
     data/sudo_schema.ldif \
     test_pysss_nss_idmap.py \
     test_infopipe.py \
@@ -39,6 +40,11 @@ dist_noinst_DATA = \
     test_pam_responder.py \
     test_sudo.py \
     test_resolver.py \
+    conftest.py \
+    sssd_hosts.py \
+    sssd_nets.py \
+    test_confdb.py \
+    test_sss_cache.py \
     $(NULL)
 
 EXTRA_DIST = data/cwrap-dbus-system.conf.in
