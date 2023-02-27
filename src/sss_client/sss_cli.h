@@ -381,9 +381,12 @@ enum sss_authtok_type {
     SSS_AUTHTOK_TYPE_PASSKEY =    0x0008, /**< Authentication token is a Passkey
                                            * PIN, it may or may not contain
                                            * a trailing \\0 */
-    SSS_AUTHTOK_TYPE_PASSKEY_REPLY = 0x0009, /**< Authentication token contains
-                                           * Passkey reply data presented as
-                                           * a kerberos challenge answer */
+    SSS_AUTHTOK_TYPE_PASSKEY_KRB = 0x0009,  /**< Authentication token contains
+                                             * Passkey data used for Kerberos
+                                             * pre-authentication */
+    SSS_AUTHTOK_TYPE_PASSKEY_REPLY = 0x0010, /**< Authentication token contains
+                                              * Passkey reply data presented as
+                                              * a kerberos challenge answer */
 };
 
 /**
@@ -537,11 +540,19 @@ enum response_type {
                             *   - verification_uri_complete
                             *   - user_code
                             */
-    SSS_PAM_PASSKEY_INFO, /**< Indicates that passkey authentication
-                            * is available, including a parameter string
-                            * which dictates whether prompting for PIN is
-                            * needed.
-                            * @param prompt_pin. */
+    SSS_PAM_PASSKEY_INFO, /**< Indicates that passkey authentication is available.
+                            * including a parameter string which dictates whether
+                            * prompting for PIN is needed.
+                            * @param
+                            *   - prompt_pin
+                            */
+    SSS_PAM_PASSKEY_KRB_INFO, /**< A message containing the passkey parameters
+                               * for the user. The key is the cryptographic challenge
+                               * used as the key to the passkey hash table entry.
+                               * @param
+                               *   - user verification (string)
+                               *   - key (string)
+                               */
 };
 
 /**
