@@ -4655,6 +4655,7 @@ krb5_child_SOURCES = \
     src/sss_client/common.c \
     src/krb5_plugin/common/utils.c \
     src/krb5_plugin/idp/idp_utils.c \
+    src/krb5_plugin/passkey/passkey_utils.c \
     $(NULL)
 krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4671,6 +4672,7 @@ krb5_child_LDADD = \
     $(CLIENT_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
     $(JANSSON_LIBS) \
+    libsss_sbus.la \
     $(NULL)
 
 ldap_child_SOURCES = \
