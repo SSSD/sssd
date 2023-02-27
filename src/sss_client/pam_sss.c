@@ -207,6 +207,12 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
     free(pi->otp_challenge);
     pi->otp_challenge = NULL;
 
+    free(pi->passkey_key);
+    pi->passkey_key = NULL;
+
+    free(pi->passkey_prompt_pin);
+    pi->passkey_prompt_pin = NULL;
+
     free_cert_list(pi->cert_list);
     pi->cert_list = NULL;
     pi->selected_cert = NULL;
@@ -1285,6 +1291,29 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                 }
 
                 break;
+            case SSS_PAM_PASSKEY_KRB_INFO:
+                free(pi->passkey_prompt_pin);
+                pi->passkey_prompt_pin = strdup((char *) &buf[p]);
+                if (pi->passkey_prompt_pin == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+
+                offset = strlen(pi->passkey_prompt_pin) + 1;
+                if (offset >= len) {
+                    D(("Passkey message size mismatch"));
+                    free(pi->passkey_prompt_pin);
+                    pi->passkey_prompt_pin = NULL;
+                    break;
+                }
+
+                free(pi->passkey_key);
+                pi->passkey_key = strdup((char *) &buf[p + offset]);
+                if (pi->passkey_key == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+                break;
             case SSS_PAM_PASSKEY_INFO:
                 if (buf[p + (len - 1)] != '\0') {
                     D(("passkey info does not end with \\0."));
@@ -1801,8 +1830,11 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
     const struct pam_message *mesg[3] = { NULL, NULL, NULL };
     struct pam_message m[3] = { {0}, {0}, {0} };
     struct pam_response *resp = NULL;
+    bool kerberos_preauth;
+    bool prompt_pin;
     int pin_idx = 0;
     int msg_idx = 0;
+    size_t needed_size;
 
     ret = pam_get_item(pamh, PAM_CONV, (const void **) &conv);
     if (ret != PAM_SUCCESS) {
@@ -1813,7 +1845,13 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
         return PAM_SYSTEM_ERR;
     }
 
-    pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
+    kerberos_preauth = pi->passkey_key != NULL ? true : false;
+    if ((strcasecmp(pi->passkey_prompt_pin, "false")) == 0) {
+        prompt_pin = false;
+    } else {
+        prompt_pin = true;
+    }
+
 	/* Interactive, prompt a message and wait before continuing */
     if (prompt_interactive != NULL && prompt_interactive[0] != '\0') {
 	    m[msg_idx].msg_style = PAM_PROMPT_ECHO_OFF;
@@ -1825,7 +1863,7 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
      *
      * If prompt_pin is false but a PIN is set on the device
      * we still prompt for PIN */
-    if ((strcasecmp(pi->passkey_prompt_pin, "true")) == 0) {
+    if (prompt_pin) {
         m[msg_idx].msg_style = PAM_PROMPT_ECHO_OFF;
         m[msg_idx].msg = PASSKEY_DEFAULT_PIN_MSG;
         pin_idx = msg_idx;
@@ -1834,7 +1872,7 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
 
     /* Prompt to remind the user to touch the device */
     if (prompt_touch != NULL && prompt_touch[0] != '\0') {
-        m[msg_idx].msg_style = PAM_TEXT_INFO;
+        m[msg_idx].msg_style = PAM_PROMPT_ECHO_OFF;
 	    m[msg_idx].msg = prompt_touch;
         msg_idx++;
     }
@@ -1857,39 +1895,53 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
         return ret;
     }
 
-    if ((strcasecmp(pi->passkey_prompt_pin, "true")) == 0) {
-        if (resp == NULL) {
-            D(("response expected, but resp==NULL"));
-            return PAM_SYSTEM_ERR;
+    if (kerberos_preauth) {
+        if (!prompt_pin) {
+            resp[pin_idx].resp = NULL;
         }
 
-        if (resp[pin_idx].resp == NULL) {
-            pi->pam_authtok = NULL;
-            pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
-            pi->pam_authtok_size=0;
-        } else {
-            pi->pam_authtok = strdup(resp[pin_idx].resp);
-            if (pi->pam_authtok == NULL) {
-                ret = PAM_BUF_ERR;
-                goto done;
-            }
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY_KRB;
+        sss_auth_passkey_calc_size(pi->passkey_prompt_pin,
+                                   pi->passkey_key,
+                                   resp[pin_idx].resp,
+                                   &needed_size);
 
-            /* Fallback to password auth if no PIN was entered */
-            if (resp[pin_idx].resp == NULL || resp[pin_idx].resp[0] == '\0') {
-                ret = EIO;
-                goto done;
-            }
-
-			pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
-			pi->pam_authtok_size=strlen(pi->pam_authtok);
+        pi->pam_authtok = malloc(needed_size);
+        if (pi->pam_authtok == NULL) {
+            D(("malloc failed."));
+            ret = PAM_BUF_ERR;
+            goto done;
         }
+
+        sss_auth_pack_passkey_blob((uint8_t *)pi->pam_authtok,
+                                    pi->passkey_prompt_pin, pi->passkey_key,
+                                    resp[pin_idx].resp);
+
     } else {
-        /* user verification = false, SSS_AUTHTOK_TYPE_PASSKEY will be reset to
-         * SSS_AUTHTOK_TYPE_NULL in PAM responder
-         */
-        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
-        pi->pam_authtok = NULL;
-        pi->pam_authtok_size=0;
+        if (!prompt_pin) {
+            /* user verification = false, SSS_AUTHTOK_TYPE_PASSKEY will be reset to
+             * SSS_AUTHTOK_TYPE_NULL in PAM responder
+             */
+            pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
+            pi->pam_authtok = NULL;
+            pi->pam_authtok_size = 0;
+            ret = PAM_SUCCESS;
+            goto done;
+        } else {
+            pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSKEY;
+            pi->pam_authtok = strdup(resp[pin_idx].resp);
+            needed_size = strlen(pi->pam_authtok);
+        }
+    }
+
+    pi->pam_authtok_size = needed_size;
+
+    /* Fallback to password auth if no PIN was entered */
+    if (prompt_pin) {
+        if (resp[pin_idx].resp == NULL || resp[pin_idx].resp[0] == '\0') {
+            ret = EIO;
+            goto done;
+        }
     }
 
     ret = PAM_SUCCESS;
