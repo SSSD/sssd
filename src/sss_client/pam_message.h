@@ -64,6 +64,7 @@ struct pam_items {
     char *oauth2_url_complete;
     char *oauth2_pin;
     char *first_factor;
+    char *passkey_key;
     char *passkey_prompt_pin;
     bool password_prompting;
 
