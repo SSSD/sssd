@@ -24,6 +24,7 @@
 #include "util/util.h"
 #include "util/auth_utils.h"
 #include "util/find_uid.h"
+#include "util/sss_ptr_hash.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder_packet.h"
@@ -47,6 +48,12 @@ enum pam_verbosity {
 struct pam_initgroup_enum_str {
     enum pam_initgroups_scheme scheme;
     const char *option;
+};
+
+struct pam_passkey_table_data {
+    hash_table_t *table;
+    char *key;
+    struct pk_child_user_data *data;
 };
 
 struct pam_initgroup_enum_str pam_initgroup_enum_str[] = {
@@ -97,6 +104,10 @@ static errno_t check_cert(TALLOC_CTX *mctx,
                           struct pam_ctx *pctx,
                           struct pam_auth_req *preq,
                           struct pam_data *pd);
+
+errno_t passkey_kerberos(struct pam_ctx *pctx,
+                            struct pam_data *pd,
+                            struct pam_auth_req *preq);
 
 int pam_check_user_done(struct pam_auth_req *preq, int ret);
 
@@ -204,6 +215,8 @@ static int extract_authtok_v2(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
     case SSS_AUTHTOK_TYPE_OAUTH2:
     case SSS_AUTHTOK_TYPE_PASSKEY:
+    case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
+    case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
         ret = sss_authtok_set(tok, auth_token_type,
                               auth_token_data, auth_token_length);
         break;
@@ -858,6 +871,229 @@ done:
     return ret;
 }
 
+errno_t decode_pam_passkey_msg(TALLOC_CTX *mem_ctx,
+                               uint8_t *buf,
+                               size_t len,
+                               struct pk_child_user_data **_data)
+{
+
+    size_t p = 0;
+    size_t pctr = 0;
+    errno_t ret;
+    size_t offset;
+    struct pk_child_user_data *data = NULL;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    data = talloc_zero(tmp_ctx, struct pk_child_user_data);
+    if (data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to talloc passkey data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    data->user_verification = talloc_strdup(data, (char *) &buf[p]);
+    if (data->user_verification == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to strdup passkey prompt.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    offset = strlen(data->user_verification) + 1;
+    if (offset >= len) {
+        DEBUG(SSSDBG_OP_FAILURE, "passkey prompt offset failure.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    data->crypto_challenge = talloc_strdup(data, (char *) &buf[p + offset]);
+    if (data->crypto_challenge == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to strdup passkey challenge.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    offset += strlen(data->crypto_challenge) + 1;
+    if (offset >= len) {
+        DEBUG(SSSDBG_OP_FAILURE, "passkey challenge offset failure.\n");
+        ret = EIO;
+        goto done;
+    }
+
+
+    data->domain = talloc_strdup(data, (char *) &buf[p] + offset);
+    if (data->domain == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to strdup passkey domain.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    offset += strlen(data->domain) + 1;
+    if (offset >= len) {
+        DEBUG(SSSDBG_OP_FAILURE, "passkey domain offset failure.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    SAFEALIGN_COPY_UINT32(&data->num_credentials, &buf[p + offset], &pctr);
+    size_t list_sz = (size_t) data->num_credentials;
+
+    offset += sizeof(uint32_t);
+
+    data->key_handles = talloc_zero_array(data, const char *, list_sz);
+
+    for (int i = 0; i < list_sz; i++) {
+        data->key_handles[i] = talloc_strdup(data->key_handles, (char *) &buf[p + offset]);
+        if (data->key_handles[i] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to strdup passkey list.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        offset += strlen(data->key_handles[i]) + 1;
+    }
+
+    *_data = talloc_steal(mem_ctx, data);
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+
+errno_t save_passkey_data(TALLOC_CTX *mem_ctx,
+                          struct pam_ctx *pctx,
+                          struct pk_child_user_data *data,
+                          struct pam_auth_req *preq)
+{
+    char *pk_key;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    /* Passkey data (pk_table_data) is stolen onto client ctx, it will
+     * be freed when the client closes, and the sss_ptr_hash interface
+     * takes care of automatically removing it from the hash table then */
+    pctx->pk_table_data = talloc_zero(tmp_ctx, struct pam_passkey_table_data);
+    if (pctx->pk_table_data == NULL) {
+        return ENOMEM;
+    }
+
+    if (pctx->pk_table_data->table == NULL) {
+        pctx->pk_table_data->table = sss_ptr_hash_create(pctx->pk_table_data,
+                                                         NULL, NULL);
+        if (pctx->pk_table_data->table == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    pk_key = talloc_asprintf(tmp_ctx, "%s", data->crypto_challenge);
+    if (pk_key == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    pctx->pk_table_data->key = talloc_strdup(pctx->pk_table_data, pk_key);
+    if (pctx->pk_table_data->key == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_ptr_hash_add(pctx->pk_table_data->table, pk_key, data,
+                           struct pk_child_user_data);
+    if (ret == EEXIST) {
+        DEBUG(SSSDBG_TRACE_FUNC, "pk_table key [%s] already exists\n",
+                                 pk_key);
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to add pk data to hash table "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    talloc_steal(mem_ctx, pctx->pk_table_data);
+    pctx->pk_table_data->data = talloc_steal(mem_ctx, data);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t pam_eval_passkey_response(struct pam_ctx *pctx,
+                                  struct pam_data *pd,
+                                  struct pam_auth_req *preq,
+                                  bool *_pk_preauth_done)
+{
+    struct response_data *pk_resp;
+    struct pk_child_user_data *pk_data;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    pk_resp = pd->resp_list;
+
+    while (pk_resp != NULL) {
+        switch (pk_resp->type) {
+        case SSS_PAM_PASSKEY_KRB_INFO:
+            if (!pctx->passkey_auth) {
+                /* Passkey auth is disabled. To avoid passkey prompts appearing,
+                 * don't send SSS_PAM_PASSKEY_KRB_INFO to the client and
+                 * add a dummy response to fallback to normal auth */
+                pk_resp->do_not_send_to_client = true;
+                ret = pam_add_response(pd, SSS_OTP, 0, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+                    goto done;
+                }
+                break;
+            }
+            ret = decode_pam_passkey_msg(tmp_ctx, pk_resp->data, pk_resp->len, &pk_data);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to decode passkey msg\n");
+                ret = EIO;
+                goto done;
+            }
+
+            ret = save_passkey_data(preq->cctx, pctx, pk_data, preq);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to save passkey msg\n");
+                ret = EIO;
+                goto done;
+            }
+            break;
+        /* Passkey non-kerberos preauth has already run */
+        case SSS_PAM_PASSKEY_INFO:
+           *_pk_preauth_done = true;
+        default:
+            break;
+        }
+        pk_resp = pk_resp->next;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 void pam_reply(struct pam_auth_req *preq)
 {
     struct cli_ctx *cctx;
@@ -879,6 +1115,7 @@ void pam_reply(struct pam_auth_req *preq)
     char* pam_account_expired_message;
     char* pam_account_locked_message;
     int pam_verbosity;
+    bool pk_preauth_done = false;
 
     pd = preq->pd;
     cctx = preq->cctx;
@@ -1103,6 +1340,18 @@ void pam_reply(struct pam_auth_req *preq)
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to add prompting information, "
                                      "using defaults.\n");
+        }
+
+        ret = pam_eval_passkey_response(pctx, pd, preq, &pk_preauth_done);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to eval passkey response\n");
+            goto done;
+        }
+
+        if (may_do_passkey_auth(pctx, pd) && !pk_preauth_done && preq->passkey_data_exists) {
+            ret = passkey_non_kerberos(cctx, cctx->ev, pctx, preq, pd);
+            pam_check_user_done(preq, ret);
+            return;
         }
     }
 
@@ -1546,12 +1795,6 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         goto done;
     }
 
-    if (may_do_passkey_auth(pctx, pd)) {
-        /* Preauth and Auth */
-        ret = check_passkey(cctx, cctx->ev, pctx, preq, pd);
-        goto done;
-    }
-
     /* Try backend first for authentication before doing local Smartcard
      * authentication if a logon name is available. Otherwise try to derive
      * the logon name from the certificate first. */
@@ -1561,6 +1804,23 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
         /* Finish here */
         goto done;
+    }
+
+    /* This is set to false inside passkey_non_kerberos() if no passkey data is found.
+     * It is checked in pam_reply() to avoid an endless loop */
+    preq->passkey_data_exists = true;
+
+    if ((pd->cmd == SSS_PAM_AUTHENTICATE)) {
+        if (may_do_passkey_auth(pctx, pd)) {
+            if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_KRB) {
+                ret = passkey_kerberos(pctx, preq->pd, preq);
+                goto done;
+            } else if ((sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) ||
+                      (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY)) {
+                ret = passkey_non_kerberos(cctx, cctx->ev, pctx, preq, pd);
+                goto done;
+            }
+        }
     }
 
     ret = pam_check_user_search(preq);
@@ -1960,6 +2220,23 @@ static void pam_forwarder_cb(struct tevent_req *req)
         goto done;
     }
 
+    /* This is set to false inside passkey_non_kerberos() if no passkey data is found.
+     * It is checked in pam_reply() to avoid an endless loop */
+    preq->passkey_data_exists = true;
+
+    if ((pd->cmd == SSS_PAM_AUTHENTICATE)) {
+        if (may_do_passkey_auth(pctx, pd)) {
+            if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_KRB) {
+                ret = passkey_kerberos(pctx, preq->pd, preq);
+                goto done;
+            } else if ((sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) ||
+                      (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY)) {
+                ret = passkey_non_kerberos(cctx, cctx->ev, pctx, preq, pd);
+                goto done;
+            }
+        }
+    }
+
     ret = pam_check_user_search(preq);
 
 done:
@@ -2278,6 +2555,118 @@ static bool pam_can_user_cache_auth(struct sss_domain_info *domain,
     }
 
     return result;
+}
+
+void passkey_kerberos_cb(struct tevent_req *req)
+{
+    struct pam_auth_req *preq = tevent_req_callback_data(req,
+                                                         struct pam_auth_req);
+    errno_t ret = EOK;
+    int child_status;
+
+    ret = pam_passkey_auth_recv(req, &child_status);
+    talloc_free(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "PAM passkey auth failed [%d]: %s\n",
+                                 ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "passkey child finished with status [%d]\n", child_status);
+
+    pam_check_user_search(preq);
+
+done:
+    pam_check_user_done(preq, ret);
+}
+
+errno_t passkey_kerberos(struct pam_ctx *pctx,
+                            struct pam_data *pd,
+                            struct pam_auth_req *preq)
+{
+    errno_t ret;
+    const char *prompt;
+    const char *key;
+    const char *pin;
+    size_t pin_len;
+    struct pk_child_user_data *data;
+    struct tevent_req *req;
+    int timeout;
+    char *verify_opts;
+    bool debug_libfido2;
+    enum passkey_user_verification verification;
+
+    ret = sss_authtok_get_passkey(preq, preq->pd->authtok,
+                                  &prompt, &key, &pin, &pin_len);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failure to get passkey authtok\n");
+        return EIO;
+    }
+
+    if (prompt == NULL || key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Passkey prompt and key are missing or invalid.\n");
+        return EIO;
+    }
+
+    data = sss_ptr_hash_lookup(pctx->pk_table_data->table, key,
+                               struct pk_child_user_data);
+    if (data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to lookup passkey authtok\n");
+        return EIO;
+    }
+
+    ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_PASSKEY_CHILD_TIMEOUT, PASSKEY_CHILD_TIMEOUT_DEFAULT,
+                         &timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read passkey_child_timeout from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, preq, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_PASSKEY_VERIFICATION, NULL,
+                            &verify_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read '"CONFDB_MONITOR_PASSKEY_VERIFICATION"' from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Always use verification sent from passkey krb5 plugin */
+    ret = read_passkey_conf_verification(preq, verify_opts, NULL, &debug_libfido2);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to parse passkey verificaton options.\n");
+    }
+
+    if (strcasecmp(data->user_verification, "false") == 0) {
+        verification = PAM_PASSKEY_VERIFICATION_OFF;
+    } else {
+        verification = PAM_PASSKEY_VERIFICATION_ON;
+    }
+
+
+    req = pam_passkey_auth_send(preq->cctx, preq->cctx->ev, timeout, debug_libfido2,
+                                verification, pd, data, true);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "passkey auth send failed [%d]: [%s]\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    tevent_req_set_callback(req, passkey_kerberos_cb, preq);
+
+    ret = EAGAIN;
+
+done:
+
+    return ret;
+
 }
 
 static void pam_dom_forwarder(struct pam_auth_req *preq)
