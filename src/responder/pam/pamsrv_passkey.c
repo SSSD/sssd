@@ -569,6 +569,16 @@ static void pam_passkey_auth_done(int child_status,
                                   struct tevent_signal *sige,
                                   void *pvt);
 
+static int pin_destructor(void *ptr)
+{
+    uint8_t *pin = talloc_get_type(ptr, uint8_t);
+    if (pin == NULL) return EOK;
+
+    sss_erase_talloc_mem_securely(pin);
+
+    return EOK;
+}
+
 errno_t get_passkey_child_write_buffer(TALLOC_CTX *mem_ctx,
                                        struct pam_data *pd,
                                        uint8_t **_buf, size_t *_len)
@@ -600,6 +610,8 @@ errno_t get_passkey_child_write_buffer(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
             return ENOMEM;
         }
+
+        talloc_set_destructor((void *) buf, pin_destructor);
 
         safealign_memcpy(buf, pin, len, NULL);
     } else {
