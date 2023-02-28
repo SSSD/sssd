@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
+#include "responder/pam/pamsrv.h"
 #include "lib/certmap/sss_certmap.h"
 
 enum passkey_user_verification {
@@ -34,33 +35,39 @@ enum passkey_user_verification {
     PAM_PASSKEY_VERIFICATION_INVALID
 };
 
-struct passkey_auth_data {
-    char *key;
-    char *name;
-};
-
-errno_t check_passkey(TALLOC_CTX *mem_ctx,
+errno_t passkey_non_kerberos(TALLOC_CTX *mem_ctx,
                              struct tevent_context *ev,
                              struct pam_ctx *pam_ctx,
                              struct pam_auth_req *preq,
                              struct pam_data *pd);
 
 struct pk_child_user_data {
-    const char *user;
+    /* Both Kerberos and non-kerberos */
     const char *domain;
-    int num_passkeys;
-    const char **public_keys;
-    const char **key_handles;
+    size_t num_credentials;
     const char *user_verification;
+    const char **key_handles;
+    /* Kerberos PA only */
+    const char *crypto_challenge;
+    /* Non-kerberos only */
+    const char *user;
+    const char **public_keys;
 };
 
+errno_t read_passkey_conf_verification(TALLOC_CTX *mem_ctx,
+                                       const char *verify_opts,
+                                       enum passkey_user_verification *_user_verification,
+                                       bool *_debug_libfido2);
+
+void pam_forwarder_passkey_cb(struct tevent_req *req);
 struct tevent_req *pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
                                        int timeout,
                                        bool debug_libfido2,
                                        enum passkey_user_verification verification,
                                        struct pam_data *pd,
-                                       struct pk_child_user_data *pk_data);
+                                       struct pk_child_user_data *pk_data,
+                                       bool kerberos_pa);
 errno_t pam_passkey_auth_recv(struct tevent_req *req,
                             int *child_status);
 bool may_do_passkey_auth(struct pam_ctx *pctx,

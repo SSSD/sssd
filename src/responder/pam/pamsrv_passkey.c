@@ -20,6 +20,7 @@
 */
 
 #include "util/child_common.h"
+#include "util/authtok.h"
 #include "db/sysdb.h"
 #include "db/sysdb_passkey_user_verification.h"
 #include "responder/pam/pamsrv.h"
@@ -62,7 +63,13 @@ struct passkey_ctx {
     struct pam_auth_req *preq;
 };
 
-static void pam_forwarder_passkey_cb(struct tevent_req *req);
+void pam_forwarder_passkey_cb(struct tevent_req *req);
+
+errno_t pam_passkey_concatenate_keys(TALLOC_CTX *mem_ctx,
+                                     struct pk_child_user_data *pk_data,
+                                     bool kerberos_pa,
+                                     char **_result_kh,
+                                     char **_result_ph);
 
 struct tevent_req *pam_passkey_get_mapping_send(TALLOC_CTX *mem_ctx,
                                                 struct tevent_context *ev,
@@ -78,7 +85,7 @@ struct passkey_get_mapping_state {
     struct cache_req_result *result;
 };
 
-errno_t check_passkey(TALLOC_CTX *mem_ctx,
+errno_t passkey_non_kerberos(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct pam_ctx *pam_ctx,
                       struct pam_auth_req *preq,
@@ -197,10 +204,10 @@ errno_t pam_passkey_get_mapping_recv(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t read_passkey_conf_verification(TALLOC_CTX *mem_ctx,
-                                              const char *verify_opts,
-                                              enum passkey_user_verification *_user_verification,
-                                              bool *_debug_libfido2)
+errno_t read_passkey_conf_verification(TALLOC_CTX *mem_ctx,
+                                       const char *verify_opts,
+                                       enum passkey_user_verification *_user_verification,
+                                       bool *_debug_libfido2)
 {
     int ret;
     TALLOC_CTX *tmp_ctx;
@@ -253,7 +260,7 @@ done:
     return ret;
 }
 
-static errno_t check_passkey_verification(TALLOC_CTX *mem_ctx,
+static errno_t passkey_non_kerberos_verification(TALLOC_CTX *mem_ctx,
                                           struct passkey_ctx *pctx,
                                           struct confdb_ctx *cdb,
                                           struct sysdb_ctx *sysdb,
@@ -400,7 +407,7 @@ errno_t process_passkey_data(TALLOC_CTX *mem_ctx,
     _data->domain = talloc_steal(mem_ctx, domain_name);
     _data->key_handles = talloc_steal(mem_ctx, kh_mappings);
     _data->public_keys = talloc_steal(mem_ctx, public_keys);
-    _data->num_passkeys = el->num_values;
+    _data->num_credentials = el->num_values;
 
     ret = EOK;
 done:
@@ -409,7 +416,7 @@ done:
     return ret;
 }
 
-static void pam_forwarder_passkey_cb(struct tevent_req *req)
+void pam_forwarder_passkey_cb(struct tevent_req *req)
 {
     struct pam_auth_req *preq = tevent_req_callback_data(req,
                                                          struct pam_auth_req);
@@ -424,6 +431,7 @@ static void pam_forwarder_passkey_cb(struct tevent_req *req)
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "passkey child finished with status [%d]\n", child_status);
     preq->pd->pam_status = PAM_SUCCESS;
     pam_reply(preq);
 
@@ -499,9 +507,9 @@ void pam_passkey_get_user_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = check_passkey_verification(pctx, pctx, pctx->pam_ctx->rctx->cdb,
-                                     result->domain->sysdb, result->domain->dns_name,
-                                     pk_data, &verification, &debug_libfido2);
+    ret = passkey_non_kerberos_verification(pctx, pctx, pctx->pam_ctx->rctx->cdb,
+                                            result->domain->sysdb, result->domain->dns_name,
+                                            pk_data, &verification, &debug_libfido2);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to check passkey verification [%d]: %s\n",
@@ -528,7 +536,7 @@ void pam_passkey_get_user_done(struct tevent_req *req)
     }
 
     req = pam_passkey_auth_send(pctx, pctx->ev, timeout, debug_libfido2,
-                                verification, pctx->pd, pk_data);
+                                verification, pctx->pd, pk_data, false);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "pam_passkey_auth_send failed [%d]: %s\n",
                                  ret, sss_strerror(ret));
@@ -545,6 +553,7 @@ done:
     if (ret == ENOENT) {
         /* No passkey data, continue through to typical auth flow */
         DEBUG(SSSDBG_TRACE_FUNC, "No passkey data found, skipping passkey auth\n");
+        pctx->preq->passkey_data_exists = false;
         pam_check_user_search(pctx->preq);
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unexpected passkey error [%d]: %s."
@@ -567,6 +576,7 @@ struct pam_passkey_auth_send_state {
     char *verify_opts;
     int timeout;
     int child_status;
+    bool kerberos_pa;
 };
 
 static errno_t passkey_child_exec(struct tevent_req *req);
@@ -598,13 +608,15 @@ errno_t get_passkey_child_write_buffer(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) {
+    if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY ||
+        sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY_KRB) {
         ret = sss_authtok_get_passkey_pin(pd->authtok, &pin, &len);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc_pin failed [%d]: %s\n",
+            DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_passkey_pin failed [%d]: %s\n",
                                     ret, sss_strerror(ret));
             return ret;
         }
+
         if (pin == NULL || len == 0) {
             DEBUG(SSSDBG_OP_FAILURE, "Missing PIN.\n");
             return EINVAL;
@@ -631,6 +643,38 @@ errno_t get_passkey_child_write_buffer(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static void pam_passkey_child_read_data(struct tevent_req *subreq)
+{
+    uint8_t *buf;
+    ssize_t buf_len;
+    char *str;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct pam_passkey_auth_send_state *state = tevent_req_data(req, struct pam_passkey_auth_send_state);
+    int ret;
+
+    ret = read_pipe_recv(subreq, state, &buf, &buf_len);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    str = malloc(sizeof(char) * buf_len);
+    if (str == NULL) {
+        return;
+    }
+
+    snprintf(str, buf_len, "%s", buf);
+
+    sss_authtok_set_passkey_reply(state->pd->authtok, str, 0);
+
+    free(str);
+
+    tevent_req_done(req);
+    return;
+}
+
 static void passkey_child_write_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -649,16 +693,79 @@ static void passkey_child_write_done(struct tevent_req *subreq)
     }
 
     PIPE_FD_CLOSE(state->io->write_to_child_fd);
+
+    if (state->kerberos_pa) {
+        /* Read data back from passkey child */
+        subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "read_pipe_send failed.\n");
+            return;
+        }
+
+        tevent_req_set_callback(subreq, pam_passkey_child_read_data, req);
+    }
+}
+
+errno_t pam_passkey_concatenate_keys(TALLOC_CTX *mem_ctx,
+                                     struct pk_child_user_data *pk_data,
+                                     bool kerberos_pa,
+                                     char **_result_kh,
+                                     char **_result_pk)
+{
+    errno_t ret;
+    char *result_kh = NULL;
+    char *result_pk = NULL;
+
+    result_kh = talloc_strdup(mem_ctx, pk_data->key_handles[0]);
+    if (!kerberos_pa) {
+        result_pk = talloc_strdup(mem_ctx, pk_data->public_keys[0]);
+    }
+
+    for (int i = 1; i < pk_data->num_credentials; i++) {
+        result_kh = talloc_strdup_append(result_kh, ",");
+        if (result_kh == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        result_kh = talloc_strdup_append(result_kh, pk_data->key_handles[i]);
+        if (result_kh == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (!kerberos_pa) {
+            result_pk = talloc_strdup_append(result_pk, ",");
+            if (result_pk == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            result_pk = talloc_strdup_append(result_pk, pk_data->public_keys[i]);
+            if (result_kh == NULL || result_pk == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+    }
+
+    *_result_kh = result_kh;
+    *_result_pk = result_pk;
+
+    ret = EOK;
+done:
+    return ret;
 }
 
 struct tevent_req *
 pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
-                    struct tevent_context *ev,
-                    int timeout,
-                    bool debug_libfido2,
-                    enum passkey_user_verification verification,
-                    struct pam_data *pd,
-                    struct pk_child_user_data *pk_data)
+                      struct tevent_context *ev,
+                      int timeout,
+                      bool debug_libfido2,
+                      enum passkey_user_verification verification,
+                      struct pam_data *pd,
+                      struct pk_child_user_data *pk_data,
+                      bool kerberos_pa)
 {
     struct tevent_req *req;
     struct pam_passkey_auth_send_state *state;
@@ -677,6 +784,7 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
 
     state->timeout = timeout;
+    state->kerberos_pa = kerberos_pa;
     state->logfile = PASSKEY_CHILD_LOG_FILE;
     state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
@@ -710,35 +818,34 @@ pam_passkey_auth_send(TALLOC_CTX *mem_ctx,
             break;
     }
 
-
-    /* Options retrieved from LDAP */
-    result_kh = talloc_strdup(state, pk_data->key_handles[0]);
-    result_pk = talloc_strdup(state, pk_data->public_keys[0]);
-    for (int i = 1; i < pk_data->num_passkeys; i++) {
-        result_kh = talloc_strdup_append(result_kh, ",");
-        result_pk = talloc_strdup_append(result_pk, ",");
-        if (result_kh == NULL || result_pk == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        result_kh = talloc_strdup_append(result_kh, pk_data->key_handles[i]);
-        result_pk = talloc_strdup_append(result_pk, pk_data->public_keys[i]);
-        if (result_kh == NULL || result_pk == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
+    ret = pam_passkey_concatenate_keys(state, pk_data, state->kerberos_pa,
+                                       &result_kh, &result_pk);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "pam_passkey_concatenate keys failed - [%d]: [%s]\n",
+              ret, sss_strerror(ret));
+        goto done;
     }
 
-    state->extra_args[arg_c++] = result_pk;
-    state->extra_args[arg_c++] = "--public-key";
-    state->extra_args[arg_c++] = result_kh;
-    state->extra_args[arg_c++] = "--key-handle";
-    state->extra_args[arg_c++] = pk_data->domain;
-    state->extra_args[arg_c++] = "--domain";
-    state->extra_args[arg_c++] = state->pd->user;
-    state->extra_args[arg_c++] = "--username";
-    state->extra_args[arg_c++] = "--authenticate";
+
+    if (state->kerberos_pa) {
+        state->extra_args[arg_c++] = pk_data->crypto_challenge;
+        state->extra_args[arg_c++] = "--cryptographic-challenge";
+        state->extra_args[arg_c++] = result_kh;
+        state->extra_args[arg_c++] = "--key-handle";
+        state->extra_args[arg_c++] = pk_data->domain;
+        state->extra_args[arg_c++] = "--domain";
+        state->extra_args[arg_c++] = "--get-assert";
+    } else {
+        state->extra_args[arg_c++] = result_pk;
+        state->extra_args[arg_c++] = "--public-key";
+        state->extra_args[arg_c++] = result_kh;
+        state->extra_args[arg_c++] = "--key-handle";
+        state->extra_args[arg_c++] = pk_data->domain;
+        state->extra_args[arg_c++] = "--domain";
+        state->extra_args[arg_c++] = state->pd->user;
+        state->extra_args[arg_c++] = "--username";
+        state->extra_args[arg_c++] = "--authenticate";
+    }
 
     ret = passkey_child_exec(req);
 
@@ -803,9 +910,14 @@ static errno_t passkey_child_exec(struct tevent_req *req)
         sss_fd_nonblocking(state->io->write_to_child_fd);
 
         /* Set up SIGCHLD handler */
-        ret = child_handler_setup(state->ev, child_pid,
-                                  pam_passkey_auth_done, req,
-                                  &state->child_ctx);
+        if (state->kerberos_pa) {
+            ret = child_handler_setup(state->ev, child_pid, NULL, NULL, NULL);
+        } else {
+            ret = child_handler_setup(state->ev, child_pid,
+                                      pam_passkey_auth_done, req,
+                                      &state->child_ctx);
+        }
+
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
                   ret, sss_strerror(ret));
@@ -922,13 +1034,6 @@ bool may_do_passkey_auth(struct pam_ctx *pctx,
     }
 
     if (pd->cmd != SSS_PAM_PREAUTH && pd->cmd != SSS_PAM_AUTHENTICATE) {
-        return false;
-    }
-
-    /* SSS_AUTHTOK_TYPE_EMPTY is used for a passkey with no PIN set */
-    if (pd->cmd == SSS_PAM_AUTHENTICATE &&
-           (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSKEY)
-           && sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_EMPTY) {
         return false;
     }
 

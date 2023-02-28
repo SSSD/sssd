@@ -72,6 +72,7 @@ struct pam_ctx {
     char **gssapi_indicators_map;
     bool gssapi_check_upn;
     bool passkey_auth;
+    struct pam_passkey_table_data *pk_table_data;
 };
 
 struct pam_auth_req {
@@ -94,7 +95,7 @@ struct pam_auth_req {
     struct cert_auth_info *current_cert;
     bool cert_auth_local;
 
-    struct passkey_auth_data *passkey_data;
+    bool passkey_data_exists;
     uint32_t client_id_num;
 };
 
