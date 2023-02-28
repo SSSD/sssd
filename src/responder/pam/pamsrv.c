@@ -49,7 +49,7 @@
 #define NO_DOMAINS_ARE_PUBLIC "none"
 #define DEFAULT_ALLOWED_UIDS ALL_UIDS_ALLOWED
 #define DEFAULT_PAM_CERT_AUTH false
-#define DEFAULT_PAM_PASSKEY_AUTH false
+#define DEFAULT_PAM_PASSKEY_AUTH true
 #define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/sssd/pki/sssd_auth_ca_db.pem"
 #define DEFAULT_PAM_INITGROUPS_SCHEME "no_session"
 
