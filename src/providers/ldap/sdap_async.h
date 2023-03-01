@@ -420,25 +420,6 @@ enum_ipnetworks_send(TALLOC_CTX *memctx,
 errno_t
 enum_ipnetworks_recv(struct tevent_req *req);
 
-/* OID documented in
- * http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx
- */
-#define SDAP_MATCHING_RULE_IN_CHAIN "1.2.840.113556.1.4.1941"
-
-struct tevent_req *
-sdap_get_ad_match_rule_members_send(TALLOC_CTX *mem_ctx,
-                                    struct tevent_context *ev,
-                                    struct sdap_options *opts,
-                                    struct sdap_handle *sh,
-                                    struct sysdb_attrs *group,
-                                    int timeout);
-
-errno_t
-sdap_get_ad_match_rule_members_recv(struct tevent_req *req,
-                                    TALLOC_CTX *mem_ctx,
-                                    size_t *num_users,
-                                    struct sysdb_attrs ***users);
-
 struct tevent_req *
 sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,

@@ -4219,7 +4219,6 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_async_users.c \
     src/providers/ldap/sdap_async_groups.c \
     src/providers/ldap/sdap_async_nested_groups.c \
-    src/providers/ldap/sdap_async_groups_ad.c \
     src/providers/ldap/sdap_async_initgroups.c \
     src/providers/ldap/sdap_async_initgroups_ad.c \
     src/providers/ldap/sdap_async_connection.c \
