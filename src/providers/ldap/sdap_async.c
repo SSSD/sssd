@@ -1247,12 +1247,6 @@ static void sdap_get_rootdse_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Got rootdse\n");
 
-    /* This feature is disabled for both groups
-     * and initgroups. Skip the auto-detection
-     * lookup.
-     */
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Skipping auto-detection of match rule\n");
     tevent_req_done(req);
     return;
 }
