@@ -443,7 +443,7 @@ void pam_passkey_get_user_done(struct tevent_req *req)
     bool debug_libfido2 = false;
     char *domain_name = NULL;
     int timeout;
-    struct cache_req_result *result;
+    struct cache_req_result *result = NULL;
     struct pk_child_user_data *pk_data = NULL;
     enum passkey_user_verification verification = PAM_PASSKEY_VERIFICATION_OMIT;
 
@@ -457,6 +457,12 @@ void pam_passkey_get_user_done(struct tevent_req *req)
         goto done;
     }
 
+    if (result == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache req result == NULL\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     pk_data = talloc_zero(pctx, struct pk_child_user_data);
     if (!pk_data) {
         DEBUG(SSSDBG_CRIT_FAILURE, "pk_data == NULL\n");
@@ -465,9 +471,11 @@ void pam_passkey_get_user_done(struct tevent_req *req)
     }
 
     /* Use dns_name for AD/IPA - for LDAP fallback to domain->name */
-    domain_name = result->domain->dns_name;
-    if (domain_name == NULL) {
-        domain_name = result->domain->name;
+    if (result->domain != NULL) {
+        domain_name = result->domain->dns_name;
+        if (domain_name == NULL) {
+            domain_name = result->domain->name;
+        }
     }
 
     if (domain_name == NULL) {
