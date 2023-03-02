@@ -824,12 +824,23 @@ def fips_ad_support_policy(session_multihost, request):
     if "FIPS" == old_policy:
         session_multihost.client[0].run_command(
             'update-crypto-policies --set FIPS:AD-SUPPORT', raiseonerr=False)
+    old_policy_master = session_multihost.master[0].run_command(
+        'update-crypto-policies --show', raiseonerr=False).stdout_text
+    old_policy_master = old_policy_master.strip()
+    if "FIPS" == old_policy_master:
+        session_multihost.master[0].run_command(
+            'update-crypto-policies --set FIPS:AD-SUPPORT', raiseonerr=False)
 
     def restore_policy():
         """ Restore crypto policy """
         if "FIPS" == old_policy:
             session_multihost.client[0].run_command(
                 f'update-crypto-policies --set {old_policy}', raiseonerr=False)
+        if "FIPS" == old_policy_master:
+            session_multihost.master[0].run_command(
+                f'update-crypto-policies --set {old_policy_master}',
+                raiseonerr=False
+            )
     request.addfinalizer(restore_policy)
 
 
