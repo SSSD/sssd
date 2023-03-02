@@ -2033,6 +2033,8 @@ static void test_sss_get_domain_mappings_content(void **state)
     assert_int_equal(ret, EOK);
     assert_string_equal(content,
                         "[domain_realm]\n"
+                        ".configured.dom = CONFIGURED.DOM\n"
+                        "configured.dom = CONFIGURED.DOM\n"
                         ".subdom1.dom = SUBDOM1.DOM\n"
                         "subdom1.dom = SUBDOM1.DOM\n"
                         ".subdom2.dom = SUBDOM2.DOM\n"
@@ -2058,6 +2060,8 @@ static void test_sss_get_domain_mappings_content(void **state)
     assert_int_equal(ret, EOK);
     assert_string_equal(content,
                         "[domain_realm]\n"
+                        ".configured.dom = CONFIGURED.DOM\n"
+                        "configured.dom = CONFIGURED.DOM\n"
                         ".subdom1.dom = SUBDOM1.DOM\n"
                         "subdom1.dom = SUBDOM1.DOM\n"
                         ".subdom2.dom = SUBDOM2.DOM\n"
