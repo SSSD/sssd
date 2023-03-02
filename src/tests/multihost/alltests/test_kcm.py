@@ -115,3 +115,79 @@ class TestKcm(object):
               "and.sssd.conf...some_path.kcm.socket..don't.match"
         find = re.compile(r'%s' % msg)
         assert find.search(log)
+
+    @pytest.mark.tier1_2
+    def test_expired_tickets(self, multihost, backupsssdconf):
+        """
+        :title: IDM-SSSD-TC: kcm_provider: Expired tickets are removed
+        :id: db532785-a00f-4be9-b413-592e0550fe9c
+        :requirement: sssd-kcm does not appear to expire Kerberos tickets (RFE: sssd_kcm
+          should have the option to automatically delete the expired tickets)
+        :setup:
+         1. Configure short ticket lifetime in krb5.
+         2. Create a user.
+         3. Cleanup all ticket caches
+        :steps:
+          1. Create about 64 tickets for user
+          2. Try to create 65th ticket
+          3. Wait for them to expire
+          4. Try to create about 10 more tickets
+          5. Check the sssd kcm log
+        :expectedresults:
+          1. Tickets are created
+          2. Ticket is not created
+          3. Tickets are expired
+          4. New tickets are created
+          5. Log contains a message about deleting expired credentials
+        :customerscenario: True
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1900973
+        """
+        client = sssdTools(multihost.client[0])
+        client.sssd_conf('kcm', {'debug_level': '9'})
+        multihost.client[0].service_sssd('restart')
+
+        sssdTools(multihost.client[0]).clear_sssd_cache()
+        # Setup short ticker validity (60s)  in krb5.conf using ticket_lifetime
+        backup_krb5 = 'cp -rf /etc/krb5.conf /etc/krb5.conf.bak'
+        restore_krb5 = 'mv /etc/krb5.conf.bak /etc/krb5.conf ; ' \
+                       'restorecon -Rv /etc/krb5.conf'
+        edit_krb5_conf = 'sed -i "s/ticket_lifetime.*/ticket_lifetime = ' \
+            '60/" /etc/krb5.conf'
+        multihost.client[0].run_command(backup_krb5, raiseonerr=False)
+        multihost.client[0].run_command(edit_krb5_conf, raiseonerr=False)
+        multihost.client[0].run_command("systemctl restart sssd-kcm")
+        multihost.client[0].run_command("> /var/log/sssd/sssd_kcm.log")
+        multihost.client[0].run_command("kdestroy -A", raiseonerr=False)
+        for i in range(1, 65):
+            multihost.client[0].run_command(
+                f"kinit -c KCM:0:12345{i} foo1",
+                stdin_text="Secret123",
+                raiseonerr=False
+            )
+        # This credential should not be created due to secrets being full now.
+        cmd_fail = multihost.client[0].run_command(
+            "kinit -c KCM:0:666666 foo1",
+            stdin_text="Secret123",
+            raiseonerr=False
+        )
+        log_str_1 = multihost.client[0].get_file_contents(
+            "/var/log/sssd/sssd_kcm.log").decode('utf-8')
+        # Wait for secrets to expire.
+        time.sleep(120)
+        multihost.client[0].run_command("date; klist -l", raiseonerr=False)
+        fail_count = 0
+        for i in range(65, 75):
+            cmd = multihost.client[0].run_command(
+                f"kinit -c KCM:0:12345{i} foo1",
+                stdin_text="Secret123",
+                raiseonerr=False
+            )
+            fail_count += cmd.returncode
+        log_str = multihost.client[0].get_file_contents(
+            "/var/log/sssd/sssd_kcm.log").decode('utf-8')
+        multihost.client[0].run_command(restore_krb5, raiseonerr=False)
+        multihost.client[0].run_command("kdestroy -A", raiseonerr=False)
+        assert fail_count == 0, f"At least one kinit failed. Failures: {fail_count}."
+        assert cmd_fail.returncode != 0, "kinit succeeded but should have failed."
+        assert "The maximum number of stored secrets has been reached" in log_str_1
+        assert "Removing the oldest expired credential" in log_str
