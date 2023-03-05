@@ -92,7 +92,7 @@ SSSD_test_cert_pubsshkey_%.pub: SSSD_test_cert_pubkey_%.pem
 SSSD_test_cert_x509_%.h: SSSD_test_cert_x509_%.pem
 	@echo "#define SSSD_TEST_CERT_$* \""$(shell cat $< |openssl x509 -outform der | base64 -w 0)"\"" > $@
 	@echo "#define SSSD_TEST_CERT_SERIAL_$* \"\\x"$(shell cat $< |openssl x509 -noout -serial | cut -d= -f2)"\"" >> $@
-	@echo "#define SSSD_TEST_CERT_DEC_SERIAL_$* \""$(shell /bin/echo ibase=16\; $(shell cat $< |openssl x509 -noout -serial | cut -d= -f2) | bc)"\"" >> $@
+	@echo "#define SSSD_TEST_CERT_DEC_SERIAL_$* \""$(shell echo ibase=16\; $(shell cat $< |openssl x509 -noout -serial | cut -d= -f2) | bc)"\"" >> $@
 
 SSSD_test_cert_pubsshkey_%.h: SSSD_test_cert_pubsshkey_%.pub
 	@echo "#define SSSD_TEST_CERT_SSH_KEY_$* \""$(shell cut -d' ' -f2 $<)"\"" > $@
