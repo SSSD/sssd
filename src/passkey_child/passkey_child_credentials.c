@@ -35,7 +35,7 @@
 
 #include "passkey_child.h"
 
-#define IN_BUF_SIZE 512
+#define IN_BUF_SIZE 1024
 
 errno_t
 prepare_credentials(struct passkey_data *data, fido_dev_t *dev,
