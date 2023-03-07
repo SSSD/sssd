@@ -578,7 +578,7 @@ perform_smb_operations(int cached_gpt_version,
 {
     SMBCCTX *smbc_ctx;
     int ret;
-    int sysvol_gpt_version;
+    int sysvol_gpt_version = -1;
     char *ini_filename = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
 
@@ -662,7 +662,7 @@ main(int argc, const char *argv[])
     uint64_t chain_id;
     const char *opt_logger = NULL;
     errno_t ret;
-    int sysvol_gpt_version;
+    int sysvol_gpt_version = -1;
     int result;
     TALLOC_CTX *main_ctx = NULL;
     uint8_t *buf = NULL;
@@ -775,6 +775,13 @@ main(int argc, const char *argv[])
         DEBUG(SSSDBG_CRIT_FAILURE,
               "perform_smb_operations failed.[%d][%s].\n",
               result, strerror(result));
+        goto fail;
+    }
+
+    if (sysvol_gpt_version < 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "get sysvol_gpt_version failed. [%d].\n",
+              sysvol_gpt_version);
         goto fail;
     }
 
