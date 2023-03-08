@@ -1591,6 +1591,8 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     errno_t ret;
+    bool use_shortcut;
+    char **param = NULL;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_ad_tokengroups_initgroups_state);
@@ -1611,9 +1613,22 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
      * to avoid having to transfer and retain members when the fake
      * tokengroups object without name is replaced by the full group object
      */
+    use_shortcut = false;
     if (state->use_id_mapping
             && !IS_SUBDOMAIN(state->domain)
-            && state->domain->ignore_group_members == false) {
+            && !state->domain->ignore_group_members) {
+        ret = confdb_get_param(id_ctx->be->cdb, mem_ctx, id_ctx->be->conf_path,
+                               CONFDB_NSS_FILTER_GROUPS, &param);
+        if (ret == EOK) {
+            use_shortcut = (param == NULL || param[0] == NULL);
+            talloc_free(param);
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to access %s: %i (%s)\n",
+                  CONFDB_NSS_FILTER_GROUPS, ret, sss_strerror(ret));
+            /* Continue without using the shortcut. Safest option. */
+        }
+    }
+    if (use_shortcut) {
         subreq = sdap_ad_tokengroups_initgr_mapping_send(state, ev, opts,
                                                          sysdb, domain, sh,
                                                          name, orig_dn,
