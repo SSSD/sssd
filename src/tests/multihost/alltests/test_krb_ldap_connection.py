@@ -114,7 +114,7 @@ class TestKrbLdapConnectionTimeout(object):
             (ds_instance_name), domain_params)
         tools = sssdTools(multihost.client[0])
         domainname = tools.get_domain_section_name()
-        sssdTools(multihost.client[0]).delete_sssd_domain_log(domainname)
+        tools.delete_sssd_domain_log(domainname)
         logfile = '/var/log/sssd/sssd_%s.log' % ds_instance_name
 
         clear_sssd_cache = True
@@ -211,7 +211,7 @@ class TestKrbLdapConnectionTimeout(object):
         """
         tools = sssdTools(multihost.client[0])
         domainname = tools.get_domain_section_name()
-        sssdTools(multihost.client[0]).delete_sssd_domain_log(domainname)
+        tools.delete_sssd_domain_log(domainname)
         logfile = '/var/log/sssd/sssd_%s.log' % ds_instance_name
 
         sssdTools(multihost.client[0]).clear_sssd_cache()
