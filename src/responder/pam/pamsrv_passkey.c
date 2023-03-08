@@ -287,13 +287,10 @@ static errno_t check_passkey_verification(TALLOC_CTX *mem_ctx,
 
     /* If require user verification setting is set in LDAP, use it */
     if (verification_from_ldap != NULL) {
-        if (strcmp(verification_from_ldap, "on") == 0) {
+        if (strcasecmp(verification_from_ldap, "true") == 0) {
             verification = PAM_PASSKEY_VERIFICATION_ON;
-        } else if (strcmp(verification_from_ldap, "off") == 0) {
+        } else if (strcasecmp(verification_from_ldap, "false") == 0) {
             verification = PAM_PASSKEY_VERIFICATION_OFF;
-        /* Else, default, don't specify user-verification arg */
-        } else {
-            verification = PAM_PASSKEY_VERIFICATION_OMIT;
         }
         DEBUG(SSSDBG_TRACE_FUNC, "Passkey verification is being enforced from LDAP\n");
     } else {
