@@ -1,5 +1,4 @@
 import re
-
 import pytest
 
 from sssd.testlib.common.utils import sssdTools
@@ -193,3 +192,70 @@ class TestADMultiDomain(object):
         assert getent1.returncode == 0, f'Could not find user1@{domain}!'
         assert getent2.returncode == 0, f'Could not find child_user1@{child_domain}!'
         assert getent3.returncode == 0, f'Could not find tree_user1@{tree_domain}!'
+
+    @pytest.mark.ticket(bz=1913284, jira=["SSSD-3092", "RHEL-4974"])
+    @staticmethod
+    def test_0004_bz1913284_keytab_as_nonroot(multihost, newhostname, adchildjoin):
+        """
+        :title: IDM-SSSD-TC: ad_provider: forests: krb5_kt_start_seq_get failed:
+          Permission denied when running as unprivileged user sssd
+        :id: 53a6871e-95a6-4865-9e61-1e12815ec35b
+        :setup:
+          1. Configure parent and child domain
+          2. Join client to child domain
+        :steps:
+          1. Lookup user from child domain
+          2. Lookup user from parent domain
+          3. Check log for a keytab error
+        :expectedresults:
+          1. Parent user is found
+          2. Child user is found
+          3. The permission denied error is not present in log.
+        :customerscenario: True
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1913284
+        """
+        adchildjoin(membersw='adcli')
+        ad_domain = multihost.ad[0].domainname
+        child_domain = multihost.ad[1].domainname
+        ad_server = multihost.ad[1].hostname
+
+        # Configure sssd
+        client = sssdTools(multihost.client[0], multihost.ad[1])
+        if client.sssd_user != "sssd":
+            pytest.skip("The test is not applicable without non-root fetaure (sssd 2.10+)!")
+        multihost.client[0].service_sssd('stop')
+        client.backup_sssd_conf()
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {
+            'ad_domain': child_domain,
+            'debug_level': '9',
+            'use_fully_qualified_names': 'True',
+            'ad_server': ad_server,
+            'cache_credentials': 'True',
+        }
+        client.sssd_conf(dom_section, sssd_params)
+        client.clear_sssd_cache()
+
+        # Search for the user in root domain
+        getent_root_user1 = multihost.client[0].run_command(
+            f'getent passwd user1@{ad_domain}',
+            raiseonerr=False
+        )
+        # Search for the user in child domain
+        getent_child_user1 = multihost.client[0].run_command(
+            f'getent passwd child_user1@{child_domain}',
+            raiseonerr=False
+        )
+        # Download sssd log
+        log_str = multihost.client[0].get_file_contents(
+            f"/var/log/sssd/sssd_{multihost.ad[1].domainname.lower()}.log"). \
+            decode('utf-8')
+        client.restore_sssd_conf()
+        client.clear_sssd_cache()
+
+        # Evaluate test results
+        assert getent_root_user1.returncode == 0
+        assert getent_child_user1.returncode == 0
+        assert "krb5_kt_start_seq_get failed: Permission denied" not in log_str
+        assert "Failed to read keytab [FILE:/etc/krb5.keytab]: No " \
+               "suitable principal found in keytab" not in log_str
