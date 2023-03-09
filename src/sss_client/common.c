@@ -684,21 +684,28 @@ static enum sss_status sss_cli_check_socket(int *errnop,
                                             int timeout)
 {
     static pid_t mypid;
-    struct stat mysb;
+    static struct stat selfsb;
+    struct stat mypid_sb, myself_sb;
     int mysd;
     int ret;
 
-    if (getpid() != mypid) {
-        ret = fstat(sss_cli_sd, &mysb);
+    ret = lstat("/proc/self/", &myself_sb);
+
+    if (getpid() != mypid || (ret == 0 && myself_sb.st_ino != selfsb.st_ino)) {
+        ret = fstat(sss_cli_sd, &mypid_sb);
         if (ret == 0) {
-            if (S_ISSOCK(mysb.st_mode) &&
-                mysb.st_dev == sss_cli_sb.st_dev &&
-                mysb.st_ino == sss_cli_sb.st_ino) {
+            if (S_ISSOCK(mypid_sb.st_mode) &&
+                mypid_sb.st_dev == sss_cli_sb.st_dev &&
+                mypid_sb.st_ino == sss_cli_sb.st_ino) {
                 sss_cli_close_socket();
             }
         }
         sss_cli_sd = -1;
         mypid = getpid();
+        ret = lstat("/proc/self/", &selfsb);
+        if (ret) {
+            memset(&selfsb, 0, sizeof(selfsb));
+        }
     }
 
     /* check if the socket has been closed on the other side */
