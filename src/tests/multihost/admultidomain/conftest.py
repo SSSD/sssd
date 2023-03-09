@@ -182,7 +182,8 @@ def setup_session(request, session_multihost, create_testdir):
         master.update_resolv_conf(session_multihost.ad[1].ip)
     client.client_install_pkgs()
     client.update_resolv_conf(session_multihost.ad[1].ip)
-    client.clear_sssd_cache()
+    # Sssd is not configured yet so we do not start it here.
+    client.clear_sssd_cache(start=False)
     client.systemsssdauth(realm, ad_host)
 
     def teardown_session():
