@@ -741,9 +741,10 @@
                                         </para>
                                         <para>
                                         The default is that the key settings
-                                        decide what to do. In the IPA case,
-                                        this will be overwritten by IPA
-                                        passkey configuration.
+                                        decide what to do. In the IPA or
+                                        kerberos pre-authentication case,
+                                        this value will be overwritten by the
+                                        server.
                                         </para>
                                     </listitem>
                                 </varlistentry>
