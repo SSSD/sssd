@@ -33,6 +33,7 @@
 #define SSSD_PASSKEY_PADATA 153 // PA-REDHAT-PASSKEY
 #define SSSD_PASSKEY_QUESTION "passkey"
 #define SSSD_PASSKEY_PREFIX "passkey "
+#define SSSD_PASSKEY_REPLY_STATE "ipa_otpd state"
 
 struct sss_passkey_config {
     char **indicators;
@@ -78,6 +79,11 @@ struct sss_passkey_message {
 
 void
 sss_passkey_message_free(struct sss_passkey_message *message);
+
+struct sss_passkey_message *
+sss_passkey_prefix_json_data(enum sss_passkey_phase phase,
+                             const char *state,
+                             const char *json_str);
 
 char *
 sss_passkey_message_encode(const struct sss_passkey_message *data);

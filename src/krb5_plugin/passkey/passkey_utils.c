@@ -527,6 +527,42 @@ sss_passkey_message_to_json(const struct sss_passkey_message *message)
     return str;
 }
 
+struct sss_passkey_message *
+sss_passkey_prefix_json_data(enum sss_passkey_phase phase,
+                             const char *state,
+                             const char *json_str)
+{
+    json_error_t jret;
+    json_t *jroot;
+    struct sss_passkey_message *message;
+    void *data;
+
+    if (json_str == NULL) {
+        return NULL;
+    }
+
+    jroot = json_loads(json_str, 0, &jret);
+    if (jroot == NULL) {
+        return NULL;
+    }
+
+    data = sss_passkey_reply_from_json_object(jroot);
+    if (data == NULL) {
+        json_decref(jroot);
+        return NULL;
+    }
+
+    message = sss_passkey_message_init(phase, state, data);
+    if (message == NULL && phase == SSS_PASSKEY_PHASE_CHALLENGE) {
+        sss_passkey_challenge_free(data);
+    } else if (message == NULL && phase == SSS_PASSKEY_PHASE_REPLY) {
+        sss_passkey_reply_free(data);
+    }
+
+    json_decref(jroot);
+    return message;
+}
+
 char *
 sss_passkey_message_encode(const struct sss_passkey_message *data)
 {
