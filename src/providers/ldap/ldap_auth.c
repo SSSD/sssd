@@ -100,7 +100,10 @@ static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
            "daylight [%d] now [%ld] expire_time [%ld].\n", tzname[0],
            tzname[1], timezone, daylight, now, expire_time);
 
-    if (difftime(now, expire_time) > 0.0) {
+    if (expire_time == 0) {
+        /* Used by the MIT LDAP KDB plugin to indicate "never" */
+        ret = EOK;
+    } else if (difftime(now, expire_time) > 0.0) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Kerberos password expired.\n");
         if (pd != NULL) {
             ret = add_expired_warning(pd, 0);
