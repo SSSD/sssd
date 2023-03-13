@@ -49,6 +49,7 @@ def session_multihost(request):
     mhost.replica = mhost.domain.hosts_by_role('replica')
     mhost.client = mhost.domain.hosts_by_role('client')
     mhost.others = mhost.domain.hosts_by_role('other')
+    mhost.ad = []
 
     if pytest.num_ad > 0:
         mhost.ad = []
