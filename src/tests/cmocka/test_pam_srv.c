@@ -599,32 +599,6 @@ static int test_pam_passkey_auth_check(uint32_t status, uint8_t *body, size_t bl
     return EOK;
 }
 
-static int test_pam_passkey_check(uint32_t status, uint8_t *body, size_t blen)
-{
-    size_t rp = 0;
-    uint32_t val;
-
-    assert_int_equal(status, 0);
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, pam_test_ctx->exp_pam_status);
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, 1);
-
-    /* passkey verification */
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, SSS_PAM_PASSKEY_INFO);
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, 5);
-
-    assert_int_equal(*(body + rp + val - 1), 0);
-    assert_string_equal(body + rp, "true");
-
-    return EOK;
-}
-
 static void set_passkey_auth_param(struct pam_ctx *pctx)
 {
     pam_test_ctx->pctx->passkey_auth = true;
@@ -792,6 +766,56 @@ static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
     if (name != NULL) {
         mock_parse_inp(name, NULL, EOK);
     }
+}
+
+static int test_pam_passkey_preauth_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    size_t rp = 0;
+    uint32_t val;
+
+    assert_int_equal(status, 0);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, pam_test_ctx->exp_pam_status);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 2);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 9);
+
+    assert_int_equal(*(body + rp + val - 1), 0);
+    assert_string_equal(body + rp, TEST_DOM_NAME);
+
+    return EOK;
+}
+
+static int test_pam_passkey_found_preauth_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    size_t rp = 0;
+    uint32_t val;
+
+    assert_int_equal(status, 0);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, pam_test_ctx->exp_pam_status);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 3);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 9);
+
+    assert_int_equal(*(body + rp + val - 1), 0);
+    assert_string_equal(body + rp, TEST_DOM_NAME);
+
+    return EOK;
 }
 
 
@@ -4229,12 +4253,14 @@ void test_pam_passkey_preauth_no_passkey(void **state)
     /* sss_parse_inp_recv() is called twice
      * multiple cache req calls */
     mock_parse_inp("pamuser", NULL, EOK);
+    mock_parse_inp("pamuser", NULL, EOK);
 
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     pam_test_ctx->exp_pam_status = PAM_SUCCESS;
-    set_cmd_cb(test_pam_simple_check);
+    set_cmd_cb(test_pam_passkey_preauth_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
                           pam_test_ctx->pam_cmds);
     assert_int_equal(ret, EOK);
@@ -4263,7 +4289,9 @@ void test_pam_passkey_preauth_found(void **state)
 
     mock_input_pam_passkey(pam_test_ctx, "pamuser", "1234", NULL,
                                          NULL, SSSD_TEST_PASSKEY);
+    mock_parse_inp("pamuser", NULL, EOK);
 
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
@@ -4284,7 +4312,7 @@ void test_pam_passkey_preauth_found(void **state)
     assert_int_equal(ret, EOK);
 
     pam_test_ctx->exp_pam_status = PAM_SUCCESS;
-    set_cmd_cb(test_pam_passkey_check);
+    set_cmd_cb(test_pam_passkey_found_preauth_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
                           pam_test_ctx->pam_cmds);
     assert_int_equal(ret, EOK);
@@ -4372,7 +4400,7 @@ void test_pam_passkey_auth_send(void **state)
 
     req = pam_passkey_auth_send(tmp_ctx, pam_test_ctx->tctx->ev,
                                 10, false, uv, pam_test_ctx->pd,
-                                pk_data);
+                                pk_data, false);
     assert_non_null(req);
     tevent_req_set_callback(req, passkey_test_done, pam_test_ctx);
 
