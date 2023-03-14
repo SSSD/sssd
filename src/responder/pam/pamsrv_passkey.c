@@ -206,8 +206,7 @@ errno_t pam_passkey_get_mapping_recv(TALLOC_CTX *mem_ctx,
 
 errno_t read_passkey_conf_verification(TALLOC_CTX *mem_ctx,
                                        const char *verify_opts,
-                                       enum passkey_user_verification *_user_verification,
-                                       bool *_debug_libfido2)
+                                       enum passkey_user_verification *_user_verification)
 {
     int ret;
     TALLOC_CTX *tmp_ctx;
@@ -242,9 +241,6 @@ errno_t read_passkey_conf_verification(TALLOC_CTX *mem_ctx,
                 DEBUG(SSSDBG_TRACE_FUNC, "user_verification set to false.\n");
                 *_user_verification = PAM_PASSKEY_VERIFICATION_OFF;
             }
-        } else if (strcasecmp(opts[c], "debug_libfido2") == 0) {
-           DEBUG(SSSDBG_TRACE_FUNC, "Enabling debug_libfido2.\n");
-           *_debug_libfido2 = true;
         } else {
            DEBUG(SSSDBG_MINOR_FAILURE,
                  "Unsupported passkey verification option [%s], " \
@@ -292,6 +288,16 @@ static errno_t passkey_non_kerberos_verification(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = confdb_get_bool(pctx->pam_ctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                          CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2, false,
+                          &debug_libfido2);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read '"CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2"' from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
     /* If require user verification setting is set in LDAP, use it */
     if (verification_from_ldap != NULL) {
         if (strcasecmp(verification_from_ldap, "true") == 0) {
@@ -312,7 +318,8 @@ static errno_t passkey_non_kerberos_verification(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = read_passkey_conf_verification(tmp_ctx, verify_opts, &verification, &debug_libfido2);
+
+        ret = read_passkey_conf_verification(tmp_ctx, verify_opts, &verification);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Unable to parse passkey verificaton options.\n");
             /* Continue anyway */

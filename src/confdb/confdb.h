@@ -158,7 +158,7 @@
 #define CONFDB_PAM_GSSAPI_INDICATORS_MAP "pam_gssapi_indicators_map"
 #define CONFDB_PAM_PASSKEY_AUTH "pam_passkey_auth"
 #define CONFDB_PAM_PASSKEY_CHILD_TIMEOUT "passkey_child_timeout"
-#define CONFDB_PAM_DEBUG_LIBFIDO2 "debug_libfido2"
+#define CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2 "passkey_debug_libfido2"
 
 /* SUDO */
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"
