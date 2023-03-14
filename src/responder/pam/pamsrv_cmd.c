@@ -2639,7 +2639,7 @@ errno_t passkey_kerberos(struct pam_ctx *pctx,
     }
 
     /* Always use verification sent from passkey krb5 plugin */
-    ret = read_passkey_conf_verification(preq, verify_opts, NULL, &debug_libfido2);
+    ret = read_passkey_conf_verification(preq, verify_opts, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Unable to parse passkey verificaton options.\n");
     }
@@ -2650,6 +2650,15 @@ errno_t passkey_kerberos(struct pam_ctx *pctx,
         verification = PAM_PASSKEY_VERIFICATION_ON;
     }
 
+    ret = confdb_get_bool(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                          CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2, false,
+                          &debug_libfido2);
+	if (ret != EOK) {
+		DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read '"CONFDB_PAM_PASSKEY_DEBUG_LIBFIDO2"' from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+		goto done;
+	}
 
     req = pam_passkey_auth_send(preq->cctx, preq->cctx->ev, timeout, debug_libfido2,
                                 verification, pd, data, true);

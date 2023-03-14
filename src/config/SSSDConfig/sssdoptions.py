@@ -116,7 +116,7 @@ class SSSDOptions(object):
                                        'must be enforced for PAM access with GSSAPI authentication'),
         'pam_passkey_auth': _('Allow passkey device authentication.'),
         'passkey_child_timeout': _('How many seconds will pam_sss wait for passkey_child to finish'),
-        'debug_libfido2': _('Enable debugging in the libfido2 library'),
+        'passkey_debug_libfido2': _('Enable debugging in the libfido2 library'),
 
         # [sudo]
         'sudo_timed': _('Whether to evaluate the time-based attributes in sudo rules'),

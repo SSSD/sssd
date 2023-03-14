@@ -56,8 +56,7 @@ struct pk_child_user_data {
 
 errno_t read_passkey_conf_verification(TALLOC_CTX *mem_ctx,
                                        const char *verify_opts,
-                                       enum passkey_user_verification *_user_verification,
-                                       bool *_debug_libfido2);
+                                       enum passkey_user_verification *_user_verification);
 
 void pam_forwarder_passkey_cb(struct tevent_req *req);
 struct tevent_req *pam_passkey_auth_send(TALLOC_CTX *mem_ctx,

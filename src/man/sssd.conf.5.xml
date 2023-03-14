@@ -748,14 +748,6 @@
                                         </para>
                                     </listitem>
                                 </varlistentry>
-                                <varlistentry>
-                                    <term>debug_libfido2</term>
-                                    <listitem>
-                                        <para> Enable libfido2 debug
-                                        messages, this option is disabled
-                                        by default.</para>
-                                    </listitem>
-                                </varlistentry>
                                 </variablelist>
                             </para>
                         </listitem>
@@ -1683,6 +1675,17 @@ pam_account_locked_message = Account locked, please contact help desk.
                     <listitem>
                         <para>
                             Enable passkey device based authentication.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry condition="build_passkey">
+                    <term>passkey_debug_libfido2 (bool)</term>
+                    <listitem>
+                        <para>
+                            Enable libfido2 library debug messages.
                         </para>
                         <para>
                             Default: False
