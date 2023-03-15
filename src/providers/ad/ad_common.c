@@ -1311,6 +1311,7 @@ ad_set_search_bases(struct sdap_options *id_opts,
     size_t o;
     struct sdap_domain *sdap_dom;
     bool has_default;
+    struct ldb_context *ldb;
     const int search_base_options[] = { SDAP_USER_SEARCH_BASE,
                                         SDAP_GROUP_SEARCH_BASE,
                                         SDAP_NETGROUP_SEARCH_BASE,
@@ -1328,6 +1329,7 @@ ad_set_search_bases(struct sdap_options *id_opts,
         /* If no specific sdom was given, use the first in the list. */
         sdap_dom = id_opts->sdom;
     }
+    ldb = sysdb_ctx_get_ldb(sdap_dom->dom->sysdb);
 
     has_default = sdap_dom->search_bases != NULL;
 
@@ -1361,31 +1363,31 @@ ad_set_search_bases(struct sdap_options *id_opts,
     }
 
     /* Default search */
-    ret = sdap_parse_search_base(id_opts, id_opts->basic,
+    ret = sdap_parse_search_base(id_opts, ldb, id_opts->basic,
                                  SDAP_SEARCH_BASE,
                                  &sdap_dom->search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* User search */
-    ret = sdap_parse_search_base(id_opts, id_opts->basic,
+    ret = sdap_parse_search_base(id_opts, ldb, id_opts->basic,
                                  SDAP_USER_SEARCH_BASE,
                                  &sdap_dom->user_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Group search base */
-    ret = sdap_parse_search_base(id_opts, id_opts->basic,
+    ret = sdap_parse_search_base(id_opts, ldb, id_opts->basic,
                                  SDAP_GROUP_SEARCH_BASE,
                                  &sdap_dom->group_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Netgroup search */
-    ret = sdap_parse_search_base(id_opts, id_opts->basic,
+    ret = sdap_parse_search_base(id_opts, ldb, id_opts->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
                                  &sdap_dom->netgroup_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Service search */
-    ret = sdap_parse_search_base(id_opts, id_opts->basic,
+    ret = sdap_parse_search_base(id_opts, ldb, id_opts->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
                                  &sdap_dom->service_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;

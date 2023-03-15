@@ -420,6 +420,7 @@ struct sdap_attr_map {
 
 struct sdap_search_base {
     const char *basedn;
+    struct ldb_context *ldb;
     struct ldb_dn *ldb_basedn;
     int scope;
     const char *filter;
@@ -427,6 +428,7 @@ struct sdap_search_base {
 
 errno_t
 sdap_create_search_base(TALLOC_CTX *mem_ctx,
+                        struct ldb_context *ldb,
                         const char *unparsed_base,
                         int scope,
                         const char *filter,
