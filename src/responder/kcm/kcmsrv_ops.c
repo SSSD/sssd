@@ -668,8 +668,8 @@ static void kcm_op_initialize_got_default(struct tevent_req *subreq)
         return;
     }
 
-    if (uuid_is_null(old_dfl_uuid) == false) {
-        /* If there was a previous default ccache, switch to the initialized
+    if (uuid_is_null(old_dfl_uuid)) {
+        /* If there was no previous default ccache, switch to the initialized
          * one by default
          */
         /* `dfl_uuid` is output arg and isn't read in kcm_cc_get_uuid() but
