@@ -235,7 +235,7 @@ errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         goto fail;
     }
-    DEBUG(SSSDBG_TRACE_INTERNAL, "rules_num: [%"PRIu32"]\n", error);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "rules_num: [%"PRIu32"]\n", rules_num);
 
     /* rules */
     for (i = 0; i < rules_num; i++) {
