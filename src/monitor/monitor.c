@@ -926,15 +926,10 @@ static int get_monitor_config(struct mt_ctx *ctx)
  */
 static bool svc_supported_as_nonroot(const char *svc_name)
 {
-    if ((strcmp(svc_name, "nss") == 0)
-        || (strcmp(svc_name, "pam") == 0)
-        || (strcmp(svc_name, "autofs") == 0)
-        || (strcmp(svc_name, "pac") == 0)
-        || (strcmp(svc_name, "sudo") == 0)
-        || (strcmp(svc_name, "ssh") == 0)) {
-        return true;
+    if (strcmp(svc_name, "ifp") == 0) {
+        return false;
     }
-    return false;
+    return true;
 }
 
 static int get_service_config(struct mt_ctx *ctx, const char *name,
