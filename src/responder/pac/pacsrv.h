@@ -26,7 +26,6 @@
 
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
-#include "responder/common/responder_sbus.h"
 #include "lib/idmap/sss_idmap.h"
 
 struct pac_ctx {
