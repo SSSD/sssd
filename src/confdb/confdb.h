@@ -74,7 +74,9 @@
 #define CONFDB_MONITOR_KRB5_RCACHEDIR "krb5_rcache_dir"
 #define CONFDB_MONITOR_DEFAULT_DOMAIN "default_domain_suffix"
 #define CONFDB_MONITOR_OVERRIDE_SPACE "override_space"
+#ifdef SSSD_NON_ROOT_USER
 #define CONFDB_MONITOR_USER_RUNAS "user"
+#endif
 #define CONFDB_MONITOR_CERT_VERIFICATION "certificate_verification"
 #define CONFDB_MONITOR_DISABLE_NETLINK "disable_netlink"
 #define CONFDB_MONITOR_ENABLE_FILES_DOM "enable_files_domain"

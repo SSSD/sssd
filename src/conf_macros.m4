@@ -804,7 +804,7 @@ AC_DEFUN([WITH_NFS_LIB_PATH],
 AC_DEFUN([WITH_SSSD_USER],
   [ AC_ARG_WITH([sssd-user],
                 [AS_HELP_STRING([--with-sssd-user=<user>],
-                                [User for running SSSD (root)]
+                                [Additional user, besides root, supported for running SSSD (not set)]
                                )
                 ]
                )
@@ -816,9 +816,12 @@ AC_DEFUN([WITH_SSSD_USER],
     fi
 
     AC_SUBST(SSSD_USER)
-    AC_DEFINE_UNQUOTED(SSSD_USER, "$SSSD_USER", ["The default user to run SSSD as"])
+    AC_DEFINE_UNQUOTED(SSSD_USER, "$SSSD_USER", ["Supported non-root user to run SSSD as"])
     AM_CONDITIONAL([SSSD_USER], [test x"$with_sssd_user" != x])
     AM_CONDITIONAL([SSSD_NON_ROOT_USER], [test x"$SSSD_USER" != xroot])
+    if test x"$SSSD_USER" != xroot; then
+        AC_DEFINE(SSSD_NON_ROOT_USER, 1, [whether support of non root user configured])
+    fi
   ])
 
   AC_DEFUN([WITH_AD_GPO_DEFAULT],
