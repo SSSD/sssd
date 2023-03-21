@@ -192,6 +192,7 @@ class BaseLDAPDomainHost(BaseDomainHost):
 
             if self.tls:
                 newconn.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+                newconn.set_option(ldap.OPT_X_TLS_NEWCTX, 0)
                 newconn.start_tls_s()
 
             newconn.simple_bind_s(self.binddn, self.bindpw)
