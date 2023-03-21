@@ -402,7 +402,7 @@
                             </para>
                         </listitem>
                     </varlistentry>
-                    <varlistentry>
+                    <varlistentry condition="with_non_root_user_support">
                         <term>user (string)</term>
                         <listitem>
                             <para>
