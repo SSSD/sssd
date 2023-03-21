@@ -7,11 +7,15 @@ import os
 import posixpath
 import pexpect
 import pytest
-from sssd.testlib.common.qe_class import session_multihost
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.ipa.utils import ipaTools
 from sssd.testlib.common.utils import ADOperations
 from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
+
+
+pytest_plugins = (
+    'sssd.testlib.common.fixtures',
+)
 
 
 def pytest_configure():
@@ -414,8 +418,7 @@ def setup_ipa_client(session_multihost, request):
     ipa_server = ipaTools(session_multihost.master[0])
     ipa_client.install_common_pkgs()
     ipa_server.install_common_pkgs()
-    ipa_client_uuid = ipa_client.get_default_nw_uuid()
-    ipa_client_ip = ipa_client.get_interface_ip(ipa_client_uuid)
+    ipa_client_ip = session_multihost.client[0].ip
     ipa_server_uuid = ipa_server.get_default_nw_uuid()
     ipa_server_ip = ipa_server.get_interface_ip(ipa_server_uuid)
     sssd_client.update_resolv_conf(ipa_server_ip)
