@@ -256,7 +256,6 @@ if HAVE_CMOCKA
         dp_opt_tests \
         responder-get-domains-tests \
         config_check-tests \
-        sss_sifp-tests \
         test_search_bases \
         test_ldap_auth \
         test_sdap_access \
@@ -304,6 +303,9 @@ endif   # HAVE_LIBRESOLV
 
 if BUILD_IFP
 non_interactive_cmocka_based_tests += ifp_tests
+if BUILD_LIBSIFP
+non_interactive_cmocka_based_tests += sss_sifp-tests
+endif   # BUILD_LIBSIFP
 endif   # BUILD_IFP
 
 if HAVE_INOTIFY
@@ -902,7 +904,6 @@ dist_noinst_HEADERS = \
     src/sss_client/sudo/sss_sudo.h \
     src/sss_client/nfs/nfsidmap_internal.h \
     src/lib/idmap/sss_idmap_private.h \
-    src/lib/sifp/sss_sifp_private.h \
     src/lib/winbind_idmap_sss/winbind_idmap_sss.h \
     src/tests/cmocka/test_utils.h \
     src/tools/common/sss_tools.h \
@@ -926,8 +927,10 @@ SSSD_DOCS = \
     nss_idmap_doc
 
 if BUILD_IFP
+if BUILD_LIBSIFP
     SSSD_DOCS += sss_simpleifp_doc
-endif
+endif  # BUILD_LIBSIFP
+endif  # BUILD_IFP
 
 CLIENT_LIBS = $(LTLIBINTL)
 
@@ -1419,6 +1422,7 @@ include_HEADERS = \
     $(NULL)
 
 if BUILD_IFP
+if BUILD_LIBSIFP
 lib_LTLIBRARIES += libsss_simpleifp.la
 pkgconfig_DATA += src/lib/sifp/sss_simpleifp.pc
 
@@ -1439,12 +1443,14 @@ libsss_simpleifp_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/sifp/sss_simpleifp.exports \
     -version-info 1:1:1
 
+dist_noinst_HEADERS += src/lib/sifp/sss_sifp_private.h
 dist_noinst_DATA += src/lib/sifp/sss_simpleifp.exports
 
 include_HEADERS += \
     src/lib/sifp/sss_sifp.h \
     src/lib/sifp/sss_sifp_dbus.h
-endif
+endif  # BUILD_LIBSIFP
+endif  # BUILD_IFP
 
 #########################
 # Systemtap tracing     #
@@ -3159,6 +3165,7 @@ ifp_tests_LDADD = \
     libsss_sbus.la \
     $(NULL)
 
+if BUILD_LIBSIFP
 sss_sifp_tests_SOURCES = \
     src/tests/cmocka/test_sss_sifp.c \
     src/lib/sifp/sss_sifp_attrs.c \
@@ -3181,6 +3188,7 @@ sss_sifp_tests_LDADD = \
     $(DHASH_LIBS) \
     $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
+endif # BUILD_LIBSIFP
 endif # BUILD_IFP
 
 test_sysdb_views_SOURCES = \
@@ -5354,8 +5362,10 @@ docs:
 	$(DOXYGEN) src/sss_client/idmap/sss_nss_idmap.doxy
 	$(DOXYGEN) src/lib/certmap/sss_certmap.doxy
 if BUILD_IFP
+if BUILD_LIBSIFP
 	$(DOXYGEN) src/lib/sifp/sss_simpleifp.doxy
-endif
+endif  # BUILD_LIBSIFP
+endif  # BUILD_IFP
 else !HAVE_DOXYGEN
 docs:
 	@echo "Doxygen not installed, cannot generate documentation"
