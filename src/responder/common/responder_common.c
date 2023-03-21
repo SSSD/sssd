@@ -650,7 +650,7 @@ static void accept_fd_handler(struct tevent_context *ev,
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "[CID#%u] Client [cmd %s][uid %u][%p][%d] connected%s!\n",
-          cctx->client_id_num, cctx->cmd_line, cli_creds_get_uid(cctx->creds),
+          cctx->client_id_num, cctx->cmd_line, client_euid(cctx->creds),
           cctx, cctx->cfd, accept_ctx->is_private ? " to privileged pipe" : "");
 
     return;
