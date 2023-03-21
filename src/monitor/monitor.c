@@ -825,6 +825,7 @@ static char *check_services(char **services)
 
 static int get_service_user(struct mt_ctx *ctx)
 {
+#ifdef SSSD_NON_ROOT_USER
     errno_t ret;
     char *user_str;
 
@@ -842,6 +843,10 @@ static int get_service_user(struct mt_ctx *ctx)
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to set allowed UIDs.\n");
         return ret;
     }
+#else
+    ctx->uid = 0;
+    ctx->gid = 0;
+#endif
 
     return EOK;
 }
