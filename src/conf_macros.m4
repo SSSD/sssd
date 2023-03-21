@@ -724,6 +724,24 @@ AC_DEFUN([WITH_IFP],
     AM_CONDITIONAL([BUILD_IFP], [test x"$with_infopipe" = xyes])
   ])
 
+AC_DEFUN([WITH_LIBSIFP],
+  [ AC_ARG_WITH([libsifp],
+                [AC_HELP_STRING([--with-libsifp],
+                                [Whether to build sss_simpleifp library [no].
+                                Please take a note that sss_simpleifp library is
+                                deprecated and might be removed in further releases.]
+                               )
+                ],
+                [with_libsifp=$withval],
+                with_libsifp=no
+               )
+
+    if test x"$with_libsifp" = xyes; then
+        AC_DEFINE(BUILD_LIBSIFP, 1, [whether to build sss_simpleifp library])
+    fi
+    AM_CONDITIONAL([BUILD_LIBSIFP], [test x"$with_libsifp" = xyes])
+  ])
+
 AC_DEFUN([WITH_SAMBA],
   [ AC_ARG_WITH([samba],
                 [AC_HELP_STRING([--with-samba],
