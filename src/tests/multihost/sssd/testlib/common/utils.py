@@ -30,6 +30,8 @@ from .exceptions import PkiLibException
 from .exceptions import LdapException
 from .exceptions import SSSDException
 from .paths import SSSD_DEFAULT_CONF
+from .expect import pexpect_ssh
+from .exceptions import SSHLoginException
 
 GETENT_PASSWD_ITEMS = (
     'name', 'password', 'uid', 'gid', 'gecos', 'home', 'shell')
@@ -731,6 +733,24 @@ class sssdTools(object):
                     if ":" not in lines[idx + 1]:
                         ldb_info[item_name] += lines[idx + 1].strip()
         return ldb_info
+
+    def auth_client_ssh_password(self, user, user_pass):
+        """This function will make sure that user can authenticate
+        :client_hostname: host name of client machine
+        :user: the username as string
+        :user_pass: password of user
+        :returns boolean
+        """
+        client = pexpect_ssh(self.multihost.ip, user, user_pass, debug=False)
+        try:
+            client.login(login_timeout=30, sync_multiplier=5,
+                         auto_prompt_reset=False)
+        except SSHLoginException:
+            pytest.fail("%s failed to login" % user)
+            return False
+        else:
+            client.logout()
+            return True
 
     def get_getent_passwd(self, user):
         """Parses the output of getent passwd for a user
