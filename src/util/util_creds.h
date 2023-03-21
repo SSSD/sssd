@@ -70,14 +70,15 @@ struct cli_creds {
     SELINUX_CTX selinux_ctx;
 };
 
-#define cli_creds_get_uid(x) x->ucred.uid
-#define cli_creds_get_gid(x) x->ucred.gid
+#define cli_creds_get_uid(x) (x->ucred.uid)
+#define cli_creds_get_gid(x) (x->ucred.gid)
 
 #else /* not HAVE_UCRED */
 struct cli_creds {
     SELINUX_CTX selinux_ctx;
 };
-#define cli_creds_get_uid(x) -1
+#define cli_creds_get_uid(x) (-1)
+#define cli_creds_get_gid(x) (-1)
 #endif /* done HAVE_UCRED */
 
 #endif /* __SSSD_UTIL_CREDS_H__ */
