@@ -731,7 +731,6 @@ dist_noinst_HEADERS = \
     src/monitor/monitor.h \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
-    src/responder/common/responder_sbus.h \
     src/responder/common/cache_req/cache_req.h \
     src/responder/common/cache_req/cache_req_domain.h \
     src/responder/common/cache_req/cache_req_plugin.h \

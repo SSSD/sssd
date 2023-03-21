@@ -44,7 +44,6 @@
 
 #define SSS_BUS_PATH        "/sssd"
 
-/* From responder_sbus.h, we will eventually get rid of it. */
 #define NSS_SBUS_SERVICE_NAME "nss"
 #define NSS_SBUS_SERVICE_VERSION 0x0001
 #define SSS_PAM_SBUS_SERVICE_NAME "pam"
