@@ -445,23 +445,6 @@ Provides rules for polkit integration with SSSD. This is required
 for smartcard support.
 %endif
 
-%package -n libsss_simpleifp
-Summary: The SSSD D-Bus responder helper library
-License: GPLv3+
-Requires: sssd-dbus = %{version}-%{release}
-
-%description -n libsss_simpleifp
-Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
-
-%package -n libsss_simpleifp-devel
-Summary: The SSSD D-Bus responder helper library
-License: GPLv3+
-Requires: dbus-devel
-Requires: libsss_simpleifp = %{version}-%{release}
-
-%description -n libsss_simpleifp-devel
-Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
-
 %package winbind-idmap
 Summary: SSSD's idmap_sss Backend for Winbind
 License: GPLv3+ and LGPLv3+
@@ -868,16 +851,6 @@ done
 # InfoPipe DBus plumbing
 %{_datadir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
 %{_datadir}/dbus-1/system-services/org.freedesktop.sssd.infopipe.service
-
-%files -n libsss_simpleifp
-%{_libdir}/libsss_simpleifp.so.*
-
-%files -n libsss_simpleifp-devel
-%doc sss_simpleifp_doc/html
-%{_includedir}/sss_sifp.h
-%{_includedir}/sss_sifp_dbus.h
-%{_libdir}/libsss_simpleifp.so
-%{_libdir}/pkgconfig/sss_simpleifp.pc
 
 %files client -f sssd_client.lang
 %license src/sss_client/COPYING src/sss_client/COPYING.LESSER
