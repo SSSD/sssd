@@ -30,13 +30,13 @@
 
 #define SSS_PASSKEY_CHILD SSSD_LIBEXEC_PATH"/passkey_child"
 
-errno_t sssctl_passkey_exec(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt)
+errno_t sssctl_passkey_register(struct sss_cmdline *cmdline,
+                                struct sss_tool_ctx *tool_ctx,
+                                void *pvt)
 {
     errno_t ret;
 
-    ret = sssctl_wrap_command(SSS_PASSKEY_CHILD, cmdline, tool_ctx, pvt);
+    ret = sssctl_wrap_command(SSS_PASSKEY_CHILD, "--register", cmdline, tool_ctx, pvt);
 
     return ret;
 }
