@@ -98,11 +98,16 @@ sssctl_prompt(const char *message,
 }
 
 errno_t sssctl_wrap_command(const char *command,
+                            const char *subcommand,
                             struct sss_cmdline *cmdline,
                             struct sss_tool_ctx *tool_ctx,
                             void *pvt)
 {
     errno_t ret;
+
+    if (subcommand != NULL) {
+        cmdline->argc++;
+    }
 
     const char **args = talloc_array_size(tool_ctx,
                                           sizeof(char *),
@@ -110,8 +115,16 @@ errno_t sssctl_wrap_command(const char *command,
     if (!args) {
         return ENOMEM;
     }
-    memcpy(&args[1], cmdline->argv, sizeof(char *) * cmdline->argc);
+
     args[0] = command;
+
+    if (subcommand != NULL) {
+        args[1] = subcommand;
+        memcpy(&args[2], cmdline->argv, sizeof(char *) * cmdline->argc);
+    } else {
+        memcpy(&args[1], cmdline->argv, sizeof(char *) * cmdline->argc);
+    }
+
     args[cmdline->argc + 1] = NULL;
 
     ret = sssctl_run_command(args);
@@ -332,7 +345,7 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND("cert-eval-rule", "Check mapping and matching rule with a certificate", 0, sssctl_cert_eval_rule),
 #ifdef BUILD_PASSKEY
         SSS_TOOL_DELIMITER("Passkey related tools:"),
-        SSS_TOOL_COMMAND_FLAGS("passkey-exec", "Perform passkey related operations", 0, sssctl_passkey_exec, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
+        SSS_TOOL_COMMAND_FLAGS("passkey-register", "Perform passkey registration", 0, sssctl_passkey_register, SSS_TOOL_FLAG_SKIP_CMD_INIT|SSS_TOOL_FLAG_SKIP_ROOT_CHECK),
 #endif
         SSS_TOOL_LAST
     };
