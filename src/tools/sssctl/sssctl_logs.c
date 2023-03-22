@@ -602,7 +602,7 @@ errno_t sssctl_analyze(struct sss_cmdline *cmdline,
 #endif
     errno_t ret;
 
-    ret = sssctl_wrap_command(SSS_ANALYZE, cmdline, tool_ctx, pvt);
+    ret = sssctl_wrap_command(SSS_ANALYZE, NULL, cmdline, tool_ctx, pvt);
 
     return ret;
 }
