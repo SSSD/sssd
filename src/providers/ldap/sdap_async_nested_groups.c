@@ -71,6 +71,7 @@ struct sdap_nested_group_ctx {
     struct sdap_options *opts;
     struct sdap_search_base **user_search_bases;
     struct sdap_search_base **group_search_bases;
+    struct sdap_search_base **ignore_user_search_bases;
     struct sdap_handle *sh;
     hash_table_t *users;
     hash_table_t *groups;
@@ -833,6 +834,7 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
     state->group_ctx->opts = opts;
     state->group_ctx->user_search_bases = sdom->user_search_bases;
     state->group_ctx->group_search_bases = sdom->group_search_bases;
+    state->group_ctx->ignore_user_search_bases = sdom->ignore_user_search_bases;
     state->group_ctx->sh = sh;
     state->group_ctx->try_deref = sdap_has_deref_support(sh, opts);
 
@@ -1412,20 +1414,75 @@ immediately:
     return req;
 }
 
+static errno_t must_ignore(struct sdap_search_base **ignore_user_search_bases,
+                           struct ldb_context *ldb_ctx,
+                           const char *dn_str,
+                           bool *_ignore)
+{
+    bool ignore;
+    struct ldb_dn *ldn;
+    struct sdap_search_base **base;
+
+    if (ldb_ctx == NULL || dn_str == NULL) {
+        return EINVAL;
+    }
+
+    if (ignore_user_search_bases == NULL) {
+        *_ignore = false;
+        return EOK;
+    }
+
+    ldn = ldb_dn_new(NULL, ldb_ctx, dn_str);
+    if (ldn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to allocate memory for the DN\n");
+        return ENOMEM;
+    }
+
+    ignore = false;
+    for (base = ignore_user_search_bases; *base != NULL; base++) {
+        if ((*base)->ldb_basedn != NULL) {
+            if (ldb_dn_compare_base((*base)->ldb_basedn, ldn) == 0) {
+                ignore = true;
+                DEBUG(SSSDBG_TRACE_INTERNAL, "Ignoring entry [%s]\n", dn_str);
+                break;
+            }
+        } else {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Not checking ignore user search base %s \n",
+                  (*base)->basedn);
+        }
+    }
+    *_ignore = ignore;
+
+    talloc_free(ldn);
+    return EOK;
+}
+
 static errno_t sdap_nested_group_single_step(struct tevent_req *req)
 {
     struct sdap_nested_group_single_state *state = NULL;
     struct tevent_req *subreq = NULL;
+    errno_t ret;
+    bool ignore;
 
     state = tevent_req_data(req, struct sdap_nested_group_single_state);
 
-    if (state->member_index >= state->num_members) {
-        /* we're done */
-        return EOK;
-    }
+    do {
+        if (state->member_index >= state->num_members) {
+            /* we're done */
+            return EOK;
+        }
 
-    state->current_member = &state->members[state->member_index];
-    state->member_index++;
+        state->current_member = &state->members[state->member_index];
+        state->member_index++;
+
+        ret = must_ignore(state->group_ctx->ignore_user_search_bases,
+                          sysdb_ctx_get_ldb(state->group_ctx->domain->sysdb),
+                          state->current_member->dn, &ignore);
+        if (ret != EOK) {
+            return ret;
+        }
+    } while (ignore);
 
     switch (state->current_member->type) {
     case SDAP_NESTED_GROUP_DN_USER:

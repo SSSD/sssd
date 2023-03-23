@@ -611,6 +611,11 @@ static errno_t ipa_init_misc(struct be_ctx *be_ctx,
         return ret;
     }
 
+    /* We must ignore entries in the views search base
+     * (default: cn=views,cn=accounts,$BASEDN) */
+    sdap_id_ctx->opts->sdom->ignore_user_search_bases = \
+                                   ipa_id_ctx->ipa_options->views_search_bases;
+
     return EOK;
 }
 
