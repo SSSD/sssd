@@ -460,7 +460,9 @@ static void test_user_is_from_another_domain(void **state)
     assert_non_null(other_sdom->search_bases);
     other_sdom->search_bases[1] = NULL;
 
-    ret = sdap_create_search_base(other_sdom, object_bases[2],
+    ret = sdap_create_search_base(other_sdom,
+                                  sysdb_ctx_get_ldb(dom_info->sysdb),
+                                  object_bases[2],
                                   LDAP_SCOPE_SUBTREE, NULL,
                                   &other_sdom->search_bases[0]);
     assert_int_equal(ret, EOK);

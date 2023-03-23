@@ -262,7 +262,9 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sdap_parse_search_base(sudo_ctx, sudo_ctx->sdap_opts->basic,
+    ret = sdap_parse_search_base(sudo_ctx,
+                                 sysdb_ctx_get_ldb(be_ctx->domain->sysdb),
+                                 sudo_ctx->sdap_opts->basic,
                                  SDAP_SUDO_SEARCH_BASE,
                                  &sudo_ctx->sudo_sb);
     if (ret != EOK) {
