@@ -183,8 +183,9 @@ errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
 
     sudo_ctx->id_ctx = id_ctx;
 
-    ret = ldap_get_sudo_options(be_ctx->cdb, be_ctx->conf_path, id_ctx->opts,
-                                native_map,
+    ret = ldap_get_sudo_options(be_ctx->cdb,
+                                sysdb_ctx_get_ldb(be_ctx->domain->sysdb),
+                                be_ctx->conf_path, id_ctx->opts, native_map,
                                 &sudo_ctx->use_host_filter,
                                 &sudo_ctx->include_regexp,
                                 &sudo_ctx->include_netgroups);

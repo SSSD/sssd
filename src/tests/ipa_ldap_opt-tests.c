@@ -50,6 +50,7 @@ struct test_domain test_domains[] = {
 
 /* Mock parsing search base without overlinking the test */
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
+                               struct ldb_context *ldb,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases)
 {
