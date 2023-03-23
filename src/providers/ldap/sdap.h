@@ -463,6 +463,7 @@ struct sdap_domain {
     struct sdap_search_base **iphost_search_bases;
     struct sdap_search_base **ipnetwork_search_bases;
     struct sdap_search_base **autofs_search_bases;
+    struct sdap_search_base **ignore_user_search_bases;
 #ifdef BUILD_SUBID
     struct sdap_search_base **subid_ranges_search_bases;
 #endif
