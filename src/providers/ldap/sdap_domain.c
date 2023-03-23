@@ -200,7 +200,8 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
         }
         sdom->search_bases[1] = NULL;
 
-        ret = sdap_create_search_base(sdom, sdom->basedn, LDAP_SCOPE_SUBTREE,
+        ret = sdap_create_search_base(sdom, sysdb_ctx_get_ldb(dom->sysdb),
+                                      sdom->basedn, LDAP_SCOPE_SUBTREE,
                                       NULL, &sdom->search_bases[0]);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, "Cannot create new sdap search base\n");

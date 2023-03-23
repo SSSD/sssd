@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/ldap_opts.h"
 #include "providers/ldap/sdap_async_private.h"
@@ -39,6 +40,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     struct sdap_attr_map *default_iphost_map;
     struct sdap_attr_map *default_ipnetwork_map;
     struct sdap_options *opts;
+    struct ldb_context *ldb;
     char *schema;
     char *pwmodify;
     const char *search_base;
@@ -101,50 +103,52 @@ int ldap_get_options(TALLOC_CTX *memctx,
                   "connecting to the LDAP server.\n");
     }
 
+    ldb = sysdb_ctx_get_ldb(dom->sysdb);
+
     /* Default search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_SEARCH_BASE,
                                  &opts->sdom->search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* User search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_USER_SEARCH_BASE,
                                  &opts->sdom->user_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Group search base */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_GROUP_SEARCH_BASE,
                                  &opts->sdom->group_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Netgroup search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
                                  &opts->sdom->netgroup_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Netgroup search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_HOST_SEARCH_BASE,
                                  &opts->sdom->host_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Service search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
                                  &opts->sdom->service_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* IP host search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_IPHOST_SEARCH_BASE,
                                  &opts->sdom->iphost_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* IP network search */
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_IPNETWORK_SEARCH_BASE,
                                  &opts->sdom->ipnetwork_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
@@ -432,6 +436,7 @@ done:
 }
 
 int ldap_get_sudo_options(struct confdb_ctx *cdb,
+                          struct ldb_context *ldb,
                           const char *conf_path,
                           struct sdap_options *opts,
                           struct sdap_attr_map *native_map,
@@ -464,8 +469,8 @@ int ldap_get_sudo_options(struct confdb_ctx *cdb,
               "connecting to the LDAP server.\n");
     }
 
-    ret = sdap_parse_search_base(opts, opts->basic,
-                                 SDAP_SUDO_SEARCH_BASE,
+    ret = sdap_parse_search_base(opts, ldb,
+                                 opts->basic, SDAP_SUDO_SEARCH_BASE,
                                  &opts->sdom->sudo_search_bases);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not parse SUDO search base\n");
@@ -564,6 +569,7 @@ done:
 }
 
 int ldap_get_autofs_options(TALLOC_CTX *memctx,
+                            struct ldb_context *ldb,
                             struct confdb_ctx *cdb,
                             const char *conf_path,
                             struct sdap_options *opts)
@@ -609,7 +615,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
                   "sure the configuration matches the server attributes.\n"));
     }
 
-    ret = sdap_parse_search_base(opts, opts->basic,
+    ret = sdap_parse_search_base(opts, ldb, opts->basic,
                                  SDAP_AUTOFS_SEARCH_BASE,
                                  &opts->sdom->autofs_search_bases);
     if (ret != EOK && ret != ENOENT) {
@@ -659,6 +665,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
 }
 
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
+                               struct ldb_context *ldb,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases)
 {
@@ -710,13 +717,14 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
     unparsed_base = dp_opt_get_string(opts, class);
     if (!unparsed_base || unparsed_base[0] == '\0') return ENOENT;
 
-    return common_parse_search_base(mem_ctx, unparsed_base,
+    return common_parse_search_base(mem_ctx, unparsed_base, ldb,
                                     class_name, old_filter,
                                     _search_bases);
 }
 
 errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                                  const char *unparsed_base,
+                                 struct ldb_context *ldb,
                                  const char *class_name,
                                  const char *old_filter,
                                  struct sdap_search_base ***_search_bases)
@@ -724,7 +732,6 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
     errno_t ret;
     struct sdap_search_base **search_bases;
     TALLOC_CTX *tmp_ctx;
-    struct ldb_context *ldb;
     struct ldb_dn *ldn;
     struct ldb_parse_tree *tree;
     char **split_bases;
@@ -734,13 +741,6 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* Create a throwaway LDB context for validating the DN */
-    ldb = ldb_init(tmp_ctx, NULL);
-    if (!ldb) {
         ret = ENOMEM;
         goto done;
     }
@@ -780,7 +780,7 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                     class_name);
         }
 
-        ret = sdap_create_search_base(search_bases, unparsed_base,
+        ret = sdap_create_search_base(search_bases, ldb, unparsed_base,
                                       LDAP_SCOPE_SUBTREE, old_filter,
                                       &search_bases[0]);
         if (ret != EOK) {
@@ -834,9 +834,9 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                 ret = EINVAL;
                 goto done;
             }
-            talloc_zfree(ldn);
 
             /* Set the search base DN */
+            search_bases[i]->ldb_basedn = talloc_steal(search_bases[i], ldn);
             search_bases[i]->basedn = talloc_strdup(search_bases[i],
                                                     split_bases[c]);
             if (!search_bases[i]->basedn) {

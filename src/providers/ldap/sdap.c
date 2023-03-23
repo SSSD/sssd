@@ -1132,6 +1132,7 @@ static char *get_naming_context(TALLOC_CTX *mem_ctx,
 
 errno_t
 sdap_create_search_base(TALLOC_CTX *mem_ctx,
+                        struct ldb_context *ldb,
                         const char *unparsed_base,
                         int scope,
                         const char *filter,
@@ -1141,17 +1142,9 @@ sdap_create_search_base(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
     struct ldb_dn *ldn;
-    struct ldb_context *ldb;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* Create a throwaway LDB context for validating the DN */
-    ldb = ldb_init(tmp_ctx, NULL);
-    if (!ldb) {
         ret = ENOMEM;
         goto done;
     }
@@ -1169,7 +1162,7 @@ sdap_create_search_base(TALLOC_CTX *mem_ctx,
     }
 
     /* Validate the basedn */
-    ldn = ldb_dn_new(tmp_ctx, ldb, unparsed_base);
+    ldn = ldb_dn_new(base, ldb, unparsed_base);
     if (!ldn) {
         ret = ENOMEM;
         goto done;
@@ -1181,6 +1174,8 @@ sdap_create_search_base(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    base->ldb = ldb;
+    base->ldb_basedn = ldn;
     base->scope = scope;
     base->filter = filter;
 
@@ -1244,7 +1239,8 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
         goto done;
     }
 
-    ret = sdap_parse_search_base(opts, opts->basic, class, bases);
+    ret = sdap_parse_search_base(opts, sysdb_ctx_get_ldb(sdom->dom->sysdb),
+                                 opts->basic, class, bases);
     if (ret != EOK) goto done;
 
     ret = EOK;
