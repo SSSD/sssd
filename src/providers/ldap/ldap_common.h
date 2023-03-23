@@ -22,6 +22,8 @@
 #ifndef _LDAP_COMMON_H_
 #define _LDAP_COMMON_H_
 
+#include <ldb.h>
+
 #include "providers/backend.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_id_op.h"
@@ -241,6 +243,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
                      struct sdap_options **_opts);
 
 int ldap_get_sudo_options(struct confdb_ctx *cdb,
+                          struct ldb_context *ldb,
                           const char *conf_path,
                           struct sdap_options *opts,
                           struct sdap_attr_map *native_map,
@@ -249,6 +252,7 @@ int ldap_get_sudo_options(struct confdb_ctx *cdb,
                           bool *include_netgroups);
 
 int ldap_get_autofs_options(TALLOC_CTX *memctx,
+                            struct ldb_context *ldb,
                             struct confdb_ctx *cdb,
                             const char *conf_path,
                             struct sdap_options *opts);
@@ -413,10 +417,12 @@ struct sdap_domain *sdap_domain_get_by_dn(struct sdap_options *opts,
                                           const char *dn);
 
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
+                               struct ldb_context *ldb,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases);
 errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                                  const char *unparsed_base,
+                                 struct ldb_context *ldb,
                                  const char *class_name,
                                  const char *old_filter,
                                  struct sdap_search_base ***_search_bases);

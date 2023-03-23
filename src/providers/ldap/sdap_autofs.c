@@ -469,8 +469,8 @@ errno_t sdap_autofs_init(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing autofs LDAP back end\n");
 
-    ret = ldap_get_autofs_options(id_ctx, be_ctx->cdb, be_ctx->conf_path,
-                                  id_ctx->opts);
+    ret = ldap_get_autofs_options(id_ctx, sysdb_ctx_get_ldb(be_ctx->domain->sysdb),
+                                  be_ctx->cdb, be_ctx->conf_path, id_ctx->opts);
     if (ret != EOK) {
         return ret;
     }
