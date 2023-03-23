@@ -212,7 +212,7 @@ char *__wrap_ldap_next_attribute(LDAP *ld,
 }
 
 /* Mock parsing search base without overlinking the test */
-errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
+errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases)
 {
@@ -983,6 +983,7 @@ static struct sdap_domain *create_sdap_domain(struct sdap_options *opts,
 {
     errno_t ret;
     struct sdap_domain *sdom;
+    struct ldb_context *ldb;
 
     ret = sdap_domain_add(opts, dom, &sdom);
     assert_int_equal(ret, EOK);
@@ -991,7 +992,10 @@ static struct sdap_domain *create_sdap_domain(struct sdap_options *opts,
     assert_non_null(sdom->search_bases);
     sdom->search_bases[1] = NULL;
 
-    ret = sdap_create_search_base(sdom, sdom->basedn,
+    ldb = ldb_init(sdom, NULL);
+    assert_non_null(ldb);
+
+    ret = sdap_create_search_base(sdom, ldb, sdom->basedn,
                                   LDAP_SCOPE_SUBTREE,
                                   NULL,
                                   &sdom->search_bases[0]);

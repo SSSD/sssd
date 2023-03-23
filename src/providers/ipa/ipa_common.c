@@ -25,6 +25,7 @@
 #include <netdb.h>
 #include <ctype.h>
 #include <arpa/inet.h>
+#include <ldb.h>
 
 #include "db/sysdb_selinux.h"
 #include "providers/ipa/ipa_common.h"
@@ -36,6 +37,7 @@
 #include "db/sysdb_autofs.h"
 
 #include "providers/ipa/ipa_opts.h"
+#include "providers/data_provider/dp_private.h"
 
 int ipa_get_options(TALLOC_CTX *memctx,
                     struct confdb_ctx *cdb,
@@ -122,6 +124,7 @@ done:
 }
 
 static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
+                                     struct ldb_context *ldb,
                                      struct dp_option *opts, int class,
                                      struct sdap_search_base ***_search_bases)
 {
@@ -166,7 +169,7 @@ static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
     unparsed_base = dp_opt_get_string(opts, class);
     if (!unparsed_base || unparsed_base[0] == '\0') return ENOENT;
 
-    return common_parse_search_base(mem_ctx, unparsed_base,
+    return common_parse_search_base(mem_ctx, unparsed_base, ldb,
                                     class_name, NULL,
                                     _search_bases);
 }
@@ -184,6 +187,9 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     int ret;
     int i;
     bool server_mode;
+    struct ldb_context *ldb;
+
+    ldb = sysdb_ctx_get_ldb(dp->be_ctx->domain->sysdb);
 
     tmpctx = talloc_new(ipa_opts);
     if (!tmpctx) {
@@ -247,7 +253,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   ipa_opts->id->basic[SDAP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_SEARCH_BASE,
                                  &ipa_opts->id->sdom->search_bases);
     if (ret != EOK) goto done;
@@ -301,7 +307,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_USER_SEARCH_BASE));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_USER_SEARCH_BASE,
                                  &ipa_opts->id->sdom->user_search_bases);
     if (ret != EOK) goto done;
@@ -331,7 +337,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                 goto done;
             }
 
-            ret = sdap_create_search_base(bases, new_dn,
+            ret = sdap_create_search_base(bases, ldb, new_dn,
                                           LDAP_SCOPE_SUBTREE,
                                           "(objectClass=ipaIDObject)",
                                           &new_base);
@@ -373,7 +379,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_GROUP_SEARCH_BASE));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_GROUP_SEARCH_BASE,
                                  &ipa_opts->id->sdom->group_search_bases);
     if (ret != EOK) goto done;
@@ -396,7 +402,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_NETGROUP_SEARCH_BASE));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
                                  &ipa_opts->id->sdom->netgroup_search_bases);
     if (ret != EOK) goto done;
@@ -419,7 +425,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
               ipa_opts->id->basic[SDAP_HOST_SEARCH_BASE].opt_name,
               value);
     }
-    ret = sdap_parse_search_base(ipa_opts->id->basic, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id->basic, ldb, ipa_opts->id->basic,
                                  SDAP_HOST_SEARCH_BASE,
                                  &ipa_opts->id->sdom->host_search_bases);
     if (ret != EOK) goto done;
@@ -442,7 +448,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_HBAC_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts->basic, ldb, ipa_opts->basic,
                                 IPA_HBAC_SEARCH_BASE,
                                 &ipa_opts->hbac_search_bases);
     if (ret != EOK) goto done;
@@ -465,7 +471,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_SELINUX_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts->basic, ldb, ipa_opts->basic,
                                 IPA_SELINUX_SEARCH_BASE,
                                 &ipa_opts->selinux_search_bases);
     if (ret != EOK) goto done;
@@ -488,7 +494,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_DESKPROFILE_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts->basic, ldb, ipa_opts->basic,
                                 IPA_DESKPROFILE_SEARCH_BASE,
                                 &ipa_opts->deskprofile_search_bases);
     if (ret != EOK) goto done;
@@ -513,7 +519,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_SUBID_RANGES_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts->basic, ldb, ipa_opts->basic,
                                 IPA_SUBID_RANGES_SEARCH_BASE,
                                 &ipa_opts->id->sdom->subid_ranges_search_bases);
     if (ret != EOK) goto done;
@@ -557,7 +563,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_SERVICE_SEARCH_BASE));
     }
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
                                  &ipa_opts->id->sdom->service_search_bases);
     if (ret != EOK) goto done;
@@ -580,7 +586,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_SUBDOMAINS_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts, ldb, ipa_opts->basic,
                                 IPA_SUBDOMAINS_SEARCH_BASE,
                                 &ipa_opts->subdomains_search_bases);
     if (ret != EOK) goto done;
@@ -603,7 +609,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_MASTER_DOMAIN_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts, ldb, ipa_opts->basic,
                                 IPA_MASTER_DOMAIN_SEARCH_BASE,
                                 &ipa_opts->master_domain_search_bases);
     if (ret != EOK) goto done;
@@ -626,7 +632,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_RANGES_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts, ldb, ipa_opts->basic,
                                 IPA_RANGES_SEARCH_BASE,
                                 &ipa_opts->ranges_search_bases);
     if (ret != EOK) goto done;
@@ -649,7 +655,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->basic,
                                     IPA_VIEWS_SEARCH_BASE));
     }
-    ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
+    ret = ipa_parse_search_base(ipa_opts, ldb, ipa_opts->basic,
                                 IPA_VIEWS_SEARCH_BASE,
                                 &ipa_opts->views_search_bases);
     if (ret != EOK) goto done;
@@ -1141,6 +1147,7 @@ done:
 }
 
 int ipa_get_autofs_options(struct ipa_options *ipa_opts,
+                           struct ldb_context *ldb,
                            struct confdb_ctx *cdb,
                            const char *conf_path,
                            struct sdap_options **_opts)
@@ -1187,7 +1194,7 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
                                 SDAP_AUTOFS_SEARCH_BASE));
     }
 
-    ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
+    ret = sdap_parse_search_base(ipa_opts->id, ldb, ipa_opts->id->basic,
                                  SDAP_AUTOFS_SEARCH_BASE,
                                  &ipa_opts->id->sdom->autofs_search_bases);
     if (ret != EOK && ret != ENOENT) {

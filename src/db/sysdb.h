@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "sss_client/sss_cli.h"
+#include <ldb.h>
 #include <tevent.h>
 
 #define CACHE_SYSDB_FILE "cache_%s.ldb"

@@ -262,6 +262,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                          struct dp_option **_opts);
 
 int ipa_get_autofs_options(struct ipa_options *ipa_opts,
+                           struct ldb_context *ldb,
                            struct confdb_ctx *cdb,
                            const char *conf_path,
                            struct sdap_options **_opts);
