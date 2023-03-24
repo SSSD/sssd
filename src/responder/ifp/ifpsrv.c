@@ -194,7 +194,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     ifp_ctx->rctx->pvt_ctx = ifp_ctx;
 
     ret = sss_names_init_from_args(ifp_ctx,
-                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
+                                   SSS_DEFAULT_RE,
                                    "%1$s@%2$s", &ifp_ctx->snctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing regex data\n");
