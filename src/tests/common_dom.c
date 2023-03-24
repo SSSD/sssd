@@ -203,9 +203,7 @@ mock_domain(TALLOC_CTX *mem_ctx,
 
     /* init with an AD-style regex to be able to test flat name */
     ret = sss_names_init_from_args(domain,
-                                   "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
-                                   "((?P<name>[^@]+)@(?P<domain>.+$))|" \
-                                   "(^(?P<name>[^@\\\\]+)$))",
+                                   SSS_IPA_AD_DEFAULT_RE,
                                    "%1$s@%2$s", &domain->names);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "cannot create names context\n");

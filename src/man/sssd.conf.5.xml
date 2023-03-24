@@ -3543,8 +3543,22 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             domains, the flat (NetBIOS) name of the domain.
                         </para>
                         <para>
+                            Default: <quote>^((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]*)|(?P&lt;name&gt;[^@]+))$</quote>
+
+                            which allows two different styles for user names:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>username</para>
+                                </listitem>
+                                <listitem>
+                                    <para>username@domain.name</para>
+                                </listitem>
+                           </itemizedlist>
+                        </para>
+                        <para>
                             Default for the AD and IPA provider:
-                            <quote>(((?P&lt;domain&gt;[^\\]+)\\(?P&lt;name&gt;.+$))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))|(^(?P&lt;name&gt;[^@\\]+)$))</quote>
+                            <quote>^(((?P&lt;domain&gt;[^\\]+)\\(?P&lt;name&gt;.+))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+))|((?P&lt;name&gt;[^@\\]+)))$</quote>
+
                             which allows three different styles for user names:
                             <itemizedlist>
                                 <listitem>
@@ -3562,10 +3576,14 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             integration of users from Windows domains.
                         </para>
                         <para>
-                            Default: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</quote>
-                            which translates to "the name is everything up to
-                            the <quote>@</quote> sign, the domain everything
-                            after that"
+                            The default re_expression uses the <quote>@</quote>
+                            character as a separator between the name and the
+                            domain. As a result of this setting the default
+                            does not accept the <quote>@</quote> character in
+                            short names (as it is allowed in Windows group
+                            names). If a user wishes to use short names with
+                            <quote>@</quote> they must create their own
+                            re_expression.
                         </para>
                     </listitem>
                 </varlistentry>

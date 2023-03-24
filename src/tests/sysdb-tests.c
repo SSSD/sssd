@@ -1551,9 +1551,7 @@ START_TEST (test_sysdb_get_user_attr_subdomain)
     sss_ck_fail_if_msg(subdomain == NULL, "Failed to create new subdomain.");
 
     ret = sss_names_init_from_args(test_ctx,
-                                   "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
-                                   "((?P<name>[^@]+)@(?P<domain>.+$))|" \
-                                   "(^(?P<name>[^@\\\\]+)$))",
+                                   SSS_IPA_AD_DEFAULT_RE,
                                    "%1$s@%2$s", &subdomain->names);
     sss_ck_fail_if_msg(ret != EOK, "Failed to init names.");
 
