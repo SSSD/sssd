@@ -143,7 +143,12 @@ class IdEntry(object):
 
     @classmethod
     def FromOutput(cls, stdout: str) -> IdEntry:
-        return cls.FromDict(jc.parse("id", stdout))
+        jcresult = jc.parse("id", stdout)
+
+        if not isinstance(jcresult, dict):
+            raise TypeError(f"Unexpected type: {type(jcresult)}, expecting dict")
+
+        return cls.FromDict(jcresult)
 
 
 class PasswdEntry(object):
@@ -209,6 +214,9 @@ class PasswdEntry(object):
     def FromOutput(cls, stdout: str) -> PasswdEntry:
         result = jc.parse("passwd", stdout)
 
+        if not isinstance(result, list):
+            raise TypeError(f"Unexpected type: {type(result)}, expecting list")
+
         if len(result) != 1:
             raise ValueError("More then one entry was returned")
 
@@ -259,6 +267,9 @@ class GroupEntry(object):
     @classmethod
     def FromOutput(cls, stdout: str) -> GroupEntry:
         result = jc.parse("group", stdout)
+
+        if not isinstance(result, list):
+            raise TypeError(f"Unexpected type: {type(result)}, expecting list")
 
         if len(result) != 1:
             raise ValueError("More then one entry was returned")
