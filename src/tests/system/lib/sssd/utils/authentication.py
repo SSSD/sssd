@@ -470,7 +470,7 @@ class KerberosAuthenticationUtils(MultihostUtility[MultihostHost]):
         """SSH client for the target user."""
 
     def kinit(
-        self, principal: str, *, password: str, realm: str | None = None, args: list[str] = list()
+        self, principal: str, *, password: str, realm: str | None = None, args: list[str] | None = None
     ) -> SSHProcessResult:
         """
         Run ``kinit`` command.
@@ -487,17 +487,20 @@ class KerberosAuthenticationUtils(MultihostUtility[MultihostHost]):
         :type password: str
         :param realm: Kerberos realm that is appended to the principal (``$principal@$realm``), defaults to None
         :type realm: str | None, optional
-        :param args: Additional parameters to ``klist``, defaults to list()
-        :type args: list[str], optional
+        :param args: Additional parameters to ``klist``, defaults to None
+        :type args: list[str] | None, optional
         :return: Command result.
         :rtype: SSHProcessResult
         """
+        if args is None:
+            args = []
+
         if realm is not None:
             principal = f"{principal}@{realm}"
 
         return self.ssh.exec(["kinit", *args, principal], input=password)
 
-    def kvno(self, principal: str, *, realm: str | None = None, args: list[str] = list()) -> SSHProcessResult:
+    def kvno(self, principal: str, *, realm: str | None = None, args: list[str] | None = None) -> SSHProcessResult:
         """
         Run ``kvno`` command.
 
@@ -511,25 +514,31 @@ class KerberosAuthenticationUtils(MultihostUtility[MultihostHost]):
         :type principal: str
         :param realm: Kerberos realm that is appended to the principal (``$principal@$realm``), defaults to None
         :type realm: str | None, optional
-        :param args: Additional parameters to ``klist``, defaults to list()
-        :type args: list[str], optional
+        :param args: Additional parameters to ``klist``, defaults to None
+        :type args: list[str] | None, optional
         :return: Command result.
         :rtype: SSHProcessResult
         """
+        if args is None:
+            args = []
+
         if realm is not None:
             principal = f"{principal}@{realm}"
 
         return self.ssh.exec(["kvno", *args, principal])
 
-    def klist(self, *, args: list[str] = list()) -> SSHProcessResult:
+    def klist(self, *, args: list[str] | None = None) -> SSHProcessResult:
         """
         Run ``klist`` command.
 
-        :param args: Additional parameters to ``klist``, defaults to list()
-        :type args: list[str], optional
+        :param args: Additional parameters to ``klist``, defaults to None
+        :type args: list[str] | None, optional
         :return: Command result.
         :rtype: SSHProcessResult
         """
+        if args is None:
+            args = []
+
         return self.ssh.exec(["klist", *args])
 
     def kswitch(self, principal: str, realm: str) -> SSHProcessResult:
@@ -673,12 +682,12 @@ class KerberosAuthenticationUtils(MultihostUtility[MultihostHost]):
 
         return len(result.stdout_lines) - 2
 
-    def list_principals(self, env: dict[str, Any] = dict()) -> dict[str, list[str]]:
+    def list_principals(self, env: dict[str, Any] | None = None) -> dict[str, list[str]]:
         """
         List all principals that have existing credential cache.
 
-        :param env: Additional environment variables passed to ``klist -A`` command, defaults to dict()
-        :type env: dict[str, Any], optional
+        :param env: Additional environment variables passed to ``klist -A`` command, defaults to None
+        :type env: dict[str, Any] | None, optional
         :return: Dictionary with principal as the key and list of available tickets as value.
         :rtype: dict[str, list[str]]
         """

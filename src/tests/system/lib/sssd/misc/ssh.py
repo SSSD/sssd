@@ -19,7 +19,7 @@ class SSHKillableProcess(object):
         argv: list[Any],
         *,
         cwd: str | None = None,
-        env: dict[str, Any] = dict(),
+        env: dict[str, Any] | None = None,
         input: str | None = None,
         read_timeout: float = 2,
         log_level: SSHLog = SSHLog.Full,
@@ -31,8 +31,8 @@ class SSHKillableProcess(object):
         :type argv: list[Any]
         :param cwd: Working directory, defaults to None (= do not change)
         :type cwd: str | None, optional
-        :param env: Additional environment variables, defaults to dict()
-        :type env: dict[str, Any], optional
+        :param env: Additional environment variables, defaults to None
+        :type env: dict[str, Any] | None, optional
         :param input: Content of standard input, defaults to None
         :type input: str | None, optional
         :param read_timeout: Timeout in seconds, how long should the client wait for output, defaults to 30 seconds
@@ -40,6 +40,9 @@ class SSHKillableProcess(object):
         :param log_level: Log level, defaults to SSHLog.Full
         :type log_level: SSHLog, optional
         """
+        if env is None:
+            env = {}
+
         argv = to_list_of_strings(argv)
         command = shlex.join(argv)
         pidfile = "/tmp/.mh.sshkillableprocess.pid"

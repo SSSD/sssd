@@ -110,23 +110,32 @@ class LDAPUtils(MultihostUtility[BaseLDAPDomainHost]):
         self,
         dn: str,
         *,
-        add: LDAPRecordAttributes = dict(),
-        replace: LDAPRecordAttributes = dict(),
-        delete: LDAPRecordAttributes = dict(),
+        add: LDAPRecordAttributes | None = None,
+        replace: LDAPRecordAttributes | None = None,
+        delete: LDAPRecordAttributes | None = None,
     ) -> None:
         """
         Modify LDAP entry.
 
         :param dn: Distinguished name.
         :type dn: str
-        :param add: Attributes to add, defaults to dict()
-        :type add: LDAPRecordAttributes, optional
-        :param replace: Attributes to replace, defaults to dict()
-        :type replace: LDAPRecordAttributes, optional
-        :param delete: Attributes to delete, defaults to dict()
-        :type delete: LDAPRecordAttributes, optional
+        :param add: Attributes to add, defaults to None
+        :type add: LDAPRecordAttributes | None, optional
+        :param replace: Attributes to replace, defaults to None
+        :type replace: LDAPRecordAttributes | None, optional
+        :param delete: Attributes to delete, defaults to None
+        :type delete: LDAPRecordAttributes | None, optional
         """
         modlist = []
+
+        if add is None:
+            add = {}
+
+        if replace is None:
+            replace = {}
+
+        if delete is None:
+            delete = {}
 
         for attr, values in add.items():
             modlist.append((ldap.MOD_ADD, attr, self.__values_to_bytes(values)))
