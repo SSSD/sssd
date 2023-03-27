@@ -223,7 +223,7 @@ class IPAObject(BaseObject[IPAHost, IPA]):
         self.name: str = name
         """Object name."""
 
-    def _exec(self, op: str, args: list[str] = list(), **kwargs) -> SSHProcessResult:
+    def _exec(self, op: str, args: list[str] | None = None, **kwargs) -> SSHProcessResult:
         """
         Execute IPA command.
 
@@ -234,22 +234,28 @@ class IPAObject(BaseObject[IPAHost, IPA]):
 
         :param op: Command group operation (usually add, mod, del, show)
         :type op: str
-        :param args: List of additional command arguments, defaults to list()
-        :type args: list[str], optional
+        :param args: List of additional command arguments, defaults to None
+        :type args: list[str] | None, optional
         :return: SSH process result.
         :rtype: SSHProcessResult
         """
+        if args is None:
+            args = []
+
         return self.role.host.ssh.exec(["ipa", f"{self.command_group}-{op}", self.name, *args], **kwargs)
 
-    def _add(self, attrs: CLIBuilderArgs = dict(), input: str | None = None):
+    def _add(self, attrs: CLIBuilderArgs | None = None, input: str | None = None):
         """
         Add IPA object.
 
-        :param attrs: Object attributes in :class:`pytest_mh.cli.CLIBuilder` format, defaults to dict()
-        :type attrs: pytest_mh.cli.CLIBuilderArgs, optional
+        :param attrs: Object attributes in :class:`pytest_mh.cli.CLIBuilder` format, defaults to None
+        :type attrs: pytest_mh.cli.CLIBuilderArgs | None, optional
         :param input: Contents of standard input given to the executed command, defaults to None
         :type input: str | None, optional
         """
+        if attrs is None:
+            attrs = {}
+
         self._exec("add", self.cli.args(attrs), input=input)
 
     def _modify(self, attrs: CLIBuilderArgs, input: str | None = None):
@@ -924,7 +930,7 @@ class IPAAutomountMap(IPAObject):
         else:
             raise ValueError(f"Unexepected location type: {type(location)}")
 
-    def _exec(self, op: str, args: list[str] = list(), **kwargs) -> SSHProcessResult:
+    def _exec(self, op: str, args: list[str] | None = None, **kwargs) -> SSHProcessResult:
         """
         Execute automoutmap IPA command.
 
@@ -935,11 +941,14 @@ class IPAAutomountMap(IPAObject):
 
         :param op: Command group operation (usually add, mod, del, show)
         :type op: str
-        :param args: List of additional command arguments, defaults to list()
-        :type args: list[str], optional
+        :param args: List of additional command arguments, defaults to None
+        :type args: list[str] | None, optional
         :return: SSH process result.
         :rtype: SSHProcessResult
         """
+        if args is None:
+            args = []
+
         defargs = self.cli.args(
             {
                 "location": (self.cli.option.POSITIONAL, self.location.name),
@@ -995,7 +1004,7 @@ class IPAAutomountKey(IPAObject):
         self.map: IPAAutomountMap = map
         self.info: str | None = None
 
-    def _exec(self, op: str, args: list[str] = list(), **kwargs) -> SSHProcessResult:
+    def _exec(self, op: str, args: list[str] | None = None, **kwargs) -> SSHProcessResult:
         """
         Execute automoutkey IPA command.
 
@@ -1006,11 +1015,14 @@ class IPAAutomountKey(IPAObject):
 
         :param op: Command group operation (usually add, mod, del, show)
         :type op: str
-        :param args: List of additional command arguments, defaults to list()
-        :type args: list[str], optional
+        :param args: List of additional command arguments, defaults to None
+        :type args: list[str] | None, optional
         :return: SSH process result.
         :rtype: SSHProcessResult
         """
+        if args is None:
+            args = []
+
         defargs = self.cli.args(
             {
                 "location": (self.cli.option.POSITIONAL, self.map.location.name),

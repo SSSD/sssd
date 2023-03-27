@@ -369,7 +369,7 @@ class ADObject(BaseObject[ADHost, AD]):
 
         return f"{basedn},{self.role.host.naming_context}"
 
-    def _exec(self, op: str, args: list[str] | str = list(), **kwargs) -> SSHProcessResult:
+    def _exec(self, op: str, args: list[str] | str | None = None, **kwargs) -> SSHProcessResult:
         """
         Execute AD command.
 
@@ -380,11 +380,14 @@ class ADObject(BaseObject[ADHost, AD]):
 
         :param op: Command group operation (usually New, Set, Remove, Get)
         :type op: str
-        :param args: List of additional command arguments, defaults to list()
-        :type args: list[str], optional
+        :param args: List of additional command arguments, defaults to None
+        :type args: list[str] | None, optional
         :return: SSH process result.
         :rtype: SSHProcessResult
         """
+        if args is None:
+            args = []
+
         if isinstance(args, list):
             args = " ".join(args)
         elif args is None:

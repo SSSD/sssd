@@ -312,7 +312,7 @@ class LinuxToolsUtils(MultihostUtility[MultihostHost]):
 
         return IdEntry.FromOutput(command.stdout)
 
-    def grep(self, pattern: str, paths: str | list[str], args: list[str] = list()) -> bool:
+    def grep(self, pattern: str, paths: str | list[str], args: list[str] | None = None) -> bool:
         """
         Run ``grep`` command.
 
@@ -320,27 +320,33 @@ class LinuxToolsUtils(MultihostUtility[MultihostHost]):
         :type pattern: str
         :param paths: Paths to search.
         :type paths: str | list[str]
-        :param args: Additional arguments to ``grep`` command, defaults to [].
-        :type args: list[str], optional
+        :param args: Additional arguments to ``grep`` command, defaults to None.
+        :type args: list[str] | None, optional
         :return: True if grep returned 0, False otherwise.
         :rtype: bool
         """
+        if args is None:
+            args = []
+
         paths = [paths] if isinstance(paths, str) else paths
         command = self.host.ssh.exec(["grep", *args, pattern, *paths])
 
         return command.rc == 0
 
-    def tcpdump(self, pcap_path: str, args: list[Any] = list()) -> SSHKillableProcess:
+    def tcpdump(self, pcap_path: str, args: list[Any] | None = None) -> SSHKillableProcess:
         """
         Run tcpdump. The packets are captured in ``pcap_path``.
 
         :param pcap_path: Path to the capture file.
         :type pcap_path: str
-        :param args: Arguments to ``tcpdump``, defaults to list()
-        :type args: list[Any], optional
+        :param args: Arguments to ``tcpdump``, defaults to None
+        :type args: list[Any] | None, optional
         :return: Killable process.
         :rtype: SSHKillableProcess
         """
+        if args is None:
+            args = []
+
         self.__fs.backup(pcap_path)
 
         command = SSHKillableProcess(self.host.ssh, ["tcpdump", *args, "-w", pcap_path])
@@ -350,15 +356,18 @@ class LinuxToolsUtils(MultihostUtility[MultihostHost]):
 
         return command
 
-    def tshark(self, args: list[Any] = list()) -> SSHProcessResult:
+    def tshark(self, args: list[Any] | None = None) -> SSHProcessResult:
         """
         Execute tshark command with given arguments.
 
-        :param args: Arguments to ``tshark``, defaults to list()
-        :type args: list[Any], optional
+        :param args: Arguments to ``tshark``, defaults to None
+        :type args: list[Any] | None, optional
         :return: SSH Process result
         :rtype: SSHProcessResult
         """
+        if args is None:
+            args = []
+
         return self.host.ssh.exec(["tshark", *args])
 
     def teardown(self):

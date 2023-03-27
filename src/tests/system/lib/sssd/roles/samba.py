@@ -250,7 +250,7 @@ class SambaObject(BaseObject):
         self.name: str = name
         """Object name."""
 
-    def _exec(self, op: str, args: list[str] = list(), **kwargs) -> SSHProcessResult:
+    def _exec(self, op: str, args: list[str] | None = None, **kwargs) -> SSHProcessResult:
         """
         Execute samba-tool command.
 
@@ -261,11 +261,14 @@ class SambaObject(BaseObject):
 
         :param op: Command group operation (usually add, delete, show)
         :type op: str
-        :param args: List of additional command arguments, defaults to list()
-        :type args: list[str], optional
+        :param args: List of additional command arguments, defaults to None
+        :type args: list[str] | None, optional
         :return: SSH process result.
         :rtype: SSHProcessResult
         """
+        if args is None:
+            args = []
+
         return self.role.host.ssh.exec(["samba-tool", self.command, op, self.name, *args], **kwargs)
 
     def _add(self, attrs: CLIBuilderArgs) -> None:
