@@ -79,7 +79,7 @@ def create_testdir(session_multihost, request):
     ad_env_file_cmd = f"touch {ad_test_dir}/env.sh"
     ad_rm_config_cmd = f"rm -rf {ad_test_dir}"
     bkup_resolv_conf = 'cp -a /etc/resolv.conf /etc/resolv.conf.orig'
-    restore_resolv_conf = 'cp -a /etc/resolv.conf.orig /etc/resolv.conf'
+    restore_resolv_conf = 'mv /etc/resolv.conf.orig /etc/resolv.conf'
 
     for machine in session_multihost.atomic + session_multihost.others +\
             session_multihost.replica:
@@ -98,6 +98,7 @@ def create_testdir(session_multihost, request):
     def remove_test_dir():
         for machine in session_multihost.client + session_multihost.master:
             machine.run_command(rm_config_cmd)
+            machine.run_command("chattr -i /etc/resolv.conf")
             machine.run_command(restore_resolv_conf)
 
         for machine in session_multihost.atomic + session_multihost.others +\
