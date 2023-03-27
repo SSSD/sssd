@@ -241,7 +241,13 @@ class LocalUser(object):
         if not jcresult:
             return {}
 
-        return {k: v for k, v in jcresult[0].items() if not attrs or k in attrs}
+        if not isinstance(jcresult, list):
+            raise TypeError(f"Unexpected type: {type(jcresult)}, expecting list")
+
+        if not isinstance(jcresult[0], dict):
+            raise TypeError(f"Unexpected type: {type(jcresult[0])}, expecting dict")
+
+        return {k: [str(v)] for k, v in jcresult[0].items() if not attrs or k in attrs}
 
 
 class LocalGroup(object):
@@ -335,7 +341,13 @@ class LocalGroup(object):
         if not jcresult:
             return {}
 
-        return {k: v for k, v in jcresult[0].items() if not attrs or k in attrs}
+        if not isinstance(jcresult, list):
+            raise TypeError(f"Unexpected type: {type(jcresult)}, expecting list")
+
+        if not isinstance(jcresult[0], dict):
+            raise TypeError(f"Unexpected type: {type(jcresult[0])}, expecting dict")
+
+        return {k: [str(v)] for k, v in jcresult[0].items() if not attrs or k in attrs}
 
     def add_member(self, member: LocalUser) -> LocalGroup:
         """
