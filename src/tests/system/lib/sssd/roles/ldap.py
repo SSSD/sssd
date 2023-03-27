@@ -412,19 +412,19 @@ class LDAPObject(BaseObject[HostType, LDAPRoleType]):
     def _modify(
         self,
         *,
-        add: LDAPRecordAttributes = dict(),
-        replace: LDAPRecordAttributes = dict(),
-        delete: LDAPRecordAttributes = dict(),
+        add: LDAPRecordAttributes | None = None,
+        replace: LDAPRecordAttributes | None = None,
+        delete: LDAPRecordAttributes | None = None,
     ) -> None:
         """
         Modify LDAP record.
 
-        :param add: Attributes and values to add, defaults to dict()
-        :type add: LDAPRecordAttributes, optional
-        :param replace: Attributes and values to replace, defaults to dict()
-        :type replace: LDAPRecordAttributes, optional
-        :param delete: Attributes and values to delete, defaults to dict()
-        :type delete: LDAPRecordAttributes, optional
+        :param add: Attributes and values to add, defaults to None
+        :type add: LDAPRecordAttributes | None, optional
+        :param replace: Attributes and values to replace, defaults to None
+        :type replace: LDAPRecordAttributes | None, optional
+        :param delete: Attributes and values to delete, defaults to None
+        :type delete: LDAPRecordAttributes | None, optional
         """
         self.role.ldap.modify(self.dn, add=add, replace=replace, delete=delete)
 

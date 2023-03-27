@@ -42,7 +42,11 @@ class SSSDTopologyMark(TopologyMark):
     """
 
     def __init__(
-        self, name: str, topology: Topology, fixtures: dict[str, str] = dict(), domains: dict[str, str] = dict()
+        self,
+        name: str,
+        topology: Topology,
+        fixtures: dict[str, str] | None = None,
+        domains: dict[str, str] | None = None,
     ) -> None:
         """
         :param name: Topology name used in pytest output.
@@ -50,13 +54,13 @@ class SSSDTopologyMark(TopologyMark):
         :param topology: Topology required to run the test.
         :type topology: Topology
         :param fixtures: Dynamically created fixtures available during the test run.
-        :type fixtures: dict[str, str], optional
+        :type fixtures: dict[str, str] | None, optional
         :param domains: Automatically created SSSD domains on client host
-        :type domains: dict[str, str], optional
+        :type domains: dict[str, str] | None, optional
         """
         super().__init__(name, topology, fixtures)
 
-        self.domains: dict[str, str] = domains
+        self.domains: dict[str, str] = domains if domains is not None else {}
         """Map hosts to SSSD domains."""
 
     def export(self) -> dict:
