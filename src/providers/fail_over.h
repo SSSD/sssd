@@ -88,6 +88,9 @@ struct fo_options {
     enum restrict_family family_order;
 };
 
+void dump_fo_server(const struct fo_server *srv);
+void dump_fo_server_list(const struct fo_server *srv);
+
 /*
  * Create a new fail over context based on options passed in the
  * opts parameter
