@@ -594,6 +594,14 @@ fail:
     tevent_req_error(req, ret);
 }
 
+static void dump_be_svc_data(const struct be_svc_data *svc)
+{
+    DEBUG(SSSDBG_OP_FAILURE, "be_svc_data: name=[%s] last_good_srv=[%s] "
+                             "last_good_port=[%d] last_status_change=[%"SPRItime"]\n",
+                             svc->name, svc->last_good_srv, svc->last_good_port,
+                             svc->last_status_change);
+}
+
 errno_t be_resolve_server_process(struct tevent_req *subreq,
                                   struct be_resolve_server_state *state,
                                   struct tevent_req **new_subreq)
@@ -681,6 +689,12 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
                   fo_get_server_str_name(state->srv), ipaddr,
                   srvaddr->addr_list[0]->ttl);
         }
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing server name.\n");
+        dump_be_svc_data(state->svc);
+        dump_fo_server(state->srv);
+        dump_fo_server_list(state->srv);
+        return ENOENT;
     }
 
     srv_status_change = fo_get_server_hostname_last_change(state->srv);
