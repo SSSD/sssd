@@ -200,6 +200,59 @@ str_srv_data_status(enum srv_lookup_status status)
     return "unknown SRV lookup status";
 }
 
+static void dump_srv_data(const struct srv_data *srv_data)
+{
+    if (srv_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "srv_data is NULL\n");
+        return;
+    }
+
+    DEBUG(SSSDBG_OP_FAILURE, "srv_data: dns_domain [%s] discovery_domain [%s] "
+                             "sssd_domain [%s] proto [%s] srv [%s] "
+                             "srv_lookup_status [%s] ttl [%d] "
+                             "last_status_change [%"SPRItime"]\n",
+                             srv_data->dns_domain == NULL ? "dns_domain is NULL"
+                                                          : srv_data->dns_domain,
+                             srv_data->discovery_domain == NULL ? "discovery_domain is NULL"
+                                                                : srv_data->discovery_domain,
+                             srv_data->sssd_domain == NULL ? "sssd_domain is NULL"
+                                                           : srv_data->sssd_domain,
+                             srv_data->proto == NULL ? "proto is NULL"
+                                                     : srv_data->proto,
+                             srv_data->srv == NULL ? "srv is NULL"
+                                                   : srv_data->srv,
+                             str_srv_data_status(srv_data->srv_lookup_status),
+                             srv_data->ttl, srv_data->last_status_change.tv_sec);
+}
+
+void dump_fo_server(const struct fo_server *srv)
+{
+    DEBUG(SSSDBG_OP_FAILURE, "fo_server: primary [%s] port [%d] "
+                             "port_status [%s] common->name [%s].\n",
+                             srv->primary ? "true" : "false", srv->port,
+                             str_port_status(srv->port_status),
+                             srv->common == NULL ? "common is NULL"
+                                                 : (srv->common->name == NULL
+                                                        ? "common->name is NULL"
+                                                        : srv->common->name));
+    dump_srv_data(srv->srv_data);
+}
+
+void dump_fo_server_list(const struct fo_server *srv)
+{
+    const struct fo_server *s;
+
+    s = srv;
+    while (s->prev != NULL) {
+        s = s->prev;
+    }
+
+    while (s != NULL) {
+        dump_fo_server(s);
+        s = s->next;
+    }
+}
+
 static const char *
 str_server_status(enum server_status status)
 {
