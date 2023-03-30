@@ -719,7 +719,7 @@ static void kcm_renew_tgt_timer_handler(struct tevent_context *ev,
     }
 
     /* Reschedule timer */
-    next = tevent_timeval_current_ofs(renew_tgt_ctx->timer_interval, 0);
+    next = sss_tevent_timeval_current_ofs_time_t(renew_tgt_ctx->timer_interval);
     renew_tgt_ctx->te = tevent_add_timer(ev, renew_tgt_ctx,
                                          next, kcm_renew_tgt_timer_handler,
                                          renew_tgt_ctx);
@@ -755,8 +755,8 @@ errno_t kcm_renewal_setup(struct resp_ctx *rctx,
     krb5_ctx->kcm_renew_tgt_ctx->timer_interval = renew_intv;
 
     /* Check KCM for tickets to renew */
-    next = tevent_timeval_current_ofs(krb5_ctx->kcm_renew_tgt_ctx->timer_interval,
-                                      0);
+    next = sss_tevent_timeval_current_ofs_time_t(
+                                   krb5_ctx->kcm_renew_tgt_ctx->timer_interval);
     krb5_ctx->kcm_renew_tgt_ctx->te = tevent_add_timer(ev, krb5_ctx->kcm_renew_tgt_ctx,
                                                    next,
                                                    kcm_renew_tgt_timer_handler,

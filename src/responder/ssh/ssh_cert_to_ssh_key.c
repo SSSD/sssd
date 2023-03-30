@@ -230,7 +230,7 @@ static errno_t cert_to_ssh_key_step(struct tevent_req *req)
         }
 
         /* Set up timeout handler */
-        tv = tevent_timeval_current_ofs(state->timeout, 0);
+        tv = sss_tevent_timeval_current_ofs_time_t(state->timeout);
         state->timeout_handler = tevent_add_timer(state->ev, req, tv,
                                                   p11_child_timeout,
                                                   req);

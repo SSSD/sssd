@@ -211,7 +211,7 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
         }
 
         /* Set up timeout handler */
-        tv = tevent_timeval_current_ofs(be_ptask_get_timeout(be_ptask), 0);
+        tv = sss_tevent_timeval_current_ofs_time_t(be_ptask_get_timeout(be_ptask));
         state->timeout_handler = tevent_add_timer(ev, req, tv,
                                     ad_machine_account_password_renewal_timeout,
                                     req);

@@ -678,7 +678,7 @@ static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
 
 static inline void sss_mmap_set_rec_header(struct sss_mc_ctx *mcc,
                                            struct sss_mc_rec *rec,
-                                           size_t len, int ttl,
+                                           size_t len, time_t ttl,
                                            const char *key1, size_t key1_len,
                                            const char *key2, size_t key2_len)
 {
@@ -1352,8 +1352,8 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
         return EOK;
     }
     DEBUG(SSSDBG_CONF_SETTINGS,
-          "Fast '%s' mmap cache: memcache_timeout = %d, slots = %zu\n",
-          mc_type_to_str(type), (int)timeout, n_elem);
+          "Fast '%s' mmap cache: memcache_timeout = %"SPRItime", slots = %zu\n",
+          mc_type_to_str(type), timeout, n_elem);
 
     mc_ctx = talloc_zero(mem_ctx, struct sss_mc_ctx);
     if (!mc_ctx) {
