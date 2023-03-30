@@ -906,7 +906,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         }
 
         /* Set up timeout handler */
-        tv = tevent_timeval_current_ofs(timeout, 0);
+        tv = sss_tevent_timeval_current_ofs_time_t(timeout);
         state->timeout_handler = tevent_add_timer(ev, req, tv,
                                                   p11_child_timeout, req);
         if(state->timeout_handler == NULL) {

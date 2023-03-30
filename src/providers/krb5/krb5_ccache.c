@@ -529,7 +529,14 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
 
     mcred.client = princ;
     mcred.server = tgt_princ;
-    mcred.times.endtime = time(NULL);
+    /* Type krb5_timestamp is a signed 32-bit integer, so we need to convert the
+     * 64-bit time_t value returned by time(). Just keeping the lower 32 bits
+     * should be enough as Kerberos seems to be planing on making this time
+     * unsigned to avoid the Y2K38 problem.
+     * Please check:
+     * https://web.mit.edu/kerberos/krb5-latest/doc/appdev/y2038.html
+     */
+    mcred.times.endtime = time(NULL) & 0xFFFFFFFF;
 
     kerr = krb5_cc_retrieve_cred(cc->context, cc->ccache,
                                  KRB5_TC_MATCH_TIMES, &mcred, &cred);

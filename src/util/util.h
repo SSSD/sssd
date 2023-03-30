@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <limits.h>
 
 #include <talloc.h>
 #include <tevent.h>
@@ -849,4 +850,10 @@ uint64_t get_spend_time_us(uint64_t st);
 #define CHECK_PAC_CHECK_UPN_ALLOW_MISSING (1 << 5)
 
 errno_t get_pac_check_config(struct confdb_ctx *cdb, uint32_t *pac_check_opts);
+
+static inline struct timeval sss_tevent_timeval_current_ofs_time_t(time_t secs)
+{
+    uint32_t secs32 = (secs > UINT_MAX ? UINT_MAX : secs);
+    return tevent_timeval_current_ofs(secs32, 0);
+}
 #endif /* __SSSD_UTIL_H__ */
