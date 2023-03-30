@@ -286,8 +286,7 @@ static void renew_handler(struct renew_tgt_ctx *renew_tgt_ctx)
 
     DEBUG(SSSDBG_TRACE_LIBS, "Adding new renew timer.\n");
 
-    next = tevent_timeval_current_ofs(renew_tgt_ctx->timer_interval,
-                                      0);
+    next = sss_tevent_timeval_current_ofs_time_t(renew_tgt_ctx->timer_interval);
     renew_tgt_ctx->te = tevent_add_timer(renew_tgt_ctx->ev, renew_tgt_ctx,
                                          next, renew_tgt_timer_handler,
                                          renew_tgt_ctx);
@@ -501,8 +500,7 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
               "Failed to read ccache files, continuing ...\n");
     }
 
-    next = tevent_timeval_current_ofs(krb5_ctx->renew_tgt_ctx->timer_interval,
-                                      0);
+    next = sss_tevent_timeval_current_ofs_time_t(krb5_ctx->renew_tgt_ctx->timer_interval);
     krb5_ctx->renew_tgt_ctx->te = tevent_add_timer(ev, krb5_ctx->renew_tgt_ctx,
                                                    next, renew_tgt_timer_handler,
                                                    krb5_ctx->renew_tgt_ctx);

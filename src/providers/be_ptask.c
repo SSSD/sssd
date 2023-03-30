@@ -143,7 +143,7 @@ static void be_ptask_execute(struct tevent_context *ev,
 
     /* schedule timeout */
     if (task->timeout > 0) {
-        tv = tevent_timeval_current_ofs(task->timeout, 0);
+        tv = sss_tevent_timeval_current_ofs_time_t(task->timeout);
         timeout = tevent_add_timer(task->ev, task->req, tv,
                                    be_ptask_timeout, task);
         if (timeout == NULL) {
@@ -229,7 +229,7 @@ static void be_ptask_schedule(struct be_ptask *task,
     }
 
     if(from & BE_PTASK_SCHEDULE_FROM_NOW) {
-        tv = tevent_timeval_current_ofs(delay, 0);
+        tv = sss_tevent_timeval_current_ofs_time_t(delay);
 
         DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: scheduling task %lu seconds "
               "from now [%lu]\n", task->name, delay, tv.tv_sec);
