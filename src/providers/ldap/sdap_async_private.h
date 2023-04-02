@@ -75,10 +75,10 @@ errno_t deref_string_to_val(const char *str, int *val);
 
 /* Extract server IP from sdap_handle and return it as string or NULL in case
  * of an error */
-const char *sdap_get_server_ip_str(struct sdap_handle *sh);
+const char *sdap_get_server_peer_str(struct sdap_handle *sh);
 
-/* Same as sdap_get_server_ip_str() but always returns a strings */
-const char *sdap_get_server_ip_str_safe(struct sdap_handle *sh);
+/* Same as sdap_get_server_peer_str() but always returns a strings */
+const char *sdap_get_server_peer_str_safe(struct sdap_handle *sh);
 
 /* from sdap_child_helpers.c */
 
