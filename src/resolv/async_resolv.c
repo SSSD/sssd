@@ -1568,10 +1568,6 @@ resolv_get_sockaddr_address_index(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (sockaddr_len != NULL) {
-        *sockaddr_len = len;
-    }
-
     switch(hostent->family) {
         case AF_INET:
             sockaddr->sa_family = AF_INET;
@@ -1603,6 +1599,10 @@ resolv_get_sockaddr_address_index(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unknown address family %d\n", hostent->family);
             return NULL;
+    }
+
+    if (sockaddr_len != NULL) {
+        *sockaddr_len = len;
     }
 
     return sockaddr;
