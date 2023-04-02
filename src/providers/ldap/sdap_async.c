@@ -677,7 +677,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
           "ldap_extended_operation sent, msgid = %d\n", msgid);
 
     stat_info = talloc_asprintf(state, "server: [%s] modify passwd dn: [%s]",
-                                sdap_get_server_ip_str_safe(state->sh),
+                                sdap_get_server_peer_str_safe(state->sh),
                                 user_dn);
     if (stat_info == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
@@ -849,7 +849,7 @@ sdap_modify_send(TALLOC_CTX *mem_ctx,
     }
 
     stat_info = talloc_asprintf(state, "server: [%s] modify dn: [%s] attr: [%s]",
-                                sdap_get_server_ip_str_safe(state->sh), dn,
+                                sdap_get_server_peer_str_safe(state->sh), dn,
                                 attr);
     if (stat_info == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
@@ -1333,13 +1333,12 @@ static errno_t add_to_deref_reply(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-const char *sdap_get_server_ip_str(struct sdap_handle *sh)
+const char *sdap_get_server_peer_str(struct sdap_handle *sh)
 {
     int ret;
     int fd;
-    struct sockaddr_storage ss;
-    socklen_t ss_len = sizeof(ss);
-    struct sockaddr *s_addr = (struct sockaddr *)&ss;
+    struct sockaddr sa;
+    socklen_t sa_len = sizeof(sa);
     char ip[NI_MAXHOST];
     static char out[NI_MAXHOST + 8];
     int port;
@@ -1350,30 +1349,72 @@ const char *sdap_get_server_ip_str(struct sdap_handle *sh)
         return NULL;
     }
 
-    ret = getpeername(fd, s_addr, &ss_len);
+    ret = getpeername(fd, &sa, &sa_len);
     if (ret == -1) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "getsockname failed\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "getpeername failed\n");
         return NULL;
     }
 
-    ret = getnameinfo(s_addr, ss_len,
-                      ip, sizeof(ip), NULL, 0, NI_NUMERICHOST);
-    if (ret != 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "getnameinfo failed\n");
-        return NULL;
-    }
+    switch (sa.sa_family) {
+    case AF_INET: {
+        struct sockaddr_in in;
+        socklen_t in_len = sizeof(in);
 
-    switch (s_addr->sa_family) {
-    case AF_INET:
-        port = ntohs(((struct sockaddr_in *)s_addr)->sin_port);
+        ret = getpeername(fd, (struct sockaddr *)(&in), &in_len);
+        if (ret == -1) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "getpeername failed\n");
+            return NULL;
+        }
+
+        ret = getnameinfo((struct sockaddr *)(&in), in_len,
+                          ip, sizeof(ip), NULL, 0, NI_NUMERICHOST);
+        if (ret != 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "getnameinfo failed\n");
+            return NULL;
+        }
+
+        port = ntohs(in.sin_port);
         ret = snprintf(out, sizeof(out), "%s:%d", ip, port);
         break;
-    case AF_INET6:
-        port = ntohs(((struct sockaddr_in6 *)s_addr)->sin6_port);
+    }
+    case AF_INET6: {
+        struct sockaddr_in6 in6;
+        socklen_t in6_len = sizeof(in6);
+
+        ret = getpeername(fd, (struct sockaddr *)(&in6), &in6_len);
+        if (ret == -1) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "getpeername failed\n");
+            return NULL;
+        }
+
+        ret = getnameinfo((struct sockaddr *)(&in6), in6_len,
+                          ip, sizeof(ip), NULL, 0, NI_NUMERICHOST);
+        if (ret != 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "getnameinfo failed\n");
+            return NULL;
+        }
+
+        port = ntohs(in6.sin6_port);
         ret = snprintf(out, sizeof(out), "[%s]:%d", ip, port);
         break;
+    }
+    case AF_UNIX: {
+        struct sockaddr_un un;
+        socklen_t un_len = sizeof(un);
+
+        ret = getpeername(fd, (struct sockaddr *)(&un), &un_len);
+        if (ret == -1) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "getpeername failed\n");
+            return NULL;
+        }
+
+        ret = snprintf(out, sizeof(out), "%.*s",
+            (int)strnlen(un.sun_path, un_len - offsetof(struct sockaddr_un,
+                sun_path)), un.sun_path);
+        break;
+    }
     default:
-        ret = snprintf(out, sizeof(out), "%s", ip);
+        return NULL;
     }
 
     if (ret < 0 || ret >= sizeof(out)) {
@@ -1383,9 +1424,9 @@ const char *sdap_get_server_ip_str(struct sdap_handle *sh)
     return out;
 }
 
-const char *sdap_get_server_ip_str_safe(struct sdap_handle *sh)
+const char *sdap_get_server_peer_str_safe(struct sdap_handle *sh)
 {
-    const char *ip = sdap_get_server_ip_str(sh);
+    const char *ip = sdap_get_server_peer_str(sh);
     return ip != NULL ? ip : "- IP not available -";
 }
 
@@ -1396,11 +1437,11 @@ static void sdap_print_server(struct sdap_handle *sh)
     /* The purpose of the call is to add the server IP to the debug output if
      * debug_level is SSSDBG_TRACE_INTERNAL or higher */
     if (DEBUG_IS_SET(SSSDBG_TRACE_INTERNAL)) {
-        ip = sdap_get_server_ip_str(sh);
+        ip = sdap_get_server_peer_str(sh);
         if (ip != NULL) {
             DEBUG(SSSDBG_TRACE_INTERNAL, "Searching %s\n", ip);
         } else {
-            DEBUG(SSSDBG_OP_FAILURE, "sdap_get_server_ip_str failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_get_server_peer_str failed.\n");
         }
     }
 }
@@ -1652,7 +1693,7 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_search_ext called, msgid = %d\n", msgid);
 
     stat_info = talloc_asprintf(state, "server: [%s] filter: [%s] base: [%s]",
-                                sdap_get_server_ip_str_safe(state->sh),
+                                sdap_get_server_peer_str_safe(state->sh),
                                 state->filter, state->search_base);
     if (stat_info == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
