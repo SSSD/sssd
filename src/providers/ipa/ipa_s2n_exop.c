@@ -181,7 +181,7 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
                                   msgid);
 
     stat_info = talloc_asprintf(state, "server: [%s] %s",
-                                sdap_get_server_ip_str_safe(state->sh),
+                                sdap_get_server_peer_str_safe(state->sh),
                                 stat_info_in != NULL ? stat_info_in
                                                      : "IPA EXOP");
     if (stat_info == NULL) {
