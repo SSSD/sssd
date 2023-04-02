@@ -106,15 +106,16 @@ errno_t set_fd_common_opts(int fd, int timeout)
 
     /* SO_KEEPALIVE and TCP_NODELAY are set by OpenLDAP client libraries but
      * failures are ignored.*/
-    ret = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &dummy, sizeof(dummy));
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_FUNC_DATA,
-              "setsockopt SO_KEEPALIVE failed.[%d][%s].\n", ret,
-                  strerror(ret));
-    }
-
     if (domain != AF_UNIX && type == SOCK_STREAM) {
+
+        ret = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &dummy, sizeof(dummy));
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "setsockopt SO_KEEPALIVE failed.[%d][%s].\n", ret,
+                      strerror(ret));
+        }
+
         ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
         if (ret != 0) {
             ret = errno;
