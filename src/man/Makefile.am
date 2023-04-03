@@ -127,8 +127,10 @@ SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
 
 .5.xml.5:
+	@echo -n $(SSSD_USER) > $(dir $<)/sssd_user_name.include
 	$(XMLLINT) $(XMLLINT_FLAGS) $<
 	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
+	@rm -f $(dir $<)/sssd_user_name.include
 
 .8.xml.8:
 	$(XMLLINT) $(XMLLINT_FLAGS) $<
