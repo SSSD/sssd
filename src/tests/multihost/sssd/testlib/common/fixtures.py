@@ -98,8 +98,8 @@ def create_testdir(session_multihost, request):
     def remove_test_dir():
         for machine in session_multihost.client + session_multihost.master:
             machine.run_command(rm_config_cmd)
-            machine.run_command("chattr -i /etc/resolv.conf")
-            machine.run_command(restore_resolv_conf)
+            machine.run_command("chattr -i /etc/resolv.conf", raiseonerr=False)
+            machine.run_command(restore_resolv_conf, raiseonerr=False)
 
         for machine in session_multihost.atomic + session_multihost.others +\
                 session_multihost.replica:
