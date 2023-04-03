@@ -825,9 +825,13 @@ static char *check_services(char **services)
 
 static int get_service_user(struct mt_ctx *ctx)
 {
+    errno_t ret = EOK;
+
+    ctx->uid = 0;
+    ctx->gid = 0;
+
 #ifdef SSSD_NON_ROOT_USER
-    errno_t ret;
-    char *user_str;
+    char *user_str = NULL;
 
     ret = confdb_get_string(ctx->cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
                             CONFDB_MONITOR_USER_RUNAS,
@@ -837,18 +841,22 @@ static int get_service_user(struct mt_ctx *ctx)
         return ret;
     }
 
-    ret = sss_user_by_name_or_uid(user_str, &ctx->uid, &ctx->gid);
-    talloc_free(user_str);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to set allowed UIDs.\n");
-        return ret;
+    if (strcmp(user_str, SSSD_USER) == 0) {
+        sss_sssd_user_uid_and_gid(&ctx->uid, &ctx->gid);
+    } else if (strcmp(user_str, "root") != 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unsupported value '%s' of config option '%s'! Only 'root' or '"
+              SSSD_USER"' are supported.\n",
+              user_str, CONFDB_MONITOR_USER_RUNAS);
+        sss_log(SSS_LOG_CRIT, "Unsupported value of config option '%s'!",
+                CONFDB_MONITOR_USER_RUNAS);
+        ret = ERR_INVALID_CONFIG;
     }
-#else
-    ctx->uid = 0;
-    ctx->gid = 0;
+
+    talloc_free(user_str);
 #endif
 
-    return EOK;
+    return ret;
 }
 
 static int get_monitor_config(struct mt_ctx *ctx)

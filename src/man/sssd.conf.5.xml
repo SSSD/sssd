@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
-"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd"
+[
+<!ENTITY sssd_user_name SYSTEM "sssd_user_name.include">
+]>
 <reference>
 <title>SSSD Manual pages</title>
 <refentry>
@@ -409,20 +412,23 @@
                                 The user to drop the privileges to where
                                 appropriate to avoid running as the
                                 root user.
-                                <phrase condition="have_systemd">
-                                    This option does not work when running socket-activated
-                                    services, as the user set up to run the processes is
-                                    set up during compilation time.
-
-                                    The way to override the systemd unit files is by creating
-                                    the appropriate files in /etc/systemd/system/.
-
-                                    Keep in mind that any change in the socket user, group or
-                                    permissions may result in a non-usable SSSD. The same may
-                                    occur in case of changes of the user running the NSS
-                                    responder.
-                                </phrase>
+                                Currently the only supported value is '&sssd_user_name;'.
                             </para>
+
+                            <para condition="have_systemd">
+                                This option does not work when running socket-activated
+                                services, as the user set up to run the processes is
+                                set up during compilation time.
+
+                                The way to override the systemd unit files is by creating
+                                the appropriate files in /etc/systemd/system/.
+
+                                Keep in mind that any change in the socket user, group or
+                                permissions may result in a non-usable SSSD. The same may
+                                occur in case of changes of the user running the NSS
+                                responder.
+                            </para>
+
                             <para>
                                 Default: not set, process will run as root
                             </para>
