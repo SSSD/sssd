@@ -285,6 +285,11 @@ class TestADParamsPorted:
           https://bugzilla.redhat.com/show_bug.cgi?id=1091957
           https://bugzilla.redhat.com/show_bug.cgi?id=2098615
         """
+        arch = multihost.client[0].run_command(
+            'uname -m', raiseonerr=False).stdout_text
+        if 'x86_64' not in arch:
+            pytest.skip("Test does not work other arch due to beaker being on"
+                        "different network that openstack.")
         hostname = multihost.client[0].run_command(
             'hostname', raiseonerr=False).stdout_text.rstrip()
         ad_realm = multihost.ad[0].domainname.upper()
@@ -3069,7 +3074,7 @@ class TestADParamsPorted:
         client.backup_sssd_conf()
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
-        # Configure sssd with junk domain
+        # Configure sssd
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_domain = multihost.ad[0].domainname
         ad_realm_short = ad_domain.upper().rsplit('.', 1)[0]
@@ -3372,7 +3377,7 @@ class TestADParamsPorted:
         client.backup_sssd_conf()
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
-        # Configure sssd with junk domain
+        # Configure sssd with know hosts proxy
         dom_section = f'domain/{client.get_domain_section_name()}'
         ad_domain = multihost.ad[0].domainname
         ad_realm = ad_domain.upper()
