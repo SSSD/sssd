@@ -324,9 +324,13 @@ def adjoin(session_multihost, request):
             client_ad.join_ad(ad_dc, ad_password, mem_sw='samba')
         else:
             client_ad.join_ad(ad_dc, ad_password)
+        session_multihost.client[0].run_command(
+            "cp -af /etc/sssd/sssd.conf /etc/sssd/sssd.conf.adjoin")
 
     def adleave():
         """ Disjoin AD """
+        session_multihost.client[0].run_command(
+            "cp -af /etc/sssd/sssd.conf.adjoin /etc/sssd/sssd.conf")
         _adleave(client_ad)
 
     request.addfinalizer(adleave)

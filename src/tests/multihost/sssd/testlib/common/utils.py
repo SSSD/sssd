@@ -383,15 +383,20 @@ class sssdTools(object):
             :param str membership_software: membership software (samba/adcli)
             :Exception: Raises SSSDException
         """
-        realm_cmd = 'realm join %s --client-software=%s --server-software=%s '\
-                    '--membership-software=%s -v' % (domainname,
-                                                     client_software,
-                                                     server_software,
-                                                     membership_software)
+        realm_cmd = f'timeout 300 /usr/sbin/realm join {domainname} ' \
+                    f'--client-software={client_software} ' \
+                    f'--server-software={server_software} ' \
+                    f'--membership-software={membership_software} -v'
         print(realm_cmd)
         cmd = self.multihost.run_command(realm_cmd, stdin_text=admin_password,
                                          raiseonerr=False)
-        if cmd.returncode != 0:
+        if cmd.returncode == 124:
+            # When the command fails, there is still realmd running that might
+            # be doing something so we stop it so the following realm leave
+            # is not stuck on "realm: Already running another action".
+            self.service_ctrl('stop', 'realmd')
+            raise SSSDException(f"realm join timed out! {cmd.stderr_text}")
+        elif cmd.returncode != 0:
             raise SSSDException("Error: %s" % cmd.stderr_text)
         else:
             return cmd.stderr_text
@@ -406,11 +411,12 @@ class sssdTools(object):
             :Exception: Raises SSSDException
         """
 
-        cmd = self.multihost.run_command(['realm', 'leave',
-                                          domainname, '-v'],
-                                         raiseonerr=False)
+        cmd = self.multihost.run_command(
+            f'realm leave {domainname} -v', raiseonerr=False)
         if cmd.returncode != 0 and raiseonerr:
             raise SSSDException("Error: %s", cmd.stderr_text)
+        elif cmd.returncode != 0:
+            return False
         return True
 
     def join_ad(self, realm=None, adpassword=None, mem_sw=None):
@@ -433,24 +439,23 @@ class sssdTools(object):
 
     def disjoin_ad(self, realm_output=None, raiseonerr=True):
         """ Disjoin system from Domain """
-        try:
-            self.realm_leave(self.ad_realm, raiseonerr=raiseonerr)
-        except SSSDException:
-            print("Failed to Disjoin system from Windows AD")
         if realm_output:
             account_name = self.get_computer_account(realm_output)
         else:
             account_name = self.multihost.sys_hostname.split('.')[0]
         if len(account_name) > 15:
             account_name = account_name[:15]
-        account_dn = 'CN={},CN={},{}'.format(account_name,
-                                             'Computers',
-                                             self.ad_basedn)
+        account_dn = f'CN={account_name},CN=Computers,{self.ad_basedn}'
 
-        cmd = "powershell.exe -inputformat none -noprofile "\
-              "'(Remove-ADComputer -Identity"\
-              " \"%s\" -Confirm:$false)'" % (account_dn)
-        self.adhost.run_command(cmd, raiseonerr=False)
+        # Try to leave the realm normally
+        result = self.realm_leave(self.ad_realm, raiseonerr=False)
+        remove_computer = f"powershell.exe -inputformat none -noprofile "\
+                          f"'(Remove-ADComputer -Identity"\
+                          f" \"{account_dn}\" -Confirm:$false)'"
+        # Remove the machine on the AD end
+        self.adhost.run_command(remove_computer, raiseonerr=False)
+        if raiseonerr and not result:
+            raise SSSDException("Failed to Disjoin system from Windows AD")
 
     def get_computer_account(self, realm_output):
         """ Get DN of system joined to AD """
