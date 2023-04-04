@@ -37,8 +37,8 @@ def _adleave(client):
     """
     client.disjoin_ad()
     client.multihost.run_command('kdestroy -A')
-    # Keytab should be deleted by realm leave
-    client.multihost.run_command('[ ! -f /etc/krb5.keytab ]')
+    # Keytab should be deleted after realm leave
+    client.multihost.run_command('rm -f /etc/krb5.keytab', raiseonerr=False)
 
 
 # ######## Function scoped Fixtures ####################
