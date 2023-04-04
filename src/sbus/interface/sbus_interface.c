@@ -339,18 +339,9 @@ struct sbus_listener *
 sbus_listener_copy(TALLOC_CTX *mem_ctx,
                    const struct sbus_listener *input)
 {
-    struct sbus_listener *copy;
-
-    copy = talloc_zero(mem_ctx, struct sbus_listener);
-    if (copy == NULL) {
-        return NULL;
-    }
-
     /* All data is either pointer to a static data or it is not a pointer.
      * We can just copy it. */
-    memcpy(copy, input, sizeof(struct sbus_listener));
-
-    return copy;
+    return talloc_memdup(mem_ctx, input, sizeof(struct sbus_listener));
 }
 
 struct sbus_node
