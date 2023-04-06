@@ -106,7 +106,7 @@ static int sss_child_destructor(void *ptr)
 
     error = hash_delete(child_ctx->sigchld_ctx->children, &key);
     if (error != HASH_SUCCESS && error != HASH_ERROR_KEY_NOT_FOUND) {
-        DEBUG(SSSDBG_TRACE_INTERNAL,
+        DEBUG(SSSDBG_CRIT_FAILURE,
               "failed to delete child_ctx from hash table [%d]: %s\n",
                error, hash_error_string(error));
     }
@@ -889,22 +889,24 @@ int child_io_destructor(void *ptr)
     if (io == NULL) return EOK;
 
     if (io->write_to_child_fd != -1) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "close(to): %d\n", io->write_to_child_fd);
         ret = close(io->write_to_child_fd);
         io->write_to_child_fd = -1;
         if (ret != EOK) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "close failed [%d][%s].\n", ret, strerror(ret));
+                  "close(to) failed [%d][%s].\n", ret, strerror(ret));
         }
     }
 
     if (io->read_from_child_fd != -1) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "close(from): %d\n", io->read_from_child_fd);
         ret = close(io->read_from_child_fd);
         io->read_from_child_fd = -1;
         if (ret != EOK) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "close failed [%d][%s].\n", ret, strerror(ret));
+                  "close(from) failed [%d][%s].\n", ret, strerror(ret));
         }
     }
 

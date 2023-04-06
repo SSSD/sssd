@@ -592,6 +592,9 @@ static errno_t fork_child(struct tevent_context *ev,
     /* Set file descriptors. */
     io->read_from_child_fd = pipefd_from_child[0];
     io->write_to_child_fd = pipefd_to_child[1];
+    DEBUG(SSSDBG_IMPORTANT_INFO,
+          "read_from_child_fd = %d, write_to_child_fd = %d\n",
+          io->read_from_child_fd, io->write_to_child_fd);
     PIPE_FD_CLOSE(pipefd_from_child[1]);
     PIPE_FD_CLOSE(pipefd_to_child[0]);
     sss_fd_nonblocking(io->read_from_child_fd);
@@ -607,8 +610,13 @@ static errno_t fork_child(struct tevent_context *ev,
     ret = sss_ptr_hash_add(kr->krb5_ctx->io_table, io_key, io,
                            struct child_io_fds);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unable to add child io to hash table "
-              "[%d]: %s\n", ret, sss_strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to add child io with key %s to hash table [%d]: %s\n",
+              io_key, ret, sss_strerror(ret));
+        if (ret == EEXIST) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Hash table size - %lu\n",
+                  hash_count(kr->krb5_ctx->io_table));
+        }
         goto done;
     }
 
