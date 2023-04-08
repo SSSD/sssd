@@ -759,6 +759,11 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
         }
     }
 
+    if (ldap_is_ldapi_url(state->sdap_service->uri)) {
+        /* Don't force TLS on if we're a unix domain socket */
+        use_tls = false;
+    }
+
     subreq = sdap_cli_connect_send(state, state->ev, state->ctx->opts,
                                    state->ctx->be,
                                    state->sdap_service, false,
@@ -833,7 +838,8 @@ static void auth_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    if (!check_encryption_used(state->sh->ldap) &&
+    if (!ldap_is_ldapi_url(state->sdap_service->uri) &&
+            !check_encryption_used(state->sh->ldap) &&
             !dp_opt_get_bool(state->ctx->opts->basic, SDAP_DISABLE_AUTH_TLS)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Aborting the authentication request.\n");
         sss_log(SSS_LOG_CRIT, "Aborting the authentication request.\n");
