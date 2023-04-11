@@ -60,6 +60,14 @@ sss_passkeycl_prep_questions(krb5_context context,
         goto done;
     }
 
+    if (message->data.challenge->domain == NULL ||
+        strncasecmp(message->data.challenge->domain,
+                    request->server->realm.data,
+                    request->server->realm.length) != 0) {
+        ret = KRB5KDC_ERR_PREAUTH_FAILED;
+        goto done;
+    }
+
     question = sss_passkey_message_encode(message);
     if (question == NULL) {
         ret = ENOMEM;
