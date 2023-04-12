@@ -3,10 +3,9 @@ from __future__ import annotations
 import time
 
 import pytest
-
-from lib.sssd.roles.client import Client
-from lib.sssd.roles.kdc import KDC
-from lib.sssd.topology import KnownTopology
+from sssd_test_framework.roles.client import Client
+from sssd_test_framework.roles.kdc import KDC
+from sssd_test_framework.topology import KnownTopology
 
 
 @pytest.mark.tier(0)
