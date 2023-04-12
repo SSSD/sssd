@@ -27,6 +27,114 @@
 #include "util/cert.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_id.h"
+#include "db/sysdb.h"
+
+#define MAX_USER_AND_GROUP_REPLIES 2
+
+static errno_t get_user_or_group(TALLOC_CTX *mem_ctx,
+                                 struct ipa_options *ipa_opts,
+                                 struct sysdb_attrs *attrs,
+                                 enum sysdb_obj_type *_what_is)
+{
+    errno_t ret;
+    const char **values;
+    const char **value;
+    bool is_user = false;
+    bool is_group = false;
+    const char *ov_user_name = ipa_opts->override_map[IPA_OC_OVERRIDE_USER].name;
+    const char *ov_group_name = ipa_opts->override_map[IPA_OC_OVERRIDE_GROUP].name;
+
+    ret = sysdb_attrs_get_string_array(attrs, SYSDB_ORIG_OBJECTCLASS, mem_ctx, &values);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve attribute [%s].\n",
+              SYSDB_ORIG_OBJECTCLASS);
+        return ret;
+    }
+
+    /* We assume an entry can be a user or a group override but not both.
+     * So we leave as soon as we identify one of them. */
+    if (values != NULL) {
+        for (value = values; *value != NULL; value++) {
+            if (strcasecmp(*value, ov_user_name) == 0) {
+                is_user = true;
+                break;
+            } else if (strcasecmp(*value, ov_group_name) == 0) {
+                is_group = true;
+                break;
+            }
+        }
+        talloc_free(values);
+    }
+
+    /* We also assume it must be necessarily a user or a group. */
+    if (!is_user && !is_group) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected override found.\n");
+        return EINVAL;
+    }
+
+    if (_what_is != NULL) {
+        *_what_is = is_user ? SYSDB_USER : SYSDB_GROUP;
+    }
+
+    return EOK;
+}
+
+/* Verify there are exactly 1 user and 1 group override. Any other combination
+ * is wrong. Then keep only the group override. */
+static errno_t check_and_filter_user_and_group(struct ipa_options *ipa_opts,
+                                               struct sysdb_attrs **reply,
+                                               size_t *reply_count)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    enum sysdb_obj_type entry_is[MAX_USER_AND_GROUP_REPLIES];
+    int i;
+
+    if (*reply_count != MAX_USER_AND_GROUP_REPLIES) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Expected %i replies but got %lu\n",
+              MAX_USER_AND_GROUP_REPLIES, *reply_count);
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate memory.\n");
+        return ENOMEM;
+    }
+
+    for (i = 0; i < MAX_USER_AND_GROUP_REPLIES; i++) {
+        ret = get_user_or_group(tmp_ctx, ipa_opts, reply[i], &entry_is[i]);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (entry_is[0] == SYSDB_USER && entry_is[1] == SYSDB_USER) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Found 2 user overrides.\n");
+        ret = EINVAL;
+        goto done;
+    } else if (entry_is[0] == SYSDB_GROUP && entry_is[1] == SYSDB_GROUP) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Found 2 group overrides.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* We have one user and one group override. Keep only the group override. */
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Keeping only the group override.\n");
+    if (entry_is[0] == SYSDB_USER) {
+        talloc_free(reply[0]);
+        reply[0] = reply[1];
+    } else {
+        talloc_free(reply[1]);
+    }
+    reply[1] = NULL;
+    *reply_count = 1;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
 
 static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
                                               struct ipa_options *ipa_opts,
@@ -73,10 +181,12 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
             break;
 
          case BE_REQ_USER_AND_GROUP:
-            filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(|(%s=%s)(%s=%s)))",
-                        ipa_opts->override_map[IPA_OC_OVERRIDE].name,
+            filter = talloc_asprintf(mem_ctx,
+                        "(|(&(objectClass=%s)(%s=%s))(&(objectClass=%s)(%s=%s)))",
+                        ipa_opts->override_map[IPA_OC_OVERRIDE_USER].name,
                         ipa_opts->override_map[IPA_AT_OVERRIDE_USER_NAME].name,
-                        ar->filter_value,
+                        sanitized_name,
+                        ipa_opts->override_map[IPA_OC_OVERRIDE_GROUP].name,
                         ipa_opts->override_map[IPA_AT_OVERRIDE_GROUP_NAME].name,
                         sanitized_name);
             break;
@@ -115,10 +225,11 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
 
          case BE_REQ_USER_AND_GROUP:
             filter = talloc_asprintf(mem_ctx,
-                  "(&(objectClass=%s)(|(%s=%"PRIu32")(%s=%"PRIu32")))",
-                  ipa_opts->override_map[IPA_OC_OVERRIDE].name,
+                  "(|(&(objectClass=%s)(%s=%"PRIu32"))(&(objectClass=%s)(%s=%"PRIu32")))",
+                  ipa_opts->override_map[IPA_OC_OVERRIDE_USER].name,
                   ipa_opts->override_map[IPA_AT_OVERRIDE_UID_NUMBER].name,
                   id,
+                  ipa_opts->override_map[IPA_OC_OVERRIDE_GROUP].name,
                   ipa_opts->override_map[IPA_AT_OVERRIDE_GROUP_GID_NUMBER].name,
                   id);
             break;
@@ -456,6 +567,16 @@ static void ipa_get_ad_override_done(struct tevent_req *subreq)
         state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
         return;
+    } else if (reply_count == MAX_USER_AND_GROUP_REPLIES &&
+               (state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_USER_AND_GROUP) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Found two overrides with BE_REQ_USER_AND_GROUP filter [%s].\n",
+              state->filter);
+        ret = check_and_filter_user_and_group(state->ipa_options, reply,
+                                              &reply_count);
+        if (ret != EOK) {
+            goto fail;
+        }
     } else if (reply_count > 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Found [%zu] overrides with filter [%s], expected only 1.\n",

@@ -323,6 +323,7 @@ struct sdap_attr_map ipa_override_map[] = {
     { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
     { "ldap_user_ssh_public_key", "ipaSshPubKey", SYSDB_SSH_PUBKEY, NULL },
     { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
+    { "", "objectClass", SYSDB_ORIG_OBJECTCLASS, NULL }, /* We don't want this to be configurable */
     SDAP_ATTR_MAP_TERMINATOR
 };
 
