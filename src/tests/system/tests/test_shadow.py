@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import pytest
-
-from lib.sssd.roles.client import Client
-from lib.sssd.roles.ldap import LDAP
-from lib.sssd.topology import KnownTopology
+from sssd_test_framework.roles.client import Client
+from sssd_test_framework.roles.ldap import LDAP
+from sssd_test_framework.topology import KnownTopology
 
 
 @pytest.mark.tier(0)
