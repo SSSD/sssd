@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from pytest_mh import MultihostPlugin
-
-from lib.sssd.config import SSSDMultihostConfig
+from sssd_test_framework.config import SSSDMultihostConfig
 
 # Load additional plugins
 pytest_plugins = (
