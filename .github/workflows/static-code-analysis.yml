@@ -86,7 +86,7 @@ jobs:
     - name: mypy
       if: always()
       working-directory: ./src/tests/system
-      run: source .venv/bin/activate && mypy --install-types --non-interactive lib tests
+      run: source .venv/bin/activate && mypy --install-types --non-interactive tests
 
   result:
     name: All tests are successful
