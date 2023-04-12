@@ -136,6 +136,7 @@
 #define SYSDB_DN_FOR_MEMBER_HASH_TABLE "dnForMemberHashTable"
 
 #define SYSDB_ORIG_DN "originalDN"
+#define SYSDB_ORIG_OBJECTCLASS "originalObjectClass"
 #define SYSDB_ORIG_MODSTAMP "originalModifyTimestamp"
 #define SYSDB_ORIG_MEMBEROF "originalMemberOf"
 #define SYSDB_ORIG_MEMBER "orig_member"
