@@ -50,7 +50,7 @@ jobs:
       id: srpm
       uses: ./.github/actions/build-sssd-srpm
       with:
-        version: ${{ env.COPR_PROJECT }}
+        version: 9.${{ env.COPR_PROJECT }}
 
     - name: Upload source rpm as an artifact
       uses: actions/upload-artifact@v3
