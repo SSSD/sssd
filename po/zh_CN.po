@@ -4,7 +4,7 @@
 #
 # Translators:
 # Christopher Meng <cickumqt@gmail.com>, 2012
-# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022.
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022, 2023.
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 # Charles Lee <lchopn@gmail.com>, 2020, 2021.
 # Sundeep Anand <suanand@redhat.com>, 2021.
@@ -14,7 +14,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-09 13:35+0100\n"
-"PO-Revision-Date: 2022-12-08 08:19+0000\n"
+"PO-Revision-Date: 2023-03-02 09:20+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_CN/>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.2\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2329,133 +2329,119 @@ msgstr "需要重新运行 SSSD。现在重新运行 SSSD？"
 
 #: src/tools/sssctl/sssctl.c:304
 msgid "SSSD Status:"
-msgstr ""
+msgstr "SSSD 状态："
 
 #: src/tools/sssctl/sssctl.c:305
-#, fuzzy
 msgid "List available domains"
-msgstr "无法打开可用域\n"
+msgstr "列出可用的域"
 
 #: src/tools/sssctl/sssctl.c:306
-#, fuzzy
 msgid "Print information about domain"
-msgstr "显示有关活动服务器的信息"
+msgstr "打印有关域的信息"
 
 #: src/tools/sssctl/sssctl.c:307
 msgid "Print information about a user and check authentication"
-msgstr ""
+msgstr "打印有关用户的信息，并检查身份验证"
 
 #: src/tools/sssctl/sssctl.c:308
 msgid "Generate access report for a domain"
-msgstr ""
+msgstr "为域生成访问报告"
 
 #: src/tools/sssctl/sssctl.c:309
-#, fuzzy
 msgid "Information about cached content:"
-msgstr "显示有关活动服务器的信息"
+msgstr "有关缓存内容的信息："
 
 #: src/tools/sssctl/sssctl.c:310
-#, fuzzy
 msgid "Information about cached user"
-msgstr "显示有关活动服务器的信息"
+msgstr "有关缓存用户的信息"
 
 #: src/tools/sssctl/sssctl.c:311
-#, fuzzy
 msgid "Information about cached group"
-msgstr "显示有关活动服务器的信息"
+msgstr "有关缓存组的信息"
 
 #: src/tools/sssctl/sssctl.c:312
-#, fuzzy
 msgid "Information about cached netgroup"
-msgstr "显示有关活动服务器的信息"
+msgstr "有关缓存的 netgroup 的信息"
 
 #: src/tools/sssctl/sssctl.c:313
 msgid "Local data tools:"
-msgstr ""
+msgstr "本地数据工具："
 
 #: src/tools/sssctl/sssctl.c:314
-#, fuzzy
 msgid "Backup local data"
-msgstr "正在创建本地数据备份...\n"
+msgstr "备份本地数据"
 
 #: src/tools/sssctl/sssctl.c:315
-#, fuzzy
 msgid "Restore local data from backup"
-msgstr "恢复本地数据...\n"
+msgstr "从备份中恢复本地数据"
 
 #: src/tools/sssctl/sssctl.c:316
 msgid "Backup local data and remove cached content"
-msgstr ""
+msgstr "备份本地数据，并删除缓存的内容"
 
 #: src/tools/sssctl/sssctl.c:317
 msgid "Perform cache upgrade"
-msgstr ""
+msgstr "执行缓存升级"
 
 #: src/tools/sssctl/sssctl.c:318
-#, fuzzy
 msgid "Invalidate cached objects"
-msgstr "使所有缓存的条目无效"
+msgstr "无效的缓存对象"
 
 #: src/tools/sssctl/sssctl.c:319
 msgid "Manage cache indexes"
-msgstr ""
+msgstr "管理缓存索引"
 
 #: src/tools/sssctl/sssctl.c:320
 msgid "Log files tools:"
-msgstr ""
+msgstr "日志文件工具："
 
 #: src/tools/sssctl/sssctl.c:321
-#, fuzzy
 msgid "Remove existing SSSD log files"
-msgstr "删除日志文件...\n"
+msgstr "删除现有 SSSD 日志文件"
 
 #: src/tools/sssctl/sssctl.c:322
-#, fuzzy
 msgid "Archive SSSD log files in tarball"
-msgstr "将日志文件归档到 %s ...\n"
+msgstr "以 tarball 形式归档 SSSD 日志文件"
 
 #: src/tools/sssctl/sssctl.c:323
-#, fuzzy
 msgid "Change or print information about SSSD debug level"
-msgstr "显示有关活动服务器的信息"
+msgstr "更改或打印有关 SSSD 调试级别的信息"
 
 #: src/tools/sssctl/sssctl.c:324
 msgid "Analyze logged data"
-msgstr ""
+msgstr "分析日志记录的数据"
 
 #: src/tools/sssctl/sssctl.c:326
 msgid "Configuration files tools:"
-msgstr ""
+msgstr "配置文件工具："
 
 #: src/tools/sssctl/sssctl.c:327
 msgid "Perform static analysis of SSSD configuration"
-msgstr ""
+msgstr "执行 SSSD 配置的静态分析"
 
 #: src/tools/sssctl/sssctl.c:329
 msgid "Certificate related tools:"
-msgstr ""
+msgstr "认证相关的工具："
 
 #: src/tools/sssctl/sssctl.c:330
-#, fuzzy
 msgid "Print information about the certificate"
-msgstr "显示有关活动服务器的信息"
+msgstr "打印有关证书的信息"
 
 #: src/tools/sssctl/sssctl.c:331
-#, fuzzy
 msgid "Show users mapped to the certificate"
-msgstr "到可信 CA 证书存储的路径"
+msgstr "显示映射到证书的用户"
 
 #: src/tools/sssctl/sssctl.c:332
 msgid "Check mapping and matching rule with a certificate"
-msgstr ""
+msgstr "使用证书检查映射并匹配规则"
 
 #: src/tools/sssctl/sssctl.c:334
 msgid "Passkey related tools:"
-msgstr ""
+msgstr "与 Passkey 相关的工具："
 
 #: src/tools/sssctl/sssctl.c:335
 msgid "Perform passkey related operations"
-msgstr ""
+msgstr "执行与 passkey 相关的操作"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2520,12 +2506,12 @@ msgstr "使用组 ID 搜索"
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
 msgid "Show debug information"
-msgstr ""
+msgstr "显示调试信息"
 
 #: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
 #: src/tools/sssctl/sssctl_cert.c:223
 msgid "Specify base64 encoded certificate."
-msgstr ""
+msgstr "指定 base64 编码的证书。"
 
 #: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
 #: src/tools/sssctl/sssctl_domains.c:368
@@ -2535,20 +2521,19 @@ msgstr "无法连接到系统总线!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:166
 msgid " - no mapped users found -"
-msgstr ""
+msgstr " - 未找到映射用户 -"
 
 #: src/tools/sssctl/sssctl_cert.c:215
 msgid "Mapping rule"
-msgstr ""
+msgstr "映射规则"
 
 #: src/tools/sssctl/sssctl_cert.c:216
 msgid "Matching rule"
-msgstr ""
+msgstr "匹配规则"
 
 #: src/tools/sssctl/sssctl_cert.c:226
-#, fuzzy
 msgid "Unable to parse command arguments\n"
-msgstr "无法解析名称 %s 。\n"
+msgstr "无法解析命令参数\n"
 
 #: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
@@ -2556,35 +2541,34 @@ msgstr "无可用的内存！\n"
 
 #: src/tools/sssctl/sssctl_cert.c:241
 msgid "Failed to setup certmap context.\n"
-msgstr ""
+msgstr "设置 certmap 上下文失败。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:247
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
-msgstr ""
+msgstr "添加映射和匹配规则失败，错误为 [%d][%s]。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "打开失败： %s\n"
+msgstr "解码 base64 字符串失败。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate matches rule.\n"
-msgstr ""
+msgstr "证书与规则匹配。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:265
 msgid "Certificate does not match rule.\n"
-msgstr ""
+msgstr "证书与规则不匹配。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:268
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr ""
+msgstr "证书匹配 [%d][%s] 过程中的错误。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:275
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
-msgstr ""
+msgstr "生成映射过滤器 [%d][%s]失败。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:279
 #, c-format
@@ -2594,6 +2578,10 @@ msgid ""
 "    %s\n"
 "\n"
 msgstr ""
+"映射过滤器：\n"
+"\n"
+"    %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""

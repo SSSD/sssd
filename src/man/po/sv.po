@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-12-09 13:34+0100\n"
-"PO-Revision-Date: 2022-07-31 21:19+0000\n"
+"PO-Revision-Date: 2023-02-15 14:20+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.13\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -3268,6 +3268,12 @@ msgid ""
 "IPA and AD provider. If krb5_validate is set to 'False' the PAC checks will "
 "be skipped."
 msgstr ""
+"Använd ytterligare kontroller på PAC:en i Kerberosbiljetten som är "
+"tillgängliga i Active Directory och FreeIPA-domäner, om konfigurerat. "
+"Observera att validering av Kerberosbiljetten måste aktiveras för att kunna "
+"kontrollera PAC:en, d.v.s. alternativet krb5_validate måste vara satt till "
+"”True” vilket är standardvärdet för leverantörerna IPA och AD. Om "
+"krb5_validate är satt till ”False” kommer PAC-kontrollerna hoppas över."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2268
@@ -3316,7 +3322,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2294
 msgid "check_upn_allow_missing"
-msgstr ""
+msgstr "check_upn_allow_missing"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2296
@@ -3329,6 +3335,13 @@ msgid ""
 "time and FreeIPA can handle enterprise principals just fine and there is no "
 "need anymore to set 'ldap_user_principal'."
 msgstr ""
+"Detta alternativ skall användas tillsammans med ”check_upn” och haterar "
+"fallet då en UPN är satt på serversidan men inte läses av SSSD. Det typiska "
+"exemplet är en FreeIPA-domän där ”ldap_user_principal” är satt till ett "
+"attributnamn som inte finns. Detta gjordes typiskt för att gå runt problem i "
+"hanteringen av företagshuvudmän. Men detta är rättat sedan ganska lång tid "
+"tillbaka och FreeIPA kan hantera företagshuvudmän utan problem och det finns "
+"inte längre någon anledning att sätta ”ldap_user_principal”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2308
@@ -3340,6 +3353,13 @@ msgid ""
 "can be removed.  If this is not possible, removing 'check_upn' will skip the "
 "test and avoid the log message."
 msgstr ""
+"För närvarande är detta alternativ satt som standard för att undvika "
+"regressioner i sådana miljöer. Ett loggmeddelande kommer läggas till i "
+"systemloggen och SSSD:s  felsökningslogg ifall en UPN finns i PAC:en men "
+"inte i SSSD:s cache. För att undvika detta loggmeddelande vore det bäst att "
+"avgöra om alternativet ”ldap_user_principal” kan tas bort. Om detta inte är "
+"möjligt kommer att ta bort ”check_upn” hoppa över testen och undvika "
+"loggmeddelandet."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2322
@@ -3381,27 +3401,21 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2264
-#, fuzzy
-#| msgid ""
-#| "The following expansions are supported: <placeholder "
-#| "type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "The following options can be used alone or in a comma-separated list: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"Följande utvidgningar stödjs: <placeholder type=\"variablelist\" id=\"0\"/>"
+"Följande alternativ kan användas ensamma eller i en kommaseparerad lista: "
+"<placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2350
-#, fuzzy
-#| msgid ""
-#| "Default: no_check (AD and IPA provider 'check_upn, check_upn_dns_info_ex')"
 msgid ""
 "Default: no_check (AD and IPA provider 'check_upn, check_upn_allow_missing, "
 "check_upn_dns_info_ex')"
 msgstr ""
 "Standard: no_check (AD- och IPA-leverantörerna ”check_upn, "
-"check_upn_dns_info_ex”)"
+"check_upn_allow_missing, check_upn_dns_info_ex”)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:2359
@@ -5017,11 +5031,6 @@ msgstr "dns_resolver_op_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3600
-#, fuzzy
-#| msgid ""
-#| "Defines the amount of time (in seconds) to wait to resolve single DNS "
-#| "query (e.g. resolution of a hostname or an SRV record)  before try next "
-#| "hostname or DNS discovery."
 msgid ""
 "Defines the amount of time (in seconds) to wait to resolve single DNS query "
 "(e.g. resolution of a hostname or an SRV record)  before trying the next "
@@ -5050,10 +5059,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3638
-#, fuzzy
-#| msgid "dns_resolver_server_timeout"
 msgid "dns_resolver_use_search_list (bool)"
-msgstr "dns_resolver_server_timeout"
+msgstr "dns_resolver_use_search_list (bool)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3641
@@ -5062,6 +5069,9 @@ msgid ""
 "\"search\" directive from the resolv.conf file. This can lead to delays in "
 "environments with improperly configured DNS."
 msgstr ""
+"Normalt söker DNS-uppslagaren domänlistan som är definierad i direktivet "
+"”search” från filen resolv.conf. Detta kan leda till fördröjningar i miljöer "
+"med felaktigt konfigurerad DNS."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3647
@@ -5070,6 +5080,9 @@ msgid ""
 "configuration, setting this option to FALSE can prevent unnecessary DNS "
 "lookups in such environments."
 msgstr ""
+"Om fullständigt kvalificerade domännamn (eller _srv_) används i SSSD-"
+"konfigurationen kan att sätta detta alternativ till FALSE förhindra onödiga "
+"DNS-uppslagningar i sådana miljöer."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3653
@@ -5187,45 +5200,33 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3744
-#, fuzzy
-#| msgid "ldap_search_timeout (integer)"
 msgid "ldap_search_timeout"
-msgstr "ldap_search_timeout (heltal)"
+msgstr "ldap_search_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3747
-#, fuzzy
-#| msgid "ldap_network_timeout (integer)"
 msgid "ldap_network_timeout"
-msgstr "ldap_network_timeout (heltal)"
+msgstr "ldap_network_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3750
-#, fuzzy
-#| msgid "ldap_opt_timeout (integer)"
 msgid "ldap_opt_timeout"
-msgstr "ldap_opt_timeout (heltal)"
+msgstr "ldap_opt_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3753
-#, fuzzy
-#| msgid "ldap_connection_expire_timeout (integer)"
 msgid "ldap_offline_timeout"
-msgstr "ldap_connection_expire_timeout (heltal)"
+msgstr "ldap_offline_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3756
-#, fuzzy
-#| msgid "ldap_enumeration_refresh_timeout (integer)"
 msgid "ldap_enumeration_refresh_timeout"
-msgstr "ldap_enumeration_refresh_timeout (heltal)"
+msgstr "ldap_enumeration_refresh_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3759
-#, fuzzy
-#| msgid "ldap_enumeration_refresh_timeout (integer)"
 msgid "ldap_enumeration_refresh_offset"
-msgstr "ldap_enumeration_refresh_timeout (heltal)"
+msgstr "ldap_enumeration_refresh_offset"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3762
@@ -5234,10 +5235,8 @@ msgstr "ldap_purge_cache_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3765
-#, fuzzy
-#| msgid "ldap_purge_cache_timeout"
 msgid "ldap_purge_cache_offset"
-msgstr "ldap_purge_cache_timeout"
+msgstr "ldap_purge_cache_offset"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3768
@@ -5250,38 +5249,28 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3772
-#, fuzzy
-#| msgid "ldap_krb5_ticket_lifetime (integer)"
 msgid "ldap_krb5_ticket_lifetime"
-msgstr "ldap_krb5_ticket_lifetime (heltal)"
+msgstr "ldap_krb5_ticket_lifetime"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3775
-#, fuzzy
-#| msgid "ldap_enumeration_search_timeout (integer)"
 msgid "ldap_enumeration_search_timeout"
-msgstr "ldap_enumeration_search_timeout (heltal)"
+msgstr "ldap_enumeration_search_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3778
-#, fuzzy
-#| msgid "ldap_connection_expire_timeout (integer)"
 msgid "ldap_connection_expire_timeout"
-msgstr "ldap_connection_expire_timeout (heltal)"
+msgstr "ldap_connection_expire_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3781
-#, fuzzy
-#| msgid "ldap_connection_expire_offset (integer)"
 msgid "ldap_connection_expire_offset"
-msgstr "ldap_connection_expire_offset (heltal)"
+msgstr "ldap_connection_expire_offset"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3784
-#, fuzzy
-#| msgid "ldap_connection_expire_timeout (integer)"
 msgid "ldap_connection_idle_timeout"
-msgstr "ldap_connection_expire_timeout (heltal)"
+msgstr "ldap_connection_idle_timeout"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3787 sssd-ldap.5.xml:400
@@ -7004,6 +6993,13 @@ msgid ""
 "be closed immediately and will never be reused if "
 "<emphasis>ldap_connection_expire_timeout &lt;= ldap_opt_timout</emphasis>"
 msgstr ""
+"Om anslutningen är inaktiv (inte aktivt kör en åtgärd) under "
+"<emphasis>ldap_opt_timeout</emphasis> sekunders utgångstid, då kommer den "
+"att stängas i förväg för att säkerställa att en ny begäran inte kan kräva "
+"att förbindelsen skall hållas öppen utöver dess utgångstid. Detta implicerar "
+"att anslutningar alltid kommer stängas omedelbart och aldrig kommer "
+"återanvändas om <emphasis>ldap_connection_expire_timoute ≤ "
+"ldap_opt_timeout</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:577
@@ -7035,35 +7031,24 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:612
-#, fuzzy
-#| msgid "ldap_connection_expire_timeout (integer)"
 msgid "ldap_connection_idle_timeout (integer)"
-msgstr "ldap_connection_expire_timeout (heltal)"
+msgstr "ldap_connection_idle_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:615
-#, fuzzy
-#| msgid ""
-#| "Specifies a timeout (in seconds) that a connection to an LDAP server will "
-#| "be maintained. After this time, the connection will be re-established. If "
-#| "used in parallel with SASL/GSSAPI, the sooner of the two values (this "
-#| "value vs. the TGT lifetime)  will be used."
 msgid ""
 "Specifies a timeout (in seconds) that an idle connection to an LDAP server "
 "will be maintained.  If the connection is idle for more than this time then "
 "the connection will be closed."
 msgstr ""
-"Anger en tidsgräns (i sekunder) som en förbindelse med en LDAP-server kommer "
-"underhållas.  Efter den tiden kommer förbindelsen återetableras.  Om den "
-"används parallellt med SASL/GSSAPI kommer det tidigare av de två värdena "
-"(detta värde eller TGT-livslängden) användas."
+"Anger en tidsgräns (i sekunder) som en inaktiv förbindelse med en LDAP-"
+"server kommer underhållas. Om anslutningen är inaktiv längre än denna tid "
+"kommer förbindelsen att stängas."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:621
-#, fuzzy
-#| msgid "You can disable this offset by setting the value to 0."
 msgid "You can disable this timeout by setting the value to 0."
-msgstr "Man kan avaktivera denna fördröjning genom att sätta värdet till 0."
+msgstr "Man kan avaktivera denna tidsgräns genom att sätta värdet till 0."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:636
@@ -7772,11 +7757,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1193
-#, fuzzy
-#| msgid ""
-#| "<emphasis>shadow</emphasis> - Use <citerefentry><refentrytitle>shadow</"
-#| "refentrytitle> <manvolnum>5</manvolnum></citerefentry> style attributes "
-#| "to evaluate if the password has expired."
 msgid ""
 "<emphasis>shadow</emphasis> - Use <citerefentry><refentrytitle>shadow</"
 "refentrytitle> <manvolnum>5</manvolnum></citerefentry> style attributes to "
@@ -7784,8 +7764,9 @@ msgid ""
 "\"ldap_chpass_update_last_change\" as well."
 msgstr ""
 "<emphasis>shadow</emphasis> – Använd attribut i stilen "
-"<citerefentry><refentrytitle>shadow</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> för att utvärdera om lösenordet har gått ut."
+"<citerefentry><refentrytitle>shadow</refentrytitle> "
+"<manvolnum>5</manvolnum></citerefentry> för att utvärdera om lösenordet har "
+"gått ut. Se även alternativet ”ldap_chpass_update_last_change”."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1201
@@ -7904,6 +7885,10 @@ msgid ""
 "shadowLastChange LDAP attribute automatically after a password change or if "
 "SSSD has to update it."
 msgstr ""
+"Det rekommenderas att explicit sätta detta alternativ om ”ldap_pwd_policy = "
+"shadow” används för att låta SSSD veta om LDAP-servern kommer uppdatera LDAP-"
+"attributet shadowLastChange automatiskt efter en lösenordsändring eller om "
+"SSSD måste uppdatera det."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1299
@@ -10272,6 +10257,12 @@ msgid ""
 "the default type will be used which is 'KRB5' for the matching rules and "
 "'LDAP' for the mapping rules."
 msgstr ""
+"För att tillåta utökningar eller helt annorluda regelstil kan "
+"<quote>mapping</quote> och <quote>matching rules</quote> innehålla ett "
+"prefix separerat med ett ”:” från huvuddelen av regeln. Prefixet får bara "
+"innehålla versala ASCII-bokstäver och siffror. Om prefixet utelämnas kommer "
+"standardtypen användas vilken är ”KRB5” för matchningsregler och ”LDAP” för "
+"avbildningsregler."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss-certmap.5.xml:48
@@ -10280,6 +10271,9 @@ msgid ""
 "given certificate matches a matching rules and how the output of a mapping "
 "rule would look like."
 msgstr ""
+"Verktyget ”sssctl” tillhandahåller kommandot ”cert-eval-rule” för att "
+"kontrollera om ett givet certifikat stämmer med en matchningsregel och hur "
+"utdata från en avbildningsregel skulle se ut."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss-certmap.5.xml:55
@@ -10362,6 +10356,10 @@ msgid ""
 "quote> so that \"&lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN\" and \"KRB5:&lt;"
 "SUBJECT&gt;.*,DC=MY,DC=DOMAIN\" are equivalent."
 msgstr ""
+"Givet likheten med MIT Kerberos är typprefixet för denna regel ”KRB5”. Men "
+"”KRB5” kommer även vara standardvärdet för <quote>matching rules</quote> så "
+"att ”&lt;SUBJEKT&gt;.*,DC=MIN,DC=DOMÄN” och "
+"”KRB5:&lt;SUBJEKT&gt;.*,DC=MIN,DC=DOMÄN” är likvärdiga."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:99
@@ -10906,6 +10904,15 @@ msgid ""
 "fail with a parsing error. The new templates are described in section <xref "
 "linkend=\"map_ldapu1\"/>."
 msgstr ""
+"Standardtypen för <quote>mapping rule</quote> är ”LDAP” vilket kan läggas "
+"till som ett prefix till en regel som t.ex. "
+"”LDAP:(userCertificate;binary={cert!bin})”. Det finns en utökning som heter "
+"”LDAPU1” som erbjuder fler mallar för mer flexibilitet. För att tillåta "
+"äldre versioner av detta bibliotek att ignorera utökningen måste prefixet "
+"”LDAPU1” användas när de nya mallarna i en <quote>mapping rule</quote> "
+"används annars kommer den gamla versionen av biblioteket misslyckas med ett "
+"tolkningsfel. Den nya mallarna beskrivs i avsnittet <xref linkend="
+"\"map_ldapu1\"/>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:424
@@ -11267,17 +11274,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><title>
 #: sss-certmap.5.xml:639
 msgid "LDAPU1 extension"
-msgstr ""
+msgstr "LDAPU1-utvidgningen"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para>
 #: sss-certmap.5.xml:641
 msgid "The following template are available when using the 'LDAPU1' extension:"
-msgstr ""
+msgstr "Följande mall är tillgänglig när utökningen ”LDAPU1” används:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:647
 msgid "{serial_number[!(dec|hex[_ucr])]}"
-msgstr ""
+msgstr "{serial_number[!(dec|hex[_ucr])]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:650
@@ -11285,6 +11292,8 @@ msgid ""
 "This template will add the serial number of the certificate. By default it "
 "will be printed as a hexadecimal number with lower-case letters."
 msgstr ""
+"Denna mall kommer lägga till certifikatets serienummer. Som standard kommer "
+"det skrivas som ett hexadecimalt tal med gemena bokstäver."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:655
@@ -11296,18 +11305,22 @@ msgid ""
 "be combined so that e.g.  '!hex_uc' will produce a colon-separated "
 "hexadecimal string with upper-case letters."
 msgstr ""
+"Med formateringsalternativet ”!dec” kommer numret skrivas som en decimal "
+"sträng. Den exadecimala utdatan kan skrivas med versala bokstäver (”!hex_u”)"
+", med ett kolon som separator mellan hexadecimala byte (”!hex_c”) eller med "
+"de hexadecimala byten i omvänd ordning (”!hex_r”). Postfixbokstäverna kan "
+"kombineras så att t.ex. ”!hex_uc\" kommer producera en kolonseparerad "
+"hexadecimal sträng med versaler."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:665
-#, fuzzy
-#| msgid "Example: (uri={subject_uri})"
 msgid "Example: LDAPU1:(serial={serial_number})"
-msgstr "Exempel: (uri={subject_uri})"
+msgstr "Exempel: LDAPU1:(serial={serial_number})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:671
 msgid "{subject_key_id[!hex[_ucr]]}"
-msgstr ""
+msgstr "{subject_key_id[!hex[_ucr]]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:674
@@ -11315,6 +11328,8 @@ msgid ""
 "This template will add the subject key id of the certificate. By default it "
 "will be printed as a hexadecimal number with lower-case letters."
 msgstr ""
+"Denna mall kommer lägga till certifikatets subjektnyckel-id. Som standard "
+"kommer det skrivas som ett hexadecimalt tal med gemena bokstäver."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:679
@@ -11325,18 +11340,21 @@ msgid ""
 "combined so that e.g.  '!hex_uc' will produce a colon-separated hexadecimal "
 "string with upper-case letters."
 msgstr ""
+"Den hexadecimala utdatan kan skrivas med versala bokstäver (”!hex_u”), med "
+"ett kolon som separator mellan hexadecimala byte (”!hex_c”) eller med de "
+"hexadecimala byten i omvänd ordning (”!hex_r”). Postfixbokstäverna kan "
+"kombineras så att t.ex. ”!hex_uc\" kommer producera en kolonseparerad "
+"hexadecimal sträng med versaler."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:688
-#, fuzzy
-#| msgid "Example: (uri={subject_uri})"
 msgid "Example: LDAPU1:(ski={subject_key_id})"
-msgstr "Exempel: (uri={subject_uri})"
+msgstr "Exempel: LDAPU1:(ski={subject_key_id})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:694
 msgid "{cert[!DIGEST[_ucr]]}"
-msgstr ""
+msgstr "{cert[!KONTROLLSUMMA[_ucr]]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:697
@@ -11345,6 +11363,9 @@ msgid ""
 "DIGEST must be replaced with the name of a digest/hash function supported by "
 "OpenSSL, e.g. 'sha512'."
 msgstr ""
+"Denna mall kommer läga till certifikatets hexadecimala kontrollsumma/hash "
+"där KONTROLLSUMMA måste ersättas med namnet på en kontrollsumme-/hash-"
+"funktion som stödjs av OpenSSL, t.ex. ”sha512”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:703
@@ -11355,18 +11376,21 @@ msgid ""
 "combined so that e.g. '!sha512_uc' will produce a colon-separated "
 "hexadecimal string with upper-case letters."
 msgstr ""
+"Den hexadecimala utdatan kan skrivas med versala bokstäver (”!sha512_u”), "
+"med ett kolon som separator mellan hexadecimala byte (”!sha512_c”) eller med "
+"de hexadecimala byten i omvänd ordning (”!sha512_r”). Postfixbokstäverna kan "
+"kombineras så att t.ex. ”!sha512_uc\" kommer producera en kolonseparerad "
+"hexadecimal sträng med versaler."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:712
 msgid "Example: LDAPU1:(dgst={cert!sha256})"
-msgstr ""
+msgstr "Exempel: LDAPU1:(dgst={cert!sha256})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:718
-#, fuzzy
-#| msgid "{subject_dns_name[.short_name]}"
 msgid "{subject_dn_component[(.attr_name|[number]]}"
-msgstr "{subject_dns_name[.short_name]}"
+msgstr "{subject_dn_component[(.attr_name|[number]]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:721
@@ -11374,6 +11398,8 @@ msgid ""
 "This template will add an attribute value of a component of the subject DN, "
 "by default the value of the most specific component."
 msgstr ""
+"Denna mall kommer lägga till ett av komponentens attributvärden från subjekt-"
+"DN, som standard värdet på den mest specifika komponenten."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:726
@@ -11385,18 +11411,23 @@ msgid ""
 "name and the position can be combined as e.g.  {subject_dn_component.uid[2]} "
 "which means that the name of the second component must be 'uid'."
 msgstr ""
+"En annan komponent kan antingen väljas via attributnamnet, t.ex. "
+"{subject_dn_component.uid}  eller via position, t.ex. "
+"{subject_dn_component.[2]} där positiva tal börjar räknas från den mest "
+"specifika komponenten och negativa tal börjar räkna från den minst specifika "
+"komponenten Attributnamn och positionen kan kombineras, t.ex. "
+"{subject_dn_component.uid[2]} vilket betyder att namnet på den andra "
+"komponenten måste vara ”uid”."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:737
-#, fuzzy
-#| msgid "Example: (uri={subject_uri})"
 msgid "Example: LDAPU1:(uid={subject_dn_component.uid})"
-msgstr "Exempel: (uri={subject_uri})"
+msgstr "Exempel: LDAPU1:(uid={subject_dn_component.uid})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:743
 msgid "{issuer_dn_component[(.attr_name|[number]]}"
-msgstr ""
+msgstr "{issuer_dn_component[(.attr_namn|[tal]]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:746
@@ -11404,6 +11435,8 @@ msgid ""
 "This template will add an attribute value of a component of the issuer DN, "
 "by default the value of the most specific component."
 msgstr ""
+"Denna mall kommer lägga till ett av komponentens attributvärden från utgivar-"
+"DN, som standard värdet på den mest specifika komponenten."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:751
@@ -11411,6 +11444,8 @@ msgid ""
 "See 'subject_dn_component' for details about the attribute name and position "
 "specifiers."
 msgstr ""
+"Se ”subject_dn_component” för detaljer om attributnamn och "
+"positionsangivelser."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:755
@@ -11418,11 +11453,13 @@ msgid ""
 "Example: LDAPU1:(domain={issuer_dn_component.[-2]}.{issuer_dn_component."
 "dc[-1]})"
 msgstr ""
+"Exempel: LDAPU1:(domain={issuer_dn_component.[-2]}.{issuer_dn_component."
+"dc[-1]})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:760
 msgid "{sid[.rid]}"
-msgstr ""
+msgstr "{sid[.rid]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:763
@@ -11431,13 +11468,15 @@ msgid ""
 "Microsoft with the OID 1.3.6.1.4.1.311.25.2 is available. With the '.rid' "
 "selector only the last component, i.e. the RID, will be added."
 msgstr ""
+"Denna mall kommer lägga till SID:n om den motsvarande utökningen "
+"introducerad av Microsoft med OID 1.3.6.1.4.1.311.25.2 är tillgänglig. Med "
+"selektorn ”.rid” kommer endast den sista komponenten, d.v.s RID:n, att "
+"läggas till."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:770
-#, fuzzy
-#| msgid "Example: (oid={subject_registered_id})"
 msgid "Example: LDAPU1:(objectsid={sid})"
-msgstr "Exempel: (oid={subject_registered_id})"
+msgstr "Exempel: LDAPU1:(objectsid={sid})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss-certmap.5.xml:779
@@ -12784,17 +12823,13 @@ msgid ""
 "windows-server/identity/ad-ds/manage/understand-security-groups\"> Active "
 "Directory security groups</ulink>"
 msgstr ""
+"SSSD slår endast up Active Directory Security Groups. För mer information om "
+"AD-grupptyper se: <ulink url=\"https://docs.microsoft.com/en-us/"
+"windows-server/identity/ad-ds/manage/understand-security-groups\">Active "
+"Directory security grouips</ulink>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:120
-#, fuzzy
-#| msgid ""
-#| "If this option is set to <quote>true</quote> SSSD will not filter out "
-#| "Domain Local groups from remote domains in the AD forest. By default they "
-#| "are filtered out e.g. when following a nested group hierarchy in remote "
-#| "domains because they are not valid in the local domain. To be compatible "
-#| "with other solutions which make AD users and groups available on Linux "
-#| "client this option was added."
 msgid ""
 "SSSD filters out Domain Local groups from remote domains in the AD forest. "
 "By default they are filtered out e.g. when following a nested group "
@@ -12803,12 +12838,11 @@ msgid ""
 "assignment which can be seen in the PAC of the Kerberos ticket of a user "
 "issued by Active Directory."
 msgstr ""
-"Om detta alternativ är satt till <quote>sant</quote> kommer SSSD inte att "
-"filtrera ut domänlokala grupper från fjärrdomäner i AD-skogen. Som standard "
-"filtreras de ut t.ex. när man följer en nästad grupphierarki i fjärrdomäner "
-"för att de inte är giltiga i den lokala domänen. För att vara kompatibel med "
-"andra lösningar som gör AD-användare och -grupper tillgängliga i "
-"Linuxklienter lades detta alternativ till."
+"SSSD filtrerar ut domänlokala grupper från fjärrdomäner i AD-skogen. Som "
+"standard filtreras de ut t.ex. när man följer en nästad grupphierarki i "
+"fjärrdomäner för att de inte är giltiga i den lokala domänen. Detta görs för "
+"att stämma med Active Directorys gruppmedlemskapstilldelning vilken kan ses "
+"i Kerberosbiljettens PAC för en användare utgiven av Active Directory."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:138
@@ -15900,7 +15934,7 @@ msgid ""
 "Specifies if the user principal should be treated as enterprise principal. "
 "See section 5 of RFC 6806 for more details about enterprise principals."
 msgstr ""
-"Anger om användarens huvudman skall behandlas som företagshuvudman.  Se "
+"Anger om användarens huvudman skall behandlas som företagshuvudman. Se "
 "avsnitt 5 i RFC 6806 för mer detaljer om företagshuvudmän."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -18067,15 +18101,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-kcm.8.xml:191
-#, fuzzy, no-wrap
-#| msgid ""
-#| "krb5_renew_interval\n"
-#| "krb5_renew_lifetime\n"
-#| "krb5_lifetime\n"
-#| "krb5_validate\n"
-#| "krb5_canonicalize\n"
-#| "krb5_auth_timeout\n"
-#| "            "
+#, no-wrap
 msgid ""
 "krb5_renew_interval\n"
 "krb5_renewable_lifetime\n"
@@ -18086,7 +18112,7 @@ msgid ""
 "            "
 msgstr ""
 "krb5_renew_interval\n"
-"krb5_renew_lifetime\n"
+"krb5_renewable_lifetime\n"
 "krb5_lifetime\n"
 "krb5_validate\n"
 "krb5_canonicalize\n"
@@ -21226,17 +21252,13 @@ msgstr "Skaparauktoritet"
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:294
-#, fuzzy
-#| msgid "Creator Authority"
 msgid "Mandatory Label Authority"
-msgstr "Skaparauktoritet"
+msgstr "Tvingande etikettsauktoritet"
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:295
-#, fuzzy
-#| msgid "Authentication failure."
 msgid "Authentication Authority"
-msgstr "Autentiseringsfel."
+msgstr "Autentiseringsauktoritet"
 
 #. type: Content of: <refsect1><refsect2><para><itemizedlist><listitem><para>
 #: include/ldap_id_mapping.xml:296
@@ -21259,16 +21281,6 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:303
-#, fuzzy
-#| msgid ""
-#| "Since some utilities allow to modify SID based access control information "
-#| "with the help of a name instead of using the SID directly SSSD supports "
-#| "to look up the SID by the name as well. To avoid collisions only the "
-#| "fully qualified names can be used to look up Well-Known SIDs. As a result "
-#| "the domain names <quote>NULL AUTHORITY</quote>, <quote>WORLD AUTHORITY</"
-#| "quote>, <quote> LOCAL AUTHORITY</quote>, <quote>CREATOR AUTHORITY</"
-#| "quote>, <quote>NT AUTHORITY</quote> and <quote>BUILTIN</quote> should not "
-#| "be used as domain names in <filename>sssd.conf</filename>."
 msgid ""
 "Since some utilities allow to modify SID based access control information "
 "with the help of a name instead of using the SID directly SSSD supports to "
@@ -21282,11 +21294,12 @@ msgid ""
 msgstr ""
 "Eftersom några verktyg tillåter att man ändrar SID-baserad "
 "åtkomststyrningsinformation med hjälp av ett namn istället för att använda "
-"SID:en direkt stödjer SSSD uppslagning av SID:en med detta namn också.  För "
+"SID:en direkt stödjer SSSD uppslagning av SID:en med detta namn också. För "
 "att undvika kollisioner kan bara de fullständigt kvalificerade namnen "
-"användas för att slå upp välkända SID:er.  Som ett resultat skall "
-"domännamnen <quote>NULL AUTHORITY</quote>, <quote>WORLD AUTHORITY</quote>, "
-"<quote> LOCAL AUTHORITY</quote>, <quote>CREATOR AUTHORITY</quote>, <quote>NT "
+"användas för att slå upp välkända SID:er. Som ett resultat skall domännamnen "
+"<quote>NULL AUTHORITY</quote>, <quote>WORLD AUTHORITY</quote>, <quote>LOCAL "
+"AUTHORITY</quote>, <quote>CREATOR AUTHORITY</quote>,  <quote>MANDATORY LABEL "
+"AUTHORITY</quote>, <quote>AUTHENTICATION AUTHORITY</quote>, <quote>NT "
 "AUTHORITY</quote> och <quote>BUILTIN</quote> inte användas som domännamn i "
 "<filename>sssd.conf</filename>."
 
@@ -22128,18 +22141,11 @@ msgstr ""
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:29
-#, fuzzy
-#| msgid "Default: false (AD provider: true)"
 msgid "Default: false (IPA and AD provider: true)"
-msgstr "Standard: false (AD-leverantör: true)"
+msgstr "Standard: false (IPA- och AD-leverantör: true)"
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:32
-#, fuzzy
-#| msgid ""
-#| "Please refer to the <quote>dns_discovery_domain</quote> parameter in the "
-#| "<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-#| "manvolnum> </citerefentry> manual page for more details."
 msgid ""
 "Please note that the ticket validation is the first step when checking the "
 "PAC (see 'pac_check' in the <citerefentry> <refentrytitle>sssd.conf</"
@@ -22147,9 +22153,11 @@ msgid ""
 "details). If ticket validation is disabled the PAC checks will be skipped as "
 "well."
 msgstr ""
-"Se parametern <quote>dns_discovery_domain</quote> i manualsidan "
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> för fler detaljer."
+"Observera att biljettvalideringen är första steget vid kontroll av PAC:n (se "
+"”pac_check” i manualsidan <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> för detaljer). Om "
+"biljettvalideringen är avaktiverad kommer PAC-kontrollerna också att hoppas "
+"över."
 
 #. type: Content of: <variablelist><varlistentry><term>
 #: include/krb5_options.xml:44
