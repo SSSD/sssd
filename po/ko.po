@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-09 13:38+0100\n"
-"PO-Revision-Date: 2022-12-07 11:29+0000\n"
+"PO-Revision-Date: 2022-12-13 14:19+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-8/ko/>\n"
@@ -2415,15 +2415,15 @@ msgstr "캐쉬 향상을 수행합니다"
 
 #: src/tools/sssctl/sssctl.c:294
 msgid "Invalidate cached objects"
-msgstr "캐시된 오브젝트의 무효화"
+msgstr "캐쉬된 객체 무효화"
 
 #: src/tools/sssctl/sssctl.c:295
 msgid "Manage cache indexes"
-msgstr "캐시 인덱스 관리"
+msgstr "캐쉬 색인을 관리합니다"
 
 #: src/tools/sssctl/sssctl.c:296
 msgid "Log files tools:"
-msgstr "로그 파일 툴:"
+msgstr "기록 파일 도구:"
 
 #: src/tools/sssctl/sssctl.c:297
 msgid "Remove existing SSSD log files"
@@ -2439,27 +2439,27 @@ msgstr "SSSD 디버그 수준에 대한 정보 변경 또는 출력"
 
 #: src/tools/sssctl/sssctl.c:300
 msgid "Analyze logged data"
-msgstr "로깅된 데이터 분석"
+msgstr "로그인된 자료를 분석합니다"
 
 #: src/tools/sssctl/sssctl.c:302
 msgid "Configuration files tools:"
-msgstr "구성 파일 툴:"
+msgstr "구성 파일 도구:"
 
 #: src/tools/sssctl/sssctl.c:303
 msgid "Perform static analysis of SSSD configuration"
-msgstr "SSSD 구성에 대한 정적 분석 수행"
+msgstr "SSSD 구성의 통계 분석을 수행합니다"
 
 #: src/tools/sssctl/sssctl.c:305
 msgid "Certificate related tools:"
-msgstr "인증서 관련 툴:"
+msgstr "인증서 관련된 도구:"
 
 #: src/tools/sssctl/sssctl.c:306
 msgid "Print information about the certificate"
-msgstr "인증서에 대한 정보를 출력"
+msgstr "인증서에 대한 정보 출력"
 
 #: src/tools/sssctl/sssctl.c:307
 msgid "Show users mapped to the certificate"
-msgstr "인증서에 매핑된 사용자 표시"
+msgstr "인증서에 대응된 사용자 표시"
 
 #: src/tools/sssctl/sssctl.c:308
 msgid "Check mapping and matching rule with a certificate"
@@ -2528,7 +2528,7 @@ msgstr "그룹 ID로 검색"
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
 msgid "Show debug information"
-msgstr "디버그 정보 표시"
+msgstr "디버그 정보를 표시합니다"
 
 #: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
 #: src/tools/sssctl/sssctl_cert.c:223
@@ -2547,7 +2547,7 @@ msgstr " - 매핑된 사용자를 찾을 수 없음 -"
 
 #: src/tools/sssctl/sssctl_cert.c:215
 msgid "Mapping rule"
-msgstr "매핑 규칙"
+msgstr "맵핑 규칙"
 
 #: src/tools/sssctl/sssctl_cert.c:216
 msgid "Matching rule"
@@ -2555,7 +2555,7 @@ msgstr "일치 규칙"
 
 #: src/tools/sssctl/sssctl_cert.c:226
 msgid "Unable to parse command arguments\n"
-msgstr "명령 인자를 구문 분석 할 수 없습니다\n"
+msgstr "명령 인수를 구문 분석 할 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
@@ -2568,7 +2568,7 @@ msgstr "certmap 컨텍스트를 설정하지 못했습니다.\n"
 #: src/tools/sssctl/sssctl_cert.c:247
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
-msgstr "오류 [%d][%s]가 포함된 매핑 및 일치 규칙을 추가하지 못했습니다.\n"
+msgstr "오류 [%d][%s]와 함께 매핑 및 일치 규칙을 추가하지 못했습니다.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
 msgid "Failed to decode base64 string.\n"
