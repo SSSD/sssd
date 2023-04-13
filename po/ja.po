@@ -6,7 +6,7 @@
 # Tomoyuki KATO <tomo@dream.daynight.jp>, 2012-2013
 # Noriko Mizumoto <noriko.mizumoto@gmail.com>, 2016. #zanata
 # Keiko Moriguchi <kemorigu@redhat.com>, 2019. #zanata
-# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022.
+# Ludek Janda <ljanda@redhat.com>, 2020. #zanata, 2021, 2022, 2023.
 # Pavel Brezina <pbrezina@redhat.com>, 2020. #zanata
 # Sundeep Anand <suanand@redhat.com>, 2021.
 # Transtats <suanand@redhat.com>, 2022.
@@ -15,7 +15,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-09 13:35+0100\n"
-"PO-Revision-Date: 2022-12-08 08:19+0000\n"
+"PO-Revision-Date: 2023-03-02 09:20+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ja/>\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.2\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2390,133 +2390,119 @@ msgstr "SSSD は再起動が必要です。SSSD を今、再起動しますか?"
 
 #: src/tools/sssctl/sssctl.c:304
 msgid "SSSD Status:"
-msgstr ""
+msgstr "SSSD ステータス:"
 
 #: src/tools/sssctl/sssctl.c:305
-#, fuzzy
 msgid "List available domains"
-msgstr "利用可能なドメインを開けませんでした\n"
+msgstr "利用可能なドメインを一覧表示します"
 
 #: src/tools/sssctl/sssctl.c:306
-#, fuzzy
 msgid "Print information about domain"
-msgstr "アクティブサーバーに関する情報の表示"
+msgstr "ドメイン情報を出力します"
 
 #: src/tools/sssctl/sssctl.c:307
 msgid "Print information about a user and check authentication"
-msgstr ""
+msgstr "ユーザーに関する情報を出力し、認証を確認します"
 
 #: src/tools/sssctl/sssctl.c:308
 msgid "Generate access report for a domain"
-msgstr ""
+msgstr "ドメインのアクセスレポートを生成します"
 
 #: src/tools/sssctl/sssctl.c:309
-#, fuzzy
 msgid "Information about cached content:"
-msgstr "アクティブサーバーに関する情報の表示"
+msgstr "キャッシュされたコンテンツの情報:"
 
 #: src/tools/sssctl/sssctl.c:310
-#, fuzzy
 msgid "Information about cached user"
-msgstr "アクティブサーバーに関する情報の表示"
+msgstr "キャッシュされたユーザーの情報"
 
 #: src/tools/sssctl/sssctl.c:311
-#, fuzzy
 msgid "Information about cached group"
-msgstr "アクティブサーバーに関する情報の表示"
+msgstr "キャッシュされたグループの情報"
 
 #: src/tools/sssctl/sssctl.c:312
-#, fuzzy
 msgid "Information about cached netgroup"
-msgstr "アクティブサーバーに関する情報の表示"
+msgstr "キャッシュされた netgroup の情報"
 
 #: src/tools/sssctl/sssctl.c:313
 msgid "Local data tools:"
-msgstr ""
+msgstr "ローカルデータツール:"
 
 #: src/tools/sssctl/sssctl.c:314
-#, fuzzy
 msgid "Backup local data"
-msgstr "ローカルデータのバックアップを作成中...\n"
+msgstr "ローカルデータのバックアップ"
 
 #: src/tools/sssctl/sssctl.c:315
-#, fuzzy
 msgid "Restore local data from backup"
-msgstr "ローカルデータの復元中...\n"
+msgstr "バックアップからローカルデータを復元"
 
 #: src/tools/sssctl/sssctl.c:316
 msgid "Backup local data and remove cached content"
-msgstr ""
+msgstr "ローカルデータのバックアップとキャッシュされたコンテンツの削除"
 
 #: src/tools/sssctl/sssctl.c:317
 msgid "Perform cache upgrade"
-msgstr ""
+msgstr "キャッシュアップグレードの実行"
 
 #: src/tools/sssctl/sssctl.c:318
-#, fuzzy
 msgid "Invalidate cached objects"
-msgstr "すべてのキャッシュエントリーを無効化します"
+msgstr "キャッシュされたオブジェクトの無効化"
 
 #: src/tools/sssctl/sssctl.c:319
 msgid "Manage cache indexes"
-msgstr ""
+msgstr "キャッシュインデックスの管理"
 
 #: src/tools/sssctl/sssctl.c:320
 msgid "Log files tools:"
-msgstr ""
+msgstr "ログファイルツール:"
 
 #: src/tools/sssctl/sssctl.c:321
-#, fuzzy
 msgid "Remove existing SSSD log files"
-msgstr "ログファイルを削除中...\n"
+msgstr "既存 SSSD ログファイルの削除"
 
 #: src/tools/sssctl/sssctl.c:322
-#, fuzzy
 msgid "Archive SSSD log files in tarball"
-msgstr "ログファイルを %s へアーカイブ中...\n"
+msgstr "tarball で SSSD ログファイルをアーカイブ"
 
 #: src/tools/sssctl/sssctl.c:323
-#, fuzzy
 msgid "Change or print information about SSSD debug level"
-msgstr "アクティブサーバーに関する情報の表示"
+msgstr "SSSD デバッグレベル情報の変更または出力"
 
 #: src/tools/sssctl/sssctl.c:324
 msgid "Analyze logged data"
-msgstr ""
+msgstr "ログデータの分析"
 
 #: src/tools/sssctl/sssctl.c:326
 msgid "Configuration files tools:"
-msgstr ""
+msgstr "設定ファイルツール:"
 
 #: src/tools/sssctl/sssctl.c:327
 msgid "Perform static analysis of SSSD configuration"
-msgstr ""
+msgstr "SSSD 設定の静的分析を実行"
 
 #: src/tools/sssctl/sssctl.c:329
 msgid "Certificate related tools:"
-msgstr ""
+msgstr "証明書関連ツール:"
 
 #: src/tools/sssctl/sssctl.c:330
-#, fuzzy
 msgid "Print information about the certificate"
-msgstr "アクティブサーバーに関する情報の表示"
+msgstr "証明書の情報を出力"
 
 #: src/tools/sssctl/sssctl.c:331
-#, fuzzy
 msgid "Show users mapped to the certificate"
-msgstr "信頼された CA 証明書のストレージへのパス"
+msgstr "証明書にマッピングされたユーザーの表示"
 
 #: src/tools/sssctl/sssctl.c:332
 msgid "Check mapping and matching rule with a certificate"
-msgstr ""
+msgstr "証明書によるマッピングおよびマッチングルールの確認"
 
 #: src/tools/sssctl/sssctl.c:334
 msgid "Passkey related tools:"
-msgstr ""
+msgstr "パスキー関連のツール:"
 
 #: src/tools/sssctl/sssctl.c:335
 msgid "Perform passkey related operations"
-msgstr ""
+msgstr "パスキー関連の操作を実行します"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2581,12 +2567,12 @@ msgstr "グループ ID で検索"
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
 msgid "Show debug information"
-msgstr ""
+msgstr "デバッグ情報の表示"
 
 #: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
 #: src/tools/sssctl/sssctl_cert.c:223
 msgid "Specify base64 encoded certificate."
-msgstr ""
+msgstr "base64 でエンコードされた証明書を指定します。"
 
 #: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
 #: src/tools/sssctl/sssctl_domains.c:368
@@ -2596,20 +2582,19 @@ msgstr "システムバスに接続できません。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:166
 msgid " - no mapped users found -"
-msgstr ""
+msgstr " - マッピングされたユーザーが見つかりません -"
 
 #: src/tools/sssctl/sssctl_cert.c:215
 msgid "Mapping rule"
-msgstr ""
+msgstr "マッピングルール"
 
 #: src/tools/sssctl/sssctl_cert.c:216
 msgid "Matching rule"
-msgstr ""
+msgstr "マッチングルール"
 
 #: src/tools/sssctl/sssctl_cert.c:226
-#, fuzzy
 msgid "Unable to parse command arguments\n"
-msgstr "名前 %s を構文解析できません。\n"
+msgstr "コマンド引数を解析できません\n"
 
 #: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
@@ -2617,35 +2602,35 @@ msgstr "メモリーの空き容量がありません。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:241
 msgid "Failed to setup certmap context.\n"
-msgstr ""
+msgstr "certmap コンテキストの設定に失敗しました。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:247
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
-msgstr ""
+msgstr "エラー [%d][%s] "
+"により、マッピングおよびマッチングルールを追加できませんでした。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "%s を開くことに失敗しました\n"
+msgstr "base64 文字列のデコードに失敗しました。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate matches rule.\n"
-msgstr ""
+msgstr "証明書はルールと一致します。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:265
 msgid "Certificate does not match rule.\n"
-msgstr ""
+msgstr "証明書はルールに一致しません。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:268
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr ""
+msgstr "証明書照会時のエラー [%d][%s]。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:275
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
-msgstr ""
+msgstr "マッピングフィルターを生成できませんでした [%d][%s]。\n"
 
 #: src/tools/sssctl/sssctl_cert.c:279
 #, c-format
@@ -2655,6 +2640,10 @@ msgid ""
 "    %s\n"
 "\n"
 msgstr ""
+"マッピングフィルター:\n"
+"\n"
+"    %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""

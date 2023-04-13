@@ -13,7 +13,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-09 13:35+0100\n"
-"PO-Revision-Date: 2022-10-11 11:19+0000\n"
+"PO-Revision-Date: 2022-12-14 19:20+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ru/>\n"
@@ -21,9 +21,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.14.1\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.14.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2502,133 +2502,119 @@ msgstr "Необходимо перезапустить SSSD. Сделать э�
 
 #: src/tools/sssctl/sssctl.c:304
 msgid "SSSD Status:"
-msgstr ""
+msgstr "Состояние SSSD:"
 
 #: src/tools/sssctl/sssctl.c:305
-#, fuzzy
 msgid "List available domains"
-msgstr "Не удалось открыть доступные домены\n"
+msgstr "Список доступных доменов"
 
 #: src/tools/sssctl/sssctl.c:306
-#, fuzzy
 msgid "Print information about domain"
-msgstr "Показать информацию об активном сервере"
+msgstr "Показать информацию о домене"
 
 #: src/tools/sssctl/sssctl.c:307
 msgid "Print information about a user and check authentication"
-msgstr ""
+msgstr "Показать информацию о пользователе и проверить аутентификацию"
 
 #: src/tools/sssctl/sssctl.c:308
 msgid "Generate access report for a domain"
-msgstr ""
+msgstr "Создать отчет о доступе к домену"
 
 #: src/tools/sssctl/sssctl.c:309
-#, fuzzy
 msgid "Information about cached content:"
-msgstr "Показать информацию об активном сервере"
+msgstr "Сведения о кэшированных данных:"
 
 #: src/tools/sssctl/sssctl.c:310
-#, fuzzy
 msgid "Information about cached user"
-msgstr "Показать информацию об активном сервере"
+msgstr "Сведения о кэшированном пользователе"
 
 #: src/tools/sssctl/sssctl.c:311
-#, fuzzy
 msgid "Information about cached group"
-msgstr "Показать информацию об активном сервере"
+msgstr "Сведения о кэшированной группе"
 
 #: src/tools/sssctl/sssctl.c:312
-#, fuzzy
 msgid "Information about cached netgroup"
-msgstr "Показать информацию об активном сервере"
+msgstr "Сведения о кэшированной сетевой группе"
 
 #: src/tools/sssctl/sssctl.c:313
 msgid "Local data tools:"
-msgstr ""
+msgstr "Инструменты для работы с локальными данными:"
 
 #: src/tools/sssctl/sssctl.c:314
-#, fuzzy
 msgid "Backup local data"
-msgstr "Создание резервной копии локальных данных...\n"
+msgstr "Создать резервную копию локальных данных"
 
 #: src/tools/sssctl/sssctl.c:315
-#, fuzzy
 msgid "Restore local data from backup"
-msgstr "Восстановление локальных данных...\n"
+msgstr "Восстановить локальные данные из резервной копии"
 
 #: src/tools/sssctl/sssctl.c:316
 msgid "Backup local data and remove cached content"
-msgstr ""
+msgstr "Создать резервную копию локальных данных и удалить кэшированные данные"
 
 #: src/tools/sssctl/sssctl.c:317
 msgid "Perform cache upgrade"
-msgstr ""
+msgstr "Выполнить обновление кэша"
 
 #: src/tools/sssctl/sssctl.c:318
-#, fuzzy
 msgid "Invalidate cached objects"
-msgstr "Объявить недействительными все кэшированные записи"
+msgstr "Аннулировать все кэшированные объекты"
 
 #: src/tools/sssctl/sssctl.c:319
 msgid "Manage cache indexes"
-msgstr ""
+msgstr "Управление индексами кэша"
 
 #: src/tools/sssctl/sssctl.c:320
 msgid "Log files tools:"
-msgstr ""
+msgstr "Инструменты файлов журнала:"
 
 #: src/tools/sssctl/sssctl.c:321
-#, fuzzy
 msgid "Remove existing SSSD log files"
-msgstr "Удаление файлов журнала...\n"
+msgstr "Удалить существующие файлы журнала SSSD"
 
 #: src/tools/sssctl/sssctl.c:322
-#, fuzzy
 msgid "Archive SSSD log files in tarball"
-msgstr "Архивация файлов журнала в %s...\n"
+msgstr "Архивировать файлы журналов SSSD в архив tar"
 
 #: src/tools/sssctl/sssctl.c:323
-#, fuzzy
 msgid "Change or print information about SSSD debug level"
-msgstr "Показать информацию об активном сервере"
+msgstr "Изменить или вывести информацию об уровне отладки SSSD"
 
 #: src/tools/sssctl/sssctl.c:324
 msgid "Analyze logged data"
-msgstr ""
+msgstr "Анализ записанных в журнал данных"
 
 #: src/tools/sssctl/sssctl.c:326
 msgid "Configuration files tools:"
-msgstr ""
+msgstr "Инструменты файлов конфигурации:"
 
 #: src/tools/sssctl/sssctl.c:327
 msgid "Perform static analysis of SSSD configuration"
-msgstr ""
+msgstr "Выполнить статический анализ конфигурации SSSD"
 
 #: src/tools/sssctl/sssctl.c:329
 msgid "Certificate related tools:"
-msgstr ""
+msgstr "Инструменты, связанные с сертификатом:"
 
 #: src/tools/sssctl/sssctl.c:330
-#, fuzzy
 msgid "Print information about the certificate"
-msgstr "Показать информацию об активном сервере"
+msgstr "Показать информацию о сертификате"
 
 #: src/tools/sssctl/sssctl.c:331
-#, fuzzy
 msgid "Show users mapped to the certificate"
-msgstr "Путь к хранилищу доверенных сертификатов CA"
+msgstr "Показать пользователей, сопоставленных с сертификатом"
 
 #: src/tools/sssctl/sssctl.c:332
 msgid "Check mapping and matching rule with a certificate"
-msgstr ""
+msgstr "Проверить соответствие и правило сопоставления с помощью сертификата"
 
 #: src/tools/sssctl/sssctl.c:334
 msgid "Passkey related tools:"
-msgstr ""
+msgstr "Инструменты, связанные с ключом:"
 
 #: src/tools/sssctl/sssctl.c:335
 msgid "Perform passkey related operations"
-msgstr ""
+msgstr "Выполнить связанные с ключом действия"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2693,12 +2679,12 @@ msgstr "Поиск по ID группы"
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
 msgid "Show debug information"
-msgstr ""
+msgstr "Показать отладочную информацию"
 
 #: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
 #: src/tools/sssctl/sssctl_cert.c:223
 msgid "Specify base64 encoded certificate."
-msgstr ""
+msgstr "Укажите сертификат в кодировке base64."
 
 #: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
 #: src/tools/sssctl/sssctl_domains.c:368
@@ -2708,20 +2694,19 @@ msgstr "Не удалось подключиться к системной ши�
 
 #: src/tools/sssctl/sssctl_cert.c:166
 msgid " - no mapped users found -"
-msgstr ""
+msgstr " - сопоставленные пользователи не найдены -"
 
 #: src/tools/sssctl/sssctl_cert.c:215
 msgid "Mapping rule"
-msgstr ""
+msgstr "Правило сопоставления"
 
 #: src/tools/sssctl/sssctl_cert.c:216
 msgid "Matching rule"
-msgstr ""
+msgstr "Правило соответствия"
 
 #: src/tools/sssctl/sssctl_cert.c:226
-#, fuzzy
 msgid "Unable to parse command arguments\n"
-msgstr "Не удалось разобрать имя %s.\n"
+msgstr "Не удалось разобрать аргументы команды\n"
 
 #: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
@@ -2729,35 +2714,36 @@ msgstr "Недостаточно памяти!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:241
 msgid "Failed to setup certmap context.\n"
-msgstr ""
+msgstr "Не удалось настроить контекст привязки сертификатов.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:247
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
+"Не удалось добавить правила сопоставления и соответствия из-за ошибки "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "Не удалось открыть %s\n"
+msgstr "Не удалось декодировать строку base64.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate matches rule.\n"
-msgstr ""
+msgstr "Сертификат соответствует правилу.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:265
 msgid "Certificate does not match rule.\n"
-msgstr ""
+msgstr "Сертификат не соответствует правилу.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:268
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr ""
+msgstr "Ошибка при попытке установить соответствие сертификата [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:275
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
-msgstr ""
+msgstr "Не удалось создать фильтр сопоставления [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:279
 #, c-format
@@ -2767,6 +2753,10 @@ msgid ""
 "    %s\n"
 "\n"
 msgstr ""
+"Фильтр сопоставления:\n"
+"\n"
+"    %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""

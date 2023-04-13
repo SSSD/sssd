@@ -5,13 +5,13 @@
 # Translators:
 # Necdet Yücel <necdetyucel@gmail.com>, 2012
 # Oğuz Ersen <oguzersen@protonmail.com>, 2021.
-# Kemal Oktay Aktoğan <oktay@e.email>, 2022.
+# Kemal Oktay Aktoğan <oktay@e.email>, 2022, 2023.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-09 13:35+0100\n"
-"PO-Revision-Date: 2022-07-22 07:19+0000\n"
+"PO-Revision-Date: 2023-04-13 13:20+0000\n"
 "Last-Translator: Kemal Oktay Aktoğan <oktay@e.email>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/tr/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n>1);\n"
-"X-Generator: Weblate 4.13\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2473,133 +2473,120 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl.c:304
 msgid "SSSD Status:"
-msgstr ""
+msgstr "SSSD Durumu:"
 
 #: src/tools/sssctl/sssctl.c:305
-#, fuzzy
 msgid "List available domains"
-msgstr "Kullanılabilir etki alanları açılamadı\n"
+msgstr "Kullanılabilir etki alanlarını listeleyin"
 
 #: src/tools/sssctl/sssctl.c:306
-#, fuzzy
 msgid "Print information about domain"
-msgstr "Etkin sunucu hakkında bilgi göster"
+msgstr "Etki alanı hakkında yazdırma bilgileri"
 
 #: src/tools/sssctl/sssctl.c:307
 msgid "Print information about a user and check authentication"
 msgstr ""
+"Bir kullanıcı hakkında bilgi yazdırın ve kimlik doğrulamasını denetleyin"
 
 #: src/tools/sssctl/sssctl.c:308
 msgid "Generate access report for a domain"
-msgstr ""
+msgstr "Bir etki alanı için erişim raporu oluştur"
 
 #: src/tools/sssctl/sssctl.c:309
-#, fuzzy
 msgid "Information about cached content:"
-msgstr "Etkin sunucu hakkında bilgi göster"
+msgstr "Etkin sunucu hakkında bilgi göster:"
 
 #: src/tools/sssctl/sssctl.c:310
-#, fuzzy
 msgid "Information about cached user"
-msgstr "Etkin sunucu hakkında bilgi göster"
+msgstr "Önbelleğe alınan kullanıcı hakkında bilgi"
 
 #: src/tools/sssctl/sssctl.c:311
-#, fuzzy
 msgid "Information about cached group"
-msgstr "Etkin sunucu hakkında bilgi göster"
+msgstr "Önbelleğe alınan grup hakkında bilgi"
 
 #: src/tools/sssctl/sssctl.c:312
-#, fuzzy
 msgid "Information about cached netgroup"
-msgstr "Etkin sunucu hakkında bilgi göster"
+msgstr "Önbelleğe alınmış ağ grubu hakkında bilgi"
 
 #: src/tools/sssctl/sssctl.c:313
 msgid "Local data tools:"
-msgstr ""
+msgstr "Yerel veri araçları:"
 
 #: src/tools/sssctl/sssctl.c:314
-#, fuzzy
 msgid "Backup local data"
-msgstr "Yerel verilerin yedeği oluşturuluyor...\n"
+msgstr "Yerel verileri yedekle"
 
 #: src/tools/sssctl/sssctl.c:315
-#, fuzzy
 msgid "Restore local data from backup"
-msgstr "Yerel veriler geri yükleniyor...\n"
+msgstr "Yerel verileri yedekten geri yükleyin"
 
 #: src/tools/sssctl/sssctl.c:316
 msgid "Backup local data and remove cached content"
-msgstr ""
+msgstr "Yerel verileri yedekleyin ve önbelleğe alınmış içeriği kaldırın"
 
 #: src/tools/sssctl/sssctl.c:317
 msgid "Perform cache upgrade"
-msgstr ""
+msgstr "Önbellek yükseltmesi gerçekleştirin"
 
 #: src/tools/sssctl/sssctl.c:318
-#, fuzzy
 msgid "Invalidate cached objects"
-msgstr "Tüm önbelleğe alınmış girdileri geçersiz kıl"
+msgstr "Önbelleğe alınmış nesneleri geçersiz kıl"
 
 #: src/tools/sssctl/sssctl.c:319
 msgid "Manage cache indexes"
-msgstr ""
+msgstr "Önbellek dizinlerini yönet"
 
 #: src/tools/sssctl/sssctl.c:320
 msgid "Log files tools:"
-msgstr ""
+msgstr "Günlük dosyaları araçları:"
 
 #: src/tools/sssctl/sssctl.c:321
-#, fuzzy
 msgid "Remove existing SSSD log files"
-msgstr "Günlük dosyaları siliniyor...\n"
+msgstr "Mevcut SSSD günlük dosyalarını kaldırın"
 
 #: src/tools/sssctl/sssctl.c:322
-#, fuzzy
 msgid "Archive SSSD log files in tarball"
-msgstr "Günlük dosyaları %s içine arşivleniyor...\n"
+msgstr "SSSD günlük dosyalarını tarball'da arşivleyin"
 
 #: src/tools/sssctl/sssctl.c:323
-#, fuzzy
 msgid "Change or print information about SSSD debug level"
-msgstr "Etkin sunucu hakkında bilgi göster"
+msgstr "SSSD hata ayıklama düzeyiyle ilgili bilgileri değiştirin veya yazdırın"
 
 #: src/tools/sssctl/sssctl.c:324
 msgid "Analyze logged data"
-msgstr ""
+msgstr "Günlüğe kaydedilen verileri inceleyin"
 
 #: src/tools/sssctl/sssctl.c:326
 msgid "Configuration files tools:"
-msgstr ""
+msgstr "Yapılandırma dosyaları araçları:"
 
 #: src/tools/sssctl/sssctl.c:327
 msgid "Perform static analysis of SSSD configuration"
-msgstr ""
+msgstr "SSSD yapılandırmasının sabit incelemesini gerçekleştirin"
 
 #: src/tools/sssctl/sssctl.c:329
 msgid "Certificate related tools:"
-msgstr ""
+msgstr "Sertifikayla ilgili araçlar:"
 
 #: src/tools/sssctl/sssctl.c:330
-#, fuzzy
 msgid "Print information about the certificate"
-msgstr "Etkin sunucu hakkında bilgi göster"
+msgstr "Sertifikayla ilgili bilgileri yazdırın"
 
 #: src/tools/sssctl/sssctl.c:331
-#, fuzzy
 msgid "Show users mapped to the certificate"
-msgstr "Güvenilir CA sertifikalarının depolanmasına giden yol"
+msgstr "Sertifikayla eşlenen kullanıcıları göster"
 
 #: src/tools/sssctl/sssctl.c:332
 msgid "Check mapping and matching rule with a certificate"
-msgstr ""
+msgstr "Eşleme ve eşleştirme kuralını bir sertifikayla denetleyin"
 
 #: src/tools/sssctl/sssctl.c:334
 msgid "Passkey related tools:"
-msgstr ""
+msgstr "Geçiş anahtarıyla ilgili araçlar:"
 
 #: src/tools/sssctl/sssctl.c:335
 msgid "Perform passkey related operations"
-msgstr ""
+msgstr "Geçiş anahtarıyla ilgili işlemleri gerçekleştirin"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2638,7 +2625,7 @@ msgstr "%s: [%d] değeri okunamıyor: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:566
 msgid "Specify name."
-msgstr "Adı belirtin."
+msgstr "İsim belirtin."
 
 #: src/tools/sssctl/sssctl_cache.c:576
 #, c-format
@@ -2664,12 +2651,12 @@ msgstr "Grup kimliğine göre ara"
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
 msgid "Show debug information"
-msgstr ""
+msgstr "Hata ayıklama bilgilerini göster"
 
 #: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
 #: src/tools/sssctl/sssctl_cert.c:223
 msgid "Specify base64 encoded certificate."
-msgstr ""
+msgstr "base64 kodlu sertifikayı belirtin."
 
 #: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
 #: src/tools/sssctl/sssctl_domains.c:368
@@ -2679,20 +2666,19 @@ msgstr "Sistem veriyoluna bağlanılamıyor!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:166
 msgid " - no mapped users found -"
-msgstr ""
+msgstr " - eşlenen kullanıcı bulunamadı -"
 
 #: src/tools/sssctl/sssctl_cert.c:215
 msgid "Mapping rule"
-msgstr ""
+msgstr "eşleme kuralı"
 
 #: src/tools/sssctl/sssctl_cert.c:216
 msgid "Matching rule"
-msgstr ""
+msgstr "Eşleştirme kuralı"
 
 #: src/tools/sssctl/sssctl_cert.c:226
-#, fuzzy
 msgid "Unable to parse command arguments\n"
-msgstr "%s adı ayrıştırılamıyor.\n"
+msgstr "Komut bağımsız değişkenleri ayrıştırılamıyor\n"
 
 #: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
@@ -2700,35 +2686,34 @@ msgstr "Yetersiz bellek!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:241
 msgid "Failed to setup certmap context.\n"
-msgstr ""
+msgstr "Sertifika eşlemesi bağlamı ayarlanamadı.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:247
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
-msgstr ""
+msgstr "[%d][%s] hatasıyla eşleme ve eşleştirme kuralları eklenemedi.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "%s açılamadı\n"
+msgstr "base64 dizesinin kodu çözülemedi.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate matches rule.\n"
-msgstr ""
+msgstr "Sertifika kuralıyla eşleşir.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:265
 msgid "Certificate does not match rule.\n"
-msgstr ""
+msgstr "Sertifika kuralla eşleşmiyor.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:268
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr ""
+msgstr "[%d][%s] ile eşleşen sertifika sırasında hata oluştu.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:275
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
-msgstr ""
+msgstr "[%d][%s] eşleme süzgeci oluşturulamadı.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:279
 #, c-format
@@ -2738,6 +2723,10 @@ msgid ""
 "    %s\n"
 "\n"
 msgstr ""
+"Eşleme süzgeci:\n"
+"\n"
+"    %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""
@@ -2876,22 +2865,22 @@ msgstr "Yerel veriler geri yükleniyor...\n"
 #: src/tools/sssctl/sssctl_data.c:415
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
-msgstr ""
+msgstr "%1$s etki alanı için önbellek dizini oluşturuluyor\n"
 
 #: src/tools/sssctl/sssctl_data.c:417
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
-msgstr ""
+msgstr "%1$s etki alanı için önbellek dizini siliniyor\n"
 
 #: src/tools/sssctl/sssctl_data.c:419
 #, c-format
 msgid "Indexes for domain %1$s:\n"
-msgstr ""
+msgstr "%1$s etki alanı için dizinler:\n"
 
 #: src/tools/sssctl/sssctl_data.c:439
 #, c-format
 msgid "  Attribute: %1$s\n"
-msgstr ""
+msgstr "  Öznitelik: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
 msgid "Target a specific domain"
@@ -2903,17 +2892,15 @@ msgstr "etki alanı"
 
 #: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute to index"
-msgstr ""
+msgstr "Dizine öznitelik"
 
 #: src/tools/sssctl/sssctl_data.c:469
-#, fuzzy
 msgid "attribute"
-msgstr "UID özniteliği"
+msgstr "öznitelik"
 
 #: src/tools/sssctl/sssctl_data.c:482
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "Kimlik doğrulama sağlayıcısı"
+msgstr "İşlem sağlanmadı\n"
 
 #: src/tools/sssctl/sssctl_data.c:495
 #, c-format
@@ -2921,29 +2908,31 @@ msgid ""
 "Unknown action: %1$s\n"
 "Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
 msgstr ""
+"Bilinmeyen işlem: %1$s\n"
+"Geçerli eylemler: \"%2$s\", \"%3$s ve \"%4$s\"\n"
 
 #: src/tools/sssctl/sssctl_data.c:503
 msgid "Attribute (-a) not provided\n"
-msgstr ""
+msgstr "Öznitelik (-a) sağlanmadı\n"
 
 #: src/tools/sssctl/sssctl_data.c:511
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
-msgstr ""
+msgstr "%1$s özniteliği dizine eklenmedi.\n"
 
 #: src/tools/sssctl/sssctl_data.c:514
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
-msgstr ""
+msgstr "%1$s özelliği zaten dizine eklendi.\n"
 
 #: src/tools/sssctl/sssctl_data.c:517
-#, fuzzy, c-format
+#, c-format
 msgid "Index operation failed: %1$s\n"
-msgstr "pam_get_item başarısız oldu: %s\n"
+msgstr "Dizin işlemi başarısız oldu: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:522
 msgid "Don't forget to also update the indexes on the remote providers.\n"
-msgstr ""
+msgstr "Uzak sağlayıcılardaki dizinleri de güncellemeyi unutmayın.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"

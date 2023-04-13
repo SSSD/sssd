@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-12-09 13:34+0100\n"
-"PO-Revision-Date: 2022-10-11 11:19+0000\n"
+"PO-Revision-Date: 2022-12-14 19:20+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ru/>\n"
@@ -17,9 +17,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.14.1\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 4.14.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -1008,7 +1008,7 @@ msgid ""
 msgstr ""
 "Изменения состояния SSSD, вызванные событиями netlink, могут быть "
 "нежелательными. Чтобы их отключить, установите этот параметр в значение "
-"«true»."
+"«true»"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:630
@@ -1154,7 +1154,7 @@ msgstr ""
 "В этом разделе приводится описание параметров, которые можно использовать "
 "для настройки различных служб. Они должны находится в разделах с именами "
 "[<replaceable>$NAME</replaceable>]. Например, для службы NSS это будет "
-"раздел <quote>[nss]</quote>."
+"раздел <quote>[nss]</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:741
@@ -3397,7 +3397,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2294
 msgid "check_upn_allow_missing"
-msgstr ""
+msgstr "check_upn_allow_missing"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2296
@@ -3410,6 +3410,14 @@ msgid ""
 "time and FreeIPA can handle enterprise principals just fine and there is no "
 "need anymore to set 'ldap_user_principal'."
 msgstr ""
+"Этот параметр следует использовать вместе с 'check_upn' и он обрабатывает "
+"случай, когда для UPN установлено значение на стороне сервера, но не "
+"читается SSSD. Типичным примером является домен FreeIPA, в котором для "
+"'ldap_user_principal' установлено название не существующего атрибута. Обычно "
+"это делалось для обхода проблем при обработке корпоративных регистрационных "
+"записей. Но это исправлено довольно давно, и FreeIPA может обрабатывать "
+"корпоративные регистрационные записи, поэтому больше нет необходимости "
+"устанавливать 'ldap_user_principal'."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2308
@@ -3421,6 +3429,12 @@ msgid ""
 "can be removed.  If this is not possible, removing 'check_upn' will skip the "
 "test and avoid the log message."
 msgstr ""
+"В настоящее время этот параметр установлен по умолчанию, чтобы избежать "
+"регрессии в подобных средах. В системный журнал и журнал отладки SSSD будет "
+"добавлено сообщение в случае обнаружения UPN в PAC, но не в кэше SSSD. Чтобы "
+"избежать появления такого сообщения, проверьте, можно ли удалить параметр "
+"'ldap_user_principal'. Если это невозможно, удаление 'check_upn' приведет к "
+"пропуску проверки и сообщение не появится в журнале."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2322
@@ -3473,15 +3487,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2350
-#, fuzzy
-#| msgid ""
-#| "Default: no_check (AD and IPA provider 'check_upn, check_upn_dns_info_ex')"
 msgid ""
 "Default: no_check (AD and IPA provider 'check_upn, check_upn_allow_missing, "
 "check_upn_dns_info_ex')"
 msgstr ""
-"По умолчанию: no_check (для поставщиков AD и IPA provider — 'check_upn, "
-"check_upn_dns_info_ex')"
+"По умолчанию: no_check (для поставщиков AD и IPA — 'check_upn, "
+"check_upn_allow_missing, check_upn_dns_info_ex')"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:2359
@@ -5020,7 +5031,7 @@ msgid ""
 msgstr ""
 "По умолчанию: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</"
 "quote>, что означает «имя — это всё, что предшествует знаку <quote>@</"
-"quote>, домен — всё, что идёт после этого знака»."
+"quote>, домен — всё, что идёт после этого знака»"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3540
@@ -5056,7 +5067,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3559
 msgid "ipv4_only: Only attempt to resolve hostnames to IPv4 addresses."
-msgstr "ipv4_only: пытаться разрешать имена узлов только в адреса IPv4"
+msgstr "ipv4_only: пытаться разрешать имена узлов только в адреса IPv4."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3562
@@ -5068,7 +5079,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3565
 msgid "ipv6_only: Only attempt to resolve hostnames to IPv6 addresses."
-msgstr "ipv6_only: пытаться разрешать имена узлов только в адреса IPv6"
+msgstr "ipv6_only: пытаться разрешать имена узлов только в адреса IPv6."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3568
@@ -5149,10 +5160,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3638
-#, fuzzy
-#| msgid "dns_resolver_server_timeout"
 msgid "dns_resolver_use_search_list (bool)"
-msgstr "dns_resolver_server_timeout"
+msgstr "dns_resolver_use_search_list (логическое значение)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3641
@@ -5161,6 +5170,9 @@ msgid ""
 "\"search\" directive from the resolv.conf file. This can lead to delays in "
 "environments with improperly configured DNS."
 msgstr ""
+"Обычно сопоставитель DNS выполняет поиск в списке доменов, указанных в "
+"директиве «search» в файле resolv.conf. Это может привести к задержкам в "
+"средах с неправильно настроенным DNS."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3647
@@ -5169,13 +5181,14 @@ msgid ""
 "configuration, setting this option to FALSE can prevent unnecessary DNS "
 "lookups in such environments."
 msgstr ""
+"Если в конфигурации SSSD используются полные доменные имена (или _srv_), "
+"установка для этого параметра значения FALSE может предотвратить ненужные "
+"запросы DNS в таких средах."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3653
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: TRUE"
-msgstr "По умолчанию: 3"
+msgstr "По умолчанию: TRUE"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3659
@@ -10457,6 +10470,12 @@ msgid ""
 "the default type will be used which is 'KRB5' for the matching rules and "
 "'LDAP' for the mapping rules."
 msgstr ""
+"Чтобы разрешить расширения или совершенно другой стиль правила, "
+"<quote>сопоставления</quote> и <quote>правила соответствия</quote> могут "
+"содержать префикс, отделенный символом «:» от основной части правила. "
+"Префикс может содержать только ASCII-буквы верхнего регистра и цифры. Если "
+"префикс опущен, будет использоваться тип по умолчанию: «KRB5» для правил "
+"соответствия и «LDAP» для правил сопоставления."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss-certmap.5.xml:48
@@ -10465,6 +10484,9 @@ msgid ""
 "given certificate matches a matching rules and how the output of a mapping "
 "rule would look like."
 msgstr ""
+"Утилита 'sssctl' предоставляет команду 'cert-eval-rule', предназначенную для "
+"проверки, соответствует ли указанный сертификат правилам соответствия, и "
+"определяет, как будет выглядеть вывод правила сопоставления."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss-certmap.5.xml:55
@@ -10552,6 +10574,11 @@ msgid ""
 "quote> so that \"&lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN\" and \"KRB5:&lt;"
 "SUBJECT&gt;.*,DC=MY,DC=DOMAIN\" are equivalent."
 msgstr ""
+"Учитывая сходство с MIT Kerberos, префиксом для этого правила является «KRB5»"
+". Но «KRB5» также будет использоваться по умолчанию для <quote>правил "
+"установления соответствия</quote>, поэтому "
+"«&lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN» и «KRB5:&lt;SUBJECT&gt;.*,DC= "
+"MY,DC=DOMAIN» эквивалентны."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:99
@@ -11101,6 +11128,15 @@ msgid ""
 "fail with a parsing error. The new templates are described in section <xref "
 "linkend=\"map_ldapu1\"/>."
 msgstr ""
+"Типом <quote>правила сопоставления</quote> по умолчанию является «LDAP», "
+"который можно добавить в качестве префикса к правилу, например. "
+"'LDAP:(userCertificate;binary={cert!bin})'. Расширение «LDAPU1» "
+"предоставляет дополнительные шаблоны для увеличения гибкости. Чтобы "
+"разрешить устаревшим версиям этой библиотеки игнорировать расширения, при "
+"использовании новых шаблонов в <quote>правиле сопоставления</quote> должен "
+"быть использован префикс «LDAPU1», иначе работа устаревшей версии этой "
+"библиотеки будет завершена с сообщением об ошибке при обработке входных "
+"данных. Новые шаблоны описаны в разделе <xref linkend=\"map_ldapu1\"/>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:424
@@ -11460,17 +11496,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><title>
 #: sss-certmap.5.xml:639
 msgid "LDAPU1 extension"
-msgstr ""
+msgstr "Расширение LDAPU1"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para>
 #: sss-certmap.5.xml:641
 msgid "The following template are available when using the 'LDAPU1' extension:"
-msgstr ""
+msgstr "При использовании расширения «LDAPU1» доступны следующие шаблоны:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:647
 msgid "{serial_number[!(dec|hex[_ucr])]}"
-msgstr ""
+msgstr "{serial_number[!(dec|hex[_ucr])]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:650
@@ -11478,6 +11514,8 @@ msgid ""
 "This template will add the serial number of the certificate. By default it "
 "will be printed as a hexadecimal number with lower-case letters."
 msgstr ""
+"Этот шаблон добавит серийный номер сертификата. По умолчанию он будет "
+"напечатан как шестнадцатеричное число буквами нижнего регистра."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:655
@@ -11489,18 +11527,23 @@ msgid ""
 "be combined so that e.g.  '!hex_uc' will produce a colon-separated "
 "hexadecimal string with upper-case letters."
 msgstr ""
+"Если используется параметр форматирования «!dec», число будет выведено в "
+"виде десятичной строки. Шестнадцатеричный вывод может быть показан буквами в "
+"верхнем регистре («!hex_u»), с двоеточием, разделяющим шестнадцатеричные "
+"байты («!hex_c»), или с шестнадцатеричными байтами в обратном порядке "
+"(«!hex_r»). Буквы постфикса можно комбинировать, например, «!hex_uc» "
+"приведет к выводу шестнадцатеричной строки, разделенной двоеточием, с "
+"буквами в верхнем регистре."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:665
-#, fuzzy
-#| msgid "Example: (uri={subject_uri})"
 msgid "Example: LDAPU1:(serial={serial_number})"
-msgstr "Пример: (uri={subject_uri})"
+msgstr "Пример: LDAPU1:(serial={серийный_номер})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:671
 msgid "{subject_key_id[!hex[_ucr]]}"
-msgstr ""
+msgstr "{subject_key_id[!hex[_ucr]]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:674
@@ -11508,6 +11551,8 @@ msgid ""
 "This template will add the subject key id of the certificate. By default it "
 "will be printed as a hexadecimal number with lower-case letters."
 msgstr ""
+"Этот шаблон добавит идентификатор ключа назначения сертификата. По умолчанию "
+"он будет напечатан как шестнадцатеричное число буквами нижнего регистра."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:679
@@ -11518,18 +11563,22 @@ msgid ""
 "combined so that e.g.  '!hex_uc' will produce a colon-separated hexadecimal "
 "string with upper-case letters."
 msgstr ""
+"Шестнадцатеричный вывод может быть показан буквами в верхнем регистре "
+"(«!hex_u»), с двоеточием, разделяющим шестнадцатеричные байты («!hex_c»), "
+"или с шестнадцатеричными байтами в обратном порядке («!hex_r»). Буквы "
+"постфикса можно комбинировать, например, «!hex_uc» приведет к выводу "
+"шестнадцатеричной строки, разделенной двоеточием, с буквами в верхнем "
+"регистре."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:688
-#, fuzzy
-#| msgid "Example: (uri={subject_uri})"
 msgid "Example: LDAPU1:(ski={subject_key_id})"
-msgstr "Пример: (uri={subject_uri})"
+msgstr "Пример: LDAPU1:(ski={subject_key_id})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:694
 msgid "{cert[!DIGEST[_ucr]]}"
-msgstr ""
+msgstr "{cert[!DIGEST[_ucr]]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:697
@@ -11538,6 +11587,10 @@ msgid ""
 "DIGEST must be replaced with the name of a digest/hash function supported by "
 "OpenSSL, e.g. 'sha512'."
 msgstr ""
+"Этот шаблон добавит шестнадцатеричную контрольную сумму или хэш к "
+"сертификату. Запись DIGEST должна быть заменена названием функции "
+"контрольной суммы или хэша, поддержка которых предусмотрена в OpenSSL, "
+"например. «sha512»."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:703
@@ -11548,18 +11601,22 @@ msgid ""
 "combined so that e.g. '!sha512_uc' will produce a colon-separated "
 "hexadecimal string with upper-case letters."
 msgstr ""
+"Шестнадцатеричный вывод может быть показан буквами в верхнем регистре "
+"(«!sha512_u»), с двоеточием, разделяющим шестнадцатеричные байты "
+"(«!sha512_c»), или с шестнадцатеричными байтами в обратном порядке "
+"(«!sha512_r»). Буквы постфикса можно комбинировать, например, «!sha512_uc» "
+"приведет к выводу шестнадцатеричной строки, разделенной двоеточием, с "
+"буквами в верхнем регистре."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:712
 msgid "Example: LDAPU1:(dgst={cert!sha256})"
-msgstr ""
+msgstr "Пример: LDAPU1:(dgst={cert!sha256})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:718
-#, fuzzy
-#| msgid "{subject_dns_name[.short_name]}"
 msgid "{subject_dn_component[(.attr_name|[number]]}"
-msgstr "{subject_dns_name[.short_name]}"
+msgstr "{subject_dn_component[(.attr_name|[number]]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:721
@@ -11567,6 +11624,8 @@ msgid ""
 "This template will add an attribute value of a component of the subject DN, "
 "by default the value of the most specific component."
 msgstr ""
+"Этот шаблон добавит значение атрибуту компонента DN субъекта, по умолчанию "
+"значением является самый специфический компонент."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:726
@@ -11578,18 +11637,23 @@ msgid ""
 "name and the position can be combined as e.g.  {subject_dn_component.uid[2]} "
 "which means that the name of the second component must be 'uid'."
 msgstr ""
+"Другой компонент может быть выбран по имени атрибута, например, "
+"{subject_dn_component.uid} или по позиции, например, "
+"{subject_dn_component.[2]}, где положительные числа означают отсчет от "
+"наиболее специфичного компонента, а отрицательные числа — от наименее "
+"специфичного компонента. Название атрибута и позиция могут быть объединены, "
+"например, {subject_dn_component.uid[2]} означает, что имя второго компонента "
+"должно быть «uid»."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:737
-#, fuzzy
-#| msgid "Example: (uri={subject_uri})"
 msgid "Example: LDAPU1:(uid={subject_dn_component.uid})"
-msgstr "Пример: (uri={subject_uri})"
+msgstr "Пример: LDAPU1:(uid={subject_dn_component.uid})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:743
 msgid "{issuer_dn_component[(.attr_name|[number]]}"
-msgstr ""
+msgstr "{issuer_dn_component[(.attr_name|[number]]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:746
@@ -11597,6 +11661,8 @@ msgid ""
 "This template will add an attribute value of a component of the issuer DN, "
 "by default the value of the most specific component."
 msgstr ""
+"Этот шаблон добавит значение атрибуту компонента DN издателя, по умолчанию "
+"значением является самый специфический компонент."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:751
@@ -11604,6 +11670,8 @@ msgid ""
 "See 'subject_dn_component' for details about the attribute name and position "
 "specifiers."
 msgstr ""
+"См. раздел «subject_dn_component» для получения более подробной информации о "
+"названиях атрибутов и спецификаторов позиции."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:755
@@ -11611,11 +11679,13 @@ msgid ""
 "Example: LDAPU1:(domain={issuer_dn_component.[-2]}.{issuer_dn_component."
 "dc[-1]})"
 msgstr ""
+"Пример: LDAPU1:(domain={issuer_dn_component.[-2]}.{issuer_dn_component."
+"dc[-1]})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><term>
 #: sss-certmap.5.xml:760
 msgid "{sid[.rid]}"
-msgstr ""
+msgstr "{sid[.rid]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:763
@@ -11624,13 +11694,14 @@ msgid ""
 "Microsoft with the OID 1.3.6.1.4.1.311.25.2 is available. With the '.rid' "
 "selector only the last component, i.e. the RID, will be added."
 msgstr ""
+"Этот шаблон добавит SID, если доступно соответствующее расширение, "
+"представленное Microsoft с OID 1.3.6.1.4.1.311.25.2. С помощью селектора «."
+"rid» будет добавлен только последний компонент, то есть RID."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><refsect3><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:770
-#, fuzzy
-#| msgid "Example: (oid={subject_registered_id})"
 msgid "Example: LDAPU1:(objectsid={sid})"
-msgstr "Пример: (oid={subject_registered_id})"
+msgstr "Пример: LDAPU1:(objectsid={sid})"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss-certmap.5.xml:779
@@ -16850,7 +16921,7 @@ msgid ""
 "prompted for)"
 msgstr ""
 "Позволяет указать файл, из которого следует прочитать пароль пользователя. "
-"Если значение не указано, программа запросит пароль."
+"Если значение не указано, программа запросит пароль"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_seed.8.xml:165
@@ -18384,15 +18455,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-kcm.8.xml:191
-#, fuzzy, no-wrap
-#| msgid ""
-#| "krb5_renew_interval\n"
-#| "krb5_renew_lifetime\n"
-#| "krb5_lifetime\n"
-#| "krb5_validate\n"
-#| "krb5_canonicalize\n"
-#| "krb5_auth_timeout\n"
-#| "            "
+#, no-wrap
 msgid ""
 "krb5_renew_interval\n"
 "krb5_renewable_lifetime\n"
@@ -18403,7 +18466,7 @@ msgid ""
 "            "
 msgstr ""
 "krb5_renew_interval\n"
-"krb5_renew_lifetime\n"
+"krb5_renewable_lifetime\n"
 "krb5_lifetime\n"
 "krb5_validate\n"
 "krb5_canonicalize\n"
@@ -20393,7 +20456,7 @@ msgid ""
 "host IP network, or host netgroup)"
 msgstr ""
 "Атрибут LDAP, соответствующий имени узла (или IP-адресу узла, IP-сети узла "
-"или сетевой группе узла)."
+"или сетевой группе узла)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1076
@@ -20412,7 +20475,7 @@ msgid ""
 "user's netgroup)"
 msgstr ""
 "Атрибут LDAP, соответствующий имени пользователя (или UID, имени группы или "
-"сетевой группе пользователя)."
+"сетевой группе пользователя)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1089
@@ -22497,9 +22560,9 @@ msgid ""
 "details). If ticket validation is disabled the PAC checks will be skipped as "
 "well."
 msgstr ""
-"Обратите внимание, что проверка билета — это первый шаг при проверке PAC "
-"(дополнительные сведения доступны в описании параметра «pac_check» на "
-"справочной странице <citerefentry> <refentrytitle>sssd.conf</reventrytitle> "
+"Обратите внимание, что проверка билета — это первый шаг при проверке PAC ("
+"дополнительные сведения доступны в описании параметра «pac_check» на "
+"справочной странице <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>). Если проверка билета отключена, "
 "проверки PAC также будут пропущены."
 
@@ -22539,7 +22602,7 @@ msgstr "<emphasis>h</emphasis> для часов"
 #: include/krb5_options.xml:61 include/krb5_options.xml:95
 #: include/krb5_options.xml:132
 msgid "<emphasis>d</emphasis> for days."
-msgstr "<emphasis>d</emphasis> для дней"
+msgstr "<emphasis>d</emphasis> для дней."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:64 include/krb5_options.xml:135

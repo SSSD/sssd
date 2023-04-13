@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-09 13:35+0100\n"
-"PO-Revision-Date: 2022-11-21 17:19+0000\n"
+"PO-Revision-Date: 2022-12-12 14:09+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -2359,133 +2359,119 @@ msgstr "SSSD를 다시 시작해야 합니다. 지금 SSSD를 다시 시작하�
 
 #: src/tools/sssctl/sssctl.c:304
 msgid "SSSD Status:"
-msgstr ""
+msgstr "SSSD 상태:"
 
 #: src/tools/sssctl/sssctl.c:305
-#, fuzzy
 msgid "List available domains"
-msgstr "사용 가능한 도메인을 열 수 없습니다\n"
+msgstr "사용 가능한 도메인을 나열합니다"
 
 #: src/tools/sssctl/sssctl.c:306
-#, fuzzy
 msgid "Print information about domain"
-msgstr "활성 서버에 대한 정보 표시"
+msgstr "도메인에 대한 정보 출력"
 
 #: src/tools/sssctl/sssctl.c:307
 msgid "Print information about a user and check authentication"
-msgstr ""
+msgstr "사용자에 대한 정보 출력과 인증 점검"
 
 #: src/tools/sssctl/sssctl.c:308
 msgid "Generate access report for a domain"
-msgstr ""
+msgstr "도메인을 위한 접근 보고를 발생합니다"
 
 #: src/tools/sssctl/sssctl.c:309
-#, fuzzy
 msgid "Information about cached content:"
-msgstr "활성 서버에 대한 정보 표시"
+msgstr "캐쉬된 내용에 대한 정보:"
 
 #: src/tools/sssctl/sssctl.c:310
-#, fuzzy
 msgid "Information about cached user"
-msgstr "활성 서버에 대한 정보 표시"
+msgstr "캐쉬된 사용자에 대한 정보"
 
 #: src/tools/sssctl/sssctl.c:311
-#, fuzzy
 msgid "Information about cached group"
-msgstr "활성 서버에 대한 정보 표시"
+msgstr "캐쉬된 그룹에 대한 정보"
 
 #: src/tools/sssctl/sssctl.c:312
-#, fuzzy
 msgid "Information about cached netgroup"
-msgstr "활성 서버에 대한 정보 표시"
+msgstr "캐쉬된 넷그룹에 대한 정보"
 
 #: src/tools/sssctl/sssctl.c:313
 msgid "Local data tools:"
-msgstr ""
+msgstr "로컬 자료 도구:"
 
 #: src/tools/sssctl/sssctl.c:314
-#, fuzzy
 msgid "Backup local data"
-msgstr "로컬 데이터의 백업 생성 중...\n"
+msgstr "로컬 자료 백업"
 
 #: src/tools/sssctl/sssctl.c:315
-#, fuzzy
 msgid "Restore local data from backup"
-msgstr "로컬 데이터 복원 중...\n"
+msgstr "백업에서 로컬 자료 복원"
 
 #: src/tools/sssctl/sssctl.c:316
 msgid "Backup local data and remove cached content"
-msgstr ""
+msgstr "로컬 자료를 백업하고 캐쉬된 내용을 제거"
 
 #: src/tools/sssctl/sssctl.c:317
 msgid "Perform cache upgrade"
-msgstr ""
+msgstr "캐쉬 향상을 수행합니다"
 
 #: src/tools/sssctl/sssctl.c:318
-#, fuzzy
 msgid "Invalidate cached objects"
-msgstr "캐쉬된 모든 항목을 무효화합니다"
+msgstr "캐쉬된 객체 무효화"
 
 #: src/tools/sssctl/sssctl.c:319
 msgid "Manage cache indexes"
-msgstr ""
+msgstr "캐쉬 색인을 관리합니다"
 
 #: src/tools/sssctl/sssctl.c:320
 msgid "Log files tools:"
-msgstr ""
+msgstr "기록 파일 도구:"
 
 #: src/tools/sssctl/sssctl.c:321
-#, fuzzy
 msgid "Remove existing SSSD log files"
-msgstr "로그 파일 삭제 중...\n"
+msgstr "기존 SSSD 기록 파일 제거"
 
 #: src/tools/sssctl/sssctl.c:322
-#, fuzzy
 msgid "Archive SSSD log files in tarball"
-msgstr "%s에 로그 파일 보관 중...\n"
+msgstr "tarball에서 SSSD 기록 파일 보관"
 
 #: src/tools/sssctl/sssctl.c:323
-#, fuzzy
 msgid "Change or print information about SSSD debug level"
-msgstr "활성 서버에 대한 정보 표시"
+msgstr "SSSD 디버그 수준에 대한 정보 변경 또는 출력"
 
 #: src/tools/sssctl/sssctl.c:324
 msgid "Analyze logged data"
-msgstr ""
+msgstr "로그인된 자료를 분석합니다"
 
 #: src/tools/sssctl/sssctl.c:326
 msgid "Configuration files tools:"
-msgstr ""
+msgstr "구성 파일 도구:"
 
 #: src/tools/sssctl/sssctl.c:327
 msgid "Perform static analysis of SSSD configuration"
-msgstr ""
+msgstr "SSSD 구성의 통계 분석을 수행합니다"
 
 #: src/tools/sssctl/sssctl.c:329
 msgid "Certificate related tools:"
-msgstr ""
+msgstr "인증서 관련된 도구:"
 
 #: src/tools/sssctl/sssctl.c:330
-#, fuzzy
 msgid "Print information about the certificate"
-msgstr "활성 서버에 대한 정보 표시"
+msgstr "인증서에 대한 정보 출력"
 
 #: src/tools/sssctl/sssctl.c:331
-#, fuzzy
 msgid "Show users mapped to the certificate"
-msgstr "신뢰할 수 있는 CA 인증서 저장 경로"
+msgstr "인증서에 대응된 사용자 표시"
 
 #: src/tools/sssctl/sssctl.c:332
 msgid "Check mapping and matching rule with a certificate"
-msgstr ""
+msgstr "인증서를 사용하여 매핑 및 일치 규칙 확인"
 
 #: src/tools/sssctl/sssctl.c:334
 msgid "Passkey related tools:"
-msgstr ""
+msgstr "Passkey와 연관된 도구:"
 
 #: src/tools/sssctl/sssctl.c:335
 msgid "Perform passkey related operations"
-msgstr ""
+msgstr "passkey와 연관된 동작을 수행합니다"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2550,12 +2536,12 @@ msgstr "그룹 ID로 검색"
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
 msgid "Show debug information"
-msgstr ""
+msgstr "디버그 정보를 표시합니다"
 
 #: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
 #: src/tools/sssctl/sssctl_cert.c:223
 msgid "Specify base64 encoded certificate."
-msgstr ""
+msgstr "base64로 인코딩된 인증서를 지정합니다."
 
 #: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
 #: src/tools/sssctl/sssctl_domains.c:368
@@ -2565,20 +2551,19 @@ msgstr "시스템 버스에 연결할 수 없습니다!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:166
 msgid " - no mapped users found -"
-msgstr ""
+msgstr " - 매핑된 사용자를 찾을 수 없음 -"
 
 #: src/tools/sssctl/sssctl_cert.c:215
 msgid "Mapping rule"
-msgstr ""
+msgstr "맵핑 규칙"
 
 #: src/tools/sssctl/sssctl_cert.c:216
 msgid "Matching rule"
-msgstr ""
+msgstr "일치 규칙"
 
 #: src/tools/sssctl/sssctl_cert.c:226
-#, fuzzy
 msgid "Unable to parse command arguments\n"
-msgstr "%s 이름을 구문 분석할 수 없습니다.\n"
+msgstr "명령 인수를 구문 분석 할 수 없습니다\n"
 
 #: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
@@ -2586,35 +2571,34 @@ msgstr "메모리 부족!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:241
 msgid "Failed to setup certmap context.\n"
-msgstr ""
+msgstr "certmap 컨텍스트를 설정하지 못했습니다.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:247
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
-msgstr ""
+msgstr "오류 [%d][%s]와 함께 매핑 및 일치 규칙을 추가하지 못했습니다.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "%s 열기 실패\n"
+msgstr "base64 문자열을 디코딩하지 못했습니다.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate matches rule.\n"
-msgstr ""
+msgstr "인증서가 규칙과 일치합니다.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:265
 msgid "Certificate does not match rule.\n"
-msgstr ""
+msgstr "인증서가 규칙과 일치하지 않습니다.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:268
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr ""
+msgstr "인증서를 일치하는 동안 [%d][%s] 오류가 발생했습니다.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:275
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
-msgstr ""
+msgstr "매핑 필터를 생성하지 못했습니다 [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:279
 #, c-format
@@ -2624,6 +2608,10 @@ msgid ""
 "    %s\n"
 "\n"
 msgstr ""
+"매핑 필터:\n"
+"\n"
+"    %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""

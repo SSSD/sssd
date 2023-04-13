@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.8.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2022-07-04 11:58+0200\n"
-"PO-Revision-Date: 2022-10-13 15:26+0000\n"
+"PO-Revision-Date: 2023-02-22 16:20+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/pl/>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.14.1\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -9369,6 +9369,8 @@ msgid ""
 "Optional. Use the given string as search base for Desktop Profile related "
 "objects."
 msgstr ""
+"Opcjonalne. Używa podanego ciągu jako podstawę wyszukiwania dla obiektów "
+"związanych z profilem pulpitu."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:354 sssd-ipa.5.xml:381
@@ -9401,6 +9403,8 @@ msgstr ""
 #: sssd-ipa.5.xml:377
 msgid "Optional. Use the given string as search base for HBAC related objects."
 msgstr ""
+"Opcjonalne. Używa podanego ciągu jako podstawę wyszukiwania dla obiektów "
+"związanych z HBAC."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:387
@@ -9448,6 +9452,8 @@ msgstr ""
 #: sssd-ipa.5.xml:437
 msgid "Optional. Use the given string as search base for master domain object."
 msgstr ""
+"Opcjonalne. Używa podanego ciągu jako podstawę wyszukiwania dla głównego "
+"obiektu domeny."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:446
@@ -9463,6 +9469,8 @@ msgstr ""
 #: sssd-ipa.5.xml:456
 msgid "Optional. Use the given string as search base for views containers."
 msgstr ""
+"Opcjonalne. Używa podanego ciągu jako podstawę wyszukiwania dla kontenerów "
+"widoków."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:465
@@ -14895,7 +14903,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:112
 msgid "The LDAP attribute that corresponds to the user's gecos field."
-msgstr ""
+msgstr "Atrybut LDAP odpowiadający polu gecos użytkownika."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:116
@@ -15337,7 +15345,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:505
 msgid "The LDAP attribute that lists the user's group memberships."
-msgstr ""
+msgstr "Atrybut LDAP zawierający listę członkostw grup użytkownika."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:509 sssd-ldap-attributes.5.xml:933
