@@ -13,13 +13,14 @@
 # Jean-Baptiste Holcroft <jean-baptiste@holcroft.fr>, 2020.
 # Sundeep Anand <suanand@redhat.com>, 2021.
 # Transtats <suanand@redhat.com>, 2022.
+# grimst <grimaitres@gmail.com>, 2023.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-09 13:38+0100\n"
-"PO-Revision-Date: 2022-12-07 11:29+0000\n"
-"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
+"PO-Revision-Date: 2023-03-21 09:20+0000\n"
+"Last-Translator: grimst <grimaitres@gmail.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-8/fr/>\n"
 "Language: fr\n"
@@ -27,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.14.2\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2677,7 +2678,7 @@ msgstr "%s : Impossible de lire la valeur [%d] : %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:566
 msgid "Specify name."
-msgstr "Indiquez le nom."
+msgstr "Spécifier un nom."
 
 #: src/tools/sssctl/sssctl_cache.c:576
 #, c-format
@@ -2694,11 +2695,11 @@ msgstr "Recherche par ID utilisateur"
 
 #: src/tools/sssctl/sssctl_cache.c:615
 msgid "Initgroups expiration time"
-msgstr "Délai d'expiration des initgroups"
+msgstr "Date d'expiration initgroups"
 
 #: src/tools/sssctl/sssctl_cache.c:653
 msgid "Search by group ID"
-msgstr "Recherche par ID de groupe"
+msgstr "Rechercher par ID de groupe"
 
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217

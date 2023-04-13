@@ -1,22 +1,22 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
-# Temuri Doghonadze <temuri.doghonadze@gmail.com>, 2022.
+# Temuri Doghonadze <temuri.doghonadze@gmail.com>, 2022, 2023.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-09 13:38+0100\n"
-"PO-Revision-Date: 2022-07-27 10:19+0000\n"
+"PO-Revision-Date: 2023-02-25 10:20+0000\n"
 "Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
 "Language-Team: Georgian <https://translate.fedoraproject.org/projects/sssd/"
-"sssd-master/ka/>\n"
+"sssd-2-8/ka/>\n"
 "Language: ka\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.13\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1521,7 +1521,7 @@ msgstr "სერვისის პორტის ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:472
 msgid "Service protocol attribute"
-msgstr ""
+msgstr "სერვისის პროტოკოლის ატრიბუტი"
 
 #: src/config/SSSDConfig/sssdoptions.py:474
 msgid "Lower bound for ID-mapping"
@@ -2479,7 +2479,7 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_cert.c:226
 msgid "Unable to parse command arguments\n"
-msgstr ""
+msgstr "ბრძანების პარამეტრების დამუშავების შეცდომა\n"
 
 #: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
@@ -2495,9 +2495,8 @@ msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cert.c:254
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "%s-ის გახსნის შეცდომა\n"
+msgstr "Base64 სტრიქონის გაშიფვრის შეცდომა.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate matches rule.\n"
@@ -2541,7 +2540,7 @@ msgstr "%s-ის გახსნის შეცდომა\n"
 #: src/tools/sssctl/sssctl_config.c:123
 #, c-format
 msgid "File %1$s does not exist.\n"
-msgstr ""
+msgstr "ფაილი %1$s არ არსებობს.\n"
 
 #: src/tools/sssctl/sssctl_config.c:127
 msgid ""
