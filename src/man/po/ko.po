@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2022-11-30 17:19+0000\n"
+"PO-Revision-Date: 2023-04-08 20:20+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.2\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -489,6 +489,9 @@ msgid ""
 "platforms where systemd is supported, as they will either be socket or D-Bus "
 "activated when needed.  </phrase>"
 msgstr ""
+"sssd 자체가 시작될 때 시작되는 쉼표로 구분된 서비스 목록.  <phrase condition="
+"\"have_systemd\"> 서비스 목록은 필요 할 때에 활성화 되는 소켓 또는 D-"
+"Bus이기에 systemd가 지원되는 기술환경에서 선택적입니다.  </phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:238
@@ -626,7 +629,8 @@ msgstr ""
 msgid ""
 "Each domain can have an individual format string configured.  See DOMAIN "
 "SECTIONS for more info on this option."
-msgstr ""
+msgstr "각각의 도메인은 개별 형식 문자열로 구성 될 수 있습니다.  이와 같은 옵션에서 "
+"더 많은 정보를 위한 도메인 부분을 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:347
@@ -813,6 +817,8 @@ msgid ""
 "needed if the OCSP servers defined in the certificate are not reachable from "
 "the client."
 msgstr ""
+"온라인 인증서 상태 통신규약(OCSP) 점검을 비활성화합니다. 이는 만약 인증서에 "
+"정의된 OCSP 서버가 클라이언트에서 도달 할 수 없는 경우에 필요 할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:508
@@ -1431,7 +1437,7 @@ msgstr ""
 #: sssd.conf.5.xml:1016
 msgid ""
 "The available values for this option are the same as for override_homedir."
-msgstr "이와 같은 옵션을 위한 사용 가능한 값은 홈디렉터리 재정의(override_homedir)와 "
+msgstr "이와 같은 옵션을 위해 사용 가능한 값은 홈디렉토리 재정의(override_homedir)와 "
 "동일합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
@@ -3620,6 +3626,9 @@ msgid ""
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring LDAP."
 msgstr ""
+"기본 LDAP 인증을 위한 <quote>ldap</quote>. LDAP를 구성하는데 더 많은 정보를 "
+"위해 <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2894
@@ -3628,12 +3637,15 @@ msgid ""
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring Kerberos."
 msgstr ""
+"커버러스 인증을 위한 <quote>krb5</quote>. 커버러스 구성에서 더 많은 정보를 "
+"위해 <citerefentry> <refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2918
 msgid ""
 "<quote>proxy</quote> for relaying authentication to some other PAM target."
-msgstr ""
+msgstr "인증을 몇몇 다른 PAM 대상으로 전달하기 위한 <quote>프락시</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2921
@@ -3693,6 +3705,9 @@ msgid ""
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum></"
 "citerefentry> for more information on configuring Kerberos."
 msgstr ""
+"<quote>krb5</quote>: .k5login 기반 접근 제어.  커버러스 구성에서 더 많은 "
+"정보를 위해 <citerefentry> <refentrytitle>sssd-krb5</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2987
@@ -3723,6 +3738,9 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information on configuring LDAP."
 msgstr ""
+"LDAP에서 저장되는 비밀번호를 변경하는 <quote>ldap</quote>. LDAP를 구성하는데 "
+"더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3011
@@ -3731,6 +3749,9 @@ msgid ""
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring Kerberos."
 msgstr ""
+"<quote>krb5</quote>는 커버러스 비밀번호를 변경합니다.. 커버러스 구성에서 더 "
+"많은 정보를 위해 <citerefentry> <refentrytitle>sssd-krb5</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3036
@@ -3768,6 +3789,9 @@ msgid ""
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring LDAP."
 msgstr ""
+"LDAP에서 저장되는 규칙을 위한 <quote>ldap</quote>. LDAP를 구성하는데 더 많은 "
+"정보를 위해 <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3065
@@ -3834,6 +3858,9 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information on configuring IPA."
 msgstr ""
+"IPA 서버에서 selinux 설정을 적재하려는 <quote>ipa</quote>. IPA 구성하기 위한 "
+"더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-ipa</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3122
@@ -3866,6 +3893,9 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information on configuring IPA."
 msgstr ""
+"IPA 서버에서 하위 도메인의 목록을 적재하려는 <quote>ipa</quote>. IPA "
+"구성하기 위한 더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-ipa</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3149
@@ -3875,6 +3905,9 @@ msgid ""
 "<manvolnum>5</manvolnum> </citerefentry> for more information on configuring "
 "the AD provider."
 msgstr ""
+"동적 디렉토리 서버에서 하위 도메인의 목록을 적재하려는 <quote>ad</quote>. AD "
+"공급기 고성에서 더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-ad</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3158
@@ -3988,6 +4021,9 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information on configuring IPA."
 msgstr ""
+"IPA 서버에서 저장되는 호스트 신원을 적재하려는 <quote>ipa</quote>. IPA "
+"구성하기 위한 더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-ipa</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3254
@@ -4022,6 +4058,9 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information on configuring LDAP."
 msgstr ""
+"LDAP에서 저장되는 호스트와 네트워크를 가져오려는 <quote>ldap</quote>. LDAP를 "
+"구성하는데 더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-ldap</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3282
@@ -4031,6 +4070,9 @@ msgid ""
 "manvolnum> </citerefentry> for more information on configuring the AD "
 "provider."
 msgstr ""
+"AD 서버에서 저장된 호스트와 네트워크를 가져오려는 <quote>ad</quote>. AD "
+"공급자를 구성하는데 더 많은 정보를 위해 <citerefentry> <refentrytitle>sssd-"
+"ad</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>를 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3290
@@ -9784,7 +9826,7 @@ msgstr "krb5_confd_path (문자열)"
 msgid ""
 "Absolute path of a directory where SSSD should place Kerberos configuration "
 "snippets."
-msgstr "SSSD가 커버러스 구성 조각이 위치해야 하는 디렉터리의 절대 경로."
+msgstr "SSSD가 커버러스 구성 조각이 위치해야 하는 디렉토리의 절대 경로."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:480 sssd-ad.5.xml:1341
@@ -14255,7 +14297,7 @@ msgstr ""
 #: sss_ssh_authorizedkeys.1.xml:132
 msgid ""
 "Search for user public keys in SSSD domain <replaceable>DOMAIN</replaceable>."
-msgstr ""
+msgstr "SSSD 도메인 <replaceable>도메인</replaceable>에서 사용자 공개 키를 검색."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_ssh_authorizedkeys.1.xml:141 sss_ssh_knownhostsproxy.1.xml:102
@@ -17530,7 +17572,7 @@ msgstr "ldap_service_name (문자열)"
 msgid ""
 "The LDAP attribute that contains the name of service attributes and their "
 "aliases."
-msgstr ""
+msgstr "서비스 속성과 이들 별칭의 이름을 포함하는 LDAP 속성."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:997
@@ -17775,7 +17817,7 @@ msgstr "ldap_iphost_name (문자열)"
 msgid ""
 "The LDAP attribute that contains the name of the IP host attributes and "
 "their aliases."
-msgstr ""
+msgstr "IP 호스트 속성과 이들 별칭의 이름을 포함하는 LDAP 속성."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1213
@@ -18837,7 +18879,7 @@ msgstr ""
 #: include/ldap_search_bases.xml:9
 #, no-wrap
 msgid "search_base[?scope?[filter][?search_base?scope?[filter]]*]\n"
-msgstr ""
+msgstr "search_base[?scope?[filter][?search_base?scope?[filter]]*]\n"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:7

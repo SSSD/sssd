@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
-# Jan Kuparinen <copper_fin@hotmail.com>, 2021, 2022.
+# Jan Kuparinen <copper_fin@hotmail.com>, 2021, 2022, 2023.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-09 13:35+0100\n"
-"PO-Revision-Date: 2022-03-20 19:16+0000\n"
+"PO-Revision-Date: 2023-02-26 20:20+0000\n"
 "Last-Translator: Jan Kuparinen <copper_fin@hotmail.com>\n"
 "Language-Team: Finnish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fi/>\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 4.11.2\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -152,75 +152,84 @@ msgid ""
 "this, and will fall back to polling resolv.conf every five seconds if "
 "inotify cannot be used."
 msgstr ""
+"SSSD tarkkailee resolv.conf-tiedostoa tunnistaakseen, milloin sisäinen DNS-"
+"selvittäjä on päivitettävä. Oletuksena yritämme käyttää inotify-toimintoa "
+"tähän ja palaamme tarkkailemaan resolv.conf-tiedostoa viiden sekunnin "
+"välein, jos inotifyta ei voida käyttää."
 
 #: src/config/SSSDConfig/sssdoptions.py:56
 msgid "Run PAC responder automatically for AD and IPA provider"
-msgstr ""
+msgstr "Suorita PAC-vastaaja automaattisesti AD- ja IPA-palveluntarjoajalle"
 
 #: src/config/SSSDConfig/sssdoptions.py:57
 msgid "Enable or disable core dumps for all SSSD processes."
 msgstr ""
+"Ota ytimen tyhjennys käyttöön tai poista se käytöstä kaikissa SSSD-"
+"prosesseissa."
 
 #: src/config/SSSDConfig/sssdoptions.py:60
 msgid "Enumeration cache timeout length (seconds)"
-msgstr ""
+msgstr "Luettelovälimuistin aikakatkaisun pituus (sekunteina)"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Entry cache background update timeout length (seconds)"
-msgstr ""
+msgstr "Syötevälimuistin taustapäivityksen aikakatkaisun pituus (sekunteina)"
 
 #: src/config/SSSDConfig/sssdoptions.py:62
 #: src/config/SSSDConfig/sssdoptions.py:124
 msgid "Negative cache timeout length (seconds)"
-msgstr ""
+msgstr "Negatiivinen välimuistin aikakatkaisun pituus (sekunteina)"
 
 #: src/config/SSSDConfig/sssdoptions.py:63
 msgid "Files negative cache timeout length (seconds)"
-msgstr ""
+msgstr "Tiedostojen negatiivisen välimuistin aikakatkaisun pituus (sekunteina)"
 
 #: src/config/SSSDConfig/sssdoptions.py:64
 msgid "Users that SSSD should explicitly ignore"
-msgstr ""
+msgstr "Käyttäjät, jotka SSSD:n tulee jättää huomiotta"
 
 #: src/config/SSSDConfig/sssdoptions.py:65
 msgid "Groups that SSSD should explicitly ignore"
-msgstr ""
+msgstr "Ryhmät, jotka SSSD:n tulee jättää huomiotta"
 
 #: src/config/SSSDConfig/sssdoptions.py:66
 msgid "Should filtered users appear in groups"
-msgstr ""
+msgstr "Pitäisikö suodatettujen käyttäjien näkyä ryhmissä"
 
 #: src/config/SSSDConfig/sssdoptions.py:67
 msgid "The value of the password field the NSS provider should return"
-msgstr ""
+msgstr "Salasanakentän arvo, joka NSS-palveluntarjoajan tulee palauttaa"
 
 #: src/config/SSSDConfig/sssdoptions.py:68
 msgid "Override homedir value from the identity provider with this value"
-msgstr ""
+msgstr "Korvaa identiteetintarjoajan homedir-arvo tällä arvolla"
 
 #: src/config/SSSDConfig/sssdoptions.py:69
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
-msgstr ""
+msgstr "Korvaa identiteetintarjoajan tyhjä homedir-arvo tällä arvolla"
 
 #: src/config/SSSDConfig/sssdoptions.py:70
 msgid "Override shell value from the identity provider with this value"
-msgstr ""
+msgstr "Korvaa identiteetintarjoajan komentotulkki-arvo tällä arvolla"
 
 #: src/config/SSSDConfig/sssdoptions.py:71
 msgid "The list of shells users are allowed to log in with"
-msgstr ""
+msgstr "Luettelo komentotulkeista, joilla käyttäjät voivat kirjautua sisään"
 
 #: src/config/SSSDConfig/sssdoptions.py:72
 msgid ""
 "The list of shells that will be vetoed, and replaced with the fallback shell"
 msgstr ""
+"Luettelo komentotulkeista, jotka estetään ja korvataan peruskomentotulkilla"
 
 #: src/config/SSSDConfig/sssdoptions.py:73
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
 msgstr ""
+"Jos keskushakemistoon tallennettu komentotulkki on sallittu, mutta se ei ole "
+"käytettävissä, käytä tätä varavaihtoehtoa"
 
 #: src/config/SSSDConfig/sssdoptions.py:74
 msgid "Shell to use if the provider does not list one"
@@ -532,7 +541,7 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:192
 #: src/config/SSSDConfig/sssdoptions.py:193
 msgid "Entry cache timeout length (seconds)"
-msgstr ""
+msgstr "Välimuistin aikakatkaisun pituus (sekunteina)"
 
 #: src/config/SSSDConfig/sssdoptions.py:178
 msgid ""
@@ -563,7 +572,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:185
 msgid "Override GID value from the identity provider with this value"
-msgstr ""
+msgstr "Korvaa identiteetintarjoajan GID-arvo tällä arvolla"
 
 #: src/config/SSSDConfig/sssdoptions.py:186
 msgid "Treat usernames as case sensitive"
@@ -2499,7 +2508,7 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_cert.c:226
 msgid "Unable to parse command arguments\n"
-msgstr ""
+msgstr "Komennon argumentteja ei voi jäsentää\n"
 
 #: src/tools/sssctl/sssctl_cert.c:232 src/tools/sssctl/sssctl_domains.c:356
 msgid "Out of memory!\n"
@@ -2515,9 +2524,8 @@ msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cert.c:254
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "%s:ta ei voitu avata\n"
+msgstr "Base64-merkkijonon purkaminen epäonnistui.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate matches rule.\n"
@@ -2698,7 +2706,7 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
 msgid "domain"
-msgstr ""
+msgstr "toimialue"
 
 #: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute to index"
@@ -2706,7 +2714,7 @@ msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:469
 msgid "attribute"
-msgstr ""
+msgstr "attribuutti"
 
 #: src/tools/sssctl/sssctl_data.c:482
 msgid "Action not provided\n"

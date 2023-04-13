@@ -1,22 +1,22 @@
 # Zdenek <chmelarz@gmail.com>, 2017. #zanata
-# Pavel Borecki <pavel.borecki@gmail.com>, 2018. #zanata, 2021, 2022.
-# Pavel Borecki <pavel.borecki@gmail.com>, 2019. #zanata, 2021, 2022.
+# Pavel Borecki <pavel.borecki@gmail.com>, 2018. #zanata, 2021, 2022, 2023.
+# Pavel Borecki <pavel.borecki@gmail.com>, 2019. #zanata, 2021, 2022, 2023.
 # Pavel Brezina <pbrezina@redhat.com>, 2020.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2022-12-09 13:35+0100\n"
-"PO-Revision-Date: 2022-05-20 09:18+0000\n"
+"PO-Revision-Date: 2023-04-08 20:20+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
-"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/sssd-"
-"master/cs/>\n"
+"Language-Team: Czech <https://translate.fedoraproject.org/projects/sssd/"
+"sssd-master/cs/>\n"
 "Language: cs\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 4.12.2\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -161,11 +161,13 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:56
 msgid "Run PAC responder automatically for AD and IPA provider"
-msgstr ""
+msgstr "Pro AD a IPA poskytovatele spouštět PAC odpovídač automaticky"
 
 #: src/config/SSSDConfig/sssdoptions.py:57
 msgid "Enable or disable core dumps for all SSSD processes."
 msgstr ""
+"Zapnout nebo vypnout diagnostickému zapisování obsahu paměti pro všechny "
+"procesy SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:60
 msgid "Enumeration cache timeout length (seconds)"
@@ -457,7 +459,7 @@ msgstr "Po jak dlouho jsou PAC data považována za platná"
 
 #: src/config/SSSDConfig/sssdoptions.py:138
 msgid "Validate the PAC"
-msgstr ""
+msgstr "Ověřovat PAC"
 
 #: src/config/SSSDConfig/sssdoptions.py:141
 msgid "List of user attributes the InfoPipe is allowed to publish"
@@ -642,6 +644,8 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:195
 msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr ""
+"Nejdelší umožněná odchylka periody při obnovování na pozadí položek, kterým "
+"skončila platnost"
 
 #: src/config/SSSDConfig/sssdoptions.py:196
 msgid "Whether to automatically update the client's DNS entry"
@@ -2013,7 +2017,7 @@ msgstr "SSSD už je spuštěné\n"
 
 #: src/providers/krb5/krb5_child.c:3760 src/providers/ldap/ldap_child.c:641
 msgid "Allow core dumps"
-msgstr ""
+msgstr "Povolit diagnostické zapisování obsahu paměti"
 
 #: src/providers/krb5/krb5_child.c:3762 src/providers/ldap/ldap_child.c:643
 msgid "An open file descriptor for the debug logs"
@@ -2065,7 +2069,7 @@ msgstr "Identifikátor Tevent řetězce použitého pro účely přihlašování
 
 #: src/providers/krb5/krb5_child.c:3788
 msgid "Check PAC flags"
-msgstr ""
+msgstr "Zkontrolovat PAC příznaky"
 
 #: src/providers/krb5/krb5_child.c:3832 src/providers/ldap/ldap_child.c:669
 msgid "talloc_asprintf failed.\n"
@@ -2165,7 +2169,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:709
 msgid "PIN locked"
-msgstr ""
+msgstr "Uzamčeno PIN"
 
 #: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
 msgid "Password change failed. "
@@ -2449,133 +2453,120 @@ msgstr "Je třeba, aby bylo SSSD restartováno. Restartovat ho nyní?"
 
 #: src/tools/sssctl/sssctl.c:304
 msgid "SSSD Status:"
-msgstr ""
+msgstr "Stav SSSD:"
 
 #: src/tools/sssctl/sssctl.c:305
-#, fuzzy
 msgid "List available domains"
-msgstr "Nedaří se otevřít které domény jsou k dispozici\n"
+msgstr "Vypsat domény, které jsou k dispozici"
 
 #: src/tools/sssctl/sssctl.c:306
-#, fuzzy
 msgid "Print information about domain"
-msgstr "Zobrazit informace o aktivním serveru"
+msgstr "Zobrazit informace o doméně"
 
 #: src/tools/sssctl/sssctl.c:307
 msgid "Print information about a user and check authentication"
-msgstr ""
+msgstr "Vypsat informace o uživateli a zkontrolovat ověřování"
 
 #: src/tools/sssctl/sssctl.c:308
 msgid "Generate access report for a domain"
-msgstr ""
+msgstr "Vytvořit výkaz o přístupech pro doménu"
 
 #: src/tools/sssctl/sssctl.c:309
-#, fuzzy
 msgid "Information about cached content:"
-msgstr "Zobrazit informace o aktivním serveru"
+msgstr "Informace o obsahu v mezipaměti:"
 
 #: src/tools/sssctl/sssctl.c:310
-#, fuzzy
 msgid "Information about cached user"
-msgstr "Zobrazit informace o aktivním serveru"
+msgstr "Informace o uživateli v mezipaměti"
 
 #: src/tools/sssctl/sssctl.c:311
-#, fuzzy
 msgid "Information about cached group"
-msgstr "Zobrazit informace o aktivním serveru"
+msgstr "Informace o skupině v mezipaměti"
 
 #: src/tools/sssctl/sssctl.c:312
-#, fuzzy
 msgid "Information about cached netgroup"
-msgstr "Zobrazit informace o aktivním serveru"
+msgstr "Informace o netgroup v mezipaměti"
 
 #: src/tools/sssctl/sssctl.c:313
 msgid "Local data tools:"
-msgstr ""
+msgstr "Nástroje pro místní data:"
 
 #: src/tools/sssctl/sssctl.c:314
-#, fuzzy
 msgid "Backup local data"
-msgstr "Vytváření zálohy místních dat…\n"
+msgstr "Zazálohovat místní data"
 
 #: src/tools/sssctl/sssctl.c:315
-#, fuzzy
 msgid "Restore local data from backup"
-msgstr "Obnovování místních dat…\n"
+msgstr "Obnovit místní data ze zálohy"
 
 #: src/tools/sssctl/sssctl.c:316
 msgid "Backup local data and remove cached content"
-msgstr ""
+msgstr "Zazálohovat místní data a odebrat obsah z mezipaměti"
 
 #: src/tools/sssctl/sssctl.c:317
 msgid "Perform cache upgrade"
-msgstr ""
+msgstr "Provést přechod obsahu mezipaměti na novější verzi"
 
 #: src/tools/sssctl/sssctl.c:318
-#, fuzzy
 msgid "Invalidate cached objects"
-msgstr "Zneplatnit veškeré položky v mezipaměti"
+msgstr "Zneplatnit obsah v mezipaměti"
 
 #: src/tools/sssctl/sssctl.c:319
 msgid "Manage cache indexes"
-msgstr ""
+msgstr "Spravovat rejstříky mezipaměti"
 
 #: src/tools/sssctl/sssctl.c:320
 msgid "Log files tools:"
-msgstr ""
+msgstr "Nástroje pro soubory se záznamem událostí:"
 
 #: src/tools/sssctl/sssctl.c:321
-#, fuzzy
 msgid "Remove existing SSSD log files"
-msgstr "Mazání souborů se záznamem událostí…\n"
+msgstr "Odebrat stávající soubory se záznamy událostí v SSSD"
 
 #: src/tools/sssctl/sssctl.c:322
-#, fuzzy
 msgid "Archive SSSD log files in tarball"
-msgstr "Archivují se soubory se záznamem událostí do %s…\n"
+msgstr "Zaarchivovat záznamy událostí v SSSD v tar balíčku"
 
 #: src/tools/sssctl/sssctl.c:323
-#, fuzzy
 msgid "Change or print information about SSSD debug level"
-msgstr "Zobrazit informace o aktivním serveru"
+msgstr ""
+"Změnit nebo vypsat informaci o úrovni podrobností ladících informací z SSSD"
 
 #: src/tools/sssctl/sssctl.c:324
 msgid "Analyze logged data"
-msgstr ""
+msgstr "Zanalyzovat zaznamenaná data"
 
 #: src/tools/sssctl/sssctl.c:326
 msgid "Configuration files tools:"
-msgstr ""
+msgstr "Nástroje pro soubory s nastaveními:"
 
 #: src/tools/sssctl/sssctl.c:327
 msgid "Perform static analysis of SSSD configuration"
-msgstr ""
+msgstr "Provést statickou analýzu nastavení SSSD"
 
 #: src/tools/sssctl/sssctl.c:329
 msgid "Certificate related tools:"
-msgstr ""
+msgstr "Nástroje související s certifikáty:"
 
 #: src/tools/sssctl/sssctl.c:330
-#, fuzzy
 msgid "Print information about the certificate"
-msgstr "Zobrazit informace o aktivním serveru"
+msgstr "Zobrazit informace o certifikátu"
 
 #: src/tools/sssctl/sssctl.c:331
-#, fuzzy
 msgid "Show users mapped to the certificate"
-msgstr "Popis umístění úložiště certifikátů důvěryhodných cert. autorit"
+msgstr "Zobrazit uživatelé namapované na certifikát"
 
 #: src/tools/sssctl/sssctl.c:332
 msgid "Check mapping and matching rule with a certificate"
-msgstr ""
+msgstr "Zkontrolovat mapování a odpovídající pravidlo s certifikátem"
 
 #: src/tools/sssctl/sssctl.c:334
 msgid "Passkey related tools:"
-msgstr ""
+msgstr "Nástroje související s passkey:"
 
 #: src/tools/sssctl/sssctl.c:335
 msgid "Perform passkey related operations"
-msgstr ""
+msgstr "Provést operace související s passkey"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2642,12 +2633,12 @@ msgstr "Hledat podle identif. skupiny"
 #: src/tools/sssctl/sssctl_cert.c:51 src/tools/sssctl/sssctl_cert.c:110
 #: src/tools/sssctl/sssctl_cert.c:217
 msgid "Show debug information"
-msgstr ""
+msgstr "Zobrazit ladicí informace"
 
 #: src/tools/sssctl/sssctl_cert.c:57 src/tools/sssctl/sssctl_cert.c:116
 #: src/tools/sssctl/sssctl_cert.c:223
 msgid "Specify base64 encoded certificate."
-msgstr ""
+msgstr "Zadejte certifikát v base64 kódování."
 
 #: src/tools/sssctl/sssctl_cert.c:140 src/tools/sssctl/sssctl_domains.c:105
 #: src/tools/sssctl/sssctl_domains.c:368
@@ -2657,20 +2648,19 @@ msgstr "Nedaří se připojit ke sběrnici systému!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:166
 msgid " - no mapped users found -"
-msgstr ""
+msgstr " - nenalezeni žádní namapovaní uživatelé -"
 
 #: src/tools/sssctl/sssctl_cert.c:215
 msgid "Mapping rule"
-msgstr ""
+msgstr "Mapovací pravidlo"
 
 #: src/tools/sssctl/sssctl_cert.c:216
 msgid "Matching rule"
-msgstr ""
+msgstr "Mapovací pravidlo"
 
 #: src/tools/sssctl/sssctl_cert.c:226
-#, fuzzy
 msgid "Unable to parse command arguments\n"
-msgstr "Nedaří se zpracovat název %s.\n"
+msgstr "Nedaří se zpracovat argumenty.\n"
 
 # auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId:
 # po/ipa
@@ -2680,35 +2670,36 @@ msgstr "Nedostatek paměti!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:241
 msgid "Failed to setup certmap context.\n"
-msgstr ""
+msgstr "Nepodařilo se nastavit kontext mapování certifikátů.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:247
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
+"Nepodařilo se přidat mapování a pravidla pro hledání shody. Chyba byla "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
-#, fuzzy
 msgid "Failed to decode base64 string.\n"
-msgstr "Nepodařilo se otevřít %s\n"
+msgstr "Nepodařilo se dekódovat řetězec base64.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate matches rule.\n"
-msgstr ""
+msgstr "Certifikát odpovídá pravidlu.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:265
 msgid "Certificate does not match rule.\n"
-msgstr ""
+msgstr "Certifikát neodpovídá pravidlu.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:268
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr ""
+msgstr "Chyba při hledání shody s certifikátem [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:275
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
-msgstr ""
+msgstr "Nepodařilo se vytvořit filtr mapování [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:279
 #, c-format
@@ -2718,6 +2709,10 @@ msgid ""
 "    %s\n"
 "\n"
 msgstr ""
+"Mapovací filtr:\n"
+"\n"
+"    %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:79
 msgid ""
@@ -2856,45 +2851,42 @@ msgstr "Obnovování místních dat…\n"
 #: src/tools/sssctl/sssctl_data.c:415
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
-msgstr ""
+msgstr "Vytváří se rejstřík mezipaměti pro doménu %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:417
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
-msgstr ""
+msgstr "Maže se rejstřík mezipaměti pro doménu %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:419
 #, c-format
 msgid "Indexes for domain %1$s:\n"
-msgstr ""
+msgstr "Indexy pro doménu %1$s:\n"
 
 #: src/tools/sssctl/sssctl_data.c:439
 #, c-format
 msgid "  Attribute: %1$s\n"
-msgstr ""
+msgstr "  Atribut: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
 msgid "Target a specific domain"
-msgstr ""
+msgstr "Cílit na konkrétní doménu"
 
 #: src/tools/sssctl/sssctl_data.c:467 src/tools/sssctl/sssctl_logs.c:529
-#, fuzzy
 msgid "domain"
-msgstr "IPA doména"
+msgstr "doména"
 
 #: src/tools/sssctl/sssctl_data.c:469
 msgid "Attribute to index"
-msgstr ""
+msgstr "Atribut do rejstříku"
 
 #: src/tools/sssctl/sssctl_data.c:469
-#, fuzzy
 msgid "attribute"
-msgstr "atribut UID"
+msgstr "atribut"
 
 #: src/tools/sssctl/sssctl_data.c:482
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "Poskytovatel ověřování"
+msgstr "Nezadána akce\n"
 
 #: src/tools/sssctl/sssctl_data.c:495
 #, c-format
@@ -2902,29 +2894,31 @@ msgid ""
 "Unknown action: %1$s\n"
 "Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
 msgstr ""
+"Neznámá akce: %1$s\n"
+"Planými akcemi jsou „%2$s“, „%3$s“ a „%4$s“\n"
 
 #: src/tools/sssctl/sssctl_data.c:503
 msgid "Attribute (-a) not provided\n"
-msgstr ""
+msgstr "Atribut (-a) neposkytnut\n"
 
 #: src/tools/sssctl/sssctl_data.c:511
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
-msgstr ""
+msgstr "Atribut %1$s není v rejstříku.\n"
 
 #: src/tools/sssctl/sssctl_data.c:514
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
-msgstr ""
+msgstr "Atribut %1$s už je v rejstříku.\n"
 
 #: src/tools/sssctl/sssctl_data.c:517
-#, fuzzy, c-format
+#, c-format
 msgid "Index operation failed: %1$s\n"
-msgstr "Příkaz po smazání se nezdařil: %1$s\n"
+msgstr "Operace vytvoření rejstříku se nezdařila: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:522
 msgid "Don't forget to also update the indexes on the remote providers.\n"
-msgstr ""
+msgstr "Nezapomínejte aktualizovat také rejstříky na vzdáleném poskytovateli.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"
@@ -2997,24 +2991,23 @@ msgid "\n"
 msgstr "\n"
 
 #: src/tools/sssctl/sssctl_logs.c:215
-#, fuzzy
 msgid "SSSD is not running.\n"
-msgstr "SSSD už je spuštěné\n"
+msgstr "SSSD není spuštěné.\n"
 
 #: src/tools/sssctl/sssctl_logs.c:232
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
-msgstr ""
+msgstr "%1$-25s %2$#.4x\n"
 
 #: src/tools/sssctl/sssctl_logs.c:236
 #, c-format
 msgid "%1$-25s Unknown domain\n"
-msgstr ""
+msgstr "%1$-25s Neznámá doména\n"
 
 #: src/tools/sssctl/sssctl_logs.c:238
 #, c-format
 msgid "%1$-25s Unreachable service\n"
-msgstr ""
+msgstr "%1$-25s Nedostupné zařízení\n"
 
 #: src/tools/sssctl/sssctl_logs.c:431
 msgid "Delete log files instead of truncating"
@@ -3047,36 +3040,35 @@ msgstr "Nedaří se archivovat soubory se záznamem událostí\n"
 
 #: src/tools/sssctl/sssctl_logs.c:530
 msgid "Target the SSSD service"
-msgstr ""
+msgstr "Cílit na službu SSSD"
 
 #: src/tools/sssctl/sssctl_logs.c:531
 msgid "Target the NSS service"
-msgstr ""
+msgstr "Cílit na službu NSS"
 
 #: src/tools/sssctl/sssctl_logs.c:532
-#, fuzzy
 msgid "Target the PAM service"
-msgstr "Atribut vypisující pověřené PAM služby"
+msgstr "Cílit na PAM službu"
 
 #: src/tools/sssctl/sssctl_logs.c:533
 msgid "Target the SUDO service"
-msgstr ""
+msgstr "Cílit na SUDO službu"
 
 #: src/tools/sssctl/sssctl_logs.c:534
 msgid "Target the AUTOFS service"
-msgstr ""
+msgstr "Cílit na AUTOFS službu"
 
 #: src/tools/sssctl/sssctl_logs.c:535
 msgid "Target the SSH service"
-msgstr ""
+msgstr "Cílit na SSH službu"
 
 #: src/tools/sssctl/sssctl_logs.c:536
 msgid "Target the PAC service"
-msgstr ""
+msgstr "Cílit na PAC službu"
 
 #: src/tools/sssctl/sssctl_logs.c:537
 msgid "Target the IFP service"
-msgstr ""
+msgstr "Cílit na IFP službu"
 
 #: src/tools/sssctl/sssctl_logs.c:552
 msgid "Specify debug level you want to set"
