@@ -1048,7 +1048,7 @@ static void convert_time_tz(const char* tz)
                 "setenv failed with errno: %d", errno);
     }
     ck_assert_msg(ret == EOK && difftime(1406894262, unix_time) == 0,
-                "Expecting 1406894262 got: ret[%d] unix_time[%ld]",
+                "Expecting 1406894262 got: ret[%d] unix_time[%"SPRItime"]",
                 ret, unix_time);
 }
 

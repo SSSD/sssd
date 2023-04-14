@@ -64,5 +64,13 @@
 # error Unexpected sizeof gid_t
 #endif /* SIZEOF_GID_T */
 
+#if SIZEOF_TIME_T == 8
+# define SPRItime PRId64
+#elif SIZEOF_TIME_T == 4
+# define SPRItime PRId32
+#else
+# error Unexpected sizeof time_t
+#endif /* SIZEOF_TIME_T */
+
 
 #endif /* __SSS_FORMAT_H__ */

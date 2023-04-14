@@ -2211,10 +2211,10 @@ static void cached_authentication_without_expiration(uid_t uid,
                                         "return expected result [%d].",
                                         expected_result);
 
-    ck_assert_msg(expire_date == 0, "Wrong expire date, expected [%d], got [%ld]",
+    ck_assert_msg(expire_date == 0, "Wrong expire date, expected [%d], got [%"SPRItime"]",
                                   0, expire_date);
 
-    ck_assert_msg(delayed_until == -1, "Wrong delay, expected [%d], got [%ld]",
+    ck_assert_msg(delayed_until == -1, "Wrong delay, expected [%d], got [%"SPRItime"]",
                                   -1, delayed_until);
 
     talloc_free(test_ctx);
@@ -2274,10 +2274,10 @@ static void cached_authentication_with_expiration(uid_t uid,
                 "result [%d], got [%d].", expected_result, ret);
 
     ck_assert_msg(expire_date == expected_expire_date,
-                "Wrong expire date, expected [%ld], got [%ld]",
+                "Wrong expire date, expected [%"SPRItime"], got [%"SPRItime"]",
                 expected_expire_date, expire_date);
 
-    ck_assert_msg(delayed_until == -1, "Wrong delay, expected [%d], got [%ld]",
+    ck_assert_msg(delayed_until == -1, "Wrong delay, expected [%d], got [%"SPRItime"]",
                                   -1, delayed_until);
 
     talloc_free(test_ctx);

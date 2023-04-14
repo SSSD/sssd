@@ -429,7 +429,8 @@ int sdap_get_tgt_recv(struct tevent_req *req,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Child responded: %d [%s], expired on [%ld]\n", res, ccn, (long)expire_time);
+          "Child responded: %d [%s], expired on [%"SPRItime"]\n",
+          res, ccn, expire_time);
     *result = res;
     *kerr = krberr;
     *ccname = ccn;

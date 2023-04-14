@@ -942,7 +942,8 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
             tgtt.endtime = int64_to_time_t(time_data);
             SAFEALIGN_COPY_INT64(&time_data, buf+p+3*sizeof(int64_t), NULL);
             tgtt.renew_till = int64_to_time_t(time_data);
-            DEBUG(SSSDBG_TRACE_LIBS, "TGT times are [%ld][%ld][%ld][%ld].\n",
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "TGT times are [%"SPRItime"][%"SPRItime"][%"SPRItime"][%"SPRItime"].\n",
                   tgtt.authtime, tgtt.starttime, tgtt.endtime, tgtt.renew_till);
         }
 
