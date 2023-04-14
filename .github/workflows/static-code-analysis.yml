@@ -38,6 +38,16 @@ jobs:
         PROCESSORS=$(/usr/bin/getconf _NPROCESSORS_ONLN)
         make -j$PROCESSORS
 
+    - name: Upload configuration artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: codeql-build
+        path: |
+          x86_64/config.log
+          x86_64/config.h
+        if-no-files-found: ignore
+
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
 
