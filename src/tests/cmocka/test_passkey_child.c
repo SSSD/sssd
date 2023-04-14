@@ -1205,7 +1205,6 @@ void test_authenticate_integration(void **state)
     }
     will_return(__wrap_fido_dev_has_uv, false);
     will_return(__wrap_fido_dev_has_pin, false);
-    will_return(__wrap_fido_assert_user_id_len, 0);
     will_return(__wrap_fido_assert_set_uv, FIDO_OK);
     will_return(__wrap_fido_assert_set_clientdata_hash, FIDO_OK);
     will_return(__wrap_fido_dev_has_uv, false);
@@ -1256,7 +1255,6 @@ void test_get_assert_data_integration(void **state)
     }
     will_return(__wrap_fido_dev_has_uv, false);
     will_return(__wrap_fido_dev_has_pin, false);
-    will_return(__wrap_fido_assert_user_id_len, 0);
     will_return(__wrap_fido_assert_set_uv, FIDO_OK);
     will_return(__wrap_fido_dev_has_uv, false);
     will_return(__wrap_fido_dev_has_pin, false);
