@@ -569,8 +569,8 @@ bool nds_check_expired(const char *exp_time_str)
     now = time(NULL);
     DEBUG(SSSDBG_TRACE_ALL,
           "Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
-           "daylight [%d] now [%ld] expire_time [%ld].\n", tzname[0],
-           tzname[1], timezone, daylight, now, expire_time);
+          "daylight [%d] now [%"SPRItime"] expire_time [%"SPRItime"].\n",
+          tzname[0], tzname[1], timezone, daylight, now, expire_time);
 
     if (difftime(now, expire_time) > 0.0) {
         DEBUG(SSSDBG_CONF_SETTINGS, "NDS account expired.\n");

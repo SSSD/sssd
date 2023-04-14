@@ -201,20 +201,20 @@ static int cleanup_users(struct sdap_options *opts,
 
     if (account_cache_expiration > 0) {
         subfilter = talloc_asprintf(tmpctx,
-                                    "(&(!(%s=0))(|(!(%s=*))(%s<=%ld)))",
+                                    "(&(!(%s=0))(|(!(%s=*))(%s<=%"SPRItime")))",
                                     SYSDB_CACHE_EXPIRE,
                                     SYSDB_LAST_LOGIN,
                                     SYSDB_LAST_LOGIN,
-                                    (long) (now - (account_cache_expiration * 86400)));
+                                    (now - (account_cache_expiration * 86400)));
 
         ts_subfilter = talloc_asprintf(tmpctx,
-                            "(&(!(%s=0))(%s<=%ld)(|(!(%s=*))(%s<=%ld)))",
+                            "(&(!(%s=0))(%s<=%"SPRItime")(|(!(%s=*))(%s<=%"SPRItime")))",
                             SYSDB_CACHE_EXPIRE,
                             SYSDB_CACHE_EXPIRE,
-                            (long) now,
+                            now,
                             SYSDB_LAST_LOGIN,
                             SYSDB_LAST_LOGIN,
-                            (long) (now - (account_cache_expiration * 86400)));
+                            (now - (account_cache_expiration * 86400)));
     } else {
         subfilter = talloc_asprintf(tmpctx,
                                     "(&(!(%s=0))(!(%s=*)))",
@@ -222,10 +222,10 @@ static int cleanup_users(struct sdap_options *opts,
                                     SYSDB_LAST_LOGIN);
 
         ts_subfilter = talloc_asprintf(tmpctx,
-                                       "(&(!(%s=0))(%s<=%ld)(!(%s=*)))",
+                                       "(&(!(%s=0))(%s<=%"SPRItime")(!(%s=*)))",
                                        SYSDB_CACHE_EXPIRE,
                                        SYSDB_CACHE_EXPIRE,
-                                       (long) now,
+                                       now,
                                        SYSDB_LAST_LOGIN);
     }
     if (subfilter == NULL || ts_subfilter == NULL) {
@@ -409,9 +409,8 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ts_subfilter = talloc_asprintf(tmpctx, "(&(!(%s=0))(%s<=%ld))",
-                                   SYSDB_CACHE_EXPIRE,
-                                   SYSDB_CACHE_EXPIRE, (long)now);
+    ts_subfilter = talloc_asprintf(tmpctx, "(&(!(%s=0))(%s<=%"SPRItime"))",
+                                   SYSDB_CACHE_EXPIRE, SYSDB_CACHE_EXPIRE, now);
     if (ts_subfilter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;

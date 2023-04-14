@@ -1092,7 +1092,7 @@ sdap_modify_shadow_lastchange_send(TALLOC_CTX *mem_ctx,
     }
 
     /* The attribute contains number of days since the epoch */
-    values[0] = talloc_asprintf(values, "%ld", (long)time(NULL)/86400);
+    values[0] = talloc_asprintf(values, "%"SPRItime, time(NULL)/86400);
     if (values[0] == NULL) {
         ret = ENOMEM;
         goto done;

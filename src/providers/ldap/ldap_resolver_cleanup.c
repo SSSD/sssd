@@ -50,9 +50,8 @@ cleanup_iphosts(struct sdap_options *opts,
         goto done;
     }
 
-    ts_subfilter = talloc_asprintf(tmp_ctx, "(&(!(%s=0))(%s<=%ld))",
-                                   SYSDB_CACHE_EXPIRE,
-                                   SYSDB_CACHE_EXPIRE, (long)now);
+    ts_subfilter = talloc_asprintf(tmp_ctx, "(&(!(%s=0))(%s<=%"SPRItime"))",
+                                   SYSDB_CACHE_EXPIRE, SYSDB_CACHE_EXPIRE, now);
     if (ts_subfilter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
@@ -126,9 +125,8 @@ cleanup_ipnetworks(struct sdap_options *opts,
         goto done;
     }
 
-    ts_subfilter = talloc_asprintf(tmp_ctx, "(&(!(%s=0))(%s<=%ld))",
-                                   SYSDB_CACHE_EXPIRE,
-                                   SYSDB_CACHE_EXPIRE, (long)now);
+    ts_subfilter = talloc_asprintf(tmp_ctx, "(&(!(%s=0))(%s<=%"SPRItime"))",
+                                   SYSDB_CACHE_EXPIRE, SYSDB_CACHE_EXPIRE, now);
     if (ts_subfilter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;

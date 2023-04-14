@@ -27,6 +27,7 @@
 #include <sys/syscall.h>
 
 #include "sss_client/sss_cli.h"
+#include "util/util.h"
 
 const uint8_t pac[] = {
 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x10,
@@ -95,9 +96,8 @@ static void *pac_client(void *arg)
     int ret;
     size_t c;
 
-    fprintf(stderr, "[%ld][%d][%ld][%s] started\n", time(NULL), getpid(),
-                                                    syscall(SYS_gettid),
-                                                    (char *) arg);
+    fprintf(stderr, "[%"SPRItime"][%d][%ld][%s] started\n",
+            time(NULL), getpid(), syscall(SYS_gettid), (char *) arg);
     for (c = 0; c < 1000; c++) {
         /* sss_pac_make_request() does not protect the client's file
          * descriptor to the PAC responder. With this one thread will miss a
@@ -121,7 +121,7 @@ static void *pac_client(void *arg)
         }
     }
 
-    fprintf(stderr, "[%ld][%s] done\n", time(NULL),(char *) arg);
+    fprintf(stderr, "[%"SPRItime"][%s] done\n", time(NULL),(char *) arg);
     return NULL;
 }
 

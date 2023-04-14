@@ -347,7 +347,7 @@ static int sdap_id_conn_data_start_idle_timer(struct sdap_id_conn_data *conn_dat
     memset(&tv, 0, sizeof(tv));
     tv.tv_sec = now + idle_timeout;
     DEBUG(SSSDBG_TRACE_ALL,
-          "Scheduling connection idle timer to run at %ld\n", tv.tv_sec);
+          "Scheduling connection idle timer to run at %"SPRItime"\n", tv.tv_sec);
 
     conn_data->idle_timer =
               tevent_add_timer(conn_data->conn_cache->id_conn->id_ctx->be->ev,
@@ -396,7 +396,7 @@ static void sdap_id_conn_data_idle_handler(struct tevent_context *ev,
     memset(&tv, 0, sizeof(tv));
     tv.tv_sec = (idle_time == 0 ? now : idle_time) + idle_timeout;
     DEBUG(SSSDBG_TRACE_ALL,
-          "Rescheduling connection idle timer to run at %ld\n", tv.tv_sec);
+          "Rescheduling connection idle timer to run at %"SPRItime"\n", tv.tv_sec);
 
     conn_data->idle_timer =
               tevent_add_timer(conn_data->conn_cache->id_conn->id_ctx->be->ev,
