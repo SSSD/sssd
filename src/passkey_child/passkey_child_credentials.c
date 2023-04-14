@@ -347,7 +347,6 @@ print_credentials(const struct passkey_data *data,
     const unsigned char *cred_id = NULL;
     const unsigned char *public_key = NULL;
     const char *b64_cred_id = NULL;
-    const char *b64_user_id = NULL;
     char *pem_key = NULL;
     size_t cred_id_len;
     size_t user_key_len;
@@ -403,18 +402,7 @@ print_credentials(const struct passkey_data *data,
         goto done;
     }
 
-    b64_user_id = sss_base64_encode(tmp_ctx, data->user_id, USER_ID_SIZE);
-    if (b64_user_id == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "failed to encode user id.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    if (data->cred_type == CRED_SERVER_SIDE) {
-        PRINT("passkey:%s,%s\n", b64_cred_id, pem_key);
-    } else {
-        PRINT("passkey:%s,%s,%s\n", b64_cred_id, pem_key, b64_user_id);
-    }
+    PRINT("passkey:%s,%s\n", b64_cred_id, pem_key);
     ret = EOK;
 
 done:
