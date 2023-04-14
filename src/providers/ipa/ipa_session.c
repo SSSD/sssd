@@ -142,7 +142,7 @@ ipa_fetch_deskprofile_send(TALLOC_CTX *mem_ctx,
         next_request /= 60;
         DEBUG(SSSDBG_TRACE_FUNC,
               "No rules were found in the last request.\n"
-              "Next request will happen in any login after %ld minutes\n",
+              "Next request will happen in any login after %"SPRItime" minutes\n",
               next_request);
         ret = ENOENT;
         goto immediately;

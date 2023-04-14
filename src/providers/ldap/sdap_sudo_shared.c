@@ -58,7 +58,7 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
 
         DEBUG(SSSDBG_CONF_SETTINGS, "At least smart refresh needs to be "
               "enabled. Setting smart refresh interval to default value "
-              "(%ld) seconds.\n", smart);
+              "(%"SPRItime") seconds.\n", smart);
     } else if (full > 0 && full <= smart) {
         /* In this case it does not make any sense to run smart refresh. */
         smart = 0;

@@ -163,7 +163,7 @@ fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
     ctx->opts->use_search_list = opts->use_search_list;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Created new fail over context, retry timeout is %ld\n",
+          "Created new fail over context, retry timeout is %"SPRItime"\n",
            ctx->opts->retry_timeout);
     return ctx;
 }
