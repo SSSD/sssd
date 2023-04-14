@@ -36,46 +36,6 @@
 #include "passkey_child.h"
 
 errno_t
-get_assert_user_id(TALLOC_CTX *mem_ctx, fido_assert_t *assert,
-                   unsigned char **_user_id)
-{
-    size_t user_id_len;
-    const unsigned char *user_id;
-    errno_t ret;
-
-    user_id_len = fido_assert_user_id_len(assert, 0);
-    if (user_id_len == 0) {
-        DEBUG(SSSDBG_TRACE_FUNC, "There isn't any user id\n");
-        ret = EOK;
-        goto done;
-    } else if (user_id_len != USER_ID_SIZE) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "User id size [%ld] differs from passkey_child's default value [%d]\n",
-              user_id_len, USER_ID_SIZE);
-    }
-
-    user_id = fido_assert_user_id_ptr(assert, 0);
-    if (user_id == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "fido_assert_user_id_ptr failed.\n");
-        ret = ERR_INTERNAL;
-        goto done;
-    }
-
-    *_user_id = (unsigned char*)sss_base64_encode(mem_ctx, user_id, user_id_len);
-    if (*_user_id == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to encode user id.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "User id: %s\n", *_user_id);
-    ret = EOK;
-
-done:
-    return ret;
-}
-
-errno_t
 set_assert_client_data_hash(const struct passkey_data *data,
                             fido_assert_t *_assert)
 {
@@ -453,19 +413,20 @@ done:
 
 void
 print_assert_data(const char *key_handle, const char *crypto_challenge,
-                  const char *auth_data, const char *signature,
-                  const unsigned char *user_id)
+                  const char *auth_data, const char *signature)
 {
     json_t *passkey = NULL;
     char* string = NULL;
-    const char *id = (user_id == NULL) ? "" : (const char *)user_id;
 
+    /* Kerberos expects the user_id field, thus it cannot be removed and there
+     * is nothing to set so it's an empty string.
+     */
     passkey = json_pack("{s:s*, s:s*, s:s*, s:s*, s:s*}",
                         "credential_id", key_handle,
                         "cryptographic_challenge", crypto_challenge,
                         "authenticator_data", auth_data,
                         "assertion_signature", signature,
-                        "user_id", id);
+                        "user_id", "");
     if (passkey == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create passkey object.\n");
         goto done;

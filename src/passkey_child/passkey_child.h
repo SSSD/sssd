@@ -313,19 +313,6 @@ public_key_to_base64(TALLOC_CTX *mem_ctx, const struct passkey_data *data,
 errno_t
 authenticate(struct passkey_data *data);
 
-/**
- * @brief Get user id from assert
- *
- * @param[in] mem_ctx Memory context
- * @param[in] assert Assert
- * @param[out] _user_id User id
- *
- * @return 0 if the user id was obtained properly, error code otherwise.
- */
-errno_t
-get_assert_user_id(TALLOC_CTX *mem_ctx, fido_assert_t *assert,
-                   unsigned char **_user_id);
-
 /*
  * @brief Select authenticator for verification
  *
@@ -515,13 +502,11 @@ verify_assert(struct pk_data_t *data, fido_assert_t *assert);
  * @param[in] crypto_challenge Cryptographic challenge
  * @param[in] auth_data Authenticator data
  * @param[in] signature Assertion signature
- * @param[in] user_id User id
  *
  */
 void
 print_assert_data(const char *key_handle, const char *crypto_challenge,
-                  const char *auth_data, const char *signature,
-                  const unsigned char *user_id);
+                  const char *auth_data, const char *signature);
 
 /**
  * @brief Obtain assertion data

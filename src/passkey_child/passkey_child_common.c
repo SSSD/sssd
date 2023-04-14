@@ -724,13 +724,6 @@ authenticate(struct passkey_data *data)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Getting user id.\n");
-    ret = get_assert_user_id(tmp_ctx, assert, &data->user_id);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to get user id.\n");
-        goto done;
-    }
-
     DEBUG(SSSDBG_TRACE_FUNC, "Resetting assert options.\n");
     ret = set_assert_options(FIDO_OPT_TRUE, data->user_verification, assert);
     if (ret != FIDO_OK) {
@@ -763,10 +756,6 @@ authenticate(struct passkey_data *data)
         goto done;
     }
 
-    if (data->user_id != NULL) {
-        fprintf(stdout,"%s\n", data->user_id);
-        fflush(stdout);
-    }
     ret = FIDO_OK;
 
 done:
@@ -787,7 +776,6 @@ get_assert_data(struct passkey_data *data)
     TALLOC_CTX *tmp_ctx = NULL;
     fido_dev_t *dev = NULL;
     fido_assert_t *assert = NULL;
-    unsigned char *user_id = NULL;
     const char *auth_data = NULL;
     const char *signature = NULL;
     int index;
@@ -807,13 +795,6 @@ get_assert_data(struct passkey_data *data)
     DEBUG(SSSDBG_TRACE_FUNC, "Comparing the device and policy options.\n");
     ret = get_device_options(dev, data);
     if (ret != FIDO_OK) {
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Getting user id.\n");
-    ret = get_assert_user_id(tmp_ctx, assert, &user_id);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to get user id.\n");
         goto done;
     }
 
@@ -838,7 +819,7 @@ get_assert_data(struct passkey_data *data)
     }
 
     print_assert_data(data->key_handle_list[index], data->crypto_challenge,
-                      auth_data, signature, user_id);
+                      auth_data, signature);
 
 done:
     if (dev != NULL) {
