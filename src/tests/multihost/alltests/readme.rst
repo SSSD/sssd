@@ -14,6 +14,7 @@ Following are the pytest markers used
 * automount: Test cases related to autofs responder
 * configmerge: Tests related to Config merge
 * configvalidation: Tests related to sssd config validation
+* cache_performance: Tests related to cache performance testing
 * misc: Tests related to misc bugs automation
 * hostmap: Tests related to hostmap and network map
 * journald: Tests related to journald
