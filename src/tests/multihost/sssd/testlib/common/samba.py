@@ -138,7 +138,7 @@ class sambaTools(object):
         self.host_tools.update_resolv_conf(self.adhost_ip)
         self.host_tools.create_kdcinfo(self.adhost_realm, self.adhost_ip)
         self.host_tools.systemsssdauth(self.adhost_realm, self.adhost_hostname)
-        self.host_tools.disjoin_ad()
+        self.host_tools.disjoin_ad(raiseonerr=False)
         kinit = "kinit Administrator"
         try:
             self.host.run_command(kinit, stdin_text=self.adhost_password)
@@ -156,7 +156,7 @@ class sambaTools(object):
     def disable_winbind(self):
         """ Disable winbind """
         # disjoin system
-        self.host_tools.disjoin_ad()
+        self.host_tools.disjoin_ad(raiseonerr=False)
         # stop winbind
         stop_winbind = 'systemctl stop winbind'
         self.host.run_command(stop_winbind)
