@@ -1,6 +1,6 @@
 """Automation for cache performance tests ported from bash
 
-:requirement: ldap_provider
+:requirement: SSSD Memory cache Performance
 :casecomponent: sssd
 :subsystemteam: sst_idm_sssd
 :upstream: yes
@@ -50,7 +50,7 @@ class TestCacheTesting():
         :setup:
           1. Clear the sssd cache and restart sssd.
         :steps:
-          1. Excute getent to fetch user details.
+          1. Execute getent to fetch user details.
           2. Check if timestamps cache file exits.
         :expectedresults:
           1. User details should be successfully fetched.
@@ -62,7 +62,7 @@ class TestCacheTesting():
         file = f"/var/lib/sss/db/timestamps_{ds_instance_name}.ldb"
         list_cmd = f"ls -ld {file}"
         cmd = multihost.client[0].run_command(list_cmd, raiseonerr=False)
-        assert cmd.returncode == 0, f"{file} - no such file or directory."
+        assert cmd.returncode == 0, f"Could not find timestamp cache file {file}"
 
     @staticmethod
     def test_0002_Verify_Cache_on_User_Lookup(multihost):
@@ -96,8 +96,8 @@ class TestCacheTesting():
           3. Execute the ldbsearch command and check for dataExpireTimestamp in the timestamps db output
         :expectedresults:
           1. Cache sucessfully get invalidated.
-          2. Expected value should be present in cache db output.
-          3. Expected value should be present in timestamps db output.
+          2. dataExpireTimestamp should be present in cache db output.
+          3. dataExpireTimestamp should be present in timestamps db output.
         """
         invalidate_cache = "sss_cache -E"
         cmd = multihost.client[0].run_command(invalidate_cache, raiseonerr=False)
@@ -111,9 +111,9 @@ class TestCacheTesting():
         cmd2_output = multihost.client[0].get_file_contents('/tmp/file_ldb2').decode('utf-8')
         assert cmd.returncode == 0, f'{invalidate_cache} did not execute successfully'
         assert cmd1.returncode == 0, f'{ldb_cmd1} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" in cmd1_output, "Expected value not found in /tmp/file_ldb1"
+        assert "dataExpireTimestamp: 1\n" in cmd1_output, "dataExpireTimestamp not found in /tmp/file_ldb1"
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" in cmd2_output, "Expected value not found in /tmp/file_ldb2"
+        assert "dataExpireTimestamp: 1\n" in cmd2_output, "dataExpireTimestamp not found in /tmp/file_ldb2"
 
     @staticmethod
     def test_0004_Refresh_User_Entries_After_Expiry(multihost):
@@ -122,13 +122,13 @@ class TestCacheTesting():
             verify the cache updates
         :id: 05e1a77b-bb9d-422b-ba4e-3b34f0752f65
         :steps:
-          1. Excute getent to fetch user details.
+          1. Execute getent to fetch user details.
           2. Execute the ldbsearch command and check for dataExpireTimestamp in the cache db output
           3. Execute the ldbsearch command and check for dataExpireTimestamp in the timestamps db output
         :expectedresults:
           1. User details should be successfully fetched.
-          2. Expected value should be present in cache db output.
-          3. Expected value should not be present in timestamps db output.
+          2. dataExpireTimestamp should be present in cache db output.
+          3. dataExpireTimestamp should not be present in timestamps db output.
         """
         client = sssdTools(multihost.client[0])
         client.get_getent_passwd('foo1')
@@ -141,9 +141,9 @@ class TestCacheTesting():
         cmd_output = multihost.client[0].get_file_contents('/tmp/file_ldb').decode('utf-8')
         cmd2_output = multihost.client[0].get_file_contents('/tmp/file_ldb2').decode('utf-8')
         assert cmd.returncode == 0, f'{ldb_cmd} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" in cmd_output, "Expected value not found in /tmp/file_ldb"
+        assert "dataExpireTimestamp: 1\n" in cmd_output, "dataExpireTimestamp not found in /tmp/file_ldb"
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" not in cmd2_output, "Expected value found in /tmp/file_ldb2"
+        assert "dataExpireTimestamp: 1\n" not in cmd2_output, "dataExpireTimestamp found in /tmp/file_ldb2"
 
     @staticmethod
     def test_0005_Expire_User_Entries_ans_Run_User_Auth(multihost):
@@ -158,8 +158,8 @@ class TestCacheTesting():
         :expectedresults:
           1. Cache sucessfully get invalidated.
           2. User foo1 should be able to successfully login
-          3. Expected value should be present in cache db output.
-          4. Expected value should not be present in timestamps db output.
+          3. dataExpireTimestamp should be present in cache db output.
+          4. dataExpireTimestamp should not be present in timestamps db output.
         """
         invalidate_cache = "sss_cache -E"
         cmd = multihost.client[0].run_command(invalidate_cache, raiseonerr=False)
@@ -174,11 +174,11 @@ class TestCacheTesting():
         cmd1_output = multihost.client[0].get_file_contents('/tmp/file_ldb').decode('utf-8')
         cmd2_output = multihost.client[0].get_file_contents('/tmp/file_ldb2').decode('utf-8')
         assert cmd.returncode == 0, f'{invalidate_cache} did not execute successfully'
-        assert ssh == 3, "foo1 failed to log In"
+        assert ssh == 3, "User foo1 failed to log In"
         assert cmd1.returncode == 0, f'{ldb_cmd} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" in cmd1_output, "Expected value not found in /tmp/file_ldb"
+        assert "dataExpireTimestamp: 1\n" in cmd1_output, "dataExpireTimestamp not found in /tmp/file_ldb"
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" not in cmd2_output, "Expected value found in /tmp/file_ldb2"
+        assert "dataExpireTimestamp: 1\n" not in cmd2_output, "dataExpireTimestamp found in /tmp/file_ldb2"
 
     @staticmethod
     def test_0006_Set_refresh_expired_interval_to_40(multihost, backupsssdconf):
@@ -186,18 +186,18 @@ class TestCacheTesting():
         :title: IDM-SSSD-TC: ldap_provider: cache_performance: Set refresh expired interval to 40 and \
             verify user record updates
         :id: 329e6aa3-5b97-432b-bd2e-81f6c543e3f5
+        :setup:
+          1. Set the refresh_expired_interval to 40 in the sssd.conf
         :steps:
-          1. Set the refresh_expired_interval in the sssd.conf
-          2. Excute getent to fetch user details.
-          3. Invalidate the existing cache
-          4. Execute the ldbsearch command and check for dataExpireTimestamp in the cache db output
-          5. Execute the ldbsearch command and check for dataExpireTimestamp in the timestamps db output
+          1. Execute getent to fetch user details.
+          2. Invalidate the existing cache
+          3. Execute the ldbsearch command and check for dataExpireTimestamp in the cache db output
+          4. Execute the ldbsearch command and check for dataExpireTimestamp in the timestamps db output
         :expectedresults:
-          1. SSSD conf is set successfully
-          2. User details should be successfully fetched.
-          3. Cache sucessfully get invalidated.
-          4. Expected value should be present in cache db output.
-          5. Expected value should not be present in timestamps db output.
+          1. User details should be successfully fetched.
+          2. Cache sucessfully get invalidated.
+          3. dataExpireTimestamp should be present in cache db output.
+          4. dataExpireTimestamp should not be present in timestamps db output.
         """
         client = sssdTools(multihost.client[0])
         domain_section = f'domain/{ds_instance_name}'
@@ -221,9 +221,9 @@ class TestCacheTesting():
         cmd2_output = multihost.client[0].get_file_contents('/tmp/file_ldb2').decode('utf-8')
         assert cmd.returncode == 0, f'{invalidate_cache} did not execute successfully'
         assert cmd1.returncode == 0, f'{ldb_cmd} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" in cmd1_output, "Expected value not found in /tmp/file_ldb"
+        assert "dataExpireTimestamp: 1\n" in cmd1_output, "dataExpireTimestamp not found in /tmp/file_ldb"
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" not in cmd2_output, "Expected value found in /tmp/file_ldb2"
+        assert "dataExpireTimestamp: 1\n" not in cmd2_output, "dataExpireTimestamp found in /tmp/file_ldb2"
 
     @staticmethod
     def test_0007_Set_use_fully_qualified_names_to_true(multihost, backupsssdconf):
@@ -231,16 +231,16 @@ class TestCacheTesting():
         :title: IDM-SSSD-TC: ldap_provider: cache_performance: Set use fully qualified names to true and \
             verify cache updates
         :id: 31946f7a-2f7a-466c-ac87-0e9741bd0c80
-        :steps:
+        :setup:
           1. Set the use_fully_qualified_names to True in the sssd.conf
-          2. Excute getent to fetch user details.
-          3. Execute the ldbsearch command to get cache db output
-          4. Execute the ldbsearch command to get timestamps db output
+        :steps:
+          1. Execute getent to fetch user details.
+          2. Execute the ldbsearch command to get cache db output
+          3. Execute the ldbsearch command to get timestamps db output
         :expectedresults:
-          1. SSSD conf is set successfully
-          2. User details should be successfully fetched.
+          1. User details should be successfully fetched.
+          2. Command executes and cache file should be present.
           3. Command executes and cache file should be present.
-          4. Command executes and cache file should be present.
         """
         client = sssdTools(multihost.client[0])
         domain_section = f'domain/{ds_instance_name}'
@@ -262,16 +262,16 @@ class TestCacheTesting():
         """
         :title: IDM-SSSD-TC: ldap_provider: cache_performance: Set case sensitive to false and verify cache updates
         :id: fd1dc840-3908-4eba-81ec-ae492335b8c6
-        :steps:
+        :setup:
           1. Set the case_sensitive to False in the sssd.conf
-          2. Excute getent to fetch user details.
-          3. Execute the ldbsearch command to get cache db output
-          4. Execute the ldbsearch command to get timestamps db output
+        :steps:
+          1. Execute getent to fetch user details.
+          2. Execute the ldbsearch command to get cache db output
+          3. Execute the ldbsearch command to get timestamps db output
         :expectedresults:
-          1. SSSD conf is set successfully
-          2. User details should be successfully fetched.
+          1. User details should be successfully fetched.
+          2. Command executes and cache file should be present.
           3. Command executes and cache file should be present.
-          4. Command executes and cache file should be present.
         """
         client = sssdTools(multihost.client[0])
         domain_section = f'domain/{ds_instance_name}'
@@ -294,7 +294,7 @@ class TestCacheTesting():
         :title: IDM-SSSD-TC: ldap_provider: cache_performance: Verify ldb cache updates on group lookup
         :id: 8af50374-bc7f-44f2-b381-b8c28f7a2f52
         :steps:
-          1. Excute getent to fetch group details.
+          1. Execute getent to fetch group details.
           2. Execute the ldbsearch command to get cache db output
           3. Execute the ldbsearch command to get timestamps db output
         :expectedresults:
@@ -324,8 +324,8 @@ class TestCacheTesting():
           3. Execute the ldbsearch command and check for dataExpireTimestamp in the timestamps db output
         :expectedresults:
           1. Cache sucessfully get invalidated.
-          2. Expected value should be present in cache db output.
-          3. Expected value should be present in timestamps db output.
+          2. dataExpireTimestamp should be present in cache db output.
+          3. dataExpireTimestamp should be present in timestamps db output.
         """
         invalidate_cache = "sss_cache -E"
         cmd = multihost.client[0].run_command(invalidate_cache, raiseonerr=False)
@@ -339,9 +339,9 @@ class TestCacheTesting():
         cmd2_output = multihost.client[0].get_file_contents('/tmp/file_ldb2').decode('utf-8')
         assert cmd.returncode == 0, f'{invalidate_cache} did not execute successfully'
         assert cmd1.returncode == 0, f'{ldb_cmd1} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" in cmd1_output, "Expected value not found in /tmp/file_ldb1"
+        assert "dataExpireTimestamp: 1\n" in cmd1_output, "dataExpireTimestamp not found in /tmp/file_ldb1"
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" in cmd2_output, "Expected value not found in /tmp/file_ldb2"
+        assert "dataExpireTimestamp: 1\n" in cmd2_output, "dataExpireTimestamp not found in /tmp/file_ldb2"
 
     @staticmethod
     def test_0011_Refresh_group_record_after_expiry(multihost):
@@ -350,13 +350,13 @@ class TestCacheTesting():
             verify the cache updates
         :id: d1e735df-cd09-43cf-b069-48c244acaece
         :steps:
-          1. Excute getent to fetch group details.
+          1. Execute getent to fetch group details.
           2. Execute the ldbsearch command and check for dataExpireTimestamp in the cache db output
           3. Execute the ldbsearch command and check for dataExpireTimestamp in the timestamps db output
         :expectedresults:
           1. Group details should be successfully fetched.
-          2. Expected value should be present in cache db output.
-          3. Expected value should not be present in timestamps db output.
+          2. dataExpireTimestamp should be present in cache db output.
+          3. dataExpireTimestamp should not be present in timestamps db output.
         """
         client = sssdTools(multihost.client[0])
         client.get_getent_group('ldapusers')
@@ -369,9 +369,9 @@ class TestCacheTesting():
         cmd_output = multihost.client[0].get_file_contents('/tmp/file_ldb').decode('utf-8')
         cmd2_output = multihost.client[0].get_file_contents('/tmp/file_ldb2').decode('utf-8')
         assert cmd.returncode == 0, f'{ldb_cmd} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" in cmd_output, "Expected value not found in /tmp/file_ldb"
+        assert "dataExpireTimestamp: 1\n" in cmd_output, "dataExpireTimestamp not found in /tmp/file_ldb"
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" not in cmd2_output, "Expected value not found in /tmp/file_ldb2"
+        assert "dataExpireTimestamp: 1\n" not in cmd2_output, "dataExpireTimestamp found in /tmp/file_ldb2"
 
     @staticmethod
     def test_0012_Set_refresh_expired_interval_to_40(multihost, backupsssdconf):
@@ -379,18 +379,18 @@ class TestCacheTesting():
         :title: IDM-SSSD-TC: ldap_provider: cache_performance: Set refresh expired interval to 40 and \
             verify Group record updates
         :id: 1905e2ae-3e1a-40e4-8aff-378de9d8f45b
-        :steps:
+        :setup:
           1. Set the refresh_expired_interval in the sssd.conf
-          2. Excute getent to fetch group details.
-          3. Invalidate the existing cache
-          4. Execute the ldbsearch command and check for dataExpireTimestamp in the cache db output
-          5. Execute the ldbsearch command and check for dataExpireTimestamp in the timestamps db output
+        :steps:
+          1. Execute getent to fetch group details.
+          2. Invalidate the existing cache
+          3. Execute the ldbsearch command and check for dataExpireTimestamp in the cache db output
+          4. Execute the ldbsearch command and check for dataExpireTimestamp in the timestamps db output
         :expectedresults:
-          1. SSSD conf is set successfully
-          2. Group details should be successfully fetched.
-          3. Cache sucessfully get invalidated.
-          4. Expected value should be present in cache db output.
-          5. Expected value should not be present in timestamps db output.
+          1. Group details should be successfully fetched.
+          2. Cache sucessfully get invalidated.
+          3. dataExpireTimestamp should be present in cache db output.
+          4. dataExpireTimestamp should not be present in timestamps db output.
         """
         client = sssdTools(multihost.client[0])
         domain_section = f'domain/{ds_instance_name}'
@@ -414,9 +414,9 @@ class TestCacheTesting():
         cmd2_output = multihost.client[0].get_file_contents('/tmp/file_ldb2').decode('utf-8')
         assert cmd.returncode == 0, f'{invalidate_cache} did not execute successfully'
         assert cmd1.returncode == 0, f'{ldb_cmd} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" in cmd1_output, "Expected value not found in /tmp/file_ldb"
+        assert "dataExpireTimestamp: 1\n" in cmd1_output, "dataExpireTimestamp not found in /tmp/file_ldb"
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" not in cmd2_output, "Expected value not found in /tmp/file_ldb2"
+        assert "dataExpireTimestamp: 1\n" not in cmd2_output, "dataExpireTimestamp found in /tmp/file_ldb2"
 
     @staticmethod
     def test_0013_Modify_User_Attribute(multihost):
@@ -424,7 +424,7 @@ class TestCacheTesting():
         :title: IDM-SSSD-TC: ldap_provider: cache_performance: Modify user attribute and verify cache updates
         :id: ae02729b-8ac9-491f-8a0d-9902ee4948fa
         :steps:
-          1. Excute getent to fetch group details.
+          1. Execute getent to fetch group details.
           2. Invalidate the existing cache
           3. Execute the ldapmodify command to modify user's loginShell details
           4. Execute the ldbsearch command and check for loginShell in the cache db output
@@ -433,8 +433,8 @@ class TestCacheTesting():
           1. Group details should be successfully fetched.
           2. Cache sucessfully get invalidated.
           3. Ldapmodify command executes successfully.
-          4. Expected value should be present in cache db output.
-          5. Expected value should not be present in timestamps db output.
+          4. Updated loginShell value should be present in cache db output.
+          5. dataExpireTimestamp should not be present in timestamps db output.
         """
         client = sssdTools(multihost.client[0])
         client.clear_sssd_cache()
@@ -463,9 +463,9 @@ class TestCacheTesting():
         assert cmd.returncode == 0, f'{invalidate_cache} did not execute successfully'
         assert cmd2.returncode == 0, f'{ldap_cmd} did not execute successfully'
         assert cmd3.returncode == 0, f'{ldb_cmd} did not execute successfully'
-        assert "/bin/sh" in cmd3_output, "Expected value not found in /tmp/file_ldb"
+        assert "/bin/sh" in cmd3_output, "Updated loginShell value not found in /tmp/file_ldb"
         assert cmd4.returncode == 0, f'{ldb_cmd2} did not execute successfully'
-        assert "dataExpireTimestamp: 1\n" not in cmd4_output, "Expected value found in /tmp/file_ldb2"
+        assert "dataExpireTimestamp: 1\n" not in cmd4_output, "dataExpireTimestamp found in /tmp/file_ldb2"
 
     @staticmethod
     def test_0014_Delete_an_existing_user(multihost):
@@ -473,7 +473,7 @@ class TestCacheTesting():
         :title: IDM-SSSD-TC: ldap_provider: cache_performance: Delete an existing user and verify cache updates
         :id: 2c05ee2c-d5d6-4c98-9b1d-e349df5d7780
         :steps:
-          1. Excute getent to fetch user details.
+          1. Execute getent to fetch user details.
           2. Invalidate the existing cache
           3. Execute the ldapdelete command to delete user foo1.
           4. Execute the ldbsearch command and check if user foo1 is present in the cache db output
@@ -482,8 +482,8 @@ class TestCacheTesting():
           1. User details should be successfully fetched.
           2. Cache sucessfully get invalidated.
           3. Ldapdelete command executes successfully.
-          4. Expected value should not be present in cache db output.
-          5. Expected value should not be present in timestamps db output.
+          4. User foo1 should not be present in cache db output.
+          5. User foo1 should not be present in timestamps db output.
         """
         client = sssdTools(multihost.client[0])
         client.clear_sssd_cache()
@@ -508,6 +508,6 @@ class TestCacheTesting():
         assert cmd.returncode == 0, f'{invalidate_cache} did not execute successfully'
         assert delete_cmd.returncode == 0, f'{ldap_cmd} did not execute successfully'
         assert cmd1.returncode == 0, f'{ldb_cmd} did not execute successfully'
-        assert "foo1@example1" not in cmd1_output, "Expected value not found in /tmp/file_ldb"
+        assert "foo1@example1" not in cmd1_output, "User foo1 found in /tmp/file_ldb"
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'
-        assert "foo1@example1" not in cmd2_output, "Expected value not found in /tmp/file_ldb2"
+        assert "foo1@example1" not in cmd2_output, "User foo1 found in /tmp/file_ldb2"
