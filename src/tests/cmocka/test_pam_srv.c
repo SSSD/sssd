@@ -788,7 +788,7 @@ static int test_pam_passkey_preauth_check(uint32_t status, uint8_t *body, size_t
     assert_int_equal(val, 9);
 
     assert_int_equal(*(body + rp + val - 1), 0);
-    assert_string_equal(body + rp, TEST_DOM_NAME);
+    assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
 
     return EOK;
 }
@@ -813,7 +813,7 @@ static int test_pam_passkey_found_preauth_check(uint32_t status, uint8_t *body, 
     assert_int_equal(val, 9);
 
     assert_int_equal(*(body + rp + val - 1), 0);
-    assert_string_equal(body + rp, TEST_DOM_NAME);
+    assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
 
     return EOK;
 }
@@ -839,7 +839,7 @@ static int test_pam_simple_check(uint32_t status, uint8_t *body, size_t blen)
     assert_int_equal(val, 9);
 
     assert_int_equal(*(body + rp + val - 1), 0);
-    assert_string_equal(body + rp, TEST_DOM_NAME);
+    assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
 
     return EOK;
 }
@@ -867,7 +867,7 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
     assert_int_equal(val, 9);
 
     assert_int_equal(*(body + rp + val - 1), 0);
-    assert_string_equal(body + rp, TEST_DOM_NAME);
+    assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
     rp += val;
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
@@ -876,7 +876,7 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
     assert_int_equal(val, (strlen(PKCS11_LOGIN_TOKEN_ENV_NAME "=")
                            + sizeof(TEST_TOKEN_NAME)));
-    assert_string_equal(body + rp,
+    assert_string_equal((char *)(body + rp),
                         PKCS11_LOGIN_TOKEN_ENV_NAME "=" TEST_TOKEN_NAME);
     rp += val;
 
@@ -893,31 +893,31 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
                                 + sizeof("pamuser")));
 
     assert_int_equal(*(body + rp + sizeof("pamuser@"TEST_DOM_NAME) - 1), 0);
-    assert_string_equal(body + rp, "pamuser@"TEST_DOM_NAME);
+    assert_string_equal((char *)(body + rp), "pamuser@"TEST_DOM_NAME);
     rp += sizeof("pamuser@"TEST_DOM_NAME);
 
     assert_int_equal(*(body + rp + sizeof(TEST_TOKEN_NAME) - 1), 0);
-    assert_string_equal(body + rp, TEST_TOKEN_NAME);
+    assert_string_equal((char *)(body + rp), TEST_TOKEN_NAME);
     rp += sizeof(TEST_TOKEN_NAME);
 
     assert_int_equal(*(body + rp + sizeof(TEST_MODULE_NAME) - 1), 0);
-    assert_string_equal(body + rp, TEST_MODULE_NAME);
+    assert_string_equal((char *)(body + rp), TEST_MODULE_NAME);
     rp += sizeof(TEST_MODULE_NAME);
 
     assert_int_equal(*(body + rp + sizeof(TEST_KEY_ID) - 1), 0);
-    assert_string_equal(body + rp, TEST_KEY_ID);
+    assert_string_equal((char *)(body + rp), TEST_KEY_ID);
     rp += sizeof(TEST_KEY_ID);
 
     assert_int_equal(*(body + rp + sizeof(TEST_LABEL) - 1), 0);
-    assert_string_equal(body + rp, TEST_LABEL);
+    assert_string_equal((char *)(body + rp), TEST_LABEL);
     rp += sizeof(TEST_LABEL);
 
     assert_int_equal(*(body + rp + sizeof(TEST_PROMPT) - 1), 0);
-    assert_string_equal(body + rp, TEST_PROMPT);
+    assert_string_equal((char *)(body + rp), TEST_PROMPT);
     rp += sizeof(TEST_PROMPT);
 
     assert_int_equal(*(body + rp + sizeof("pamuser") - 1), 0);
-    assert_string_equal(body + rp, "pamuser");
+    assert_string_equal((char *)(body + rp), "pamuser");
     rp += sizeof("pamuser");
 
     assert_int_equal(rp, blen);
@@ -930,7 +930,7 @@ static void check_string_array(const char **strs, uint8_t *body, size_t *rp)
 
     for (c = 0; strs[c] != NULL; c++) {
         assert_int_equal(*(body + *rp + strlen(strs[c])), 0);
-        assert_string_equal(body + *rp, strs[c]);
+        assert_string_equal((char *)(body + *rp), strs[c]);
         *rp += strlen(strs[c]) + 1;
     }
 }
@@ -1005,7 +1005,7 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
         assert_int_equal(val, 9);
 
         assert_int_equal(*(body + rp + val - 1), 0);
-        assert_string_equal(body + rp, TEST_DOM_NAME);
+        assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
         rp += val;
     }
 
@@ -1089,7 +1089,7 @@ static int test_pam_cert2_token2_check_ex(uint32_t status, uint8_t *body,
     assert_int_equal(val, 9);
 
     assert_int_equal(*(body + rp + val - 1), 0);
-    assert_string_equal(body + rp, TEST_DOM_NAME);
+    assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
     rp += val;
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
@@ -1134,7 +1134,7 @@ static int test_pam_cert_X_token_X_check_ex(uint32_t status, uint8_t *body,
     assert_int_equal(val, 9);
 
     assert_int_equal(*(body + rp + val - 1), 0);
-    assert_string_equal(body + rp, TEST_DOM_NAME);
+    assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
     rp += val;
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
@@ -1239,7 +1239,7 @@ static int test_pam_offline_chauthtok_check(uint32_t status,
     assert_int_equal(val, 9);
 
     assert_int_equal(*(body + rp + val - 1), 0);
-    assert_string_equal(body + rp, TEST_DOM_NAME);
+    assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
     rp += val;
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
@@ -3927,7 +3927,7 @@ static int test_pam_prompt_check(uint32_t status, uint8_t *body, size_t blen)
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
     assert_int_equal(val, 9);
-    assert_string_equal(body + rp, TEST_DOM_NAME);
+    assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
     rp += val;
 
 

@@ -109,7 +109,7 @@ static void test_sss_authtok_password(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
     assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
-    assert_string_equal(data, sss_authtok_get_data(ts->authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(ts->authtoken));
 
     ret = sss_authtok_get_password(ts->authtoken, &pwd, &ret_len);
 
@@ -151,7 +151,7 @@ static void test_sss_authtok_ccfile(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
     assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
-    assert_string_equal(data, sss_authtok_get_data(ts->authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(ts->authtoken));
 
     ret = sss_authtok_get_ccfile(ts->authtoken, &pwd, &ret_len);
 
@@ -175,7 +175,7 @@ static void test_sss_authtok_ccfile(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
     assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
-    assert_string_equal(data, sss_authtok_get_data(ts->authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(ts->authtoken));
 
     ret = sss_authtok_get_ccfile(ts->authtoken, &pwd, &ret_len);
 
@@ -302,7 +302,7 @@ static void test_sss_authtok_copy(void **state)
 
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(dest_authtoken));
-    assert_string_equal(data, sss_authtok_get_data(dest_authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(dest_authtoken));
     assert_int_equal(len, sss_authtok_get_size(dest_authtoken));
 
     sss_authtok_set_empty(dest_authtoken);
@@ -689,7 +689,7 @@ static void test_sss_authtok_2fa_single(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
     assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
-    assert_string_equal(data, sss_authtok_get_data(ts->authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(ts->authtoken));
 
     ret = sss_authtok_get_2fa_single(ts->authtoken, &pwd, &ret_len);
 
@@ -731,7 +731,7 @@ static void test_sss_authtok_oauth2(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
     assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
-    assert_string_equal(data, sss_authtok_get_data(ts->authtoken));
+    assert_string_equal(data, (char *)sss_authtok_get_data(ts->authtoken));
 
     ret = sss_authtok_get_oauth2(ts->authtoken, &pwd, &ret_len);
 
