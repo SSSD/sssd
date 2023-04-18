@@ -52,7 +52,9 @@ sss_passkeycl_prep_questions(krb5_context context,
 {
     struct sss_passkey_message *message;
     char *question = NULL;
+    char **realms = NULL;
     krb5_error_code ret;
+    size_t r = 0;
 
     message = sss_passkey_message_decode_padata(pa_data);
     if (message == NULL) {
@@ -60,12 +62,46 @@ sss_passkeycl_prep_questions(krb5_context context,
         goto done;
     }
 
-    if (message->data.challenge->domain == NULL ||
-        strncasecmp(message->data.challenge->domain,
-                    request->server->realm.data,
-                    request->server->realm.length) != 0) {
+    if (message->data.challenge->domain == NULL) {
         ret = KRB5KDC_ERR_PREAUTH_FAILED;
         goto done;
+    }
+
+    /* Find a realm that matches the domain from the challenge */
+    ret = krb5_get_host_realm(context,
+                              message->data.challenge->domain,
+                              &realms);
+    if (ret || ((realms == NULL) || (realms[0] == NULL))) {
+        ret = KRB5KDC_ERR_PREAUTH_FAILED;
+        goto done;
+    }
+
+    /* Do explicit check for the challenge domain in case
+     * we've got back a referral (empty) realm */
+    if (strlen(realms[0]) == strlen(KRB5_REFERRAL_REALM)) {
+        ret = strncasecmp(message->data.challenge->domain,
+                          request->server->realm.data,
+                          request->server->realm.length);
+        if (ret != 0) {
+            ret = KRB5KDC_ERR_PREAUTH_FAILED;
+            goto done;
+        }
+
+    } else {
+        for(r = 0; realms[r] != NULL; r++) {
+            ret = strncasecmp(realms[r],
+                              request->server->realm.data,
+                              request->server->realm.length);
+            if (ret == 0) {
+                break;
+            }
+        }
+
+        /* doesn't know the domain, reject the challenge */
+        if (realms[r] == NULL) {
+            ret = KRB5KDC_ERR_PREAUTH_FAILED;
+            goto done;
+        }
     }
 
     question = sss_passkey_message_encode(message);
@@ -78,6 +114,9 @@ sss_passkeycl_prep_questions(krb5_context context,
                                      question);
 
 done:
+    if (realms) {
+        krb5_free_host_realm(context, realms);
+    }
     sss_passkey_message_free(message);
     free(question);
 
