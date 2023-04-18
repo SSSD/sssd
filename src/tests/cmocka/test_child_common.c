@@ -446,7 +446,7 @@ static void echo_child_read_done(struct tevent_req *subreq)
     close(echo_state->io_fds->read_from_child_fd);
     echo_state->io_fds->read_from_child_fd = -1;
 
-    assert_string_equal(buf, echo_state->buf.data);
+    assert_string_equal((char *)buf, (char *)echo_state->buf.data);
     echo_state->child_test_ctx->test_ctx->done = true;
 }
 
