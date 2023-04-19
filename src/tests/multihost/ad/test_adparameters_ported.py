@@ -185,13 +185,14 @@ def set_ssh_key_ldap(session_multihost, user, pubkey, operation="replace"):
     return cmd.returncode == 0
 
 
-@pytest.mark.tier1_2
 @pytest.mark.adparameters
 @pytest.mark.usefixtures("change_client_hostname")
 class TestADParamsPorted:
     """ BZ Automated Test Cases for AD Parameters ported from bash"""
     # pylint: disable=too-many-public-methods
+
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0001_ad_parameters_domain(
             multihost, adjoin, create_aduser_group):
         """
@@ -222,7 +223,6 @@ class TestADParamsPorted:
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -252,9 +252,6 @@ class TestADParamsPorted:
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
-
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert f"Option ad_domain has value {ad_realm}" in log_str
@@ -385,8 +382,7 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the config because with broken config we can't leave ad
-        client.backup_sssd_conf()
+
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd with junk domain
@@ -462,9 +458,6 @@ class TestADParamsPorted:
             'rm -f /tmp/first_invalid.keytab',
             raiseonerr=False
         )
-        # Restore sssd config
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert usr_cmd.returncode == 2, f"{aduser} was unexpectedly found!"
@@ -473,6 +466,7 @@ class TestADParamsPorted:
         assert "Option krb5_realm set to JUNK" in log_str
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0004_ad_parameters_valid_domain_shorthost(
             multihost, adjoin, create_aduser_group):
         """
@@ -499,8 +493,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the config because with broken config we can't leave ad
-        client.backup_sssd_conf()
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to disable ldap_id_mapping and enable logging
@@ -539,9 +531,6 @@ class TestADParamsPorted:
         # Run su
         su_result = client.su_success(rf'{ad_domain_short}\\{aduser}')
 
-        # Restore sssd config
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
         # Evaluate test results
         assert f"Trying to find principal {shortname}$@{ad_realm}" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
@@ -576,8 +565,7 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the config because with broken config we can't leave ad
-        client.backup_sssd_conf()
+
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
         # Configure sssd to disable ldap_id_mapping and enable logging
@@ -616,9 +604,7 @@ class TestADParamsPorted:
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
-        # Restore sssd config
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
+
         # Evaluate test results
         assert "Option ad_domain has no value" in log_str
         assert f"Option krb5_realm set to {ad_realm}" in log_str
@@ -627,6 +613,7 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0006_ad_parameters_homedir_override_nss(
             multihost, adjoin, create_plain_aduser_group):
         """
@@ -651,7 +638,6 @@ class TestADParamsPorted:
         (aduser, _) = create_plain_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
 
         sssd_params = {
@@ -667,14 +653,13 @@ class TestADParamsPorted:
             f'getent passwd {aduser}@{ad_domain}',
             raiseonerr=False
         )
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert f'/home/{aduser}@{ad_domain.upper()}/{aduser}' in \
                usr_cmd.stdout_text
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0007_ad_parameters_homedir_override_domain(
             multihost, adjoin, create_plain_aduser_group):
         """
@@ -698,7 +683,6 @@ class TestADParamsPorted:
         (aduser, _) = create_plain_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'debug_level': '9',
@@ -713,9 +697,6 @@ class TestADParamsPorted:
             f'getent passwd {aduser}@{ad_domain}',
             raiseonerr=False
         )
-
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert f'/home/{aduser}@{ad_domain.upper()}/{aduser}' in \
@@ -746,7 +727,6 @@ class TestADParamsPorted:
         (aduser, _) = create_plain_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'debug_level': '9',
@@ -763,14 +743,12 @@ class TestADParamsPorted:
             raiseonerr=False
         )
 
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Evaluate test results
         assert f'/home/{aduser}/{aduser}@{ad_domain.upper()}' in \
                usr_cmd.stdout_text
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0009_ad_parameters_ldap_sasl_full(
             multihost, create_aduser_group):
         """
@@ -940,6 +918,7 @@ class TestADParamsPorted:
         assert su_result, f"Su for user {aduser} failed!"
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0011_ad_parameters_server_resolvable(
             multihost, adjoin, create_aduser_group):
         """
@@ -973,7 +952,6 @@ class TestADParamsPorted:
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         sssd_params = {
             'debug_level': '9',
             'ad_domain': multihost.ad[0].domainname.lower(),
@@ -1007,9 +985,6 @@ class TestADParamsPorted:
         log_str = multihost.client[0].get_file_contents(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
-
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         assert f"Option ad_domain has value " \
                f"{multihost.ad[0].domainname.lower()}" in log_str
@@ -1048,7 +1023,6 @@ class TestADParamsPorted:
         (aduser, _) = create_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'debug_level': '9',
@@ -1069,9 +1043,6 @@ class TestADParamsPorted:
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         assert f"Failed to resolve server 'unresolved." \
                f"{multihost.ad[0].domainname.lower()}': " \
                f"Domain name not found" in log_str
@@ -1079,6 +1050,7 @@ class TestADParamsPorted:
         assert usr_cmd.returncode == 2, f"User {aduser} was found!"
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0013_ad_parameters_server_srv_record(
             multihost, adjoin, create_aduser_group):
         """
@@ -1107,7 +1079,6 @@ class TestADParamsPorted:
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'debug_level': '9',
@@ -1132,15 +1103,13 @@ class TestADParamsPorted:
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         assert "Marking SRV lookup of service 'AD' as 'resolved'" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert su_result, "The su command failed!"
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0014_ad_parameters_server_blank(
             multihost, adjoin, create_aduser_group):
         """
@@ -1169,7 +1138,6 @@ class TestADParamsPorted:
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'debug_level': '9',
@@ -1193,15 +1161,13 @@ class TestADParamsPorted:
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         assert "No AD server set, will use service discovery" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert su_result, "The su command failed!"
 
     @staticmethod
+    @pytest.mark.flaky(reruns=5, reruns_delay=30)
     @pytest.mark.tier2
     def test_0015_ad_parameters_ad_hostname_machine(
             multihost, adjoin, create_aduser_group):
@@ -1234,8 +1200,6 @@ class TestADParamsPorted:
 
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the config because with broken config we can't leave ad
-        client.backup_sssd_conf()
 
         hostname_cmd = multihost.client[0].run_command(
             'hostname', raiseonerr=False)
@@ -1271,19 +1235,19 @@ class TestADParamsPorted:
         # Run su
         su_result = client.su_success(aduser)
 
-        # Wait for log to be written
-        time.sleep(15)
-
         # Download sssd log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
+        for _ in range(1, 3):
+            # Wait for log to be written
+            time.sleep(15)
+            log_str = multihost.client[0].get_file_contents(
+                f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
+                decode('utf-8')
+            if "kautest.com" in log_str:
+                break
 
         # Reset hostname
         multihost.client[0].run_command(
             f'hostname {old_hostname}', raiseonerr=False)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert "Setting ad_hostname to [host1.kautest.com]" in log_str
@@ -1292,6 +1256,7 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0016_ad_parameters_ad_hostname_valid(
             multihost, adjoin, create_aduser_group):
         """
@@ -1323,8 +1288,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the config because with broken config we can't leave ad
-        client.backup_sssd_conf()
 
         hostname_cmd = multihost.client[0].run_command(
             'hostname', raiseonerr=False)
@@ -1370,9 +1333,6 @@ class TestADParamsPorted:
         multihost.client[0].run_command(
             f'hostname {old_hostname}', raiseonerr=False)
 
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Evaluate test results
         assert f"Option ad_hostname has value {old_hostname}" in log_str
         assert f"Setting ad_hostname to [{old_hostname}]" not in log_str
@@ -1412,8 +1372,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the config because with broken config we can't leave ad
-        client.backup_sssd_conf()
         # Hide keytab
         multihost.client[0].run_command(
             'mv -f /etc/krb5.keytab /etc/krb5.keytab.working',
@@ -1457,9 +1415,6 @@ class TestADParamsPorted:
             raiseonerr=False
         )
 
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Evaluate test results
         assert "Option krb5_keytab has value /etc/krb5.keytab." \
                "keytabdoesntexist" in log_str
@@ -1499,8 +1454,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
         # Move keytab
         multihost.client[0].run_command(
             'mv /etc/krb5.keytab /usr/local/etc/krb5.keytab;'
@@ -1547,9 +1500,6 @@ class TestADParamsPorted:
             raiseonerr=False
         )
 
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Evaluate test results
         assert "Option krb5_keytab has value /usr/local/etc/krb5.keytab" \
                in log_str
@@ -1560,6 +1510,7 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0019_ad_parameters_ldap_id_mapping_false(
             multihost, adjoin, create_aduser_group, create_plain_aduser_group
     ):
@@ -1595,7 +1546,6 @@ class TestADParamsPorted:
         # pylint: disable=too-many-locals
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
         (userplain, group_plain) = create_plain_aduser_group
@@ -1646,9 +1596,6 @@ class TestADParamsPorted:
         # Run su
         su_result = client.su_success(aduser)
 
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Evaluate test results
         assert usr_uid_cmd.returncode == 0, f"User {uid} was not found."
         assert grp_gid_cmd.returncode == 0, f"Group {gid} was not found!"
@@ -1659,6 +1606,7 @@ class TestADParamsPorted:
         assert su_result, "The su command failed!"
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0020_ad_parameters_ssh_change_password(
             multihost, adjoin, create_aduser_group
     ):
@@ -1682,7 +1630,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
 
         # Make sure that AD server allows password change
         multihost.ad[0].run_command(
@@ -1721,15 +1668,14 @@ class TestADParamsPorted:
         time.sleep(10)
         # Run su
         su_result = client.su_success(aduser, password='NewPass1_123!')
-        # Teardown
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
+
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert exp_result, "Password change failed."
         assert su_result, "The su command failed!"
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0021_ad_parameters_ssh_change_password_logon(
             multihost, adjoin, create_aduser_group
     ):
@@ -1757,7 +1703,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
@@ -1797,14 +1742,14 @@ class TestADParamsPorted:
 
         # Teardown
         ad_op.unexpire_account_password(aduser)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
+
         # Evaluate test results
         assert exp_result, "Password change failed."
         assert su_result, "The su command failed!"
         assert "system error" not in log_str
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0022_ad_parameters_account_disabled(
             multihost, adjoin, create_aduser_group):
         """
@@ -1835,7 +1780,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
@@ -1876,8 +1820,6 @@ class TestADParamsPorted:
 
         # Teardown
         ad_op.enable_account(aduser)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert first_login_result, "Could not login over ssh before."
@@ -1887,6 +1829,7 @@ class TestADParamsPorted:
         assert "The user account is disabled on the AD server" in log_str
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0023_ad_parameters_account_expired(
             multihost, adjoin, create_aduser_group):
         """
@@ -1917,7 +1860,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
@@ -1957,8 +1899,6 @@ class TestADParamsPorted:
 
         # Teardown
         ad_op.unexpire_account(aduser)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert first_login_result, "Could not login over ssh before."
@@ -1967,6 +1907,7 @@ class TestADParamsPorted:
         assert f"{aduser}: 13 (User account has expired)" in log_str
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0024_ad_parameters_getgrgid_nested(
             multihost, adjoin, create_plain_aduser_group):
         """
@@ -1993,7 +1934,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         # Create AD user without posix attributes
         (userplain, _) = create_plain_aduser_group
         # Configure sssd
@@ -2042,8 +1982,6 @@ class TestADParamsPorted:
 
         # Teardown
         ad_op.delete_ad_user_group(parent_grp)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert test1_cmd.returncode == 0, "Gid of expected group missing."
@@ -2051,6 +1989,7 @@ class TestADParamsPorted:
         assert test3_cmd.returncode == 0, "Gid of expected group missing."
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0025_ad_parameters_empty_group(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: empty group cannot
@@ -2072,7 +2011,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         # Configure sssd
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
@@ -2101,8 +2039,6 @@ class TestADParamsPorted:
 
         # Teardown
         ad_op.delete_ad_user_group(empty_grp)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert getent_cmd.returncode == 0, "Group not found!"
@@ -2132,7 +2068,7 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
+
         # Create AD user with no posix attributes
         (userplain, _) = create_plain_aduser_group
         # Configure sssd
@@ -2178,13 +2114,12 @@ class TestADParamsPorted:
             'cp -f /etc/resolv.conf.orig /etc/resolv.conf',
             raiseonerr=False
         )
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert getent_cmd.returncode == 0, "User not found."
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0027_ad_parameters_group_membership_empty(
             multihost, adjoin, create_aduser_group):
         """
@@ -2209,8 +2144,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
 
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
@@ -2249,8 +2182,6 @@ class TestADParamsPorted:
         # Teardown
         ad_op.delete_ad_user_group(group_1)
         ad_op.delete_ad_user_group(group_2)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
@@ -2261,6 +2192,7 @@ class TestADParamsPorted:
         assert aduser in grp_cmd.stdout_text, f"{aduser} not in getent out."
 
     @staticmethod
+    @pytest.mark.flaky(reruns=5, reruns_delay=30)
     @pytest.mark.tier2
     def test_0028_ad_parameters_nested_in_nonposix_group(
             multihost, adjoin, create_aduser_group):
@@ -2285,8 +2217,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
 
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
@@ -2308,8 +2238,6 @@ class TestADParamsPorted:
             'fallback_homedir': '/home/%d/%u',
         }
         client.sssd_conf(dom_section, sssd_params)
-        # Clear cache and restart SSSD
-        client.clear_sssd_cache()
 
         # Create additional groups and memberships
         group_1 = f'{adgroup}-1'
@@ -2320,6 +2248,9 @@ class TestADParamsPorted:
         ad_op.create_ad_unix_group(group_2)
         ad_op.add_user_member_of_group(group_2, group_1)
 
+        # Clear cache and restart SSSD
+        client.clear_sssd_cache()
+
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
             f'id {aduser}', raiseonerr=False)
@@ -2327,14 +2258,14 @@ class TestADParamsPorted:
         # Teardown
         ad_op.delete_ad_user_group(group_1)
         ad_op.delete_ad_user_group(group_2)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert group_2 in usr_cmd.stdout_text, f"{group_2} not in id output."
 
     @staticmethod
+    @pytest.mark.flaky(reruns=5, reruns_delay=30)
+    @pytest.mark.tier2
     def test_0029_ad_parameters_tokengroups_with_ldap(
             multihost, adjoin, create_aduser_group):
         """
@@ -2356,8 +2287,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
         ad_domain = multihost.ad[0].domainname
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
@@ -2391,16 +2320,13 @@ class TestADParamsPorted:
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
             decode('utf-8')
 
-        # Teardown
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert f'No ID ctx available for [{multihost.ad[0].domainname}]'\
                not in log_str
 
     @staticmethod
+    @pytest.mark.flaky(reruns=5, reruns_delay=30)
     @pytest.mark.tier2
     def test_0030_ad_parameters_tokengroups_searchbase(
             multihost, adjoin, create_aduser_group):
@@ -2424,8 +2350,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
         ad_domain = multihost.ad[0].domainname
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
@@ -2491,8 +2415,6 @@ class TestADParamsPorted:
                    f'{multihost.ad[0].domain_basedn_entry}"'
 
         multihost.client[0].run_command(ldap_cmd, raiseonerr=False)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
@@ -2500,6 +2422,7 @@ class TestADParamsPorted:
                not in log_str
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0031_ad_parameters_custom_re(
             multihost, adjoin, create_aduser_group):
         """
@@ -2527,7 +2450,6 @@ class TestADParamsPorted:
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -2554,16 +2476,13 @@ class TestADParamsPorted:
         # Run su command
         su_result = client.su_success(rf'{ad_realm_short}\\{aduser}')
 
-        # Teardown
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found."
         assert su_result, "The su command failed!"
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0032_ad_parameters_group_name_attribute(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Does sssd ad use
@@ -2587,8 +2506,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
         ad_realm = multihost.ad[0].domainname.upper()
         ad_realm_short = ad_realm.rsplit('.', 1)[0]
         # Configure sssd to enable logging
@@ -2637,14 +2554,13 @@ class TestADParamsPorted:
 
         # Teardown
         ad_op.delete_ad_user_group(test_group)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert grp1_cmd.returncode == 2, f"{test_group} was found."
         assert grp2_cmd.returncode == 0, f"{test_group_mod} was not found."
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0033_ad_parameters_group_cleanup_sanitize(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: groups cleanup
@@ -2670,8 +2586,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
         ad_realm_short = multihost.ad[0].domainname.upper().rsplit('.', 1)[0]
         # Configure sssd to enable logging
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -2729,8 +2643,6 @@ class TestADParamsPorted:
         # Teardown
         ad_op.delete_ad_user_group(test_group)
         ad_op.delete_ad_user_group(test_user)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {test_user} was not found."
@@ -2738,8 +2650,8 @@ class TestADParamsPorted:
         assert f'Task [Cleanup of {multihost.ad[0].domainname}]: failed' \
                f' with [5]: Input/output error' not in log_str
 
-    @pytest.mark.tier2
     @staticmethod
+    @pytest.mark.tier2
     def test_0034_ad_parameters_group_work_intermittently(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: sssd ad groups
@@ -2765,8 +2677,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
         ad_realm_short = multihost.ad[0].domainname.upper().rsplit('.', 1)[0]
         # Configure sssd to enable logging
         sssd_params = {
@@ -2812,8 +2722,6 @@ class TestADParamsPorted:
         ad_op.delete_ad_user_group(test_user)
         for group in groups:
             ad_op.delete_ad_user_group(group)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {test_user} was not found.(1)"
@@ -2860,7 +2768,6 @@ class TestADParamsPorted:
         (user1, _) = create_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'True',
@@ -2941,8 +2848,6 @@ class TestADParamsPorted:
         multihost.client[0].run_command('iptables -F', raiseonerr=False)
         ad_op.delete_ad_user_group(user2)
         ad_op.delete_ad_user_group(group2)
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert usr_cmd_1.returncode == 0, f"{user1} is not in domain users."
@@ -2970,8 +2875,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
         ad_realm = multihost.ad[0].domainname.upper()
         ad_realm_short = ad_realm.rsplit('.', 1)[0]
         # Configure sssd to enable logging
@@ -3012,9 +2915,6 @@ class TestADParamsPorted:
         initial = int(initial_cmd.stdout_text.strip())
         stable = int(stable_cmd.stdout_text.strip())
         final = int(final_cmd.stdout_text.strip())
-        # Teardown
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         print(f'Descriptors: initial:{initial}, stable:{stable},'
@@ -3024,6 +2924,7 @@ class TestADParamsPorted:
                                 f" stable:{stable}, final: {final}."
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0037_ad_parameters_extra_attrs_mail(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: SSSD fails to start
@@ -3040,8 +2941,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
         ad_realm = multihost.ad[0].domainname.upper()
         ad_realm_short = ad_realm.rsplit('.', 1)[0]
         # Configure sssd to enable logging
@@ -3059,9 +2958,6 @@ class TestADParamsPorted:
         client.sssd_conf(dom_section, sssd_params)
 
         # Clear cache and restart SSSD
-        client.clear_sssd_cache()
-        # Teardown
-        client.restore_sssd_conf()
         client.clear_sssd_cache()
 
     @staticmethod
@@ -3096,8 +2992,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the config because with broken config we can't leave ad
-        client.backup_sssd_conf()
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd
@@ -3176,9 +3070,6 @@ class TestADParamsPorted:
             'rm -f /tmp/first_invalid.keytab',
             raiseonerr=False
         )
-        # Restore sssd config
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert klist_cmd.returncode == 0, "Klist failed!"
@@ -3190,6 +3081,7 @@ class TestADParamsPorted:
                          f"{ad_domain}", log_str)
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0039_ad_parameters_auth_krb5(
             multihost, adjoin, create_aduser_group):
         """
@@ -3214,8 +3106,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the conf because with broken config we can't leave ad
-        client.backup_sssd_conf()
         ad_realm = multihost.ad[0].domainname.upper()
         ad_realm_short = ad_realm.rsplit('.', 1)[0]
         # Configure sssd to enable logging
@@ -3249,10 +3139,6 @@ class TestADParamsPorted:
             rf'{aduser}@{multihost.ad[0].domainname}',
             with_password=False)
 
-        # Teardown
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert su_result, "The su command failed!"
@@ -3284,7 +3170,7 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
+
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd to enable logging
@@ -3359,8 +3245,6 @@ class TestADParamsPorted:
             'service sshd restart',
             raiseonerr=False
         )
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert ssh1, "Failed: ssh key without newline."
@@ -3372,6 +3256,7 @@ class TestADParamsPorted:
                          " ending newline."
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0041_ad_parameters_sss_ssh_knownhostsproxy(
             multihost, adjoin, create_aduser_group):
         """
@@ -3400,8 +3285,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        # Backup the config because with broken config we can't leave ad
-        client.backup_sssd_conf()
         # Create AD user with posix attributes
         (aduser, _) = create_aduser_group
         # Configure sssd with know hosts proxy
@@ -3457,10 +3340,6 @@ class TestADParamsPorted:
             raiseonerr=False
         )
 
-        # Restore sssd config
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Evaluate test results
         assert ssh_cmd, "Ssh failed!"
         assert not re.search(r"sssd_be\[[0-9]*\]: segfault", message_log_str)
@@ -3469,6 +3348,7 @@ class TestADParamsPorted:
                          log_str)
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0042_ad_parameters_nonroot_user_sssd(
             multihost, adjoin, create_aduser_group):
         """
@@ -3495,7 +3375,6 @@ class TestADParamsPorted:
         (aduser, adgroup) = create_aduser_group
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ldap_id_mapping': 'False',
@@ -3528,9 +3407,6 @@ class TestADParamsPorted:
             r"ps auxZ | grep sssd | awk '{print $2}' | grep sssd",
             raiseonerr=False
         )
-        # Teardown
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found."
@@ -3567,8 +3443,6 @@ class TestADParamsPorted:
 
         # Configure sssd
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
-
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'ad_domain': multihost.ad[0].domainname,
@@ -3638,10 +3512,6 @@ class TestADParamsPorted:
         log_str = multihost.client[0].run_command(
             "cat /var/log/sssd/*.log").stdout_text
 
-        # TEARDOWN
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Remove forward ports on AD machine
         multihost.ad[0].run_command(
             "netsh interface portproxy reset",
@@ -3667,6 +3537,7 @@ class TestADParamsPorted:
         assert kinit_cmd.returncode == 0, "kinit failed."
 
     @staticmethod
+    @pytest.mark.tier1_2
     def test_0043_ad_parameters_homedir_override_lowercase(
             multihost, adjoin, create_aduser_group):
         """
@@ -3700,7 +3571,6 @@ class TestADParamsPorted:
         # Configure sssd
         multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'debug_level': '9',
@@ -3715,9 +3585,6 @@ class TestADParamsPorted:
             f'getent passwd {aduser}@{ad_domain}',
             raiseonerr=False
         )
-
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert f'/home/{aduser.lower()}' in usr_cmd.stdout_text
@@ -3799,10 +3666,6 @@ class TestADParamsPorted:
             "/var/log/sssd/sssd_pac.log"). \
             decode('utf-8')
 
-        # Cleanup
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
-
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
         assert f"UPN of user entry [{aduser}@{ad_domain.upper()}] and PAC " \
@@ -3871,7 +3734,6 @@ class TestADParamsPorted:
         # Configure sssd
         multihost.client[0].service_sssd('stop')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-        client.backup_sssd_conf()
         dom_section = f'domain/{client.get_domain_section_name()}'
         sssd_params = {
             'debug_level': '9',
@@ -3895,10 +3757,6 @@ class TestADParamsPorted:
         log_str = multihost.client[0].get_file_contents(
             "/var/log/sssd/sssd_pac.log"). \
             decode('utf-8')
-
-        # Clean up
-        client.restore_sssd_conf()
-        client.clear_sssd_cache()
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found!"
