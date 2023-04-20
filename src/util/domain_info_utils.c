@@ -317,25 +317,29 @@ errno_t sss_get_domain_mappings_content(TALLOC_CTX *mem_ctx,
     }
 
     /* Start with the parent domain */
-    o = talloc_asprintf_append(o, ".%s = %s\n%s = %s\n",
-                              domain->name, domain->realm, domain->name,
-                              domain->realm);
-    if (o == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf_append failed.\n");
-        ret = ENOMEM;
-        goto done;
+    if (domain->realm != NULL) {
+        o = talloc_asprintf_append(o, ".%s = %s\n%s = %s\n",
+                                  domain->name, domain->realm, domain->name,
+                                  domain->realm);
+        if (o == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf_append failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
     }
     /* This loops skips the starting parent and starts right with the first
      * subdomain, if any. */
     for (dom = get_next_domain(domain, SSS_GND_DESCEND);
                 dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
                 dom = get_next_domain(dom, 0)) {
-        o = talloc_asprintf_append(o, ".%s = %s\n%s = %s\n",
-                               dom->name, dom->realm, dom->name, dom->realm);
-        if (o == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf_append failed.\n");
-            ret = ENOMEM;
-            goto done;
+        if (dom->realm != NULL) {
+            o = talloc_asprintf_append(o, ".%s = %s\n%s = %s\n",
+                                   dom->name, dom->realm, dom->name, dom->realm);
+            if (o == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf_append failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
         }
     }
 
