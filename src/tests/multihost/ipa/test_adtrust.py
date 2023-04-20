@@ -134,6 +134,47 @@ class TestADTrust(object):
         assert "retcode:0" in sudo_out_3, "sudo -l failed"
 
     @staticmethod
+    def test_adusrname_beginning_with_at_rate_sign(multihost):
+        """
+        :title: AD_username beginning with @ sign
+        :id: 1f7a3199-86a7-49f0-bfb2-69e81dbce244
+        :customerscenario: True
+        :bugzilla:
+         https://bugzilla.redhat.com/show_bug.cgi?id=2180981
+        :description:
+         In the IPA-AD trust, AD-username starting  with '@' sign should be
+         handled correctly.
+        :setup:
+          1. Create an AD-user
+          2. Create an AD-group and add previously created AD-user as it's member
+        :steps:
+          1. From ipaclient, run id @<AD-user>
+          2. From ipaclient, run getent passwd @<AD-user>
+        :expectedresults:
+          1. No user information should be returned
+          2. No user information should be returned
+        """
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        ad = ADOperations(multihost.ad[0])
+        ad_dmn = multihost.ad[0].domainname
+        ad_user = 'aduser7'
+        ad_group = 'adgrp7'
+        ad.create_ad_unix_user_group(ad_user, ad_group)
+        client.clear_sssd_cache()
+        cmd = multihost.client[0].run_command(
+            f'id @{ad_user}@{ad_dmn}', raiseonerr=False)
+        cmd1 = multihost.client[0].run_command(
+            f'getent passwd @{ad_group}@{ad_dmn}', raiseonerr=False)
+        ad.delete_ad_user_group(ad_user)
+        ad.delete_ad_user_group(ad_group)
+        assert cmd.returncode != 0, 'User information returned'
+        assert ad_user not in cmd.stdout_text,\
+            f"{ad_user} information is fetched"
+        assert cmd1.returncode != 0, 'User information returned'
+        assert ad_grp not in cmd1.stdout_text,\
+            f"{ad_user} is not available in {ad_user} information"
+
+    @staticmethod
     def test_adgrpwith_at_ratesign(multihost):
         """
         :title: user membership of AD group with @ sign
