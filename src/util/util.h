@@ -680,6 +680,15 @@ errno_t get_dom_names(TALLOC_CTX *mem_ctx,
                       char ***_dom_names,
                       int *_dom_names_count);
 
+__attribute__((always_inline))
+static inline bool is_domain_provider(struct sss_domain_info *domain,
+                                      const char *provider)
+{
+    return domain != NULL &&
+           domain->provider != NULL &&
+           strcasecmp(domain->provider, provider) == 0;
+}
+
 /* Returns true if the provider used for the passed domain is the "files"
  * one. Otherwise returns false. */
 __attribute__((always_inline))

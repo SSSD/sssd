@@ -146,6 +146,7 @@ def format_pam_cert_auth_conf(config):
         debug_level = 10
         id_provider = files
         fallback_to_nss = False
+        local_auth_policy = enable:smartcard
 
         [certmap/auth_only/user1]
         matchrule = <SUBJECT>.*CN=SSSD test cert 0001.*
@@ -180,6 +181,7 @@ def format_pam_cert_auth_conf_name_format(config):
         debug_level = 10
         id_provider = files
         fallback_to_nss = False
+        local_auth_policy = enable:smartcard
 
         [certmap/auth_only/user1]
         matchrule = <SUBJECT>.*CN=SSSD test cert 0001.*

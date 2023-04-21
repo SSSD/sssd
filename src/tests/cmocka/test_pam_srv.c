@@ -315,6 +315,35 @@ static int pam_test_setup(void **state)
         { "enumerate", "false" },
         { "cache_credentials", "true" },
         { "entry_cache_timeout", "300" },
+        { "local_auth_policy", "enable:smartcard" }, /* Needed to allow local sc auth */
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    struct sss_test_conf_param pam_params[] = {
+        { CONFDB_PAM_P11_URI, "pkcs11:manufacturer=SoftHSM%20project" },
+        { "p11_child_timeout", "30" },
+        { "pam_cert_verification", NULL },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "no_ocsp"},
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_pam_setup(dom_params, pam_params, monitor_params, state);
+
+    pam_test_setup_common();
+    return 0;
+}
+
+static int pam_test_setup_passkey(void **state)
+{
+    struct sss_test_conf_param dom_params[] = {
+        { "enumerate", "false" },
+        { "cache_credentials", "true" },
+        { "entry_cache_timeout", "300" },
+        { "local_auth_policy", "enable:passkey" }, /* Needed to allow local passkey auth */
         { NULL, NULL },             /* Sentinel */
     };
 
@@ -342,6 +371,7 @@ static int pam_test_setup_no_verification(void **state)
     struct sss_test_conf_param dom_params[] = {
         { "enumerate", "false" },
         { "cache_credentials", "true" },
+        { "local_auth_policy", "enable:smartcard" }, /* Needed to allow local sc auth */
         { NULL, NULL }, /* Sentinel */
     };
 
@@ -387,6 +417,7 @@ static int pam_cached_test_setup(void **state)
         { "enumerate", "false" },
         { "cache_credentials", "true" },
         { "cached_auth_timeout", CACHED_AUTH_TIMEOUT_STR },
+        { "local_auth_policy", "enable:smartcard" }, /* Needed to allow local sc auth */
         { NULL, NULL },             /* Sentinel */
     };
 
@@ -4592,13 +4623,13 @@ int main(int argc, const char *argv[])
                                         pam_test_setup, pam_test_teardown),
 #ifdef BUILD_PASSKEY
         cmocka_unit_test_setup_teardown(test_pam_passkey_preauth_no_passkey,
-                                        pam_test_setup, pam_test_teardown),
+                                        pam_test_setup_passkey, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_passkey_preauth_found,
-                                        pam_test_setup, pam_test_teardown),
+                                        pam_test_setup_passkey, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_passkey_auth,
-                                        pam_test_setup, pam_test_teardown),
+                                        pam_test_setup_passkey, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_passkey_auth_send,
-                                        pam_test_setup, pam_test_teardown),
+                                        pam_test_setup_passkey, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_prompting_passkey_interactive,
                                         pam_test_setup_passkey_interactive_prompt, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_prompting_passkey_interactive_and_touch,
