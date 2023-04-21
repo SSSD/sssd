@@ -1349,7 +1349,7 @@ void pam_reply(struct pam_auth_req *preq)
         }
 
         if (may_do_passkey_auth(pctx, pd) && !pk_preauth_done && preq->passkey_data_exists) {
-            ret = passkey_non_kerberos(cctx, cctx->ev, pctx, preq, pd);
+            ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
             pam_check_user_done(preq, ret);
             return;
         }
@@ -1806,7 +1806,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         goto done;
     }
 
-    /* This is set to false inside passkey_non_kerberos() if no passkey data is found.
+    /* This is set to false inside passkey_local() if no passkey data is found.
      * It is checked in pam_reply() to avoid an endless loop */
     preq->passkey_data_exists = true;
 
@@ -1817,7 +1817,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
                 goto done;
             } else if ((sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) ||
                       (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY)) {
-                ret = passkey_non_kerberos(cctx, cctx->ev, pctx, preq, pd);
+                ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
                 goto done;
             }
         }
@@ -2220,7 +2220,7 @@ static void pam_forwarder_cb(struct tevent_req *req)
         goto done;
     }
 
-    /* This is set to false inside passkey_non_kerberos() if no passkey data is found.
+    /* This is set to false inside passkey_local() if no passkey data is found.
      * It is checked in pam_reply() to avoid an endless loop */
     preq->passkey_data_exists = true;
 
@@ -2231,7 +2231,7 @@ static void pam_forwarder_cb(struct tevent_req *req)
                 goto done;
             } else if ((sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_PASSKEY) ||
                       (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_EMPTY)) {
-                ret = passkey_non_kerberos(cctx, cctx->ev, pctx, preq, pd);
+                ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
                 goto done;
             }
         }

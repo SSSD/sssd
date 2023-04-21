@@ -35,7 +35,7 @@ enum passkey_user_verification {
     PAM_PASSKEY_VERIFICATION_INVALID
 };
 
-errno_t passkey_non_kerberos(TALLOC_CTX *mem_ctx,
+errno_t passkey_local(TALLOC_CTX *mem_ctx,
                              struct tevent_context *ev,
                              struct pam_ctx *pam_ctx,
                              struct pam_auth_req *preq,
