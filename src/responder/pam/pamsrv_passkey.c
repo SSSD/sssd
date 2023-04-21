@@ -85,7 +85,7 @@ struct passkey_get_mapping_state {
     struct cache_req_result *result;
 };
 
-errno_t passkey_non_kerberos(TALLOC_CTX *mem_ctx,
+errno_t passkey_local(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct pam_ctx *pam_ctx,
                       struct pam_auth_req *preq,
@@ -256,7 +256,7 @@ done:
     return ret;
 }
 
-static errno_t passkey_non_kerberos_verification(TALLOC_CTX *mem_ctx,
+static errno_t passkey_local_verification(TALLOC_CTX *mem_ctx,
                                           struct passkey_ctx *pctx,
                                           struct confdb_ctx *cdb,
                                           struct sysdb_ctx *sysdb,
@@ -514,7 +514,7 @@ void pam_passkey_get_user_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = passkey_non_kerberos_verification(pctx, pctx, pctx->pam_ctx->rctx->cdb,
+    ret = passkey_local_verification(pctx, pctx, pctx->pam_ctx->rctx->cdb,
                                             result->domain->sysdb, result->domain->dns_name,
                                             pk_data, &verification, &debug_libfido2);
     if (ret != EOK) {
