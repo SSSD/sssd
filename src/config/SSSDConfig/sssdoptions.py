@@ -223,6 +223,7 @@ class SSSDOptions(object):
                                                            'should be saved this value determines the minimal length '
                                                            'the first authentication factor (long term password) must '
                                                            'have to be saved as SHA512 hash into the cache.'),
+        'local_auth_policy': _('Local authentication methods policy '),
 
         # [provider/ipa]
         'ipa_domain': _('IPA domain'),
