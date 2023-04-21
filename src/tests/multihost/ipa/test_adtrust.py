@@ -648,3 +648,86 @@ class TestADTrust(object):
                                         '/var/log/sssd/krb5_child.log')
         multihost.client[0].run_command(f'grep -i "{log_str}" '
                                         f'/var/log/sssd/sssd_{domain_name}.log')
+
+    @staticmethod
+    def test_skip_members_in_view_search(multihost):
+        """
+        :title: Skip group members that point to an entry in the views base search
+        :id: 40adfa6a-b951-4aab-aa5b-57e149526e8d
+        :customerscenario: true
+        :bugzilla:
+          https://bugzilla.redhat.com/show_bug.cgi?id=2151403
+        :description: When resolving the nested groups, any entry in
+         cn=views,cn=accounts,$BASEDN (or whatever the user configured
+         using ipa_views_search_base) must be ignored.
+        :setup:
+         1. Configure trust between IPA server and AD.
+         2. Configure client machine with SSSD integrated to IPA.
+        :steps:
+          1. Add a user1 ID override in 'default trust view'.
+          2. Create ext_group as a external group and add user in admins and external group.
+          3. Make ext_group a member of the admins group.
+          4. Run an "id" command for the override user.
+        :expectedresults:
+          1. Successfully added user1 in default trust view.
+          2. Successfully created and added user in admins and external group.
+          3. Made external_group a member of the admins group.
+          4. Id command succeeds, admin group is visible, groups are properly resolved.
+        """
+        kinit_admin = 'kinit admin'
+        multihost.master[0].run_command(kinit_admin, stdin_text='Secret123',
+                                        raiseonerr=False)
+
+        domain = multihost.ad[0].domainname
+
+        ipa_client = sssdTools(multihost.client[0])
+        ipa_master = sssdTools(multihost.master[0])
+        ipa_client.clear_sssd_cache()
+
+        # Here user1 is already added in AD and also member of group1, group2 and group3
+        # Add a new User ID override in default trust view.
+        create_newuser_override = f"ipa idoverrideuser-add 'default trust view' user1@{domain}"
+        multihost.master[0].run_command(create_newuser_override, raiseonerr=False)
+
+        # Add user to ‘admins’ group
+        add_user_override = f"ipa group-add-member admins --idoverrideusers user1@{domain}"
+        multihost.master[0].run_command(add_user_override, raiseonerr=False)
+
+        # Add a external group named as a ext_group
+        create_ext_grp = f'ipa group-add --external ext_group'
+        multihost.master[0].run_command(create_ext_grp, raiseonerr=False)
+
+        # Add a user in external group named as a ext_group
+        add_grp_members = f'ipa -n group-add-member ext_group --external=user1@{domain}'
+        multihost.master[0].run_command(add_grp_members, raiseonerr=False)
+
+        # Make ext_group a member of the admins group, as a result the members of ext_group will be
+        # members of admin too.
+        add_ext_grp_to_admin = f'ipa group-add-member admins --groups=ext_group'
+        multihost.master[0].run_command(add_ext_grp_to_admin, raiseonerr=False)
+
+        ipa_master.clear_sssd_cache()
+        ipa_client.clear_sssd_cache()
+        time.sleep(5)
+
+        lookup_id_master = multihost.master[0].run_command(f'id user1@{domain}', raiseonerr=False)
+        lookup_id_client = multihost.client[0].run_command(f'id user1@{domain}', raiseonerr=False)
+
+        # Teardown the setup and delete the external group
+        cmd_to_delete = ["ipa group-remove-member admins --groups=ext_group",
+                         f"ipa -n group-remove-member ext_group --external=user1@{domain}",
+                         "ipa group-del ext_group",
+                         f"ipa group-remove-member admins --idoverrideusers user1@{domain}",
+                         f"ipa idoverrideuser-del 'default trust view' user1@{domain}"]
+        for cmd in cmd_to_delete:
+            multihost.master[0].run_command(cmd, raiseonerr=False)
+
+        # Check the lookup from ips-server first.
+        assert lookup_id_master.returncode == 0, f"Lookup is failed for user1@{domain} on ipa-server"
+        assert f"admins" in lookup_id_master.stdout_text, "admins name was not resolved on ipa-server."
+
+        # Check the lookup from sssd client.
+        assert lookup_id_client.returncode == 0, f"Lookup is failed for user1@{domain} on ipa-client"
+        assert f"group1@{domain}" in lookup_id_client.stdout_text, f"group1 name was not resolved" \
+                                                                   f" on ipa-client."
+        assert f"admins" in lookup_id_client.stdout_text, "admins name was not resolved on ipa-client."
