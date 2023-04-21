@@ -161,6 +161,10 @@
 
 #define SYSDB_USER_PASSKEY "userPasskey"
 
+/* Local auth types */
+#define SYSDB_LOCAL_SMARTCARD_AUTH "localSmartcardAuth"
+#define SYSDB_LOCAL_PASSKEY_AUTH "localPasskeyAuth"
+
 #define SYSDB_SUBDOMAIN_REALM "realmName"
 #define SYSDB_SUBDOMAIN_FLAT "flatName"
 #define SYSDB_SUBDOMAIN_DNS "dnsName"

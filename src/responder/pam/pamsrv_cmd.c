@@ -20,7 +20,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE
+
 #include <time.h>
+#include <string.h>
 #include "util/util.h"
 #include "util/auth_utils.h"
 #include "util/find_uid.h"
@@ -492,6 +495,98 @@ static int pam_parse_in_data(struct pam_data *pd,
     return EOK;
 }
 
+static errno_t
+pam_get_local_auth_policy(struct sss_domain_info *domain,
+                          const char *name,
+                          bool *_sc_allow,
+                          bool *_passkey_allow)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *attrs[] = { SYSDB_LOCAL_SMARTCARD_AUTH, SYSDB_LOCAL_PASSKEY_AUTH, NULL };
+    struct ldb_message *ldb_msg;
+    bool sc_allow = false;
+    bool passkey_allow = false;
+    errno_t ret;
+
+    if (name == NULL || *name == '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing user name.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (domain->sysdb == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing sysdb db context.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_user_by_name(tmp_ctx, domain, name, attrs, &ldb_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sysdb_search_user_by_name failed [%d][%s].\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    sc_allow = ldb_msg_find_attr_as_bool(ldb_msg, SYSDB_LOCAL_SMARTCARD_AUTH,
+                                         false);
+
+    passkey_allow = ldb_msg_find_attr_as_bool(ldb_msg, SYSDB_LOCAL_PASSKEY_AUTH,
+                                              true);
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_sc_allow = sc_allow;
+        *_passkey_allow = passkey_allow;
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+static errno_t set_local_auth_type(struct pam_auth_req *preq,
+                                   bool sc_allow,
+                                   bool passkey_allow)
+{
+    struct sysdb_attrs *attrs;
+    errno_t ret;
+
+    attrs = sysdb_new_attrs(preq);
+    if (!attrs) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sysdb_attrs_add_bool(attrs, SYSDB_LOCAL_SMARTCARD_AUTH, sc_allow);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = sysdb_attrs_add_bool(attrs, SYSDB_LOCAL_PASSKEY_AUTH, passkey_allow);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = sysdb_set_user_attr(preq->domain, preq->pd->user, attrs,
+                              SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "set_local_auth_type failed.\n");
+        preq->pd->pam_status = PAM_SYSTEM_ERR;
+        goto fail;
+    }
+
+    return EOK;
+
+fail:
+    return ret;
+}
 /*=Save-Last-Login-State===================================================*/
 
 static errno_t set_last_login(struct pam_auth_req *preq)
@@ -743,6 +838,213 @@ errno_t filter_responses(struct pam_ctx *pctx,
     ret = EOK;
 done:
 
+    return ret;
+}
+
+static void do_not_send_cert_info(struct pam_data *pd)
+{
+    struct response_data *resp;
+
+    resp = pd->resp_list;
+    while (resp != NULL) {
+        switch (resp->type) {
+        case SSS_PAM_CERT_INFO:
+        case SSS_PAM_CERT_INFO_WITH_HINT:
+            resp->do_not_send_to_client = true;
+            break;
+        default:
+            break;
+        }
+        resp = resp->next;
+    }
+}
+
+errno_t pam_get_auth_types(struct pam_data *pd,
+                           struct pam_resp_auth_type *_auth_types)
+{
+    int ret;
+    struct response_data *resp;
+    struct pam_resp_auth_type types = {0};
+    bool found_cert_info = false;
+
+    resp = pd->resp_list;
+    while (resp != NULL) {
+        switch (resp->type) {
+        case SSS_PAM_OTP_INFO:
+            types.otp_auth = true;
+            break;
+        case SSS_PAM_CERT_INFO:
+        case SSS_PAM_CERT_INFO_WITH_HINT:
+            found_cert_info = true;
+            break;
+        case SSS_PAM_PASSKEY_INFO:
+        case SSS_PAM_PASSKEY_KRB_INFO:
+            types.passkey_auth = true;
+            break;
+        case SSS_PASSWORD_PROMPTING:
+            types.password_auth = true;
+            break;
+        case SSS_CERT_AUTH_PROMPTING:
+            types.cert_auth = true;
+            break;
+        default:
+            break;
+        }
+        resp = resp->next;
+    }
+
+    if (!types.password_auth && !types.otp_auth && !types.cert_auth && !types.passkey_auth) {
+        /* If the backend cannot determine which authentication types are
+         * available the default would be to prompt for a password. */
+        types.password_auth = true;
+    }
+
+    if (found_cert_info && !types.cert_auth) {
+        do_not_send_cert_info(pd);
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Authentication types for user [%s] and service "
+                            "[%s]:%s%s%s%s\n", pd->user, pd->service,
+                            types.password_auth ? " password": "",
+                            types.otp_auth ? " two-factor" : "",
+                            types.passkey_auth ? " passkey" : "",
+                            types.cert_auth ? " smartcard" : "");
+
+    ret = EOK;
+
+    *_auth_types = types;
+
+    return ret;
+}
+
+static errno_t pam_eval_local_auth_policy(TALLOC_CTX *mem_ctx,
+                                          struct pam_ctx *pctx,
+                                          struct pam_data *pd,
+                                          struct pam_auth_req *preq,
+                                          bool *_sc_allow,
+                                          bool *_passkey_allow,
+                                          char **_local_policy) {
+
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    const char *domain_cdb;
+    char *local_policy = NULL;
+    bool sc_allow = false;
+    bool passkey_allow = false;
+    struct pam_resp_auth_type auth_types;
+    char **opts;
+    size_t c;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    /* Check local auth policy */
+    domain_cdb = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL, preq->domain->name);
+    if (domain_cdb == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, tmp_ctx, domain_cdb,
+                            CONFDB_DOMAIN_LOCAL_AUTH_POLICY,
+                            "match", &local_policy);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get the confdb local_auth_policy\n");
+        return ret;
+    }
+
+    /* "only" ignores online methods and allows all local ones */
+    if (strcasecmp(local_policy, "only") == 0) {
+        sc_allow = true;
+        passkey_allow = true;
+    /* Match what the KDC supports and provides */
+    } else if (strcasecmp(local_policy, "match") == 0) {
+        /* Don't overwrite the local auth type when offline */
+        if (pd->pam_status == PAM_SUCCESS && pd->cmd == SSS_PAM_PREAUTH &&
+            !is_domain_provider(preq->domain, "ldap")) {
+            ret = pam_get_auth_types(pd, &auth_types);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to get authentication types\n");
+                goto done;
+            }
+
+            if (auth_types.cert_auth) {
+                sc_allow = true;
+            } else if (auth_types.passkey_auth) {
+                passkey_allow = true;
+            }
+
+            /* Store the local auth types, in case we go offline */
+            if (!auth_types.password_auth) {
+                ret = set_local_auth_type(preq, sc_allow, passkey_allow);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_FATAL_FAILURE,
+                          "Failed to evaluate local auth policy\n");
+                    goto done;
+                }
+            }
+        }
+
+        /* Read the latest auth types */
+        ret = pam_get_local_auth_policy(preq->domain, preq->pd->user,
+                                        &sc_allow, &passkey_allow);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to get PAM local auth policy\n");
+            goto done;
+        }
+    /* Check for enable */
+    } else {
+        ret = split_on_separator(tmp_ctx, local_policy, ',', true, true, &opts,
+                                 NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "split_on_separator failed [%d], %s.\n",
+                                     ret, sss_strerror(ret));
+            goto done;
+        }
+
+        for (c = 0; opts[c] != NULL; c++) {
+            if (strcasestr(opts[c], "passkey") != NULL) {
+                passkey_allow = strstr(opts[c], "enable") ? true : false;
+            } else if (strcasestr(opts[c], "smartcard") != NULL) {
+                sc_allow = strstr(opts[c], "enable") ? true : false;
+            } else {
+               DEBUG(SSSDBG_MINOR_FAILURE,
+                     "Unexpected local auth policy option [%s], " \
+                     "skipping.\n", opts[c]);
+            }
+        }
+
+        /* if passkey is enabled but local Smartcard authentication is not but
+         * possible, the cert info data has to be remove as well if only local
+         * Smartcard authentication is possible. If Smartcard authentication
+         * is possible on the server side we have to keep it because the
+         * 'enable' option should only add local methods but not reject remote
+         * ones. */
+        if (!sc_allow) {
+            /* We do not need the auth_types here but the call will remove
+             * the cert info data if the server does not support Smartcard
+             * authentication. */
+            ret = pam_get_auth_types(pd, &auth_types);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to get authentication types\n");
+                goto done;
+            }
+        }
+    }
+
+    *_sc_allow = sc_allow;
+    *_passkey_allow = passkey_allow;
+    *_local_policy = talloc_steal(mem_ctx, local_policy);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -1108,6 +1410,7 @@ void pam_reply(struct pam_auth_req *preq)
     struct timeval tv;
     struct tevent_timer *te;
     struct pam_data *pd;
+    char *local_policy = NULL;
     struct pam_ctx *pctx;
     uint32_t user_info_type;
     time_t exp_date = -1;
@@ -1116,6 +1419,8 @@ void pam_reply(struct pam_auth_req *preq)
     char* pam_account_locked_message;
     int pam_verbosity;
     bool pk_preauth_done = false;
+    bool local_sc_auth_allow = false;
+    bool local_passkey_auth_allow = false;
 
     pd = preq->pd;
     cctx = preq->cctx;
@@ -1136,6 +1441,34 @@ void pam_reply(struct pam_auth_req *preq)
           "this result might be changed during processing\n",
           pd->pam_status, pam_strerror(NULL, pd->pam_status));
 
+    if (preq->domain != NULL && preq->domain->name != NULL) {
+        ret = pam_eval_local_auth_policy(cctx, pctx, pd, preq,
+                                         &local_sc_auth_allow,
+                                         &local_passkey_auth_allow,
+                                         &local_policy);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to evaluate local auth policy\n");
+            goto done;
+        }
+    }
+
+   /* Ignore local_auth_policy for the files provider, allow local
+    * smartcard auth (default behavior prior to local_auth_policy) */
+    if (is_domain_provider(preq->domain, "files")) {
+        local_sc_auth_allow = true;
+    /* For the ldap auth provider we currently only support
+     * password based authentication */
+    } else if (is_domain_provider(preq->domain, "ldap") && local_policy != NULL
+              && strcasecmp(local_policy, "match") == 0) {
+        local_passkey_auth_allow = false;
+        local_sc_auth_allow = false;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Local auth policy allowed: smartcard [%s], passkey [%s]\n",
+                             local_sc_auth_allow ? "True" : "False",
+                             local_passkey_auth_allow ? "True" : "False");
+
     if (pd->cmd == SSS_PAM_AUTHENTICATE
             && !preq->cert_auth_local
             && (pd->pam_status == PAM_AUTHINFO_UNAVAIL
@@ -1152,10 +1485,15 @@ void pam_reply(struct pam_auth_req *preq)
         DEBUG(SSSDBG_IMPORTANT_INFO,
               "Backend cannot handle Smartcard authentication, "
               "trying local Smartcard authentication.\n");
-        preq->cert_auth_local = true;
-        ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
-        pam_check_user_done(preq, ret);
-        return;
+        if (local_sc_auth_allow) {
+            preq->cert_auth_local = true;
+            ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
+            pam_check_user_done(preq, ret);
+            return;
+        } else {
+            DEBUG(SSSDBG_IMPORTANT_INFO,
+                  "Local smartcard auth not allowed by local_auth_policy");
+        }
     }
 
     if (pd->pam_status == PAM_AUTHINFO_UNAVAIL || preq->use_cached_auth) {
@@ -1348,7 +1686,10 @@ void pam_reply(struct pam_auth_req *preq)
             goto done;
         }
 
-        if (may_do_passkey_auth(pctx, pd) && !pk_preauth_done && preq->passkey_data_exists) {
+        if (may_do_passkey_auth(pctx, pd)
+            && !pk_preauth_done
+            && preq->passkey_data_exists
+            && local_passkey_auth_allow) {
             ret = passkey_local(cctx, cctx->ev, pctx, preq, pd);
             pam_check_user_done(preq, ret);
             return;
@@ -2680,13 +3021,22 @@ done:
 
 static void pam_dom_forwarder(struct pam_auth_req *preq)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
     int ret;
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
     const char *cert_user;
     struct ldb_result *cert_user_objs;
+    bool sc_auth;
+    bool passkey_auth;
     size_t c;
+    char *local_policy = NULL;
     bool found = false;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return;
+    }
 
     if (!preq->pd->domain) {
         preq->pd->domain = preq->domain->name;
@@ -2721,6 +3071,23 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         preq->use_cached_auth = true;
         pam_reply(preq);
         return;
+    }
+
+    /* Skip online auth when local auth policy = only  */
+    if (may_do_cert_auth(pctx, preq->pd) || may_do_passkey_auth(pctx, preq->pd)) {
+        if (preq->domain->name != NULL) {
+            ret = pam_eval_local_auth_policy(preq->cctx, pctx, preq->pd, preq,
+                                             &sc_auth,
+                                             &passkey_auth,
+                                             &local_policy);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "Failed to evaluate local auth policy\n");
+                preq->pd->pam_status = PAM_AUTH_ERR;
+                pam_reply(preq);
+                return;
+            }
+        }
     }
 
     if (may_do_cert_auth(pctx, preq->pd) && preq->cert_list != NULL) {
@@ -2786,6 +3153,22 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         }
 
         if (found) {
+            if (local_policy != NULL && strcasecmp(local_policy, "only") == 0) {
+                talloc_free(tmp_ctx);
+                DEBUG(SSSDBG_IMPORTANT_INFO, "Local auth only set, skipping online auth\n");
+                if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+                    preq->pd->pam_status = PAM_SUCCESS;
+                } else if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
+                                && IS_SC_AUTHTOK(preq->pd->authtok)
+                                && preq->cert_auth_local) {
+                    preq->pd->pam_status = PAM_SUCCESS;
+                    preq->callback = pam_reply;
+                }
+
+                pam_reply(preq);
+                return;
+            }
+
             /* We are done if we do not have to call the backend */
             if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
                     && preq->cert_auth_local) {
@@ -2809,9 +3192,25 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         }
     }
 
+    if (local_policy != NULL && strcasecmp(local_policy, "only") == 0) {
+        talloc_free(tmp_ctx);
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Local auth only set, skipping online auth\n");
+        if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+            preq->pd->pam_status = PAM_SUCCESS;
+        } else if (preq->pd->cmd == SSS_PAM_AUTHENTICATE && IS_SC_AUTHTOK(preq->pd->authtok)) {
+            /* Trigger offline smartcardcard autheitcation */
+            preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        }
+
+        pam_reply(preq);
+        return;
+    }
+
     preq->callback = pam_reply;
     ret = pam_dp_send_req(preq);
     DEBUG(SSSDBG_CONF_SETTINGS, "pam_dp_send_req returned %d\n", ret);
+
+    talloc_free(tmp_ctx);
 
     if (ret != EOK) {
         preq->pd->pam_status = PAM_SYSTEM_ERR;

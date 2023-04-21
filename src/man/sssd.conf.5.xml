@@ -3979,6 +3979,51 @@ subdomain_inherit = ldap_purge_cache_timeout
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>local_auth_policy (string)</term>
+                    <listitem>
+                        <para>
+                            Local authentication methods policy. Some backends
+                            (i.e. LDAP, proxy provider) only support a password
+                            based authentication, while others can handle PKINIT
+                            based Smartcard authentication (AD, IPA),
+                            two-factor authentication (IPA), or other methods
+                            against a central instance. By default in such cases
+                            authentication is only performed with the methods
+                            supported by the backend.
+                        </para>
+                        <para>
+                            There are three possible values for this option:
+                            match, only, enable. <quote>match</quote> is
+                            used to match offline and online states for Kerberos
+                            methods. <quote>only</quote> ignores the online methods
+                            and only offer the local ones. enable allows explicitly
+                            defining the methods for local authentication. As an
+                            example, <quote>enable:passkey</quote>, only enables
+                            passkey for local authentication. Multiple enable values
+                            should be comma-separated, such as
+                            <quote>enable:passkey, enable:smartcard</quote>
+                        </para>
+                        <para>
+                            The following configuration example allows local users
+                            to authenticate locally using any enabled method
+                            (i.e. smartcard, passkey).
+<programlisting>
+[domain/shadowutils]
+id_provider = proxy
+proxy_lib_name = files
+auth_provider = none
+local_auth_policy = only
+</programlisting>
+                        </para>
+                        <para>
+                            This option is ignored for the files provider
+                        </para>
+                        <para>
+                            Default: match
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>auto_private_groups (string)</term>
                     <listitem>
                         <para>

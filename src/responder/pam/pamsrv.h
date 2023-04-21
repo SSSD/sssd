@@ -99,6 +99,13 @@ struct pam_auth_req {
     uint32_t client_id_num;
 };
 
+struct pam_resp_auth_type {
+    bool password_auth;
+    bool otp_auth;
+    bool cert_auth;
+    bool passkey_auth;
+};
+
 struct sss_cmd_table *get_pam_cmds(void);
 
 errno_t
@@ -153,6 +160,8 @@ errno_t filter_responses(struct pam_ctx *pctx,
                          struct response_data *resp_list,
                          struct pam_data *pd);
 
+errno_t pam_get_auth_types(struct pam_data *pd,
+                           struct pam_resp_auth_type *_auth_types);
 errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd);
 
 enum pam_initgroups_scheme pam_initgroups_string_to_enum(const char *str);
