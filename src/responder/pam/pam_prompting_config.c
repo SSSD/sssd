@@ -215,58 +215,23 @@ done:
 errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd)
 {
     int ret;
-    struct response_data *resp;
-    bool password_auth = false;
-    bool otp_auth = false;
-    bool cert_auth = false;
-    bool passkey_auth = false;
     struct prompt_config **pc_list = NULL;
     int resp_len;
     uint8_t *resp_data = NULL;
+    struct pam_resp_auth_type types;
 
     if (pctx->num_prompting_config_sections == 0) {
         DEBUG(SSSDBG_TRACE_ALL, "No prompting configuration found.\n");
         return EOK;
     }
 
-    resp = pd->resp_list;
-    while (resp != NULL) {
-        switch (resp->type) {
-        case SSS_PAM_OTP_INFO:
-            otp_auth = true;
-            break;
-        case SSS_PAM_CERT_INFO:
-            cert_auth = true;
-            break;
-        case SSS_PAM_PASSKEY_INFO:
-        case SSS_PAM_PASSKEY_KRB_INFO:
-            passkey_auth = true;
-            break;
-        case SSS_PASSWORD_PROMPTING:
-            password_auth = true;
-            break;
-        case SSS_CERT_AUTH_PROMPTING:
-            /* currently not used */
-            break;
-        default:
-            break;
-        }
-        resp = resp->next;
+    ret = pam_get_auth_types(pd, &types);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get authentication types\n");
+        goto done;
     }
 
-    if (!password_auth && !otp_auth && !cert_auth) {
-        /* If the backend cannot determine which authentication types are
-         * available the default would be to prompt for a password. */
-        password_auth = true;
-    }
-
-    DEBUG(SSSDBG_TRACE_ALL, "Authentication types for user [%s] and service "
-                            "[%s]:%s%s%s%s\n", pd->user, pd->service,
-                            password_auth ? " password": "",
-                            otp_auth ? " two-factor" : "",
-                            passkey_auth ? " passkey" : "",
-                            cert_auth ? " smartcard" : "");
-    if (passkey_auth) {
+    if (types.passkey_auth) {
         ret = pam_set_prompting_options(pctx->rctx->cdb, pd->service,
                                         pctx->prompting_config_sections,
                                         pctx->num_prompting_config_sections,
@@ -280,7 +245,7 @@ errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd)
         }
     }
 
-    if (cert_auth) {
+    if (types.cert_auth) {
         /* If certificate based authentication is possilbe, i.e. a Smartcard
          * or similar with the mapped certificate is available we currently
          * prefer this authentication type unconditionally. If other types
@@ -292,7 +257,7 @@ errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd)
     }
 
     /* If OTP and password auth are possible we currently prefer OTP. */
-    if (otp_auth) {
+    if (types.otp_auth) {
         ret = pam_set_prompting_options(pctx->rctx->cdb, pd->service,
                                         pctx->prompting_config_sections,
                                         pctx->num_prompting_config_sections,
@@ -306,7 +271,7 @@ errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd)
         }
     }
 
-    if (password_auth) {
+    if (types.password_auth) {
         ret = pam_set_prompting_options(pctx->rctx->cdb, pd->service,
                                         pctx->prompting_config_sections,
                                         pctx->num_prompting_config_sections,
