@@ -323,3 +323,35 @@ class TestADMisc:
         log2 = re.compile(r'\[recreate_ares_channel.*Initializing.new.c-ares.channel', re.IGNORECASE)
         assert log1.search(dom_log), 'Destroying the old c-ares related log missing'
         assert log2.search(dom_log), 'Initializing new c-ares related log missing'
+
+    @staticmethod
+    def test_0005_get_sid_by_username(multihost, adjoin, create_aduser_group):
+        """
+        :title: Add 'getsidbyusername()' and 'getsidbygroupname()
+        :id: a2b53a5c-6f67-4fb3-ba37-908d4e4abe45
+        :customerscenario: false
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2166627
+        :setup:
+          1. Configure sssd with AD.
+          2. Transport a python program, to run a lookup using userid and groupid, on client
+        :steps:
+          1. Run lookup using username of existing userid
+          2. Run lookup using groupname of existing group
+        :expectedresults:
+          1. domain log file should show that the SID exists for the username
+          2. domain log file should show that the SID exists for the group
+        """
+        adjoin(membersw='adcli')
+        (ad_user, _) = create_aduser_group
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        domain_name = client.get_domain_section_name()
+        client.clear_sssd_cache()
+        multihost.client[0].run_command('dnf install python3-libsss_nss_idmap -y', raiseonerr=True)
+        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+            tfile.write('#!/usr/bin/python\n')
+            tfile.write('import pysss_nss_idmap as idmap\n')
+            tfile.write(f'idmap.getsidbyusername("{ad_user}@{domain_name}")\n')
+            tfile.write(f'idmap.getsidbygroupname("domain users@{domain_name}")\n')
+            tfile.flush()
+            multihost.client[0].transport.put_file(tfile.name, '/tmp/sss_nss_idmap.py')
+        multihost.client[0].run_command('python3 /tmp/sss_nss_idmap.py', raiseonerr=True)
