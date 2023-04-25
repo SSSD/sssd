@@ -133,9 +133,11 @@ class sssdTools(object):
         else:
             contents = resolv_conf
         contents = nameserver + contents.replace(nameserver, '')
-        self.multihost.run_command("chattr -i /etc/resolv.conf")
+        # Chattr will not work on symlink (like from systemd resolved)
+        # so we ignore result
+        self.multihost.run_command("chattr -i /etc/resolv.conf", raiseonerr=False)
         self.multihost.put_file_contents('/etc/resolv.conf', contents)
-        self.multihost.run_command("chattr +i /etc/resolv.conf")
+        self.multihost.run_command("chattr +i /etc/resolv.conf", raiseonerr=False)
 
     def update_etc_hosts(self, ip_addr, hostname):
         """ Update /etc/hosts with ipaddress and hostname
