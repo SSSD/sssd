@@ -705,7 +705,7 @@ class TestBugzillaAutomation(object):
 
     @staticmethod
     @pytest.mark.tier1
-    def test_0018_bz1734040(multihost, adjoin, create_aduser_group):
+    def test_0018_bz1734040(self, multihost, adjoin, create_aduser_group):
         """
         :title: ad_parameters: sssd crash in ad_get_account_domain_search
         :id: dcca509e-b316-4010-a173-20f541dafd52
@@ -755,3 +755,49 @@ class TestBugzillaAutomation(object):
         client.restore_sssd_conf()
 
         assert find.search(log), "Expected log record is missing."
+
+    def test_0019_bz2070189(self, multihost, adjoin):
+        """
+        :title: sssd error triggers backtrace
+        :description:
+            Global Catalog lookups should not update the kdcinfo files
+        :id: 91bd8845-20e4-4fde-9914-73b08d44c195
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2070189
+        :steps:
+            1. setup AD environment
+            2. Join linux machine into AD domain
+            3. Set the debug_level in sssd.conf for AD domain to 1,
+               make sure backtrace dump is enabled,
+               debug_backtrace_enabled=True
+               make sure that krb5_use_kdcinfo=True
+            4. clear the cache sss_cache -E
+            5. lookup AD user `id administrator@domain`
+        :expectedresults:
+            1. AD is setup
+            2. Linux client joins the domain
+            3. SSSD is configured
+            4. Cache is cleared
+            5. Backtrace is NOT triggered and the log is empty
+        """
+        adjoin(membersw='adcli')
+        client = sssdTools(multihost.client[0])
+        client.backup_sssd_conf()
+        domain_name = multihost.ad[0].domainname
+        domain_log = '/var/log/sssd/sssd_%s.log' % domain_name
+        domain_sec_name = client.get_domain_section_name()
+        dom_section = 'domain/%s' % domain_sec_name
+        sssd_params = {'domains': 'files, %s' % domain_sec_name}
+        client.sssd_conf('sssd', sssd_params)
+        domain_params = {'debug_level': '1', 'krb5_use_kdcinfo': 'True',
+                         'debug_backtrace_enabled': 'True'}
+        client.sssd_conf(dom_section, domain_params)
+        file_section = 'domain/files'
+        file_params = {'id_provider': 'files'}
+        client.sssd_conf(file_section, file_params)
+        multihost.client[0].run_command('id')
+        client.clear_sssd_cache()
+        md5sum = multihost.client[0].run_command('md5sum %s' % domain_log)
+        multihost.client[0].run_command('id administrator@%s' % domain_name)
+        md5sum1 = multihost.client[0].run_command('md5sum %s' % domain_log)
+        assert md5sum.stdout_text == md5sum1.stdout_text
+        client.restore_sssd_conf()
