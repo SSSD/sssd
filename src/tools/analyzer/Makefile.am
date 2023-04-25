@@ -13,10 +13,12 @@ dist_pkgpython_DATA = \
     source_reader.py \
     parser.py \
     sss_analyze.py \
+    util.py \
     $(NULL)
 
 modulesdir = $(pkgpythondir)/modules
 dist_modules_DATA = \
     modules/__init__.py \
     modules/request.py \
+    modules/error.py \
     $(NULL)

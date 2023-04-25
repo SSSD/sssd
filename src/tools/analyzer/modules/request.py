@@ -1,6 +1,6 @@
 import re
 import logging
-
+from sssd import util
 from sssd.parser import SubparsersAction
 from sssd.parser import Option
 
@@ -38,7 +38,6 @@ class RequestAnalyzer:
     def setup_args(self, parser_grp, cli):
         """
         Setup module parser, subcommands, and options
-
         Args:
             parser_grp (argparse.Action): Parser group to nest
                module and subcommands under
@@ -63,42 +62,6 @@ class RequestAnalyzer:
 
         return self.module_parser
 
-    def load(self, args):
-        """
-        Load the appropriate source reader.
-
-        Args:
-            args (Namespace): argparse parsed arguments
-
-        Returns:
-            Instantiated source object
-        """
-        if args.source == "journald":
-            from sssd.source_journald import Journald
-            source = Journald()
-        else:
-            from sssd.source_files import Files
-            source = Files(args.logdir)
-        return source
-
-    def matched_line(self, source, patterns):
-        """
-        Yield lines which match any number of patterns (OR) in
-        provided patterns list.
-
-        Args:
-            source (Reader): source Reader object
-        Yields:
-            lines matching the provided pattern(s)
-        """
-        for line in source:
-            for pattern in patterns:
-                re_obj = re.compile(pattern)
-                if re_obj.search(line):
-                    if line.startswith('   *  '):
-                        continue
-                    yield line
-
     def get_linked_ids(self, source, pattern, regex):
         """
         Retrieve list of associated REQ_TRACE ids. Filter
@@ -114,8 +77,9 @@ class RequestAnalyzer:
         Returns:
             List of linked ids discovered
         """
+        utl = util.Utils()
         linked_ids = []
-        for match in self.matched_line(source, pattern):
+        for match in utl.matched_line(source, pattern):
             id_re = re.compile(regex)
             match = id_re.search(match)
             if match:
@@ -250,7 +214,8 @@ class RequestAnalyzer:
         Args:
             args (Namespace):  populated argparse namespace
         """
-        source = self.load(args)
+        utl = util.Utils()
+        source = utl.load(args)
         component = source.Component.NSS
         resp = "nss"
         # Log messages matching the following regex patterns contain
@@ -266,7 +231,7 @@ class RequestAnalyzer:
         if args.verbose:
             self.print_formatted_verbose(source)
         else:
-            for line in self.matched_line(source, patterns):
+            for line in utl.matched_line(source, patterns):
                 if type(source).__name__ == 'Journald':
                     print(line)
                 else:
@@ -279,7 +244,8 @@ class RequestAnalyzer:
         Args:
             args (Namespace):  populated argparse namespace
         """
-        source = self.load(args)
+        utl = util.Utils()
+        source = utl.load(args)
         cid = args.cid
         resp_results = False
         be_results = False
@@ -294,7 +260,7 @@ class RequestAnalyzer:
         logger.info(f"******** Checking {resp} responder for Client ID"
                     f" {cid} *******")
         source.set_component(component, args.child)
-        for match in self.matched_line(source, pattern):
+        for match in utl.matched_line(source, pattern):
             resp_results = self.consume_line(match, source, args.merge)
 
         logger.info(f"********* Checking Backend for Client ID {cid} ********")
@@ -307,7 +273,7 @@ class RequestAnalyzer:
         pattern.clear()
         [pattern.append(f'\\{id}') for id in be_ids]
 
-        for match in self.matched_line(source, pattern):
+        for match in utl.matched_line(source, pattern):
             be_results = self.consume_line(match, source, args.merge)
 
         if args.merge:
