@@ -19,7 +19,7 @@ def set_ldap_uri(multihost):
     master = sssdTools(multihost.master[0])
     domain_params = {'ldap_uri': ldap_uri}
     master.sssd_conf(f'domain/{domain_name}', domain_params)
-    multihost.client[0].service_sssd('restart')
+    multihost.master[0].service_sssd('restart')
 
 
 @pytest.mark.usefixtures("set_ldap_uri")
