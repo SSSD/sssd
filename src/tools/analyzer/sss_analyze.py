@@ -1,6 +1,7 @@
 import argparse
 
 from sssd.modules import request
+from sssd.modules import error
 from sssd.parser import SubparsersAction
 
 
@@ -55,9 +56,11 @@ class Analyzer:
         """
         # Currently only the 'request' module exists
         req = request.RequestAnalyzer()
+        err = error.ErrorAnalyzer()
         cli = Analyzer()
 
         req.setup_args(parser_grp, cli)
+        err.setup_args(parser_grp, cli)
 
     def setup_args(self):
         """
