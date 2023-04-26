@@ -83,11 +83,13 @@ class sssdTools(object):
                'tcpdump wireshark-cli expect rsyslog gcc gcc-c++ pam-devel '\
                'tdb-tools libkcapi-hmaccalc strace'
         sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
-                    'libsss_autofs libsss_simpleifp sssd-kcm sssd-dbus'
+                    'libsss_autofs sssd-kcm sssd-dbus'
         extra_pkg = ' nss-pam-ldapd krb5-pkinit'
         distro = self.multihost.distro
         if '8.' in distro:
             pkgs = pkgs + extra_pkg
+        if '7.' in distro or '8.' in distro or '9.' in distro:
+            sssd_pkgs = sssd_pkgs + " libsss_simpleifp"
         self.multihost.package_mgmt(pkgs, action='install')
         self.multihost.package_mgmt(sssd_pkgs, action='install')
 
