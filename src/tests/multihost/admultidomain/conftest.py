@@ -52,8 +52,9 @@ def adjoin(session_multihost, request):
     ad_host = session_multihost.ad[0].sys_hostname
     client_ad = sssdTools(session_multihost.client[0], session_multihost.ad[0])
     client_ad.update_resolv_conf(session_multihost.ad[0])
+    client_ad.update_resolv_conf(session_multihost.ad[len(session_multihost.ad)-1])
     client_ad.systemsssdauth(ad_realm, ad_host)
-    client_ad.disjoin_ad()
+    client_ad.disjoin_ad(raiseonerr=False)  # Make sure system is disjoined from AD
     client_ad.create_kdcinfo(ad_realm, ad_ip)
     kinit = f'kinit Administrator@{ad_realm}'
     ad_password = session_multihost.ad[0].ssh_password
@@ -71,7 +72,7 @@ def adjoin(session_multihost, request):
 
     def adleave():
         """ Disjoin AD """
-        client_ad.disjoin_ad()
+        client_ad.disjoin_ad(raiseonerr=False)
         remove_keytab = 'rm -f /etc/krb5.keytab'
         kdestroy_cmd = 'kdestroy -A'
         session_multihost.client[0].run_command(kdestroy_cmd)
@@ -98,7 +99,7 @@ def adchildjoin(session_multihost, request):
     ad_realm = session_multihost.ad[1].realm
     ad_ip = session_multihost.ad[1].ip
     client_ad = sssdTools(session_multihost.client[0], session_multihost.ad[1])
-    client_ad.disjoin_ad()
+    client_ad.disjoin_ad(raiseonerr=False)
     client_ad.create_kdcinfo(ad_realm, ad_ip)
     kinit = "kinit Administrator@%s" % ad_realm
     ad_password = session_multihost.ad[1].ssh_password
@@ -116,7 +117,7 @@ def adchildjoin(session_multihost, request):
 
     def adleave():
         """ Disjoin AD """
-        client_ad.disjoin_ad()
+        client_ad.disjoin_ad(raiseonerr=False)
         remove_keytab = 'rm -f /etc/krb5.keytab'
         kdestroy_cmd = 'kdestroy -A'
         session_multihost.client[0].run_command(kdestroy_cmd)
