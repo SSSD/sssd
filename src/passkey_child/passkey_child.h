@@ -63,6 +63,7 @@ struct passkey_data {
     fido_opt_t user_verification;
     enum credential_type cred_type;
     unsigned char *user_id;
+    char *mapping_file;
     bool quiet;
     bool debug_libfido2;
 };
@@ -239,6 +240,21 @@ verify_credentials(const fido_cred_t *const cred);
 errno_t
 print_credentials(const struct passkey_data *data,
                   const fido_cred_t *const cred);
+
+/**
+ * @brief Print passkey credentials
+ *
+ * @param[in] data passkey data
+ * @param[in] b64_cred_id Credential ID in b64
+ * @param[in] pem_key Public key in PEM format
+ *
+ * @return 0 if the credentials were printed properly,
+ *         another value on error.
+ */
+errno_t
+print_credentials_to_file(const struct passkey_data *data,
+                          const char *b64_cred_id,
+                          const char *pem_key);
 
 /**
  * @brief Format libfido2's es256 data structure to EVP_PKEY

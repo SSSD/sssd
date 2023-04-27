@@ -22,6 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
 
@@ -403,9 +404,79 @@ print_credentials(const struct passkey_data *data,
     }
 
     PRINT("passkey:%s,%s\n", b64_cred_id, pem_key);
+    if (data->mapping_file != NULL) {
+        print_credentials_to_file(data, b64_cred_id, pem_key);
+    }
     ret = EOK;
 
 done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
+print_credentials_to_file(const struct passkey_data *data,
+                          const char *b64_cred_id,
+                          const char *pem_key)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *mapping_data = NULL;
+    int mapping_data_len = 0;
+    int fd = -1;
+    ssize_t written = 0;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    mapping_data = talloc_asprintf(tmp_ctx, "passkey:%s,%s",
+                                   b64_cred_id, pem_key);
+    if (mapping_data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    mapping_data_len = strlen(mapping_data);
+
+    fd = open(data->mapping_file, O_WRONLY|O_CREAT, 0640);
+    if (fd == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              "open() failed [%d][%s]\n", ret, strerror(ret));
+        ret = EIO;
+        goto done;
+    }
+
+    errno = 0;
+    written = sss_atomic_write_s(fd, mapping_data, mapping_data_len);
+    if (written == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Write failed [%d][%s].\n", ret, strerror(ret));
+        goto done;
+    }
+
+    if (written != mapping_data_len) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Write error, wrote [%zd] bytes, expected [%d]\n",
+               written, mapping_data_len);
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (fd != -1) {
+        if (close(fd) == -1) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Close failed [%s].\n", strerror(errno));
+        }
+    }
     talloc_free(tmp_ctx);
 
     return ret;
