@@ -107,11 +107,11 @@ class TestADMultiForest(object):
         multihost.client[0].run_command(cleanup_krb5)
         client.restore_sssd_conf()
 
-        assert getent_domain_user1.returncode == 0, f"Could not find user1 {getent_domain_user1}!"
-        assert getent_domain_user2.returncode == 0, f"Could not find user1 {getent_domain_user2}!"
-        assert id_domain_user1.returncode == 0, f"Could not find user1 {id_domain1_user1}!"
-        assert id_domain_user2.returncode == 0, f"Could not find user2 {id_domain_user2}!"
-        assert getent_domain1_user1.returncode == 0, f"Could not find user1 {getent_domain1_user1}!"
-        assert getent_domain1_user2.returncode == 0, f"Could not find user2 {getent_domain1_user2}!"
-        assert id_domain1_user1.returncode == 0, f"Could not find user1 {id_domain1_user1}!"
-        assert id_domain1_user2.returncode == 0, f"Could not find user2 {id_domain1_user2}!"
+        assert getent_domain_user1.rc == 0, f"Could not find user1 {getent_domain_user1}!"
+        assert getent_domain_user2.rc == 0, f"Could not find user1 {getent_domain_user2}!"
+        assert id_domain_user1.rc == 0, f"Could not find user1 {id_domain1_user1}!"
+        assert id_domain_user2.rc == 0, f"Could not find user2 {id_domain_user2}!"
+        assert getent_domain1_user1.rc == 0, f"Could not find user1 {getent_domain1_user1}!"
+        assert getent_domain1_user2.rc == 0, f"Could not find user2 {getent_domain1_user2}!"
+        assert id_domain1_user1.rc == 0, f"Could not find user1 {id_domain1_user1}!"
+        assert id_domain1_user2.rc == 0, f"Could not find user2 {id_domain1_user2}!"
