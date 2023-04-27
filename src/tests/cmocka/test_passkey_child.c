@@ -880,6 +880,7 @@ void test_register_key_integration(void **state)
     data.type = COSE_ES256;
     data.user_verification = FIDO_OPT_FALSE;
     data.cred_type = CRED_SERVER_SIDE;
+    data.mapping_file = NULL;
     data.quiet = false;
     will_return(__wrap_fido_dev_info_manifest, FIDO_OK);
     will_return(__wrap_fido_dev_info_manifest, 1);
