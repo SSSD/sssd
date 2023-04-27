@@ -10,7 +10,7 @@ from sssd.testlib.common.utils import sssdTools
 @pytest.mark.admultiforest
 class TestADMultiForest(object):
 
-    def test_0001_multiforest(multihost, newhostname, adjoin):
+    def test_0001_multiforest(self, multihost, newhostname, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: admultiforest : Authentication against two forests
         :id: 900f2467-1aca-430c-bbaa-b22d30a829ad
@@ -102,7 +102,7 @@ class TestADMultiForest(object):
         id_domain1_user1 = multihost.client[0].run_command(f'id user1@{ad1_domain}', raiseonerr=False)
         id_domain1_user2 = multihost.client[0].run_command(f'id user2@{ad1_domain}', raiseonerr=False)
 
-        multihost.client[0].put_file_contents('/etc/hosts', hosts)
+        multihost.client[0].put_file_contents('/etc/hosts.bak', hosts)
         multihost.client[0].put_file_contents('/etc/krb5.conf', krb5)
         multihost.client[0].run_command(cleanup_krb5)
         client.restore_sssd_conf()
