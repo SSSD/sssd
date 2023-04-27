@@ -7,7 +7,6 @@ from sssd.testlib.common.utils import sssdTools
 @pytest.mark.admultidomain
 class TestADMultiDomain(object):
 
-    @staticmethod
     def test_0001_bz2013297(multihost, newhostname, adchildjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: forests: disabled root ad domain
@@ -99,7 +98,6 @@ class TestADMultiDomain(object):
         assert getent_root_user2.returncode == 2
         assert getent_child_user2.returncode == 0
 
-    @staticmethod
     def test_0002_bz2018432(multihost, newhostname, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: forests:  based SSSD adds more AD
