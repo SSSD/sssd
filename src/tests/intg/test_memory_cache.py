@@ -358,6 +358,8 @@ def zero_timeout_rfc2307(request, ldap_conn):
     return None
 
 
+@pytest.mark.converted('test_id.py', 'test_id__getpwuid')
+@pytest.mark.converted('test_id.py', 'test_id__getpwnam')
 def test_getpwnam(ldap_conn, sanity_rfc2307):
     ent.assert_passwd_by_name(
         'user1',
@@ -441,12 +443,15 @@ def test_getpwnam(ldap_conn, sanity_rfc2307):
              gecos='1023', shell='/bin/bash'))
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__getpwnam')
 def test_getpwnam_with_mc(ldap_conn, sanity_rfc2307):
     test_getpwnam(ldap_conn, sanity_rfc2307)
     stop_sssd()
     test_getpwnam(ldap_conn, sanity_rfc2307)
 
 
+@pytest.mark.converted('test_id.py', 'test_id__getgrgid')
+@pytest.mark.converted('test_id.py', 'test_id__getgrnam')
 def test_getgrnam_simple(ldap_conn, sanity_rfc2307):
     ent.assert_group_by_name("group1", dict(name="group1", gid=2001))
     ent.assert_group_by_gid(2001, dict(name="group1", gid=2001))
@@ -467,18 +472,21 @@ def test_getgrnam_simple(ldap_conn, sanity_rfc2307):
     ent.assert_group_by_gid(2020, dict(name="group2x", gid=2020))
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__getgrnam')
 def test_getgrnam_simple_with_mc(ldap_conn, sanity_rfc2307):
     test_getgrnam_simple(ldap_conn, sanity_rfc2307)
     stop_sssd()
     test_getgrnam_simple(ldap_conn, sanity_rfc2307)
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_passwd_getgrnam')
 def test_getgrnam_simple_disabled_pwd_mc(ldap_conn, disable_pwd_mc_rfc2307):
     test_getgrnam_simple(ldap_conn, disable_pwd_mc_rfc2307)
     stop_sssd()
     test_getgrnam_simple(ldap_conn, disable_pwd_mc_rfc2307)
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_intitgroups_getgrnam')
 def test_getgrnam_simple_disabled_intitgr_mc(ldap_conn,
                                              disable_initgr_mc_rfc2307):
     test_getgrnam_simple(ldap_conn, disable_initgr_mc_rfc2307)
@@ -486,6 +494,8 @@ def test_getgrnam_simple_disabled_intitgr_mc(ldap_conn,
     test_getgrnam_simple(ldap_conn, disable_initgr_mc_rfc2307)
 
 
+@pytest.mark.converted('test_id.py', 'test_id__membership_by_group_id')
+@pytest.mark.converted('test_id.py', 'test_id__membership_by_group_name')
 def test_getgrnam_membership(ldap_conn, sanity_rfc2307):
     ent.assert_group_by_name(
         "group1",
@@ -530,6 +540,8 @@ def test_getgrnam_membership(ldap_conn, sanity_rfc2307):
         dict(mem=ent.contains_only("user21", "user22", "user23")))
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__membership_by_group_id')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__membership_by_group_name')
 def test_getgrnam_membership_with_mc(ldap_conn, sanity_rfc2307):
     test_getgrnam_membership(ldap_conn, sanity_rfc2307)
     stop_sssd()
@@ -548,6 +560,7 @@ def assert_user_gids_equal(user, expected_gids):
     )
 
 
+@pytest.mark.converted('test_id.py', 'test_id__initgroups')
 def test_initgroups(ldap_conn, sanity_rfc2307):
     assert_user_gids_equal('user1', [2000, 2001])
     assert_user_gids_equal('user2', [2000, 2002])
@@ -562,12 +575,15 @@ def test_initgroups(ldap_conn, sanity_rfc2307):
     assert_user_gids_equal('user23', [2020, 2003])
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__user_gids')
 def test_initgroups_with_mc(ldap_conn, sanity_rfc2307):
     test_initgroups(ldap_conn, sanity_rfc2307)
     stop_sssd()
     test_initgroups(ldap_conn, sanity_rfc2307)
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__getpwnam_fully_qualified_names')
+@pytest.mark.converted('test_id.py', 'test_id__getpwnam_fully_qualified_names')
 def test_initgroups_fqname_with_mc(ldap_conn, fqname_rfc2307):
     assert_user_gids_equal('user1@LDAP', [2000, 2001])
     stop_sssd()
@@ -609,6 +625,10 @@ def assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
     assert_initgroups_equal(user1_case_last, primary_gid, expected_gids)
 
 
+@pytest.mark.converted('test_id.py', 'test_id__fq_names_case_insensitive')
+@pytest.mark.converted('test_id.py', 'test_id__case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__fq_names_case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__case_insensitive')
 def test_initgroups_case_insensitive_with_mc1(ldap_conn,
                                               fqname_case_insensitive_rfc2307):
     user1_case1 = 'User1@LDAP'
@@ -621,6 +641,10 @@ def test_initgroups_case_insensitive_with_mc1(ldap_conn,
                                   primary_gid, expected_gids)
 
 
+@pytest.mark.converted('test_id.py', 'test_id__fq_names_case_insensitive')
+@pytest.mark.converted('test_id.py', 'test_id__case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__fq_names_case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__case_insensitive')
 def test_initgroups_case_insensitive_with_mc2(ldap_conn,
                                               fqname_case_insensitive_rfc2307):
     user1_case1 = 'usEr1@LDAP'
@@ -633,6 +657,10 @@ def test_initgroups_case_insensitive_with_mc2(ldap_conn,
                                   primary_gid, expected_gids)
 
 
+@pytest.mark.converted('test_id.py', 'test_id__fq_names_case_insensitive')
+@pytest.mark.converted('test_id.py', 'test_id__case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__fq_names_case_insensitive')
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__case_insensitive')
 def test_initgroups_case_insensitive_with_mc3(ldap_conn,
                                               fqname_case_insensitive_rfc2307):
     user1_case1 = 'uSer1@LDAP'
@@ -673,6 +701,7 @@ def run_simple_test_with_initgroups():
     assert_initgroups_equal("user1", 2001, [2000, 2001])
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidatation_of_gids_after_initgroups')
 def test_invalidation_of_gids_after_initgroups(ldap_conn, sanity_rfc2307):
 
     # the sssd cache was empty and not all user's group were
@@ -712,6 +741,7 @@ def test_invalidation_of_gids_after_initgroups(ldap_conn, sanity_rfc2307):
             grp.getgrgid(gid)
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__initgroups_without_change_in_membership')
 def test_initgroups_without_change_in_membership(ldap_conn, sanity_rfc2307):
 
     # the sssd cache was empty and not all user's group were
@@ -778,6 +808,7 @@ def assert_missing_mc_records_for_user1():
         "User user1, errno:%d" % err
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_user_before_stop')
 def test_invalidate_user_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -791,6 +822,7 @@ def test_invalidate_user_before_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_user_after_stop')
 def test_invalidate_user_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -804,6 +836,7 @@ def test_invalidate_user_after_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_users_before_stop')
 def test_invalidate_users_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -817,6 +850,7 @@ def test_invalidate_users_before_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_users_after_stop')
 def test_invalidate_users_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -830,6 +864,7 @@ def test_invalidate_users_after_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_group_before_stop')
 def test_invalidate_group_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -843,6 +878,7 @@ def test_invalidate_group_before_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_group_after_stop')
 def test_invalidate_group_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -856,6 +892,7 @@ def test_invalidate_group_after_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_groups_before_stop')
 def test_invalidate_groups_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -869,6 +906,7 @@ def test_invalidate_groups_before_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_groups_after_stop')
 def test_invalidate_groups_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -881,7 +919,7 @@ def test_invalidate_groups_after_stop(ldap_conn, sanity_rfc2307):
 
     assert_missing_mc_records_for_user1()
 
-
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_everything_before_stop')
 def test_invalidate_everything_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -895,6 +933,7 @@ def test_invalidate_everything_before_stop(ldap_conn, sanity_rfc2307):
     assert_missing_mc_records_for_user1()
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__invalidate_everything_after_stop')
 def test_invalidate_everything_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
@@ -984,6 +1023,7 @@ def test_colliding_hashes(ldap_conn, sanity_rfc2307):
              gecos='5001', shell='/bin/bash'))
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__removed_cache_without_invalidation')
 def test_removed_mc(ldap_conn, sanity_rfc2307):
     """
     Regression test for ticket:
@@ -1020,6 +1060,7 @@ def test_removed_mc(ldap_conn, sanity_rfc2307):
         grp.getgrgid(2001)
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__memcache_timeout_zero')
 def test_mc_zero_timeout(ldap_conn, zero_timeout_rfc2307):
     """
     Test that the memory cache is not created at all with memcache_timeout=0
@@ -1053,6 +1094,7 @@ def test_mc_zero_timeout(ldap_conn, zero_timeout_rfc2307):
         grp.getgrgid(2001)
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_cache')
 def test_disabled_mc(ldap_conn, disable_memcache_rfc2307):
     ent.assert_passwd_by_name(
         'user1',
@@ -1086,6 +1128,7 @@ def test_disabled_mc(ldap_conn, disable_memcache_rfc2307):
         (res, errno, gids) = sssd_id.get_user_gids('user1')
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_passwd_getpwnam')
 def test_disabled_passwd_mc(ldap_conn, disable_pwd_mc_rfc2307):
     ent.assert_passwd_by_name(
         'user1',
@@ -1112,6 +1155,7 @@ def test_disabled_passwd_mc(ldap_conn, disable_pwd_mc_rfc2307):
         (res, errno, gids) = sssd_id.get_user_gids('user1')
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_group')
 def test_disabled_group_mc(ldap_conn, disable_grp_mc_rfc2307):
     ent.assert_passwd_by_name(
         'user1',
@@ -1147,6 +1191,7 @@ def test_disabled_group_mc(ldap_conn, disable_grp_mc_rfc2307):
     assert_user_gids_equal('user1', [2000, 2001])
 
 
+@pytest.mark.converted('test_memory_cache.py', 'test_memory_cache__disabled_intitgroups_getpwnam')
 def test_disabled_initgr_mc(ldap_conn, disable_initgr_mc_rfc2307):
     # Even if initgroups is disabled, passwd should work
     ent.assert_passwd_by_name(
