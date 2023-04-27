@@ -154,6 +154,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     data->user_verification = FIDO_OPT_OMIT;
     data->cred_type = CRED_SERVER_SIDE;
     data->user_id = NULL;
+    data->mapping_file = NULL;
     data->quiet = false;
     data->debug_libfido2 = false;
 
@@ -194,6 +195,8 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
          _("Require user-verification"), "true|false"},
         {"cred-type", 0, POPT_ARG_STRING, &cred_type, 0,
          _("Credential type"), "server-side|discoverable"},
+        {"output-file", 0, POPT_ARG_STRING, &data->mapping_file, 0,
+         _("Write key mapping data to file"), NULL},
         {"quiet", 0, POPT_ARG_NONE, NULL, 'q',
          _("Supress prompts"), NULL},
         {"debug-libfido2", 0, POPT_ARG_NONE, NULL, 'd',
@@ -368,6 +371,7 @@ check_arguments(const struct passkey_data *data)
           data->user_verification);
     DEBUG(SSSDBG_TRACE_FUNC, "cred_type: %d\n",
           data->cred_type);
+    DEBUG(SSSDBG_TRACE_FUNC, "Mapping file: %s\n", data->mapping_file);
     DEBUG(SSSDBG_TRACE_FUNC, "debug_libfido2: %d\n", data->debug_libfido2);
 
     if (data->action == ACTION_NONE) {
