@@ -355,3 +355,33 @@ class TestADMisc:
             tfile.flush()
             multihost.client[0].transport.put_file(tfile.name, '/tmp/sss_nss_idmap.py')
         multihost.client[0].run_command('python3 /tmp/sss_nss_idmap.py', raiseonerr=True)
+
+    @staticmethod
+    def test_0006_bz2133854(multihost, adjoin, create_aduser_1kadgrp):
+        """
+        :title: sdap_add_incomplete_groups called with ignore_group_members enabled
+        :id: 3fcdacb1-7985-4f6e-a381-b65e83b5e516
+        :customerscenario: true
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2133854
+        :setup:
+          1. Join the client to AD Domain
+          2. Set ignore_group_members=true in domain section of sssd.conf
+          3. Create a user on AD Domain
+          4. Create 1000 Groups on AD Domain
+          5. Add newly created ADuser as member of 1000 ADgroups
+          6. Clear the cache and restart SSSD
+        :steps:
+          1. Lookup AD user
+        :expectedresults:
+          1. AD-user shows groups correctly
+        """
+        adjoin(membersw='adcli')
+        num = create_aduser_1kadgrp
+        domainname = multihost.ad[0].domainname
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        dom_section = f'domain/{client.get_domain_section_name()}'
+        sssd_params = {'ignore_group_members': 'True'}
+        client.sssd_conf(dom_section, sssd_params)
+        client.clear_sssd_cache()
+        cmd = multihost.client[0].run_command(f'id aduser{num}@{domainname}', raiseonerr=False)
+        assert cmd.returncode == 0, f'aduser{num} info not returned'

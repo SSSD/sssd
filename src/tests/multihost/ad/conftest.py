@@ -442,6 +442,27 @@ def range_retr_mods(session_multihost, fetch_ca_cert, request):
     session_multihost.ad[0].run_command('ldifde.exe -i -f mod_maxrange.ldif', raiseonerr=False)
 
 
+@pytest.fixture(scope="function")
+def create_aduser_1kadgrp(session_multihost, request):
+    """ create AD user and 1k groups
+        Add the user to 1k groups
+    """
+    num = random.randint(9999, 999999)
+    ad = ADOperations(session_multihost.ad[0])
+    ad.create_ad_unix_user(f'aduser{num}')
+    for uid in range(1, 1001):
+        ad.create_ad_unix_group(f'adgrp{num}_{uid}')
+        ad.add_user_member_of_group(f'adgrp{num}_{uid}', f'aduser{num}')
+
+    def remove_ad_user_group():
+        """ Remove windows AD user and group """
+        ad.delete_ad_user_group(f'aduser{num}')
+        for uid in range(1, 1001):
+            ad.delete_ad_user_group(f'adgrp{num}_{uid}')
+    request.addfinalizer(remove_ad_user_group)
+    return num
+
+
 # ############## class scoped Fixtures ##############################
 
 
