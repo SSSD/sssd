@@ -3926,15 +3926,18 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
 
     if (!(offline ||
             (kr->fast_val == K5C_FAST_NEVER && kr->validate == false))) {
-        kerr = copy_keytab_into_memory(kr, kr->ctx, kr->keytab, &mem_keytab,
-                                       NULL);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_OP_FAILURE, "copy_keytab_into_memory failed.\n");
-            return kerr;
-        }
+        /* A Keytab is not used if fast with anonymous pkinit is used (and validate is false)*/
+        if (!(kr->cli_opts->fast_use_anonymous_pkinit == true && kr->validate == false)) {
+            kerr = copy_keytab_into_memory(kr, kr->ctx, kr->keytab, &mem_keytab,
+                                           NULL);
+            if (kerr != 0) {
+                DEBUG(SSSDBG_OP_FAILURE, "copy_keytab_into_memory failed.\n");
+                return kerr;
+            }
 
-        talloc_free(kr->keytab);
-        kr->keytab = mem_keytab;
+            talloc_free(kr->keytab);
+            kr->keytab = mem_keytab;
+        }
 
         if (kr->fast_val != K5C_FAST_NEVER) {
             kerr = k5c_setup_fast(kr, kr->fast_val == K5C_FAST_DEMAND);
