@@ -13,8 +13,8 @@ import re
 import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.expect import pexpect_ssh
 from constants import ds_instance_name
+from sssd.testlib.common.helper_functions import check_login
 
 
 def bad_url(multihost):
@@ -34,10 +34,8 @@ def no_fallback_dir(multihost):
     tools.clear_sssd_cache()
     user = f'foo1@{ds_instance_name}'
     # Authenticate user
-    client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                         'Secret123', debug=False)
-    client.login(login_timeout=30, sync_multiplier=5,
-                 auto_prompt_reset=False)
+    client_hostname = multihost.client[0].sys_hostname
+    check_login(user, client_hostname, "Secret123")
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')

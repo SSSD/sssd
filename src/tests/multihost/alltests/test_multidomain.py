@@ -11,6 +11,7 @@ import re
 import datetime
 import pytest
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.helper_functions import check_login
 
 
 @pytest.mark.usefixtures('posix_users_multidomain', 'sssdproxyldap',
@@ -80,9 +81,9 @@ class TestMultiDomain(object):
                 assert getent.returncode == 2
             else:
                 assert getent.returncode == 0
+        client_hostname = multihost.client[0].sys_hostname
         for user in ['puser11@proxy', 'quser10']:
-            ssh = tools.auth_from_client(user, 'Secret123') == 3
-            assert ssh, f"Ssh failed for user {user}!"
+            check_login(user, client_hostname, "Secret123")
 
     @staticmethod
     @pytest.mark.tier2
@@ -106,9 +107,9 @@ class TestMultiDomain(object):
                 assert getent.returncode == 2
             else:
                 assert getent.returncode == 0
+        client_hostname = multihost.client[0].sys_hostname
         for user in ['puser11', 'quser11@ldap2']:
-            ssh = tools.auth_from_client(user, 'Secret123') == 3
-            assert ssh, f"Ssh failed for user {user}!"
+            check_login(user, client_hostname, "Secret123")
 
     @pytest.mark.tier2
     def test_0005_proxyldap2(self, multihost, multidomain_sssd):
@@ -437,14 +438,14 @@ class TestMultiDomain(object):
         """
         multidomain_sssd(domains='ldap_ldap')
         tools = sssdTools(multihost.client[0])
+        client_hostname = multihost.client[0].sys_hostname
         ret = multihost.client[0].service_sssd('start')
         assert ret == 0
         suffix = ['p', 'q']
         for dom in range(2):
             for idx in range(5):
                 user = '%suser%d@ldap%d' % (suffix[dom], idx, dom + 1)
-                ssh = tools.auth_from_client(user, 'Secret123') == 3
-                assert ssh, f"Ssh failed for user {user}!"
+                check_login(user, client_hostname, "Secret123")
         pamlogfile = '/var/log/sssd/sssd_pam.log'
         find1 = re.compile(r'\[puser0\@ldap1\]')
         find2 = re.compile(r'\[quser0\@ldap2\]')
@@ -463,6 +464,7 @@ class TestMultiDomain(object):
          """
         multidomain_sssd(domains='ldap_ldap')
         client_tools = sssdTools(multihost.client[0])
+        client_hostname = multihost.client[0].sys_hostname
         for idx in range(2):
             params = {'ldap_search_base': 'dc=example%d,dc=test' % idx,
                       'ldap_tls_reqcert': 'demand'}
@@ -486,8 +488,7 @@ class TestMultiDomain(object):
                 print("start time = ", starttime)
                 user = '%suser1@ldap%d' % (suffix[dom], dom + 1)
                 print("user =", user)
-                ssh = client_tools.auth_from_client(user, 'Secret123') == 3
-                assert ssh, f"Ssh failed for user {user}!"
+                check_login(user, client_hostname, "Secret123")
                 t2 = datetime.datetime.now()
                 endtime = t2.second
                 print("end time = ", endtime)

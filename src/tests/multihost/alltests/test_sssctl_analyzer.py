@@ -9,8 +9,7 @@
 import pytest
 import re
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.exceptions import SSHLoginException
+from sssd.testlib.common.helper_functions import check_login
 from constants import ds_instance_name
 
 
@@ -121,15 +120,7 @@ class TestSssctlAnalyze(object):
         i_cmd = f'id {user}'
         multihost.client[0].run_command(i_cmd, raiseonerr=False)
         client_hostname = multihost.client[0].sys_hostname
-        client = pexpect_ssh(client_hostname, user, 'Secret123',
-                             debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail(f'{user} failed to login')
-        else:
-            client.logout()
+        check_login(user, client_hostname, "Secret123")
         cp_cmd = 'cp -r /var/log/sssd /tmp/'
         multihost.client[0].run_command(cp_cmd, raiseonerr=False)
         multihost.client[0].service_sssd('stop')
@@ -180,15 +171,7 @@ class TestSssctlAnalyze(object):
         multihost.client[0].service_sssd('start')
         user = f'foo1@{ds_instance_name}'
         client_hostname = multihost.client[0].sys_hostname
-        client = pexpect_ssh(client_hostname, user, 'Secret123',
-                             debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail(f"{user} failed to login")
-        else:
-            client.logout()
+        check_login(user, client_hostname, "Secret123")
         _, stdout = analyze(multihost, 'show 1 --pam')
         assert 'CID #1' in stdout
         pam_cmds = ['SSS_PAM_AUTHENTICATE', 'SSS_PAM_ACCT_MGMT',
@@ -226,15 +209,7 @@ class TestSssctlAnalyze(object):
         multihost.client[0].run_command(i_cmd, raiseonerr=False)
         user = f'foo1@{ds_instance_name}'
         client_hostname = multihost.client[0].sys_hostname
-        client = pexpect_ssh(client_hostname, user, 'Secret123',
-                             debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail(f"{user} failed to login")
-        else:
-            client.logout()
+        check_login(user, client_hostname, "Secret123")
         _, stdout = analyze(multihost, 'show 1 --pam')
         assert all(ptn in stdout for ptn in ['RID#', user])
 
@@ -270,31 +245,15 @@ class TestSssctlAnalyze(object):
         tools.clear_sssd_cache()
         user = f'foo1@{ds_instance_name}'
         client_hostname = multihost.client[0].sys_hostname
-        client = pexpect_ssh(client_hostname, user, 'Secret123',
-                             debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            _, stdout = analyze(multihost, 'show --pam --child 1')
-            assert 'Preauthentication failed' in stdout
-            pytest.fail(f"{user} failed to login")
-        else:
-            client.logout()
+        check_login(user, client_hostname, "Secret123")
         _, stdout = analyze(multihost, 'show --pam --child 1')
         err = 'sss_child_krb5_trace_cb'
         assert all(ptn in stdout for ptn in [err, user])
         tools.clear_sssd_cache()
-        client = pexpect_ssh(client_hostname, user, 'NOSecret123',
-                             debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            _, stdout = analyze(multihost, 'show --pam --child 1')
-            assert re.findall(r"RID#[0-9]*] Received error code", stdout)
-        else:
-            pytest.fail(f"{user} sucessful to login")
+        with pytest.raises(AssertionError):
+            check_login(user, client_hostname, "NOSecret123")
+        _, stdout = analyze(multihost, 'show --pam --child 1')
+        assert re.findall(r"RID#[0-9]*] Received error code", stdout)
 
     @staticmethod
     def test_non_root_privileged(multihost, localusers):

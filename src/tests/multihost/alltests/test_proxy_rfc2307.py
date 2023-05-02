@@ -10,8 +10,7 @@ import pytest
 import subprocess
 import time
 from sssd.testlib.common.utils import sssdTools, LdapOperations
-from sssd.testlib.common.exceptions import SSHLoginException
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.helper_functions import check_login
 from constants import ds_suffix, ds_instance_name
 
 
@@ -138,14 +137,7 @@ class TestProxyrfc2307(object):
             execute_cmd(multihost, i)
         client_hostip = multihost.client[0].ip
         for user in ['User_CS1', 'User_CS1_Alias']:
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
-            try:
-                client.login(login_timeout=30, sync_multiplier=5,
-                             auto_prompt_reset=False)
-            except SSHLoginException:
-                pytest.fail("%s failed to login" % user)
-            else:
-                client.logout()
+            check_login(user, client_hostip, "Secret123")
         for i in ["getent passwd user_cs1",
                   "getent passwd user_cs1_alias",
                   "getent group user_cs1_grp1",
@@ -199,10 +191,8 @@ class TestProxyrfc2307(object):
                   "> /var/log/secure"]:
             execute_cmd(multihost, i)
         client_hostip = multihost.client[0].ip
-        client = pexpect_ssh(client_hostip, "User_CS1", 'Secret123', debug=False)
-        with pytest.raises(Exception):
-            client.login(login_timeout=10, sync_multiplier=1,
-                         auto_prompt_reset=False)
+        with pytest.raises(AssertionError):
+            check_login("User_CS1", client_hostip, "Secret123")
         time.sleep(3)
         execute_cmd(multihost, 'cat /var/log/secure | grep -i "Access denied for user User_CS1"')
 
@@ -228,14 +218,7 @@ class TestProxyrfc2307(object):
         for i in ["getent passwd User_CS1", "id User_CS1"]:
             execute_cmd(multihost, i)
         client_hostip = multihost.client[0].ip
-        client = pexpect_ssh(client_hostip, "User_CS1", 'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % "User_CS1")
-        else:
-            client.logout()
+        check_login("User_CS1", client_hostip, "Secret123")
 
     def test_simple_deny_users_user_CS1(self, multihost, backupsssdconf):
         """
@@ -261,10 +244,8 @@ class TestProxyrfc2307(object):
                   "> /var/log/secure"]:
             execute_cmd(multihost, i)
         client_hostip = multihost.client[0].ip
-        client = pexpect_ssh(client_hostip, "User_CS1", 'Secret123', debug=False)
-        with pytest.raises(Exception):
-            client.login(login_timeout=10, sync_multiplier=1,
-                         auto_prompt_reset=False)
+        with pytest.raises(AssertionError):
+            check_login("User_CS1", client_hostip, "Secret123")
         time.sleep(3)
         execute_cmd(multihost, 'cat /var/log/secure | grep -i "Access denied for user User_CS1"')
 
@@ -287,14 +268,7 @@ class TestProxyrfc2307(object):
         tools.sssd_conf('domain/' + domain_name, domain_params)
         tools.clear_sssd_cache()
         client_hostip = multihost.client[0].ip
-        client = pexpect_ssh(client_hostip, "User_CS1", 'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % "User_CS1")
-        else:
-            client.logout()
+        check_login("User_CS1", client_hostip, "Secret123")
 
     def test_bz1007381(self, multihost, backupsssdconf):
         """
@@ -442,14 +416,7 @@ class TestProxyrfc2307(object):
                         "id User_CS1@example1"]:
             execute_cmd(multihost, command)
         client_hostip = multihost.client[0].ip
-        client = pexpect_ssh(client_hostip, "User_CS1@example1", 'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % "User_CS1@example1")
-        else:
-            client.logout()
+        check_login("User_CS1@example1", client_hostip, "Secret123")
 
     def test_min_id_max_id(self, multihost, backupsssdconf):
         """
@@ -520,14 +487,7 @@ class TestProxyrfc2307(object):
             execute_cmd(multihost, command)
         client_hostip = multihost.client[0].ip
         for user in ['user_cs1', 'user_cs1_alias']:
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
-            try:
-                client.login(login_timeout=30, sync_multiplier=5,
-                             auto_prompt_reset=False)
-            except SSHLoginException:
-                pytest.fail("%s failed to login" % user)
-            else:
-                client.logout()
+            check_login(user, client_hostip, "Secret123")
 
     def test_case_sensitive_false_deny_users_user_cs1(self, multihost, backupsssdconf):
         """
@@ -551,24 +511,15 @@ class TestProxyrfc2307(object):
         tools.clear_sssd_cache()
         for user in ['User_cs1', 'user_cs1_alias']:
             execute_cmd(multihost, "> /var/log/secure")
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
-            with pytest.raises(Exception):
-                client.login(login_timeout=10, sync_multiplier=1,
-                             auto_prompt_reset=False)
+            with pytest.raises(AssertionError):
+                check_login(user, client_hostip, "Secret123")
             time.sleep(3)
             execute_cmd(multihost, f'cat /var/log/secure | grep "Access denied for user {user}"')
         execute_cmd(multihost, "> /var/log/secure")
         execute_cmd(multihost, "sed -i 's/user_cs1/user_cs1_alias/' /etc/sssd/sssd.conf")
         tools.clear_sssd_cache()
         for user in ['user_cs1', 'user_cs1_alias']:
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
-            try:
-                client.login(login_timeout=30, sync_multiplier=5,
-                             auto_prompt_reset=False)
-            except SSHLoginException:
-                pytest.fail("%s failed to login" % user)
-            else:
-                client.logout()
+            check_login(user, client_hostip, "Secret123")
 
     def test_case_sensitive_false_deny_groups_user_cs1_grp1(self, multihost, backupsssdconf):
         """
@@ -593,24 +544,15 @@ class TestProxyrfc2307(object):
         tools.clear_sssd_cache()
         for user in ['User_cs1', 'user_cs1_alias']:
             execute_cmd(multihost, "> /var/log/secure")
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
-            with pytest.raises(Exception):
-                client.login(login_timeout=10, sync_multiplier=1,
-                             auto_prompt_reset=False)
+            with pytest.raises(AssertionError):
+                check_login(user, client_hostip, "Secret123")
             time.sleep(3)
             execute_cmd(multihost, f'cat /var/log/secure | grep -i "Access denied for user {user}"')
         execute_cmd(multihost, "> /var/log/secure")
         execute_cmd(multihost, "sed -i 's/user_cs1_grp1/user_cs1_grp1_alias/' /etc/sssd/sssd.conf")
         tools.clear_sssd_cache()
         for user in ['user_cs1', 'user_cs1_alias']:
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
-            try:
-                client.login(login_timeout=30, sync_multiplier=5,
-                             auto_prompt_reset=False)
-            except SSHLoginException:
-                pytest.fail("%s failed to login" % user)
-            else:
-                client.logout()
+            check_login(user, client_hostip, "Secret123")
 
     def test_outgoing_ldaps(self, multihost, backupsssdconf):
         """
@@ -639,31 +581,12 @@ class TestProxyrfc2307(object):
         tools.sssd_conf('domain/' + domain_name, domain_params)
         tools.clear_sssd_cache()
         client_hostip = multihost.client[0].ip
-        client = pexpect_ssh(client_hostip, "User_CS1", 'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % "User_CS1")
-        else:
-            client.logout()
+        check_login("User_CS1", client_hostip, "Secret123")
         # block master server
         multihost.client[0].run_command('iptables -A OUTPUT -p tcp --match multiport --dport 389,636')
         time.sleep(5)
-        client = pexpect_ssh(client_hostip, "User_CS1", 'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5, auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % "User_CS1")
-        else:
-            client.logout()
+        check_login("User_CS1", client_hostip, "Secret123")
         # unblock master server
         multihost.client[0].run_command("iptables -D OUTPUT -p tcp --match multiport --dport 389,636")
         time.sleep(5)
-        client = pexpect_ssh(client_hostip, "User_CS1", 'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5, auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % "User_CS1")
-        else:
-            client.logout()
+        check_login("User_CS1", client_hostip, "Secret123")

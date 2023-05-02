@@ -9,6 +9,7 @@
 
 import pytest
 import time
+from sssd.testlib.common.helper_functions import check_login
 from constants import ds_instance_name
 from sssd.testlib.common.utils import sssdTools
 
@@ -163,8 +164,8 @@ class TestCacheTesting():
         """
         invalidate_cache = "sss_cache -E"
         cmd = multihost.client[0].run_command(invalidate_cache, raiseonerr=False)
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo1', 'Secret123')
+        client_hostname = multihost.client[0].sys_hostname
+        check_login("foo1", client_hostname, "Secret123")
         ldb_cmd = f"ldbsearch -H /var/lib/sss/db/cache_{ds_instance_name}.ldb \
                     -b 'name=foo1@{ds_instance_name},cn=users,cn={ds_instance_name},cn=sysdb' > /tmp/file_ldb"
         ldb_cmd2 = f"ldbsearch -H /var/lib/sss/db/timestamps_{ds_instance_name}.ldb \
@@ -174,7 +175,6 @@ class TestCacheTesting():
         cmd1_output = multihost.client[0].get_file_contents('/tmp/file_ldb').decode('utf-8')
         cmd2_output = multihost.client[0].get_file_contents('/tmp/file_ldb2').decode('utf-8')
         assert cmd.returncode == 0, f'{invalidate_cache} did not execute successfully'
-        assert ssh == 3, "User foo1 failed to log In"
         assert cmd1.returncode == 0, f'{ldb_cmd} did not execute successfully'
         assert "dataExpireTimestamp: 1\n" in cmd1_output, "dataExpireTimestamp not found in /tmp/file_ldb"
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'

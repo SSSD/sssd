@@ -12,8 +12,7 @@ import re
 import time
 import subprocess
 import pytest
-from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.exceptions import SSHLoginException
+from sssd.testlib.common.helper_functions import check_login
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from constants import ds_instance_name, ds_suffix
 
@@ -124,38 +123,16 @@ class TestMisc(object):
         client.sssd_conf("sssd", {'enable_files_domain': 'true'}, action='update')
         multihost.client[0].service_sssd('restart')
         user = 'foo1@%s' % domain_name
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret1234', debug=False)
-        with pytest.raises(SSHLoginException):
-            client.login(login_timeout=10,
-                         sync_multiplier=1, auto_prompt_reset=False)
+        client_hostname = multihost.client[0].sys_hostname
+        with pytest.raises(AssertionError):
+            check_login(user, client_hostname, "Secret1234")
         time.sleep(2)
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30,
-                         sync_multiplier=5, auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % user)
-        else:
-            client.logout()
-
+        check_login(user, client_hostname, "Secret123")
         for _ in range(3):
-            client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                                 'Secret1234', debug=False)
-            with pytest.raises(SSHLoginException):
-                client.login(login_timeout=10,
-                             sync_multiplier=1, auto_prompt_reset=False)
+            with pytest.raises(AssertionError):
+                check_login(user, client_hostname, "Secret1234")
         time.sleep(2)
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30,
-                         sync_multiplier=5, auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % user)
-        else:
-            client.logout()
+        check_login(user, client_hostname, "Secret123")
         time.sleep(2)
         cmd_id = 'id %s' % user
         cmd = multihost.client[0].run_command(cmd_id)
@@ -447,15 +424,9 @@ class TestMisc(object):
 
         # Try ssh after socket activation is configured
         # Result does not matter we just need to trigger the PAM stack
-        ssh_client = pexpect_ssh(
-            multihost.client[0].sys_hostname, user, 'Secret123', debug=False)
-        try:
-            ssh_client.login(
-                login_timeout=30, sync_multiplier=5, auto_prompt_reset=False)
-        except SSHLoginException:
-            pass
-        else:
-            ssh_client.logout()
+        client_hostname = multihost.client[0].sys_hostname
+        with pytest.raises(AssertionError):
+            check_login(user, client_hostname, "Secret123")
 
         # Print pam log for debug purposes
         multihost.client[0].run_command(

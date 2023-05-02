@@ -10,6 +10,7 @@ import pytest
 from constants import ds_instance_name
 from sssd.testlib.common.expect import pexpect_ssh
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.helper_functions import check_login
 
 
 @pytest.fixture(scope='class')
@@ -80,17 +81,15 @@ class TestKrbAccessProvider():
         client.clear_sssd_cache()
 
         users = ['foo3', 'foo4']
-        ssh = client.auth_from_client(users[0], 'Secret123')
-        ssh2 = client.auth_from_client(users[1], 'Secret123')
+        with pytest.raises(AssertionError):
+            check_login(users[0], multihost.client[0].ip, "Secret123")
+        check_login(users[1], multihost.client[0].ip, "Secret123")
         secure_log_str = multihost.client[0].get_file_contents("/var/log/secure").decode('utf-8')
 
         file = f'/var/log/sssd/sssd_{ds_instance_name}.log'
         sssd_log_str = multihost.client[0].get_file_contents(file).decode('utf-8')
 
         multihost.client[0].run_command("truncate -s 0 /home/foo3/.k5login", raiseonerr=False)
-
-        assert ssh == 10, "foo3 successfully logged In"
-        assert ssh2 == 3, "foo4 failed to log In"
 
         assert "pam_sss(sshd:auth): authentication success" in secure_log_str, \
                "authentication success not found in /var/log/secure"
@@ -138,7 +137,7 @@ class TestKrbAccessProvider():
             cmd = multihost.client[0].run_command(command, raiseonerr=False)
 
         user = 'foo3'
-        ssh = client.auth_from_client(user, 'Secret123')
+        check_login(user, multihost.client[0].ip, "Secret123")
 
         secure_log_str = multihost.client[0].get_file_contents("/var/log/secure").decode('utf-8')
 
@@ -147,7 +146,6 @@ class TestKrbAccessProvider():
 
         multihost.client[0].run_command("truncate -s 0 /home/foo3/.k5login", raiseonerr=False)
         assert cmd.returncode == 0, f"{command} did not execute successfully"
-        assert ssh == 3, "foo3 failed to log in"
         assert "pam_sss(sshd:auth): authentication success" in secure_log_str, \
                "authentication success not found in /var/log/secure"
         assert "Accepted password for foo3" in secure_log_str, \
@@ -186,21 +184,18 @@ class TestKrbAccessProvider():
             cmd = multihost.client[0].run_command(command, raiseonerr=False)
 
         user = 'foo3'
-        ssh_output = client.auth_from_client(user, 'Secret123')
+        check_login(user, multihost.client[0].ip, "Secret123")
 
         client_hostname = multihost.client[0].sys_hostname
         ssh = pexpect_ssh(client_hostname, 'foo4', 'Secret123', debug=False)
-        ssh.login(login_timeout=10, sync_multiplier=1, auto_prompt_reset=False)
-        ssh.command(f"ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no foo3@{client_hostname}\
-                     'id > /tmp/accessProvider_id_krb5_003.out 2>&1' ")
-        ssh.logout()
-
+        ssh.fast_login_and_command(f"ssh -o StrictHostKeyChecking=no -o "
+                                   f"PasswordAuthentication=no foo3@{client_hostname} "
+                                   f"'id > /tmp/accessProvider_id_krb5_003.out 2>&1' ")
         logfile = multihost.client[0].get_file_contents("/tmp/accessProvider_id_krb5_003.out").decode('utf-8')
 
         multihost.client[0].run_command("truncate -s 0 /home/foo3/.k5login", raiseonerr=False)
         multihost.client[0].run_command("rm -rf /tmp/accessProvider_id_krb5_003.out", raiseonerr=False)
         assert cmd.returncode == 0, f"{command} did not execute successfully"
-        assert ssh_output == 3, "foo3 failed to log in"
         assert "foo3" in logfile, "foo3 not found in /tmp/accessProvider_id_krb5_003.out"
 
     @staticmethod
@@ -237,7 +232,7 @@ class TestKrbAccessProvider():
             cmd1 = multihost.client[0].run_command(command, raiseonerr=False)
 
         user = 'foo3'
-        ssh_output = client.auth_from_client(user, 'Secret123')
+        check_login(user, multihost.client[0].ip, "Secret123")
 
         ldap_cmd = f'ldapdelete -x -H ldap://{multihost.master[0].sys_hostname} \
                    -D "cn=Directory Manager" -w "Secret123" uid=foo3,ou=People,dc=example,dc=test'
@@ -246,11 +241,10 @@ class TestKrbAccessProvider():
 
         client_hostname = multihost.client[0].sys_hostname
         ssh = pexpect_ssh(client_hostname, 'foo4', 'Secret123', debug=False)
-        ssh.login(login_timeout=10, sync_multiplier=1, auto_prompt_reset=False)
-        ssh.command("id > /tmp/accessProvider_id_krb5_004.out 2>&1 ")
-        ssh.command(f"ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no foo3@{client_hostname}\
-                    'id > /tmp/accessProvider_id_krb5_004.out 2>&1' ")
-        ssh.logout()
+        ssh.fast_login_and_command("id > /tmp/accessProvider_id_krb5_004.out 2>&1 ")
+        ssh.fast_login_and_command(f"ssh -o StrictHostKeyChecking=no -o "
+                                   f"PasswordAuthentication=no foo3@{client_hostname}"
+                                   f" id > /tmp/accessProvider_id_krb5_003.out 2>&1' ")
 
         logfile = multihost.client[0].get_file_contents("/tmp/accessProvider_id_krb5_004.out").decode('utf-8')
 
@@ -258,6 +252,5 @@ class TestKrbAccessProvider():
         multihost.client[0].run_command("rm -rf /tmp/accessProvider_id_krb5_004.out", raiseonerr=False)
         assert cmd1.returncode == 0, f'{command} did not execute successfully'
         assert cmd2.returncode == 0, f'{ldap_cmd} did not execute successfully'
-        assert ssh_output == 3, "foo3 failed to log in"
         assert "foo3" not in logfile, "foo3 not found in /tmp/accessProvider_id_krb5_004.out"
         assert "foo4" in logfile, "foo4 not found in /tmp/accessProvider_id_krb5_004.out"

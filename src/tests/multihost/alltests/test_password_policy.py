@@ -12,6 +12,7 @@ import time
 import pytest
 from constants import ds_instance_name
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.helper_functions import check_login
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups',
@@ -47,8 +48,8 @@ class TestPasswordCheck(object):
                                                      'bumblebee@123')
             assert change_pass == 3
             # Verify the login of user with updated password
-            ssh = tools.auth_from_client(user, 'bumblebee@123') == 3
-            assert ssh, "Authentication failed!"
+            client_hostname = multihost.client[0].sys_hostname
+            check_login(user, client_hostname, "Secret123")
 
             # Revert back the password to old one
             change_pass_old = tools.change_user_password(user, 'bumblebee@123',

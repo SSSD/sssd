@@ -14,6 +14,7 @@ import time
 from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name
 from pexpect import pxssh
+from sssd.testlib.common.expect import pexpect_ssh
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
@@ -238,17 +239,9 @@ class TestLdapExtraAttrs(object):
         client.run_command('gcc -lpthread /tmp/sssd_client_hang.c'
                            ' -o /tmp/client-hang')
         client.run_command("chown foo1 /tmp/client-hang")
-        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
-                                   "UserKnownHostsFile": "/dev/null"})
-        ssh.force_password = True
-        try:
-            ssh.login(multihost.client[0].sys_hostname, 'foo1', 'Secret123')
-            ssh.sendline("cd /tmp")
-            ssh.prompt(timeout=5)
-            ssh.sendline('./client-hang > output')
-            ssh.prompt(timeout=5)
-        except pxssh.ExceptionPxssh:
-            pytest.fail("Ssh login failed.")
-        time.sleep(2)
+        client_hostname = multihost.client[0].sys_hostname
+        ssh = pexpect_ssh(client_hostname, 'foo1', 'Secret123', debug=False)
+        ssh.fast_login_and_command("cd /tmp; ./client-hang > output")
+        time.sleep(5)
         log_str = multihost.client[0].get_file_contents("/tmp/output").decode('utf-8')
         assert "Never get here" in log_str

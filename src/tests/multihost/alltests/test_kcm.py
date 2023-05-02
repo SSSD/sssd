@@ -11,7 +11,7 @@ from __future__ import print_function
 import re
 import pytest
 import time
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.helper_functions import check_login
 from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name
 
@@ -36,17 +36,14 @@ class TestKcm(object):
         client.sssd_conf('kcm', domain_params)
         multihost.client[0].service_sssd('restart')
         user = 'foo1@example1'
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        client.login(login_timeout=30, sync_multiplier=5,
-                     auto_prompt_reset=False)
+        client_hostname = multihost.client[0].sys_hostname
+        check_login(user, client_hostname, "Secret123")
         sssdTools(multihost.client[0]).clear_sssd_cache()
         multihost.client[0].run_command("systemctl restart sssd-kcm")
         multihost.client[0].run_command("> /var/log/sssd/sssd_kcm.log")
         start_time = time.time()
         multihost.client[0].run_command("kinit foo1 <&- & ")
         end_time = time.time()
-        client.logout()
         assert end_time - start_time >= 300
         grep_cmd = multihost.client[0].run_command("grep"
                                                    " 'Terminated"

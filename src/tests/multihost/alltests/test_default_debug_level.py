@@ -12,8 +12,9 @@ import re
 import time
 import pytest
 from sssd.testlib.common.utils import sssdTools, LdapOperations
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.helper_functions import check_login
 from constants import ds_instance_name, ds_suffix, ds_rootpw, ds_rootdn
+
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
@@ -102,10 +103,7 @@ class TestDefaultDebugLevel(object):
         print("before auth:", blog_size.stdout_text)
         user = f'foo1@{ds_instance_name}'
         # Authenticate user
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        client.login(login_timeout=30, sync_multiplier=5,
-                     auto_prompt_reset=False)
+        check_login(user, multihost.client[0].sys_hostname, "Secret123")
         alog_size = multihost.client[0].run_command(check_log_size,
                                                     raiseonerr=False)
         print("after auth:", alog_size.stdout_text)

@@ -25,7 +25,7 @@ pytest_plugins = (
 
 def pytest_configure():
     """ Namespace hook to add below dict in the pytest namespace """
-    pytest.num_masters = 2
+    pytest.num_masters = 1
     pytest.num_ad = 0
     pytest.num_atomic = 0
     pytest.num_replicas = 0
@@ -1604,7 +1604,7 @@ def setup_session(session_multihost, request, create_testdir):
     client_libs.authselect()
     restart_rsyslog = 'systemctl restart rsyslog'
     session_multihost.client[0].run_command(restart_rsyslog)
-    for idx in range(2):
+    for idx in range(1):
         master_libs = sssdTools(session_multihost.master[idx])
         master_libs.server_install_pkgs()
         master_libs.authselect()
@@ -1613,3 +1613,4 @@ def setup_session(session_multihost, request, create_testdir):
         """ Teardown session """
         print("i am in teardown session")
     request.addfinalizer(teardown_session)
+

@@ -10,6 +10,7 @@
 import pytest
 from constants import ds_instance_name
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.helper_functions import check_login
 
 
 def krb5_fast_setup(client, krb5_use_fast, krb5_fast_principal, **krb5_validate):
@@ -82,11 +83,10 @@ class TestKrbFastPrincipal():
              Principal matched to the sample (host/$Client@EXAMPLE.TEST)
         """
         krb5_fast_setup(multihost.client[0], 'demand', f'host/{multihost.client[0].sys_hostname}')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        client_hostname = multihost.client[0].sys_hostname
+        check_login("foo3", client_hostname, "Secret123")
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 3, "foo3 failed to log In"
         assert f"Trying to find principal host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST in keytab" \
             in krb5_child_log, f"principal host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST not found in keytab"
         assert f"Principal matched to the sample (host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST)" \
@@ -110,11 +110,11 @@ class TestKrbFastPrincipal():
              No principal matching invalid@EXAMPLE.TEST found in keytab
         """
         krb5_fast_setup(multihost.client[0], 'try', 'invalid')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        client_hostname = multihost.client[0].sys_hostname
+        with pytest.raises(AssertionError):
+            check_login("foo3", client_hostname, "Secret123")
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 10, "foo3 successfully logged In"
         assert "Trying to find principal invalid@EXAMPLE.TEST in keytab" in krb5_child_log, \
                "principal invalid@EXAMPLE.TEST not found in keytab"
         assert "No principal matching invalid@EXAMPLE.TEST found in keytab" in krb5_child_log, \
@@ -137,11 +137,11 @@ class TestKrbFastPrincipal():
              Trying to find principal principal@TEST.TEST in keytab
         """
         krb5_fast_setup(multihost.client[0], 'demand', 'principal@TEST.TEST')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        client_hostname = multihost.client[0].sys_hostname
+        with pytest.raises(AssertionError):
+            check_login("foo3", client_hostname, "Secret123")
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 10, "foo3 successfully logged In"
         assert "Trying to find principal principal@TEST.TEST in keytab" in krb5_child_log, \
                "principal principal@TEST.TEST not found in keytab"
 
@@ -162,11 +162,10 @@ class TestKrbFastPrincipal():
              Trying to find principal (null)@EXAMPLE.TEST in keytab
         """
         krb5_fast_setup(multihost.client[0], 'demand', '')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        client_hostname = multihost.client[0].sys_hostname
+        check_login("foo3", client_hostname, "Secret123")
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 3, "foo3 failed to log In"
         assert "Trying to find principal (null)@EXAMPLE.TEST in keytab" in krb5_child_log, \
                "principal (null)@EXAMPLE.TEST not found in keytab"
 
@@ -191,11 +190,10 @@ class TestKrbFastPrincipal():
         """
         krb5_fast_setup(multihost.client[0], 'demand', f'host/{multihost.client[0].sys_hostname}',
                         krb5_validate='true')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        client_hostname = multihost.client[0].sys_hostname
+        check_login("foo3", client_hostname, "Secret123")
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 3, "foo3 failed to log In"
         assert f"Trying to find principal host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST in keytab"\
             in krb5_child_log, f"principal host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST not found in keytab"
         assert f"Principal matched to the sample (host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST)" \
@@ -222,11 +220,11 @@ class TestKrbFastPrincipal():
              No principal matching invalid@EXAMPLE.TEST found in keytab
         """
         krb5_fast_setup(multihost.client[0], 'try', 'invalid', krb5_validate='true')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        client_hostname = multihost.client[0].sys_hostname
+        with pytest.raises(AssertionError):
+            check_login("foo3", client_hostname, "Secret123")
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 10, "foo3 successfully logged In"
         assert "Trying to find principal invalid@EXAMPLE.TEST in keytab" in krb5_child_log, \
             "principal invalid@EXAMPLE.TEST not found in keytab"
         assert "No principal matching invalid@EXAMPLE.TEST found in keytab" in krb5_child_log, \
@@ -250,11 +248,11 @@ class TestKrbFastPrincipal():
              Trying to find principal principal@TEST.TEST in keytab
         """
         krb5_fast_setup(multihost.client[0], 'demand', 'principal@TEST.TEST', krb5_validate='true')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        client_hostname = multihost.client[0].sys_hostname
+        with pytest.raises(AssertionError):
+            check_login("foo3", client_hostname, "Secret123")
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 10, "foo3 successfully logged In"
         assert "Trying to find principal principal@TEST.TEST in keytab" in krb5_child_log, \
             "principal principal@TEST.TEST not found in keytab"
 
@@ -276,11 +274,10 @@ class TestKrbFastPrincipal():
              Trying to find principal (null)@EXAMPLE.TEST in keytab
         """
         krb5_fast_setup(multihost.client[0], 'demand', '', krb5_validate='true')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        client_hostname = multihost.client[0].sys_hostname
+        check_login("foo3", client_hostname, "Secret123")
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 3, "foo3 failed to log In"
         assert "Trying to find principal (null)@EXAMPLE.TEST in keytab" in krb5_child_log, \
             "principal (null)@EXAMPLE.TEST not found in keytab"
         assert f"TGT verified using key for [host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST]"\

@@ -10,7 +10,7 @@ from __future__ import print_function
 import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.helper_functions import check_login
 from constants import ds_instance_name
 
 
@@ -102,12 +102,8 @@ class TestOffline(object):
         assert block_ip.returncode == 0
         user = 'foo1@example1'
         client_hostname = multihost.client[0].sys_hostname
-        client = pexpect_ssh(client_hostname, user, 'Secret123',
-                             debug=False)
-        with pytest.raises(Exception):
-            client.login(login_timeout=5,
-                         sync_multiplier=1,
-                         auto_prompt_reset=False)
+        with pytest.raises(AssertionError):
+            check_login(user, client_hostname, "Secret123")
         multihost.client[0].run_command(f"iptables "
                                         f"-D OUTPUT -d "
                                         f"{hostname} -j DROP")

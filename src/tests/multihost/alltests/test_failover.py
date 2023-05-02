@@ -7,6 +7,7 @@
 :status: approved
 """
 import pytest
+from sssd.testlib.common.helper_functions import check_login
 from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name
 
@@ -75,8 +76,8 @@ class TestFailover(object):
         tools.remove_sss_cache('/var/lib/sss/db')
         multihost.client[0].service_sssd('start')
         # login as user
-        ssh = tools.auth_from_client(user, 'Secret123') == 3
-        assert ssh, "Authentication failed!"
+        client_hostname = multihost.client[0].sys_hostname
+        check_login(user, client_hostname, "Secret123")
         start_ds1 = 'systemctl start dirsrv@example'
         cmd = multihost.master[0].run_command(start_ds1, raiseonerr=False)
         assert cmd.returncode == 0
@@ -98,8 +99,8 @@ class TestFailover(object):
         multihost.client[0].service_sssd('start')
         user = 'foo3@%s' % ds_instance_name
         # login as user
-        ssh = tools.auth_from_client(user, 'Secret123') == 3
-        assert ssh, "Authentication failed!"
+        client_hostname = multihost.client[0].sys_hostname
+        check_login(user, client_hostname, "Secret123")
         start_ds1 = 'systemctl start dirsrv@example'
         cmd = multihost.master[0].run_command(start_ds1, raiseonerr=False)
         assert cmd.returncode == 0

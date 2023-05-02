@@ -9,9 +9,9 @@
 import time
 import re
 import pytest
-from pexpect import pxssh
 from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name, ds_suffix
+from sssd.testlib.common.expect import pexpect_ssh
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups',
@@ -48,6 +48,7 @@ class TestSudo(object):
         ldap_host = multihost.master[0].sys_hostname
         tcpdump_cmd = 'tcpdump -s0 host %s -w %s' % (ldap_host, sudo_pcapfile)
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
+        client_hostname = multihost.client[0].sys_hostname
         for user in localusers.keys():
             add_rule1 = "echo '%s  ALL=(ALL) NOPASSWD:ALL,!/bin/sh'"\
                         " >> /etc/sudoers.d/%s" % (user, user)
@@ -55,20 +56,10 @@ class TestSudo(object):
             add_rule2 = "echo 'Defaults:%s !requiretty'"\
                         " >> /etc/sudoers.d/%s" % (user, user)
             multihost.client[0].run_command(add_rule2)
-
-            ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
-                                       "UserKnownHostsFile": "/dev/null"})
-            ssh.force_password = True
-            try:
-                ssh.login(multihost.client[0].sys_hostname, user, 'Secret123')
-                for _ in range(1, 10):
-                    ssh.sendline('sudo fdisk -l')
-                    ssh.prompt(timeout=5)
-                    ssh.sendline('sudo ls -l /usr/sbin/')
-                    ssh.prompt(timeout=5)
-                ssh.logout()
-            except pxssh.ExceptionPxssh:
-                pytest.fail(f"Authentication Failed as user {user}")
+            ssh = pexpect_ssh(client_hostname, user, 'Secret123', debug=False)
+            for _ in range(1, 10):
+                ssh.fast_login_and_command('sudo fdisk -l')
+                ssh.fast_login_and_command('sudo ls -l /usr/sbin/')
         pkill = 'pkill tcpdump'
         multihost.client[0].run_command(pkill)
         for user in localusers.keys():
@@ -106,21 +97,10 @@ class TestSudo(object):
         tools.sssd_conf(section, sssd_params, action='update')
         multihost.client[0].service_sssd('start')
 
-        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
-                          "UserKnownHostsFile": "/dev/null"})
-        ssh.force_password = True
-        try:
-            ssh.login(multihost.client[0].sys_hostname,
-                      'foo1@example.test', 'Secret123')
-            ssh.sendline('id')
-            ssh.prompt(timeout=5)
-            id_out = str(ssh.before)
-            ssh.sendline('sudo -l')
-            ssh.prompt(timeout=5)
-            sudo_out = str(ssh.before)
-            ssh.logout()
-        except pxssh.ExceptionPxssh:
-            pytest.fail("Failed to login via ssh.")
+        client_hostname = multihost.client[0].sys_hostname
+        ssh = pexpect_ssh(client_hostname, 'foo1@example.test', 'Secret123', debug=False)
+        id_out = str(ssh.fast_login_and_command('id'))
+        sudo_out = str(ssh.fast_login_and_command('sudo -l'))
         assert 'foo1' in id_out, "id command did not work."
         assert 'NOTBEFORE=' in sudo_out or 'NOTAFTER=' in sudo_out,\
             "Expected sudo rule not found!"

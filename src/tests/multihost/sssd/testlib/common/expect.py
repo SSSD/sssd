@@ -2,6 +2,7 @@
 
 import sys
 import pexpect
+import ctypes
 from pexpect import pxssh
 from .exceptions import SSHLoginException
 from .exceptions import OSException
@@ -37,8 +38,25 @@ class pexpect_ssh(object):
                            login_timeout=login_timeout,
                            auto_prompt_reset=auto_prompt_reset,
                            sync_multiplier=sync_multiplier)
+            return True
         except pexpect.pxssh.ExceptionPxssh:
             raise SSHLoginException("%s Failed to login" % self.username)
+
+    def fast_login(self):
+        ssh = ctypes.CDLL("/tmp/ssh_library.so")
+        ssh.ssh_remote.argtypes = [ctypes.c_char_p]
+        ssh.ssh_remote.restype = ctypes.c_char_p
+        response = ssh.ssh_remote(self.username.encode("utf-8"), self.hostname.encode("utf-8"),
+                                  self.password.encode("utf-8"), "whoami".encode("utf-8"))
+        return response
+
+    def fast_login_and_command(self, command):
+        ssh = ctypes.CDLL("/tmp/ssh_library.so")
+        ssh.ssh_remote.argtypes = [ctypes.c_char_p]
+        ssh.ssh_remote.restype = ctypes.c_char_p
+        response = ssh.ssh_remote(self.username.encode("utf-8"), self.hostname.encode("utf-8"),
+                                  self.password.encode("utf-8"), command.encode("utf-8"))
+        return response
 
     def command(self, command, raiseonerr=False):
         """ Run Non interactive Commands """

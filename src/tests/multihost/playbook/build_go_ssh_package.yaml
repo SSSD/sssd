@@ -1,0 +1,33 @@
+---
+- hosts: localhost
+  vars:
+    repo_loc: "{{ twd }}/../sssd"
+  gather_facts: False
+  tasks:
+    - name: clone crypto repo
+      git:
+        repo: https://github.com/golang/crypto.git
+        dest: /tmp/crypto
+        force: yes
+
+    - name: install crypto dependencies
+      shell: |
+        go get -u "golang.org/x/crypto/ssh"
+      args:
+        chdir: /tmp/crypto
+
+    - name: install crypto go module
+      shell: |
+        go build -buildmode=c-shared -o /tmp/ssh_library.so \
+          {{ repo_loc }}/src/tests/multihost/sssd/testlib/common/remote_ssh.go
+      args:
+        chdir: /tmp/crypto
+      register: build_out
+
+    - name: print build ouput
+      debug: msg="{{ build_out }}"
+
+    - name: update permission for newly created ssh_library.so
+      file:
+        path: /tmp/ssh_library.so
+        mode: '777'
