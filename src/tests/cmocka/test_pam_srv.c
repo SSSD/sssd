@@ -768,6 +768,7 @@ static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
     }
 }
 
+#ifdef BUILD_PASSKEY
 static int test_pam_passkey_preauth_check(uint32_t status, uint8_t *body, size_t blen)
 {
     size_t rp = 0;
@@ -817,7 +818,7 @@ static int test_pam_passkey_found_preauth_check(uint32_t status, uint8_t *body, 
 
     return EOK;
 }
-
+#endif /* BUILD_PASSKEY */
 
 static int test_pam_simple_check(uint32_t status, uint8_t *body, size_t blen)
 {
