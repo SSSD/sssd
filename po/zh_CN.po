@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-12-09 13:38+0100\n"
+"POT-Creation-Date: 2023-05-04 11:14+0200\n"
 "PO-Revision-Date: 2022-12-07 11:29+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
@@ -1857,48 +1857,48 @@ msgstr "passwd 文件源的路径。"
 msgid "Path of group file sources."
 msgstr "group 文件源的路径。"
 
-#: src/monitor/monitor.c:2361
+#: src/monitor/monitor.c:2362
 msgid "Become a daemon (default)"
 msgstr "成为守护进程（默认）"
 
-#: src/monitor/monitor.c:2363
+#: src/monitor/monitor.c:2364
 msgid "Run interactive (not a daemon)"
 msgstr "交互式运行（不是守护程序）"
 
-#: src/monitor/monitor.c:2366
+#: src/monitor/monitor.c:2367
 msgid "Disable netlink interface"
 msgstr "禁用 netlink 接口"
 
-#: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2369 src/tools/sssctl/sssctl_config.c:77
 msgid "Specify a non-default config file"
 msgstr "指定一个非默认的配置文件"
 
-#: src/monitor/monitor.c:2370
+#: src/monitor/monitor.c:2371
 msgid "Refresh the configuration database, then exit"
 msgstr "刷新配置数据库，然后退出"
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2374
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "类似于 --genconf，但只刷新指定的部分"
 
-#: src/monitor/monitor.c:2376
+#: src/monitor/monitor.c:2377
 msgid "Print version number and exit"
 msgstr "显示版本号并退出"
 
-#: src/monitor/monitor.c:2414
+#: src/monitor/monitor.c:2415
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "选项 -i|--interactive 不能和 -D|--daemon 一起使用\n"
 
-#: src/monitor/monitor.c:2420
+#: src/monitor/monitor.c:2421
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "选项 -g 与 -D 或 -i 不兼容\n"
 
-#: src/monitor/monitor.c:2433
+#: src/monitor/monitor.c:2434
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "在 %<PRIu64> 下运行，必须是 root\n"
 
-#: src/monitor/monitor.c:2515
+#: src/monitor/monitor.c:2516
 msgid "SSSD is already running\n"
 msgstr "SSSD 已运行\n"
 
@@ -1970,35 +1970,35 @@ msgstr "set_debug_file_from_fd 失败。\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "信息提供者的域（强制）"
 
-#: src/sss_client/common.c:1101
+#: src/sss_client/common.c:1124
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "特权套接字有错误的所有权或权限。"
 
-#: src/sss_client/common.c:1104
+#: src/sss_client/common.c:1127
 msgid "Public socket has wrong ownership or permissions."
 msgstr "公共套接字有错误的所有权或权限。"
 
-#: src/sss_client/common.c:1107
+#: src/sss_client/common.c:1130
 msgid "Unexpected format of the server credential message."
 msgstr "服务器凭证消息的格式异常。"
 
-#: src/sss_client/common.c:1110
+#: src/sss_client/common.c:1133
 msgid "SSSD is not run by root."
 msgstr "SSSD 没有由 root 运行。"
 
-#: src/sss_client/common.c:1113
+#: src/sss_client/common.c:1136
 msgid "SSSD socket does not exist."
 msgstr "SSSD socket 不存在。"
 
-#: src/sss_client/common.c:1116
+#: src/sss_client/common.c:1139
 msgid "Cannot get stat of SSSD socket."
 msgstr "无法获取 SSSD socket 的统计数据。"
 
-#: src/sss_client/common.c:1121
+#: src/sss_client/common.c:1144
 msgid "An error occurred, but no description can be found."
 msgstr "发生错误，但找不到描述信息。"
 
-#: src/sss_client/common.c:1127
+#: src/sss_client/common.c:1150
 msgid "Unexpected error while looking for an error description"
 msgstr "查找错误说明时出现意外错误"
 
@@ -2006,106 +2006,106 @@ msgstr "查找错误说明时出现意外错误"
 msgid "Permission denied. "
 msgstr "权限被拒绝。 "
 
-#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:799
-#: src/sss_client/pam_sss.c:810
+#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:802
+#: src/sss_client/pam_sss.c:813
 msgid "Server message: "
 msgstr "服务器消息： "
 
-#: src/sss_client/pam_sss.c:303
+#: src/sss_client/pam_sss.c:306
 msgid "Passwords do not match"
 msgstr "密码不匹配"
 
-#: src/sss_client/pam_sss.c:491
+#: src/sss_client/pam_sss.c:494
 msgid "Password reset by root is not supported."
 msgstr "不支持通过 root 重置密码。"
 
-#: src/sss_client/pam_sss.c:532
+#: src/sss_client/pam_sss.c:535
 msgid "Authenticated with cached credentials"
 msgstr "通过缓存的凭据进行身份验证"
 
-#: src/sss_client/pam_sss.c:533
+#: src/sss_client/pam_sss.c:536
 msgid ", your cached password will expire at: "
 msgstr "，您缓存的密码将过期于： "
 
-#: src/sss_client/pam_sss.c:563
+#: src/sss_client/pam_sss.c:566
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "您的密码已过期。您有 %1$d 剩余宽限登陆。"
 
-#: src/sss_client/pam_sss.c:609
+#: src/sss_client/pam_sss.c:612
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "您的密码将于 %1$d %2$s 过期。"
 
-#: src/sss_client/pam_sss.c:658
+#: src/sss_client/pam_sss.c:661
 msgid "Authentication is denied until: "
 msgstr "身份验证被拒绝，直到： "
 
-#: src/sss_client/pam_sss.c:679
+#: src/sss_client/pam_sss.c:682
 msgid "System is offline, password change not possible"
 msgstr "系统离线，无法更改密码"
 
-#: src/sss_client/pam_sss.c:694
+#: src/sss_client/pam_sss.c:697
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr "更改 OTP 密码后，您需要注销并重新登录以获得票证"
 
-#: src/sss_client/pam_sss.c:709
+#: src/sss_client/pam_sss.c:712
 msgid "PIN locked"
 msgstr "PIN 已锁定"
 
-#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
+#: src/sss_client/pam_sss.c:799 src/sss_client/pam_sss.c:812
 msgid "Password change failed. "
 msgstr "更改密码失败。 "
 
-#: src/sss_client/pam_sss.c:1741
+#: src/sss_client/pam_sss.c:1744
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
 msgstr "在 %1$s 处进行身份验证，然后按 ENTER 。"
 
-#: src/sss_client/pam_sss.c:1744
+#: src/sss_client/pam_sss.c:1747
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
 msgstr "在 %2$s 处使用 PIN %1$s 进行身份验证，然后按 ENTER 。"
 
-#: src/sss_client/pam_sss.c:1959
+#: src/sss_client/pam_sss.c:1962
 msgid "Please (re)insert (different) Smartcard"
 msgstr "请（重新）插入（不同的）智能卡"
 
-#: src/sss_client/pam_sss.c:2158
+#: src/sss_client/pam_sss.c:2161
 msgid "New Password: "
 msgstr "新密码： "
 
-#: src/sss_client/pam_sss.c:2159
+#: src/sss_client/pam_sss.c:2162
 msgid "Reenter new Password: "
 msgstr "重新输入新密码： "
 
-#: src/sss_client/pam_sss.c:2324 src/sss_client/pam_sss.c:2327
+#: src/sss_client/pam_sss.c:2327 src/sss_client/pam_sss.c:2330
 msgid "First Factor: "
 msgstr "第一因素： "
 
-#: src/sss_client/pam_sss.c:2325 src/sss_client/pam_sss.c:2500
+#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
 msgid "Second Factor (optional): "
 msgstr "第二因素（可选）： "
 
-#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
+#: src/sss_client/pam_sss.c:2331 src/sss_client/pam_sss.c:2506
 msgid "Second Factor: "
 msgstr "第二因素： "
 
-#: src/sss_client/pam_sss.c:2347
+#: src/sss_client/pam_sss.c:2350
 msgid "Password: "
 msgstr "密码： "
 
-#: src/sss_client/pam_sss.c:2499 src/sss_client/pam_sss.c:2502
+#: src/sss_client/pam_sss.c:2502 src/sss_client/pam_sss.c:2505
 msgid "First Factor (Current Password): "
 msgstr "第一因素（当前密码）： "
 
-#: src/sss_client/pam_sss.c:2506
+#: src/sss_client/pam_sss.c:2509
 msgid "Current Password: "
 msgstr "当前密码： "
 
-#: src/sss_client/pam_sss.c:2863
+#: src/sss_client/pam_sss.c:2866
 msgid "Password expired. Change your password now."
 msgstr "密码已过期。立即更改密码。"
 

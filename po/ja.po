@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-12-09 13:38+0100\n"
+"POT-Creation-Date: 2023-05-04 11:14+0200\n"
 "PO-Revision-Date: 2023-02-28 15:20+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
@@ -1913,48 +1913,48 @@ msgstr "passwd ファイルソースへのパス。"
 msgid "Path of group file sources."
 msgstr "グループファイルソースへのパス。"
 
-#: src/monitor/monitor.c:2361
+#: src/monitor/monitor.c:2362
 msgid "Become a daemon (default)"
 msgstr "デーモンとして実行 (デフォルト)"
 
-#: src/monitor/monitor.c:2363
+#: src/monitor/monitor.c:2364
 msgid "Run interactive (not a daemon)"
 msgstr "対話的に実行 (デーモンではない)"
 
-#: src/monitor/monitor.c:2366
+#: src/monitor/monitor.c:2367
 msgid "Disable netlink interface"
 msgstr "netlink インターフェースを無効にする"
 
-#: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2369 src/tools/sssctl/sssctl_config.c:77
 msgid "Specify a non-default config file"
 msgstr "非標準の設定ファイルの指定"
 
-#: src/monitor/monitor.c:2370
+#: src/monitor/monitor.c:2371
 msgid "Refresh the configuration database, then exit"
 msgstr "設定データベースをリフレッシュし、その後終了します"
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2374
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "--genconf と似ていますが、任意のセクションのみをリフレッシュします"
 
-#: src/monitor/monitor.c:2376
+#: src/monitor/monitor.c:2377
 msgid "Print version number and exit"
 msgstr "バージョン番号を表示して終了する"
 
-#: src/monitor/monitor.c:2414
+#: src/monitor/monitor.c:2415
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "Option -i|--interactive iは、 -D|--daemon とは使用できません\n"
 
-#: src/monitor/monitor.c:2420
+#: src/monitor/monitor.c:2421
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "Option -g は -D または -i と互換性がありません\n"
 
-#: src/monitor/monitor.c:2433
+#: src/monitor/monitor.c:2434
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "%<PRIu64> で実行 (root でなければなりません)\n"
 
-#: src/monitor/monitor.c:2515
+#: src/monitor/monitor.c:2516
 msgid "SSSD is already running\n"
 msgstr "SSSD はすでに実行中です\n"
 
@@ -2026,35 +2026,35 @@ msgstr "set_debug_file_from_fd は失敗しました。\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "情報プロバイダーのドメイン (必須)"
 
-#: src/sss_client/common.c:1101
+#: src/sss_client/common.c:1124
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "特権ソケットの所有者またはパーミッションが誤っています。"
 
-#: src/sss_client/common.c:1104
+#: src/sss_client/common.c:1127
 msgid "Public socket has wrong ownership or permissions."
 msgstr "公開ソケットの所有者またはパーミッションが誤っています。"
 
-#: src/sss_client/common.c:1107
+#: src/sss_client/common.c:1130
 msgid "Unexpected format of the server credential message."
 msgstr "サーバーのクレデンシャルメッセージの予期しない形式です。"
 
-#: src/sss_client/common.c:1110
+#: src/sss_client/common.c:1133
 msgid "SSSD is not run by root."
 msgstr "SSSD は root により実行されません。"
 
-#: src/sss_client/common.c:1113
+#: src/sss_client/common.c:1136
 msgid "SSSD socket does not exist."
 msgstr "SSSD ソケットは存在しません。"
 
-#: src/sss_client/common.c:1116
+#: src/sss_client/common.c:1139
 msgid "Cannot get stat of SSSD socket."
 msgstr "SSSD ソケットの統計を取得できません。"
 
-#: src/sss_client/common.c:1121
+#: src/sss_client/common.c:1144
 msgid "An error occurred, but no description can be found."
 msgstr "エラーが発生しましたが、説明がありませんでした。"
 
-#: src/sss_client/common.c:1127
+#: src/sss_client/common.c:1150
 msgid "Unexpected error while looking for an error description"
 msgstr "エラーの説明を検索中に予期しないエラーが発生しました"
 
@@ -2062,46 +2062,46 @@ msgstr "エラーの説明を検索中に予期しないエラーが発生しま
 msgid "Permission denied. "
 msgstr "パーミッションが拒否されました。 "
 
-#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:799
-#: src/sss_client/pam_sss.c:810
+#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:802
+#: src/sss_client/pam_sss.c:813
 msgid "Server message: "
 msgstr "サーバーのメッセージ: "
 
-#: src/sss_client/pam_sss.c:303
+#: src/sss_client/pam_sss.c:306
 msgid "Passwords do not match"
 msgstr "パスワードが一致しません"
 
-#: src/sss_client/pam_sss.c:491
+#: src/sss_client/pam_sss.c:494
 msgid "Password reset by root is not supported."
 msgstr "root によるパスワードのリセットはサポートされません。"
 
-#: src/sss_client/pam_sss.c:532
+#: src/sss_client/pam_sss.c:535
 msgid "Authenticated with cached credentials"
 msgstr "キャッシュされているクレデンシャルを用いて認証されました"
 
-#: src/sss_client/pam_sss.c:533
+#: src/sss_client/pam_sss.c:536
 msgid ", your cached password will expire at: "
 msgstr "、キャッシュされたパスワードが失効します: "
 
-#: src/sss_client/pam_sss.c:563
+#: src/sss_client/pam_sss.c:566
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "パスワードの期限が切れています。あと %1$d 回ログインできます。"
 
-#: src/sss_client/pam_sss.c:609
+#: src/sss_client/pam_sss.c:612
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "あなたのパスワードは %1$d %2$s に期限切れになります。"
 
-#: src/sss_client/pam_sss.c:658
+#: src/sss_client/pam_sss.c:661
 msgid "Authentication is denied until: "
 msgstr "次まで認証が拒否されます: "
 
-#: src/sss_client/pam_sss.c:679
+#: src/sss_client/pam_sss.c:682
 msgid "System is offline, password change not possible"
 msgstr "システムがオフラインです、パスワード変更ができません"
 
-#: src/sss_client/pam_sss.c:694
+#: src/sss_client/pam_sss.c:697
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
@@ -2109,61 +2109,61 @@ msgstr ""
 "OTP パスワードの変更後、チケットを取得するためにログアウト後に再びログインす"
 "る必要があります"
 
-#: src/sss_client/pam_sss.c:709
+#: src/sss_client/pam_sss.c:712
 msgid "PIN locked"
 msgstr "PIN がロックされました"
 
-#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
+#: src/sss_client/pam_sss.c:799 src/sss_client/pam_sss.c:812
 msgid "Password change failed. "
 msgstr "パスワードの変更に失敗しました。 "
 
-#: src/sss_client/pam_sss.c:1741
+#: src/sss_client/pam_sss.c:1744
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
 msgstr "%1$s で認証し、ENTER を押します。"
 
-#: src/sss_client/pam_sss.c:1744
+#: src/sss_client/pam_sss.c:1747
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
 msgstr "%2$s で PIN %1$s を使用して認証し、ENTER を押します。"
 
-#: src/sss_client/pam_sss.c:1959
+#: src/sss_client/pam_sss.c:1962
 msgid "Please (re)insert (different) Smartcard"
 msgstr "(別の)スマートカードを挿入(し直)してください"
 
-#: src/sss_client/pam_sss.c:2158
+#: src/sss_client/pam_sss.c:2161
 msgid "New Password: "
 msgstr "新しいパスワード: "
 
-#: src/sss_client/pam_sss.c:2159
+#: src/sss_client/pam_sss.c:2162
 msgid "Reenter new Password: "
 msgstr "新しいパスワードの再入力: "
 
-#: src/sss_client/pam_sss.c:2324 src/sss_client/pam_sss.c:2327
+#: src/sss_client/pam_sss.c:2327 src/sss_client/pam_sss.c:2330
 msgid "First Factor: "
 msgstr "1 番目の要素: "
 
-#: src/sss_client/pam_sss.c:2325 src/sss_client/pam_sss.c:2500
+#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
 msgid "Second Factor (optional): "
 msgstr "2 番目の要素 (オプション): "
 
-#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
+#: src/sss_client/pam_sss.c:2331 src/sss_client/pam_sss.c:2506
 msgid "Second Factor: "
 msgstr "2 番目の要素: "
 
-#: src/sss_client/pam_sss.c:2347
+#: src/sss_client/pam_sss.c:2350
 msgid "Password: "
 msgstr "パスワード: "
 
-#: src/sss_client/pam_sss.c:2499 src/sss_client/pam_sss.c:2502
+#: src/sss_client/pam_sss.c:2502 src/sss_client/pam_sss.c:2505
 msgid "First Factor (Current Password): "
 msgstr "1 番目の要素 (現在のパスワード): "
 
-#: src/sss_client/pam_sss.c:2506
+#: src/sss_client/pam_sss.c:2509
 msgid "Current Password: "
 msgstr "現在のパスワード: "
 
-#: src/sss_client/pam_sss.c:2863
+#: src/sss_client/pam_sss.c:2866
 msgid "Password expired. Change your password now."
 msgstr "パスワードの期限が切れました。いますぐパスワードを変更してください。"
 

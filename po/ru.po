@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-12-09 13:38+0100\n"
+"POT-Creation-Date: 2023-05-04 11:14+0200\n"
 "PO-Revision-Date: 2022-12-14 19:19+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
@@ -21,8 +21,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Generator: Weblate 4.14.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
@@ -2020,49 +2020,49 @@ msgstr "Путь к исходному тексту файла passwd."
 msgid "Path of group file sources."
 msgstr "Путь к исходному тексту файла group."
 
-#: src/monitor/monitor.c:2361
+#: src/monitor/monitor.c:2362
 msgid "Become a daemon (default)"
 msgstr "Запускаться в качестве службы (по умолчанию)"
 
-#: src/monitor/monitor.c:2363
+#: src/monitor/monitor.c:2364
 msgid "Run interactive (not a daemon)"
 msgstr "Запускаться интерактивно (не службой)"
 
-#: src/monitor/monitor.c:2366
+#: src/monitor/monitor.c:2367
 msgid "Disable netlink interface"
 msgstr "Отключить интерфейс netlink"
 
-#: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2369 src/tools/sssctl/sssctl_config.c:77
 msgid "Specify a non-default config file"
 msgstr "Указать нестандартный файл конфигурации"
 
-#: src/monitor/monitor.c:2370
+#: src/monitor/monitor.c:2371
 msgid "Refresh the configuration database, then exit"
 msgstr "Обновить базу данных конфигурации и выйти"
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2374
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr ""
 "Аналогично --genconf, но выполняется обновление только указанного раздела"
 
-#: src/monitor/monitor.c:2376
+#: src/monitor/monitor.c:2377
 msgid "Print version number and exit"
 msgstr "Вывести номер версии и выйти"
 
-#: src/monitor/monitor.c:2414
+#: src/monitor/monitor.c:2415
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "Параметр -i|--interactive нельзя использовать вместе с -D|--daemon\n"
 
-#: src/monitor/monitor.c:2420
+#: src/monitor/monitor.c:2421
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "Параметр -g несовместим с -D или -i\n"
 
-#: src/monitor/monitor.c:2433
+#: src/monitor/monitor.c:2434
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "Запущено от %<PRIu64>, а должно быть от имени пользователя root\n"
 
-#: src/monitor/monitor.c:2515
+#: src/monitor/monitor.c:2516
 msgid "SSSD is already running\n"
 msgstr "SSSD уже выполняется\n"
 
@@ -2134,37 +2134,37 @@ msgstr "Ошибка set_debug_file_from_fd.\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен поставщика информации (обязательный)"
 
-#: src/sss_client/common.c:1101
+#: src/sss_client/common.c:1124
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 "Для привилегированного сокета установлен неверный владелец или права доступа."
 
-#: src/sss_client/common.c:1104
+#: src/sss_client/common.c:1127
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 "Для общедоступного сокета установлен неверный владелец или права доступа."
 
-#: src/sss_client/common.c:1107
+#: src/sss_client/common.c:1130
 msgid "Unexpected format of the server credential message."
 msgstr "Некорректный формат сообщения об учётных данных сервера."
 
-#: src/sss_client/common.c:1110
+#: src/sss_client/common.c:1133
 msgid "SSSD is not run by root."
 msgstr "Запуск SSSD выполнен не от имени пользователя root."
 
-#: src/sss_client/common.c:1113
+#: src/sss_client/common.c:1136
 msgid "SSSD socket does not exist."
 msgstr "Сокет SSSD не существует."
 
-#: src/sss_client/common.c:1116
+#: src/sss_client/common.c:1139
 msgid "Cannot get stat of SSSD socket."
 msgstr "Не удалось получить статистику сокета SSSD."
 
-#: src/sss_client/common.c:1121
+#: src/sss_client/common.c:1144
 msgid "An error occurred, but no description can be found."
 msgstr "Произошла ошибка, но не удалось найти её описание."
 
-#: src/sss_client/common.c:1127
+#: src/sss_client/common.c:1150
 msgid "Unexpected error while looking for an error description"
 msgstr "Непредвиденная ошибка при поиске описания ошибки"
 
@@ -2172,46 +2172,46 @@ msgstr "Непредвиденная ошибка при поиске описа
 msgid "Permission denied. "
 msgstr "Доступ запрещён. "
 
-#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:799
-#: src/sss_client/pam_sss.c:810
+#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:802
+#: src/sss_client/pam_sss.c:813
 msgid "Server message: "
 msgstr "Сообщение сервера: "
 
-#: src/sss_client/pam_sss.c:303
+#: src/sss_client/pam_sss.c:306
 msgid "Passwords do not match"
 msgstr "Пароли не совпадают"
 
-#: src/sss_client/pam_sss.c:491
+#: src/sss_client/pam_sss.c:494
 msgid "Password reset by root is not supported."
 msgstr "Поддержка сброса пароля пользователем root не предусмотрена."
 
-#: src/sss_client/pam_sss.c:532
+#: src/sss_client/pam_sss.c:535
 msgid "Authenticated with cached credentials"
 msgstr "Проверка подлинности с учётными данными из кэша"
 
-#: src/sss_client/pam_sss.c:533
+#: src/sss_client/pam_sss.c:536
 msgid ", your cached password will expire at: "
 msgstr ", срок действия вашего кэшированного пароля истечёт: "
 
-#: src/sss_client/pam_sss.c:563
+#: src/sss_client/pam_sss.c:566
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "Срок действия пароля истёк. Осталось попыток входа в систему: %1$d."
 
-#: src/sss_client/pam_sss.c:609
+#: src/sss_client/pam_sss.c:612
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Срок действия пароля истекает через %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:658
+#: src/sss_client/pam_sss.c:661
 msgid "Authentication is denied until: "
 msgstr "Проверка подлинности запрещена до: "
 
-#: src/sss_client/pam_sss.c:679
+#: src/sss_client/pam_sss.c:682
 msgid "System is offline, password change not possible"
 msgstr "Система находится в автономном режиме, невозможно сменить пароль"
 
-#: src/sss_client/pam_sss.c:694
+#: src/sss_client/pam_sss.c:697
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
@@ -2219,62 +2219,62 @@ msgstr ""
 "После смены одноразового пароля необходимо выйти из системы и снова войти в "
 "неё, чтобы получить билет"
 
-#: src/sss_client/pam_sss.c:709
+#: src/sss_client/pam_sss.c:712
 msgid "PIN locked"
 msgstr "PIN заблокирован"
 
-#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
+#: src/sss_client/pam_sss.c:799 src/sss_client/pam_sss.c:812
 msgid "Password change failed. "
 msgstr "Не удалось сменить пароль. "
 
-#: src/sss_client/pam_sss.c:1741
+#: src/sss_client/pam_sss.c:1744
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
 msgstr "Пожалуйста, авторизуйтесь на %1$s и нажмите ENTER."
 
-#: src/sss_client/pam_sss.c:1744
+#: src/sss_client/pam_sss.c:1747
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
 msgstr ""
 "Пожалуйста, авторизуйтесь с помощью PIN-кода %1$s на %2$s и нажмите ENTER."
 
-#: src/sss_client/pam_sss.c:1959
+#: src/sss_client/pam_sss.c:1962
 msgid "Please (re)insert (different) Smartcard"
 msgstr "Пожалуйста, вставьте (повторно/другую) смарт-карту"
 
-#: src/sss_client/pam_sss.c:2158
+#: src/sss_client/pam_sss.c:2161
 msgid "New Password: "
 msgstr "Новый пароль: "
 
-#: src/sss_client/pam_sss.c:2159
+#: src/sss_client/pam_sss.c:2162
 msgid "Reenter new Password: "
 msgstr "Введите новый пароль ещё раз: "
 
-#: src/sss_client/pam_sss.c:2324 src/sss_client/pam_sss.c:2327
+#: src/sss_client/pam_sss.c:2327 src/sss_client/pam_sss.c:2330
 msgid "First Factor: "
 msgstr "Первый фактор: "
 
-#: src/sss_client/pam_sss.c:2325 src/sss_client/pam_sss.c:2500
+#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
 msgid "Second Factor (optional): "
 msgstr "Второй фактор (необязательно): "
 
-#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
+#: src/sss_client/pam_sss.c:2331 src/sss_client/pam_sss.c:2506
 msgid "Second Factor: "
 msgstr "Второй фактор: "
 
-#: src/sss_client/pam_sss.c:2347
+#: src/sss_client/pam_sss.c:2350
 msgid "Password: "
 msgstr "Пароль: "
 
-#: src/sss_client/pam_sss.c:2499 src/sss_client/pam_sss.c:2502
+#: src/sss_client/pam_sss.c:2502 src/sss_client/pam_sss.c:2505
 msgid "First Factor (Current Password): "
 msgstr "Первый фактор (текущий пароль): "
 
-#: src/sss_client/pam_sss.c:2506
+#: src/sss_client/pam_sss.c:2509
 msgid "Current Password: "
 msgstr "Текущий пароль: "
 
-#: src/sss_client/pam_sss.c:2863
+#: src/sss_client/pam_sss.c:2866
 msgid "Password expired. Change your password now."
 msgstr "Срок действия пароля истёк. Необходимо сейчас изменить ваш пароль."
 
@@ -2712,8 +2712,8 @@ msgstr "Не удалось настроить контекст привязки
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Не удалось добавить правила сопоставления и соответствия из-за ошибки "
-"[%d][%s].\n"
+"Не удалось добавить правила сопоставления и соответствия из-за ошибки [%d]"
+"[%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:254
 msgid "Failed to decode base64 string.\n"

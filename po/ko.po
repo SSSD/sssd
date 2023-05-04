@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2022-12-09 13:38+0100\n"
+"POT-Creation-Date: 2023-05-04 11:14+0200\n"
 "PO-Revision-Date: 2022-12-13 14:19+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
@@ -1884,48 +1884,48 @@ msgstr "passwd 파일 소스 경로입니다."
 msgid "Path of group file sources."
 msgstr "그룹 파일 소스의 경로입니다."
 
-#: src/monitor/monitor.c:2361
+#: src/monitor/monitor.c:2362
 msgid "Become a daemon (default)"
 msgstr "데몬이 됨 (기본값)"
 
-#: src/monitor/monitor.c:2363
+#: src/monitor/monitor.c:2364
 msgid "Run interactive (not a daemon)"
 msgstr "대화식 실행 (데몬이 아님)"
 
-#: src/monitor/monitor.c:2366
+#: src/monitor/monitor.c:2367
 msgid "Disable netlink interface"
 msgstr "netlink 인터페이스 비활성화"
 
-#: src/monitor/monitor.c:2368 src/tools/sssctl/sssctl_config.c:77
+#: src/monitor/monitor.c:2369 src/tools/sssctl/sssctl_config.c:77
 msgid "Specify a non-default config file"
 msgstr "기본이 아닌 config 파일 지정"
 
-#: src/monitor/monitor.c:2370
+#: src/monitor/monitor.c:2371
 msgid "Refresh the configuration database, then exit"
 msgstr "설정 데이터베이스를 새로 고친 다음 종료합니다"
 
-#: src/monitor/monitor.c:2373
+#: src/monitor/monitor.c:2374
 msgid "Similar to --genconf, but only refreshes the given section"
 msgstr "--genconf와 유사하지만 지정된 섹션만 새로 고침합니다"
 
-#: src/monitor/monitor.c:2376
+#: src/monitor/monitor.c:2377
 msgid "Print version number and exit"
 msgstr "버전 번호를 인쇄하고 종료합니다"
 
-#: src/monitor/monitor.c:2414
+#: src/monitor/monitor.c:2415
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr "옵션 -i|--interactive는 -D|--daemon과 함께 사용할 수 없습니다.\n"
 
-#: src/monitor/monitor.c:2420
+#: src/monitor/monitor.c:2421
 msgid "Option -g is incompatible with -D or -i\n"
 msgstr "옵션 -g는 -D 또는 -i와 호환되지 않습니다\n"
 
-#: src/monitor/monitor.c:2433
+#: src/monitor/monitor.c:2434
 #, c-format
 msgid "Running under %<PRIu64>, must be root\n"
 msgstr "%<PRIu64> 에서 실행 중, root여야 합니다\n"
 
-#: src/monitor/monitor.c:2515
+#: src/monitor/monitor.c:2516
 msgid "SSSD is already running\n"
 msgstr "SSSD가 이미 실행되고 있습니다\n"
 
@@ -1997,35 +1997,35 @@ msgstr "set_debug_file_from_fd가 실패했습니다.\n"
 msgid "Domain of the information provider (mandatory)"
 msgstr "정보 공급자의 도메인 (필수)"
 
-#: src/sss_client/common.c:1101
+#: src/sss_client/common.c:1124
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "권한 있는 소켓에 잘못된 소유권 또는 권한이 있습니다."
 
-#: src/sss_client/common.c:1104
+#: src/sss_client/common.c:1127
 msgid "Public socket has wrong ownership or permissions."
 msgstr "공용 소켓에 잘못된 소유권 또는 권한이 있습니다."
 
-#: src/sss_client/common.c:1107
+#: src/sss_client/common.c:1130
 msgid "Unexpected format of the server credential message."
 msgstr "서버 인증 정보 메시지의 예기치 않은 형식입니다."
 
-#: src/sss_client/common.c:1110
+#: src/sss_client/common.c:1133
 msgid "SSSD is not run by root."
 msgstr "SSSD는 루트에 의해 실행되지 않습니다."
 
-#: src/sss_client/common.c:1113
+#: src/sss_client/common.c:1136
 msgid "SSSD socket does not exist."
 msgstr "SSSD 소켓이 존재하지 않습니다."
 
-#: src/sss_client/common.c:1116
+#: src/sss_client/common.c:1139
 msgid "Cannot get stat of SSSD socket."
 msgstr "SSSD 소켓 통계를 가져올 수 없습니다."
 
-#: src/sss_client/common.c:1121
+#: src/sss_client/common.c:1144
 msgid "An error occurred, but no description can be found."
 msgstr "오류가 발생했지만 설명을 찾을 수 없습니다."
 
-#: src/sss_client/common.c:1127
+#: src/sss_client/common.c:1150
 msgid "Unexpected error while looking for an error description"
 msgstr "오류 설명을 찾는 동안 예기치 않은 오류 발생"
 
@@ -2033,107 +2033,107 @@ msgstr "오류 설명을 찾는 동안 예기치 않은 오류 발생"
 msgid "Permission denied. "
 msgstr "권한이 거부되었습니다. "
 
-#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:799
-#: src/sss_client/pam_sss.c:810
+#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:802
+#: src/sss_client/pam_sss.c:813
 msgid "Server message: "
 msgstr "서버 메시지: "
 
-#: src/sss_client/pam_sss.c:303
+#: src/sss_client/pam_sss.c:306
 msgid "Passwords do not match"
 msgstr "암호가 일치하지 않습니다"
 
-#: src/sss_client/pam_sss.c:491
+#: src/sss_client/pam_sss.c:494
 msgid "Password reset by root is not supported."
 msgstr "root로 재설정한 암호는 지원되지 않습니다."
 
-#: src/sss_client/pam_sss.c:532
+#: src/sss_client/pam_sss.c:535
 msgid "Authenticated with cached credentials"
 msgstr "캐쉬된 인증 정보로 인증됨"
 
-#: src/sss_client/pam_sss.c:533
+#: src/sss_client/pam_sss.c:536
 msgid ", your cached password will expire at: "
 msgstr ", 당신의 캐쉬된 비밀번호는 다음에 만료됩니다.: "
 
-#: src/sss_client/pam_sss.c:563
+#: src/sss_client/pam_sss.c:566
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "암호가 만료되었습니다. %1$d 유예 로그인이 남아 있습니다."
 
-#: src/sss_client/pam_sss.c:609
+#: src/sss_client/pam_sss.c:612
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "암호는 %1$d %2$s에 만료됩니다."
 
-#: src/sss_client/pam_sss.c:658
+#: src/sss_client/pam_sss.c:661
 msgid "Authentication is denied until: "
 msgstr "인증은 다음 기간까지 거부됩니다. "
 
-#: src/sss_client/pam_sss.c:679
+#: src/sss_client/pam_sss.c:682
 msgid "System is offline, password change not possible"
 msgstr "시스템이 오프라인 상태이며 암호가 변경될 수 없습니다"
 
-#: src/sss_client/pam_sss.c:694
+#: src/sss_client/pam_sss.c:697
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr ""
 "OTP 암호를 변경한 후 티켓을 받으려면 로그아웃한 후 다시 로그인해야 합니다"
 
-#: src/sss_client/pam_sss.c:709
+#: src/sss_client/pam_sss.c:712
 msgid "PIN locked"
 msgstr "PIN 잠금"
 
-#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:809
+#: src/sss_client/pam_sss.c:799 src/sss_client/pam_sss.c:812
 msgid "Password change failed. "
 msgstr "비밀번호 변경에 실패함. "
 
-#: src/sss_client/pam_sss.c:1741
+#: src/sss_client/pam_sss.c:1744
 #, c-format
 msgid "Authenticate at %1$s and press ENTER."
 msgstr "%1$s에 인증하고 ENTER를 누릅니다."
 
-#: src/sss_client/pam_sss.c:1744
+#: src/sss_client/pam_sss.c:1747
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
 msgstr "PIN %1$s(%2$s에서)으로 인증하고 ENTER를 누릅니다."
 
-#: src/sss_client/pam_sss.c:1959
+#: src/sss_client/pam_sss.c:1962
 msgid "Please (re)insert (different) Smartcard"
 msgstr "다른 스마트카드를 (다시)입력해 주세요"
 
-#: src/sss_client/pam_sss.c:2158
+#: src/sss_client/pam_sss.c:2161
 msgid "New Password: "
 msgstr "신규 암호: "
 
-#: src/sss_client/pam_sss.c:2159
+#: src/sss_client/pam_sss.c:2162
 msgid "Reenter new Password: "
 msgstr "신규 암호 재입력: "
 
-#: src/sss_client/pam_sss.c:2324 src/sss_client/pam_sss.c:2327
+#: src/sss_client/pam_sss.c:2327 src/sss_client/pam_sss.c:2330
 msgid "First Factor: "
 msgstr "첫 번째 요인: "
 
-#: src/sss_client/pam_sss.c:2325 src/sss_client/pam_sss.c:2500
+#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
 msgid "Second Factor (optional): "
 msgstr "두 번째 요인(선택 사항): "
 
-#: src/sss_client/pam_sss.c:2328 src/sss_client/pam_sss.c:2503
+#: src/sss_client/pam_sss.c:2331 src/sss_client/pam_sss.c:2506
 msgid "Second Factor: "
 msgstr "두 번째 요인: "
 
-#: src/sss_client/pam_sss.c:2347
+#: src/sss_client/pam_sss.c:2350
 msgid "Password: "
 msgstr "암호: "
 
-#: src/sss_client/pam_sss.c:2499 src/sss_client/pam_sss.c:2502
+#: src/sss_client/pam_sss.c:2502 src/sss_client/pam_sss.c:2505
 msgid "First Factor (Current Password): "
 msgstr "첫 번째 요인 (현재 암호): "
 
-#: src/sss_client/pam_sss.c:2506
+#: src/sss_client/pam_sss.c:2509
 msgid "Current Password: "
 msgstr "현재 암호: "
 
-#: src/sss_client/pam_sss.c:2863
+#: src/sss_client/pam_sss.c:2866
 msgid "Password expired. Change your password now."
 msgstr "암호가 만료되었습니다. 지금 암호를 변경하십시오."
 
