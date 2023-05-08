@@ -731,3 +731,81 @@ class TestADTrust(object):
         assert f"group1@{domain}" in lookup_id_client.stdout_text, f"group1 name was not resolved" \
                                                                    f" on ipa-client."
         assert f"admins" in lookup_id_client.stdout_text, "admins name was not resolved on ipa-client."
+
+    @staticmethod
+    def test_search_filter_for_override_usrgrp(multihost, create_aduser_group):
+        """
+        :title: BE_REQ_USER_AND_GROUP LDAP search filter can inadvertently catch multiple overrides
+        :id: 932f1177-2375-46a6-8920-9f06d8874881
+        :customerscenario: true
+        :bugzilla:
+          https://bugzilla.redhat.com/show_bug.cgi?id=2096183
+        :description: The new filter looks for a specific user override or a specific
+        group override:(|(&(objectClass=ipaUserOverride)(uidNumber=XXXX))
+        (&(objectClass=ipaGroupOverride)(gidNumber=XXXX))).
+        :setup:
+          1. Create user and group (group1) on AD.
+          2. Make AD user member of group1.
+        :steps:
+          1. Add a group override to the 'default trust view' with gid number and group name.
+          2. Add a user override to the 'default trust view' view with same gid number
+             which was created in step 1.
+          3. Lookup sid-by-id with pysss_nss_idmap using python.
+          4. Lookup for the group and again run step 3.
+          5. Check the log message from domain log
+        :expectedresults:
+          1. Group added in 'default trust view' with gid number and group name.
+          2. User added in 'default trust view' with same gid number which was created in step 1.
+          3. Successfully lookup sid-by-id with pyss_nss_idmap using python.
+          4. Group lookup command succeeds, successfully ran step 3 again.
+          5. Got expected log messages from domain log.
+        """
+        (aduser, adgroup) = create_aduser_group
+        run_id_int = random.randint(9999, 999999)
+        domain = multihost.ad[0].domainname
+
+        ipa_client = sssdTools(multihost.client[0])
+        ipa_master = sssdTools(multihost.master[0])
+
+        add_grp_override = f'ipa idoverridegroup-add "default trust view" {adgroup}@{domain} ' \
+                           f'--group-name "borci{run_id_int}" --gid={run_id_int}'
+        multihost.master[0].run_command(add_grp_override, raiseonerr=False)
+
+        add_user_override = f'ipa idoverrideuser-add "default trust view" {aduser}@{domain} ' \
+                            f'--login ferko{run_id_int} --uid=50001 --gidnumber={run_id_int}'
+        multihost.master[0].run_command(add_user_override, raiseonerr=False)
+
+        domain_params = {'debug_level': '9'}
+        domain_name = ipa_client.get_domain_section_name()
+        ipa_client.sssd_conf(f'domain/{domain_name}', domain_params)
+
+        ipa_master.clear_sssd_cache()
+        ipa_client.clear_sssd_cache()
+        time.sleep(5)
+
+        # Lookup sid-by-id with pysss_nss_idmap using python
+        python_cmd = f'''python3 -c "import pysss_nss_idmap; print (pysss_nss_idmap.getsidbyid('{run_id_int}'))"'''
+        multihost.client[0].run_command(python_cmd, raiseonerr=False)
+
+        group_lookup = f'getent group {adgroup}@{domain}'
+        check_gr_lookup = multihost.client[0].run_command(group_lookup, raiseonerr=False)
+
+        multihost.client[0].run_command(python_cmd, raiseonerr=False)
+
+        # Updated log message from sssd domain log
+        log_message = f'Found override for object with filter'
+
+        # Download sssd log
+        log_file = multihost.client[0].get_file_contents(f"/var/log/sssd/sssd_{domain_name}.log").decode('utf-8')
+
+        # Teardown the setup
+        cmd_to_delete = [f"ipa idoverridegroup-del 'default trust view' {adgroup}@{domain}",
+                         f"ipa idoverrideuser-del 'default trust view' {aduser}@{domain}"]
+        for cmd in cmd_to_delete:
+            multihost.master[0].run_command(cmd, raiseonerr=False)
+
+        # Test result Evaluations
+        assert check_gr_lookup.returncode == 0, f"group {adgroup} was not found."
+        assert f"borci{run_id_int}@{domain}" in check_gr_lookup.stdout_text, "Group name was not resolved."
+        assert f"ferko{run_id_int}@{domain}" in check_gr_lookup.stdout_text, "Group name was not resolved."
+        assert log_message in log_file
