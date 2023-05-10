@@ -36,11 +36,19 @@
 #include "util/file_watch.h"
 #include "tests/common.h"
 
-#define FW_DIR                            TEST_DIR "/file-watch"
-#define WATCHED_FILE_INOTIFY              FW_DIR "/watched_file_inotify"
-#define WATCHED_FILE_POLL                 FW_DIR "/watched_file_poll"
-#define WATCHED_EXISTING_FILE_INOTIFY     FW_DIR "/watched_file_inotify.exists"
-#define WATCHED_EXISTING_FILE_POLL        FW_DIR "/watched_file_poll.exists"
+#define FW_NAME                           "/file-watch-test-dir"
+#define FILE_INOTIFY_NAME                 "watched_file_inotify"
+#define FILE_POLL_NAME                    "watched_file_poll"
+#define FW_DIR                            TEST_DIR FW_NAME
+#define EXISTING_FILE_INOTIFY_NAME        FILE_INOTIFY_NAME ".exists"
+#define EXISTING_FILE_POLL_NAME           FILE_POLL_NAME ".exists"
+#define WATCHED_FILE_INOTIFY              FW_DIR "/.." FW_NAME "/" FILE_INOTIFY_NAME
+#define WATCHED_FILE_POLL                 FW_DIR "/.." FW_NAME "/" FILE_POLL_NAME
+#define WATCHED_EXISTING_FILE_INOTIFY     FW_DIR "/.." FW_NAME "/" EXISTING_FILE_INOTIFY_NAME
+#define WATCHED_EXISTING_FILE_POLL        FW_DIR "/.." FW_NAME "/" EXISTING_FILE_POLL_NAME
+#define WATCHED_EXISTING_LINK_INOTIFY     FW_DIR "/" EXISTING_FILE_INOTIFY_NAME ".link"
+#define WATCHED_EXISTING_LINK_POLL        FW_DIR "/" EXISTING_FILE_POLL_NAME ".link"
+#define UNWATCHED_FILE                    FW_DIR "/unwatched_file"
 
 
 static TALLOC_CTX *test_mem_ctx;
@@ -50,34 +58,51 @@ struct fn_arg {
     int counter;
 };
 
-static void setup_file_watch(void)
+static void remove_files(void)
 {
-    test_mem_ctx = talloc_new(NULL);
-    mkdir(FW_DIR, 0700);
     unlink(WATCHED_FILE_INOTIFY);
     unlink(WATCHED_FILE_POLL);
+    unlink(WATCHED_EXISTING_LINK_INOTIFY);
+    unlink(WATCHED_EXISTING_LINK_POLL);
     unlink(WATCHED_EXISTING_FILE_INOTIFY);
     unlink(WATCHED_EXISTING_FILE_POLL);
+    unlink(UNWATCHED_FILE);
 }
 
+static void setup_file_watch(void)
+{
+    DEBUG(SSSDBG_TRACE_ALL, "==========================================\n");
+    test_mem_ctx = talloc_new(NULL);
+    mkdir(FW_DIR, 0700);
+    remove_files();
+}
 
 static void teardown_file_watch(void)
 {
-    unlink(WATCHED_FILE_INOTIFY);
-    unlink(WATCHED_FILE_POLL);
-    unlink(WATCHED_EXISTING_FILE_INOTIFY);
-    unlink(WATCHED_EXISTING_FILE_POLL);
     talloc_free(test_mem_ctx);
+    remove_files();
+    rmdir(FW_DIR);
 }
 
 
 static void callback(const char *filename, void *arg)
 {
-    DEBUG(SSSDBG_TRACE_FUNC, "Callback invoked\n");
+    static char received[PATH_MAX + 1];
+    static char expected[PATH_MAX + 1];
+    char *res;
     struct fn_arg *data = (struct fn_arg *) arg;
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Callback invoked\n");
+
     ck_assert_msg(data != NULL, "Callback received NULL argument");
-    ck_assert_msg(strcmp(filename, data->filename) == 0,
+
+    res = realpath(data->filename, expected);
+    ck_assert_msg(res != NULL, "Failed to normalize the expected filename");
+
+    res = realpath(filename, received);
+    ck_assert_msg(res != NULL, "Failed to normalize the received filename");
+
+    ck_assert_msg(strcmp(expected, received) == 0,
                   "Wrong filename in the callback.");
     data->counter++;
 }
@@ -88,7 +113,7 @@ static void modify_file(const char *filename)
     int fd;
     int res;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "File modified\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "Modifying file %s\n", filename);
     fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
     ck_assert_msg(fd != -1, "Failed to open the file.");
 
@@ -119,11 +144,14 @@ static void test_file_watch_no_file(bool use_inotify)
     arg.filename = filename;
     arg.counter = 0;
 
+    DEBUG(SSSDBG_TRACE_ALL, "Watching file %s\n", filename);
     ctx = fw_watch_file(test_mem_ctx, ev, filename, use_inotify, callback, &arg);
     ck_assert_msg(ctx != NULL, "Failed to watch a file.");
     ck_assert_msg(arg.counter == 0, "Unexpected callback invocation.");
 
-    // At this point the file doesn't exist, we will create it.
+    // At this point the file doesn't exist. We create the watched and an
+    // unwatched file
+    modify_file(UNWATCHED_FILE);
     modify_file(filename);
     if (use_inotify) {
         res = tevent_loop_once(ev);
@@ -152,26 +180,35 @@ static void test_file_watch_with_file(bool use_inotify)
 {
     struct file_watch_ctx *ctx;
     struct tevent_context *ev;
+    const char *filepath;
     const char *filename;
+    const char *linkpath;
     struct fn_arg arg;
     int res;
 
     if (use_inotify) {
-        filename = WATCHED_EXISTING_FILE_INOTIFY;
+        filename = EXISTING_FILE_INOTIFY_NAME;
+        filepath = WATCHED_EXISTING_FILE_INOTIFY;
+        linkpath = WATCHED_EXISTING_LINK_INOTIFY;
     } else {
-        filename = WATCHED_EXISTING_FILE_POLL;
+        filename = EXISTING_FILE_POLL_NAME;
+        filepath = WATCHED_EXISTING_FILE_POLL;
+        linkpath = WATCHED_EXISTING_LINK_POLL;
     }
-    modify_file(filename);
+    modify_file(filepath);
+    res = symlink(filename, linkpath);
+    ck_assert_msg(res == 0, "Failed create the symbolic link");
 
     ev = tevent_context_init(test_mem_ctx);
     ck_assert_msg(ev != NULL, "Failed to create the tevent context.");
 
-    arg.filename = filename;
+    arg.filename = linkpath;
     arg.counter = 0;
 
     // File already exists
-    ctx = fw_watch_file(test_mem_ctx, ev, filename, use_inotify, callback, &arg);
-    ck_assert_msg(ctx != NULL, "Failed to watch a file.");
+    DEBUG(SSSDBG_TRACE_ALL, "Watching link %s\n", linkpath);
+    ctx = fw_watch_file(test_mem_ctx, ev, linkpath, use_inotify, callback, &arg);
+    ck_assert_msg(ctx != NULL, "Failed to watch a link.");
     ck_assert_msg(arg.counter >= 1, "Callback not invoked at start up.");
     ck_assert_msg(arg.counter <= 1, "Callback invoked too many times at start up.");
 
@@ -179,7 +216,7 @@ static void test_file_watch_with_file(bool use_inotify)
     if (!use_inotify) {
         sleep(2); // Detection by polling is based on the file's modification time.
     }
-    modify_file(filename);
+    modify_file(filepath);
     if (use_inotify) {
         res = tevent_loop_once(ev);
         ck_assert_msg(res == 0, "tevent_loop_once() failed.");

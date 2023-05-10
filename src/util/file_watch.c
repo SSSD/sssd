@@ -121,7 +121,10 @@ static int watched_file_inotify_cb(const char *filename,
                                   uint32_t flags,
                                   void *pvt)
 {
+    static char received[PATH_MAX + 1];
+    static char expected[PATH_MAX + 1];
     struct file_watch_ctx *fw_ctx;
+    char *res;
 
     DEBUG(SSSDBG_TRACE_LIBS,
           "Received inotify notification for %s\n", filename);
@@ -131,15 +134,32 @@ static int watched_file_inotify_cb(const char *filename,
         return EINVAL;
     }
 
-    if (strcmp(fw_ctx->filename, filename) == 0) {
-        if (access(fw_ctx->filename, F_OK) == 0) {
-            fw_ctx->cb(fw_ctx->filename, fw_ctx->cb_arg);
+    res = realpath(fw_ctx->filename, expected);
+    if (res == NULL) {
+         DEBUG(SSSDBG_TRACE_LIBS,
+               "Normalization failed for expected %s. Skipping the callback.\n",
+               fw_ctx->filename);
+        goto done;
+    }
+
+    res = realpath(filename, received);
+    if (res == NULL) {
+         DEBUG(SSSDBG_TRACE_LIBS,
+               "Normalization failed for received %s. Skipping the callback.\n",
+               filename);
+        goto done;
+    }
+
+    if (strcmp(expected, received) == 0) {
+        if (access(received, F_OK) == 0) {
+            fw_ctx->cb(received, fw_ctx->cb_arg);
         } else {
             DEBUG(SSSDBG_TRACE_LIBS,
                   "File %s is missing. Skipping the callback.\n", filename);
         }
     }
 
+done:
     return EOK;
 }
 
