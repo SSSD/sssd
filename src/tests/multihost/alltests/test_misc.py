@@ -13,9 +13,19 @@ import time
 import subprocess
 import pytest
 from sssd.testlib.common.expect import pexpect_ssh
+from datetime import datetime as D_T
 from sssd.testlib.common.exceptions import SSHLoginException
 from sssd.testlib.common.utils import sssdTools, LdapOperations
-from constants import ds_instance_name, ds_suffix
+from constants import ds_instance_name, ds_suffix, ds_rootdn, ds_rootpw
+
+
+def find_logs(multihost, log_name, string_name):
+    """This function will find strings in a log file
+    log_name: Absolute path of log where the search will happen.
+    string_name: String to search in the log file.
+    """
+    log_str = multihost.client[0].get_file_contents(log_name).decode('utf-8')
+    return string_name in log_str
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
@@ -532,3 +542,86 @@ class TestMisc(object):
             assert cmd2.stdout_text.strip('\n') in cmd.stdout_text, 'dbus is not fetching expected users'
         cmd1 = multihost.client[0].run_command(f'id -u {usr}@{domain_name}', raiseonerr=False)
         assert cmd1.stdout_text.strip('\n') not in cmd.stdout_text, 'dbus is fetching unwanted user'
+
+    @staticmethod
+    @pytest.mark.tier1_4
+    def test_bz822236(multihost, backupsssdconf):
+        """
+        :title: Netgroups do not honor entry cache nowait percentage
+        :id: dda33ba4-ef10-11ed-a27d-845cf3eff344
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=822236
+        :setup:
+            1. Retrieve the name of the network interface that is currently connected using
+                the 'nmcli' command, and saves it to the 'intf' variable.
+            2. Sets up an LDAP connection to the LDAP server using the LdapOperations class.
+            3. Creates a new organizational unit named "Netgroup" under the base DN
+                specified in the 'ds_suffix' variable.
+            4. Creates a new LDAP entry for a netgroup named "netgrp_nowait"
+                under the "Netgroup" organizational unit.
+            5. Use the sssdTools class to update the configuration file for the
+                'nss' and 'domain/example1' sections of the SSSD service.
+            7. Clear the SSSD cache using the 'clear_sssd_cache' method of the sssdTools class.
+            8. Delete the contents of the '/var/log/sssd/sssd_nss.log' file
+            9. Add a 50ms delay to the network interface using the 'tc' command.
+        :steps:
+            1. Measures the response time for the 'getent netgroup netgrp_nowait'
+                command and saves it to the 'res_time' variable.
+            2. Run a loop that repeats the 'getent netgroup netgrp_nowait' command 4 times
+                and checks if the response time is less than to the initial response time.
+            3. Wait for 15 seconds before deleting the contents of the '/var/log/sssd/sssd_nss.log' file again.
+            4. Remove the network delay added in step 9 using the 'tc' command.
+        :expectedresults:
+            1. res_time variable will have the response time
+            2. Response time is less than to the initial response time
+            3. Wait for 15 seconds
+            4. Network delay should be removed
+        """
+        client = multihost.client[0]
+        log_nss = '/var/log/sssd/sssd_nss.log'
+        ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
+        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst.org_unit("Netgroup", ds_suffix)
+        user_dn = f'cn=netgrp_nowait,ou=Netgroup,{ds_suffix}'
+        user_info = {'cn': 'netgrp_nowait'.encode('utf-8'),
+                     'objectClass': ['nisNetgroup'.encode('utf-8'),
+                                     'top'.encode('utf-8')],
+                     'nisNetgroupTriple': '(host1,kau10,example.com)'.encode('utf-8')}
+        ldap_inst.add_entry(user_info, user_dn)
+        tools = sssdTools(multihost.client[0])
+        tools.sssd_conf("nss", {'filter_groups': 'root',
+                                'filter_users': 'root',
+                                'debug_level': '9',
+                                'entry_cache_nowait_percentage': '50'}, action='update')
+        tools.sssd_conf("domain/example1",
+                        {'entry_cache_timeout': '30',
+                         'ldap_netgroup_search_base': f"ou=Netgroup,{ds_suffix}"}, action='update')
+        tools.clear_sssd_cache()
+        client.run_command(f"> {log_nss}")
+        intf = [s for s in client.run_command("nmcli").stdout_text.split('\n')
+                if re.search(r'\b' + "connected to" + r'\b', s)][0].split(":")[0]
+        client.run_command(f"tc qdisc add dev {intf} root netem delay 50ms")
+        start = D_T.now()
+        client.run_command("getent netgroup netgrp_nowait")
+        end = D_T.now()
+        res_time = end - start
+        time.sleep(16)
+        time_diff = []
+        find_logs_results = []
+        for _ in range(4):
+            start = D_T.now()
+            client.run_command("getent netgroup netgrp_nowait")
+            end = D_T.now()
+            loop_response = end - start
+            time_diff.append(loop_response < res_time)
+            time.sleep(3)
+            find_logs_results.append(find_logs(multihost,
+                                               log_nss,
+                                               "Performing midpoint cache "
+                                               "update of [netgrp_nowait@example1]"))
+            client.run_command(f"> {log_nss}")
+            time.sleep(15)
+        client.run_command(f"tc qdisc del dev {intf} root")
+        ldap_inst.del_dn(user_dn)
+        ldap_inst.del_dn(f"ou=Netgroup,{ds_suffix}")
+        assert all(find_logs_results), "Searched string not found in the logs"
+        assert all(time_diff), "Test failed as the cache response time is higher."
