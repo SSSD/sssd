@@ -149,8 +149,8 @@ static void test_file_watch_no_file(bool use_inotify)
     ck_assert_msg(ctx != NULL, "Failed to watch a file.");
     ck_assert_msg(arg.counter == 0, "Unexpected callback invocation.");
 
-    // At this point the file doesn't exist. We create the watched and an
-    // unwatched file
+    /* At this point the file doesn't exist. We create the watched and an
+       unwatched file */
     modify_file(UNWATCHED_FILE);
     modify_file(filename);
     if (use_inotify) {
@@ -162,7 +162,7 @@ static void test_file_watch_no_file(bool use_inotify)
     ck_assert_msg(arg.counter >= 1, "Callback not invoked on creation.");
     ck_assert_msg(arg.counter <= 1, "Callback invoked too many times on creation.");
 
-    // Now just modify the file
+    /* Now just modify the file */
     modify_file(filename);
     if (use_inotify) {
         res = tevent_loop_once(ev);
@@ -205,16 +205,16 @@ static void test_file_watch_with_file(bool use_inotify)
     arg.filename = linkpath;
     arg.counter = 0;
 
-    // File already exists
+    /* File already exists */
     DEBUG(SSSDBG_TRACE_ALL, "Watching link %s\n", linkpath);
     ctx = fw_watch_file(test_mem_ctx, ev, linkpath, use_inotify, callback, &arg);
     ck_assert_msg(ctx != NULL, "Failed to watch a link.");
     ck_assert_msg(arg.counter >= 1, "Callback not invoked at start up.");
     ck_assert_msg(arg.counter <= 1, "Callback invoked too many times at start up.");
 
-    // Now just modify the file
+    /* Now just modify the file */
     if (!use_inotify) {
-        sleep(2); // Detection by polling is based on the file's modification time.
+        sleep(2); /* Detection by polling is based on the file's modification time. */
     }
     modify_file(filepath);
     if (use_inotify) {
