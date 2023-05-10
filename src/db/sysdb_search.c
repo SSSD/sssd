@@ -1225,7 +1225,9 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                     res->msgs[0], ORIGINALAD_PREFIX SYSDB_NAME, NULL);
 
             if (originalad_sanitized_name != NULL
-                    && strcmp(originalad_sanitized_name, sanitized_name) != 0) {
+                    && !sss_string_equal(domain->case_sensitive,
+                                         originalad_sanitized_name,
+                                         sanitized_name)) {
                 fmt_filter = SYSDB_GRNAM_FILTER;
                 base_dn = sysdb_group_base_dn(tmp_ctx, domain);
                 res = NULL;
