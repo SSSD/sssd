@@ -3,4 +3,5 @@ git+https://github.com/next-actions/pytest-importance
 git+https://github.com/next-actions/pytest-mh
 git+https://github.com/next-actions/pytest-ticket
 git+https://github.com/next-actions/pytest-tier
+git+https://github.com/next-actions/pytest-output
 git+https://github.com/SSSD/sssd-test-framework
