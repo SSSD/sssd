@@ -665,7 +665,7 @@ class TestAutoFs(object):
         client.run_command("service autofs restart")
         time.sleep(10)
         with pytest.raises(subprocess.CalledProcessError):
-            client.run_command("cd /folder1/folder2/projects;cd -")
+            client.run_command("ls -d /folder1/folder2/projects")
         find_logs(multihost, log_sssd, f"Searching for automount map entries with base [ou=mount,{ds_suffix}]")
         # Adding the deleted direct map
         user_dn = f'cn=/folder1/folder2/projects,nisMapName=auto.direct,ou=mount,{ds_suffix}'

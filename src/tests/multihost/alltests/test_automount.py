@@ -17,6 +17,16 @@ from sssd.testlib.common.utils import sssdTools, LdapOperations
 JOURNALCTL_CMD = "journalctl -x -n 50 --no-pager"
 
 
+def restart_autofs(multihost):
+    for _ in range(1, 20):
+        cmd = multihost.client[0].run_command("systemctl restart autofs", raiseonerr=False).returncode
+        if cmd == 0:
+            break
+        time.sleep(10)
+    else:
+        raise Exception("autofs restart failed too many times")
+
+
 @pytest.mark.usefixtures("setup_sssd", "create_posix_usersgroups",
                          "enable_autofs_schema", "enable_autofs_service")
 @pytest.mark.automount
@@ -276,7 +286,8 @@ class Testautofsresponder(object):
                                         "rm -rf /var/log/sssd/* ; "
                                         "rm -rf /var/lib/sss/db/* ; "
                                         "systemctl start sssd")
-        multihost.client[0].run_command("systemctl restart autofs")
+        time.sleep(10)
+        restart_autofs(multihost)
         multihost.client[0].run_command("automount -m")
         multihost.master[0].run_command("touch /export1/export1")
         multihost.master[0].run_command("touch /export2/export2")
