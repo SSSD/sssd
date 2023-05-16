@@ -345,12 +345,16 @@ jobs:
       run: |
         set -ex -o pipefail
 
+        mkdir -p $GITHUB_WORKSPACE/artifacts
         source .venv/bin/activate
         pytest \
           --color=yes \
           --mh-config=./mhc.yaml \
           --mh-log-path=$GITHUB_WORKSPACE/mh.log \
           --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
+          --polarion-config=./polarion.yaml \
+          --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
+          --output-polarion-testrun=$GITHUB_WORKSPACE/artifacts/testrun.xml \
           -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
 
     - name: Upload artifacts
