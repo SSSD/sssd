@@ -7,6 +7,7 @@ from sssd_test_framework.config import SSSDMultihostConfig
 
 # Load additional plugins
 pytest_plugins = (
+    "pytest_importance",
     "pytest_mh",
     "pytest_ticket",
     "pytest_tier",
