@@ -1,0 +1,35 @@
+testcase:
+  required:
+    title:
+      transform:
+        pattern: "^(.*)$"
+        replace: "IDM-SSSD-TC: \\1"
+      validate: "IDM-SSSD-TC: (.+)"
+    setup:
+      format: pre
+    steps:
+    expectedresults:
+    customerscenario:
+    caseimportance:
+    requirement:
+  optional:
+    id:
+      default: "idm-sssd-tc::{{ item.id }}"
+    caseautomation:
+      default: "automated"
+    casecomponent:
+      default: "sssd"
+    status:
+      default: "approved"
+    subsystemteam:
+      default: "sst_idm_sssd"
+    upstream:
+      default: "yes"
+    automation_script:
+      default: "{{ tests_url }}/{{ item.location.file }}#L{{ item.location.line }}"
+    testtype:
+      default: "functional"
+    caselevel:
+      default: "system"
+    teardown:
+      format: pre
