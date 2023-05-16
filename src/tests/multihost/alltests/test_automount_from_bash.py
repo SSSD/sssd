@@ -670,7 +670,7 @@ class TestAutoFs(object):
         client.run_command("service autofs restart")
         time.sleep(10)
         with pytest.raises(subprocess.CalledProcessError):
-            client.run_command("cd /folder1/folder2/projects;cd -")
+            client.run_command("ls -d /folder1/folder2/projects")
         find_logs(multihost, log_sssd, f"Searching for automount map entries with base [ou=mount,{ds_suffix}]")
         # Adding the deleted direct map
         user_dn = f'cn=/folder1/folder2/projects,nisMapName=auto.direct,ou=mount,{ds_suffix}'
@@ -956,7 +956,7 @@ class TestAutoFs(object):
                          'nisMapEntry': f'-fstype=nfs,rw {master_server}:/export/foo/testkey{i}'.encode('utf-8')}
             ldap_inst.add_entry(user_info, user_dn)
         dumpmap_fixed_val = "automount - -dumpmaps | wc - l"
-        for i in range(1, 11):
+        for i in range(11):
             dumpmap_current_val = "automount - -dumpmaps | wc - l"
             assert dumpmap_fixed_val == dumpmap_current_val
 

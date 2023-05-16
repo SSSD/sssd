@@ -17,6 +17,16 @@ from sssd.testlib.common.utils import sssdTools, LdapOperations
 JOURNALCTL_CMD = "journalctl -x -n 50 --no-pager"
 
 
+def restart_autofs(multihost):
+    for _ in range(20):
+        cmd = multihost.client[0].run_command("systemctl restart autofs", raiseonerr=False).returncode
+        if cmd == 0:
+            break
+        time.sleep(10)
+    else:
+        raise Exception("autofs restart failed too many times")
+
+
 @pytest.mark.usefixtures("setup_sssd", "create_posix_usersgroups",
                          "enable_autofs_schema", "enable_autofs_service")
 @pytest.mark.automount
@@ -276,7 +286,8 @@ class Testautofsresponder(object):
                                         "rm -rf /var/log/sssd/* ; "
                                         "rm -rf /var/lib/sss/db/* ; "
                                         "systemctl start sssd")
-        multihost.client[0].run_command("systemctl restart autofs")
+        time.sleep(10)
+        restart_autofs(multihost)
         multihost.client[0].run_command("automount -m")
         multihost.master[0].run_command("touch /export1/export1")
         multihost.master[0].run_command("touch /export2/export2")
@@ -395,7 +406,7 @@ class Testautofsresponder(object):
                 multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Failed to restart %s" % service)
         count = 0
-        for i in range(1, 20):
+        for i in range(20):
             path = '/idmtest/foo%d' % (i)
             list_dir = 'ls -l %s' % (path)
             cmd = multihost.client[0].run_command(list_dir, raiseonerr=False)
@@ -429,7 +440,7 @@ class Testautofsresponder(object):
                 multihost.client[0].run_command(JOURNALCTL_CMD)
                 pytest.fail("Failed to restart %s" % service)
         count = 0
-        for i in range(1, 20):
+        for i in range(20):
             path = '/idmtest/foo%d' % (i)
             list_dir = 'ls -l %s' % (path)
             cmd = multihost.client[0].run_command(list_dir, raiseonerr=False)
@@ -447,7 +458,7 @@ class Testautofsresponder(object):
                                                '/tmp/automount.txt')
         with open('/tmp/automount.txt', 'r') as outfile:
             tcpdump_ascii = outfile.read()
-        for i in range(1, 10):
+        for i in range(10):
             key = 'foo%d' % i
             ldap_filter = r'\(\&\(cn=%s\)\(objectclass=nisObject\)\)' % key
             log_1 = re.compile(r'%s' % (ldap_filter))
