@@ -117,23 +117,23 @@ man_MANS += sssd-files.5
 endif # BUILD_FILES_PROVIDER
 endif
 
-SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
-.1.xml.1:
-	$(XMLLINT) $(XMLLINT_FLAGS) $<
-	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
-
-.3.xml.3:
-	$(XMLLINT) $(XMLLINT_FLAGS) $<
-	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
-
-.5.xml.5:
+$(builddir)/src/man/sssd_user_name.include:
 	@mkdir -p $(builddir)/src/man
 	@echo -n $(SSSD_USER) > $(builddir)/src/man/sssd_user_name.include
+
+%.1: %.1.xml
+	$(XMLLINT) $(XMLLINT_FLAGS) $<
+	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
+
+%.3: %.3.xml
+	$(XMLLINT) $(XMLLINT_FLAGS) $<
+	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
+
+%.5: %.5.xml $(builddir)/src/man/sssd_user_name.include
 	$(XMLLINT) --path "$(srcdir)/src/man:$(builddir)/src/man" $(XMLLINT_FLAGS) $<
 	$(XSLTPROC) --path "$(srcdir)/src/man:$(builddir)/src/man" -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
-	@rm -f $(builddir)/src/man/sssd_user_name.include
 
-.8.xml.8:
+%.8: %.8.xml
 	$(XMLLINT) $(XMLLINT_FLAGS) $<
 	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
 
@@ -215,6 +215,7 @@ clean-local:
 	done
 	rm -f $(man_MANS)
 	rm -f man.stamp
+	rm -f $(builddir)/src/man/sssd_user_name.include
 
 else
 
@@ -224,6 +225,7 @@ man.stamp: $(XML_DOC)
 clean-local:
 	rm -f $(man_MANS)
 	rm -f man.stamp
+	rm -f $(builddir)/src/man/sssd_user_name.include
 
 endif
 
