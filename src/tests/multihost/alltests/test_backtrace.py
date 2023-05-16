@@ -103,7 +103,7 @@ class TestPoorManBacktrace(object):
             decode('utf-8')
         print(f'\n{logfile}\n+===++++++===+\n{log_str2}\n')
         # Check the backtrace is dumped first time and no backtrace is skipped
-        assert pattern.search(log_str1) and not pattern2.search(log_str1)
+        assert len(pattern.findall(log_str1)) == len(pattern2.findall(log_str1)) == 1
         # Check there is no new backtrace with the same issue and repeative
         # backtrace is skipped
         assert pattern2.search(log_str2) and not pattern.search(log_str2)
