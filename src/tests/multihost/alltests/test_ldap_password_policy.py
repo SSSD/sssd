@@ -181,7 +181,7 @@ class TestPasswordPolicy():
         find_logs(multihost, file_ssd, "Password expired user must set a new password")
         ldap_modify_ds(multihost, ldap.MOD_REPLACE, cn_config, 'passwordExp', [b'off'])
         time.sleep(3)
-        assert tools.auth_client_ssh_password('ppuser1', 'NewPass_123')
+        assert tools.auth_client_ssh_password('ppuser1', 'Secret123')
         ldap_modify_ds(multihost, ldap.MOD_REPLACE, user_dn, 'userPassword', [b'Secret123'])
 
     @staticmethod
