@@ -1034,8 +1034,7 @@ bool may_do_passkey_auth(struct pam_ctx *pctx,
 #ifndef BUILD_PASSKEY
     DEBUG(SSSDBG_TRACE_FUNC, "Passkey auth not possible, SSSD built without passkey support!\n");
     return false;
-#endif
-
+#else
     if (!pctx->passkey_auth) {
         return false;
     }
@@ -1049,4 +1048,5 @@ bool may_do_passkey_auth(struct pam_ctx *pctx,
     }
 
     return true;
+#endif /* BUILD_PASSKEY */
 }
