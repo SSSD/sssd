@@ -4,14 +4,14 @@
 # Ludek Janda <ljanda@redhat.com>, 2021.
 # simmon <simmon@nplob.com>, 2021.
 # seo hojin <jinswhat@naver.com>, 2021.
-# 김인수 <simmon@nplob.com>, 2022.
+# 김인수 <simmon@nplob.com>, 2022, 2023.
 # Transtats <suanand@redhat.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-04 11:14+0200\n"
-"PO-Revision-Date: 2022-12-13 14:19+0000\n"
+"PO-Revision-Date: 2023-05-18 18:20+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-8/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.2\n"
+"X-Generator: Weblate 4.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -2127,11 +2127,11 @@ msgstr "암호: "
 
 #: src/sss_client/pam_sss.c:2502 src/sss_client/pam_sss.c:2505
 msgid "First Factor (Current Password): "
-msgstr "첫 번째 요인 (현재 암호): "
+msgstr "첫 번째 요인 (현재 비밀번호): "
 
 #: src/sss_client/pam_sss.c:2509
 msgid "Current Password: "
-msgstr "현재 암호: "
+msgstr "현재 비밀번호: "
 
 #: src/sss_client/pam_sss.c:2866
 msgid "Password expired. Change your password now."
