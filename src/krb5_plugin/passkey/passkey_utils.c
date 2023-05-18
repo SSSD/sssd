@@ -535,7 +535,7 @@ sss_passkey_prefix_json_data(enum sss_passkey_phase phase,
     json_error_t jret;
     json_t *jroot;
     struct sss_passkey_message *message;
-    void *data;
+    struct sss_passkey_reply *data;
 
     if (json_str == NULL) {
         return NULL;
@@ -553,9 +553,7 @@ sss_passkey_prefix_json_data(enum sss_passkey_phase phase,
     }
 
     message = sss_passkey_message_init(phase, state, data);
-    if (message == NULL && phase == SSS_PASSKEY_PHASE_CHALLENGE) {
-        sss_passkey_challenge_free(data);
-    } else if (message == NULL && phase == SSS_PASSKEY_PHASE_REPLY) {
+    if (message == NULL) {
         sss_passkey_reply_free(data);
     }
 
