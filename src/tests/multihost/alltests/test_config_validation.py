@@ -432,9 +432,8 @@ class TestConfigValidation(object):
         multihost.client[0].run_command(rm_cmd, raiseonerr=False)
         sssctl_cmd = 'sssctl config-check'
         cmd = multihost.client[0].run_command(sssctl_cmd, raiseonerr=False)
-        assert cmd.returncode == 0
         log = re.compile(r'sssd.conf\sdoes\snot\sexist')
-        assert log.search(cmd.stdout_text)
+        assert cmd.returncode == 1 and log.search(cmd.stdout_text)
 
     @pytest.mark.tier1
     def test_0023_checkldaphostobjectdomain(self, multihost, backupsssdconf):
@@ -618,8 +617,7 @@ class TestConfigValidation(object):
          existing snippet directory
         :id: 3d30164f-b80b-4594-883d-1783d9337031
         """
-        sssctl_cmd = 'sssctl config-check -c /tmp/test/sssd.conf -s ' \
-                     '/tmp/does/not/exists'
+        sssctl_cmd = 'sssctl config-check -s /tmp/does/not/exists'
         sssctl_check = multihost.client[0].run_command(sssctl_cmd,
                                                        raiseonerr=False)
         result = sssctl_check.stdout_text.strip()
