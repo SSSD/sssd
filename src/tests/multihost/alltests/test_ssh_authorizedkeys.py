@@ -32,14 +32,8 @@ class TestSSHkeys(object):
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
         user = 'foo1@%s' % domain_name
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login()
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % user)
-        else:
-            client.logout()
+        ssh = tools.auth_from_client(user, 'Secret123') == 3
+        assert ssh, f"Ssh failed for user {user}!"
         domain_log = '/var/log/sssd/sssd_%s.log' % domain_name
         log = multihost.client[0].get_file_contents(domain_log).decode('utf-8')
         msg = 'Adding sshPublicKey'
