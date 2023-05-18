@@ -48,6 +48,7 @@ class TestOffline(object):
             get_date = multihost.client[0].run_command(date, raiseonerr=False)
             date_org = get_date.stdout_text
             date = '"' + date_org[0:19] + '"'
+            multihost.client[0].service_sssd('restart')
             # Check server status in syslog
             syslog = 'journalctl --since %s -xeu sssd' % date
             time.sleep(80)
