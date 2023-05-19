@@ -18,9 +18,9 @@ from constants import ds_instance_name, ds_suffix, ds_rootpw, ds_rootdn
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
 @pytest.mark.defaultdebuglevel
-@pytest.mark.tier1_4
 class TestDefaultDebugLevel(object):
     """ Check sssd default debug level """
+    @pytest.mark.tier1_4
     def test_0001_check_default_debug_level(self, multihost, backupsssdconf):
         """
         :title: default debug logs: Check default debug level when sssd start
@@ -62,6 +62,7 @@ class TestDefaultDebugLevel(object):
                 debug_str1 = pattern2.search(log_single_line)
                 assert debug_str1.group() == '(0x3f7c0)'
 
+    @pytest.mark.tier1_4
     def test_0002_check_default_level_with_auth(self, multihost,
                                                 backupsssdconf):
         """
@@ -110,6 +111,7 @@ class TestDefaultDebugLevel(object):
         print("after auth:", alog_size.stdout_text)
         assert alog_size.stdout_text == blog_size.stdout_text
 
+    @pytest.mark.tier2
     def test_0003_bz1893159(self, multihost, backupsssdconf):
         """
         :title: default debug logs: Check that messages with levels 0 and 1
@@ -149,6 +151,7 @@ class TestDefaultDebugLevel(object):
         if not find1.search(log_str) and not find2.search(log_str):
             assert False
 
+    @pytest.mark.tier1_4
     def test_0004_bz1893159(self, multihost, backupsssdconf):
         """
         :title: default debug logs: Check default level 2
@@ -177,6 +180,7 @@ class TestDefaultDebugLevel(object):
         find = re.compile(r'.0x0040.')
         assert find.search(log_str)
 
+    @pytest.mark.tier1_4
     def test_0005_bz1915319(self, multihost, backupsssdconf):
         """
         :title: default debug logs: Check SBUS code should not trigger failure
@@ -206,6 +210,7 @@ class TestDefaultDebugLevel(object):
             assert not find.search(log_str)
 
     @staticmethod
+    @pytest.mark.tier2
     def test_bz785908(multihost, backupsssdconf):
         """
         :title: ldap search base dose not fully limit the group search base bz785908
@@ -306,6 +311,7 @@ class TestDefaultDebugLevel(object):
             assert group in cmd
 
     @staticmethod
+    @pytest.mark.tier1_4
     def test_bz785898(multihost, backupsssdconf):
         """
         :title: Enable midway cache refresh by default bz785898
