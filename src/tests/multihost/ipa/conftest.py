@@ -21,7 +21,7 @@ pytest_plugins = (
 def pytest_configure():
     """ Namespace hook to add below dict in the pytest namespace """
     pytest.num_masters = 1
-    pytest.num_ad = 1
+    pytest.num_ad = 0
     pytest.num_atomic = 0
     pytest.num_replicas = 0
     pytest.num_clients = 1
@@ -223,6 +223,7 @@ def environment_setup(session_multihost, request):
                        " -y shadow-utils*")
     client.run_command("yum install -y gcc")
     client.run_command("yum install -y podman")
+    client.run_command("yum install -y sssd")
     with pytest.raises(subprocess.CalledProcessError):
         client.run_command("grep subid /etc/nsswitch.conf")
     file_location = "/data/list_subid_ranges.c"
