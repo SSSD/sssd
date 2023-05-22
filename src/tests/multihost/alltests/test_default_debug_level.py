@@ -156,28 +156,54 @@ class TestDefaultDebugLevel(object):
         """
         :title: default debug logs: Check default level 2
         :id: d44d5883-fc52-418d-b407-3ac63f7104d8
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1893159
+        :setup:
+          1. Remove debug_level option from sssd.conf
+          2. Set domains = typo_domain (non existing) in [sssd] section
+          3. Start sssd after clearing cache and logs
         :steps:
-          1. Remove debug_level from sssd.conf
-          2. Start sssd after clearing cache and logs
-          3. Kill pid of sssd with signal SIGUSR2
-          4. Check logs
+          1. Check sssd.log contains log related to 'SSSD cannot load config'
         :expectedresults:
-          1. sssd should use default debug level with no level defined
-          2. Succeeds
-          3. sssd process is killed
-          4. logs of level of 0x0040 are in the log file
+          1. /var/log/sssd/sssd.log contains 'SSSD couldn't load configuration' log
         """
         section = f"domain/{ds_instance_name}"
         domain_params = {'debug_level': ''}
         tools = sssdTools(multihost.client[0])
         tools.sssd_conf(section, domain_params, action='delete')
-        tools.clear_sssd_cache()
-        cmd_kill = 'kill -SIGUSR2 $(pidof sssd)'
-        multihost.client[0].run_command(cmd_kill, raiseonerr=False)
-        logfilename = 'sssd'
-        log = f'/var/log/sssd/{logfilename}.log'
+        tools.sssd_conf('sssd', {'domains': 'some'}, action='update')
+        multihost.client[0].service_sssd('stop')
+        tools.remove_sss_cache('/var/log/sssd')
+        multihost.client[0].run_command('systemctl start sssd', raiseonerr=False)
+        log = '/var/log/sssd/sssd.log'
         log_str = multihost.client[0].get_file_contents(log).decode('utf-8')
-        find = re.compile(r'.0x0040.')
+        pattern = re.compile(r'SSSD couldn\'t load the configuration database')
+        assert pattern.search(log_str)
+
+    @pytest.mark.tier1_4
+    def test_bz1893159(self, multihost, backupsssdconf):
+        """
+        :title: default debug logs: default log level logs in sssd.log
+        :id: 8f9c8c47-a1f6-4ec0-b979-202d8d6dc6c3
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1893159
+        :setup:
+          1. Remove debug_level option from sssd.conf
+          2. Set ldap_uri to a non-existing ldap-server
+          3. Start sssd after clearing cache and logs
+        :steps:
+          1. Check logs
+        :expectedresults:
+          1. Domain Logs should contain a log related to 'going offline'
+        """
+        section = f"domain/{ds_instance_name}"
+        domain_params = {'debug_level': ''}
+        tools = sssdTools(multihost.client[0])
+        tools.sssd_conf(section, domain_params, action='delete')
+        tools.sssd_conf(section, {'ldap_uri': 'ldap://typo'} , action='update')
+        tools.clear_sssd_cache()
+        log = f'/var/log/sssd/sssd_{ds_instance_name}.log'
+        log_str = multihost.client[0].get_file_contents(log).decode('utf-8')
+        find = re.compile(r'Failed to connect, going offline')
+        #check what is logged at default debug_level(2)
         assert find.search(log_str)
 
     @pytest.mark.tier1_4
@@ -225,7 +251,7 @@ class TestDefaultDebugLevel(object):
         :steps:
             1. Runs command getent -s sss group to query the SSSD cache and save the results to a file.
             2. Cleans up the LDAP server by deleting the previously created user and group entries,
-                and finally search for log messages containing the strings "Group111" and "Group22".
+               and finally search for log messages containing the strings "Group111" and "Group22".
         :expectedresults:
             1. Query the SSSD cache and save the results to a file Should succeed
             2. Log messages should containing the strings
