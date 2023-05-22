@@ -60,54 +60,6 @@
 #define SSS_DEFAULT_WRITE_FLAGS 0
 #endif
 
-/* common functions */
-
-#ifdef HAVE_PTHREAD_EXT
-static pthread_key_t sss_sd_key;
-static pthread_once_t sss_sd_key_init = PTHREAD_ONCE_INIT;
-static atomic_bool sss_sd_key_initialized = false;
-static __thread int sss_cli_sd = -1; /* the sss client socket descriptor */
-static __thread struct stat sss_cli_sb; /* the sss client stat buffer */
-#else
-static int sss_cli_sd = -1; /* the sss client socket descriptor */
-static struct stat sss_cli_sb; /* the sss client stat buffer */
-#endif
-
-void sss_cli_close_socket(void)
-{
-    if (sss_cli_sd != -1) {
-        close(sss_cli_sd);
-        sss_cli_sd = -1;
-    }
-}
-
-#ifdef HAVE_PTHREAD_EXT
-static void sss_at_thread_exit(void *v)
-{
-    sss_cli_close_socket();
-}
-
-static void init_sd_key(void)
-{
-    pthread_key_create(&sss_sd_key, sss_at_thread_exit);
-    sss_sd_key_initialized = true;
-}
-#endif
-
-#if HAVE_FUNCTION_ATTRIBUTE_DESTRUCTOR
-__attribute__((destructor)) void sss_at_lib_unload(void)
-{
-#ifdef HAVE_PTHREAD_EXT
-    if (sss_sd_key_initialized) {
-        sss_sd_key_initialized = false;
-        pthread_key_delete(sss_sd_key);
-    }
-#endif
-    sss_cli_close_socket();
-}
-#endif
-
-
 /* Requests:
  *
  * byte 0-3: 32bit unsigned with length (the complete packet length: 0 to X)
@@ -116,7 +68,8 @@ __attribute__((destructor)) void sss_at_lib_unload(void)
  * byte 12-15: 32bit unsigned (reserved)
  * byte 16-X: (optional) request structure associated to the command code used
  */
-static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
+static enum sss_status sss_cli_send_req(int sd,
+                                        enum sss_cli_command cmd,
                                         struct sss_cli_req_data *rd,
                                         int timeout,
                                         int *errnop)
@@ -137,7 +90,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
         int res, error;
 
         *errnop = 0;
-        pfd.fd = sss_cli_sd;
+        pfd.fd = sd;
         pfd.events = POLLOUT;
 
         do {
@@ -159,11 +112,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
             *errnop = ETIME;
             break;
         case 1:
-            if (pfd.revents & (POLLERR | POLLHUP)) {
-                *errnop = EPIPE;
-            } else if (pfd.revents & POLLNVAL) {
-                /* Invalid request: fd is not opened */
-                sss_cli_sd = -1;
+            if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
                 *errnop = EPIPE;
             } else if (!(pfd.revents & POLLOUT)) {
                 *errnop = EBUSY;
@@ -174,19 +123,18 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
             break;
         }
         if (*errnop) {
-            sss_cli_close_socket();
             return SSS_STATUS_UNAVAIL;
         }
 
         errno = 0;
         if (datasent < SSS_NSS_HEADER_SIZE) {
-            res = send(sss_cli_sd,
+            res = send(sd,
                        (char *)header + datasent,
                        SSS_NSS_HEADER_SIZE - datasent,
                        SSS_DEFAULT_WRITE_FLAGS);
         } else {
             rdsent = datasent - SSS_NSS_HEADER_SIZE;
-            res = send(sss_cli_sd,
+            res = send(sd,
                        (const char *)rd->data + rdsent,
                        rd->len - rdsent,
                        SSS_DEFAULT_WRITE_FLAGS);
@@ -202,7 +150,6 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
             }
 
             /* Write failed */
-            sss_cli_close_socket();
             *errnop = error;
             return SSS_STATUS_UNAVAIL;
         }
@@ -222,7 +169,8 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
  * byte 16-X: (optional) reply structure associated to the command code used
  */
 
-static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
+static enum sss_status sss_cli_recv_rep(int sd,
+                                        enum sss_cli_command cmd,
                                         int timeout,
                                         uint8_t **_buf, int *_len,
                                         int *errnop)
@@ -230,7 +178,6 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
     uint32_t header[4];
     size_t datarecv;
     uint8_t *buf = NULL;
-    bool pollhup = false;
     int len;
     int ret;
 
@@ -249,7 +196,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
         int bufrecv;
         int res, error;
 
-        pfd.fd = sss_cli_sd;
+        pfd.fd = sd;
         pfd.events = POLLIN;
 
         do {
@@ -271,14 +218,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
             *errnop = ETIME;
             break;
         case 1:
-            if (pfd.revents & (POLLHUP)) {
-                pollhup = true;
-            }
-            if (pfd.revents & POLLERR) {
-                *errnop = EPIPE;
-            } else if (pfd.revents & POLLNVAL) {
-                /* Invalid request: fd is not opened */
-                sss_cli_sd = -1;
+            if (pfd.revents & (POLLERR | POLLNVAL)) {
                 *errnop = EPIPE;
             } else if (!(pfd.revents & POLLIN)) {
                 *errnop = EBUSY;
@@ -289,19 +229,18 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
             break;
         }
         if (*errnop) {
-            sss_cli_close_socket();
             ret = SSS_STATUS_UNAVAIL;
             goto failed;
         }
 
         errno = 0;
         if (datarecv < SSS_NSS_HEADER_SIZE) {
-            res = read(sss_cli_sd,
+            res = read(sd,
                        (char *)header + datarecv,
                        SSS_NSS_HEADER_SIZE - datarecv);
         } else {
             bufrecv = datarecv - SSS_NSS_HEADER_SIZE;
-            res = read(sss_cli_sd,
+            res = read(sd,
                        (char *) buf + bufrecv,
                        header[0] - datarecv);
         }
@@ -320,7 +259,6 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
              * since the transaction has failed half way
              * through. */
 
-            sss_cli_close_socket();
             *errnop = error;
             ret = SSS_STATUS_UNAVAIL;
             goto failed;
@@ -334,7 +272,6 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
              * been read, do checks and proceed */
             if (header[2] != 0) {
                 /* server side error */
-                sss_cli_close_socket();
                 *errnop = header[2];
                 if (*errnop == EAGAIN) {
                     ret = SSS_STATUS_TRYAGAIN;
@@ -346,7 +283,6 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
             }
             if (header[1] != cmd) {
                 /* wrong command id */
-                sss_cli_close_socket();
                 *errnop = EBADMSG;
                 ret = SSS_STATUS_UNAVAIL;
                 goto failed;
@@ -355,17 +291,12 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
                 len = header[0] - SSS_NSS_HEADER_SIZE;
                 buf = malloc(len);
                 if (!buf) {
-                    sss_cli_close_socket();
                     *errnop = ENOMEM;
                     ret = SSS_STATUS_UNAVAIL;
                     goto failed;
                 }
             }
         }
-    }
-
-    if (pollhup) {
-        sss_cli_close_socket();
     }
 
     *_len = len;
@@ -381,6 +312,7 @@ failed:
 /* this function will check command codes match and returned length is ok */
 /* repbuf and replen report only the data section not the header */
 static enum sss_status sss_cli_make_request_nochecks(
+                                       int sd,
                                        enum sss_cli_command cmd,
                                        struct sss_cli_req_data *rd,
                                        int timeout,
@@ -392,13 +324,13 @@ static enum sss_status sss_cli_make_request_nochecks(
     int len = 0;
 
     /* send data */
-    ret = sss_cli_send_req(cmd, rd, timeout, errnop);
+    ret = sss_cli_send_req(sd, cmd, rd, timeout, errnop);
     if (ret != SSS_STATUS_SUCCESS) {
         return ret;
     }
 
     /* data sent, now get reply */
-    ret = sss_cli_recv_rep(cmd, timeout, &buf, &len, errnop);
+    ret = sss_cli_recv_rep(sd, cmd, timeout, &buf, &len, errnop);
     if (ret != SSS_STATUS_SUCCESS) {
         return ret;
     }
@@ -424,7 +356,7 @@ static enum sss_status sss_cli_make_request_nochecks(
  * 0-3: 32bit unsigned version number
  */
 
-static bool sss_cli_check_version(const char *socket_name, int timeout)
+static bool sss_cli_check_version(int sd, const char *socket_name, int timeout)
 {
     uint8_t *repbuf = NULL;
     size_t replen;
@@ -454,7 +386,7 @@ static bool sss_cli_check_version(const char *socket_name, int timeout)
     req.len = sizeof(expected_version);
     req.data = &expected_version;
 
-    nret = sss_cli_make_request_nochecks(SSS_GET_VERSION, &req, timeout,
+    nret = sss_cli_make_request_nochecks(sd, SSS_GET_VERSION, &req, timeout,
                                          &repbuf, &replen, &errnop);
     if (nret != SSS_STATUS_SUCCESS) {
         return false;
@@ -591,16 +523,6 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
         return -1;
     }
 
-#ifdef HAVE_PTHREAD_EXT
-    pthread_once(&sss_sd_key_init, init_sd_key); /* once for all threads */
-
-    /* It actually doesn't matter what value to set for a key.
-     * The only important thing: key must be non-NULL to ensure
-     * destructor is executed at thread exit.
-     */
-    pthread_setspecific(sss_sd_key, &sss_cli_sd);
-#endif
-
     /* set as non-blocking, close on exec, and make sure standard
      * descriptors are not used */
     sd = make_safe_fd(sd);
@@ -670,103 +592,24 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
         return -1;
     }
 
-    ret = fstat(sd, &sss_cli_sb);
-    if (ret != 0) {
-        close(sd);
-        return -1;
-    }
-
     return sd;
 }
 
-static enum sss_status sss_cli_check_socket(int *errnop,
-                                            const char *socket_name,
-                                            int timeout)
+static enum sss_status sss_open_socket(int *errnop,
+                                       const char *socket_name,
+                                       int timeout,
+                                       int *_sd)
 {
-    static pid_t mypid_s;
-    static ino_t myself_ino;
-    struct stat mypid_sb, myself_sb;
-    pid_t mypid_d;
-    int mysd;
-    int ret;
-
-    ret = lstat("/proc/self/", &myself_sb);
-    mypid_d = getpid();
-    if (mypid_d != mypid_s || (ret == 0 && myself_sb.st_ino != myself_ino)) {
-        ret = fstat(sss_cli_sd, &mypid_sb);
-        if (ret == 0) {
-            if (S_ISSOCK(mypid_sb.st_mode) &&
-                mypid_sb.st_dev == sss_cli_sb.st_dev &&
-                mypid_sb.st_ino == sss_cli_sb.st_ino) {
-                sss_cli_close_socket();
-            }
-        }
-        sss_cli_sd = -1;
-        mypid_s = mypid_d;
-        myself_ino = myself_sb.st_ino;
-    }
-
-    /* check if the socket has been closed on the other side */
-    if (sss_cli_sd != -1) {
-        struct pollfd pfd;
-        int res, error;
-
-        *errnop = 0;
-        pfd.fd = sss_cli_sd;
-        pfd.events = POLLIN | POLLOUT;
-
-        do {
-            errno = 0;
-            res = poll(&pfd, 1, timeout);
-            error = errno;
-
-            /* If error is EINTR here, we'll try again
-             * If it's any other error, we'll catch it
-             * below.
-             */
-        } while (error == EINTR);
-
-        switch (res) {
-        case -1:
-            *errnop = error;
-            break;
-        case 0:
-            *errnop = ETIME;
-            break;
-        case 1:
-            if (pfd.revents & (POLLERR | POLLHUP)) {
-                *errnop = EPIPE;
-            } else if (pfd.revents & POLLNVAL) {
-                /* Invalid request: fd is not opened */
-                sss_cli_sd = -1;
-                *errnop = EPIPE;
-            } else if (!(pfd.revents & (POLLIN | POLLOUT))) {
-                *errnop = EBUSY;
-            }
-            break;
-        default: /* more than one available!? */
-            *errnop = EBADF;
-            break;
-        }
-        if (*errnop == 0) {
-            return SSS_STATUS_SUCCESS;
-        }
-
-        sss_cli_close_socket();
-    }
-
-    mysd = sss_cli_open_socket(errnop, socket_name, timeout);
-    if (mysd == -1) {
+    *_sd = sss_cli_open_socket(errnop, socket_name, timeout);
+    if (*_sd == -1) {
         return SSS_STATUS_UNAVAIL;
     }
 
-    sss_cli_sd = mysd;
-
-    if (sss_cli_check_version(socket_name, timeout)) {
+    if (sss_cli_check_version(*_sd, socket_name, timeout)) {
         return SSS_STATUS_SUCCESS;
     }
 
-    sss_cli_close_socket();
+    close(*_sd);
     *errnop = EFAULT;
     return SSS_STATUS_UNAVAIL;
 }
@@ -781,6 +624,7 @@ enum nss_status sss_nss_make_request_timeout(enum sss_cli_command cmd,
 {
     enum sss_status ret;
     char *envval;
+    int sd = -1;
 
     /* avoid looping in the nss daemon */
     envval = getenv("_SSS_LOOPS");
@@ -788,7 +632,7 @@ enum nss_status sss_nss_make_request_timeout(enum sss_cli_command cmd,
         return NSS_STATUS_NOTFOUND;
     }
 
-    ret = sss_cli_check_socket(errnop, SSS_NSS_SOCKET_NAME, timeout);
+    ret = sss_open_socket(errnop, SSS_NSS_SOCKET_NAME, timeout, &sd);
     if (ret != SSS_STATUS_SUCCESS) {
 #ifdef NONSTANDARD_SSS_NSS_BEHAVIOUR
         *errnop = 0;
@@ -799,25 +643,11 @@ enum nss_status sss_nss_make_request_timeout(enum sss_cli_command cmd,
 #endif
     }
 
-    ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+    ret = sss_cli_make_request_nochecks(sd, cmd, rd, timeout, repbuf, replen,
                                         errnop);
-    if (ret == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
-        /* try reopen socket */
-        ret = sss_cli_check_socket(errnop, SSS_NSS_SOCKET_NAME, timeout);
-        if (ret != SSS_STATUS_SUCCESS) {
-#ifdef NONSTANDARD_SSS_NSS_BEHAVIOUR
-            *errnop = 0;
-            errno = 0;
-            return NSS_STATUS_NOTFOUND;
-#else
-            return NSS_STATUS_UNAVAIL;
-#endif
-        }
 
-        /* and make request one more time */
-        ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
-                                            errnop);
-    }
+    close(sd);
+
     switch (ret) {
     case SSS_STATUS_TRYAGAIN:
         return NSS_STATUS_TRYAGAIN;
@@ -844,20 +674,6 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
                                         repbuf, replen, errnop);
 }
 
-int sss_pac_check_and_open(void)
-{
-    enum sss_status ret;
-    int errnop;
-
-    ret = sss_cli_check_socket(&errnop, SSS_PAC_SOCKET_NAME,
-                               SSS_CLI_SOCKET_TIMEOUT);
-    if (ret != SSS_STATUS_SUCCESS) {
-        return EIO;
-    }
-
-    return EOK;
-}
-
 int sss_pac_make_request(enum sss_cli_command cmd,
                          struct sss_cli_req_data *rd,
                          uint8_t **repbuf, size_t *replen,
@@ -866,6 +682,7 @@ int sss_pac_make_request(enum sss_cli_command cmd,
     enum sss_status ret;
     char *envval;
     int timeout = SSS_CLI_SOCKET_TIMEOUT;
+    int sd = -1;
 
     /* avoid looping in the nss daemon */
     envval = getenv("_SSS_LOOPS");
@@ -873,24 +690,16 @@ int sss_pac_make_request(enum sss_cli_command cmd,
         return NSS_STATUS_NOTFOUND;
     }
 
-    ret = sss_cli_check_socket(errnop, SSS_PAC_SOCKET_NAME, timeout);
+    ret = sss_open_socket(errnop, SSS_PAC_SOCKET_NAME, timeout, &sd);
     if (ret != SSS_STATUS_SUCCESS) {
         return NSS_STATUS_UNAVAIL;
     }
 
-    ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+    ret = sss_cli_make_request_nochecks(sd, cmd, rd, timeout, repbuf, replen,
                                         errnop);
-    if (ret == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
-        /* try reopen socket */
-        ret = sss_cli_check_socket(errnop, SSS_PAC_SOCKET_NAME, timeout);
-        if (ret != SSS_STATUS_SUCCESS) {
-            return NSS_STATUS_UNAVAIL;
-        }
 
-        /* and make request one more time */
-        ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
-                                            errnop);
-    }
+    close(sd);
+
     switch (ret) {
     case SSS_STATUS_TRYAGAIN:
         return NSS_STATUS_TRYAGAIN;
@@ -954,6 +763,7 @@ int sss_pam_make_request(enum sss_cli_command cmd,
     struct stat stat_buf;
     const char *socket_name;
     int timeout = SSS_CLI_SOCKET_TIMEOUT;
+    int sd = -1;
 
     sss_pam_lock();
 
@@ -1009,34 +819,24 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         }
     }
 
-    status = sss_cli_check_socket(errnop, socket_name, timeout);
+    status = sss_open_socket(errnop, socket_name, timeout, &sd);
     if (status != SSS_STATUS_SUCCESS) {
         ret = PAM_SERVICE_ERR;
         goto out;
     }
 
-    error = check_server_cred(sss_cli_sd);
+    error = check_server_cred(sd);
     if (error != 0) {
-        sss_cli_close_socket();
+        close(sd);
         *errnop = error;
         ret = PAM_SERVICE_ERR;
         goto out;
     }
 
-    status = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+    status = sss_cli_make_request_nochecks(sd, cmd, rd, timeout, repbuf, replen,
                                            errnop);
-    if (status == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
-        /* try reopen socket */
-        status = sss_cli_check_socket(errnop, socket_name, timeout);
-        if (status != SSS_STATUS_SUCCESS) {
-            ret = PAM_SERVICE_ERR;
-            goto out;
-        }
 
-        /* and make request one more time */
-        status = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
-                                               errnop);
-    }
+    close(sd);
 
     if (status == SSS_STATUS_SUCCESS) {
         ret = PAM_SUCCESS;
@@ -1058,25 +858,17 @@ sss_cli_make_request_with_checks(enum sss_cli_command cmd,
                                  const char *socket_name)
 {
     enum sss_status ret = SSS_STATUS_UNAVAIL;
+    int sd = -1;
 
-    ret = sss_cli_check_socket(errnop, socket_name, timeout);
+    ret = sss_open_socket(errnop, socket_name, timeout, &sd);
     if (ret != SSS_STATUS_SUCCESS) {
         return SSS_STATUS_UNAVAIL;
     }
 
-    ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+    ret = sss_cli_make_request_nochecks(sd, cmd, rd, timeout, repbuf, replen,
                                         errnop);
-    if (ret == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
-        /* try reopen socket */
-        ret = sss_cli_check_socket(errnop, socket_name, timeout);
-        if (ret != SSS_STATUS_SUCCESS) {
-            return SSS_STATUS_UNAVAIL;
-        }
 
-        /* and make request one more time */
-        ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
-                                            errnop);
-    }
+    close(sd);
 
     return ret;
 }
@@ -1186,12 +978,13 @@ errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len)
 
 #if HAVE_PTHREAD
 
-#ifdef HAVE_PTHREAD_EXT
-static bool sss_lock_free = true;
-static pthread_once_t sss_lock_mode_initialized = PTHREAD_ONCE_INIT;
+static atomic_bool sss_lock_free = true;
+static atomic_bool sss_lock_mode_initialized = false;
 
 static void init_lock_mode(void)
 {
+    sss_lock_mode_initialized = true;
+
     const char *env = getenv("SSS_LOCKFREE");
 
     if ((env != NULL) && (strcasecmp(env, "NO") == 0)) {
@@ -1201,10 +994,11 @@ static void init_lock_mode(void)
 
 bool sss_is_lockfree_mode(void)
 {
-    pthread_once(&sss_lock_mode_initialized, init_lock_mode);
+    if (!sss_lock_mode_initialized) {
+        init_lock_mode();
+    }
     return sss_lock_free;
 }
-#endif
 
 struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 static struct sss_mutex sss_pam_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
@@ -1212,11 +1006,9 @@ static struct sss_mutex sss_pac_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
 static void sss_mt_lock(struct sss_mutex *m)
 {
-#ifdef HAVE_PTHREAD_EXT
     if (sss_is_lockfree_mode()) {
         return;
     }
-#endif
 
     pthread_mutex_lock(&m->mtx);
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &m->old_cancel_state);
@@ -1224,11 +1016,9 @@ static void sss_mt_lock(struct sss_mutex *m)
 
 static void sss_mt_unlock(struct sss_mutex *m)
 {
-#ifdef HAVE_PTHREAD_EXT
     if (sss_is_lockfree_mode()) {
         return;
     }
-#endif
 
     pthread_setcancelstate(m->old_cancel_state, NULL);
     pthread_mutex_unlock(&m->mtx);
@@ -1275,6 +1065,7 @@ void sss_nss_mc_lock(void) { return; }
 void sss_nss_mc_unlock(void) { return; }
 void sss_pac_lock(void) { return; }
 void sss_pac_unlock(void) { return; }
+
 #endif
 
 

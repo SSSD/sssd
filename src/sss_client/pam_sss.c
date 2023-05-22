@@ -109,22 +109,6 @@ static void free_exp_data(pam_handle_t *pamh, void *ptr, int err)
     free(ptr);
 }
 
-static void close_fd(pam_handle_t *pamh, void *ptr, int err)
-{
-#ifdef PAM_DATA_REPLACE
-    if (err & PAM_DATA_REPLACE) {
-        /* Nothing to do */
-        return;
-    }
-#endif /* PAM_DATA_REPLACE */
-
-    D(("Closing the fd"));
-
-    sss_pam_lock();
-    sss_cli_close_socket();
-    sss_pam_unlock();
-}
-
 struct cert_auth_info {
     char *cert_user;
     char *cert;
@@ -1491,7 +1475,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
     errnop = 0;
     ret = sss_pam_make_request(task, &rd, &repbuf, &replen, &errnop);
 
-    sret = pam_set_data(pamh, FD_DESTRUCTOR, NULL, close_fd);
+    sret = pam_set_data(pamh, FD_DESTRUCTOR, NULL, NULL);
     if (sret != PAM_SUCCESS) {
         D(("pam_set_data failed, client might leaks fds"));
     }

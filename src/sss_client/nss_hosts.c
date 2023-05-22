@@ -35,11 +35,7 @@
 #include <string.h>
 #include "sss_cli.h"
 
-static
-#ifdef HAVE_PTHREAD_EXT
-__thread
-#endif
-struct sss_nss_gethostent_data {
+static __thread struct sss_nss_gethostent_data {
     size_t len;
     size_t ptr;
     uint8_t *data;

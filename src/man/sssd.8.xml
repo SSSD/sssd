@@ -240,7 +240,7 @@
             If the environment variable SSS_NSS_USE_MEMCACHE is set to "NO",
             client applications will not use the fast in-memory cache.
         </para>
-        <para condition="enable_lockfree_support">
+        <para>
             If the environment variable SSS_LOCKFREE is set to "NO", requests
             from multiple threads of a single application will be serialized.
         </para>

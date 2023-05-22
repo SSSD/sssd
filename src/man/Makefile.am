@@ -41,9 +41,6 @@ endif
 if BUILD_KCM_RENEWAL
 KCM_RENEWAL_CONDS = ;enable_kcm_renewal
 endif
-if BUILD_LOCKFREE_CLIENT
-LOCKFREE_CLIENT_CONDS = ;enable_lockfree_support
-endif
 if HAVE_INOTIFY
 HAVE_INOTIFY_CONDS = ;have_inotify
 endif

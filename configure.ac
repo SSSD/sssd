@@ -68,23 +68,6 @@ LIBS=$SAVE_LIBS
 AM_CONDITIONAL([HAVE_PTHREAD], [test x"$HAVE_PTHREAD" != "x"])
 
 
-SAVE_LIBS=$LIBS
-LIBS=
-AC_LINK_IFELSE(
-    [AC_LANG_PROGRAM([[#include <pthread.h>]],
-        [[static pthread_key_t k;
-          static pthread_once_t f = PTHREAD_ONCE_INIT;
-          pthread_once(&f, NULL);
-          pthread_key_create(&k, NULL);
-        ]])],
-    [AC_DEFINE([HAVE_PTHREAD_EXT], [1], [Extended pthread functionality is available.])
-     HAVE_PTHREAD_EXT=1
-    ],
-    [AC_MSG_WARN([Extended pthread functionality is not available. Lock-free client feature will not be built.])])
-LIBS=$SAVE_LIBS
-AM_CONDITIONAL([BUILD_LOCKFREE_CLIENT], [test x"$HAVE_PTHREAD_EXT" != "x"])
-
-
 # Check library for the timer_create function
 SAVE_LIBS=$LIBS
 LIBS=
