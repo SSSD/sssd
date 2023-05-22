@@ -2297,15 +2297,15 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             startup.
                         </para>
                         <para>
-                            Default: 0 (only the root user is allowed to access
-                            the PAC responder)
+                            Default: 0<phrase condition="with_non_root_user_support">, &sssd_user_name;</phrase>
                         </para>
                         <para>
-                            Please note that although the UID 0 is used as the
-                            default it will be overwritten with this option. If
-                            you still want to allow the root user to access the
-                            PAC responder, which would be the typical case, you
-                            have to add 0 to the list of allowed UIDs as well.
+                            Please note that default value will be overwritten
+                            with this option. If you still want to allow the
+                            root user
+                            <phrase condition="with_non_root_user_support"> and &sssd_user_name; user</phrase>
+                            to access the PAC responder, which would be the
+                            typical case, you have to list it explictly.
                         </para>
                     </listitem>
                 </varlistentry>

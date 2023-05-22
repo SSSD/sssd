@@ -44,7 +44,7 @@
 
 #define SSS_PAC_PIPE_NAME "pac"
 #define DEFAULT_PAC_FD_LIMIT 8192
-#define DEFAULT_ALLOWED_UIDS "0"
+#define DEFAULT_ALLOWED_UIDS "0,"SSSD_USER
 
 int pac_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
