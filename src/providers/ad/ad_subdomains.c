@@ -1216,7 +1216,7 @@ static void ad_get_slave_domain_connect_done(struct tevent_req *subreq)
     int dp_error;
     errno_t ret;
     const char *attrs[] = { AD_AT_FLATNAME, AD_AT_TRUST_PARTNER,
-                            AD_AT_SID, AD_AT_TRUST_TYPE,
+                            AD_AT_SID, AD_AT_TRUST_TYPE, AD_AT_DOMAIN_NAME,
                             AD_AT_TRUST_ATTRS, AD_AT_TRUST_DIRECTION, NULL };
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
