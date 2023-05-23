@@ -6,6 +6,7 @@
 :upstream: yes
 :status: approved
 """
+import pytest
 
 
 class TestInfoPipe(object):
@@ -18,6 +19,11 @@ class TestInfoPipe(object):
         :id: 23b8c7e8-df4b-47ef-b38e-0503040e1d67
         see e.g.  https://github.com/SSSD/sssd/issues/4891
         """
+        # Note that this test needs dbus-tools package that
+        # is not implicitly installed here.
+        check_ifp = "libsss_simpleifp" in multihost.master[0].run_command("rpm -qa").stdout_text
+        if not check_ifp:
+            pytest.skip("libsss_simpleifp is not present, skipping test.")
         dbus_send_cmd = \
             """
             dbus-send --print-reply --system \
