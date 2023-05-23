@@ -523,6 +523,15 @@ static int sysdb_attrs_add_val_int(struct sysdb_attrs *attrs,
 
     return EOK;
 }
+
+int sysdb_attrs_add_empty(struct sysdb_attrs *attrs, const char *name)
+{
+    struct ldb_message_element *el;
+
+    /* Calling this will create the element if it does not exist. */
+    return sysdb_attrs_get_el_ext(attrs, name, true, &el);
+}
+
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
                         const char *name, const struct ldb_val *val)
 {
