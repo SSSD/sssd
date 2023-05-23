@@ -398,6 +398,7 @@ enum sysdb_obj_type {
 extern const char *sysdb_ts_cache_attrs[];
 
 /* values are copied in the structure, allocated on "attrs" */
+int sysdb_attrs_add_empty(struct sysdb_attrs *attrs, const char *name);
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
                         const char *name, const struct ldb_val *val);
 int sysdb_attrs_add_val_safe(struct sysdb_attrs *attrs,

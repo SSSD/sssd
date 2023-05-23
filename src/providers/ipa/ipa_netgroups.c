@@ -70,7 +70,10 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
     struct ldb_message_element *el;
     struct sysdb_attrs *netgroup_attrs;
     const char *name = NULL;
+    char **missing;
+    int missing_index;
     int ret;
+    int i;
     size_t c;
 
     ret = sysdb_attrs_get_el(attrs,
@@ -88,6 +91,23 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
     if (!netgroup_attrs) {
         ret = ENOMEM;
         goto fail;
+    }
+
+    missing = talloc_zero_array(netgroup_attrs, char *, attrs->num + 1);
+    if (missing == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    for (i = 0, missing_index = 0; i < attrs->num; i++) {
+        if (attrs->a[i].num_values == 0) {
+            missing[missing_index] = talloc_strdup(missing, attrs->a[i].name);
+            if (missing[missing_index] == NULL) {
+                ret = ENOMEM;
+                goto fail;
+            }
+            missing_index++;
+        }
     }
 
     ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
@@ -138,7 +158,6 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
     if (el->num_values == 0) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "No original members for netgroup [%s]\n", name);
-
     } else {
         DEBUG(SSSDBG_TRACE_LIBS,
               "Adding original members to netgroup [%s]\n", name);
@@ -173,7 +192,7 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Storing info for netgroup %s\n", name);
 
-    ret = sysdb_add_netgroup(dom, name, NULL, netgroup_attrs, NULL,
+    ret = sysdb_add_netgroup(dom, name, NULL, netgroup_attrs, missing,
                              dom->netgroup_timeout, 0);
     if (ret) goto fail;
 
@@ -866,6 +885,18 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
 
     hash_iterate(state->new_netgroups, extract_netgroups, state);
     for (i = 0; i < state->netgroups_count; i++) {
+        /* Make sure these attributes always exist, so we can remove them if
+         * there are no members. */
+        ret = sysdb_attrs_add_empty(state->netgroups[i], SYSDB_NETGROUP_MEMBER);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        ret = sysdb_attrs_add_empty(state->netgroups[i], SYSDB_NETGROUP_TRIPLE);
+        if (ret != EOK) {
+            goto done;
+        }
+
         /* load all its member netgroups, translate */
         DEBUG(SSSDBG_TRACE_INTERNAL, "Extracting netgroup members of netgroup %d\n", i);
         ret = sysdb_attrs_get_string_array(state->netgroups[i],
