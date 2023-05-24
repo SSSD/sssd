@@ -140,6 +140,8 @@ static void get_password_migration_flag_done(struct tevent_req *subreq)
     ret = ipa_get_config_recv(subreq, state, &reply);
     talloc_zfree(subreq);
     if (ret) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Unable to retrieve migration flag "
+                                     "from IPA server");
         goto done;
     }
 

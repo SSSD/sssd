@@ -1149,7 +1149,7 @@ static void ipa_get_selinux_config_done(struct tevent_req *subreq)
     ret = ipa_get_config_recv(subreq, state, &state->defaults);
     talloc_free(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not get IPA config\n");
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Could not get IPA config\n");
         goto done;
     }
 
