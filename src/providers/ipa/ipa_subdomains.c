@@ -1947,7 +1947,7 @@ static void ipa_domain_resolution_order_done(struct tevent_req *subreq)
     ret = ipa_get_config_recv(subreq, state, &config);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_IMPORTANT_INFO,
               "Failed to get the domains' resolution order configuration "
               "from the server [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -1958,7 +1958,7 @@ static void ipa_domain_resolution_order_done(struct tevent_req *subreq)
         ret = sysdb_attrs_get_string(config, IPA_DOMAIN_RESOLUTION_ORDER,
                                      &domain_resolution_order);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE,
+            DEBUG(SSSDBG_IMPORTANT_INFO,
                   "Failed to get the domains' resolution order configuration "
                   "value [%d]: %s\n",
                   ret, sss_strerror(ret));
@@ -2789,6 +2789,8 @@ static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get passkey configuration "
               "[%d]: %s\n", ret, sss_strerror(ret));
         /* Not good, but let's try to continue with other server side options */
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Passkey feature is not configured "
+                                     "on IPA server");
     }
 
     subreq = ipa_subdomains_master_send(state, state->ev, state->sd_ctx,
