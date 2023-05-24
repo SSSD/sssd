@@ -406,12 +406,6 @@ done:
 
 /* =Search-User-by-[UID/SID/NAME]============================================= */
 
-enum sysdb_obj_type {
-    SYSDB_UNKNOWN = 0,
-    SYSDB_USER,
-    SYSDB_GROUP
-};
-
 static errno_t cleanup_dn_filter(TALLOC_CTX *mem_ctx,
                                 struct ldb_result *ts_res,
                                 const char *object_class,
