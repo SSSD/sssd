@@ -387,6 +387,12 @@ enum sysdb_index_actions {
     SYSDB_IDX_LIST
 };
 
+enum sysdb_obj_type {
+    SYSDB_UNKNOWN = 0,
+    SYSDB_USER,
+    SYSDB_GROUP
+};
+
 /* These attributes are stored in the timestamp cache */
 extern const char *sysdb_ts_cache_attrs[];
 
