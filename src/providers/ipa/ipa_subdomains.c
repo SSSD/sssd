@@ -2786,7 +2786,7 @@ static void ipa_subdomains_refresh_passkey_done(struct tevent_req *subreq)
     ret = ipa_subdomains_passkey_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get passkey configuration "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get passkey configuration "
               "[%d]: %s\n", ret, sss_strerror(ret));
         /* Not good, but let's try to continue with other server side options */
     }

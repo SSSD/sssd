@@ -94,8 +94,8 @@ void ipa_subdomains_passkey_done(struct tevent_req *subreq)
     ret = ipa_get_config_recv(subreq, state, &config);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unable to get data from LDAP [%d]: %s\n",
-                      ret, sss_strerror(ret));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get data from LDAP [%d]: %s\n",
+                        ret, sss_strerror(ret));
         goto done;
     }
 
