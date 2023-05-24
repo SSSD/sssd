@@ -610,10 +610,16 @@ class Testipabz(object):
         client.clear_sssd_cache()
 
         # Run ssh
-        cmd = 'su - foobar1@testrealm.test -c " ssh -v ' \
+        # This one does not work RHEL 8
+        # cmd = 'su - foobar1@testrealm.test -c " ssh -v ' \
+        #       '-o StrictHostKeychecking=no -o UserKnownHostsFile=/dev/null ' \
+        #       '-o GSSAPIAuthentication=no -o PasswordAuthentication=no ' \
+        #       '-l foobar1@testrealm.test localhost \'whoami\' " 2>&1'
+
+        cmd = 'sudo -u foobar1@testrealm.test ssh -v ' \
               '-o StrictHostKeychecking=no -o UserKnownHostsFile=/dev/null ' \
               '-o GSSAPIAuthentication=no -o PasswordAuthentication=no ' \
-              '-l foobar1@testrealm.test localhost \'whoami\' " 2>&1'
+              '-l foobar1@testrealm.test localhost <<< whoami 2>&1'
 
         ssh_cmd = multihost.client[0].run_command(cmd, raiseonerr=False)
 
@@ -705,10 +711,16 @@ class Testipabz(object):
         client.clear_sssd_cache()
 
         # Run ssh
-        cmd = 'su - foobar1@testrealm.test -c " ssh -v ' \
+        # This one does not work RHEL 8
+        # cmd = 'su - foobar1@testrealm.test -c " ssh -v ' \
+        #       '-o StrictHostKeychecking=no -o UserKnownHostsFile=/dev/null ' \
+        #       '-o GSSAPIAuthentication=no -o PasswordAuthentication=no ' \
+        #       '-l foobar1@testrealm.test localhost \'whoami\' " 2>&1'
+
+        cmd = 'sudo -u foobar1@testrealm.test ssh -v ' \
               '-o StrictHostKeychecking=no -o UserKnownHostsFile=/dev/null ' \
               '-o GSSAPIAuthentication=no -o PasswordAuthentication=no ' \
-              '-l foobar1@testrealm.test localhost \'whoami\' " 2>&1'
+              '-l foobar1@testrealm.test localhost <<< whoami 2>&1'
 
         ssh_cmd = multihost.client[0].run_command(cmd, raiseonerr=False)
 
