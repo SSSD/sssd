@@ -1051,7 +1051,7 @@ static krb5_error_code answer_passkey(krb5_context kctx,
 
     phase = SSS_PASSKEY_PHASE_REPLY;
     state = SSSD_PASSKEY_REPLY_STATE;
-    reply_msg = sss_passkey_prefix_json_data(phase, state, reply);
+    reply_msg = sss_passkey_message_from_reply_json(phase, state, reply);
     if (reply_msg == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to prefix passkey message\n");
         kerr = EINVAL;
