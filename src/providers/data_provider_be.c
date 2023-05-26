@@ -526,6 +526,48 @@ static int watch_config_files(struct be_ctx *ctx)
     return EOK;
 }
 
+static void network_status_change_cb(void *cb_data)
+{
+    struct be_ctx *ctx = (struct be_ctx *) cb_data;
+
+    check_if_online(ctx, 1);
+}
+
+
+static int watch_netlink(struct be_ctx *ctx)
+{
+    int ret;
+    bool disable_netlink;
+
+    ret = confdb_get_bool(ctx->cdb,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_DISABLE_NETLINK,
+                          false, &disable_netlink);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read %s from confdb: [%d] %s\n",
+              CONFDB_MONITOR_DISABLE_NETLINK,
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+
+    if (disable_netlink) {
+        DEBUG(SSS_LOG_NOTICE, "Netlink watching is disabled\n");
+    } else {
+        ret = netlink_watch(ctx, ctx->ev, network_status_change_cb,
+                            ctx, &ctx->nlctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to set up listener for network status changes\n");
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
 static errno_t
 be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
 {
@@ -677,8 +719,13 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Set up watchers for system config files */
+    /* Set up watchers for system config files and the net links */
     ret = watch_config_files(be_ctx);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = watch_netlink(be_ctx);
     if (ret != EOK) {
         goto done;
     }

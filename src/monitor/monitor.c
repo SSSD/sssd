@@ -40,7 +40,6 @@
 #include "confdb/confdb.h"
 #include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
-#include "monitor/monitor.h"
 #include "sss_iface/sss_iface_async.h"
 
 #ifdef HAVE_SYSTEMD
@@ -66,6 +65,11 @@
  * the libkrb5 defaults
  */
 #define KRB5_RCACHE_DIR_DISABLE "__LIBKRB5_DEFAULTS__"
+
+/* for detecting if NSCD is running */
+#ifndef NSCD_SOCKET_PATH
+#define NSCD_SOCKET_PATH "/var/run/nscd/socket"
+#endif
 
 int cmdline_debug_level;
 int cmdline_debug_timestamps;
@@ -111,7 +115,6 @@ struct mt_ctx {
     struct mt_svc *svc_list;
     bool check_children;
     bool services_started;
-    struct netlink_ctx *nlctx;
     struct sss_sigchild_ctx *sigchld_ctx;
     bool pid_file_created;
     bool is_daemon;
@@ -149,21 +152,6 @@ static char *check_service(char *service);
 static int mark_service_as_started(struct mt_svc *svc);
 
 static int monitor_cleanup(void);
-
-static void network_status_change_cb(void *cb_data)
-{
-    struct mt_svc *iter;
-    struct mt_ctx *ctx = (struct mt_ctx *) cb_data;
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "A networking status change detected "
-          "signaling providers to reset offline status\n");
-    for (iter = ctx->svc_list; iter; iter = iter->next) {
-        /* Don't signal services, only providers */
-        if (iter->provider) {
-            service_signal_reset_offline(iter);
-        }
-    }
-}
 
 static int add_svc_conn_spy(struct mt_svc *svc);
 
@@ -1601,7 +1589,6 @@ static void monitor_sbus_connected(struct tevent_req *req)
 {
     struct mt_ctx *ctx;
     struct sss_domain_info *dom;
-    bool disable_netlink;
     int num_providers;
     errno_t ret;
 
@@ -1645,28 +1632,6 @@ static void monitor_sbus_connected(struct tevent_req *req)
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to add paths [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
-    }
-
-    ret = confdb_get_bool(ctx->cdb,
-                          CONFDB_MONITOR_CONF_ENTRY,
-                          CONFDB_MONITOR_DISABLE_NETLINK,
-                          false, &disable_netlink);
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to read disable_netlink from confdb: [%d] %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    if (disable_netlink == false) {
-        ret = setup_netlink(ctx, ctx->ev, network_status_change_cb,
-                            ctx, &ctx->nlctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Cannot set up listening for network notifications\n");
-            goto done;
-        }
     }
 
     /* start providers */

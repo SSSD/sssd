@@ -33,7 +33,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "monitor/monitor.h"
+#include "providers/be_netlink.h"
 #include "util/util.h"
 
 #ifdef HAVE_LIBNL
@@ -102,7 +102,7 @@ enum nlw_msg_type {
     NLW_OTHER
 };
 
-struct netlink_ctx {
+struct be_netlink_ctx {
 #ifdef HAVE_LIBNL
     struct nlw_handle *nlp;
 #endif
@@ -115,8 +115,8 @@ struct netlink_ctx {
 #ifdef HAVE_LIBNL
 static int netlink_ctx_destructor(void *ptr)
 {
-    struct netlink_ctx *nlctx;
-    nlctx = talloc_get_type(ptr, struct netlink_ctx);
+    struct be_netlink_ctx *nlctx;
+    nlctx = talloc_get_type(ptr, struct be_netlink_ctx);
 
     nlw_destroy_handle(nlctx->nlp);
     return 0;
@@ -469,7 +469,7 @@ static int nlw_groups_subscribe(struct nlw_handle *nlp, int *groups)
 
 static int event_msg_recv(struct nl_msg *msg, void *arg)
 {
-    struct netlink_ctx *ctx = (struct netlink_ctx *) arg;
+    struct be_netlink_ctx *ctx = (struct be_netlink_ctx *) arg;
     struct nlmsghdr *hdr;
     const struct sockaddr_nl *snl;
     struct ucred *creds;
@@ -631,7 +631,7 @@ static bool route_is_multicast(struct rtnl_route *route_obj)
 static void route_msg_handler(struct nl_object *obj, void *arg)
 {
     struct rtnl_route *route_obj;
-    struct netlink_ctx *ctx = (struct netlink_ctx *) arg;
+    struct be_netlink_ctx *ctx = (struct be_netlink_ctx *) arg;
 
     if (!nlw_is_route_object(obj)) return;
 
@@ -672,7 +672,7 @@ static void addr_msg_debug_print(struct rtnl_addr *addr_obj)
 static void addr_msg_handler(struct nl_object *obj, void *arg)
 {
     int err;
-    struct netlink_ctx *ctx = (struct netlink_ctx *) arg;
+    struct be_netlink_ctx *ctx = (struct be_netlink_ctx *) arg;
     struct rtnl_addr *addr_obj;
     struct nl_addr *local_addr;
     struct sockaddr_in sa4;
@@ -688,9 +688,9 @@ static void addr_msg_handler(struct nl_object *obj, void *arg)
 
     local_addr = rtnl_addr_get_local(addr_obj);
     if (local_addr == NULL) {
-    DEBUG(SSSDBG_MINOR_FAILURE,
-          "Received RTM_NEWADDR with no address\n");
-    return;
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Received RTM_NEWADDR with no address\n");
+        return;
     }
 
     switch (nl_addr_get_family(local_addr)) {
@@ -736,7 +736,7 @@ static void addr_msg_handler(struct nl_object *obj, void *arg)
 
 static void link_msg_handler(struct nl_object *obj, void *arg)
 {
-    struct netlink_ctx *ctx = (struct netlink_ctx *) arg;
+    struct be_netlink_ctx *ctx = (struct be_netlink_ctx *) arg;
     struct rtnl_link *link_obj;
     unsigned int flags;
     char str_flags[512];
@@ -765,7 +765,7 @@ static void link_msg_handler(struct nl_object *obj, void *arg)
 static void netlink_fd_handler(struct tevent_context *ev, struct tevent_fd *fde,
                                uint16_t flags, void *data)
 {
-    struct netlink_ctx *nlctx = talloc_get_type(data, struct netlink_ctx);
+    struct be_netlink_ctx *nlctx = talloc_get_type(data, struct be_netlink_ctx);
     int ret;
 
     if (!nlctx || !nlctx->nlp) {
@@ -786,17 +786,17 @@ static void netlink_fd_handler(struct tevent_context *ev, struct tevent_fd *fde,
  * Set up the netlink library
  *******************************************************************/
 
-int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+int netlink_watch(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
                   network_change_cb change_cb, void *cb_data,
-                  struct netlink_ctx **_nlctx)
+                  struct be_netlink_ctx **_nlctx)
 {
-    struct netlink_ctx *nlctx;
+    struct be_netlink_ctx *nlctx;
     int ret;
     int nlfd;
     int groups[] = { RTNLGRP_LINK, RTNLGRP_IPV4_ROUTE, RTNLGRP_IPV6_ROUTE,
                      RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV6_IFADDR, 0 };
 
-    nlctx = talloc_zero(mem_ctx, struct netlink_ctx);
+    nlctx = talloc_zero(mem_ctx, struct be_netlink_ctx);
     if (!nlctx) return ENOMEM;
     talloc_set_destructor((TALLOC_CTX *) nlctx, netlink_ctx_destructor);
 
@@ -863,6 +863,7 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         goto fail;
     }
 
+    DEBUG(SSSDBG_TRACE_LIBS, "Netlink watching is enabled\n");
     *_nlctx = nlctx;
     return EOK;
 
@@ -872,9 +873,9 @@ fail:
 }
 
 #else       /* HAVE_LIBNL not defined */
-int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+int netlink_watch(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
                   network_change_cb change_cb, void *cb_data,
-                  struct netlink_ctx **_nlctx)
+                  struct be_netlink_ctx **_nlctx)
 {
     if (_nlctx) *_nlctx = NULL;
     return EOK;
