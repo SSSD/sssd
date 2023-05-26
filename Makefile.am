@@ -689,7 +689,6 @@ if BUILD_SELINUX
 endif
 
 dist_noinst_HEADERS = \
-    src/monitor/monitor.h \
     src/sss_iface/sbus_sss_arguments.h \
     src/sss_iface/sbus_sss_client_async.h \
     src/sss_iface/sbus_sss_client_properties.h \
@@ -747,7 +746,6 @@ dist_noinst_HEADERS = \
     src/responder/kcm/secrets/secrets.h \
     src/responder/kcm/secrets/sec_pvt.h \
     src/util/nss_dl_load.h \
-    src/monitor/monitor.h \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
     src/responder/common/cache_req/cache_req.h \
@@ -843,6 +841,7 @@ dist_noinst_HEADERS = \
     src/providers/data_provider/dp_iface.h \
     src/providers/backend.h \
     src/providers/be_dyndns.h \
+    src/providers/be_netlink.h \
     src/providers/be_ptask_private.h \
     src/providers/be_ptask.h \
     src/providers/be_refresh.h \
@@ -1525,14 +1524,12 @@ endif
 sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_bootstrap.c \
-    src/monitor/monitor_netlink.c \
     src/confdb/confdb_setup.c \
     src/util/nscd.c \
     $(NULL)
 sssd_LDADD = \
     $(SSSD_LIBS) \
     $(INOTIFY_LIBS) \
-    $(LIBNL_LIBS) \
     $(KEYUTILS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
@@ -1838,6 +1835,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
     src/providers/be_dyndns.c \
+    src/providers/be_netlink.c \
     src/providers/be_ptask.c \
     src/providers/be_refresh.c \
     src/providers/data_provider/dp.c \
@@ -1864,6 +1862,7 @@ sssd_be_LDADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(PAM_LIBS) \
+    $(LIBNL_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
@@ -2126,6 +2125,7 @@ libdlopen_test_providers_la_LIBADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
+    $(LIBNL_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \

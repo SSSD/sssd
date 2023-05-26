@@ -19,23 +19,19 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _MONITOR_H_
-#define _MONITOR_H_
+#ifndef _DP_NETLINK_H_
+#define _DP_NETLINK_H_
 
-/* for detecting if NSCD is running */
-#ifndef NSCD_SOCKET_PATH
-#define NSCD_SOCKET_PATH "/var/run/nscd/socket"
-#endif
+#include <talloc.h>
+#include <tevent.h>
 
-struct mt_ctx;
-
-/* from monitor_netlink.c */
-struct netlink_ctx;
+/* from be_netlink.c */
+struct be_netlink_ctx;
 
 typedef void (*network_change_cb)(void *);
 
-int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+int netlink_watch(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
                   network_change_cb change_cb, void *cb_data,
-                  struct netlink_ctx **_nlctx);
+                  struct be_netlink_ctx **_nlctx);
 
-#endif /* _MONITOR_H */
+#endif /* _DP_MONITOR_H */
