@@ -37,6 +37,7 @@ class pexpect_ssh(object):
                            login_timeout=login_timeout,
                            auto_prompt_reset=auto_prompt_reset,
                            sync_multiplier=sync_multiplier)
+            return True
         except pexpect.pxssh.ExceptionPxssh:
             raise SSHLoginException("%s Failed to login" % self.username)
 
