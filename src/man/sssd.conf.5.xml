@@ -743,7 +743,8 @@
                                     <listitem>
                                         <para> Enable or disable the user
                                         verification (i.e. PIN, fingerprint)
-                                        during authentication.
+                                        during authentication. If enabled, the
+                                        PIN will always be requested.
                                         </para>
                                         <para>
                                         The default is that the key settings
