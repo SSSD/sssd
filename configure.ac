@@ -46,6 +46,9 @@ AC_CHECK_HEADERS(stdint.h dlfcn.h)
 AC_CHECK_HEADERS([stdatomic.h],,AC_MSG_ERROR([C11 atomic types are not supported]))
 AC_CONFIG_HEADER(config.h)
 
+AC_CHECK_HEADERS(sys/sendfile.h)
+AC_CHECK_FUNCS([ sendfile ])
+
 AC_CHECK_TYPES([errno_t], [], [], [[#include <errno.h>]])
 
 m4_include([src/build_macros.m4])

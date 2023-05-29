@@ -18,6 +18,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
+#include <stdbool.h>
 #include <stdio.h>
 #include <talloc.h>
 #include <unistd.h>
@@ -27,6 +30,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#if defined(HAVE_SYS_SENDFILE_H) && defined(HAVE_SENDFILE)
+#include <sys/sendfile.h>
+#endif
 #include <netdb.h>
 #include <popt.h>
 
@@ -81,6 +87,10 @@ static int proxy_data(int sock)
     int i;
     ssize_t res;
     int ret;
+#if defined(HAVE_SYS_SENDFILE_H) && defined(HAVE_SENDFILE)
+    static bool try_sendfile = true;
+#endif
+
 
     /* set O_NONBLOCK on standard input */
     ret = sss_fd_nonblocking(0);
@@ -112,6 +122,37 @@ static int proxy_data(int sock)
                   "poll() failed (%d): %s\n", ret, strerror(ret));
             goto done;
         }
+
+#if defined(HAVE_SYS_SENDFILE_H) && defined(HAVE_SENDFILE)
+        /* try sendfile() first */
+        if (try_sendfile) {
+            for (i = 0; i < 2; i++) {
+                if (fds[i].revents & POLLIN) {
+                    res = sendfile(i == 0 ? sock : 1, fds[i].fd, NULL, BUFFER_SIZE);
+                    if (res == -1) {
+                        ret = errno;
+                        if (ret == EAGAIN || ret == EINTR || ret == EWOULDBLOCK) {
+                            continue;
+                        } else if ((ret == EINVAL) || (ret == ENOSYS)) {
+                            /* try fall back to read()/write() */
+                            try_sendfile = false;
+                            break;
+                        }
+                        DEBUG(SSSDBG_OP_FAILURE, "sendfile() failed (%d): %s\n",
+                              ret, strerror(ret));
+                        goto done;
+                    } else if (res == 0) {
+                        ret = EOK;
+                        goto done;
+                    }
+                }
+                if (fds[i].revents & POLLHUP) {
+                    ret = EOK;
+                    goto done;
+                }
+            }
+        } else {
+#endif
 
         /* read from standard input & write to socket */
         /* read from socket & write to standard output */
@@ -149,6 +190,9 @@ static int proxy_data(int sock)
                 goto done;
             }
         }
+#if defined(HAVE_SYS_SENDFILE_H) && defined(HAVE_SENDFILE)
+    }
+#endif
     }
 
 done:
