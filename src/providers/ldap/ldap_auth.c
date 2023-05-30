@@ -164,9 +164,11 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
 
     if (spwd->sp_max != -1 && password_age > spwd->sp_max) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Password expired.\n");
-        ret = add_expired_warning(pd, 0);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "add_expired_warning failed.\n");
+        if (pd != NULL) {
+            ret = add_expired_warning(pd, 0);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "add_expired_warning failed.\n");
+            }
         }
         return ERR_PASSWORD_EXPIRED;
     }
