@@ -663,7 +663,7 @@ static errno_t get_extra_attrs(BerElement *ber, struct resp_attrs *resp_attrs)
                 v.length = values[c]->bv_len;
             }
 
-            ret = sysdb_attrs_add_val(resp_attrs->sysdb_attrs, name, &v);
+            ret = sysdb_attrs_add_val_safe(resp_attrs->sysdb_attrs, name, &v);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_val failed.\n");
                 ldap_memfree(name);
