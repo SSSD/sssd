@@ -4418,6 +4418,7 @@ int main(int argc, const char *argv[])
 {
     poptContext pc;
     int opt;
+    int res;
     const char *single = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -4682,8 +4683,6 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    poptFreeContext(pc);
-
     DEBUG_CLI_INIT(debug_level);
 
     /* Even though normally the tests should clean up after themselves
@@ -4691,7 +4690,8 @@ int main(int argc, const char *argv[])
     tests_set_cwd();
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
 
-    return sss_cmocka_run_group_tests(tests, sizeof(tests)/sizeof(tests[0]),
-                                      single);
-
+    res = sss_cmocka_run_group_tests(tests, sizeof(tests)/sizeof(tests[0]),
+                                     single);
+    poptFreeContext(pc);
+    return res;
 }
