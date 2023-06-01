@@ -1,3 +1,9 @@
+"""
+LDAP Shadow attributes tests.
+
+:requirement: IDM-SSSD-REQ : LDAP Provider
+"""
+
 from __future__ import annotations
 
 import pytest
