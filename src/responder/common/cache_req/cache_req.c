@@ -702,7 +702,6 @@ struct cache_req_search_domains_state {
     bool check_next;
     bool dp_success;
     bool first_iteration;
-    enum cache_req_behavior cache_behavior;
 };
 
 static errno_t cache_req_search_domains_next(struct tevent_req *req);
