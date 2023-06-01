@@ -12,7 +12,6 @@ from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
-@pytest.mark.tier(0)
 @pytest.mark.ticket(bz=1507035)
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize("method", ["su", "ssh"])
