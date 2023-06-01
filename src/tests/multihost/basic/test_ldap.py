@@ -90,6 +90,7 @@ class TestLDAPChpass(object):
         client.change_user_password(
             user, 'Secret1234', 'Secret1234', 'Secret123', 'Secret123')
 
+    @pytest.mark.converted('test_ldap.py', 'test_ldap__change_password')
     @staticmethod
     def test_ldap_chpass_extop(multihost):
         """
@@ -99,6 +100,7 @@ class TestLDAPChpass(object):
         """
         TestLDAPChpass._change_test_reset_password(multihost)
 
+    @pytest.mark.converted('test_ldap.py', 'test_ldap__change_password')
     @staticmethod
     @pytest.mark.usefixtures("set_ldap_auth_provider",
                              "set_ldap_pwmodify_mode_ldap_modify")
