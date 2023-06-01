@@ -12,7 +12,6 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.topology import KnownTopologyGroup
 
 
-@pytest.mark.tier(1)
 @pytest.mark.ticket(gh=4153, bz=1362023)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("attrs", ["mail, firstname:givenname, lastname:sn", "given_email:mail"])
