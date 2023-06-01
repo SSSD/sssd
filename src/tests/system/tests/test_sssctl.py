@@ -11,7 +11,6 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
 
-@pytest.mark.tier(0)
 @pytest.mark.ticket(bz=2100789)
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_sssctl__check_id_provider(client: Client):
@@ -39,7 +38,6 @@ def test_sssctl__check_id_provider(client: Client):
     assert "[rule/sssd_checks]: Attribute 'id_provider' is missing in section 'domain/test'." in output.stdout_lines[1]
 
 
-@pytest.mark.tier(0)
 @pytest.mark.ticket(bz=2100789)
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_sssctl__check_invalid_id_provider(client: Client):
