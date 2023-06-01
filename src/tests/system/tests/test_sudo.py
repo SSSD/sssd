@@ -1,3 +1,9 @@
+"""
+SUDO responder tests.
+
+:requirement: sudo
+"""
+
 from __future__ import annotations
 
 import re
