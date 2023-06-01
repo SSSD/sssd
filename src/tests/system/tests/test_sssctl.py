@@ -1,3 +1,9 @@
+"""
+SSSCTL tests.
+
+:requirement: IDM-SSSD-REQ: Status utility
+"""
+
 from __future__ import annotations
 
 import pytest
@@ -20,7 +26,6 @@ def test_sssctl__check_id_provider(client: Client):
         1. Successfully remove id_provider from domain section.
         2. Successfully get the error message.
     :customerscenario: False
-    :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2100789
     """
     # create sssd.conf and start the sssd, with deafult configuration with a LDAP server.
     client.sssd.start()
@@ -49,7 +54,6 @@ def test_sssctl__check_invalid_id_provider(client: Client):
         1. Successfully remove id_provider from domain section.
         2. Successfully get the error message.
     :customerscenario: False
-    :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2100789
     """
     # create sssd.conf and start the sssd, with deafult configuration with a LDAP server.
     client.sssd.start()
