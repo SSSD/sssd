@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2023-06-02 05:50+0000\n"
+"PO-Revision-Date: 2023-06-04 04:20+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-2-9/ko/>\n"
@@ -1513,7 +1513,7 @@ msgstr "사용자의 패스키 대응 자료를 포함하는 속성"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "A list of extra attributes to download along with the user entry"
-msgstr "사용자 항목과 함께 다운로드할 추가 속성 목록"
+msgstr "사용자 항목과 함께 내려받기 하려는 추가 속성의 목록"
 
 #: src/config/SSSDConfig/sssdoptions.py:452
 msgid "Base DN for group lookups"
