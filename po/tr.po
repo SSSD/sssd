@@ -11,16 +11,16 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2023-04-13 13:20+0000\n"
+"PO-Revision-Date: 2023-06-04 04:20+0000\n"
 "Last-Translator: Kemal Oktay Aktoğan <oktay@e.email>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
-"sssd-master/tr/>\n"
+"sssd-2-9/tr/>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n>1);\n"
-"X-Generator: Weblate 4.15.2\n"
+"X-Generator: Weblate 4.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -419,9 +419,8 @@ msgstr ""
 "<PAM hizmeti>:<kimlik doğrulama göstergesi> çiftlerinin listesi"
 
 #: src/config/SSSDConfig/sssdoptions.py:117
-#, fuzzy
 msgid "Allow passkey device authentication."
-msgstr "Sertifika tabanlı/Akıllı kart kimlik doğrulamasına izin ver."
+msgstr "Geçiş anahtarı cihaz kimlik doğrulamasına izin ver."
 
 #: src/config/SSSDConfig/sssdoptions.py:118
 #, fuzzy
