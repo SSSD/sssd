@@ -105,7 +105,7 @@ START_TEST(test_string_in_list)
     ck_assert_msg(!is_in, "String is in empty list.");
 
     is_in = string_in_list("ABC", list, false);
-    ck_assert_msg(is_in, "String is not list.");
+    ck_assert_msg(is_in, "String is not in list.");
 
     is_in = string_in_list("abc", list, false);
     ck_assert_msg(is_in, "String is not case in-sensitive list.");
@@ -116,6 +116,48 @@ START_TEST(test_string_in_list)
     is_in = string_in_list("123", list, false);
     ck_assert_msg(!is_in, "Wrong string found in list.");
 
+}
+END_TEST
+
+START_TEST(test_string_in_list_size)
+{
+    bool is_in;
+    const char *empty_list[] = {};
+    size_t empty_list_size = 0;
+    const char *list[] = {discard_const("ABC"),
+                          discard_const("DEF"),
+                          discard_const("GHI")};
+    size_t list_size = sizeof(list) / sizeof(list[0]);
+
+    is_in = string_in_list_size(NULL, NULL, 0, false);
+    ck_assert_msg(!is_in, "NULL string is in NULL list.");
+
+    is_in = string_in_list_size(NULL, empty_list, empty_list_size, false);
+    ck_assert_msg(!is_in, "NULL string is in empty list.");
+
+    is_in = string_in_list_size(NULL, list, list_size, false);
+    ck_assert_msg(!is_in, "NULL string is in list.");
+
+    is_in = string_in_list_size("ABC", NULL, 0, false);
+    ck_assert_msg(!is_in, "String is in NULL list.");
+
+    is_in = string_in_list_size("ABC", empty_list, empty_list_size, false);
+    ck_assert_msg(!is_in, "String is in empty list.");
+
+    is_in = string_in_list_size("ABC", list, list_size, false);
+    ck_assert_msg(is_in, "String is not in list.");
+
+    is_in = string_in_list_size("abc", list, list_size, false);
+    ck_assert_msg(is_in, "String is not case in-sensitive list.");
+
+    is_in = string_in_list_size("abc", list, list_size, true);
+    ck_assert_msg(!is_in, "Wrong string found in case sensitive list.");
+
+    is_in = string_in_list_size("123", list, list_size, false);
+    ck_assert_msg(!is_in, "Wrong string found in list.");
+
+    is_in = string_in_list_size("GHI", list, list_size - 1, false);
+    ck_assert_msg(!is_in, "Size limit not respected.");
 }
 END_TEST
 
@@ -1121,6 +1163,7 @@ Suite *util_suite(void)
     tcase_add_test (tc_util, test_parse_args);
     tcase_add_test (tc_util, test_add_string_to_list);
     tcase_add_test (tc_util, test_string_in_list);
+    tcase_add_test (tc_util, test_string_in_list_size);
     tcase_add_test (tc_util, test_split_on_separator);
     tcase_add_test (tc_util, test_check_ipv4_addr);
     tcase_add_test (tc_util, test_check_ipv6_addr);

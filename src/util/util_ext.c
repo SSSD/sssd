@@ -147,6 +147,27 @@ bool string_in_list(const char *string, char **list, bool case_sensitive)
     return false;
 }
 
+bool string_in_list_size(const char *string, const char **list, size_t size,
+                         bool case_sensitive)
+{
+    size_t c;
+    int(*compare)(const char *s1, const char *s2);
+
+    if (string == NULL || list == NULL || size == 0) {
+        return false;
+    }
+
+    compare = case_sensitive ? strcmp : strcasecmp;
+
+    for (c = 0; c < size; c++) {
+        if (compare(string, list[c]) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 errno_t sss_filter_sanitize_ex(TALLOC_CTX *mem_ctx,
                                const char *input,
                                char **sanitized,

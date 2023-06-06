@@ -532,6 +532,9 @@ errno_t del_string_from_list(const char *string,
 
 bool string_in_list(const char *string, char **list, bool case_sensitive);
 
+bool string_in_list_size(const char *string, const char **list, size_t size,
+                         bool case_sensitive);
+
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn);
 
 bool is_host_in_domain(const char *host, const char *domain);
