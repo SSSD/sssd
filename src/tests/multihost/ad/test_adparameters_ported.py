@@ -749,6 +749,7 @@ class TestADParamsPorted:
 
     @staticmethod
     @pytest.mark.tier1_2
+    @pytest.mark.c_ares
     def test_0009_ad_parameters_ldap_sasl_full(
             multihost, create_aduser_group):
         """
@@ -833,6 +834,7 @@ class TestADParamsPorted:
 
     @staticmethod
     @pytest.mark.tier2
+    @pytest.mark.c_ares
     def test_0010_ad_parameters_ldap_sasl_short(
             multihost, create_aduser_group):
         """
@@ -919,6 +921,7 @@ class TestADParamsPorted:
 
     @staticmethod
     @pytest.mark.tier1_2
+    @pytest.mark.c_ares
     def test_0011_ad_parameters_server_resolvable(
             multihost, adjoin, create_aduser_group):
         """
@@ -998,6 +1001,7 @@ class TestADParamsPorted:
 
     @staticmethod
     @pytest.mark.tier2
+    @pytest.mark.c_ares
     def test_0012_ad_parameters_server_unresolvable(
             multihost, adjoin, create_aduser_group):
         """
@@ -1051,6 +1055,7 @@ class TestADParamsPorted:
 
     @staticmethod
     @pytest.mark.tier1_2
+    @pytest.mark.c_ares
     def test_0013_ad_parameters_server_srv_record(
             multihost, adjoin, create_aduser_group):
         """
@@ -1110,6 +1115,7 @@ class TestADParamsPorted:
 
     @staticmethod
     @pytest.mark.tier1_2
+    @pytest.mark.c_ares
     def test_0014_ad_parameters_server_blank(
             multihost, adjoin, create_aduser_group):
         """
@@ -1257,6 +1263,7 @@ class TestADParamsPorted:
 
     @staticmethod
     @pytest.mark.tier1_2
+    @pytest.mark.c_ares
     def test_0016_ad_parameters_ad_hostname_valid(
             multihost, adjoin, create_aduser_group):
         """
@@ -2045,6 +2052,7 @@ class TestADParamsPorted:
 
     @staticmethod
     @pytest.mark.tier2
+    @pytest.mark.c_ares
     def test_0026_ad_parameters_dns_failover(
             multihost, adjoin, create_plain_aduser_group):
         """

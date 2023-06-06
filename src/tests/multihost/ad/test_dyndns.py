@@ -98,6 +98,7 @@ def extra_interface(session_multihost, request):
 @pytest.mark.usefixtures("reverse_zone", "disable_dns_forwarders", "change_client_hostname")
 @pytest.mark.dyndns
 @pytest.mark.tier2
+@pytest.mark.c_ares
 class TestDynDns(object):
 
     @staticmethod

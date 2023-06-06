@@ -16,6 +16,7 @@ class Testadsites(object):
     3. Create secondary site, move second domain controller to second site
     """
     @pytest.mark.adsites
+    @pytest.mark.c_ares
     def test_001_ad_startup_discovery(self, multihost, adjoin):
         """
         @Title: IDM-SSSD-TC: ad_startup_discovery
@@ -69,6 +70,7 @@ class Testadsites(object):
         assert check_discovery.returncode == 0
 
     @pytest.mark.adsites
+    @pytest.mark.c_ares
     def test_002_ad_startup_discovery_one_server_unreachable(self, multihost,
                                                              adjoin):
         """
@@ -137,6 +139,7 @@ class Testadsites(object):
         multihost.client[0].run_command(fw_remove, raiseonerr=True)
 
     @pytest.mark.adsites
+    @pytest.mark.c_ares
     def test_003_ad_startup_discovery_two_different_sites(self, multihost,
                                                           adjoin, create_site):
         """
@@ -189,6 +192,7 @@ class Testadsites(object):
         assert check_discovery.returncode == 0
 
     @pytest.mark.adsites
+    @pytest.mark.c_ares
     def test_004_ad_startup_discovery_one_server_unreachable(self,
                                                              multihost,
                                                              adjoin,
