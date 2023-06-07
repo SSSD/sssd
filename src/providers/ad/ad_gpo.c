@@ -59,6 +59,7 @@
 
 #define AD_AT_DN "distinguishedName"
 #define AD_AT_UAC "userAccountControl"
+#define AD_AT_SAMACCOUNTNAME "sAMAccountName"
 #define AD_AT_CONFIG_NC "configurationNamingContext"
 #define AD_AT_GPLINK "gPLink"
 #define AD_AT_GPOPTIONS "gpOptions"
@@ -2061,7 +2062,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     filter = talloc_asprintf(state,
                              "(&(objectclass=%s)(%s=%s))",
                              state->opts->user_map[SDAP_OC_USER].name,
-                             state->opts->user_map[SDAP_AT_USER_NAME].name,
+                             AD_AT_SAMACCOUNTNAME,
                              sam_account_name);
     if (filter == NULL) {
         ret = ENOMEM;
