@@ -30,15 +30,7 @@
 static inline bool
 attr_in_list(const char **list, size_t nlist, const char *str)
 {
-    size_t i;
-
-    for (i = 0; i < nlist; i++) {
-        if (strcasecmp(list[i], str) == 0) {
-            break;
-        }
-    }
-
-    return (i < nlist) ? true : false;
+    return string_in_list_size(str, list, nlist, false);
 }
 
 const char **parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
