@@ -860,15 +860,31 @@ static void simple_bind_done(struct sdap_op *op,
                     }
                 } else if (result == LDAP_INVALID_CREDENTIALS &&
                            pp_error == PP_passwordExpired) {
+                    /* According to
+                     * https://www.ietf.org/archive/id/draft-behera-ldap-password-policy-11.txt
+                     * section 8.1.2.3.2. this condition means "No Remaining
+                     * Grace Authentications". */
                     DEBUG(SSSDBG_TRACE_LIBS,
-                          "Password expired user must set a new password.\n");
-                    ret = ERR_PASSWORD_EXPIRED;
+                          "Password expired, grace logins exhausted.\n");
+                    ret = ERR_AUTH_FAILED;
                 }
             } else if (strcmp(response_controls[c]->ldctl_oid,
                               LDAP_CONTROL_PWEXPIRED) == 0) {
-                DEBUG(SSSDBG_TRACE_LIBS,
-                      "Password expired user must set a new password.\n");
-                ret = ERR_PASSWORD_EXPIRED;
+                /* I haven't found a proper documentation of this control only
+                 * the Red Hat Directory Server documentation has a short
+                 * description in the section "Understanding Password
+                 * Expiration Controls", e.g.
+                 * https://access.redhat.com/documentation/en-us/red_hat_directory_server/11/html/administration_guide/understanding_password_expiration_controls
+                 */
+                if (result == LDAP_INVALID_CREDENTIALS) {
+                    DEBUG(SSSDBG_TRACE_LIBS,
+                          "Password expired, grace logins exhausted.\n");
+                    ret = ERR_AUTH_FAILED;
+                } else {
+                    DEBUG(SSSDBG_TRACE_LIBS,
+                          "Password expired, user must set a new password.\n");
+                    ret = ERR_PASSWORD_EXPIRED;
+                }
             } else if (strcmp(response_controls[c]->ldctl_oid,
                               LDAP_CONTROL_PWEXPIRING) == 0) {
                 /* ignore controls with suspiciously long values */
