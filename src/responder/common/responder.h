@@ -372,7 +372,7 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
 
 uid_t client_euid(struct cli_creds *creds);
 errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
-                           uid_t *allowed_uids);
+                           const uid_t *allowed_uids);
 
 struct tevent_req *
 sss_parse_inp_send(TALLOC_CTX *mem_ctx,
