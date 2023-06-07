@@ -174,7 +174,7 @@ uid_t client_euid(struct cli_creds *creds)
 }
 
 errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
-                           uid_t *allowed_uids)
+                           const uid_t *allowed_uids)
 {
     size_t c;
 
@@ -519,6 +519,7 @@ static void accept_fd_handler(struct tevent_context *ev,
                               struct tevent_fd *fde,
                               uint16_t flags, void *ptr)
 {
+    static uid_t last_violator_uid = (uid_t)-1;
     /* accept and attach new event handler */
     struct accept_fd_ctx *accept_ctx =
             talloc_get_type(ptr, struct accept_fd_ctx);
@@ -593,9 +594,12 @@ static void accept_fd_handler(struct tevent_context *ev,
                                  rctx->allowed_uids);
         if (ret != EOK) {
             if (ret == EACCES) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Access denied for uid [%"SPRIuid"].\n",
-                      client_euid(cctx->creds));
+                if (client_euid(cctx->creds) != last_violator_uid) {
+                    last_violator_uid = client_euid(cctx->creds);
+                    DEBUG(SSSDBG_IMPORTANT_INFO,
+                          "Access denied for uid [%"SPRIuid"].\n",
+                          last_violator_uid);
+                }
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "check_allowed_uids failed.\n");
             }
