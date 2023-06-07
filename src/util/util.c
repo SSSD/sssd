@@ -674,14 +674,17 @@ const char * const * get_known_services(void)
     return svc;
 }
 
-errno_t add_strings_lists(TALLOC_CTX *mem_ctx, const char **l1, const char **l2,
-                          bool copy_strings, char ***_new_list)
+errno_t add_strings_lists_ex(TALLOC_CTX *mem_ctx,
+                             const char **l1, const char **l2,
+                             bool copy_strings, bool skip_dups,
+                             const char ***_new_list)
 {
     size_t c;
+    size_t n;
     size_t l1_count = 0;
     size_t l2_count = 0;
     size_t new_count = 0;
-    char **new;
+    const char **new;
     int ret;
 
     if (l1 != NULL) {
@@ -694,29 +697,49 @@ errno_t add_strings_lists(TALLOC_CTX *mem_ctx, const char **l1, const char **l2,
 
     new_count = l1_count + l2_count;
 
-    new = talloc_array(mem_ctx, char *, new_count + 1);
+    new = talloc_zero_array(mem_ctx, const char *, new_count + 1);
     if (new == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
     }
-    new [new_count] = NULL;
 
-    if (copy_strings) {
+    if (copy_strings || skip_dups) {
+        n = 0;
         for(c = 0; c < l1_count; c++) {
-            new[c] = talloc_strdup(new, l1[c]);
-            if (new[c] == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
+            if (skip_dups) {
+                if (string_in_list_size(l1[c], new, n, false)) {
+                    continue;
+                }
             }
+            if (copy_strings) {
+                new[n] = talloc_strdup(new, l1[c]);
+                if (new[n] == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+            } else {
+                new[n] = discard_const(l1[c]);
+            }
+            n++;
         }
         for(c = 0; c < l2_count; c++) {
-            new[l1_count + c] = talloc_strdup(new, l2[c]);
-            if (new[l1_count + c] == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
+            if (skip_dups) {
+                if (string_in_list_size(l2[c], new, n, false)) {
+                    continue;
+                }
             }
+            if (copy_strings) {
+                new[n] = talloc_strdup(new, l2[c]);
+                if (new[n] == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+            } else {
+                new[n] = discard_const(l2[c]);
+            }
+            n++;
         }
     } else {
         if (l1 != NULL) {

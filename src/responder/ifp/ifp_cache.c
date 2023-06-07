@@ -173,8 +173,7 @@ ifp_cache_list_domains(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = add_strings_lists(tmp_ctx, paths, tmp_paths, true,
-                                discard_const(&paths));
+        ret = add_strings_lists(tmp_ctx, paths, tmp_paths, true, &paths);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build object list "
                   "[%d]: %s\n", ret, sss_strerror(ret));

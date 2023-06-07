@@ -434,12 +434,30 @@ bool is_dbus_activated(void);
  * @param[in] copy_strings If set to 'true' the list items will be copied
  *                         otherwise only the pointers to the items are
  *                         copied.
+ * @param[in] skip_dups    Whether the function should skip duplicate values.
  * @param[out] new_list    New NULL-terminated list of strings. Must be freed
  *                         with talloc_free() by the caller. If copy_strings
  *                         is 'true' the new elements will be freed as well.
  */
-errno_t add_strings_lists(TALLOC_CTX *mem_ctx, const char **l1, const char **l2,
-                          bool copy_strings, char ***_new_list);
+errno_t add_strings_lists_ex(TALLOC_CTX *mem_ctx,
+                             const char **l1, const char **l2,
+                             bool copy_strings, bool skip_dups,
+                             const char ***_new_list);
+
+/**
+ * @overload errno_t add_strings_lists_ex(TALLOC_CTX *mem_ctx,
+ *                                        const char **l1, const char **l2,
+ *                                        bool copy_strings, bool skip_dups,
+ *                                        const char ***_new_list)
+ */
+static inline errno_t add_strings_lists(TALLOC_CTX *mem_ctx,
+                                        const char **l1, const char **l2,
+                                        bool copy_strings,
+                                        const char ***_new_list)
+{
+    return add_strings_lists_ex(mem_ctx, l1, l2, copy_strings, false, _new_list);
+}
+
 
 /**
  * @brief set file descriptor as nonblocking
