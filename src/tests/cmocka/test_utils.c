@@ -1536,11 +1536,14 @@ static int teardown_leak_tests(void **state)
     return 0;
 }
 
+/* add_strings_list() is an alias for add_strings_list_ex() that allows for
+ * duplicate values.
+ */
 void test_add_strings_lists(void **state)
 {
-    const char *l1[] = {"a", "b", "c", NULL};
-    const char *l2[] = {"1", "2", "3", NULL};
-    char **res;
+    const char *l1[] = {"a", "b", "c", "b", NULL};
+    const char *l2[] = {"1", "2", "3", "2", NULL};
+    const char **res;
     int ret;
     size_t c;
     size_t d;
@@ -1626,6 +1629,113 @@ void test_add_strings_lists(void **state)
     for (d = 0; l2[d] != NULL; d++) {
         assert_int_not_equal(memcmp(&l2[d], &res[c+d], sizeof(char *)), 0);
         assert_string_equal(l2[d], res[c+d]);
+    }
+    assert_null(res[c+d]);
+    talloc_free(res);
+}
+
+/* add_strings_list_ex(skip_dups=false) was tested by add_string_list().
+ * We now test add_strings_list_ex(skip_dups=true).
+ */
+void test_add_strings_lists_ex(void **state)
+{
+    /* Set duplicate values at the end of the array to simplify the comparison */
+    const char *l1[] = {"a", "b", "c", "b", NULL};
+    const char *l2[] = {"1", "2", "3", "2", NULL};
+    const char *r1[sizeof(l1) / sizeof(*l1) - 1];
+    const char *r2[sizeof(l2) / sizeof(*l2) - 1];
+    const char **res;
+    int ret;
+    size_t c;
+    size_t d;
+
+    /* The expected results must have the same pointers */
+    memcpy(r1, l1, sizeof(r1) - sizeof(*r1));
+    r1[sizeof(r1) / sizeof(*r1) - 1] = NULL;
+    memcpy(r2, l2, sizeof(r2) - sizeof(*r2));
+    r2[sizeof(r2) / sizeof(*r2) - 1] = NULL;
+
+    ret = add_strings_lists_ex(global_talloc_context, NULL, NULL, true, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    assert_null(res[0]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, NULL, NULL, false, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    assert_null(res[0]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, l1, NULL, false, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'false', pointers must be equal */
+        assert_int_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, l1, NULL, true, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'true', pointers must be different, but strings
+         * must be equal */
+        assert_int_not_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+        assert_string_equal(r1[c], res[c]);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, NULL, l1, false, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'false', pointers must be equal */
+        assert_int_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, NULL, l1, true, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'true', pointers must be different, but strings
+         * must be equal */
+        assert_int_not_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+        assert_string_equal(r1[c], res[c]);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, l1, l2, false, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'false', pointers must be equal */
+        assert_int_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+    }
+    for (d = 0; r2[d] != NULL; d++) {
+        assert_int_equal(memcmp(&r2[d], &res[c+d], sizeof(char *)), 0);
+    }
+    assert_null(res[c+d]);
+    talloc_free(res);
+
+    ret = add_strings_lists_ex(global_talloc_context, l1, l2, true, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; r1[c] != NULL; c++) {
+        /* 'copy_strings' is 'true', pointers must be different, but strings
+         * must be equal */
+        assert_int_not_equal(memcmp(&r1[c], &res[c], sizeof(char *)), 0);
+        assert_string_equal(r1[c], res[c]);
+    }
+    for (d = 0; r2[d] != NULL; d++) {
+        assert_int_not_equal(memcmp(&r2[d], &res[c+d], sizeof(char *)), 0);
+        assert_string_equal(r2[d], res[c+d]);
     }
     assert_null(res[c+d]);
     talloc_free(res);
@@ -2329,6 +2439,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_get_last_x_chars),
         cmocka_unit_test(test_concatenate_string_array),
         cmocka_unit_test_setup_teardown(test_add_strings_lists,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_add_strings_lists_ex,
                                         setup_leak_tests,
                                         teardown_leak_tests),
         cmocka_unit_test(test_sss_write_krb5_conf_snippet),

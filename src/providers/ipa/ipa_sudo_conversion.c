@@ -1082,7 +1082,7 @@ combine_cmdgroups(TALLOC_CTX *mem_ctx,
         }
 
         ret = add_strings_lists(mem_ctx, values, cmdgroup->expanded,
-                                false, discard_const(&values));
+                                false, &values);
         if (ret != EOK) {
             talloc_free(tmp_ctx);
             return NULL;
