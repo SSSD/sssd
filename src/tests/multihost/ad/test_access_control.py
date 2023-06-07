@@ -48,7 +48,7 @@ def ssh_login(multihost, username):
 
 @pytest.mark.usefixtures('joinad')
 @pytest.mark.ad_access_control
-@pytest.mark.tier1_4
+@pytest.mark.tier2
 class TestAccessControl(object):
     """ Test cases for BZ: 1268902
     :setup:
