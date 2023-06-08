@@ -1568,6 +1568,7 @@ errno_t sdap_ad_get_domain_local_groups_recv(struct tevent_req *req)
 
 struct sdap_ad_tokengroups_initgroups_state {
     bool use_id_mapping;
+    bool use_shortcut;
     struct sss_domain_info *domain;
 };
 
@@ -1591,7 +1592,6 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     errno_t ret;
-    bool use_shortcut;
     char **param = NULL;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -1613,14 +1613,14 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
      * to avoid having to transfer and retain members when the fake
      * tokengroups object without name is replaced by the full group object
      */
-    use_shortcut = false;
+    state->use_shortcut = false;
     if (state->use_id_mapping
             && !IS_SUBDOMAIN(state->domain)
             && !state->domain->ignore_group_members) {
         ret = confdb_get_param(id_ctx->be->cdb, mem_ctx, id_ctx->be->conf_path,
                                CONFDB_NSS_FILTER_GROUPS, &param);
         if (ret == EOK) {
-            use_shortcut = (param == NULL || param[0] == NULL);
+            state->use_shortcut = (param == NULL || param[0] == NULL);
             talloc_free(param);
         } else {
             DEBUG(SSSDBG_MINOR_FAILURE, "Failed to access %s: %i (%s)\n",
@@ -1628,7 +1628,7 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
             /* Continue without using the shortcut. Safest option. */
         }
     }
-    if (use_shortcut) {
+    if (state->use_shortcut) {
         subreq = sdap_ad_tokengroups_initgr_mapping_send(state, ev, opts,
                                                          sysdb, domain, sh,
                                                          name, orig_dn,
@@ -1659,9 +1659,7 @@ static void sdap_ad_tokengroups_initgroups_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ad_tokengroups_initgroups_state);
 
-    if (state->use_id_mapping
-            && !IS_SUBDOMAIN(state->domain)
-            && state->domain->ignore_group_members == false) {
+    if (state->use_shortcut) {
         ret = sdap_ad_tokengroups_initgr_mapping_recv(subreq);
     } else {
         ret = sdap_ad_tokengroups_initgr_posix_recv(subreq);
