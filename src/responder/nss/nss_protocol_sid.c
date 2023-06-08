@@ -331,11 +331,11 @@ sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg = result->msgs[0];
-    const char **extra_attrs = NULL;
+    const char **full_attrs = NULL;
     enum sss_id_type id_type;
     struct sized_string *keys;
     struct sized_string *vals;
-    size_t extra_attrs_count = 0;
+    size_t full_attrs_count = 0;
     size_t array_size;
     size_t sum;
     size_t found;
@@ -344,23 +344,6 @@ sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
     size_t body_len;
     uint8_t *body;
     errno_t ret;
-    const char *orig_attrs[] = { SYSDB_SID_STR,
-                                 ORIGINALAD_PREFIX SYSDB_NAME,
-                                 ORIGINALAD_PREFIX SYSDB_UIDNUM,
-                                 ORIGINALAD_PREFIX SYSDB_GIDNUM,
-                                 ORIGINALAD_PREFIX SYSDB_HOMEDIR,
-                                 ORIGINALAD_PREFIX SYSDB_GECOS,
-                                 ORIGINALAD_PREFIX SYSDB_SHELL,
-                                 SYSDB_UPN,
-                                 SYSDB_DEFAULT_OVERRIDE_NAME,
-                                 SYSDB_AD_ACCOUNT_EXPIRES,
-                                 SYSDB_AD_USER_ACCOUNT_CONTROL,
-                                 SYSDB_SSH_PUBKEY,
-                                 SYSDB_USER_CERT,
-                                 SYSDB_USER_EMAIL,
-                                 SYSDB_ORIG_DN,
-                                 SYSDB_ORIG_MEMBEROF,
-                                 NULL };
 
     if (result->count != 1) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -379,14 +362,14 @@ sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
         return ret;
     }
 
-    if (nss_ctx->extra_attributes != NULL) {
-        extra_attrs = nss_ctx->extra_attributes;
-        for (extra_attrs_count = 0;
-             extra_attrs[extra_attrs_count] != NULL;
-             extra_attrs_count++);
+    if (nss_ctx->full_attribute_list != NULL) {
+        full_attrs = nss_ctx->full_attribute_list;
+        for (full_attrs_count = 0;
+             full_attrs[full_attrs_count] != NULL;
+             full_attrs_count++);
     }
 
-    array_size = sizeof(orig_attrs) + extra_attrs_count;
+    array_size = full_attrs_count;
     keys = talloc_array(tmp_ctx, struct sized_string, array_size);
     vals = talloc_array(tmp_ctx, struct sized_string, array_size);
     if (keys == NULL || vals == NULL) {
@@ -398,15 +381,8 @@ sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
     sum = 0;
     found = 0;
 
-    ret = process_attr_list(tmp_ctx, msg, orig_attrs, &keys, &vals,
-                            &array_size, &sum, &found);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "process_attr_list failed.\n");
-        goto done;
-    }
-
-    if (extra_attrs_count != 0) {
-        ret = process_attr_list(tmp_ctx, msg, extra_attrs, &keys, &vals,
+    if (full_attrs_count != 0) {
+        ret = process_attr_list(tmp_ctx, msg, full_attrs, &keys, &vals,
                                 &array_size, &sum, &found);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "process_attr_list failed.\n");
