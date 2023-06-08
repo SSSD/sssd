@@ -110,6 +110,11 @@ const char **parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
             continue;
         }
 
+        /* If the attribute is already in the list, skip it */
+        if (attr_in_list(list, li, allow[i])) {
+            continue;
+        }
+
         list[li] = talloc_strdup(list, allow[i]);
         if (list[li] == NULL) {
             goto done;
@@ -125,6 +130,11 @@ const char **parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
         for (i = 0; defaults[i]; i++) {
             /* if the attribute is explicitly denied, skip it */
             if (attr_in_list(deny, di, defaults[i])) {
+                continue;
+            }
+
+            /* If the attribute is already in the list, skip it */
+            if (attr_in_list(list, li, defaults[i])) {
                 continue;
             }
 
