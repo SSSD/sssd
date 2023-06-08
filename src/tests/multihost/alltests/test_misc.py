@@ -12,12 +12,15 @@ import re
 import time
 import subprocess
 import pytest
+import textwrap
 from sssd.testlib.common.expect import pexpect_ssh
 from datetime import datetime as D_T
 from sssd.testlib.common.exceptions import SSHLoginException
-from sssd.testlib.common.ssh2_python import check_login_client
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from constants import ds_instance_name, ds_suffix, ds_rootdn, ds_rootpw
+from sssd.testlib.common.ssh2_python import check_login_client
+from sssd.testlib.common.helper_functions import count_pattern_logs, \
+    client_backup_file, client_restore_file, client_remove_file
 
 
 def find_logs(multihost, log_name, string_name):
@@ -600,3 +603,51 @@ class TestMisc(object):
         ldap_inst.del_dn(f"ou=Netgroup,{ds_suffix}")
         assert all(find_logs_results), "Searched string not found in the logs"
         assert all(time_diff), "Test failed as the cache response time is higher."
+
+    @pytest.mark.tier1_2
+    def test_0017_filesldap(multihost):
+        """
+        :title: sssd-be tends to run out of system resources,
+            hitting the maximum number of open files
+        :id: ad4a4a32-05d7-11ee-9caa-845cf3eff344
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2195919
+        :setup:
+            1. Replace /usr/libexec/sssd/krb5_child with a shell script like
+                #!/bin/bash
+                sleep 10
+        :steps:
+            1. Login with ldap user and count no of file descriptors before modifying krb5_child
+            2. Trigger authentication requests 'sssctl user-checks -a auth
+            3. Count no of file descriptors after modifying krb5_child
+        :expectedresults:
+            1. Login should success
+            2. Authentication requests will fail
+            3. No of file descriptors should be same as before and after modifying krb5_child
+        """
+        client = multihost.client[0]
+        tools = sssdTools(multihost.client[0])
+        tools.clear_sssd_cache()
+        user = f'foo1@{ds_instance_name}'
+        check_login_client(multihost, user, "Secret123")
+        time.sleep(3)
+        client.run_command('ls -al /proc/$(pidof sssd_be)/fd > /tmp/before_count')
+        time.sleep(2)
+        n_log_bfr = count_pattern_logs(multihost, "/tmp/before_count", "pipe:")
+        client_backup_file(multihost, '/usr/libexec/sssd/krb5_child')
+        new_child = textwrap.dedent("""#!/bin/bash\nsleep 10 \n""")
+        client.put_file_contents('/usr/libexec/sssd/krb5_child', new_child)
+        for i in range(10):
+            client.run_command(f"echo 'Secret123'|sssctl user-checks -a auth foo{i}@{ds_instance_name}")
+            time.sleep(3)
+            client.run_command(f'ls -al /proc/$(pidof sssd_be)/fd > /tmp/after_count{i}')
+        time.sleep(2)
+        n_log_afr = []
+        for i in range(10):
+            n_log_afr.append(count_pattern_logs(multihost, f"/tmp/after_count{i}", "pipe:"))
+        client_restore_file(multihost, "/usr/libexec/sssd/krb5_child_bkp")
+        for f_file in ["/tmp/before_count", "/usr/libexec/sssd/krb5_child_bkp"]:
+            client_remove_file(multihost, f_file)
+        for i in range(10):
+            client_remove_file(multihost, f"/tmp/after_count{i}")
+        for n_n in n_log_afr:
+            assert n_log_bfr == n_n
