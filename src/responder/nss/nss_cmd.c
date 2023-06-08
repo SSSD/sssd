@@ -1209,38 +1209,21 @@ static errno_t sss_nss_cmd_getorigbyname_common(struct cli_ctx *cli_ctx,
     errno_t ret;
     struct sss_nss_ctx *nss_ctx;
     const char **attrs;
-    static const char *defattrs[] = { SYSDB_NAME, SYSDB_OBJECTCATEGORY,
-                                      SYSDB_SID_STR,
-                                      ORIGINALAD_PREFIX SYSDB_NAME,
-                                      ORIGINALAD_PREFIX SYSDB_UIDNUM,
-                                      ORIGINALAD_PREFIX SYSDB_GIDNUM,
-                                      ORIGINALAD_PREFIX SYSDB_GECOS,
-                                      ORIGINALAD_PREFIX SYSDB_HOMEDIR,
-                                      ORIGINALAD_PREFIX SYSDB_SHELL,
-                                      SYSDB_UPN,
-                                      SYSDB_DEFAULT_OVERRIDE_NAME,
-                                      SYSDB_AD_ACCOUNT_EXPIRES,
-                                      SYSDB_AD_USER_ACCOUNT_CONTROL,
-                                      SYSDB_SSH_PUBKEY,
-                                      SYSDB_USER_CERT,
-                                      SYSDB_USER_EMAIL,
-                                      SYSDB_ORIG_DN,
-                                      SYSDB_ORIG_MEMBEROF,
-                                      SYSDB_DEFAULT_ATTRS, NULL };
+    static const char *cache_attrs[] = { SYSDB_NAME,
+                                         SYSDB_OBJECTCATEGORY,
+                                         SYSDB_SID_STR,
+                                         SYSDB_DEFAULT_ATTRS,
+                                         NULL };
 
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sss_nss_ctx);
 
-    if (nss_ctx->extra_attributes != NULL) {
-        ret = add_strings_lists(cli_ctx, defattrs, nss_ctx->extra_attributes,
-                                false, discard_const(&attrs));
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Unable to concatenate attributes [%d]: %s\n",
-                  ret, sss_strerror(ret));
-            return ENOMEM;
-        }
-    } else {
-        attrs = defattrs;
+    ret = add_strings_lists_ex(cli_ctx, cache_attrs, nss_ctx->full_attribute_list,
+                               false, true, &attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to concatenate attributes [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ENOMEM;
     }
 
     return sss_nss_getby_name(cli_ctx, false, type, attrs,

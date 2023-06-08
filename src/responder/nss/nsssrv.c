@@ -175,6 +175,23 @@ static int sss_nss_get_config(struct sss_nss_ctx *nctx,
 {
     int ret;
     char *tmp_str;
+    static const char *orig_attrs[] = { SYSDB_SID_STR,
+                                        ORIGINALAD_PREFIX SYSDB_NAME,
+                                        ORIGINALAD_PREFIX SYSDB_UIDNUM,
+                                        ORIGINALAD_PREFIX SYSDB_GIDNUM,
+                                        ORIGINALAD_PREFIX SYSDB_HOMEDIR,
+                                        ORIGINALAD_PREFIX SYSDB_GECOS,
+                                        ORIGINALAD_PREFIX SYSDB_SHELL,
+                                        SYSDB_UPN,
+                                        SYSDB_DEFAULT_OVERRIDE_NAME,
+                                        SYSDB_AD_ACCOUNT_EXPIRES,
+                                        SYSDB_AD_USER_ACCOUNT_CONTROL,
+                                        SYSDB_SSH_PUBKEY,
+                                        SYSDB_USER_CERT,
+                                        SYSDB_USER_EMAIL,
+                                        SYSDB_ORIG_DN,
+                                        SYSDB_ORIG_MEMBEROF,
+                                        NULL };
 
     ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_ENUM_CACHE_TIMEOUT, 120,
@@ -241,6 +258,13 @@ static int sss_nss_get_config(struct sss_nss_ctx *nctx,
             ret = ENOMEM;
             goto done;
         }
+    }
+
+    ret = add_strings_lists_ex(nctx, nctx->extra_attributes, orig_attrs, false,
+                               true, &nctx->full_attribute_list);
+    if (ret != EOK) {
+        ret = ENOMEM;
+        goto done;
     }
 
     ret = 0;

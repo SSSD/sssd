@@ -78,6 +78,7 @@ struct sss_nss_ctx {
     char *fallback_homedir;
     char *homedir_substr;
     const char **extra_attributes;
+    const char **full_attribute_list;
 
     /* Enumeration. */
     struct sss_nss_enum_ctx *pwent;

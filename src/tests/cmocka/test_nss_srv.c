@@ -35,6 +35,7 @@
 #include "util/util_sss_idmap.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/sss_endian.h"
+#include "db/sysdb.h"
 #include "db/sysdb_iphosts.h"
 #include "db/sysdb_ipnetworks.h"
 
@@ -57,7 +58,31 @@ struct sss_nss_test_ctx {
     int ncache_hits;
 };
 
-const char *global_extra_attrs[] = {"phone", "mobile", NULL};
+#define EXTRA_ATTRS "phone", "mobile"
+
+/* This list comes from nsssrv.c:sss_nss_get_config() and must be kept aligned */
+#define ORIG_ATTRS SYSDB_SID_STR, \
+                   ORIGINALAD_PREFIX SYSDB_NAME, \
+                   ORIGINALAD_PREFIX SYSDB_UIDNUM, \
+                   ORIGINALAD_PREFIX SYSDB_GIDNUM, \
+                   ORIGINALAD_PREFIX SYSDB_HOMEDIR, \
+                   ORIGINALAD_PREFIX SYSDB_GECOS, \
+                   ORIGINALAD_PREFIX SYSDB_SHELL, \
+                   SYSDB_UPN, \
+                   SYSDB_DEFAULT_OVERRIDE_NAME, \
+                   SYSDB_AD_ACCOUNT_EXPIRES, \
+                   SYSDB_AD_USER_ACCOUNT_CONTROL, \
+                   SYSDB_SSH_PUBKEY, \
+                   SYSDB_USER_CERT, \
+                   SYSDB_USER_EMAIL, \
+                   SYSDB_ORIG_DN, \
+                   SYSDB_ORIG_MEMBEROF
+
+
+const char *global_extra_attrs[] = { EXTRA_ATTRS, NULL };
+const char *global_orig_attrs[]  = { ORIG_ATTRS, NULL };
+const char *global_full_attrs[]  = { ORIG_ATTRS, EXTRA_ATTRS, NULL };
+
 
 struct sss_nss_test_ctx *sss_nss_test_ctx;
 
@@ -1457,6 +1482,8 @@ void test_sss_nss_setup(struct sss_test_conf_param params[],
     /* do after previous setup as the former nulls protocol_ctx */
     sss_nss_test_ctx->cctx->protocol_ctx = mock_prctx(sss_nss_test_ctx->cctx);
     assert_non_null(sss_nss_test_ctx->cctx->protocol_ctx);
+
+    sss_nss_test_ctx->nctx->full_attribute_list = global_orig_attrs;
 }
 
 struct group getgrnam_no_members = {
@@ -3643,6 +3670,8 @@ static int sss_nss_test_setup_extra_attr(void **state)
     test_sss_nss_setup(params, state);
 
     sss_nss_test_ctx->nctx->extra_attributes = global_extra_attrs;
+    sss_nss_test_ctx->nctx->full_attribute_list = global_full_attrs;
+
     return 0;
 }
 
