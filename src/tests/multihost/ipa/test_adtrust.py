@@ -809,3 +809,50 @@ class TestADTrust(object):
         assert f"borci{run_id_int}@{domain}" in check_gr_lookup.stdout_text, "Group name was not resolved."
         assert f"ferko{run_id_int}@{domain}" in check_gr_lookup.stdout_text, "Group name was not resolved."
         assert log_message in log_file
+
+    @staticmethod
+    def test_ldap_user_extra_attrs(multihost, create_aduser_group):
+        """
+        :title: When adding attributes ldap_user_extra_attrs with mail value in sssd.conf
+        the cross-forest query stop working
+        :id: abc60b52-224d-4ac3-bbae-195cb0c563a0
+        :customerscenario: true
+        :bugzilla:
+          https://bugzilla.redhat.com/show_bug.cgi?id=2170720
+        :description: When adding attributes ldap_user_extra_attrs in sssd.conf
+          with the cross-forest, id command failed on client side.
+        working.
+        :setup:
+          1. Create user and group on AD.
+        :steps:
+          1. Add ldap_user_extra_attrs in domain section with mail in client and master.
+          2. Add user_attributes in nss section with mail in client and master.
+          3. Clear sssd cache from client and master.
+          4. Check id lookup of the user.
+        :expectedresults:
+          1. Successfully add parameter in domain section of client and master.
+          2. Successfully add user_attributes in nss section of client and master.
+          3. Cleared the cache of client and master.
+          4. User lookup command succeeds.
+        """
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        master = sssdTools(multihost.master[0])
+        domain = multihost.ad[0].domainname
+
+        (aduser, adgroup) = create_aduser_group
+        section = client.get_domain_section_name()
+
+        for role in [client, master]:
+            domain_params = {'ldap_user_extra_attrs': f'mail, lastname:sn, firstname:givenname'}
+            nss_params = {'user_attributes': '+mail, +firstname, +lastname'}
+            role.sssd_conf(f'domain/{section}', domain_params)
+            role.sssd_conf('nss', nss_params)
+            role.clear_sssd_cache()
+
+        # Test evaluation
+        id_lookup = f'id {aduser}@{domain}'
+        check_id = multihost.client[0].run_command(id_lookup, raiseonerr=False)
+
+        assert check_id.returncode == 0, f'{aduser} id is not successful'
+        assert f"{aduser}@{domain}" in check_id.stdout_text, "User name was not resolved."
+        assert f"{adgroup}@{domain}" in check_id.stdout_text, "Group name was not resolved."
