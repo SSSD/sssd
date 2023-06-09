@@ -67,6 +67,8 @@ sbus_connect_init_send(TALLOC_CTX *mem_ctx,
 
     tevent_req_set_callback(subreq, sbus_connect_init_hello_done, req);
 
+    arm_watchdog();
+
     return req;
 }
 
@@ -110,6 +112,8 @@ static void sbus_connect_init_done(struct tevent_req *subreq)
     struct tevent_req *req;
     uint32_t res;
     errno_t ret;
+
+    disarm_watchdog();
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
 
