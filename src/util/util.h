@@ -791,6 +791,18 @@ int setup_watchdog(struct tevent_context *ev, int interval);
 void teardown_watchdog(void);
 int get_watchdog_ticks(void);
 
+/* The arm_watchdog() and disarm_watchdog() calls will disable and re-enable
+ * the watchdog reset, respectively. This means that after arm_watchdog() is
+ * called the watchdog will not be resetted anymore and it will kill the
+ * process if disarm_watchdog() wasn't called before.
+ * Those calls should only be used when there is no other way to handle
+ * waiting request and recover into a stable state.
+ * Those calls cannot be nested, i.e. after calling arm_watchdog() it should
+ * not be called a second time in a different request because then
+ * disarm_watchdog() will disable the watchdog coverage for both. */
+void arm_watchdog(void);
+void disarm_watchdog(void);
+
 /* from files.c */
 int sss_remove_tree(const char *root);
 int sss_remove_subtree(const char *root);

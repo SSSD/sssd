@@ -40,6 +40,7 @@ struct watchdog_ctx {
     time_t timestamp;
     struct tevent_fd *tfd;
     int pipefd[2];
+    bool armed; /* if 'true' ticks counter will not be reset */
 } watchdog_ctx;
 
 static void watchdog_detect_timeshift(void)
@@ -89,8 +90,13 @@ static void watchdog_event_handler(struct tevent_context *ev,
                                    struct timeval current_time,
                                    void *private_data)
 {
-    /* first thing reset the watchdog ticks */
-    watchdog_reset();
+    if (!watchdog_ctx.armed) {
+        /* first thing reset the watchdog ticks */
+        watchdog_reset();
+    } else {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Watchdog armed, process might be terminated soon.\n");
+    }
 
     /* then set a new watchodg event */
     watchdog_ctx.te = tevent_add_timer(ev, ev,
@@ -197,6 +203,7 @@ int setup_watchdog(struct tevent_context *ev, int interval)
     watchdog_ctx.ev = ev;
     watchdog_ctx.input_interval = interval;
     watchdog_ctx.timestamp = time(NULL);
+    watchdog_ctx.armed = false;
 
     ret = pipe(watchdog_ctx.pipefd);
     if (ret == -1) {
@@ -263,4 +270,21 @@ void teardown_watchdog(void)
 int get_watchdog_ticks(void)
 {
     return __sync_add_and_fetch(&watchdog_ctx.ticks, 0);
+}
+
+void arm_watchdog(void)
+{
+    if (watchdog_ctx.armed) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "arm_watchdog() is called although the watchdog is already armed. "
+              "This indicates a programming error and should be avoided because "
+              "it will most probably not work as expected.\n");
+    }
+
+    watchdog_ctx.armed = true;
+}
+
+void disarm_watchdog(void)
+{
+    watchdog_ctx.armed = false;
 }
