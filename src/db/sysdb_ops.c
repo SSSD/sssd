@@ -2307,8 +2307,10 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret) goto done;
 
+    /* in case (ignore_group_members == true) group is actually complete */
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
-                                 now-1);
+                                 domain->ignore_group_members ?
+                                     (now + domain->group_timeout) : (now-1));
     if (ret) goto done;
 
     ret = sysdb_attrs_add_bool(attrs, SYSDB_POSIX, posix);
