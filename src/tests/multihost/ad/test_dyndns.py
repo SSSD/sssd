@@ -98,9 +98,9 @@ def extra_interface(session_multihost, request):
 @pytest.mark.usefixtures("reverse_zone", "disable_dns_forwarders", "change_client_hostname")
 @pytest.mark.dyndns
 @pytest.mark.tier2
-@pytest.mark.c_ares
 class TestDynDns(object):
 
+    @pytest.mark.c_ares
     @staticmethod
     def test_0001_verify_with_default_setting(multihost, adjoin):
         """
@@ -126,6 +126,7 @@ class TestDynDns(object):
         assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip)
 
+    @pytest.mark.c_ares
     @staticmethod
     def test_0002_verify_when_dyndns_update_set_to_false(multihost, adjoin):
         """
@@ -156,6 +157,7 @@ class TestDynDns(object):
         assert dns.find_a(hostname, ip) is not True
         assert dns.find_ptr(hostname, ip) is not True
 
+    @pytest.mark.c_ares
     @staticmethod
     def test_0003_verify_with_dyndns_ttl_functionality(multihost, adjoin):
         """
@@ -227,6 +229,7 @@ class TestDynDns(object):
         assert dns.find_ptr(hostname, extra_ip)
         assert ip not in dns.print_zone(domain)
 
+    @pytest.mark.c_ares
     @staticmethod
     def test_0005_check_dyndns_iface_with_non_existing_interfaces(multihost, adjoin):
         """
@@ -258,6 +261,7 @@ class TestDynDns(object):
         assert dns.find_a(hostname, ip) is not True
         assert dns.find_ptr(hostname, ip) is not True
 
+    @pytest.mark.c_ares
     @staticmethod
     def test_0006_check_with_dyndns_refresh_interval(multihost, adjoin, extra_network, extra_interface):
         """
@@ -311,6 +315,7 @@ class TestDynDns(object):
         assert dns.find_a(hostname, extra_ip_after_refresh)
         assert dns.find_ptr(hostname, extra_ip_after_refresh)
 
+    @pytest.mark.c_ares
     @staticmethod
     def test_0007_set_dyndns_update_ptr_false_ptr_records_are_absent(multihost, adjoin):
         """
@@ -349,6 +354,7 @@ class TestDynDns(object):
         assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip) is not True
 
+    @pytest.mark.c_ares
     @staticmethod
     def test_0008_set_dyndns_update_ptr_to_false_ptr_records_are_present(
             multihost, adjoin, extra_interface, extra_network):
@@ -407,6 +413,7 @@ class TestDynDns(object):
         assert dns.find_ptr(hostname, ip)
         assert dns.find_ptr(hostname, new_ip) is not True
 
+    @pytest.mark.c_ares
     @staticmethod
     def test_0009_check_with_dyndns_force_tcp(multihost, adjoin):
         """
@@ -456,6 +463,7 @@ class TestDynDns(object):
         assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip)
 
+    @pytest.mark.c_ares
     @staticmethod
     def test_0010_check_with_combination_of_addresses(
             multihost, adjoin, extra_interface, extra_network):
@@ -496,6 +504,7 @@ class TestDynDns(object):
         assert dns.find_ptr(hostname, extra_ip)
         assert dns.find_ptr(hostname, ip) is not True
 
+    @pytest.mark.c_ares
     @staticmethod
     def test_0011_verify_use_after_free_in_dyndns_code_bz1132361(multihost, adjoin):
         """
