@@ -72,6 +72,10 @@ class TestPoorManBacktrace(object):
           7. Should fail as expected
           8. Should have string 'skipping repetitive backtrace'
         """
+        arch = multihost.client[0].run_command(
+            'uname -m', raiseonerr=False).stdout_text
+        if 'x86_64' not in arch:
+            pytest.skip("Test is unstable on architectures other than x86_64.")
         bad_url(multihost)
         tools = sssdTools(multihost.client[0])
         section = f"domain/{ds_instance_name}"
