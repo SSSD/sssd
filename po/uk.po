@@ -4,20 +4,21 @@
 #
 # Translators:
 # sgallagh <sgallagh@redhat.com>, 2011
-# Yuri Chornoivan <yurchor@ukr.net>, 2011-2014, 2020, 2021, 2022.
-# Yuri Chornoivan <yurchor@ukr.net>, 2013, 2020, 2021, 2022.
-# Yuri Chornoivan <yurchor@ukr.net>, 2015. #zanata, 2020, 2021, 2022.
-# Yuri Chornoivan <yurchor@ukr.net>, 2017. #zanata, 2020, 2021, 2022.
-# Yuri Chornoivan <yurchor@ukr.net>, 2018. #zanata, 2020, 2021, 2022.
-# Yuri Chornoivan <yurchor@ukr.net>, 2019. #zanata, 2020, 2021, 2022.
-# Yuri Chornoivan <yurchor@ukr.net>, 2020. #zanata, 2021, 2022.
+# Yuri Chornoivan <yurchor@ukr.net>, 2011-2014, 2020, 2021, 2022, 2023.
+# Yuri Chornoivan <yurchor@ukr.net>, 2013, 2020, 2021, 2022, 2023.
+# Yuri Chornoivan <yurchor@ukr.net>, 2015. #zanata, 2020, 2021, 2022, 2023.
+# Yuri Chornoivan <yurchor@ukr.net>, 2017. #zanata, 2020, 2021, 2022, 2023.
+# Yuri Chornoivan <yurchor@ukr.net>, 2018. #zanata, 2020, 2021, 2022, 2023.
+# Yuri Chornoivan <yurchor@ukr.net>, 2019. #zanata, 2020, 2021, 2022, 2023.
+# Yuri Chornoivan <yurchor@ukr.net>, 2020. #zanata, 2021, 2022, 2023.
+# Elena Mishina <lepata@basealt.ru>, 2023.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2022-12-12 14:09+0000\n"
-"Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
+"PO-Revision-Date: 2023-05-20 22:20+0000\n"
+"Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/uk/>\n"
 "Language: uk\n"
@@ -26,7 +27,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.14.2\n"
+"X-Generator: Weblate 4.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -178,9 +179,8 @@ msgid "Enable or disable core dumps for all SSSD processes."
 msgstr "Увімкнути або вимкнути дампи ядра для усіх процесів SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "Скоригувати перевірку сертифікатів"
+msgstr "Скоригувати поведінку при перевірці пароля"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Enumeration cache timeout length (seconds)"
@@ -430,20 +430,18 @@ msgstr ""
 "примусово встановлено доступ PAM із розпізнаванням GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:117
-#, fuzzy
 msgid "Allow passkey device authentication."
-msgstr "Дозволити розпізнавання за сертифікатом або смарткарткою."
+msgstr "Дозволити розпізнавання за допомогою пристрою пароля."
 
 #: src/config/SSSDConfig/sssdoptions.py:118
-#, fuzzy
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
 msgstr ""
 "Час у секундах, протягом якого pam_sss очікуватиме на завершення роботи "
-"p11_child"
+"passkey_child"
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Enable debugging in the libfido2 library"
-msgstr ""
+msgstr "Увімкнути діагностику у бібліотеці libfido2"
 
 #: src/config/SSSDConfig/sssdoptions.py:122
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -1648,9 +1646,8 @@ msgid "attribute containing the email address of the user"
 msgstr "атрибут, що містить адресу електронної пошти користувача"
 
 #: src/config/SSSDConfig/sssdoptions.py:449
-#, fuzzy
 msgid "attribute containing the passkey mapping data of the user"
-msgstr "атрибут, що містить адресу електронної пошти користувача"
+msgstr "атрибут, що містить дані прив'язки ключа користувача"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "A list of extra attributes to download along with the user entry"
@@ -2227,7 +2224,7 @@ msgstr "Повідомлення сервера: "
 
 #: src/sss_client/pam_sss.c:71
 msgid "Enter PIN:"
-msgstr ""
+msgstr "Введіть PIN:"
 
 #: src/sss_client/pam_sss.c:314
 msgid "Passwords do not match"
@@ -2256,9 +2253,9 @@ msgid "Your password will expire in %1$d %2$s."
 msgstr "Строк дії вашого пароля завершиться за %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:627
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
-msgstr "Строк дії вашого пароля завершиться за %1$d %2$s."
+msgstr "Строк дії вашого пароля вичерпано."
 
 #: src/sss_client/pam_sss.c:678
 msgid "Authentication is denied until: "
@@ -2321,7 +2318,7 @@ msgstr "Другий фактор: "
 
 #: src/sss_client/pam_sss.c:2547
 msgid "Insert your passkey device, then press ENTER."
-msgstr ""
+msgstr "Вставте ваш пристрій ключа і натисніть клавішу ENTER."
 
 #: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
 msgid "Password: "
@@ -2673,9 +2670,8 @@ msgid "Passkey related tools:"
 msgstr "Пов'язані із ключем інструменти:"
 
 #: src/tools/sssctl/sssctl.c:348
-#, fuzzy
 msgid "Perform passkey registration"
-msgstr "Виконати пов'язані із ключем дії"
+msgstr "Виконати реєстрацію ключа"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2858,9 +2854,8 @@ msgid "Error while reading configuration directory.\n"
 msgstr "Помилка під час спроби прочитати каталог налаштувань.\n"
 
 #: src/tools/sssctl/sssctl_config.c:147
-#, fuzzy
 msgid "There is no configuration.\n"
-msgstr "Не вдалося завантажити налаштування з %s.\n"
+msgstr "Немає налаштувань.\n"
 
 #: src/tools/sssctl/sssctl_config.c:157
 msgid "Failed to run validators"

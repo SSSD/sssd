@@ -14,7 +14,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2023-03-02 09:20+0000\n"
+"PO-Revision-Date: 2023-06-10 12:20+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Chinese (Simplified) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_CN/>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.15.2\n"
+"X-Generator: Weblate 4.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -164,9 +164,8 @@ msgid "Enable or disable core dumps for all SSSD processes."
 msgstr "为所有 SSSD 进程启用或禁用内核转储。"
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "调整证书验证"
+msgstr "调整密码验证行为"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Enumeration cache timeout length (seconds)"
@@ -384,18 +383,16 @@ msgstr ""
 "验证进行 PAM 访问"
 
 #: src/config/SSSDConfig/sssdoptions.py:117
-#, fuzzy
 msgid "Allow passkey device authentication."
-msgstr "允许基于证书/智能卡的身份验证。"
+msgstr "允许使用通行密钥设备认证。"
 
 #: src/config/SSSDConfig/sssdoptions.py:118
-#, fuzzy
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
-msgstr "pam_sss 等待 p11_child 完成的时间（以秒为单位）"
+msgstr "pam_sss 等待 passkey_child 完成的时间"
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Enable debugging in the libfido2 library"
-msgstr ""
+msgstr "在 libfido2 库中启用调试功能"
 
 #: src/config/SSSDConfig/sssdoptions.py:122
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -1489,9 +1486,8 @@ msgid "attribute containing the email address of the user"
 msgstr "包含用户电子邮件地址的属性"
 
 #: src/config/SSSDConfig/sssdoptions.py:449
-#, fuzzy
 msgid "attribute containing the passkey mapping data of the user"
-msgstr "包含用户电子邮件地址的属性"
+msgstr "包含用户的通行密钥映射数据的属性"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "A list of extra attributes to download along with the user entry"
@@ -2038,7 +2034,7 @@ msgstr "服务器消息： "
 
 #: src/sss_client/pam_sss.c:71
 msgid "Enter PIN:"
-msgstr ""
+msgstr "输入 PIN："
 
 #: src/sss_client/pam_sss.c:314
 msgid "Passwords do not match"
@@ -2067,9 +2063,9 @@ msgid "Your password will expire in %1$d %2$s."
 msgstr "您的密码将于 %1$d %2$s 过期。"
 
 #: src/sss_client/pam_sss.c:627
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
-msgstr "您的密码将于 %1$d %2$s 过期。"
+msgstr "您的密码已经过期。"
 
 #: src/sss_client/pam_sss.c:678
 msgid "Authentication is denied until: "
@@ -2129,7 +2125,7 @@ msgstr "第二因素： "
 
 #: src/sss_client/pam_sss.c:2547
 msgid "Insert your passkey device, then press ENTER."
-msgstr ""
+msgstr "插入您的通行密钥设备，然后按回车键。"
 
 #: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
 msgid "Password: "
@@ -2478,9 +2474,8 @@ msgid "Passkey related tools:"
 msgstr "与 Passkey 相关的工具："
 
 #: src/tools/sssctl/sssctl.c:348
-#, fuzzy
 msgid "Perform passkey registration"
-msgstr "执行与 passkey 相关的操作"
+msgstr "执行通行密钥登记"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2656,9 +2651,8 @@ msgid "Error while reading configuration directory.\n"
 msgstr "读取配置目录时出错。\n"
 
 #: src/tools/sssctl/sssctl_config.c:147
-#, fuzzy
 msgid "There is no configuration.\n"
-msgstr "从 %s 加载配置失败。\n"
+msgstr "没有任何配置。\n"
 
 #: src/tools/sssctl/sssctl_config.c:157
 msgid "Failed to run validators"

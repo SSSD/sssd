@@ -1991,7 +1991,7 @@ msgstr ""
 #: src/sss_client/pam_sss.c:70 src/sss_client/pam_sss.c:819
 #: src/sss_client/pam_sss.c:830
 msgid "Server message: "
-msgstr "Szerver üzenete:"
+msgstr "Szerver üzenete: "
 
 #: src/sss_client/pam_sss.c:71
 msgid "Enter PIN:"
@@ -2030,7 +2030,7 @@ msgstr ", a gyorsítótárazott jelszó lejár ekkor: "
 
 #: src/sss_client/pam_sss.c:678
 msgid "Authentication is denied until: "
-msgstr "A bejelentkezés tiltott eddig:"
+msgstr "A hitelesítés megtagadva, amíg: "
 
 #: src/sss_client/pam_sss.c:699
 msgid "System is offline, password change not possible"
@@ -2048,7 +2048,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:816 src/sss_client/pam_sss.c:829
 msgid "Password change failed. "
-msgstr "A jelszó megváltoztatása nem sikerült."
+msgstr "A jelszó megváltoztatása nem sikerült. "
 
 #: src/sss_client/pam_sss.c:1797
 #, c-format
@@ -2066,7 +2066,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:2352
 msgid "New Password: "
-msgstr "Új jelszó:"
+msgstr "Új jelszó: "
 
 #: src/sss_client/pam_sss.c:2353
 msgid "Reenter new Password: "
@@ -2098,7 +2098,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:2713
 msgid "Current Password: "
-msgstr "Jelenlegi jelszó:"
+msgstr "Jelenlegi jelszó: "
 
 #: src/sss_client/pam_sss.c:3070
 msgid "Password expired. Change your password now."
