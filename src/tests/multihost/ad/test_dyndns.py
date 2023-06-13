@@ -100,8 +100,8 @@ def extra_interface(session_multihost, request):
 @pytest.mark.tier2
 class TestDynDns(object):
 
-    @pytest.mark.c_ares
     @staticmethod
+    @pytest.mark.c_ares
     def test_0001_verify_with_default_setting(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: verify with default settings
@@ -126,8 +126,8 @@ class TestDynDns(object):
         assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip)
 
-    @pytest.mark.c_ares
     @staticmethod
+    @pytest.mark.c_ares
     def test_0002_verify_when_dyndns_update_set_to_false(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: verify when dyndns update set to false
@@ -157,8 +157,8 @@ class TestDynDns(object):
         assert dns.find_a(hostname, ip) is not True
         assert dns.find_ptr(hostname, ip) is not True
 
-    @pytest.mark.c_ares
     @staticmethod
+    @pytest.mark.c_ares
     def test_0003_verify_with_dyndns_ttl_functionality(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: verify with dyndns ttl functionality
@@ -229,8 +229,8 @@ class TestDynDns(object):
         assert dns.find_ptr(hostname, extra_ip)
         assert ip not in dns.print_zone(domain)
 
-    @pytest.mark.c_ares
     @staticmethod
+    @pytest.mark.c_ares
     def test_0005_check_dyndns_iface_with_non_existing_interfaces(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: check dyndns iface with non-existing interfaces
@@ -261,8 +261,8 @@ class TestDynDns(object):
         assert dns.find_a(hostname, ip) is not True
         assert dns.find_ptr(hostname, ip) is not True
 
-    @pytest.mark.c_ares
     @staticmethod
+    @pytest.mark.c_ares
     def test_0006_check_with_dyndns_refresh_interval(multihost, adjoin, extra_network, extra_interface):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: check with dyndns refresh interval
@@ -315,8 +315,8 @@ class TestDynDns(object):
         assert dns.find_a(hostname, extra_ip_after_refresh)
         assert dns.find_ptr(hostname, extra_ip_after_refresh)
 
-    @pytest.mark.c_ares
     @staticmethod
+    @pytest.mark.c_ares
     def test_0007_set_dyndns_update_ptr_false_ptr_records_are_absent(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: set dyndns update ptr false ptr records are absent
@@ -354,8 +354,8 @@ class TestDynDns(object):
         assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip) is not True
 
-    @pytest.mark.c_ares
     @staticmethod
+    @pytest.mark.c_ares
     def test_0008_set_dyndns_update_ptr_to_false_ptr_records_are_present(
             multihost, adjoin, extra_interface, extra_network):
         """
@@ -413,8 +413,8 @@ class TestDynDns(object):
         assert dns.find_ptr(hostname, ip)
         assert dns.find_ptr(hostname, new_ip) is not True
 
-    @pytest.mark.c_ares
     @staticmethod
+    @pytest.mark.c_ares
     def test_0009_check_with_dyndns_force_tcp(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: check with dyndns force tcp
@@ -463,8 +463,8 @@ class TestDynDns(object):
         assert dns.find_a(hostname, ip)
         assert dns.find_ptr(hostname, ip)
 
-    @pytest.mark.c_ares
     @staticmethod
+    @pytest.mark.c_ares
     def test_0010_check_with_combination_of_addresses(
             multihost, adjoin, extra_interface, extra_network):
         """
@@ -504,8 +504,8 @@ class TestDynDns(object):
         assert dns.find_ptr(hostname, extra_ip)
         assert dns.find_ptr(hostname, ip) is not True
 
-    @pytest.mark.c_ares
     @staticmethod
+    @pytest.mark.c_ares
     def test_0011_verify_use_after_free_in_dyndns_code_bz1132361(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: verify use after free in dyndns code bz1132361
