@@ -1202,7 +1202,7 @@ class TestADParamsPorted:
         arch = multihost.client[0].run_command(
             'uname -m', raiseonerr=False).stdout_text
         if 'x86_64' not in arch:
-            pytest.skip("Test is unstable on architectures other than x68_64.")
+            pytest.skip("Test is unstable on architectures other than x86_64.")
 
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
@@ -1256,10 +1256,11 @@ class TestADParamsPorted:
             f'hostname {old_hostname}', raiseonerr=False)
 
         # Evaluate test results
-        assert "Setting ad_hostname to [host1.kautest.com]" in log_str
-        assert f"Will look for host1.kautest.com@{ad_realm}" in log_str
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert su_result, "The su command failed!"
+        assert "Setting ad_hostname to [host1.kautest.com]" in log_str
+        assert f"Will look for host1.kautest.com@{ad_realm}" in log_str
+
 
     @staticmethod
     @pytest.mark.tier1_2
@@ -1293,6 +1294,10 @@ class TestADParamsPorted:
           1. Remove AD user.
         :customerscenario: False
         """
+        arch = multihost.client[0].run_command(
+            'uname -m', raiseonerr=False).stdout_text
+        if 'x86_64' not in arch:
+            pytest.skip("Test is unstable on architectures other than x86_64.")
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
 
@@ -1341,13 +1346,13 @@ class TestADParamsPorted:
         multihost.client[0].run_command(
             f'hostname {old_hostname}', raiseonerr=False)
         # Evaluate test results
+        assert usr_cmd.returncode == 0, f"User {aduser} was not found."
+        assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
+        assert su_result, "The su command failed!"
         assert f"Option ad_hostname has value {old_hostname}" in log_str
         assert f"Setting ad_hostname to [{old_hostname}]" not in log_str
         assert f"Will look for {old_hostname}@{ad_realm}" in log_str
         assert f"Trying to find principal {old_hostname}@{ad_realm}" in log_str
-        assert usr_cmd.returncode == 0, f"User {aduser} was not found."
-        assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
-        assert su_result, "The su command failed!"
 
     @staticmethod
     @pytest.mark.tier2
