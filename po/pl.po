@@ -3,20 +3,20 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Piotr Drąg <piotrdrag@gmail.com>, 2011-2014, 2020, 2021, 2022.
+# Piotr Drąg <piotrdrag@gmail.com>, 2011-2014, 2020, 2021, 2022, 2023.
 # sgallagh <sgallagh@redhat.com>, 2011
-# Piotr Drąg <piotrdrag@gmail.com>, 2015. #zanata, 2020, 2021, 2022.
-# Piotr Drąg <piotrdrag@gmail.com>, 2016. #zanata, 2020, 2021, 2022.
-# Piotr Drąg <piotrdrag@gmail.com>, 2017. #zanata, 2020, 2021, 2022.
-# Piotr Drąg <piotrdrag@gmail.com>, 2018. #zanata, 2020, 2021, 2022.
-# Piotr Drąg <piotrdrag@gmail.com>, 2019. #zanata, 2020, 2021, 2022.
-# Piotr Drąg <piotrdrag@gmail.com>, 2020. #zanata, 2021, 2022.
+# Piotr Drąg <piotrdrag@gmail.com>, 2015. #zanata, 2020, 2021, 2022, 2023.
+# Piotr Drąg <piotrdrag@gmail.com>, 2016. #zanata, 2020, 2021, 2022, 2023.
+# Piotr Drąg <piotrdrag@gmail.com>, 2017. #zanata, 2020, 2021, 2022, 2023.
+# Piotr Drąg <piotrdrag@gmail.com>, 2018. #zanata, 2020, 2021, 2022, 2023.
+# Piotr Drąg <piotrdrag@gmail.com>, 2019. #zanata, 2020, 2021, 2022, 2023.
+# Piotr Drąg <piotrdrag@gmail.com>, 2020. #zanata, 2021, 2022, 2023.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2022-12-12 12:44+0000\n"
+"PO-Revision-Date: 2023-05-14 12:40+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pl/>\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.14.2\n"
+"X-Generator: Weblate 4.15.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -182,9 +182,8 @@ msgid "Enable or disable core dumps for all SSSD processes."
 msgstr "Włącza lub wyłącza zrzuty core dla wszystkich procesów SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "Dostraja sprawdzanie poprawności certyfikatów"
+msgstr "Dostraja zachowanie sprawdzania poprawności haseł-kluczy"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Enumeration cache timeout length (seconds)"
@@ -418,18 +417,16 @@ msgstr ""
 "wymuszone dla dostępu PAM za pomocą uwierzytelniania GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:117
-#, fuzzy
 msgid "Allow passkey device authentication."
-msgstr "Zezwala na uwierzytelnianie za pomocą certyfikatów/smartcard."
+msgstr "Zezwala na uwierzytelnianie za pomocą urządzenia hasła-klucza."
 
 #: src/config/SSSDConfig/sssdoptions.py:118
-#, fuzzy
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
-msgstr "Ile sekund pam_sss ma oczekiwać na ukończenie p11_child"
+msgstr "Ile sekund pam_sss ma oczekiwać na ukończenie passkey_child"
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Enable debugging in the libfido2 library"
-msgstr ""
+msgstr "Włącza debugowanie w bibliotece libfido2"
 
 #: src/config/SSSDConfig/sssdoptions.py:122
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -1601,9 +1598,8 @@ msgid "attribute containing the email address of the user"
 msgstr "atrybut zawierający adres e-mail użytkownika"
 
 #: src/config/SSSDConfig/sssdoptions.py:449
-#, fuzzy
 msgid "attribute containing the passkey mapping data of the user"
-msgstr "atrybut zawierający adres e-mail użytkownika"
+msgstr "atrybut zawierający dane mapowania hasła-klucza użytkownika"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "A list of extra attributes to download along with the user entry"
@@ -2161,7 +2157,7 @@ msgstr "Komunikat serwera: "
 
 #: src/sss_client/pam_sss.c:71
 msgid "Enter PIN:"
-msgstr ""
+msgstr "Proszę podać kod PIN:"
 
 #: src/sss_client/pam_sss.c:314
 msgid "Passwords do not match"
@@ -2190,9 +2186,9 @@ msgid "Your password will expire in %1$d %2$s."
 msgstr "Hasło wygaśnie za %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:627
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
-msgstr "Hasło wygaśnie za %1$d %2$s."
+msgstr "Hasło wygasło."
 
 #: src/sss_client/pam_sss.c:678
 msgid "Authentication is denied until: "
@@ -2257,6 +2253,7 @@ msgstr "Drugi czynnik: "
 #: src/sss_client/pam_sss.c:2547
 msgid "Insert your passkey device, then press ENTER."
 msgstr ""
+"Proszę włożyć urządzenie hasła-klucza, a następnie nacisnąć klawisz Enter."
 
 #: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
 msgid "Password: "
@@ -2609,9 +2606,8 @@ msgid "Passkey related tools:"
 msgstr "Narzędzia związane z hasłami-kluczami:"
 
 #: src/tools/sssctl/sssctl.c:348
-#, fuzzy
 msgid "Perform passkey registration"
-msgstr "Wykonuje działania związane z hasłami-kluczami"
+msgstr "Wykonuje rejestrację hasłem-kluczem"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2792,9 +2788,8 @@ msgid "Error while reading configuration directory.\n"
 msgstr "Błąd podczas odczytywania katalogu konfiguracji.\n"
 
 #: src/tools/sssctl/sssctl_config.c:147
-#, fuzzy
 msgid "There is no configuration.\n"
-msgstr "Wczytanie konfiguracji z %s się nie powiodło.\n"
+msgstr "Nie ma konfiguracji.\n"
 
 #: src/tools/sssctl/sssctl_config.c:157
 msgid "Failed to run validators"

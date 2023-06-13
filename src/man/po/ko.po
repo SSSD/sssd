@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2023-04-08 20:20+0000\n"
+"PO-Revision-Date: 2023-06-13 13:20+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.15.2\n"
+"X-Generator: Weblate 4.17\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -513,6 +513,9 @@ msgid ""
 "and the administrator must enable the ones allowed to be used by executing: "
 "\"systemctl enable sssd-@service@.socket\".  </phrase>"
 msgstr ""
+"<phrase condition=\"have_systemd\"> 기본적으로, 모든 서비스는 비활성화 되어 "
+"있고 관리자는 다음을 실행하여 사용이 허용된 항목을 활성화해야 합니다: "
+"\"systemctl enable sssd-@service@.socket\".  </phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:255 sssd.conf.5.xml:718
@@ -548,6 +551,11 @@ msgid ""
 "alphanumeric ASCII characters, dashes, dots and underscores. '/' character "
 "is forbidden."
 msgstr ""
+"도메인은 사용자 정보를 포함하는 데이타베이스입니다. SSSD는 동시에 더 많은 "
+"도메인을 사용 할 수 있으나 적어도 한 개는 구성되어 있어야만 하고, 그렇지 "
+"않으면 SSSD는 시작되지 않을 것입니다.  이와 같은 매개변수는 질의 할 순서대로 "
+"도메인의 목록을 설명합니다.  도메인 이름은 영숫자(ASCII) 문자, -, . 및 _만 "
+"포함되도록 추천됩니다. '/'문자는 금지됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:284 sssd.conf.5.xml:3300
@@ -569,6 +577,9 @@ msgid ""
 "ID providers there are also default regular expressions. See DOMAIN SECTIONS "
 "for more info on these regular expressions."
 msgstr ""
+"각각의 도메인은 개별 정규 표현식으로 구성 될 수 있습니다. 일부 ID "
+"공급자에서는 기본 정규 표현식도 있습니다. 정규 표현식에서 더 많은 정보를 "
+"위해 도메인 부분을 참고하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:301 sssd.conf.5.xml:3348
@@ -582,6 +593,9 @@ msgid ""
 "manvolnum> </citerefentry>-compatible format that describes how to compose a "
 "fully qualified name from user name and domain name components."
 msgstr ""
+"<citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
+"manvolnum> </citerefentry>-사용자 이름 및 도메인 이름 구성에서 정규화된 "
+"이름을 구성하는 방법을 설명하는 것과 같은 호환 가능한 형식."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:315 sssd.conf.5.xml:3362
@@ -658,6 +672,8 @@ msgid ""
 "changes and will fall back to polling every five seconds if inotify cannot "
 "be used."
 msgstr ""
+"기본적으로, SSSD는 알림를 사용하여 구성 파일 변경을 모니터링하려 시도하고 "
+"만약 알림을 사용 할 수 없는 경우 매 5초마다 폴링으로 돌아갑니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:369
@@ -666,6 +682,8 @@ msgid ""
 "even trying to use inotify. In these rare cases, this option should be set "
 "to 'false'"
 msgstr ""
+"알림을 사용하려는 시도조차 건너뛰도록 하는 바람직한 몇 가지 제한된 상황이 "
+"있습니다. 이들 드문 경우에서, 이 옵션은 'false'로 설정해야 합니다"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:375
@@ -679,7 +697,8 @@ msgstr "기본값: 알림이 지원되는 기술환경에서 사실입니다. �
 msgid ""
 "Note: this option will have no effect on platforms where inotify is "
 "unavailable. On these platforms, polling will always be used."
-msgstr ""
+msgstr "주의: 이와 같은 옵션은 알림이 사용 할 수 없는 기술환경에서 효과가 없습니다. "
+"이들 기술환경에서, 폴링은 항상 사용됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:386
@@ -701,6 +720,8 @@ msgid ""
 "This option accepts a special value __LIBKRB5_DEFAULTS__ that will instruct "
 "SSSD to let libkrb5 decide the appropriate location for the replay cache."
 msgstr ""
+"이와 같은 옵션은 libkrb5가 재생 캐쉬를 위해 적절한 위치를 결정하도록 SSSD에 "
+"지시하는 특수 값 __LIBKRB5_DEFAULTS__를 허용합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:399
@@ -747,6 +768,11 @@ msgid ""
 "trusted domain.  The option allows those users to log in just with their "
 "user name without giving a domain name as well."
 msgstr ""
+"이와 같은 문자열은 도메인 이름 구성이 없는 모든 이름을 위해 기본 도메인 "
+"이름으로 사용됩니다. 주요 사용 경우는 기본 도메인이 호스트 정책을 관리하고 "
+"모든 사용자가 신뢰 할 수 있는 도메인에 있는 환경입니다.  이와 같은 옵션을 "
+"사용하면 해당 사용자는 도메인 이름도 제공하지 않고 이들 사용자 이름만으로 "
+"로그인 할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:445
@@ -2363,7 +2389,8 @@ msgstr "항상"
 #: sssd.conf.5.xml:1795
 msgid ""
 "Always do an online lookup, please note that pam_id_timeout still applies"
-msgstr ""
+msgstr "항상 온라인 조회를 실시하고, pam_id_timeout은 여전히 적용 중인 것을 "
+"참조하세요"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1799
@@ -4428,7 +4455,7 @@ msgstr ""
 #: sssd.conf.5.xml:3665
 msgid ""
 "The value can be overridden by <emphasis>override_homedir</emphasis> option."
-msgstr ""
+msgstr "값은 <emphasis>override_homedir</emphasis> 옵션에 의해 재정의 될 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3669
@@ -6127,7 +6154,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:722
 msgid "<emphasis>hard</emphasis> = Same as <quote>demand</quote>"
-msgstr ""
+msgstr "<emphasis>hard</emphasis> = <quote>demand</quote>와 동일합니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:726
@@ -6816,14 +6843,15 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1361
 msgid "<emphasis>host</emphasis>: use the host attribute to determine access"
-msgstr ""
+msgstr "<emphasis>host</emphasis>: 호스트 속성을 사용하여 접근을 결정합니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1365
 msgid ""
 "<emphasis>rhost</emphasis>: use the rhost attribute to determine whether "
 "remote host can access"
-msgstr ""
+msgstr "<emphasis>rhost</emphasis>: rhost 속성을 사용하여 원격 호스트가 접근 할 수 "
+"있는지 여부를 결정합니다"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1369
@@ -6961,7 +6989,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1476
 msgid "At the moment, only the InfoPipe responder supports wildcard lookups."
-msgstr ""
+msgstr "현재, InfoPipe 응답기만 와일드카드 조회를 지원합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1480
@@ -7109,7 +7137,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1596
 msgid "You can disable this offset by setting the value to 0."
-msgstr ""
+msgstr "당신은 값을 0으로 설정하여 이 옵셋을 비활성화 할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1606
@@ -11912,7 +11940,7 @@ msgstr "SSSD가 로그 메시지를 보낼 위치."
 msgid ""
 "<emphasis>stderr</emphasis>: Redirect debug messages to standard error "
 "output."
-msgstr ""
+msgstr "<emphasis>stderr</emphasis>: 디버그 메시지를 표준 오류 출력으로 재지정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:96
@@ -17044,6 +17072,8 @@ msgid ""
 "Save the <quote>telephoneNumber</quote> attribute from LDAP as "
 "<quote>telephoneNumber</quote> to the cache."
 msgstr ""
+"LDAP에서 <quote>telephoneNumber</quote> 속성을 <quote>telephoneNumber</"
+"quote> 캐쉬에 저장하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:463
@@ -17056,6 +17086,8 @@ msgid ""
 "Save the <quote>telephoneNumber</quote> attribute from LDAP as <quote>phone</"
 "quote> to the cache."
 msgstr ""
+"LDAP에서 <quote>telephoneNumber</quote> 속성을 <quote>phone</quote> 캐쉬에 "
+"저장하세요."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:476
@@ -17228,7 +17260,7 @@ msgstr "ldap_user_email (문자열)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:622
 msgid "Name of the LDAP attribute containing the email address of the user."
-msgstr ""
+msgstr "사용자 전자우편 주소를 포함하는 LDAP 속성의 이름."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:626
@@ -19277,6 +19309,8 @@ msgid ""
 "request is aborted. If possible, the authentication request is continued "
 "offline."
 msgstr ""
+"온라인 인증 요청 또는 비밀번호 변경 요청이 중단된 후 초 단위 시간 "
+"만료입니다. 만약 할 수 있다면, 인증 요청은 오프라인으로 계속됩니다."
 
 #. type: Content of: <variablelist><varlistentry><term>
 #: include/krb5_options.xml:17

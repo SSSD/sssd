@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2023-04-13 13:20+0000\n"
+"PO-Revision-Date: 2023-06-04 04:20+0000\n"
 "Last-Translator: Kemal Oktay Aktoğan <oktay@e.email>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/tr/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n>1);\n"
-"X-Generator: Weblate 4.15.2\n"
+"X-Generator: Weblate 4.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -177,9 +177,8 @@ msgstr ""
 "bırakın."
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "Sertifika doğrulamasını ayarla"
+msgstr "Geçiş anahtarı doğrulama davranışını ayarlayın"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Enumeration cache timeout length (seconds)"
@@ -419,18 +418,16 @@ msgstr ""
 "<PAM hizmeti>:<kimlik doğrulama göstergesi> çiftlerinin listesi"
 
 #: src/config/SSSDConfig/sssdoptions.py:117
-#, fuzzy
 msgid "Allow passkey device authentication."
-msgstr "Sertifika tabanlı/Akıllı kart kimlik doğrulamasına izin ver."
+msgstr "Geçiş anahtarı cihaz kimlik doğrulamasına izin ver."
 
 #: src/config/SSSDConfig/sssdoptions.py:118
-#, fuzzy
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
 msgstr "pam_sss, p11_child'in bitmesi için kaç saniye bekleyecek"
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Enable debugging in the libfido2 library"
-msgstr ""
+msgstr "libfido2 kitaplığında hata ayıklamayı etkinleştir"
 
 #: src/config/SSSDConfig/sssdoptions.py:122
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -1609,9 +1606,8 @@ msgid "attribute containing the email address of the user"
 msgstr "kullanıcının e-posta adresini içeren öznitelik"
 
 #: src/config/SSSDConfig/sssdoptions.py:449
-#, fuzzy
 msgid "attribute containing the passkey mapping data of the user"
-msgstr "kullanıcının e-posta adresini içeren öznitelik"
+msgstr "kullanıcının parola eşleme verilerini içeren öznitelik"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "A list of extra attributes to download along with the user entry"
@@ -2176,7 +2172,7 @@ msgstr "Sunucu iletisi: "
 
 #: src/sss_client/pam_sss.c:71
 msgid "Enter PIN:"
-msgstr ""
+msgstr "PIN girin:"
 
 #: src/sss_client/pam_sss.c:314
 msgid "Passwords do not match"
@@ -2205,9 +2201,9 @@ msgid "Your password will expire in %1$d %2$s."
 msgstr "Parolanızın süresi %1$d %2$s içinde dolacak."
 
 #: src/sss_client/pam_sss.c:627
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
-msgstr "Parolanızın süresi %1$d %2$s içinde dolacak."
+msgstr "Parolanızın süresi doldu."
 
 #: src/sss_client/pam_sss.c:678
 msgid "Authentication is denied until: "
@@ -2269,7 +2265,7 @@ msgstr "İkinci Etken: "
 
 #: src/sss_client/pam_sss.c:2547
 msgid "Insert your passkey device, then press ENTER."
-msgstr ""
+msgstr "Geçiş anahtarı aygıtınızı girin ve ardından ENTER'a basın."
 
 #: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
 msgid "Password: "
@@ -2623,7 +2619,6 @@ msgid "Passkey related tools:"
 msgstr "Geçiş anahtarıyla ilgili araçlar:"
 
 #: src/tools/sssctl/sssctl.c:348
-#, fuzzy
 msgid "Perform passkey registration"
 msgstr "Geçiş anahtarıyla ilgili işlemleri gerçekleştirin"
 
@@ -2805,9 +2800,8 @@ msgid "Error while reading configuration directory.\n"
 msgstr "Yapılandırma dizini okunurken hata oluştu.\n"
 
 #: src/tools/sssctl/sssctl_config.c:147
-#, fuzzy
 msgid "There is no configuration.\n"
-msgstr "%s'den yapılandırma yüklenemedi.\n"
+msgstr "Yapılandırma yok..\n"
 
 #: src/tools/sssctl/sssctl_config.c:157
 msgid "Failed to run validators"

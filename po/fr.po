@@ -19,8 +19,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2023-03-21 09:20+0000\n"
-"Last-Translator: grimst <grimaitres@gmail.com>\n"
+"PO-Revision-Date: 2023-06-10 12:20+0000\n"
+"Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
 "Language: fr\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 4.15.2\n"
+"X-Generator: Weblate 4.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -184,9 +184,8 @@ msgstr ""
 "Activer ou désactiver les vidages de noyau pour tous les processus SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "Régler la vérification du certificat"
+msgstr "Ajustez le comportement de la vérification de la clé de sécurité"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Enumeration cache timeout length (seconds)"
@@ -435,18 +434,17 @@ msgstr ""
 "appliquées pour l'accès PAM avec authentification GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:117
-#, fuzzy
 msgid "Allow passkey device authentication."
-msgstr "Autoriser l'authentification par certificat/carte à puce."
+msgstr "Autoriser l'authentification des périphériques par mot de passe."
 
 #: src/config/SSSDConfig/sssdoptions.py:118
-#, fuzzy
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
-msgstr "Combien de secondes pam_sss attendra-t-il la fin de p11_child"
+msgstr ""
+"Combien de secondes pam_sss attendra-t-il que passkey_child ait terminé ?"
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Enable debugging in the libfido2 library"
-msgstr ""
+msgstr "Activer le débogage dans la bibliothèque libfido2"
 
 #: src/config/SSSDConfig/sssdoptions.py:122
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -1658,9 +1656,8 @@ msgid "attribute containing the email address of the user"
 msgstr "attribut contenant l’adresse email de l'utilisateur"
 
 #: src/config/SSSDConfig/sssdoptions.py:449
-#, fuzzy
 msgid "attribute containing the passkey mapping data of the user"
-msgstr "attribut contenant l’adresse email de l'utilisateur"
+msgstr "attribut contenant les données de mappage de la clé de l'utilisateur"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "A list of extra attributes to download along with the user entry"
@@ -2231,7 +2228,7 @@ msgstr "Message du serveur : "
 
 #: src/sss_client/pam_sss.c:71
 msgid "Enter PIN:"
-msgstr ""
+msgstr "Saisissez le code PIN :"
 
 #: src/sss_client/pam_sss.c:314
 msgid "Passwords do not match"
@@ -2262,9 +2259,9 @@ msgid "Your password will expire in %1$d %2$s."
 msgstr "Votre mot de passe expirera dans %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:627
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
-msgstr "Votre mot de passe expirera dans %1$d %2$s."
+msgstr "Votre mot de passe a expiré."
 
 #: src/sss_client/pam_sss.c:678
 msgid "Authentication is denied until: "
@@ -2327,7 +2324,7 @@ msgstr "Second facteur : "
 
 #: src/sss_client/pam_sss.c:2547
 msgid "Insert your passkey device, then press ENTER."
-msgstr ""
+msgstr "Insérez votre passe-partout, puis appuyez sur la touche ENTER."
 
 #: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
 msgid "Password: "
@@ -2684,9 +2681,8 @@ msgid "Passkey related tools:"
 msgstr "Outils liés à la clé d’accès :"
 
 #: src/tools/sssctl/sssctl.c:348
-#, fuzzy
 msgid "Perform passkey registration"
-msgstr "Effectuer des opérations liées à la clé d’accès"
+msgstr "Effectuer l'enregistrement de la clé d'accès"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2868,9 +2864,8 @@ msgid "Error while reading configuration directory.\n"
 msgstr "Erreur lors de la lecture du répertoire de configuration.\n"
 
 #: src/tools/sssctl/sssctl_config.c:147
-#, fuzzy
 msgid "There is no configuration.\n"
-msgstr "Impossible de charger la configuration à partir de %s.\n"
+msgstr "Il n'y a pas de configuration.\n"
 
 #: src/tools/sssctl/sssctl_config.c:157
 msgid "Failed to run validators"

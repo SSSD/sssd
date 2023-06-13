@@ -4,14 +4,14 @@
 # Ludek Janda <ljanda@redhat.com>, 2021.
 # simmon <simmon@nplob.com>, 2021.
 # seo hojin <jinswhat@naver.com>, 2021.
-# 김인수 <simmon@nplob.com>, 2022.
+# 김인수 <simmon@nplob.com>, 2022, 2023.
 # Transtats <suanand@redhat.com>, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2022-12-12 14:09+0000\n"
+"PO-Revision-Date: 2023-06-04 04:20+0000\n"
 "Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14.2\n"
+"X-Generator: Weblate 4.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -167,9 +167,8 @@ msgid "Enable or disable core dumps for all SSSD processes."
 msgstr "SSSD 프로세서를 위한 코어 덤프 활성화 또는 비활성화."
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "인증 확인을 조정합니다"
+msgstr "패스키 확인 동작을 조정합니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Enumeration cache timeout length (seconds)"
@@ -386,18 +385,16 @@ msgstr ""
 "목록"
 
 #: src/config/SSSDConfig/sssdoptions.py:117
-#, fuzzy
 msgid "Allow passkey device authentication."
-msgstr "인증서 기반/스마트 카드 인증을 허용합니다."
+msgstr "패스키 장치 인증을 허용합니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:118
-#, fuzzy
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
-msgstr "p11_child가 완료될 때까지 pam_ss가 몇 초 동안 대기합니까"
+msgstr "passkey_child가 완료될 때까지 pam_sss가 몇 초 동안 대기합니까"
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Enable debugging in the libfido2 library"
-msgstr ""
+msgstr "libfido2 라이브러리에서 디버깅 활성화"
 
 #: src/config/SSSDConfig/sssdoptions.py:122
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -1511,13 +1508,12 @@ msgid "attribute containing the email address of the user"
 msgstr "사용자의 이메일 주소를 포함하는 속성"
 
 #: src/config/SSSDConfig/sssdoptions.py:449
-#, fuzzy
 msgid "attribute containing the passkey mapping data of the user"
-msgstr "사용자의 이메일 주소를 포함하는 속성"
+msgstr "사용자의 패스키 대응 자료를 포함하는 속성"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "A list of extra attributes to download along with the user entry"
-msgstr "사용자 항목과 함께 다운로드할 추가 속성 목록"
+msgstr "사용자 항목과 함께 내려받기 하려는 추가 속성의 목록"
 
 #: src/config/SSSDConfig/sssdoptions.py:452
 msgid "Base DN for group lookups"
@@ -2065,7 +2061,7 @@ msgstr "서버 메시지: "
 
 #: src/sss_client/pam_sss.c:71
 msgid "Enter PIN:"
-msgstr ""
+msgstr "PIN 입력:"
 
 #: src/sss_client/pam_sss.c:314
 msgid "Passwords do not match"
@@ -2094,9 +2090,9 @@ msgid "Your password will expire in %1$d %2$s."
 msgstr "암호는 %1$d %2$s에 만료됩니다."
 
 #: src/sss_client/pam_sss.c:627
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
-msgstr "암호는 %1$d %2$s에 만료됩니다."
+msgstr "당신의 비밀번호가 만료되었습니다."
 
 #: src/sss_client/pam_sss.c:678
 msgid "Authentication is denied until: "
@@ -2157,7 +2153,7 @@ msgstr "두 번째 요인: "
 
 #: src/sss_client/pam_sss.c:2547
 msgid "Insert your passkey device, then press ENTER."
-msgstr ""
+msgstr "자신의 패스키 장치를 넣고, 그런 후에 Enter를 눌러주세요."
 
 #: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
 msgid "Password: "
@@ -2165,11 +2161,11 @@ msgstr "암호: "
 
 #: src/sss_client/pam_sss.c:2706 src/sss_client/pam_sss.c:2709
 msgid "First Factor (Current Password): "
-msgstr "첫 번째 요인 (현재 암호): "
+msgstr "첫 번째 요인 (현재 비밀번호): "
 
 #: src/sss_client/pam_sss.c:2713
 msgid "Current Password: "
-msgstr "현재 암호: "
+msgstr "현재 비밀번호: "
 
 #: src/sss_client/pam_sss.c:3070
 msgid "Password expired. Change your password now."
@@ -2508,9 +2504,8 @@ msgid "Passkey related tools:"
 msgstr "Passkey와 연관된 도구:"
 
 #: src/tools/sssctl/sssctl.c:348
-#, fuzzy
 msgid "Perform passkey registration"
-msgstr "passkey와 연관된 동작을 수행합니다"
+msgstr "패스키 등록을 수행합니다"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2688,9 +2683,8 @@ msgid "Error while reading configuration directory.\n"
 msgstr "설정 디렉토리를 읽는 도중 오류가 발생했습니다.\n"
 
 #: src/tools/sssctl/sssctl_config.c:147
-#, fuzzy
 msgid "There is no configuration.\n"
-msgstr "%s에서 구성을 로드하지 못했습니다.\n"
+msgstr "구성이 없습니다.\n"
 
 #: src/tools/sssctl/sssctl_config.c:157
 msgid "Failed to run validators"
