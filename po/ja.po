@@ -15,7 +15,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2023-03-02 09:20+0000\n"
+"PO-Revision-Date: 2023-06-10 12:20+0000\n"
 "Last-Translator: Ludek Janda <ljanda@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ja/>\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.15.2\n"
+"X-Generator: Weblate 4.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -172,9 +172,8 @@ msgid "Enable or disable core dumps for all SSSD processes."
 msgstr "すべての SSSD プロセスのコアダンプを有効または無効にします。"
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "証明書検証の調整"
+msgstr "パスキー検証の動作をチューニングする"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Enumeration cache timeout length (seconds)"
@@ -397,18 +396,16 @@ msgstr ""
 "<authentication indicator> のリスト"
 
 #: src/config/SSSDConfig/sssdoptions.py:117
-#, fuzzy
 msgid "Allow passkey device authentication."
-msgstr "証明書ベースまたはスマートカードによる認証を許可します。"
+msgstr "パスキーデバイス認証を許可します。"
 
 #: src/config/SSSDConfig/sssdoptions.py:118
-#, fuzzy
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
-msgstr "p11_child が完了するまでに pam_sss が待つ秒数"
+msgstr "pam_sss が passkey_child の終了を待機する秒数"
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Enable debugging in the libfido2 library"
-msgstr ""
+msgstr "lifido2 ライブラリーでデバッグを有効にする"
 
 #: src/config/SSSDConfig/sssdoptions.py:122
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -1538,9 +1535,8 @@ msgid "attribute containing the email address of the user"
 msgstr "ユーザーの電子メールアドレスを含む属性"
 
 #: src/config/SSSDConfig/sssdoptions.py:449
-#, fuzzy
 msgid "attribute containing the passkey mapping data of the user"
-msgstr "ユーザーの電子メールアドレスを含む属性"
+msgstr "ユーザーのパスキーマッピングデータを含む属性"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "A list of extra attributes to download along with the user entry"
@@ -2094,7 +2090,7 @@ msgstr "サーバーのメッセージ: "
 
 #: src/sss_client/pam_sss.c:71
 msgid "Enter PIN:"
-msgstr ""
+msgstr "PIN の入力:"
 
 #: src/sss_client/pam_sss.c:314
 msgid "Passwords do not match"
@@ -2123,9 +2119,9 @@ msgid "Your password will expire in %1$d %2$s."
 msgstr "あなたのパスワードは %1$d %2$s に期限切れになります。"
 
 #: src/sss_client/pam_sss.c:627
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
-msgstr "あなたのパスワードは %1$d %2$s に期限切れになります。"
+msgstr "パスワードの有効期限が切れています。"
 
 #: src/sss_client/pam_sss.c:678
 msgid "Authentication is denied until: "
@@ -2187,7 +2183,7 @@ msgstr "2 番目の要素: "
 
 #: src/sss_client/pam_sss.c:2547
 msgid "Insert your passkey device, then press ENTER."
-msgstr ""
+msgstr "パスキーデバイスを挿入し、ENTER キーを押します。"
 
 #: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
 msgid "Password: "
@@ -2539,9 +2535,8 @@ msgid "Passkey related tools:"
 msgstr "パスキー関連のツール:"
 
 #: src/tools/sssctl/sssctl.c:348
-#, fuzzy
 msgid "Perform passkey registration"
-msgstr "パスキー関連の操作を実行します"
+msgstr "パスキー登録の実行"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2723,9 +2718,8 @@ msgid "Error while reading configuration directory.\n"
 msgstr "設定ディレクトリーの読み込み中にエラーが発生しました。\n"
 
 #: src/tools/sssctl/sssctl_config.c:147
-#, fuzzy
 msgid "There is no configuration.\n"
-msgstr "%s からの設定の読み込みに失敗しました。\n"
+msgstr "設定はありません。\n"
 
 #: src/tools/sssctl/sssctl_config.c:157
 msgid "Failed to run validators"
@@ -3044,7 +3038,7 @@ msgstr "IFP サービスをターゲットに設定"
 
 #: src/tools/sssctl/sssctl_logs.c:552
 msgid "Specify debug level you want to set"
-msgstr "設定したいデバッグレベルを指定します"
+msgstr "設定するデバッグレベルを指定します"
 
 #: src/tools/sssctl/sssctl_logs.c:600
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
@@ -3082,17 +3076,17 @@ msgstr "SSSD nss ユーザー検索の結果:\n"
 #: src/tools/sssctl/sssctl_user_checks.c:195
 #, c-format
 msgid " - user name: %s\n"
-msgstr " - user name: %s\n"
+msgstr " - ユーザー名: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:196
 #, c-format
 msgid " - user id: %d\n"
-msgstr " - user id: %d\n"
+msgstr " - ユーザー id: %d\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:197
 #, c-format
 msgid " - group id: %d\n"
-msgstr " - group id: %d\n"
+msgstr " - グループ id: %d\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:198
 #, c-format
@@ -3102,7 +3096,7 @@ msgstr " - gecos: %s\n"
 #: src/tools/sssctl/sssctl_user_checks.c:199
 #, c-format
 msgid " - home directory: %s\n"
-msgstr " - home directory: %s\n"
+msgstr " - ホームディレクトリー: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:200
 #, c-format

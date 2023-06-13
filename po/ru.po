@@ -7,13 +7,13 @@
 # Oleksii Levan <exlevan@gmail.com>, 2016. #zanata
 # Evgeny Sinelnikov <sin@altlinux.org>, 2021.
 # Olesya Gerasimenko <gammaray@basealt.ru>, 2021.
-# Elena Mishina <lepata@basealt.ru>, 2022.
+# Elena Mishina <lepata@basealt.ru>, 2022, 2023.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2023-05-05 10:11+0200\n"
-"PO-Revision-Date: 2022-12-14 19:20+0000\n"
+"PO-Revision-Date: 2023-05-20 22:20+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ru/>\n"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 4.14.2\n"
+"X-Generator: Weblate 4.17\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -173,9 +173,8 @@ msgid "Enable or disable core dumps for all SSSD processes."
 msgstr "Включить или отключить дампы памяти для всех процессов SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "Tune passkey verification behavior"
-msgstr "Настроить проверку сертификатов"
+msgstr "Настроить проверку ключа доступа"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Enumeration cache timeout length (seconds)"
@@ -433,20 +432,18 @@ msgstr ""
 "GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:117
-#, fuzzy
 msgid "Allow passkey device authentication."
-msgstr "Разрешить проверку подлинности на основе сертификата или смарт-карты."
+msgstr "Разрешить проверку подлинности на основе ключа доступа."
 
 #: src/config/SSSDConfig/sssdoptions.py:118
-#, fuzzy
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
 msgstr ""
 "Разрешённое количество секунд, в течение которого pam_sss ожидает завершения "
-"работы p11_child"
+"работы passkey_child"
 
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "Enable debugging in the libfido2 library"
-msgstr ""
+msgstr "Включить отладку в библиотеке libfido2"
 
 #: src/config/SSSDConfig/sssdoptions.py:122
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -1634,9 +1631,8 @@ msgid "attribute containing the email address of the user"
 msgstr "Атрибут, который содержит адрес электронной почты пользователя"
 
 #: src/config/SSSDConfig/sssdoptions.py:449
-#, fuzzy
 msgid "attribute containing the passkey mapping data of the user"
-msgstr "Атрибут, который содержит адрес электронной почты пользователя"
+msgstr "атрибут, содержащий данные сопоставления ключа доступа пользователя"
 
 #: src/config/SSSDConfig/sssdoptions.py:450
 msgid "A list of extra attributes to download along with the user entry"
@@ -2206,7 +2202,7 @@ msgstr "Сообщение сервера: "
 
 #: src/sss_client/pam_sss.c:71
 msgid "Enter PIN:"
-msgstr ""
+msgstr "Введите PIN:"
 
 #: src/sss_client/pam_sss.c:314
 msgid "Passwords do not match"
@@ -2235,9 +2231,9 @@ msgid "Your password will expire in %1$d %2$s."
 msgstr "Срок действия пароля истекает через %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:627
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
-msgstr "Срок действия пароля истекает через %1$d %2$s."
+msgstr "Срок действия пароля истёк."
 
 #: src/sss_client/pam_sss.c:678
 msgid "Authentication is denied until: "
@@ -2300,7 +2296,7 @@ msgstr "Второй фактор: "
 
 #: src/sss_client/pam_sss.c:2547
 msgid "Insert your passkey device, then press ENTER."
-msgstr ""
+msgstr "Вставьте устройство с ключом доступа и нажмите ENTER."
 
 #: src/sss_client/pam_sss.c:2551 src/sss_client/pam_sss.c:2554
 msgid "Password: "
@@ -2653,9 +2649,8 @@ msgid "Passkey related tools:"
 msgstr "Инструменты, связанные с ключом:"
 
 #: src/tools/sssctl/sssctl.c:348
-#, fuzzy
 msgid "Perform passkey registration"
-msgstr "Выполнить связанные с ключом действия"
+msgstr "Зарегистрировать ключ доступа"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
@@ -2837,9 +2832,8 @@ msgid "Error while reading configuration directory.\n"
 msgstr "Ошибка при чтении каталога конфигурации.\n"
 
 #: src/tools/sssctl/sssctl_config.c:147
-#, fuzzy
 msgid "There is no configuration.\n"
-msgstr "Не удалось загрузить конфигурацию из %s.\n"
+msgstr "Нет никакой конфигурации.\n"
 
 #: src/tools/sssctl/sssctl_config.c:157
 msgid "Failed to run validators"
