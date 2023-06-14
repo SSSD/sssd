@@ -505,7 +505,6 @@ class TestDynDns(object):
         assert dns.find_ptr(hostname, ip) is not True
 
     @staticmethod
-    @pytest.mark.c_ares
     def test_0011_verify_use_after_free_in_dyndns_code_bz1132361(multihost, adjoin):
         """
         :title: IDM-SSSD-TC: ad_provider: dyndns: verify use after free in dyndns code bz1132361
