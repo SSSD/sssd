@@ -780,3 +780,53 @@ class Testipabz(object):
                                rf'{multihost.client[0].sys_hostname}@'
                                rf'{domain_section.upper()}')
         assert principal.search(output)
+
+    @staticmethod
+    def test_pam_misc_conv_bufsize(multihost, backupsssdconf):
+        """
+        :title: Increase PAM_MISC_CONV_BUFSIZE to max at 4096 instead of 512 bytes
+        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=2209785
+                   https://bugzilla.redhat.com/show_bug.cgi?id=2215007
+        :id: d97365bc-0b4a-11ee-84be-845cf3eff344
+        :steps:
+            1. Create an IPA user with a password longer than 512 characters.
+            2. Use sssctl to check the user authentication (sssctl user-checks USER -a auth)
+                and when requested input the password.
+        :expectedresults:
+            1. User should be created
+            2. User should be able to login
+        """
+        client = sssdTools(multihost.client[0])
+        password = "Inthedepthsofthecosmoswherestarsignitethetapestryoftheuniverseaneth" \
+                   "erealdanceofcelestialbodiesunfoldsweavingtalesoftimeandspaceinasymphonyof" \
+                   "cosmicproportionsPlanetswhirlontheireternalpathsgalaxiescollideina" \
+                   "celestialballetandblackholesdevourwithvoracioushungerWithinthiscos" \
+                   "mictheatemysteriesaboundawaitingthecuriousgazeofexplorerswhodaretou" \
+                   "nveilthesecretsthatliewithinthevastexpanseofthecosmosFromthebirthof" \
+                   "starstotheenigmaofdarkmattereverydiscoverysparksnewquestionspropell" \
+                   "inghumanitysquestforknowledgebeyondtheconfinesofEar" \
+                   "thWitheachpassingmomentastronomersandscie"
+        kinit_admin = 'kinit admin'
+
+        multihost.master[0].run_command(kinit_admin,
+                                        stdin_text='Secret123',
+                                        raiseonerr=False)
+        user_info = {'firstname': 'Aoo',
+                     'lastname': 'Boo', 'loginname': 'aooboo',
+                     'default_password': 'RedHat@123',
+                     'reset_password': password}
+        useradd = f"echo {user_info['default_password']} | ipa user-add --first " \
+                  f"{user_info['firstname']}  --last {user_info['lastname']} --password {user_info['loginname']}"
+        cmd_useradd = multihost.master[0].run_command(useradd)
+        cmd = f"echo -e 'RedHat@123\n{password}\n{password}' | kinit aooboo"
+        multihost.client[0].run_command(cmd, raiseonerr=False)
+        multihost.client[0].run_command('kdestroy')
+        client.clear_sssd_cache()
+        multihost.client[0].run_command("> /var/log/secure")
+        multihost.client[0].run_command(f"echo -e {password} | sssctl user-checks aooboo -a auth")
+        multihost.master[0].run_command('ipa user-del aooboo', raiseonerr=False)
+        time.sleep(2)
+        logfile = multihost.client[0].get_file_contents("/var/log/secure").decode('utf-8')
+        assert cmd_useradd.returncode == 0
+        assert "Authentication failure" not in logfile
+        assert "pam_sss(system-auth:auth): authentication success" in logfile
