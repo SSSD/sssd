@@ -317,8 +317,17 @@ class TestADMisc:
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
         multihost.client[0].run_command('systemctl reboot', raiseonerr=False)
-        time.sleep(50)
-        dom_log = multihost.client[0].get_file_contents(f'/var/log/sssd/sssd_{domainname}.log').decode('utf-8')
+        time.sleep(30)
+        # Reboot takes a long time in some cases so we try multiple times.
+        for _ in range(1, 10):
+            try:
+                dom_log = multihost.client[0].get_file_contents(f'/var/log/sssd/sssd_{domainname}.log').decode('utf-8')
+                break
+            except OSError:
+                time.sleep(30)
+        else:
+            # There is no need to fail here as the assertion will fail anyway.
+            dom_log = "Could not pull the log file!"
         log1 = re.compile(r'Destroying.the.old.c-ares.channel', re.IGNORECASE)
         log2 = re.compile(r'\[recreate_ares_channel.*Initializing.new.c-ares.channel', re.IGNORECASE)
         assert log1.search(dom_log), 'Destroying the old c-ares related log missing'
