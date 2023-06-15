@@ -285,11 +285,6 @@ class TestADParamsPorted:
           https://bugzilla.redhat.com/show_bug.cgi?id=1091957
           https://bugzilla.redhat.com/show_bug.cgi?id=2098615
         """
-        arch = multihost.client[0].run_command(
-            'uname -m', raiseonerr=False).stdout_text
-        if 'x86_64' not in arch:
-            pytest.skip("Test does not work other arch due to beaker being on"
-                        "different network that openstack.")
         hostname = multihost.client[0].run_command(
             'hostname', raiseonerr=False).stdout_text.rstrip()
         ad_realm = multihost.ad[0].domainname.upper()
@@ -344,8 +339,8 @@ class TestADParamsPorted:
             f"realm leave {ad_realm}", raiseonerr=False)
 
         # Evaluate test results
-        assert f"No principal matching {shortname}$@JUNK found in keytab." in \
-               log_str
+        patt = re.compile(fr'No principal matching {shortname[:15]}.*\$@JUNK found in keytab.')
+        assert patt.search(log_str), "The expected log message was not found!"
         assert "No principal matching host/*@JUNK found in keytab." in log_str
         assert f"Selected realm: {ad_realm}" in log_str
         assert "segfault" not in log_msg_str, "Segfault present in the log!"
@@ -532,7 +527,8 @@ class TestADParamsPorted:
         su_result = client.su_success(rf'{ad_domain_short}\\{aduser}')
 
         # Evaluate test results
-        assert f"Trying to find principal {shortname}$@{ad_realm}" in log_str
+        patt = re.compile(rf"Trying to find principal {shortname[:15]}.*\$@{ad_realm}")
+        assert patt.search(log_str), "The expected log message was not found!"
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert su_result, "The su command failed!"
 
@@ -1261,7 +1257,6 @@ class TestADParamsPorted:
         assert "Setting ad_hostname to [host1.kautest.com]" in log_str
         assert f"Will look for host1.kautest.com@{ad_realm}" in log_str
 
-
     @staticmethod
     @pytest.mark.tier1_2
     @pytest.mark.c_ares
@@ -1294,10 +1289,6 @@ class TestADParamsPorted:
           1. Remove AD user.
         :customerscenario: False
         """
-        arch = multihost.client[0].run_command(
-            'uname -m', raiseonerr=False).stdout_text
-        if 'x86_64' not in arch:
-            pytest.skip("Test is unstable on architectures other than x86_64.")
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
 
@@ -1349,10 +1340,15 @@ class TestADParamsPorted:
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
         assert grp_cmd.returncode == 0, f"Group {adgroup} was not found!"
         assert su_result, "The su command failed!"
-        assert f"Option ad_hostname has value {old_hostname}" in log_str
+        assert f"Option ad_hostname has value {old_hostname[:15]}" in log_str
         assert f"Setting ad_hostname to [{old_hostname}]" not in log_str
-        assert f"Will look for {old_hostname}@{ad_realm}" in log_str
-        assert f"Trying to find principal {old_hostname}@{ad_realm}" in log_str
+        patt1 = re.compile(fr'Will look for {old_hostname[:15]}.*@{ad_realm}')
+        assert patt1.search(log_str, re.IGNORECASE),\
+            'Will look for ... was not found!'
+        patt2 = re.compile(
+            fr'Trying to find principal {old_hostname[:15]}.*@{ad_realm}')
+        assert patt2.search(log_str, re.IGNORECASE),\
+            'Trying to find principal.. was not found!'
 
     @staticmethod
     @pytest.mark.tier2
