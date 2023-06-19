@@ -1869,6 +1869,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
                                    &validation_princ);
         if (kerr != 0) {
             DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
+            krb5_kt_end_seq_get(kr->ctx, keytab, &cursor);
             goto done;
         }
 
