@@ -1400,6 +1400,9 @@ done:
         /* FIXME: should we krb5_cc_destroy in case of error? */
         krb5_cc_close(kctx, kcc);
     }
+
+    krb5_free_context(kctx);
+
     return kerr;
 }
 
