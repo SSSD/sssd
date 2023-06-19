@@ -1854,6 +1854,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab [%s], " \
                                     "not verifying TGT.\n", kr->keytab);
+        krb5_kt_close(kr->ctx, keytab);
         return kerr;
     }
 
