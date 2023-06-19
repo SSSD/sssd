@@ -781,7 +781,7 @@ done:
         talloc_free(mem_name);
     }
 
-    free(ccache_name);
+    krb5_free_string(kctx, ccache_name);
     krb5_free_principal(kctx, princ);
 
     if (krb5_cc_close(kctx, ccache) != 0) {
