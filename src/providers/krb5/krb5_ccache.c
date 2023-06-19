@@ -788,7 +788,7 @@ done:
         DEBUG(SSSDBG_OP_FAILURE, "krb5_cc_close failed.\n");
     }
 
-    if (krb5_cc_close(kctx, mem_ccache) != 0) {
+    if ((mem_ccache != NULL) && (krb5_cc_close(kctx, mem_ccache) != 0)) {
         DEBUG(SSSDBG_OP_FAILURE, "krb5_cc_close failed.\n");
     }
 
