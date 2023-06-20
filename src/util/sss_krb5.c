@@ -279,8 +279,8 @@ done:
                 (error_message ? error_message : sss_strerror(ret)));
     }
     if (keytab) krb5_kt_close(krb_ctx, keytab);
-    if (krb_ctx) krb5_free_context(krb_ctx);
     if (client_princ) krb5_free_principal(krb_ctx, client_princ);
+    if (krb_ctx) krb5_free_context(krb_ctx);
     talloc_free(tmp_ctx);
     return ret;
 }
