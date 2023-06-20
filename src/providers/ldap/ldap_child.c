@@ -367,12 +367,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     }
     DEBUG(SSSDBG_CONF_SETTINGS, "Principal name is: [%s]\n", full_princ);
 
-    krberr = krb5_parse_name(context, full_princ, &kprinc);
-    if (krberr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "krb5_parse_name() failed: %d\n", krberr);
-        goto done;
-    }
-
     if (keytab_name) {
         krberr = krb5_kt_resolve(context, keytab_name, &keytab);
     } else {
@@ -447,8 +441,14 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         goto done;
     }
 
+    krberr = krb5_parse_name(context, full_princ, &kprinc);
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_parse_name() failed: %d\n", krberr);
+        goto done;
+    }
     krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
                                         keytab, 0, NULL, options);
+    krb5_free_principal(context, kprinc);
     if (krberr != 0) {
         DEBUG(SSSDBG_OP_FAILURE,
               "krb5_get_init_creds_keytab() failed: %d\n", krberr);
