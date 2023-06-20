@@ -61,23 +61,27 @@ def change_client_hostname(session_multihost, request):
     cmd = session_multihost.client[0].run_command('hostname', raiseonerr=False)
     old_hostname = cmd.stdout_text.rstrip()
     ad_domain = session_multihost.ad[0].domainname
-    try:
-        new_hostname = session_multihost.client[0].external_hostname. \
-            split('.')[0]
-    except (KeyError, AttributeError):
-        new_hostname = old_hostname.split('.')[0]
-    if new_hostname.startswith('ci-'):
-        new_hostname = new_hostname[3:]
-    new_hostname = new_hostname[:15] + "." + ad_domain
+    new_hostname = "client0." + ad_domain
+    # Temporary way of changing hostname
     session_multihost.client[0].run_command(
         f'hostname {new_hostname}', raiseonerr=False
     )
+    # Permanent way of changing hostname
+    session_multihost.client[0].run_command(
+        f'hostnamectl set-hostname {new_hostname}', raiseonerr=False
+    )
+
 
     def restore():
         """ Restore hostname """
+        # Temporary way of changing hostname
         session_multihost.client[0].run_command(
             f'hostname {old_hostname}',
             raiseonerr=False
+        )
+        # Permanent way of changing hostname
+        session_multihost.client[0].run_command(
+          f'hostnamectl set-hostname {old_hostname}', raiseonerr=False
         )
     request.addfinalizer(restore)
 
@@ -2217,7 +2221,6 @@ class TestADParamsPorted:
         """
         adjoin(membersw='adcli')
         client = sssdTools(multihost.client[0], multihost.ad[0])
-
         # Create AD user with posix attributes
         (aduser, adgroup) = create_aduser_group
         # Configure sssd to enable logging
@@ -2225,17 +2228,16 @@ class TestADParamsPorted:
         sssd_params = {
             'id_provider': 'ldap',
             'ldap_schema': 'ad',
-            'ldap_id_use_start_tls': 'False',
             'ldap_default_bind_dn': f'CN=administrator,CN=Users'
                                     f',{multihost.ad[0].domain_basedn_entry}',
-            'ldap_default_authtok_type': 'password',
-            'ldap_default_authtok': f'{multihost.ad[0].ssh_password}',
+            'use_fully_qualified_names': 'false',
+            'ldap_id_use_start_tls': 'True',
+            'ldap_tls_cacert': '/etc/openldap/certs/ad_cert.pem',
+            'ldap_uri': f'ldaps://{multihost.ad[0].sys_hostname}',
+            'ldap_default_authtok': multihost.ad[0].ssh_password,
             'ldap_referrals': 'false',
-            'debug_level': '9',
-            'use_fully_qualified_names': 'False',
-            'cache_credentials': 'True',
-            'krb5_store_password_if_offline': 'True',
-            'fallback_homedir': '/home/%d/%u',
+            'ldap_id_mapping': 'True',
+            'fallback_homedir': '/home/%d/%u'
         }
         client.sssd_conf(dom_section, sssd_params)
 
@@ -2250,6 +2252,8 @@ class TestADParamsPorted:
 
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
+
+        time.sleep(60)
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
@@ -2294,13 +2298,14 @@ class TestADParamsPorted:
         sssd_params = {
             'id_provider': 'ldap',
             'ldap_schema': 'ad',
-            'ldap_id_use_start_tls': 'False',
+            'ldap_id_use_start_tls': 'True',
+            'ldap_tls_cacert': '/etc/openldap/certs/ad_cert.pem',
+            'ldap_uri': f'ldaps://{multihost.ad[0].sys_hostname}',
+            'ldap_default_authtok': multihost.ad[0].ssh_password,
             'ldap_default_bind_dn': f'CN=administrator,CN=Users'
                                     f',{multihost.ad[0].domain_basedn_entry}',
-            'ldap_default_authtok_type': 'password',
-            'ldap_default_authtok': f'{multihost.ad[0].ssh_password}',
-            'ldap_referrals': 'false',
             'debug_level': '9',
+            'ldap_referrals': 'false',
             'use_fully_qualified_names': 'True',
             'cache_credentials': 'True',
             'krb5_store_password_if_offline': 'True',
@@ -2309,6 +2314,8 @@ class TestADParamsPorted:
         client.sssd_conf(dom_section, sssd_params)
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
+
+        time.sleep(60)
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
@@ -2377,11 +2384,12 @@ class TestADParamsPorted:
         sssd_params = {
             'id_provider': 'ldap',
             'ldap_schema': 'ad',
-            'ldap_id_use_start_tls': 'False',
+            'ldap_id_use_start_tls': 'True',
+            'ldap_tls_cacert': '/etc/openldap/certs/ad_cert.pem',
+            'ldap_uri': f'ldaps://{multihost.ad[0].sys_hostname}',
+            'ldap_default_authtok': multihost.ad[0].ssh_password,
             'ldap_default_bind_dn': f'CN=administrator,CN=Users'
                                     f',{multihost.ad[0].domain_basedn_entry}',
-            'ldap_default_authtok_type': 'password',
-            'ldap_default_authtok': f'{multihost.ad[0].ssh_password}',
             'ldap_referrals': 'false',
             'debug_level': '9',
             'use_fully_qualified_names': 'True',
@@ -2394,6 +2402,7 @@ class TestADParamsPorted:
         client.sssd_conf(dom_section, sssd_params)
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
+        time.sleep(60)
 
         # Search for the AD user
         usr_cmd = multihost.client[0].run_command(
