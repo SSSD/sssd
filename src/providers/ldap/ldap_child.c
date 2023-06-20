@@ -212,6 +212,7 @@ static int lc_verify_keytab_ex(const char *principal,
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Could not parse keytab entry\n");
             sss_log(SSS_LOG_ERR, "Could not parse keytab entry\n");
+            krb5_kt_end_seq_get(context, keytab, &cursor);
             return EIO;
         }
 
