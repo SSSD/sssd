@@ -214,6 +214,9 @@ done:
 
     if (kerr != 0) {
         talloc_free(mem_name);
+        if ((mem_keytab != NULL) && krb5_kt_close(kctx, mem_keytab) != 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "krb5_kt_close failed.\n");
+        }
     }
 
     if (tmp_mem_keytab != NULL && krb5_kt_close(kctx, tmp_mem_keytab) != 0) {
