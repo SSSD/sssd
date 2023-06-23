@@ -494,8 +494,12 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
         }
         mpg_mode = str_to_domain_mpg_mode(str_mpg_mode);
 
+#ifdef BUILD_EXTENDED_ENUMERATION_SUPPORT
         enumerate = ldb_msg_find_attr_as_bool(res->msgs[i],
                                               SYSDB_SUBDOMAIN_ENUM, false);
+#else
+        enumerate = false;
+#endif
 
         forest = ldb_msg_find_attr_as_string(res->msgs[i],
                                              SYSDB_SUBDOMAIN_FOREST, NULL);
