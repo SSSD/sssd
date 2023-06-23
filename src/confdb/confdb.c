@@ -1068,6 +1068,9 @@ static errno_t confdb_init_domain_provider_and_enum(struct sss_domain_info *doma
     errno_t ret;
     const char *tmp, *tmp_pam_target, *tmp_auth;
 
+#ifndef BUILD_EXTENDED_ENUMERATION_SUPPORT
+    if (domain->provider != NULL && strcasecmp(domain->provider, "ldap") == 0) {
+#endif
     /* TEMP: test if the old bitfield conf value is used and warn it has been
      * superseded. */
     val = ldb_msg_find_attr_as_int(res->msgs[0], CONFDB_DOMAIN_ENUMERATE, 0);
@@ -1086,6 +1089,11 @@ static errno_t confdb_init_domain_provider_and_enum(struct sss_domain_info *doma
             goto done;
         }
     }
+#ifndef BUILD_EXTENDED_ENUMERATION_SUPPORT
+    } else {
+        domain->enumerate = false;
+    }
+#endif
 
     if (is_files_provider(domain)) {
         /* The password field must be reported as 'x', else pam_unix won't
@@ -1122,11 +1130,7 @@ static errno_t confdb_init_domain_provider_and_enum(struct sss_domain_info *doma
     }
 
     if (!domain->enumerate) {
-        DEBUG(SSSDBG_TRACE_FUNC, "No enumeration for [%s]!\n", domain->name);
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Please note that when enumeration is disabled `getent "
-              "passwd` does not return all users by design. See "
-              "sssd.conf man page for more detailed information\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "No enumeration for [%s]\n", domain->name);
     }
 
     ret = EOK;
@@ -1537,6 +1541,7 @@ static errno_t confdb_init_domain_subdomains(struct sss_domain_info *domain,
     errno_t ret;
     const char *tmp;
 
+#ifdef BUILD_EXTENDED_ENUMERATION_SUPPORT
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_SUBDOMAIN_ENUMERATE,
                                       CONFDB_DEFAULT_SUBDOMAIN_ENUMERATE);
@@ -1549,6 +1554,14 @@ static errno_t confdb_init_domain_subdomains(struct sss_domain_info *domain,
             goto done;
         }
     }
+#else
+    ret = split_on_separator(domain, "none", ',', true, true,
+                             &domain->sd_enumerate, NULL);
+    if (ret != 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot set 'sd_enumerate'\n");
+        goto done;
+    }
+#endif
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_DOMAIN_SUBDOMAIN_INHERIT,
