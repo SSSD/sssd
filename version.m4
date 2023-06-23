@@ -1,5 +1,5 @@
 # Primary version number
-m4_define([VERSION_NUMBER], [2.9.0])
+m4_define([VERSION_NUMBER], [2.9.1])
 
 # If the PRERELEASE_VERSION_NUMBER is set, we'll append
 # it to the release tag when creating an RPM or SRPM
