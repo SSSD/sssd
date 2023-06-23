@@ -2672,8 +2672,12 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                             and store ALL user and group entries from the
                             remote server.
                         </para>
+                        <para condition="without_ext_enumeration">
+                            Feature is only supported for domains with
+                            id_provider = ldap.
+                        </para>
                         <para>
-                            Note: Enabling enumeration has a moderate
+                            Note: Enabling enumeration has a severe
                             performance impact on SSSD while enumeration
                             is running. It may take up to several minutes
                             after SSSD startup to fully complete enumerations.
@@ -2708,7 +2712,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                     </listitem>
                 </varlistentry>
 
-                <varlistentry>
+                <varlistentry condition="with_ext_enumeration">
                     <term>subdomain_enumerate (string)</term>
                     <listitem>
                         <para>
@@ -3849,10 +3853,10 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         <para>
                             ldap_offline_timeout
                         </para>
-                        <para>
+                        <para condition="with_ext_enumeration">
                             ldap_enumeration_refresh_timeout
                         </para>
-                        <para>
+                        <para condition="with_ext_enumeration">
                             ldap_enumeration_refresh_offset
                         </para>
                         <para>
@@ -3868,7 +3872,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                         <para>
                             ldap_krb5_ticket_lifetime
                         </para>
-                        <para>
+                        <para condition="with_ext_enumeration">
                             ldap_enumeration_search_timeout
                         </para>
                         <para>

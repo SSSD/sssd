@@ -322,7 +322,7 @@
                             before refreshing its cache of enumerated
                             records.
                         </para>
-                        <para>
+                        <para condition="with_ext_enumeration">
                             This option can be also set per subdomain or
                             inherited via
                             <emphasis>subdomain_inherit</emphasis>.
@@ -485,7 +485,7 @@
                             cached results are returned (and offline mode is
                             entered)
                         </para>
-                        <para>
+                        <para condition="with_ext_enumeration">
                             This option can be also set per subdomain or
                             inherited via
                             <emphasis>subdomain_inherit</emphasis>.
