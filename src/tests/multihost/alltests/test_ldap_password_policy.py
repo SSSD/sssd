@@ -172,7 +172,7 @@ class TestPasswordPolicy():
         ldap_modify_ds(multihost, ldap.MOD_REPLACE, user_dn, 'userPassword', [b'Secret123'])
         client.run_command('> /var/log/secure')
         tools.clear_sssd_cache()
-        client.run_command('sh /tmp/change_user_password_while_expired.sh')
+        client.run_command('sh /tmp/change_user_password_while_expired.sh', raiseonerr=False)
         time.sleep(3)
         file_scure = '/var/log/secure'
         file_ssd = f'/var/log/sssd/sssd_{ds_instance_name}.log'
