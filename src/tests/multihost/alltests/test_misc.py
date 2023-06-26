@@ -15,6 +15,7 @@ import pytest
 from sssd.testlib.common.expect import pexpect_ssh
 from datetime import datetime as D_T
 from sssd.testlib.common.exceptions import SSHLoginException
+from sssd.testlib.common.ssh2_python import check_login_client
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from constants import ds_instance_name, ds_suffix, ds_rootdn, ds_rootpw
 
@@ -133,41 +134,15 @@ class TestMisc(object):
         client.sssd_conf(f'domain/{domain_name}', domain_params)
         client.sssd_conf("sssd", {'enable_files_domain': 'true'}, action='update')
         multihost.client[0].service_sssd('restart')
-        user = 'foo1@%s' % domain_name
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret1234', debug=False)
-        with pytest.raises(SSHLoginException):
-            client.login(login_timeout=10,
-                         sync_multiplier=1, auto_prompt_reset=False)
+        user = f'foo1@{domain_name}'
+        check_login_client(multihost, user, "Secret123")
         time.sleep(2)
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30,
-                         sync_multiplier=5, auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % user)
-        else:
-            client.logout()
-
         for _ in range(3):
-            client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                                 'Secret1234', debug=False)
-            with pytest.raises(SSHLoginException):
-                client.login(login_timeout=10,
-                             sync_multiplier=1, auto_prompt_reset=False)
+            check_login_client(multihost, user, "Secret123")
         time.sleep(2)
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30,
-                         sync_multiplier=5, auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % user)
-        else:
-            client.logout()
+        check_login_client(multihost, user, "Secret123")
         time.sleep(2)
-        cmd_id = 'id %s' % user
+        cmd_id = f'id {user}'
         cmd = multihost.client[0].run_command(cmd_id)
         if "no such user" in cmd.stdout_text:
             status = "FAIL"
