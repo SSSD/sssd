@@ -16,6 +16,7 @@ import pexpect.pxssh
 import pytest
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.exceptions import SSSDException
+from sssd.testlib.common.ssh2_python import run_command_client
 
 
 @pytest.mark.usefixtures('default_ipa_users', 'reset_password')
@@ -330,22 +331,10 @@ class Testipabz(object):
         multihost.client[0].run_command(
             f'su -l {user} -c "ipa sudorule-add-user testrule2 --users admin"',
             raiseonerr=False)
-        ssh_error = ""
-        ssh = pexpect.pxssh.pxssh(
-            options={"StrictHostKeyChecking": "no",
-                     "UserKnownHostsFile": "/dev/null"}, timeout=600)
-        ssh.force_password = True
-        try:
-            ssh.login(multihost.client[0].ip, user, test_password)
-            ssh.sendline('sudo -l')
-            ssh.prompt(timeout=600)
-            ssh.logout()
-        except pexpect.pxssh.ExceptionPxssh:
-            ssh_error += "Could not login via ssh first time."
-
+        run_command_client(multihost, user, test_password, "sudo -l")
+        time.sleep(3)
         search = multihost.client[0].run_command(
             'fgrep gssapi_ /var/log/sssd/sssd_pam.log | tail -10')
-
         domain_params = {'pam_gssapi_services': 'sudo, sudo-i',
                          'pam_gssapi_indicators_map': 'sudo-i:hardened'}
         client.sssd_conf('pam', domain_params)
@@ -354,18 +343,7 @@ class Testipabz(object):
         multihost.client[0].run_command(
             f'su -l {user} -c "kinit admin"', stdin_text=test_password,
             raiseonerr=False)
-
-        ssh = pexpect.pxssh.pxssh(options={"StrictHostKeyChecking": "no",
-                                           "UserKnownHostsFile": "/dev/null"},
-                                  timeout=600)
-        ssh.force_password = True
-        try:
-            ssh.login(multihost.client[0].ip, user, test_password)
-            ssh.sendline('sudo -l')
-            ssh.prompt(timeout=600)
-            ssh.logout()
-        except pexpect.pxssh.ExceptionPxssh:
-            ssh_error += "\nCould not login via ssh second time."
+        run_command_client(multihost, user, test_password, "sudo -l")
 
         multihost.client[0].run_command(
             f'su -l {user} -c "klist"', raiseonerr=False)
@@ -379,8 +357,6 @@ class Testipabz(object):
             'cp -vf /etc/pam.d/sudo-i_indicators /etc/pam.d/sudo-i')
         search2 = multihost.client[0].run_command(
             'fgrep gssapi_ /var/log/sssd/sssd_pam.log | tail -10')
-
-        assert not ssh_error, ssh_error
         assert 'indicators: 0' in search.stdout_text
         assert 'indicators: 2' in search2.stdout_text
 
@@ -443,24 +419,8 @@ class Testipabz(object):
         multihost.client[0].run_command(
             f'su -l {user} -c "sudo -S -l"', stdin_text=test_password,
             raiseonerr=False)
-        file_name = 'domain_list_' + str(time.time())
-        ssh_error = ""
-        ssh = pexpect.pxssh.pxssh(
-            options={"StrictHostKeyChecking": "no",
-                     "UserKnownHostsFile": "/dev/null"}, timeout=600)
-        ssh.force_password = True
-        try:
-            ssh.login(multihost.client[0].ip, user, test_password)
-            ssh.sendline(f'sudo -S /usr/sbin/sssctl domain-list > '
-                         f'/tmp/{file_name}')
-            ssh.expect(".*:", timeout=10)
-            ssh.sendline(test_password)
-            ssh.prompt(timeout=60)
-            ssh.logout()
-        except pexpect.pxssh.ExceptionPxssh:
-            ssh_error += "Could not login via ssh."
-        result = multihost.client[0].run_command(f"cat /tmp/{file_name}"
-                                                 ).stdout_text
+        result = run_command_client(multihost, user, test_password,
+                                    'echo -e "Secret123" | sudo -S /usr/sbin/sssctl domain-list')
         assert domain_name in result
 
     @staticmethod
