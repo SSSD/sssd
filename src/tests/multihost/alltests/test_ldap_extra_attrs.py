@@ -23,6 +23,7 @@ class TestLdapExtraAttrs(object):
     This is test case class for ldap ldap_extra_attr suite
     """
     @pytest.mark.tier1
+    @pytest.mark.converted('test_ldap_extra_attrs.py', 'test_ldap_extra_attrs__filled')
     def test_0001_bz1362023(self, multihost):
         """
         :title: IDM-SSSD-TC: ldap_extra_attrs: SSSD fails to start
@@ -46,6 +47,7 @@ class TestLdapExtraAttrs(object):
         assert start == 0
 
     @pytest.mark.tier1
+    @pytest.mark.converted('test_ldap_extra_attrs.py', 'test_ldap_extra_attrs__filled')
     def test_0002_givenmail(self, multihost):
         """
         :title: IDM-SSSD-TC: ldap_extra_attrs: Verify the entry of option
