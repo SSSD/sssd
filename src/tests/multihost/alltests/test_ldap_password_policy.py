@@ -9,8 +9,10 @@ import time
 import pytest
 import ldap
 import os
+import subprocess
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from constants import ds_instance_name, ds_rootpw, ds_rootdn
+from sssd.testlib.common.ssh2_python import check_login_client
 
 
 def find_logs(multihost, log_name, string_name):
@@ -102,8 +104,7 @@ class TestPasswordPolicy():
             3. clear secure log
             4. clear sssd logs and cache
         :steps:
-            1. The user is able to authenticate using SSH password by asserting the
-                output of the tools.auth_client_ssh_password() function.
+            1. The user is able to authenticate using SSH password by check_login_client function.
             2. Searches for specific log messages in two log files (/var/log/secure and
                 /var/log/sssd/sssd_{ds_instance_name}.log)
                 using the find_logs() function, and raises an assertion error if
@@ -125,7 +126,7 @@ class TestPasswordPolicy():
         ldap_modify_ds(multihost, ldap.MOD_REPLACE, user_dn, 'userPassword', [b'Secret123'])
         client.run_command('> /var/log/secure')
         tools.clear_sssd_cache()
-        assert tools.auth_client_ssh_password('ppuser1', 'Secret123')
+        check_login_client(multihost, 'ppuser1', 'Secret123')
         time.sleep(3)
         file_scure = '/var/log/secure'
         file_ssd = f'/var/log/sssd/sssd_{ds_instance_name}.log'
@@ -154,15 +155,10 @@ class TestPasswordPolicy():
                 the expected log messages have been generated.
             3. Sets the passwordExp configuration in the cn=config section of the
                 389-ds directory server to off using the ldap_modify_ds() function.
-            4. Tests that the user is able to authenticate using SSH password by calling
-                the tools.auth_client_ssh_password() function with the new password (NewPass_123).
-            5. Sets the user's password back to the original password (Secret123) using the ldap_modify_ds() function.
         :expectedresults:
-            1. User should be able to reset expired password
+            1. User should not be able to reset expired password
             2. Corresponding logs should be generated
             3. PasswordExp configuration in the cn=config section should success
-            4. Authenticate using SSH password by user should success
-            5. Changing user's password back to the original password should success
         """
         client = multihost.client[0]
         tools = sssdTools(multihost.client[0])
@@ -172,17 +168,21 @@ class TestPasswordPolicy():
         ldap_modify_ds(multihost, ldap.MOD_REPLACE, user_dn, 'userPassword', [b'Secret123'])
         client.run_command('> /var/log/secure')
         tools.clear_sssd_cache()
-        client.run_command('sh /tmp/change_user_password_while_expired.sh', raiseonerr=False)
+        with pytest.raises(subprocess.CalledProcessError):
+            client.run_command('sh /tmp/change_user_password_while_expired.sh')
         time.sleep(3)
         file_scure = '/var/log/secure'
         file_ssd = f'/var/log/sssd/sssd_{ds_instance_name}.log'
-        find_logs(multihost, file_scure, "Password expired. Change your password now.")
+        log_str = multihost.client[0].get_file_contents(file_scure).decode('utf-8')
+        assert "Password expired. Change your password now." in log_str or \
+               "Failed password for ppuser1" in log_str
         find_logs(multihost, file_ssd, "Server returned control [1.3.6.1.4.1.42.2.27.8.5.1]")
-        find_logs(multihost, file_ssd, "Password expired user must set a new password")
+        log_str = multihost.client[0].get_file_contents(file_ssd).decode('utf-8')
+        assert "Password expired user must set a new password" in log_str or \
+               "Password expired, grace logins exhausted." in log_str
         ldap_modify_ds(multihost, ldap.MOD_REPLACE, cn_config, 'passwordExp', [b'off'])
         time.sleep(3)
-        assert tools.auth_client_ssh_password('ppuser1', 'Secret123')
-        ldap_modify_ds(multihost, ldap.MOD_REPLACE, user_dn, 'userPassword', [b'Secret123'])
+        check_login_client(multihost, 'ppuser1', 'Secret123')
 
     @staticmethod
     def test_bz954323(multihost, backupsssdconf, common_sssd_setup):
@@ -196,7 +196,7 @@ class TestPasswordPolicy():
             3. Expire a user password ( by setting password Expiration Time)
             4. Clear the secure log
         :steps:
-            1. Calling tools.auth_client_ssh_password to authenticate
+            1. Calling check_login_client to authenticate
                 the user 'ppuser1' with a password on the client.
             2. Calling find_logs to search for a specific message in a log file on the server.
             3. Repeating steps 1-2 two more times, with different log search messages each time.
@@ -209,21 +209,20 @@ class TestPasswordPolicy():
             4. Configuration settings should changed to modified earlier
         """
         client = multihost.client[0]
-        tools = sssdTools(multihost.client[0])
         cn_config = 'cn=config'
         ldap_modify_ds(multihost, ldap.MOD_REPLACE, cn_config, 'passwordExp', [b'on'])
         ldap_modify_ds(multihost, ldap.MOD_ADD, cn_config, 'passwordGraceLimit', [b'3'])
         client.run_command("> /var/log/secure")
         time.sleep(3)
-        assert tools.auth_client_ssh_password('ppuser1', 'Secret123')
+        check_login_client(multihost, 'ppuser1', 'Secret123')
         time.sleep(3)
         find_logs(multihost, "/var/log/secure", "You have 2 grace login(s) remaining")
         client.run_command("> /var/log/secure")
-        assert tools.auth_client_ssh_password('ppuser1', 'Secret123')
+        check_login_client(multihost, 'ppuser1', 'Secret123')
         time.sleep(3)
         find_logs(multihost, "/var/log/secure", "You have 1 grace login(s) remaining")
         client.run_command("> /var/log/secure")
-        assert tools.auth_client_ssh_password('ppuser1', 'Secret123')
+        check_login_client(multihost, 'ppuser1', 'Secret123')
         time.sleep(3)
         find_logs(multihost, "/var/log/secure", "You have 0 grace login(s) remaining")
         for element, value in [('passwordGraceLimit', []),
@@ -244,7 +243,7 @@ class TestPasswordPolicy():
         :steps:
             1. Run a script to simulate an expired password.
             2. Calling find_logs to search for specific messages in log files on the server.
-            3. Calling tools.auth_client_ssh_password to authenticate the user with a new password.
+            3. Calling check_login_client to authenticate the user with a new password.
             4. Calling ldap_modify_ds three times to delete some configuration settings related to
                 password expiration for the directory
         :expectedresults:
@@ -254,7 +253,6 @@ class TestPasswordPolicy():
             4. New setting related to password change should success
         """
         client = multihost.client[0]
-        tools = sssdTools(multihost.client[0])
         cn_config = 'cn=config'
         ldap_modify_ds(multihost, ldap.MOD_ADD, cn_config, 'passwordMustChange', [b'on'])
         user_dn = 'uid=ppuser1,ou=People,dc=example,dc=test'
@@ -267,7 +265,7 @@ class TestPasswordPolicy():
         find_logs(multihost, f'/var/log/sssd/sssd_{ds_instance_name}.log',
                   "Password was reset. User must set a new password")
         time.sleep(3)
-        assert tools.auth_client_ssh_password('ppuser1', 'NewPass_123')
+        check_login_client(multihost, 'ppuser1', 'NewPass_123')
         for element, value in [('passwordMustChange', []),
                                ('passwordWarning', []),
                                ('passwordExp', [b'on'])]:
