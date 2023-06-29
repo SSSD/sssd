@@ -171,7 +171,7 @@ class TestADTrust(object):
         assert ad_user not in cmd.stdout_text,\
             f"{ad_user} information is fetched"
         assert cmd1.returncode != 0, 'User information returned'
-        assert ad_grp not in cmd1.stdout_text,\
+        assert ad_group not in cmd1.stdout_text,\
             f"{ad_user} is not available in {ad_user} information"
 
     @staticmethod
