@@ -2549,6 +2549,11 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                 /* Fallback to password auth if no PIN was entered */
                 if (ret == EIO) {
                     ret = prompt_password(pamh, pi, _("Password: "));
+                    if (pi->pam_authtok_size == 0) {
+                        D(("Empty password failure"));
+                        pi->passkey_prompt_pin = NULL;
+                        return PAM_AUTHTOK_ERR;
+                    }
                 }
             } else {
                 ret = prompt_password(pamh, pi, _("Password: "));
