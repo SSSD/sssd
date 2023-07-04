@@ -228,14 +228,21 @@ int check_digest_conversion(const char *inp, const char **digest_list,
     bool colon = false;
     bool reverse = false;
     char *c;
+    size_t len = 0;
 
     sep = strchr(inp, '_');
+    if (sep != NULL) {
+        len = sep - inp;
+    }
 
     for (d = 0; digest_list[d] != NULL; d++) {
         if (sep == NULL) {
             cmp = strcasecmp(digest_list[d], inp);
         } else {
-            cmp = strncasecmp(digest_list[d], inp, (sep - inp -1));
+            if (strlen(digest_list[d]) != len) {
+                continue;
+            }
+            cmp = strncasecmp(digest_list[d], inp, len);
         }
 
         if (cmp == 0) {
