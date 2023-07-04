@@ -2183,6 +2183,28 @@ static void test_sss_certmap_ldapu1_cert(void **state)
     assert_non_null(ctx);
     assert_null(ctx->prio_list);
 
+    /* cert!sha */
+    ret = sss_certmap_add_rule(ctx, 91,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule91={cert!sha}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 91,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule91={cert!sha}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    /* cert!sha_u */
+    ret = sss_certmap_add_rule(ctx, 90,
+                            "KRB5:<ISSUER>.*",
+                            "LDAP:rule90={cert!sha_u}", NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_certmap_add_rule(ctx, 99,
+                            "KRB5:<ISSUER>.*",
+                            "LDAPU1:rule90={cert!sha_u}", NULL);
+    assert_int_equal(ret, EINVAL);
+
     /* cert!sha555 */
     ret = sss_certmap_add_rule(ctx, 89,
                             "KRB5:<ISSUER>.*",
