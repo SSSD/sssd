@@ -638,7 +638,7 @@ static void child_sig_handler(struct tevent_context *ev,
               "waitpid failed [%d][%s].\n", err, strerror(err));
     } else if (ret == 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "waitpid did not found a child with changed status.\n");
+              "waitpid did not find a child with changed status.\n");
     } else {
         if (WIFEXITED(child_ctx->child_status)) {
             if (WEXITSTATUS(child_ctx->child_status) != 0) {
