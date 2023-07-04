@@ -8,14 +8,17 @@
 """
 import os
 import re
+
 import pytest
 from pexpect import pxssh
 from utils_config import set_param
+
 from sssd.testlib.common.utils import sssdTools
 
 
 class TestSanityKCM(object):
     """ KCM Sanity Test cases """
+
     def _kcm_service_op(self, multihost, svc_op):
         systemd_kcm_op = 'systemctl %s sssd-kcm' % (svc_op)
         multihost.master[0].run_command(systemd_kcm_op)
@@ -51,6 +54,7 @@ class TestSanityKCM(object):
             'rm -f /var/lib/sss/secrets/secrets.ldb')
         self._restart_kcm(multihost)
 
+    @pytest.mark.converted('test_kcm.py', 'test_kcm__kinit_kcm_krb5ccname')
     @pytest.mark.usefixtures("enable_kcm")
     def test_kinit_kcm(self, multihost):
         """
@@ -70,6 +74,7 @@ class TestSanityKCM(object):
         assert cmd2.returncode == 0, "klist failed!"
         assert 'Ticket cache: KCM:14583103' in cmd2.stdout_text
 
+    @pytest.mark.converted('test_kcm.py', 'test_kcm_ssh_login_creates_kerberos_ticket')
     @staticmethod
     @pytest.mark.usefixtures("enable_kcm")
     def test_ssh_login_kcm(multihost):
@@ -85,6 +90,7 @@ class TestSanityKCM(object):
                 'journalctl -u sssd -n 50 --no-pager')
         assert ssh0, "Authentication Failed as user foo4"
 
+    @pytest.mark.converted('test_kcm.py', 'test_kcm__debug_log_enabled')
     @pytest.mark.usefixtures("enable_kcm")
     def test_kcm_debug_level_set(self, multihost):
         """
@@ -133,6 +139,7 @@ class TestSanityKCM(object):
         log_lines_debug = self._kcm_log_length(multihost)
         assert log_lines_debug > log_lines_pre + 100
 
+    @pytest.mark.converted('test_kcm.py', 'test_kcm__kdestroy_nocache')
     @staticmethod
     @pytest.mark.usefixtures("enable_kcm")
     def test_kdestroy_retval(multihost):
@@ -191,6 +198,7 @@ class TestSanityKCM(object):
         assert 'KCM:14583103' in klist, "kinit did not work!"
         assert 'KCM:14583109' in ssh_output, "Ticket not forwarded!"
 
+    @pytest.mark.converted('test_kcm.py', 'test_kcm__display_correct_kvno')
     @staticmethod
     @pytest.mark.usefixtures("enable_kcm")
     def test_kvno_display(multihost):
@@ -216,6 +224,7 @@ class TestSanityKCM(object):
             else:
                 pytest.fail("kvno display was improper")
 
+    @pytest.mark.converted('test_kcm.py', 'test_kcm__configure_max_uid_ccaches_with_different_values')
     @pytest.mark.usefixtures("enable_kcm", "create_many_user_principals")
     def test_kcm_peruid_quota(self, multihost):
         """
@@ -268,6 +277,7 @@ class TestSanityKCM(object):
         multihost.master[0].run_command(
             'su -l foo3 -c "kdestroy -A"', raiseonerr=False)
 
+    @pytest.mark.converted('test_kcm.py', 'test_kcm__configure_max_uid_ccaches_with_different_values')
     @pytest.mark.usefixtures("enable_kcm", "create_many_user_principals")
     def test_kcm_peruid_quota_increase(self, multihost):
         """
@@ -310,6 +320,7 @@ class TestSanityKCM(object):
         multihost.master[0].run_command(
             f'su -l {user} -c "kdestroy -A"', raiseonerr=False)
 
+    @pytest.mark.converted('test_kcm.py', 'test_kcm__configure_max_uid_ccaches_with_different_values')
     @pytest.mark.usefixtures("enable_kcm")
     def test_kcm_payload_low_quota(self, multihost):
         """

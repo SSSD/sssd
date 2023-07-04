@@ -12,6 +12,7 @@ import pytest
 from pytest_mh.ssh import SSHProcessError
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.kdc import KDC
+from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
 
 
@@ -413,3 +414,185 @@ def test_kcm__simple_kinit(client: Client, kdc: KDC):
             with pytest.raises(SSHProcessError):
                 krb.kinit(username, password="wrong")
             assert krb.klist().rc == 0, "Klist failed"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__debug_log_enabled(client: Client, kdc: KDC):
+    """
+    :title: Kcm debug is enabled after sssd-kcm restart, when
+     "debug_level" in kcm section is set to 9
+    :setup:
+        1. Add Kerberos principal "user1" to KDC
+        2. Add local user "user1"
+        3. Remove log files
+        4. Set "debug_level" in kcm config section to "0"
+        5. Remove kcm log files
+        6. Start SSSD
+    :steps:
+        1. Try to produce some debug messages e.g. kdestroy
+        2. Check that kcm debug messages were not generated
+        3. Set "debug_level" in kcm config section to "9"
+        4. Restart kcm
+        5. Try to produce some debug messages e.g. kdestroy
+        6. Check that kcm debug messages were generated
+    :expectedresults:
+        1. No messages were generated
+        2. Log file did not get bigger
+        3. Successfully set
+        4. Successfully restarted
+        5. Some messages were generated
+        6. Log file did get bigger
+    :customerscenario: False
+    """
+
+    def kcm_log_length() -> int:
+        try:
+            output = client.fs.wc(kcm_log_file, lines=True).stdout
+            return int(output.split()[0])
+        except SSHProcessError:
+            return 0
+
+    user = "user1"
+    password = "Secret123"
+    kcm_log_file = "/var/log/sssd/sssd_kcm.log"
+
+    kdc.principal(user).add(password=password)
+    client.local.user(user).add(password=password)
+    client.sssd.common.kcm(kdc)
+
+    client.sssd.kcm["debug_level"] = "0"
+    client.sssd.config_apply()
+
+    client.ssh(user, password).exec(["rm", "-f", kcm_log_file], raise_on_error=False)
+    client.sssd.start()
+
+    start_log_length = kcm_log_length()
+
+    with client.ssh(user, password) as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            krb.kdestroy()
+
+    end_log_nodebug = kcm_log_length()
+    assert start_log_length == end_log_nodebug, "Debug messages were generated"
+
+    client.sssd.kcm["debug_level"] = "9"
+    client.sssd.config_apply()
+    assert client.svc.restart("sssd-kcm").rc == 0, "Restart of kcm failed"
+
+    with client.ssh(user, password) as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            krb.kdestroy()
+
+    end_log_debug = kcm_log_length()
+    assert start_log_length + 100 < end_log_debug, "Debug messages were not generated"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_kcm_ssh_login_creates_kerberos_ticket(client: Client, ldap: LDAP, kdc: KDC):
+    """
+    :title: kcm: Verify ssh login is successuful with kcm as default
+    :setup:
+        1. Add user and principal
+        2. Set kerberos as default auth provider
+        3. Start SSSD
+    :steps:
+        1. Authenticate as "user1" over SSH using kcm
+    :expectedresults:
+        1. Authenticated successfully
+    :customerscenario: False
+    """
+    ldap.user("user1").add()
+    kdc.principal("user1").add()
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.start()
+
+    with client.ssh("user1", "Secret123") as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            res = krb.klist()
+            assert res.rc == 0, "Klist failed"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__configure_max_uid_ccaches_with_different_values(client: Client, kdc: KDC):
+    """
+    :title: "max_uid_ccaches" are enforced and limit only specific user
+    :setup:
+        1. Add local user "user0" and "user1"
+        2. Add 66 Kerberos principals to KDC
+        3. Start SSSD
+    :steps:
+        1. Authenticate as "user0" over SSH
+        2. Set "max_uid_ccaches" to "1" and check its enforcement
+        3. Remove "max_uid_ccaches" so its set to default
+        4. Check the enforcement of quotas
+        5. Set "max_uid_ccaches" to "65" and check its enforcement
+        6. Kinit principal "user65" as "user1"
+        7. Call kdestroy to destroy all caches as "user0"
+        8. Kinit principal "user64" as "user0"
+    :expectedresults:
+        1. Authenticated successfully
+        2. "max_uid_ccaches" are properly enforced
+        3. Removed successfully
+        4. "max_uid_ccaches" are properly enforced
+        5. "max_uid_ccaches" are properly enforced
+        6. Kinit is successful
+        7. Kdestroy is successful
+        8. Kinit is successful
+    :customerscenario: False
+    """
+    user0 = "user0"
+    user1 = "user1"
+    password = "Secret123"
+    client.local.user(user0).add(password=password)
+    client.local.user(user1).add(password=password)
+
+    for i in range(66):
+        user = f"user{i}"
+        kdc.principal(user).add(password=password)
+
+    client.sssd.common.kcm(kdc)
+    client.sssd.start()
+
+    with client.ssh(user0, password) as ssh:
+        with client.auth.kerberos(ssh) as krb:
+
+            # max_uid_ccaches set to 1
+            client.sssd.kcm["max_uid_ccaches"] = "1"
+            client.sssd.config_apply()
+            client.svc.restart("sssd-kcm")
+            assert krb.kinit(user0, password=password).rc == 0
+            with pytest.raises(SSHProcessError):
+                krb.kinit(user1, password=password)
+
+            # max_uid_ccaches set to default (64)
+            client.sssd.config.remove_option("kcm", "max_uid_ccaches")
+            client.sssd.config_apply()
+            client.svc.restart("sssd-kcm")
+            for i in range(1, 64):
+                user = f"user{i}"
+                assert krb.kinit(user, password=password).rc == 0
+            with pytest.raises(SSHProcessError):
+                krb.kinit("user64", password=password)
+
+            # max_uid_ccaches set to 65
+            client.sssd.kcm["max_uid_ccaches"] = "65"
+            client.sssd.config_apply()
+            client.svc.restart("sssd-kcm")
+            assert krb.kinit("user64", password=password).rc == 0
+            with pytest.raises(SSHProcessError):
+                krb.kinit("user65", password=password)
+
+    # kinit as another user
+    with client.ssh(user1, password) as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            assert krb.kinit("user65", password=password).rc == 0
+
+    # kdestroy and then kinit
+    with client.ssh("user0", password) as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            assert krb.kdestroy(all=True).rc == 0
+            assert krb.kinit("user65", password=password).rc == 0
