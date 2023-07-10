@@ -2512,6 +2512,7 @@ test_sbus_message_LDADD = \
     libsss_debug.la \
     libsss_test_common.la \
     libsss_sbus.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 
 test_sbus_opath_SOURCES = \
@@ -2525,6 +2526,7 @@ test_sbus_opath_LDADD = \
     libsss_debug.la \
     libsss_test_common.la \
     libsss_sbus.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 
 if HAVE_CMOCKA
