@@ -705,7 +705,7 @@ class TestBugzillaAutomation(object):
 
     @staticmethod
     @pytest.mark.tier1
-    def test_0018_bz1734040(self, multihost, adjoin, create_aduser_group):
+    def test_0018_bz1734040(multihost, adjoin, create_aduser_group):
         """
         :title: ad_parameters: sssd crash in ad_get_account_domain_search
         :id: dcca509e-b316-4010-a173-20f541dafd52
