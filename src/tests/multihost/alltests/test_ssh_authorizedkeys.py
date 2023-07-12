@@ -10,8 +10,7 @@
 import pytest
 import re
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.exceptions import SSHLoginException
+from sssd.testlib.common.ssh2_python import check_login_client
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups',
@@ -32,8 +31,7 @@ class TestSSHkeys(object):
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
         user = 'foo1@%s' % domain_name
-        ssh = tools.auth_from_client(user, 'Secret123') == 3
-        assert ssh, f"Ssh failed for user {user}!"
+        check_login_client(multihost, user, 'Secret123')
         domain_log = '/var/log/sssd/sssd_%s.log' % domain_name
         log = multihost.client[0].get_file_contents(domain_log).decode('utf-8')
         msg = 'Adding sshPublicKey'

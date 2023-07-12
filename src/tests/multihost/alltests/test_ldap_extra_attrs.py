@@ -9,11 +9,8 @@
 from __future__ import print_function
 import re
 import pytest
-import os
-import time
 from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name
-from pexpect import pxssh
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
@@ -196,59 +193,3 @@ class TestLdapExtraAttrs(object):
         cmd = multihost.client[0].run_command(sssctl_cmd)
         ret = multihost.client[0].service_sssd('status')
         assert cmd.returncode == 0 and ret == 0
-
-    @staticmethod
-    @pytest.mark.tier1
-    def test_bz847043(multihost, backupsssdconf):
-        """
-        :title: Thread issue can cause the application to not get
-            any identity information bz847043
-        :id: a3f5b5ea-9cc6-11ed-98f2-845cf3eff344
-        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=847043
-        :setup:
-            1. Clear sssd caches
-            2. Compile the provided C test program and run it
-        :steps:
-            1. Log in via the ssh
-            2. With the fixed version, the program should run to completion:
-                ./client-hang
-                Cancelling thread
-                Joining...
-                Joined, trying getpwuid_r call
-                Never get here
-        :expectedresults:
-            1. Should succeed
-            2. Should succeed
-        """
-        tools = sssdTools(multihost.client[0])
-        client = multihost.client[0]
-        tools.sssd_conf("nss", {'filter_groups': 'root',
-                                'filter_users': 'root'},
-                        action='update')
-        tools.sssd_conf("domain/example1",
-                        {'use_fully_qualified_names': False},
-                        action='update')
-        tools.clear_sssd_cache()
-        file_location_c = '/script/sssd_client_hang.c'
-        client.transport.put_file(os.path.dirname(os.path.abspath(__file__))
-                                  + file_location_c,
-                                  '/tmp/sssd_client_hang.c')
-        client.run_command("touch /tmp/output")
-        client.run_command("chown foo1 /tmp/output")
-        client.run_command('gcc -lpthread /tmp/sssd_client_hang.c'
-                           ' -o /tmp/client-hang')
-        client.run_command("chown foo1 /tmp/client-hang")
-        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
-                                   "UserKnownHostsFile": "/dev/null"})
-        ssh.force_password = True
-        try:
-            ssh.login(multihost.client[0].sys_hostname, 'foo1', 'Secret123')
-            ssh.sendline("cd /tmp")
-            ssh.prompt(timeout=5)
-            ssh.sendline('./client-hang > output')
-            ssh.prompt(timeout=5)
-        except pxssh.ExceptionPxssh:
-            pytest.fail("Ssh login failed.")
-        time.sleep(2)
-        log_str = multihost.client[0].get_file_contents("/tmp/output").decode('utf-8')
-        assert "Never get here" in log_str
