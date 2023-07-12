@@ -13,6 +13,7 @@ import ldap
 import pytest
 from sssd.testlib.common.utils import LdapOperations
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.ssh2_python import check_login_client
 
 
 def execute_cmd(multihost, command):
@@ -103,7 +104,6 @@ class TestNsAccountLock(object):
             3. Should succeed
         """
         clean_sys(multihost)
-        client = sssdTools(multihost.client[0])
         assert "foo1@example1" in \
                execute_cmd(multihost, "getent -s sss passwd"
                                       " foo1@example1").stdout_text
@@ -112,17 +112,16 @@ class TestNsAccountLock(object):
                                       "ldapusers@example1").stdout_text
 
         manage_user_roles(multihost, "uid=foo1", "lock", "account")
-        ssh0 = client.auth_from_client("foo1@example1", 'Secret123') == 3
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo1@example1", 'Secret123')
         time.sleep(3)
         lock_check(multihost, "foo1")
         # User is activated or unlocked
         clean_sys(multihost)
         manage_user_roles(multihost, "uid=foo1", "unlock", "account")
-        ssh1 = client.auth_from_client("foo1@example1", 'Secret123') == 3
+        check_login_client(multihost, "foo1@example1", 'Secret123')
         time.sleep(3)
         unlock_check(multihost, "foo1")
-        assert not ssh0, "Ssh passed instead of failing!"
-        assert ssh1, "Ssh failed instead of passing!"
 
     @staticmethod
     def test_inactive_managed_roles(multihost):
@@ -146,7 +145,8 @@ class TestNsAccountLock(object):
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         manage_user_roles(multihost, "cn=managed", "lock", "role")
-        ssh0 = client.auth_from_client("foo1@example1", 'Secret123') == 3
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo1@example1", 'Secret123')
         time.sleep(3)
         lock_check(multihost, "foo1")
         # User added to the above inactive managed role
@@ -157,7 +157,8 @@ class TestNsAccountLock(object):
         add_member = [(ldap.MOD_ADD, 'nsRoleDN', role_dn.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(user_dn, add_member)
         assert ret == 'Success'
-        ssh1 = client.auth_from_client("foo2@example1", 'Secret123') == 3
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo2@example1", 'Secret123')
         time.sleep(3)
         lock_check(multihost, "foo2")
         # User removed from the above inactive managed role
@@ -168,19 +169,15 @@ class TestNsAccountLock(object):
         add_member = [(ldap.MOD_DELETE, 'nsRoleDN', role_dn.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(user_dn, add_member)
         assert ret == 'Success'
-        ssh2 = client.auth_from_client("foo2@example1", 'Secret123') == 3
+        check_login_client(multihost, "foo2@example1", 'Secret123')
         time.sleep(3)
         unlock_check(multihost, "foo2")
         # Activate managed role
         clean_sys(multihost)
         manage_user_roles(multihost, "cn=managed", "unlock", "role")
-        ssh3 = client.auth_from_client("foo1@example1", 'Secret123') == 3
+        check_login_client(multihost, "foo1@example1", 'Secret123')
         time.sleep(3)
         unlock_check(multihost, "foo1")
-        assert not ssh0, "Ssh passed instead of failing for foo1!"
-        assert not ssh1, "Ssh passed instead of failing for foo2!"
-        assert ssh2, "Ssh failed for foo2!"
-        assert ssh3, "Ssh failed for foo1!"
 
     @staticmethod
     def test_inactivated_filtered_roles(multihost):
@@ -210,13 +207,15 @@ class TestNsAccountLock(object):
         (ret, _) = ldap_inst.modify_ldap(user_dn, add_member)
         assert ret == 'Success'
         manage_user_roles(multihost, "cn=filtered", "lock", "role")
-        ssh0 = client.auth_from_client("foo3@example1", 'Secret123') == 3
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo3@example1", 'Secret123')
 
         time.sleep(3)
         lock_check(multihost, "foo3")
         # User added to the above inactive filtered role
         clean_sys(multihost)
-        ssh1 = client.auth_from_client("foo4@example1", 'Secret123') == 3
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo4@example1", 'Secret123')
 
         time.sleep(3)
         lock_check(multihost, "foo4")
@@ -228,19 +227,15 @@ class TestNsAccountLock(object):
         add_member = [(ldap.MOD_DELETE, 'o', role_dn.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(user_dn, add_member)
         assert ret == 'Success'
-        ssh2 = client.auth_from_client("foo3@example1", 'Secret123') == 3
+        check_login_client(multihost, "foo3@example1", 'Secret123')
         time.sleep(3)
         unlock_check(multihost, "foo3")
         # Activate filtered role
         clean_sys(multihost)
         manage_user_roles(multihost, "cn=filtered", "unlock", "role")
-        ssh3 = client.auth_from_client("foo4@example1", 'Secret123') == 3
+        check_login_client(multihost, "foo4@example1", 'Secret123')
         time.sleep(3)
         unlock_check(multihost, "foo4")
-        assert not ssh0, "Ssh passed instead of failing!"
-        assert not ssh1, "Ssh passed instead of failing!"
-        assert ssh2, "Ssh failed for foo3!"
-        assert ssh3, "Ssh failed for foo4!"
 
     @staticmethod
     def test_nested_role_inactivated(multihost):
@@ -276,11 +271,13 @@ class TestNsAccountLock(object):
         user_dn = 'cn=nested,ou=People,dc=example,dc=test'
         (_, _) = ldap_inst.add_entry(user_info, user_dn)
         manage_user_roles(multihost, "cn=nested", "lock", "role")
-        ssh0 = client.auth_from_client("foo1@example1", 'Secret123') == 3
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo1@example1", 'Secret123')
 
         time.sleep(3)
         lock_check(multihost, "foo1")
-        ssh1 = client.auth_from_client("foo4@example1", 'Secret123') == 3
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo4@example1", 'Secret123')
 
         time.sleep(3)
         lock_check(multihost, "foo4")
@@ -288,12 +285,8 @@ class TestNsAccountLock(object):
         clean_sys(multihost)
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
         manage_user_roles(multihost, "cn=nested", "unlock", "role")
-        ssh2 = client.auth_from_client("foo1@example1", 'Secret123') == 3
-        ssh3 = client.auth_from_client("foo4@example1", 'Secret123') == 3
+        check_login_client(multihost, "foo1@example1", 'Secret123')
+        check_login_client(multihost, "foo4@example1", 'Secret123')
         time.sleep(3)
         unlock_check(multihost, "foo1")
         unlock_check(multihost, "foo4")
-        assert not ssh0, "Ssh passed instead of failing!"
-        assert not ssh1, "Ssh passed instead of failing!"
-        assert ssh2, "Ssh failed for foo3!"
-        assert ssh3, "Ssh failed for foo4!"

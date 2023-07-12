@@ -13,7 +13,7 @@ import re
 import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.ssh2_python import check_login_client
 from constants import ds_instance_name
 
 
@@ -34,10 +34,7 @@ def no_fallback_dir(multihost):
     tools.clear_sssd_cache()
     user = f'foo1@{ds_instance_name}'
     # Authenticate user
-    client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                         'Secret123', debug=False)
-    client.login(login_timeout=30, sync_multiplier=5,
-                 auto_prompt_reset=False)
+    check_login_client(multihost, user, 'Secret123')
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
@@ -107,7 +104,7 @@ class TestPoorManBacktrace(object):
             decode('utf-8')
         print(f'\n{logfile}\n+===++++++===+\n{log_str2}\n')
         # Check the backtrace is dumped first time and no backtrace is skipped
-        assert pattern.search(log_str1) and not pattern2.search(log_str1)
+        assert len(pattern.findall(log_str1)) == len(pattern2.findall(log_str1)) == 1
         # Check there is no new backtrace with the same issue and repeative
         # backtrace is skipped
         assert pattern2.search(log_str2) and not pattern.search(log_str2)
