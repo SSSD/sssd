@@ -9,7 +9,6 @@
 from __future__ import print_function
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 from sssd.testlib.common.exceptions import SSSDException
 
 
@@ -65,14 +64,9 @@ class Testsssctl(object):
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db')
         tools.remove_sss_cache('/var/log/sssd')
-        if client_version(multihost):
-            tools.sssd_conf("sssd",
-                            {'enable_files_domain': 'true'},
-                            action='update')
-        else:
-            rm_cmd = 'rm -f %s' % SSSD_DEFAULT_CONF
-            multihost.client[0].run_command(rm_cmd,
-                                            raiseonerr=False)
+        tools.sssd_conf("sssd",
+                        {'enable_files_domain': 'true'},
+                        action='update')
         multihost.client[0].service_sssd('start')
         for user in users.keys():
             cmd = multihost.client[0].run_command('getent'
