@@ -11,12 +11,10 @@ import time
 import re
 import pytest
 import ldap
-from pexpect import pxssh
 from constants import ds_suffix, krb_realm
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.ssh2_python import check_login_client, SSHClient
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.utils import LdapOperations
-from sssd.testlib.common.exceptions import SSHLoginException
 from sssd.testlib.common.libkrb5 import krb5srv
 
 
@@ -71,14 +69,7 @@ class Testkrbfips(object):
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
         user = 'foo1@%s' % domain_name
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login()
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % user)
-        else:
-            client.logout()
+        check_login_client(multihost, user, 'Secret123')
 
     @staticmethod
     @pytest.mark.tier1_2
@@ -100,27 +91,16 @@ class Testkrbfips(object):
         multihost.client[0].service_sssd('restart')
         multihost.client[0].run_command("systemctl "
                                         "restart sssd-kcm")
-
-        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
-                          "UserKnownHostsFile": "/dev/null"})
-        ssh.force_password = True
+        ssh = SSHClient(multihost.client[0].sys_hostname, 'foo3', 'Secret123')
         try:
-            ssh.login(multihost.client[0].sys_hostname, 'foo3', 'Secret123')
-            ssh.sendline('kdestroy -A -q')
-            ssh.prompt(timeout=5)
-            ssh.sendline('kinit foo3')
-            ssh.expect('Password for .*:', timeout=10)
-            ssh.sendline('Secret123')
-            ssh.prompt(timeout=5)
-            ssh.sendline('klist')
-            ssh.prompt(timeout=5)
-            klist = str(ssh.before)
-            ssh.sendline(f'ssh -v -o StrictHostKeyChecking=no -K -l foo3 '
-                         f'{multihost.client[0].sys_hostname} klist')
-            ssh.prompt(timeout=30)
-            ssh_output = str(ssh.before)
-            ssh.logout()
-        except pxssh.ExceptionPxssh:
+            ssh.connect()
+            ssh.execute_command('kdestroy -A -q')
+            ssh.execute_command('echo -e "Secret123" | kinit foo3')
+            klist = ssh.execute_command('klist')
+            ssh_output = ssh.execute_command(f'ssh -v -o StrictHostKeyChecking=no '
+                                             f'-K -l foo3 {multihost.client[0].sys_hostname} klist')
+            ssh.close()
+        except Exception:
             pytest.fail("Ssh login failed.")
 
         assert 'KCM:14583103' in klist, "kinit did not work!"
@@ -139,33 +119,19 @@ class Testkrbfips(object):
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
         user = 'foo1@%s' % domain_name
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login()
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % user)
-        else:
-            client.logout()
+        check_login_client(multihost, user, 'Secret123')
         time.sleep(2)
         ps_cmd = "mv /var/log/sssd/krb5_child.log  " \
                  "/var/log/sssd/krb5_child.log.old"
-        cmd = multihost.client[0].run_command(ps_cmd)
+        multihost.client[0].run_command(ps_cmd)
         ps_cmd = "pgrep sssd"
         cmd = multihost.client[0].run_command(ps_cmd)
         sssd_pid = cmd.stdout_text.split('\n')[0]
         ps_cmd = f"/bin/kill -HUP {sssd_pid}"
-        cmd = multihost.client[0].run_command(ps_cmd)
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login()
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % user)
-        else:
-            client.logout()
+        multihost.client[0].run_command(ps_cmd)
+        check_login_client(multihost, user, 'Secret123')
         time.sleep(2)
-        cmd = multihost.client[0].run_command(ps_cmd)
+        multihost.client[0].run_command(ps_cmd)
         for file in ['krb5_child.log', 'krb5_child.log.old']:
             ps_cmd = f"ls -l /var/log/sssd/{file}"
             cmd = multihost.client[0].run_command(ps_cmd)
@@ -194,14 +160,7 @@ class Testkrbfips(object):
         client.sssd_conf('domain/example1', domain_params)
         client.clear_sssd_cache()
         user = 'foo1@%s' % domain_name
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login()
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % user)
-        else:
-            client.logout()
+        check_login_client(multihost, user, 'Secret123')
         ps_grep = "grep GSS /var/log/sssd/*.log"
         cmd = multihost.client[0].run_command(ps_grep)
         err_msg = "SPNEGO cannot find mechanisms to negotiate"
@@ -221,18 +180,15 @@ class Testkrbfips(object):
         tcpdump_cmd = 'tcpdump -s0 host %s -w %s' % (ldap_host, pcapfile)
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
         pkill = 'pkill tcpdump'
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
         try:
-            client.login()
-        except SSHLoginException:
+            check_login_client(multihost, user, 'Secret123')
+        except Exception:
             multihost.client[0].run_command(pkill)
             tshark_cmd = "tshark -r %s -V -2 -R 'kerberos.ENCTYPE'" % pcapfile
-            cmd = multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
+            multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
             pytest.fail("%s failed to login" % user)
         else:
             time.sleep(5)
-            client.logout()
             multihost.client[0].run_command(pkill)
             # check as_req
             tshark_cmd = "tshark -r %s -V -2 -R 'kerberos.ENCTYPE'" % pcapfile
@@ -261,11 +217,9 @@ class Testkrbfips(object):
                       f' -w {pcapfile}'
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
         pkill = 'pkill tcpdump'
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
         try:
-            client.login()
-        except SSHLoginException:
+            check_login_client(multihost, user, 'Secret123')
+        except Exception:
             multihost.client[0].run_command(pkill)
             print("SSH Login failed")
             tshark_cmd = "tshark -r %s -V -2 -R"\
@@ -274,7 +228,6 @@ class Testkrbfips(object):
             pytest.fail("%s failed to login" % user)
         else:
             time.sleep(5)
-            client.logout()
             multihost.client[0].run_command(pkill)
             # check as_rep
             tshark_cmd = "tshark -r %s -V -2 -R"\
@@ -328,15 +281,13 @@ class Testkrbfips(object):
         tcpdump_cmd = 'tcpdump -s0 host %s -w %s' % (ldap_host, pcapfile)
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
         pkill = 'pkill tcpdump'
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
         try:
-            client.login()
-        except SSHLoginException:
+            check_login_client(multihost, user, 'Secret123')
+        except Exception:
             multihost.client[0].run_command(pkill)
             tshark_cmd = "tshark -r %s -V -2 -R"\
                          " 'kerberos.msg_type == 30'" % pcapfile
-            cmd = multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
+            multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
             journalctl_cmd = 'journalctl --no-pager -n 150'
             cmd = multihost.client[0].run_command(journalctl_cmd)
             check = re.compile(r'KDC has no support for encryption type')
@@ -365,20 +316,18 @@ class Testkrbfips(object):
         tcpdump_cmd = 'tcpdump -s0 host %s -w %s' % (ldap_host, pcapfile)
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
         pkill = 'pkill tcpdump'
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
+        client = SSHClient(multihost.client[0].sys_hostname, user, 'Secret123')
         try:
-            client.login()
-        except SSHLoginException:
+            client.connect()
+        except Exception:
             multihost.client[0].run_command(pkill)
             pytest.fail("%s failed to login" % user)
         else:
             ldapsearch = 'ldapsearch -Y GSSAPI -H ldap://%s' % ldap_host
-            client.command(ldapsearch)
-            client.logout()
-            multihost.client[0].run_command(pkill)
-            tshark_cmd = "tshark -r %s -V -2 -R"\
-                         " 'kerberos.msg_type == 13'" % pcapfile
+            client.execute_command(ldapsearch)
+            client.close()
+            multihost.client[0].run_command(pkill, raiseonerr=False)
+            tshark_cmd = "tshark -r %s -V -2 -R 'kerberos.msg_type == 13'" % pcapfile
             multihost.client[0].run_command(tshark_cmd, raiseonerr=False)
         rm_pcap_file = 'rm -f %s' % pcapfile
         multihost.client[0].run_command(rm_pcap_file)
