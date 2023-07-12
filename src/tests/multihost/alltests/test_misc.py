@@ -12,12 +12,11 @@ import re
 import time
 import subprocess
 import pytest
-from sssd.testlib.common.expect import pexpect_ssh
+import textwrap
 from datetime import datetime as D_T
-from sssd.testlib.common.exceptions import SSHLoginException
-from sssd.testlib.common.ssh2_python import check_login_client
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from constants import ds_instance_name, ds_suffix, ds_rootdn, ds_rootpw
+from sssd.testlib.common.ssh2_python import check_login_client
 
 
 def find_logs(multihost, log_name, string_name):
@@ -432,15 +431,7 @@ class TestMisc(object):
 
         # Try ssh after socket activation is configured
         # Result does not matter we just need to trigger the PAM stack
-        ssh_client = pexpect_ssh(
-            multihost.client[0].sys_hostname, user, 'Secret123', debug=False)
-        try:
-            ssh_client.login(
-                login_timeout=30, sync_multiplier=5, auto_prompt_reset=False)
-        except SSHLoginException:
-            pass
-        else:
-            ssh_client.logout()
+        check_login_client(multihost, user, 'Secret123')
 
         # Print pam log for debug purposes
         multihost.client[0].run_command(
