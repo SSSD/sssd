@@ -9,7 +9,6 @@
 from __future__ import print_function
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.paths import SSSD_DEFAULT_CONF
 from sssd.testlib.common.exceptions import SSSDException
 
 

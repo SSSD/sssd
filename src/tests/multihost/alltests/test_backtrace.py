@@ -13,7 +13,7 @@ import re
 import time
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.ssh2_python import check_login_client
 from constants import ds_instance_name
 
 
@@ -34,10 +34,7 @@ def no_fallback_dir(multihost):
     tools.clear_sssd_cache()
     user = f'foo1@{ds_instance_name}'
     # Authenticate user
-    client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                         'Secret123', debug=False)
-    client.login(login_timeout=30, sync_multiplier=5,
-                 auto_prompt_reset=False)
+    check_login_client(multihost, user, 'Secret123')
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')

@@ -7,8 +7,7 @@
 from __future__ import print_function
 import pytest
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.exceptions import SSHLoginException
+from sssd.testlib.common.ssh2_python import check_login_client
 
 
 @pytest.mark.usefixtures('setup_sssd_krb', 'create_posix_usersgroups')
@@ -45,26 +44,16 @@ class TestKrbWithLogin(object):
         client_tool.sssd_conf('domain/example1', dmain_delete, action='delete')
         multihost.client[0].service_sssd('start')
         user = 'user5000'
-        client_hostname = multihost.client[0].sys_hostname
         multihost.client[0].run_command(f'touch /home/{user}/.k5login')
         multihost.client[0].run_command(f'chown {user} /home/{user}/.k5login')
         multihost.client[0].run_command(f'chgrp {user} /home/{user}/.k5login')
         multihost.client[0].run_command(f'chmod 664 /home/{user}/.k5login')
         multihost.client[0].service_sssd('restart')
-        client = pexpect_ssh(client_hostname, user, 'Secret123', debug=False)
         with pytest.raises(Exception):
-            client.login(login_timeout=10, sync_multiplier=1,
-                         auto_prompt_reset=False)
+            check_login_client(multihost, user, 'Secret123')
         multihost.client[0].run_command(f'rm -vf /home/{user}/.k5login')
         multihost.client[0].service_sssd('restart')
-        client = pexpect_ssh(client_hostname, user, 'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % user)
-        else:
-            client.logout()
+        check_login_client(multihost, user, 'Secret123')
         multihost.client[0].run_command('authselect select sssd')
 
     @pytest.mark.tier1_2
