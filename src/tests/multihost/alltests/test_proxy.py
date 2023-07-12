@@ -12,11 +12,9 @@ import textwrap
 import time
 from string import Template
 import pytest
-
 from constants import ds_suffix
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.ssh2_python import SSHClient
 from sssd.testlib.common.utils import sssdTools
-from sssd.testlib.common.exceptions import SSHLoginException
 
 
 @pytest.mark.usefixtures('setup_sssd_krb', 'create_host_keytab',
@@ -61,19 +59,18 @@ class TestsssdProxy(object):
         cat = 'cat /etc/sssd/sssd.conf'
         multihost.client[0].run_command(cat)
         multihost.client[0].service_sssd('start')
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
+        client = SSHClient(multihost.client[0].sys_hostname, user, 'Secret123')
         try:
-            client.login()
-        except SSHLoginException:
+            client.connect()
+        except Exception:
             multihost.client[0].run_command(del_user)
             multihost.client[0].run_command(restore)
             pytest.fail("%s failed to login" % user)
         else:
             id_cmd = 'id %s' % user
-            (ret1, ret) = client.command(id_cmd)
+            ret1 = client.execute_command(id_cmd)
             assert "no such user" not in ret1
-            client.logout()
+            client.close()
         # On fedora after user logs out it takes time
         # for systemd process running as user to get stopped, hence
         # adding sleep

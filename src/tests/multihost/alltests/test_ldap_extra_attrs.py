@@ -13,7 +13,7 @@ import os
 import time
 from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name
-from pexpect import pxssh
+from sssd.testlib.common.ssh2_python import SSHClient
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
@@ -238,16 +238,11 @@ class TestLdapExtraAttrs(object):
         client.run_command('gcc -lpthread /tmp/sssd_client_hang.c'
                            ' -o /tmp/client-hang')
         client.run_command("chown foo1 /tmp/client-hang")
-        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
-                                   "UserKnownHostsFile": "/dev/null"})
-        ssh.force_password = True
+        ssh = SSHClient(multihost.client[0].sys_hostname, 'foo1', 'Secret123')
         try:
-            ssh.login(multihost.client[0].sys_hostname, 'foo1', 'Secret123')
-            ssh.sendline("cd /tmp")
-            ssh.prompt(timeout=5)
-            ssh.sendline('./client-hang > output')
-            ssh.prompt(timeout=5)
-        except pxssh.ExceptionPxssh:
+            ssh.connect()
+            ssh.execute_command('cd /tmp; ./client-hang > output')
+        except Exception:
             pytest.fail("Ssh login failed.")
         time.sleep(2)
         log_str = multihost.client[0].get_file_contents("/tmp/output").decode('utf-8')
