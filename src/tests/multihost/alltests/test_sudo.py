@@ -9,7 +9,7 @@
 import time
 import re
 import pytest
-from pexpect import pxssh
+from sssd.testlib.common.ssh2_python import SSHClient
 from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name, ds_suffix
 
@@ -55,19 +55,14 @@ class TestSudo(object):
             add_rule2 = "echo 'Defaults:%s !requiretty'"\
                         " >> /etc/sudoers.d/%s" % (user, user)
             multihost.client[0].run_command(add_rule2)
-
-            ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
-                                       "UserKnownHostsFile": "/dev/null"})
-            ssh.force_password = True
+            ssh = SSHClient(multihost.client[0].sys_hostname, user, 'Secret123')
             try:
-                ssh.login(multihost.client[0].sys_hostname, user, 'Secret123')
+                ssh.connect()
                 for _ in range(1, 10):
-                    ssh.sendline('sudo fdisk -l')
-                    ssh.prompt(timeout=5)
-                    ssh.sendline('sudo ls -l /usr/sbin/')
-                    ssh.prompt(timeout=5)
-                ssh.logout()
-            except pxssh.ExceptionPxssh:
+                    ssh.execute_command('sudo fdisk -l')
+                    ssh.execute_command('sudo ls -l /usr/sbin/')
+                ssh.close()
+            except Exception:
                 pytest.fail(f"Authentication Failed as user {user}")
         pkill = 'pkill tcpdump'
         multihost.client[0].run_command(pkill)
@@ -105,21 +100,13 @@ class TestSudo(object):
         sssd_params = {'services': 'nss, pam, sudo'}
         tools.sssd_conf(section, sssd_params, action='update')
         multihost.client[0].service_sssd('start')
-
-        ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
-                          "UserKnownHostsFile": "/dev/null"})
-        ssh.force_password = True
+        ssh = SSHClient(multihost.client[0].sys_hostname, 'foo1@example.test', 'Secret123')
         try:
-            ssh.login(multihost.client[0].sys_hostname,
-                      'foo1@example.test', 'Secret123')
-            ssh.sendline('id')
-            ssh.prompt(timeout=5)
-            id_out = str(ssh.before)
-            ssh.sendline('sudo -l')
-            ssh.prompt(timeout=5)
-            sudo_out = str(ssh.before)
-            ssh.logout()
-        except pxssh.ExceptionPxssh:
+            ssh.connect()
+            id_out = ssh.execute_command('id')
+            sudo_out = ssh.execute_command('sudo -l')
+            ssh.close()
+        except Exception:
             pytest.fail("Failed to login via ssh.")
         assert 'foo1' in id_out, "id command did not work."
         assert 'NOTBEFORE=' in sudo_out or 'NOTAFTER=' in sudo_out,\
