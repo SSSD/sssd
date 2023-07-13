@@ -433,7 +433,8 @@ class TestMisc(object):
 
         # Try ssh after socket activation is configured
         # Result does not matter we just need to trigger the PAM stack
-        check_login_client(multihost, user, 'Secret123')
+        with pytest.raises(Exception):
+            check_login_client(multihost, user, 'Secret123')
 
         # Print pam log for debug purposes
         multihost.client[0].run_command(
