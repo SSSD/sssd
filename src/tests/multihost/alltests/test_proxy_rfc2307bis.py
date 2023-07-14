@@ -10,8 +10,7 @@ import pytest
 import subprocess
 import time
 from sssd.testlib.common.utils import sssdTools, LdapOperations
-from sssd.testlib.common.exceptions import SSHLoginException
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.ssh2_python import check_login_client
 from constants import ds_suffix, ds_instance_name
 
 
@@ -133,16 +132,8 @@ class TestProxyrfc2307bis(object):
                   "getent group User_CS2_grp1_Alias | grep User_CS2_grp1",
                   "getent group User_CS2_grp1_Alias | grep User_CS2"]:
             execute_cmd(multihost, i)
-        client_hostip = multihost.client[0].ip
         for user in ['User_CS2', 'User_CS2_Alias']:
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
-            try:
-                client.login(login_timeout=30, sync_multiplier=5,
-                             auto_prompt_reset=False)
-            except SSHLoginException:
-                pytest.fail("%s failed to login" % user)
-            else:
-                client.logout()
+            check_login_client(multihost, user, 'Secret123')
         for i in ["getent passwd user_cs2",
                   "getent passwd user_cs2_alias",
                   "getent group user_cs2_grp1",
@@ -175,15 +166,7 @@ class TestProxyrfc2307bis(object):
         tools.clear_sssd_cache()
         for i in ["getent group User_CS2_grp1", "id User_CS2"]:
             execute_cmd(multihost, i)
-        client_hostip = multihost.client[0].ip
-        client = pexpect_ssh(client_hostip, "User_CS2", 'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % "User_CS1")
-        else:
-            client.logout()
+        check_login_client(multihost, "User_CS2", 'Secret123')
 
     def test_allow_groups_user_cs2_grp1(self, multihost, backupsssdconf):
         """
@@ -213,11 +196,8 @@ class TestProxyrfc2307bis(object):
                   "id User_CS2",
                   "> /var/log/secure"]:
             execute_cmd(multihost, i)
-        client_hostip = multihost.client[0].ip
-        client = pexpect_ssh(client_hostip, "User_CS2", 'Secret123', debug=False)
         with pytest.raises(Exception):
-            client.login(login_timeout=10, sync_multiplier=1,
-                         auto_prompt_reset=False)
+            check_login_client(multihost, "User_CS2", 'Secret123')
         time.sleep(3)
         execute_cmd(multihost, 'cat /var/log/secure | grep "Access denied for user User_CS2"')
 
@@ -246,15 +226,7 @@ class TestProxyrfc2307bis(object):
         tools.clear_sssd_cache()
         for i in ["getent passwd User_CS2", "id User_CS2"]:
             execute_cmd(multihost, i)
-        client_hostip = multihost.client[0].ip
-        client = pexpect_ssh(client_hostip, "User_CS2", 'Secret123', debug=False)
-        try:
-            client.login(login_timeout=30, sync_multiplier=5,
-                         auto_prompt_reset=False)
-        except SSHLoginException:
-            pytest.fail("%s failed to login" % "User_CS1")
-        else:
-            client.logout()
+        check_login_client(multihost, "User_CS2", 'Secret123')
 
     def test_allow_groups_user_cs2(self, multihost, backupsssdconf):
         """
@@ -284,11 +256,8 @@ class TestProxyrfc2307bis(object):
                   "id User_CS2",
                   "> /var/log/secure"]:
             execute_cmd(multihost, i)
-        client_hostip = multihost.client[0].ip
-        client = pexpect_ssh(client_hostip, "User_CS2", 'Secret123', debug=False)
         with pytest.raises(Exception):
-            client.login(login_timeout=10, sync_multiplier=1,
-                         auto_prompt_reset=False)
+            check_login_client(multihost, "User_CS2", 'Secret123')
         time.sleep(3)
         execute_cmd(multihost, 'cat /var/log/secure | grep "Access denied for user User_CS2"')
 
@@ -329,14 +298,7 @@ class TestProxyrfc2307bis(object):
             execute_cmd(multihost, i)
         client_hostip = multihost.client[0].ip
         for user in ['user_cs2', 'user_cs2_alias']:
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
-            try:
-                client.login(login_timeout=30, sync_multiplier=5,
-                             auto_prompt_reset=False)
-            except SSHLoginException:
-                pytest.fail("%s failed to login" % user)
-            else:
-                client.logout()
+            check_login_client(multihost, user, 'Secret123')
 
     def test_simple_deny_users_user_cs2(self, multihost, backupsssdconf):
         """
@@ -364,24 +326,15 @@ class TestProxyrfc2307bis(object):
         tools.clear_sssd_cache()
         for user in ['User_cs2', 'user_cs2_alias']:
             execute_cmd(multihost, "> /var/log/secure")
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
             with pytest.raises(Exception):
-                client.login(login_timeout=10, sync_multiplier=1,
-                             auto_prompt_reset=False)
+                check_login_client(multihost, user, 'Secret123')
             time.sleep(3)
             execute_cmd(multihost, f'cat /var/log/secure | grep "Access denied for user {user}"')
         execute_cmd(multihost, "> /var/log/secure")
         execute_cmd(multihost, "sed -i 's/user_cs2/user_cs2_alias/' /etc/sssd/sssd.conf")
         tools.clear_sssd_cache()
         for user in ['user_cs2_alias', 'User_cs2']:
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
-            try:
-                client.login(login_timeout=30, sync_multiplier=5,
-                             auto_prompt_reset=False)
-            except SSHLoginException:
-                pytest.fail("%s failed to login" % user)
-            else:
-                client.logout()
+            check_login_client(multihost, user, 'Secret123')
 
     def test_simple_deny_groups_user_cs2_grp1(self, multihost, backupsssdconf):
         """
@@ -409,21 +362,12 @@ class TestProxyrfc2307bis(object):
         tools.clear_sssd_cache()
         for user in ['User_cs2', 'user_cs2_alias']:
             execute_cmd(multihost, "> /var/log/secure")
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
             with pytest.raises(Exception):
-                client.login(login_timeout=10, sync_multiplier=1,
-                             auto_prompt_reset=False)
+                check_login_client(multihost, user, 'Secret123')
             time.sleep(3)
             execute_cmd(multihost, f'cat /var/log/secure | grep "Access denied for user {user}"')
         execute_cmd(multihost, "> /var/log/secure")
         execute_cmd(multihost, "sed -i 's/user_cs2_grp1/user_cs2_grp1_alias/' /etc/sssd/sssd.conf")
         tools.clear_sssd_cache()
         for user in ['user_cs2_alias', 'User_cs2']:
-            client = pexpect_ssh(client_hostip, user, 'Secret123', debug=False)
-            try:
-                client.login(login_timeout=30, sync_multiplier=5,
-                             auto_prompt_reset=False)
-            except SSHLoginException:
-                pytest.fail("%s failed to login" % user)
-            else:
-                client.logout()
+            check_login_client(multihost, user, 'Secret123')
