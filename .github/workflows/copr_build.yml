@@ -96,7 +96,7 @@ jobs:
       run: |
         # CentOS Stream 8
         copr-cli --config "$coprcfg" edit-chroot                                                        \
-          --repos 'https://koji.mbox.centos.org/kojifiles/repos/dist-c8-stream-build/latest/$basearch/' \
+          --repos 'https://kojihub.stream.centos.org/kojifiles/repos/c8s-build/latest/$basearch'        \
           --modules idm:DL1                                                                             \
           $COPR_ACCOUNT/$COPR_PROJECT/centos-stream-8-x86_64
 
