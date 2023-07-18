@@ -149,18 +149,39 @@ static int sss_ini_config_file_from_mem(struct sss_ini *self,
 
 static int sss_ini_access_check(struct sss_ini *self)
 {
+    uid_t uid = 0;
+    gid_t gid = 0;
+    int ret;
+
     if (!self->main_config_exists) {
         return EOK;
     }
 
-    return ini_config_access_check(self->file,
-                                   INI_ACCESS_CHECK_MODE |
-                                   INI_ACCESS_CHECK_UID |
-                                   INI_ACCESS_CHECK_GID,
-                                   0, /* owned by root */
-                                   0, /* owned by root */
-                                   S_IRUSR, /* r**------ */
-                                   ALLPERMS & ~(S_IWUSR|S_IXUSR));
+    /* 'sssd:sssd' owned config is always fine */
+    sss_sssd_user_uid_and_gid(&uid, &gid);
+    ret = ini_config_access_check(self->file,
+                                  INI_ACCESS_CHECK_MODE |
+                                  INI_ACCESS_CHECK_UID |
+                                  INI_ACCESS_CHECK_GID,
+                                  uid, /* owned by SSSD_USER */
+                                  gid, /* owned by SSSD_USER */
+                                  S_IRUSR, /* r**------ */
+                                  ALLPERMS & ~(S_IWUSR|S_IXUSR));
+    if (ret != 0) {
+        /* if SSSD runs under 'root' then 'root:root' owned config is also fine */
+        if ((getuid() == 0) && (uid != 0)) {
+            ret = ini_config_access_check(self->file,
+                                          INI_ACCESS_CHECK_MODE |
+                                          INI_ACCESS_CHECK_UID |
+                                          INI_ACCESS_CHECK_GID,
+                                          0, /* owned by root */
+                                          0, /* owned by root */
+                                          S_IRUSR, /* r**------ */
+                                          ALLPERMS & ~(S_IWUSR|S_IXUSR));
+        }
+    }
+
+    return ret;
 }
 
 

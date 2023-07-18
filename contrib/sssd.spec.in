@@ -776,7 +776,7 @@ done
 %attr(700,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd
 %attr(700,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd/conf.d
 %attr(700,%{sssd_user},%{sssd_user}) %dir %{_sysconfdir}/sssd/pki
-%ghost %attr(0600,root,root) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
+%ghost %attr(0600,%{sssd_user},%{sssd_user}) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %dir %{_sysconfdir}/logrotate.d
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
 %dir %{_sysconfdir}/rwtab.d
