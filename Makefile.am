@@ -5666,6 +5666,7 @@ RPMBUILD ?= $(PWD)/rpmbuild
 dist_noinst_DATA += \
     m4 \
     contrib/sssd.spec.in \
+    contrib/sssd.sysusers.in \
     BUILD.txt \
     COPYING \
     src/tests/multihost/README.md \
@@ -5705,6 +5706,7 @@ if GIT_CHECKOUT
 endif
 	cp $(builddir)/contrib/sssd.spec $(RPMBUILD)/SPECS
 	cp $(distdir).tar.gz $(RPMBUILD)/SOURCES
+	cp $(builddir)/contrib/sssd.sysusers $(RPMBUILD)/SOURCES
 
 rpms: rpmbrprep
 	cd $(RPMBUILD); \
