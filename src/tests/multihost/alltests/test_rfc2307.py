@@ -11,8 +11,8 @@ import pytest
 from sssd.testlib.common.libkrb5 import krb5srv
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from constants import ds_suffix, ds_rootdn, ds_rootpw
-from sssd.testlib.common.exceptions import SSHLoginException, LdapException
-from sssd.testlib.common.expect import pexpect_ssh
+from sssd.testlib.common.exceptions import LdapException
+from sssd.testlib.common.ssh2_python import run_command_client
 
 
 def usr_grp(multihost, obj_info, type):
@@ -85,18 +85,9 @@ class Testrfc2307(object):
         tools = sssdTools(multihost.client[0])
         domain_name = tools.get_domain_section_name()
         tools.clear_sssd_cache()
-        user = f'\\ tuser@{domain_name}'
-        client = pexpect_ssh(multihost.client[0].sys_hostname, user,
-                             'Secret123', debug=False)
-        try:
-            client.login()
-        except SSHLoginException:
-            pytest.fail(f'{user} failed to login')
-        else:
-            id_cmd = f'id {user}'
-            cmd = client.command(id_cmd)
-            assert 'uid=34583100' in cmd[0]
-            client.logout()
+        user = f' tuser@{domain_name}'
+        id_cmd = run_command_client(multihost, user, "Secret123", 'id')
+        assert 'uid=34583100' in id_cmd
         user = f'tuser@{domain_name}'
         cmd = multihost.client[0].run_command(f'id {user}', raiseonerr=False)
         assert cmd.returncode != 0

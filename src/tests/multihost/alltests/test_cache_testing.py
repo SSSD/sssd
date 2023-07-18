@@ -11,6 +11,7 @@ import pytest
 import time
 from constants import ds_instance_name
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.ssh2_python import check_login_client_bool
 
 
 @pytest.fixture(scope='class')
@@ -163,8 +164,7 @@ class TestCacheTesting():
         """
         invalidate_cache = "sss_cache -E"
         cmd = multihost.client[0].run_command(invalidate_cache, raiseonerr=False)
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo1', 'Secret123')
+        ssh = check_login_client_bool(multihost, 'foo1', 'Secret123')
         ldb_cmd = f"ldbsearch -H /var/lib/sss/db/cache_{ds_instance_name}.ldb \
                     -b 'name=foo1@{ds_instance_name},cn=users,cn={ds_instance_name},cn=sysdb' > /tmp/file_ldb"
         ldb_cmd2 = f"ldbsearch -H /var/lib/sss/db/timestamps_{ds_instance_name}.ldb \
@@ -173,8 +173,8 @@ class TestCacheTesting():
         cmd2 = multihost.client[0].run_command(ldb_cmd2, raiseonerr=False)
         cmd1_output = multihost.client[0].get_file_contents('/tmp/file_ldb').decode('utf-8')
         cmd2_output = multihost.client[0].get_file_contents('/tmp/file_ldb2').decode('utf-8')
+        assert ssh, 'foo1 user is unable to login'
         assert cmd.returncode == 0, f'{invalidate_cache} did not execute successfully'
-        assert ssh == 3, "User foo1 failed to log In"
         assert cmd1.returncode == 0, f'{ldb_cmd} did not execute successfully'
         assert "dataExpireTimestamp: 1\n" in cmd1_output, "dataExpireTimestamp not found in /tmp/file_ldb"
         assert cmd2.returncode == 0, f'{ldb_cmd2} did not execute successfully'
@@ -445,11 +445,10 @@ class TestCacheTesting():
 
         user = 'uid=foo1,ou=People,dc=example,dc=test'
         content = f'''dn: {user}\nchangetype: modify\nreplace: loginShell\nloginShell: /bin/sh\n'''
-        multihost.client[0].put_file_contents("changes.ldif", content)
-        ldap_cmd = f'ldapmodify -x -H ldap://{multihost.master[0].sys_hostname} \
-                   -D "cn=Directory Manager" -w "Secret123" -f changes.ldif'
+        multihost.client[0].put_file_contents("/tmp/changes.ldif", content)
+        ldap_cmd = f'ldapmodify -x -H ldap://{multihost.master[0].sys_hostname}' \
+                   f' -D "cn=Directory Manager" -w "Secret123" -f /tmp/changes.ldif'
         cmd2 = multihost.client[0].run_command(ldap_cmd, raiseonerr=False)
-
         client.get_getent_passwd('foo1')
 
         ldb_cmd = f"ldbsearch -H /var/lib/sss/db/cache_{ds_instance_name}.ldb \

@@ -1,4 +1,5 @@
 import socket
+import ssh2
 from ssh2.session import Session
 
 
@@ -58,6 +59,21 @@ def check_login_client(multihost, user, password):
     ssh = SSHClient(hostname, user, password)
     ssh.connect()
     ssh.close()
+
+
+def check_login_client_bool(multihost, user, password):
+    """This function will check user login
+    user: Name of the user.
+    password: User password.
+    """
+    try:
+        hostname = multihost.client[0].ip
+        ssh = SSHClient(hostname, user, password)
+        ssh.connect()
+        ssh.close()
+        return True
+    except ssh2.exceptions.AuthenticationError:
+        return False
 
 
 def run_command(hostname, user, password, command):
