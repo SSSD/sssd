@@ -7,6 +7,13 @@
 %global sssd_user root
 %endif
 
+# sysusers depends on presence of sssd user
+%if 0%{?rhel} >= 10
+%global use_sysusers 1
+%else
+%global use_sysusers 0
+%endif
+
 # Set setuid bit on child helpers if we support non-root user.
 %if "%{sssd_user}" == "root"
 %global child_attrs 0750
@@ -54,6 +61,9 @@ Summary: System Security Services Daemon
 License: GPLv3+
 URL: https://github.com/SSSD/sssd/
 Source0: %{url}/archive/%{version}/%{name}-%{version}.tar.gz
+%if %{use_sysusers}
+Source1: sssd.sysusers
+%endif
 
 ### Patches ###
 # Place your patches here:
@@ -161,6 +171,10 @@ BuildRequires: shadow-utils-subid-devel
 %endif
 %if %{build_kcm_renewals}
 BuildRequires: krb5-libs >= %{krb5_version}
+%endif
+%if %{use_sysusers}
+BuildRequires: systemd-rpm-macros
+%{?sysusers_requires_compat}
 %endif
 
 %description
@@ -702,6 +716,10 @@ do
     cat $subpackage.lang
 done
 
+%if %{use_sysusers}
+install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
+%endif
+
 %files
 %license COPYING
 
@@ -805,6 +823,10 @@ done
 %{_datadir}/systemtap/tapset/sssd.stp
 %{_datadir}/systemtap/tapset/sssd_functions.stp
 %{_mandir}/man5/sssd-systemtap.5*
+%if %{use_sysusers}
+%{_sysusersdir}/sssd.conf
+%endif
+
 
 %if 0%{?rhel}
 %files polkit-rules
@@ -1004,8 +1026,12 @@ done
 
 %if 0%{?rhel}
 %pre common
+%if %{use_sysusers}
+%sysusers_create_compat %{SOURCE1}
+%else
 getent group sssd >/dev/null || groupadd -r sssd
 getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "User for sssd" sssd
+%endif
 %endif
 
 %post common
