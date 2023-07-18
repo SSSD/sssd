@@ -9,6 +9,7 @@
 from __future__ import print_function
 import pytest
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.ssh2_python import check_login_client_bool, check_login_client
 
 
 def execute_cmd(multihost, command):
@@ -43,8 +44,8 @@ class TestProxy(object):
         # proxy lookup and kerberos auth
         tools = sssdTools(multihost.client[0])
         tools.clear_sssd_cache()
-        ssh1 = tools.auth_from_client("foo2@example1", 'Secret123') == 3
-        assert ssh1, "Ssh failed instead of passing!"
+        ssh = check_login_client_bool(multihost, "foo2@example1", 'Secret123')
+        assert ssh, 'foo2@example1 is not able to login.'
         assert "home/foo2:/bin/bash" in execute_cmd(multihost,
                                                     "getent -s "
                                                     "ldap passwd "
@@ -91,22 +92,26 @@ class TestProxy(object):
         """
         tools = sssdTools(multihost.client[0])
         tools.clear_sssd_cache()
-        ssh0 = tools.auth_from_client("foo2@example1", 'Secret123') == 3
+        ssh = check_login_client_bool(multihost, "foo2@example1", 'Secret123')
         # block_server_access
         execute_cmd(multihost, "systemctl start firewalld")
         execute_cmd(multihost, f"firewall-cmd --direct "
                                f"--add-rule ipv4 filter "
                                f"OUTPUT 0 -d {multihost.master[0].ip} "
                                f"-j DROP")
-
-        ssh1 = tools.auth_from_client("foo2@example1", 'Secret123') == 3
-
-        # unblock_server_access
-        execute_cmd(multihost, "firewall-cmd  --reload")
-        execute_cmd(multihost, "systemctl stop firewalld")
-        tools.clear_sssd_cache()
-        ssh2 = tools.auth_from_client("foo2@example1", 'Secret123') == 3
-
-        assert ssh0, "Ssh failed instead of passing!"
-        assert not ssh1, "Ssh passed instead of failing!"
-        assert ssh2, "Ssh failed instead of passing!"
+        try:
+            with pytest.raises(Exception):
+                check_login_client(multihost, "foo2@example1", 'Secret123')
+            # unblock_server_access
+            execute_cmd(multihost, "firewall-cmd  --reload")
+            execute_cmd(multihost, "systemctl stop firewalld")
+            tools.clear_sssd_cache()
+            ssh2 = check_login_client_bool(multihost, "foo2@example1", 'Secret123')
+            assert ssh, 'foo2@example1 is not able to login.'
+            assert ssh2, 'foo2@example1 is not able to login.'
+        except Exception:
+            # unblock_server_access
+            execute_cmd(multihost, "firewall-cmd  --reload")
+            execute_cmd(multihost, "systemctl stop firewalld")
+            tools.clear_sssd_cache()
+            pytest.fail("foo2@example1 was able to login")
