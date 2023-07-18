@@ -11,6 +11,7 @@ import re
 import datetime
 import pytest
 from sssd.testlib.common.utils import sssdTools
+from sssd.testlib.common.ssh2_python import check_login_client
 
 
 @pytest.mark.usefixtures('posix_users_multidomain', 'sssdproxyldap',
@@ -81,8 +82,7 @@ class TestMultiDomain(object):
             else:
                 assert getent.returncode == 0
         for user in ['puser11@proxy', 'quser10']:
-            ssh = tools.auth_from_client(user, 'Secret123') == 3
-            assert ssh, f"Ssh failed for user {user}!"
+            check_login_client(multihost, user, 'Secret123')
 
     @staticmethod
     @pytest.mark.tier2
@@ -107,8 +107,7 @@ class TestMultiDomain(object):
             else:
                 assert getent.returncode == 0
         for user in ['puser11', 'quser11@ldap2']:
-            ssh = tools.auth_from_client(user, 'Secret123') == 3
-            assert ssh, f"Ssh failed for user {user}!"
+            check_login_client(multihost, user, 'Secret123')
 
     @pytest.mark.tier2
     def test_0005_proxyldap2(self, multihost, multidomain_sssd):
@@ -443,8 +442,7 @@ class TestMultiDomain(object):
         for dom in range(2):
             for idx in range(5):
                 user = '%suser%d@ldap%d' % (suffix[dom], idx, dom + 1)
-                ssh = tools.auth_from_client(user, 'Secret123') == 3
-                assert ssh, f"Ssh failed for user {user}!"
+                check_login_client(multihost, user, 'Secret123')
         pamlogfile = '/var/log/sssd/sssd_pam.log'
         find1 = re.compile(r'\[puser0\@ldap1\]')
         find2 = re.compile(r'\[quser0\@ldap2\]')
@@ -486,8 +484,7 @@ class TestMultiDomain(object):
                 print("start time = ", starttime)
                 user = '%suser1@ldap%d' % (suffix[dom], dom + 1)
                 print("user =", user)
-                ssh = client_tools.auth_from_client(user, 'Secret123') == 3
-                assert ssh, f"Ssh failed for user {user}!"
+                check_login_client(multihost, user, 'Secret123')
                 t2 = datetime.datetime.now()
                 endtime = t2.second
                 print("end time = ", endtime)

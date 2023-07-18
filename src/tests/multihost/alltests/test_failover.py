@@ -9,6 +9,7 @@
 import pytest
 from sssd.testlib.common.utils import sssdTools
 from constants import ds_instance_name
+from sssd.testlib.common.ssh2_python import check_login_client_bool
 
 
 @pytest.mark.usefixtures('multipleds_failover',
@@ -75,10 +76,10 @@ class TestFailover(object):
         tools.remove_sss_cache('/var/lib/sss/db')
         multihost.client[0].service_sssd('start')
         # login as user
-        ssh = tools.auth_from_client(user, 'Secret123') == 3
-        assert ssh, "Authentication failed!"
+        ssh = check_login_client_bool(multihost, user, 'Secret123')
         start_ds1 = 'systemctl start dirsrv@example'
         cmd = multihost.master[0].run_command(start_ds1, raiseonerr=False)
+        assert ssh, f'{user} is not able to login.'
         assert cmd.returncode == 0
 
     @staticmethod
@@ -98,8 +99,8 @@ class TestFailover(object):
         multihost.client[0].service_sssd('start')
         user = 'foo3@%s' % ds_instance_name
         # login as user
-        ssh = tools.auth_from_client(user, 'Secret123') == 3
-        assert ssh, "Authentication failed!"
+        ssh = check_login_client_bool(multihost, user, 'Secret123')
         start_ds1 = 'systemctl start dirsrv@example'
         cmd = multihost.master[0].run_command(start_ds1, raiseonerr=False)
+        assert ssh, f'{user} is not able to login.'
         assert cmd.returncode == 0

@@ -8,8 +8,51 @@
 """
 
 import pytest
+import time
 from constants import ds_instance_name
+from sssd.testlib.common.ssh2_python import check_login_client_bool, check_login_client
 from sssd.testlib.common.utils import sssdTools
+
+
+@pytest.fixture(scope='class')
+def create_keytab(multihost, request):
+    """
+    Configure keytab for this test
+    """
+    client_hostname = multihost.client[0].sys_hostname
+    master_hostname = multihost.master[0].sys_hostname
+    multihost.master[0].run_command("cp -vfr /opt /tmp/")
+    multihost.client[0].run_command("cp -vfr /opt /tmp/")
+    multihost.client[0].run_command("cp -vf /etc/krb5.keytab /etc/krb5.keytab_anuj")
+    multihost.master[0].run_command("rm -vf /opt/*")
+    multihost.client[0].run_command("rm -vf /opt/*")
+    for command in [f'kadmin.local -q "addprinc -randkey ldap/{master_hostname}@EXAMPLE.TEST"',
+                    f'kadmin.local -q "ktadd -k /etc/krb5.keytab ldap/{master_hostname}@EXAMPLE.TEST"',
+                    f'kadmin.local -q "addprinc -randkey host/{client_hostname}@EXAMPLE.TEST"',
+                    f'kadmin.local -q "ktadd -k /opt/sssd_client_invalid.keytab host/{client_hostname}@EXAMPLE.TEST"',
+                    f'kadmin.local -q "ktadd -k /opt/sssd_client_valid.keytab host/{client_hostname}@EXAMPLE.TEST"',
+                    'kadmin.local -q "addprinc -randkey host/invalidhost.redhat.com@EXAMPLE.TEST"',
+                    'kadmin.local -q "ktadd -k /opt/invalid.keytab host/invalidhost.redhat.com@EXAMPLE.TEST"',
+                    'kadmin.local -q "delprinc -force host/invalidhost.redhat.com@EXAMPLE.TEST"',
+                    'chmod 777 /etc/krb5.keytab',
+                    'restorecon -v /etc/krb5.keytab']:
+        multihost.master[0].run_command(command, raiseonerr=False)
+    file_content = multihost.master[0].get_file_contents("/opt/sssd_client_valid.keytab")
+    multihost.client[0].put_file_contents("/etc/krb5.keytab", file_content)
+    multihost.client[0].run_command("restorecon -v /etc/krb5.keytab")
+
+    def restore():
+        """ Restore configuration """
+        multihost.master[0].run_command("rm -vf /opt/*")
+        multihost.master[0].run_command("cp -vfr /tmp/opt/* /opt")
+        multihost.master[0].run_command("rm -vfr /tmp/opt")
+        multihost.client[0].run_command("rm -vf /opt/*", raiseonerr=False)
+        multihost.client[0].run_command("cp -vfr /tmp/opt/* /opt", raiseonerr=False)
+        multihost.client[0].run_command("rm -vfr /tmp/opt", raiseonerr=False)
+        multihost.client[0].run_command("cp -vf /etc/krb5.keytab_anuj /etc/krb5.keytab")
+        multihost.client[0].run_command("restorecon -v /etc/krb5.keytab")
+
+    request.addfinalizer(restore)
 
 
 def krb5_fast_setup(client, krb5_use_fast, krb5_fast_principal, **krb5_validate):
@@ -38,9 +81,9 @@ def krb5_fast_setup(client, krb5_use_fast, krb5_fast_principal, **krb5_validate)
 
 
 @pytest.fixture(scope='class')
-def custom_setup(session_multihost, setup_sssd_krb, create_posix_usersgroups, krb_connection_timeout):
+def custom_setup(multihost, setup_sssd_krb, create_posix_usersgroups, krb_connection_timeout):
     """ Added neccessary sssd domain parameters """
-    tools = sssdTools(session_multihost.client[0])
+    tools = sssdTools(multihost.client[0])
     sssd_params = {'services': "nss, pam",
                    'config_file_version': 2}
     tools.sssd_conf('sssd', sssd_params)
@@ -54,7 +97,7 @@ def custom_setup(session_multihost, setup_sssd_krb, create_posix_usersgroups, kr
 
 @pytest.mark.tier2
 @pytest.mark.krbfastprincipal
-@pytest.mark.usefixtures('custom_setup')
+@pytest.mark.usefixtures('custom_setup', 'create_keytab')
 class TestKrbFastPrincipal():
     """
     This is test case class for krb_fast_principal suite
@@ -73,24 +116,24 @@ class TestKrbFastPrincipal():
           1. Set the values of krb5_use_fast and krb5_fast_principal in sssd.conf \
              and restart sssd.
         :steps:
-          1. Authenticate the user foo3 from the client
+          1. Authenticate the user foo1 from the client
           2. Check the krb5_child log for expected messages.
         :expectedresults:
-          1. User foo3 should be able to successfully login
+          1. User foo1 should be able to successfully login
           2. Krb5_child Log contains the expected lines:
              Trying to find principal host/$Client@EXAMPLE.TEST in keytab
              Principal matched to the sample (host/$Client@EXAMPLE.TEST)
         """
         krb5_fast_setup(multihost.client[0], 'demand', f'host/{multihost.client[0].sys_hostname}')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        ssh = check_login_client_bool(multihost, "foo1", "Secret123")
+        time.sleep(3)
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 3, "foo3 failed to log In"
+        assert ssh, 'foo1 is not able to login.'
         assert f"Trying to find principal host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST in keytab" \
-            in krb5_child_log, f"principal host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST not found in keytab"
+               in krb5_child_log, f"principal host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST not found in keytab"
         assert f"Principal matched to the sample (host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST)" \
-            in krb5_child_log, "Principals did not match"
+               in krb5_child_log, "Principals did not match"
 
     @staticmethod
     def test_0002_invalid_principal(multihost, backupsssdconf):
@@ -101,20 +144,20 @@ class TestKrbFastPrincipal():
           1. Set the values of krb5_use_fast and krb5_fast_principal in sssd.conf \
              and restart sssd.
         :steps:
-          1. Authenticate the user foo3 from the client
+          1. Authenticate the user foo1 from the client
           2. Check the krb5_child log for expected messages.
         :expectedresults:
-          1. User foo3 should not be able to successfully login
+          1. User foo1 should not be able to successfully login
           2. Krb5_child Log contains the expected lines:
              Trying to find principal invalid@EXAMPLE.TEST in keytab
              No principal matching invalid@EXAMPLE.TEST found in keytab
         """
         krb5_fast_setup(multihost.client[0], 'try', 'invalid')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo1", "Secret123")
         file = '/var/log/sssd/krb5_child.log'
+        time.sleep(3)
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 10, "foo3 successfully logged In"
         assert "Trying to find principal invalid@EXAMPLE.TEST in keytab" in krb5_child_log, \
                "principal invalid@EXAMPLE.TEST not found in keytab"
         assert "No principal matching invalid@EXAMPLE.TEST found in keytab" in krb5_child_log, \
@@ -129,19 +172,19 @@ class TestKrbFastPrincipal():
           1. Set the values of krb5_use_fast and krb5_fast_principal in sssd.conf \
              and restart sssd.
         :steps:
-          1. Authenticate the user foo3 from the client
+          1. Authenticate the user foo1 from the client
           2. Check the krb5_child log for expected messages.
         :expectedresults:
-          1. User foo3 should not be able to successfully login
+          1. User foo1 should not be able to successfully login
           2. Krb5_child Log contains the expected lines:
              Trying to find principal principal@TEST.TEST in keytab
         """
         krb5_fast_setup(multihost.client[0], 'demand', 'principal@TEST.TEST')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo1", "Secret123")
+        time.sleep(3)
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 10, "foo3 successfully logged In"
         assert "Trying to find principal principal@TEST.TEST in keytab" in krb5_child_log, \
                "principal principal@TEST.TEST not found in keytab"
 
@@ -154,19 +197,19 @@ class TestKrbFastPrincipal():
           1. Set the values of krb5_use_fast and krb5_fast_principal in sssd.conf \
              and restart sssd.
         :steps:
-          1. Authenticate the user foo3 from the client
+          1. Authenticate the user foo1 from the client
           2. Check the krb5_child log for expected messages.
         :expectedresults:
-          1. User foo3 should be able to successfully login
+          1. User foo1 should be able to successfully login
           2. Krb5_child Log contains the expected lines:
              Trying to find principal (null)@EXAMPLE.TEST in keytab
         """
         krb5_fast_setup(multihost.client[0], 'demand', '')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        ssh = check_login_client_bool(multihost, "foo1", "Secret123")
+        time.sleep(3)
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 3, "foo3 failed to log In"
+        assert ssh, 'foo1 is not able to login.'
         assert "Trying to find principal (null)@EXAMPLE.TEST in keytab" in krb5_child_log, \
                "principal (null)@EXAMPLE.TEST not found in keytab"
 
@@ -180,10 +223,10 @@ class TestKrbFastPrincipal():
           1. Set the values of krb5_use_fast and krb5_fast_principal and set krb5_validate to true \
             in sssd.conf and restart sssd.
         :steps:
-          1. Authenticate the user foo3 from the client
+          1. Authenticate the user foo1 from the client
           2. Check the krb5_child log for expected messages.
         :expectedresults:
-          1. User foo3 should be able to successfully login
+          1. User foo1 should be able to successfully login
           2. Krb5_child Log contains the expected lines:
              Trying to find principal host/$Client@EXAMPLE.TEST in keytab
              Principal matched to the sample (host/$Client@EXAMPLE.TEST)
@@ -191,11 +234,11 @@ class TestKrbFastPrincipal():
         """
         krb5_fast_setup(multihost.client[0], 'demand', f'host/{multihost.client[0].sys_hostname}',
                         krb5_validate='true')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        ssh = check_login_client_bool(multihost, "foo1", "Secret123")
+        time.sleep(3)
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 3, "foo3 failed to log In"
+        assert ssh, 'foo1 is not able to login.'
         assert f"Trying to find principal host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST in keytab"\
             in krb5_child_log, f"principal host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST not found in keytab"
         assert f"Principal matched to the sample (host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST)" \
@@ -213,20 +256,20 @@ class TestKrbFastPrincipal():
           1. Set the values of krb5_use_fast and krb5_fast_principal and set krb5_validate to true \
             in sssd.conf and restart sssd.
         :steps:
-          1. Authenticate the user foo3 from the client
+          1. Authenticate the user foo1 from the client
           2. Check the krb5_child log for expected messages.
         :expectedresults:
-          1. User foo3 should not be able to successfully login
+          1. User foo1 should not be able to successfully login
           2. Krb5_child Log contains the expected lines:
              Trying to find principal invalid@EXAMPLE.TEST in keytab
              No principal matching invalid@EXAMPLE.TEST found in keytab
         """
         krb5_fast_setup(multihost.client[0], 'try', 'invalid', krb5_validate='true')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo1", "Secret123")
         file = '/var/log/sssd/krb5_child.log'
+        time.sleep(3)
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 10, "foo3 successfully logged In"
         assert "Trying to find principal invalid@EXAMPLE.TEST in keytab" in krb5_child_log, \
             "principal invalid@EXAMPLE.TEST not found in keytab"
         assert "No principal matching invalid@EXAMPLE.TEST found in keytab" in krb5_child_log, \
@@ -242,19 +285,19 @@ class TestKrbFastPrincipal():
           1. Set the values of krb5_use_fast and krb5_fast_principal and set krb5_validate to true \
             in sssd.conf and restart sssd.
         :steps:
-          1. Authenticate the user foo3 from the client
+          1. Authenticate the user foo1 from the client
           2. Check the krb5_child log for expected messages.
         :expectedresults:
-          1. User foo3 should not be able to successfully login
+          1. User foo1 should not be able to successfully login
           2. Krb5_child Log contains the expected lines:
              Trying to find principal principal@TEST.TEST in keytab
         """
         krb5_fast_setup(multihost.client[0], 'demand', 'principal@TEST.TEST', krb5_validate='true')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        with pytest.raises(Exception):
+            check_login_client(multihost, "foo1", "Secret123")
+        time.sleep(3)
         file = '/var/log/sssd/krb5_child.log'
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 10, "foo3 successfully logged In"
         assert "Trying to find principal principal@TEST.TEST in keytab" in krb5_child_log, \
             "principal principal@TEST.TEST not found in keytab"
 
@@ -268,19 +311,19 @@ class TestKrbFastPrincipal():
           1. Set the values of krb5_use_fast and krb5_fast_principal and set krb5_validate to true \
             in sssd.conf and restart sssd.
         :steps:
-          1. Authenticate the user foo3 from the client
+          1. Authenticate the user foo1 from the client
           2. Check the krb5_child log for expected messages.
         :expectedresults:
-          1. User foo3 should be able to successfully login
+          1. User foo1 should be able to successfully login
           2. Krb5_child Log contains the expected lines:
              Trying to find principal (null)@EXAMPLE.TEST in keytab
         """
         krb5_fast_setup(multihost.client[0], 'demand', '', krb5_validate='true')
-        client = sssdTools(multihost.client[0])
-        ssh = client.auth_from_client('foo3', 'Secret123')
+        ssh = check_login_client_bool(multihost, "foo1", "Secret123")
         file = '/var/log/sssd/krb5_child.log'
+        time.sleep(3)
         krb5_child_log = multihost.client[0].get_file_contents(file).decode('utf-8')
-        assert ssh == 3, "foo3 failed to log In"
+        assert ssh, 'foo1 is not able to login.'
         assert "Trying to find principal (null)@EXAMPLE.TEST in keytab" in krb5_child_log, \
             "principal (null)@EXAMPLE.TEST not found in keytab"
         assert f"TGT verified using key for [host/{multihost.client[0].sys_hostname}@EXAMPLE.TEST]"\
