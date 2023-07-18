@@ -14,8 +14,7 @@ import pytest
 import ldap
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 from sssd.testlib.common.libkrb5 import krb5srv
-from sssd.testlib.common.expect import pexpect_ssh
-from sssd.testlib.common.exceptions import SSHLoginException
+from sssd.testlib.common.ssh2_python import check_login_client_bool, check_login_client
 
 
 def execute_cmd(multihost, command):
@@ -319,7 +318,7 @@ class TestProxyMisc(object):
         tools.sssd_conf('domain/' + domain_name, domain_params)
         tools.clear_sssd_cache()
         for _ in range(12):
-            tools.auth_from_client("foo1@example1", "Secret123")
+            check_login_client(multihost, "foo1@example1", "Secret123")
         with pytest.raises(subprocess.CalledProcessError):
             execute_cmd(multihost, "grep 'All available child slots are full, "
                                    "queuing request' /var/log/sssd/*")
@@ -429,10 +428,10 @@ class TestProxyMisc(object):
         tools.sssd_conf('domain/' + domain_name, domain_params)
         tools.clear_sssd_cache()
         getent = execute_cmd(multihost, "getent passwd -s sss foo2")
-        ssh_res = tools.auth_from_client("foo2", "Secret123") == 3
+        ssh = check_login_client_bool(multihost, "foo2", "Secret123")
         execute_cmd(multihost, "userdel -rf foo2")
+        assert ssh, 'foo2 is not able to login.'
         assert "foo2:*:2001:2001::/home/foo2:/bin/bash" in getent.stdout_text
-        assert ssh_res, "Ssh for user foo2 failed."
 
     @staticmethod
     @pytest.mark.tier2
@@ -469,16 +468,8 @@ class TestProxyMisc(object):
         # sssd runs out of available child slots and starts
         # queuing requests in proxy mode
         execute_cmd(multihost, "systemctl start nslcd.service")
-        client_hostip = multihost.client[0].ip
         for i in range(1, 351):
-            try:
-                client = pexpect_ssh(client_hostip, f"doo{i}", 'Secret123', debug=False)
-                client.login(login_timeout=30, sync_multiplier=5,
-                             auto_prompt_reset=False)
-            except SSHLoginException:
-                pytest.fail(f"doo{i} failed to login")
-            else:
-                client.logout()
+            check_login_client(multihost, f"doo{i}", 'Secret123')
         with pytest.raises(subprocess.CalledProcessError):
             execute_cmd(multihost, "grep 'All available child slots are full, "
                                    "queuing request' /var/log/sssd/*")
