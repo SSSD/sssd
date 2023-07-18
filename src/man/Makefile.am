@@ -62,6 +62,8 @@ ENUM_CONDS = ;without_ext_enumeration
 endif
 if SSSD_NON_ROOT_USER
 SSSD_NON_ROOT_USER_CONDS = ;with_non_root_user_support
+else
+SSSD_NON_ROOT_USER_CONDS = ;without_non_root_user_support
 endif
 
 

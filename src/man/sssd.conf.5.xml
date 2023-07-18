@@ -52,9 +52,15 @@
             is only as a label for the section.
         </para>
 
-        <para>
-            <filename>sssd.conf</filename> must be a regular file, owned by
-            root and only root may read from or write to the file.
+        <para condition="without_non_root_user_support">
+            <filename>sssd.conf</filename> must be a regular file that is owned,
+            readable, and writeable only by 'root'.
+        </para>
+        <para condition="with_non_root_user_support">
+            <filename>sssd.conf</filename> must be a regular file that is owned,
+            readable, and writeable by '&sssd_user_name;' user (if SSSD is configured
+            to run under 'root' then <filename>sssd.conf</filename> also
+            can be owned by 'root').
         </para>
     </refsect1>
 
@@ -92,8 +98,7 @@
 
         <para>
             The snippet files require the same owner and permissions
-            as <filename>sssd.conf</filename>. Which are by default
-            root:root and 0600.
+            as <filename>sssd.conf</filename>.
         </para>
     </refsect1>
 
