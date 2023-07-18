@@ -54,6 +54,7 @@ Summary: System Security Services Daemon
 License: GPLv3+
 URL: https://github.com/SSSD/sssd/
 Source0: %{url}/archive/%{version}/%{name}-%{version}.tar.gz
+Source1: sssd.sysusers
 
 ### Patches ###
 # Place your patches here:
@@ -188,7 +189,8 @@ Requires: (sssd-nfs-idmap = %{version}-%{release} if libnfsidmap)
 Requires: libsss_idmap = %{version}-%{release}
 Requires: libsss_certmap = %{version}-%{release}
 %if 0%{?rhel}
-Requires(pre): shadow-utils
+BuildRequires:  systemd-rpm-macros
+%{?sysusers_requires_compat}
 %endif
 %{?systemd_requires}
 
@@ -701,6 +703,8 @@ do
     cat $subpackage.lang
 done
 
+install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
+
 %files
 %license COPYING
 
@@ -804,6 +808,10 @@ done
 %{_datadir}/systemtap/tapset/sssd.stp
 %{_datadir}/systemtap/tapset/sssd_functions.stp
 %{_mandir}/man5/sssd-systemtap.5*
+%if 0%{?rhel} >= 9 || 0%{?fedora}
+%{_sysusersdir}/sssd.conf
+%endif
+
 
 %if 0%{?rhel}
 %files polkit-rules
@@ -1003,8 +1011,7 @@ done
 
 %if 0%{?rhel}
 %pre common
-getent group sssd >/dev/null || groupadd -r sssd
-getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "User for sssd" sssd
+%sysusers_create_compat %{SOURCE1}
 %endif
 
 %post common

@@ -38,6 +38,7 @@ runs:
       tar -cvzf "$name.tar.gz" --transform "s,^,$name/," *
 
       cp contrib/sssd.spec.in ./sssd.spec
+      cp contrib/sssd.sysusers ./sssd.sysusers
 
       sed -iE "s/@PACKAGE_NAME@/sssd/g" ./sssd.spec
       sed -iE "s/@PACKAGE_VERSION@/${{ steps.sanitize.outputs.version }}/g" ./sssd.spec
