@@ -113,7 +113,8 @@ def test_config__add_remove_section(client: Client):
     :expectedresults:
         1. "debug_level" is set to 9 in both domains
         2. Added successfully
-        4. Changes are apllied successfully
+        3. New configuration was written
+        4. Changes are applied successfully
         5. "sssd --genconf-section==$newSection" is called successfully
         6. New section is removed successfully
         7. "sssd --genconf-section==$newSection" is called successfully
