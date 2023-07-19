@@ -339,6 +339,24 @@ jobs:
       run: |
         yq -i 'del(.domains[0].hosts.[] | select(.role == "ad"))' mhc.yaml
 
+    - name: Check polarion metadata
+      shell: bash
+      working-directory: ./sssd/src/tests/system
+      run: |
+        # Run pytest in collect only mode to quickly catch issues in Polarion metadata.
+        set -ex -o pipefail
+
+        mkdir -p $GITHUB_WORKSPACE/artifacts
+        source .venv/bin/activate
+        pytest \
+          --color=yes \
+          --mh-config=./mhc.yaml \
+          --mh-log-path=$GITHUB_WORKSPACE/mh.log \
+          --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
+          --polarion-config=./polarion.yaml \
+          --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
+          --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
+
     - name: Run tests
       shell: bash
       working-directory: ./sssd/src/tests/system
@@ -370,6 +388,7 @@ jobs:
           build.log
           install.log
           pytest.log
+          pytest-collect.log
 
   result:
     name: All tests are successful
