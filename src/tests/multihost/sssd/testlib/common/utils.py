@@ -25,6 +25,7 @@ import ldif
 import pytest
 import pymmh3 as mmh3
 from ldap import modlist
+from packaging import version
 from .authconfig import RedHatAuthConfig
 from .exceptions import PkiLibException
 from .exceptions import LdapException
@@ -1019,6 +1020,87 @@ class sssdTools(object):
                 self.adhost.run_command(short_spn_cmd)
             except subprocess.CalledProcessError:
                 pytest.fail("setspn failed to delete %s SPN" % (short_entry))
+
+    @staticmethod
+    def skip_package_version(
+            multihost_host: object,
+            min_versions: list = None,
+            max_versions: list = None,
+            package: str = "sssd",
+            skip_missing: bool = True,
+            fail_missing: bool = False
+        ):
+        """ Skip test if the package version is not between min_versions and max_versions
+
+        If multiple min versions are defined it is expected that the fix was introduced
+        to different branches at once and the comparison will compare to multiple min versions.
+        For version comparison purposes <major>.<minor> is considered one branch.
+        For branches where min version is not defined, but they fit between other min versions it is
+        assumed that min version is <major>.<minor>.0 to override that add <major>.<minor>.9999.
+
+        Max versions work in similar way.
+
+        When neither min_version and max_version is defined it can be also used to check
+        if the package is present and skip/fail if it is not.
+
+        @param multihost_host: multihost fixture specific host for example multihost.client[0]
+        @param min_versions: list of minimal versions that has the fix implemented
+        @param max_versions: list of maximal versions where the test is valid
+        @param package: package name to be searched via rpm
+        @param skip_missing: skip the test if package is not installed
+        @param fail_missing: fail the test if package is not installed
+        """
+        pkg = multihost_host.run_command(f"rpm -q {package}", raiseonerr=False).stdout_text
+        if package not in pkg:
+            if fail_missing:
+                pytest.fail(f"Package {package} is not installed, failing the test.")
+            if skip_missing:
+                pytest.skip(f"Package {package} is not installed, skipping the test.")
+            return
+        if not min_versions and not max_versions:
+            # No minimal and maximal version requirement just used for checking package presence
+            return
+
+        searched = re.search(r'[0-9]+\.[0-9]+\.[0-9]*-[0-9]+', pkg)
+        if not searched:
+            # TODO: Log the version does not match the expected format.
+            return
+
+        detected_version = searched[0]
+        detected_version_splits = detected_version.split(".")
+        detected_major_minor = detected_version_splits[0] + "." + detected_version_splits[1]
+        detected_parsed = version.parse(detected_version)
+
+        if min_versions:
+            minver_dict = {}
+            for minver in min_versions:
+                splits = minver.split(".")
+                minver_dict[splits[0] + '.' + splits[1]] = version.parse(minver)
+            # We are comparing first versions where major + minor matches.
+            # This helps if the fix was in two different branches like 2.7.2 and 2.9.1
+            # It will make sure that if the current version is 2.9.0-3 it will not
+            # be considered bigger than 2.7.2
+            if detected_major_minor in min_versions:
+                if detected_parsed < minver_dict[detected_major_minor]:
+                    pytest.skip(f"Detected version {detected_version}is lower "
+                                f"than minimal version {minver_dict[detected_major_minor]}")
+            comparison = [detected_parsed >= x for x in minver_dict.values()]
+            if not any(comparison):
+                pytest.skip(f"Detected version {detected_version}is lower than any minimal version.")
+
+        if max_versions:
+            maxver_dict = {}
+            for maxver in max_versions:
+                splits = maxver.split(".")
+                maxver_dict[splits[0] + '.' + splits[1]] = version.parse(maxver)
+            # We are comparing the first versions where major + minor matches.
+            if detected_major_minor in max_versions:
+                if detected_parsed > maxver_dict[detected_major_minor]:
+                    pytest.skip(f"Detected version {detected_version}is higher "
+                                f"than maximal version {maxver_dict[detected_major_minor]}")
+            comparison = [detected_parsed < x for x in maxver_dict.values()]
+            if not any(comparison):
+                pytest.skip(f"Detected version {detected_version}is higher than any maximal version.")
 
 
 class LdapOperations(object):
