@@ -3448,7 +3448,8 @@ class TestADParamsPorted:
           3. Logs contain info about right port being used
              Logs do not contain wrong (default) port being used
         """
-
+        if sssdTools.skip_package_version(multihost.client[0], min_versions=["2.6.2-2"]):
+            pytest.skip("Incompatible version.")
         adjoin(membersw='adcli')
         ad_realm = multihost.ad[0].domainname.upper()
 
@@ -3569,6 +3570,8 @@ class TestADParamsPorted:
         :customerscenario: False
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1964121
         """
+        if sssdTools.skip_package_version(multihost.client[0], min_versions=["2.8.1-1"]):
+            pytest.skip("Incompatible version.")
         ad_domain = multihost.ad[0].domainname
         adjoin(membersw='adcli')
         # Create AD user and group
@@ -3637,7 +3640,8 @@ class TestADParamsPorted:
         # UPN of user entry and PAC do not match.
         # To validate the fix we are skipping the whole IPA part and
         # forcing sssd to use mismatched parameter for UPN instead.
-
+        if sssdTools.skip_package_version(multihost.client[0], min_versions=["2.7.3-4", "2.8.2-1"]):
+            pytest.skip("Incompatible version.")
         ad_domain = multihost.ad[0].domainname
         adjoin(membersw='adcli')
         # Create AD user and group
@@ -3722,7 +3726,8 @@ class TestADParamsPorted:
         # forcing sssd to use empty parameter for UPN instead.
         # SSSD should recognize missing/empty upn and skip the check
         # by default now.
-
+        if sssdTools.skip_package_version(multihost.client[0], min_versions=["2.7.3-4", "2.8.2-1"]):
+            pytest.skip("Incompatible version.")
         ad_domain = multihost.ad[0].domainname
         adjoin(membersw='adcli')
         # Create AD user and group
@@ -3798,6 +3803,8 @@ class TestADParamsPorted:
         :customerscenario: True
         :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1913839
         """
+        if sssdTools.skip_package_version(multihost.client[0], min_versions=["2.9.0"]):
+            pytest.skip("Incompatible version.")
         adjoin(membersw='adcli')
         ad_realm = multihost.ad[0].domainname.upper()
         # Create AD user and group
