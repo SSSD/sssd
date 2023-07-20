@@ -29,6 +29,7 @@ class TestImplicitFilesProvider(object):
     Test the files provider. This test runs the implicit files provider
     together with another domain to stick close to what users use in Fedora
     """
+    @pytest.mark.converted('test_files.py', 'test_files__getent_does_not_handle_root')
     def test_files_does_not_handle_root(self, multihost):
         """
         :title: files: files provider does not handle root
@@ -39,6 +40,7 @@ class TestImplicitFilesProvider(object):
         exit_status, _ = get_sss_user(multihost, 'root')
         assert exit_status == 2
 
+    @pytest.mark.converted('test_files.py', 'test_files__simple_getent')
     def test_files_sanity(self, multihost):
         """
         :title: files: Test that the files provider can resolve a user
@@ -49,6 +51,7 @@ class TestImplicitFilesProvider(object):
         exit_status, _ = get_sss_user(multihost, 'lcl1')
         assert exit_status == 0
 
+    @pytest.mark.converted('test_files.py', 'test_files__enumeration')
     def test_files_enumeration(self, multihost):
         """
         :title: files: Verify files provider do not enumerate
@@ -62,6 +65,7 @@ class TestImplicitFilesProvider(object):
         cmd = multihost.master[0].run_command('getent passwd -s sss')
         assert len(cmd.stdout_text) == 0
 
+    @pytest.mark.converted('test_files.py', 'test_files__user_modify')
     def test_updated_homedir(self, multihost):
         """
         :title: files: Test that homedir is updated
