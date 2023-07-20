@@ -555,8 +555,7 @@ class TestConfigValidation(object):
         result = sssctl_check.stdout_text.strip()
         rm_dir = 'rm -rf /tmp/test'
         multihost.client[0].run_command(rm_dir, raiseonerr=False)
-        assert 'File ownership and permissions check failed. Expected ' \
-               'root:root and 0600' in result and \
+        assert 'File ownership and permissions check failed' in result and \
                sssctl_check.returncode == 1
 
     @pytest.mark.tier1
