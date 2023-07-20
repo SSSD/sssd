@@ -114,30 +114,13 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
                                  config_path,
                                  config_snippet_path);
 
-    if (ret == ERR_INI_OPEN_FAILED) {
-        PRINT("Failed to open %s\n", config_path);
+    if (ret != EOK) {
+        PRINT("Failed to read '%s': %s\n", config_path, sss_strerror(ret));
         goto done;
     }
 
     if (!sss_ini_exists(init_data)) {
         PRINT("File %1$s does not exist.\n", config_path);
-    }
-
-    if (ret == ERR_INI_INVALID_PERMISSION) {
-        PRINT("File ownership and permissions check failed. "
-              "Expected root:root and 0600.\n");
-        goto done;
-    }
-
-    if (ret == ERR_INI_PARSE_FAILED) {
-        PRINT("Failed to load configuration from %s.\n",
-              config_path);
-        goto done;
-    }
-
-    if (ret == ERR_INI_ADD_SNIPPETS_FAILED) {
-        PRINT("Error while reading configuration directory.\n");
-        goto done;
     }
 
     /* Used snippet files */
