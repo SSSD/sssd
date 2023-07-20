@@ -1027,8 +1027,7 @@ class sssdTools(object):
             min_versions: list = None,
             max_versions: list = None,
             package: str = "sssd",
-            skip_missing: bool = True,
-            fail_missing: bool = False
+            skip_missing: bool = True
         ):
         """ Skip test if the package version is not between min_versions and max_versions
 
@@ -1041,30 +1040,34 @@ class sssdTools(object):
         Max versions work in similar way.
 
         When neither min_version and max_version is defined it can be also used to check
-        if the package is present and skip/fail if it is not.
+        if the package is present and skip if it is not.
 
         @param multihost_host: multihost fixture specific host for example multihost.client[0]
         @param min_versions: list of minimal versions that has the fix implemented
         @param max_versions: list of maximal versions where the test is valid
         @param package: package name to be searched via rpm
         @param skip_missing: skip the test if package is not installed
-        @param fail_missing: fail the test if package is not installed
+        @return: bool if the test should be skipped
         """
-        pkg = multihost_host.run_command(f"rpm -q {package}", raiseonerr=False).stdout_text
+        pkg = multihost_host.run_command(
+            f'rpm -q {package} --qf="%{{version}}-%{{release}}"',
+            raiseonerr=False
+        ).stdout_text
         if package not in pkg:
-            if fail_missing:
-                pytest.fail(f"Package {package} is not installed, failing the test.")
             if skip_missing:
-                pytest.skip(f"Package {package} is not installed, skipping the test.")
-            return
+                print(f"Package {package} is not installed, skipping the test.")
+                return True
+            return False
         if not min_versions and not max_versions:
             # No minimal and maximal version requirement just used for checking package presence
-            return
+            print("No minimal or maximal version defined, continuing execution.")
+            return False
 
         searched = re.search(r'[0-9]+\.[0-9]+\.[0-9]*-[0-9]+', pkg)
         if not searched:
-            # TODO: Log the version does not match the expected format.
-            return
+            print(f"Detected version pof package {pkg} "
+                  f"does not match the expected format!")
+            return False
 
         detected_version = searched[0]
         detected_version_splits = detected_version.split(".")
@@ -1082,11 +1085,15 @@ class sssdTools(object):
             # be considered bigger than 2.7.2
             if detected_major_minor in min_versions:
                 if detected_parsed < minver_dict[detected_major_minor]:
-                    pytest.skip(f"Detected version {detected_version}is lower "
-                                f"than minimal version {minver_dict[detected_major_minor]}")
+                    print(f"Detected version {detected_version} is lower "
+                          f"than minimal version {minver_dict[detected_major_minor]}")
+                    return True
+
             comparison = [detected_parsed >= x for x in minver_dict.values()]
             if not any(comparison):
-                pytest.skip(f"Detected version {detected_version}is lower than any minimal version.")
+                print(f"Detected version {detected_version} "
+                      f"is lower than any minimal version.")
+                return True
 
         if max_versions:
             maxver_dict = {}
@@ -1096,11 +1103,15 @@ class sssdTools(object):
             # We are comparing the first versions where major + minor matches.
             if detected_major_minor in max_versions:
                 if detected_parsed > maxver_dict[detected_major_minor]:
-                    pytest.skip(f"Detected version {detected_version}is higher "
-                                f"than maximal version {maxver_dict[detected_major_minor]}")
+                    print(f"Detected version {detected_version} is higher "
+                          f"than maximal version {maxver_dict[detected_major_minor]}")
+                    return True
             comparison = [detected_parsed < x for x in maxver_dict.values()]
             if not any(comparison):
-                pytest.skip(f"Detected version {detected_version}is higher than any maximal version.")
+                print(f"Detected version {detected_version} "
+                      f"is higher than any maximal version.")
+                return True
+        return False
 
 
 class LdapOperations(object):
