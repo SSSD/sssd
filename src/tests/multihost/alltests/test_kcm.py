@@ -43,7 +43,6 @@ class TestKcm(object):
         start_time = time.time()
         multihost.client[0].run_command("kinit foo1 <&- & ")
         end_time = time.time()
-        client.logout()
         assert end_time - start_time >= 300
         grep_cmd = multihost.client[0].run_command("grep"
                                                    " 'Terminated"
