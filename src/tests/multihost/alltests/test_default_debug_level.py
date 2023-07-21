@@ -290,7 +290,7 @@ class TestDefaultDebugLevel(object):
                          'ldap_schema': 'rfc2307bis',
                          'ldap_group_object_class': "groupOfNames"}, action='update')
         tools.clear_sssd_cache()
-        time.sleep(3)
+        time.sleep(20)
         cmd = client.run_command("getent -s sss group").stdout_text
         for dn_dn in [f'uid=tempuser2,{ds_suffix}',
                       f'uid=tempuser3,{ds_suffix}',
