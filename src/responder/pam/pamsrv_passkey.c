@@ -438,6 +438,8 @@ void pam_forwarder_passkey_cb(struct tevent_req *req)
         goto done;
     }
 
+    preq->pd->passkey_local_done = true;
+
     DEBUG(SSSDBG_TRACE_FUNC, "passkey child finished with status [%d]\n", child_status);
     preq->pd->pam_status = PAM_SUCCESS;
     pam_reply(preq);

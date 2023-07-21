@@ -637,6 +637,9 @@ enum user_info_type {
                                         * specified length. */
 
     SSS_PAM_USER_INFO_PIN_LOCKED, /**< Tell the user that the PIN is locked */
+    SSS_PAM_USER_INFO_NO_KRB_TGT, /**< Tell the user that Kerberos local/offline
+                                       auth was performed, therefore no TGT
+                                       is granted */
 };
 /**
  * @}
