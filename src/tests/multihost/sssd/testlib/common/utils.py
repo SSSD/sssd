@@ -81,7 +81,7 @@ class sssdTools(object):
                'samba-winbind-clients autofs nfs-utils authconfig '\
                'authselect cifs-utils openldap-clients firewalld '\
                'tcpdump wireshark-cli expect rsyslog gcc gcc-c++ pam-devel '\
-               'tdb-tools libkcapi-hmaccalc strace iproute-tc'
+               'tdb-tools libkcapi-hmaccalc strace iproute-tc python3-libsss_nss_idmap '
         sssd_pkgs = 'sssd sssd-tools sssd-proxy sssd-winbind-idmap '\
                     'libsss_autofs sssd-kcm sssd-dbus'
         extra_pkg = ' nss-pam-ldapd krb5-pkinit'
