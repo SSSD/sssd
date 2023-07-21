@@ -68,6 +68,7 @@
 
 #define EXP_ACC_MSG _("Permission denied. ")
 #define SRV_MSG     _("Server message: ")
+#define PASSKEY_LOCAL_AUTH_MSG      _("Kerberos TGT will not be granted upon login, user experience will be affected.")
 #define PASSKEY_DEFAULT_PIN_MSG     _("Enter PIN:")
 
 #define DEBUG_MGS_LEN 1024
@@ -736,6 +737,24 @@ static int user_info_pin_locked(pam_handle_t *pamh)
     return PAM_SUCCESS;
 }
 
+static int user_info_no_krb_tgt(pam_handle_t *pamh)
+{
+    int ret;
+
+    ret = do_pam_conversation(pamh, PAM_TEXT_INFO,
+                              _("No Kerberos TGT granted as "
+                                "the server does not support this method. "
+                                "Your single-sign on(SSO) experience will "
+                                "be affected."),
+                              NULL, NULL);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return PAM_SYSTEM_ERR;
+    }
+
+    return PAM_SUCCESS;
+}
+
 static int user_info_account_expired(pam_handle_t *pamh, size_t buflen,
                                      uint8_t *buf)
 {
@@ -888,6 +907,9 @@ static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
             break;
         case SSS_PAM_USER_INFO_ACCOUNT_EXPIRED:
             ret = user_info_account_expired(pamh, buflen, buf);
+            break;
+        case SSS_PAM_USER_INFO_NO_KRB_TGT:
+            ret = user_info_no_krb_tgt(pamh);
             break;
         default:
             D(("Unknown user info type [%d]", type));
@@ -1846,6 +1868,12 @@ static int prompt_passkey(pam_handle_t *pamh, struct pam_items *pi,
     }
 
     kerberos_preauth = pi->passkey_key != NULL ? true : false;
+    if (!kerberos_preauth) {
+        m[msg_idx].msg_style = PAM_TEXT_INFO;
+        m[msg_idx].msg = PASSKEY_LOCAL_AUTH_MSG;
+        msg_idx++;
+    }
+
     if ((strcasecmp(pi->passkey_prompt_pin, "false")) == 0) {
         prompt_pin = false;
     } else {

@@ -1623,6 +1623,18 @@ void pam_reply(struct pam_auth_req *preq)
         goto done;
     }
 
+    /* Passkey auth user notification if no TGT is granted */
+    if (pd->cmd == SSS_PAM_AUTHENTICATE &&
+        pd->pam_status == PAM_SUCCESS &&
+        preq->pd->passkey_local_done) {
+            user_info_type = SSS_PAM_USER_INFO_NO_KRB_TGT;
+            pam_add_response(pd, SSS_PAM_USER_INFO,
+            sizeof(uint32_t), (const uint8_t *) &user_info_type);
+            DEBUG(SSSDBG_IMPORTANT_INFO,
+                  "User [%s] logged in with local passkey authentication, single "
+                  "sign on ticket is not obtained.\n", pd->user);
+    }
+
     /* Account expiration warning is printed for sshd. If pam_verbosity
      * is equal or above PAM_VERBOSITY_INFO then all services are informed
      * about account expiration.

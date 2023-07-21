@@ -74,6 +74,7 @@ struct pam_data {
 #ifdef USE_KEYRING
     key_serial_t key_serial;
 #endif
+    bool passkey_local_done;
 };
 
 /**
