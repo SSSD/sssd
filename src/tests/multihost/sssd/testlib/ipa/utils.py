@@ -17,7 +17,7 @@ class ipaTools(object):
 
     def install_common_pkgs(self):
         """ Install common required packages """
-        pkgs = 'ldb-tools tcpdump wireshark-cli expect'
+        pkgs = 'ldb-tools tcpdump wireshark-cli expect python3-libsss_nss_idmap'
         if '8.' in self.multihost.distro:
             enable_idm1 = "dnf -y module reset idm"
             self.multihost.run_command(enable_idm1)
