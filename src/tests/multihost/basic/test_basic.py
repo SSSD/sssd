@@ -6,6 +6,7 @@
 :upstream: yes
 :status: approved
 """
+import pytest
 import time
 import configparser as ConfigParser
 from sssd.testlib.common.utils import sssdTools
@@ -13,6 +14,7 @@ from sssd.testlib.common.utils import sssdTools
 
 class TestSanitySSSD(object):
     """ Basic Sanity Test cases """
+    @pytest.mark.converted('test_authentication.py', 'test_authentication__login')
     @staticmethod
     def test_ssh_user_login(multihost):
         """
@@ -23,6 +25,7 @@ class TestSanitySSSD(object):
         ssh0 = client.auth_from_client("foo1", 'Secret123') == 3
         assert ssh0, "Authentication Failed as user foo1"
 
+    @pytest.mark.converted('test_kcm.py', 'test_kcm__simple_kinit')
     @staticmethod
     def test_kinit(multihost):
         """
@@ -39,6 +42,7 @@ class TestSanitySSSD(object):
             f'su - {user} -c "klist"', raiseonerr=False)
         assert cmd2.returncode == 0, "klist failed!"
 
+    @pytest.mark.converted('test_authentication.py', 'test_authentication__offline_login')
     @staticmethod
     def test_offline_ssh_login(multihost):
         """
