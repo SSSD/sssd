@@ -9,6 +9,7 @@ from __future__ import annotations
 import time
 
 import pytest
+from pytest_mh.ssh import SSHProcessError
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.kdc import KDC
 from sssd_test_framework.topology import KnownTopology
@@ -363,3 +364,40 @@ def test_kcm__tgt_renewal(client: Client, kdc: KDC):
             (renew_start, _) = krb.list_tgt_times(kdc.realm)
 
             assert init_start < renew_start
+
+
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__simple_kinit(client: Client, kdc: KDC):
+    """
+    :title: kinit is successfull after user login
+    :setup:
+        1. Add 'user1' to kdc and set its password
+        2. Add 'user1' to local and set its password
+        3. Configure Kerberos to allow KCM tests
+    :steps:
+        1. Authenticate user with ssh
+        2. Authenticate to kerberos
+        3. Call "kinit" with correct password
+        4. Call "kinit" with wrong password
+        5. Call "klist"
+    :expectedresults:
+        1. User is authenticated
+        2. User is authenticated
+        3. Call is successful
+        4. Call is not successful
+        5. Call is successful
+    :customerscenario: False
+    """
+    username = "user1"
+    password = "Secret123"
+
+    kdc.principal(username).add(password=password)
+    client.local.user(username).add(password=password)
+    client.sssd.common.kcm(kdc)
+
+    with client.ssh(username, password) as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            assert krb.kinit(username, password=password).rc == 0, "Kinit with correct password failed"
+            with pytest.raises(SSHProcessError):
+                krb.kinit(username, password="wrong")
+            assert krb.klist().rc == 0, "Klist failed"
