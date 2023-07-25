@@ -1203,7 +1203,7 @@ def test_memory_cache__invalidate_group_after_stop(client: Client, provider: Gen
         1. Group is found
         2. Group has correct id
         3. Group has correct name
-        6. SSSD is stopped
+        4. SSSD is stopped
         5. Cache is invalidated
         6. Group is not found
     :customerscenario: False
