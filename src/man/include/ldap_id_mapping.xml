@@ -234,7 +234,7 @@ ldap_schema = ad
                         <para>
                             When this option is configured, domains will be
                             allocated starting with slice zero and increasing
-                            monatomically with each additional domain.
+                            monotonically with each additional domain.
                         </para>
                         <para>
                             NOTE: This algorithm is non-deterministic (it
